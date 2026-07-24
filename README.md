@@ -58,7 +58,7 @@ Three capabilities are prioritized from the start to enable this vision:
 
 A core architectural feature is the **Trustless Verification and Data Generation System**. All evaluation data (stress and benchmark) is generated procedurally at runtime using an open generator seeded by public, unpredictable information. This keeps the data fresh and hidden while remaining fully auditable. Benchmark data quality is proven through scientific justification of the generator and validation against high-fidelity reference solvers.
 
-Miners can submit a strategy at any time with zero local training required — the validator will always perform full training and hidden adversarial evaluation. Optional low-friction local tools (Estimation Mode and Light Training) are available to help miners arrive at stronger submissions. Local loops use different data and stress conditions than the validator's hidden set. Miner training loop is an enhancement, not a requirement.
+Miners can submit a strategy at any time with zero local training required — the validator will always perform full training and hidden adversarial evaluation. Optional low-friction local tools (Estimation Mode and Light Training) are available to help miners arrive at stronger submissions. Local loops use different data and stress conditions than the validator's hidden set. Miner training is an enhancement, not a requirement.
 
 ### Validator Workflow
 
@@ -78,7 +78,7 @@ The MCP layer supports multiple modes so both human miners and autonomous agents
 - **Simulated / Cached Approximation**: For very early prototyping.
 
 - **Light Training + Gated Evaluation** (recommended test mode): Reduced training budget followed by held-out evaluation + hidden stress testing + **full physics gates**. Produces a real test score quickly. Does not affect the official leaderboard but is logged and can contribute (with lower weight) to the Landscape Agent.
-  
+
 - **Full Production Submission**: Strategy submitted to validators for complete training + full adversarial stress testing. Only these submissions can set new best combined scores and earn strong emissions weight.
 
 Additional capabilities include:
@@ -87,8 +87,6 @@ Additional capabilities include:
 - **Pareto / Multi-Objective Reporting** in test mode (optional) to surface interesting trade-offs.
 
 All runs remain fully deterministic. Test modes are rate-limited and clearly separated from production submissions. This combination enables fast, high-signal iteration without compromising the subnet's adversarial integrity or incentive alignment.
-
----
 
 **Why These Design Choices Matter**:
 - They dramatically increase iteration speed for both humans and autonomous agents.
@@ -129,6 +127,7 @@ All runs remain fully deterministic. Test modes are rate-limited and clearly sep
 │  └─ Treasury for unclaimed allocations                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
 ## How the Engine Works — Clear Mechanism Walkthrough
 
 ### 1. Participation via MCP (Agent-Friendly with Built-in Testing Loop)
@@ -137,32 +136,32 @@ Miners and agents interact through MCP, which supports persistent sessions, stre
 ### 2. Challenges by Phase
 
 - **Phase 0**: 7 core single-physics PDE challenges (Poisson, Darcy, Burgers, Navier-Stokes laminar, Heat, Elasticity, Thermo-elasticity).
-  
-- **Phase 1A**: Compressible Flow (Months 4-8)
+
+- **Phase 1A**: Compressible Flow (Months 4–8)
   Bridges academic PDEs to weapon-relevant physics:
   - **NACA 0012 Transonic Flutter** — Shock-boundary layer interaction, flutter onset (NASA TP-2001-211214)
   - **NASA CRM Wing-Body** — Transonic separation, buffet (DPW)
-  
-- **Phase 1B**: Reacting Flow + Sequential FSI (Months 8-14)
+
+- **Phase 1B**: Reacting Flow + Sequential FSI (Months 8–14)
   Adds reacting flow, sequential FSI, 6-DOF, and conjugate heat transfer:
   - **HIFiRE-1 Scramjet Forebody** — Hypersonic boundary layer transition (AFRL)
   - **Turek/Hron FSI 3D (Sequential)** — Fluid-structure interaction (one-way)
   - **Store Separation (6-DOF)** — Moving boundaries, dynamic mesh
   - **Turbine Blade Heat Transfer** — Conjugate heat transfer, film cooling
-  
-- **Phase 2A**: Customization & Intelligence (Months 14-22)
+
+- **Phase 2A**: Customization & Intelligence (Months 14–22)
   Adds LoRA adapters, custom datasets (Abaqus ODB), and ModelingToolkit.jl structured losses.
-  
-- **Phase 2B**: Air-Gap + Coupling Prep (Months 22-28)
+
+- **Phase 2B**: Air-Gap + Coupling Prep (Months 22–28)
   Adds air-gapped miner toolkit/validator, preCICE sidecar architecture, and sequential multi-physics ladder.
-  
-- **Phase 3**: Multi-Physics Coupling (Months 28-40)
+
+- **Phase 3**: Multi-Physics Coupling (Months 28–40)
   Verified multi-physics benchmarks with preCICE composition:
   - FSI (Turek/Hron 3D) — NS + Nonlinear Elasticity (preCICE implicit)
   - CHT (Conjugate Heat Transfer) — NS + Heat (preCICE explicit)
   - Thermo-Elasticity 3D — NS + Heat + Elasticity (preCICE multi-field)
-  
-- **Phase 4**: Production (Months 40-52)
+
+- **Phase 4**: Production (Months 40–52)
   3D multi-physics with turbulence:
   - 3D FSI + Turbulence, 3D CHT + Turbulence, 3D Thermo-Elasticity + Turbulence
   - Hypersonic 6-DOF — Reacting NS + 6-DOF + Ablation
@@ -173,11 +172,12 @@ Every submission goes through a rigorous, hidden validation process powered by t
 - **Benchmarking**: Performance on procedurally generated held-out data (accuracy component).
 - **Hidden Stress Testing**: Adversarial evaluation under fresh, hidden conditions generated at runtime.
 - **Physics Gates**: Hard gates (e.g., mass conservation, energy dissipation/stability, boundary satisfaction, rollout stability, UQ calibration, adjoint consistency, shock capture, species conservation, chemistry UQ, interface continuity, momentum/energy conservation, coupling convergence, vorticity preservation, boundary layer resolution, turbulence spectra, separation prediction, ablation recession) that zero the score on critical violations.
-- **Multi-Objective Scoring (45/30/25)**: 
+- **Multi-Objective Scoring (45/30/25)**:
   - Physics Fidelity (45%): Residuals, conservation laws, boundary conditions, stability.
   - Robustness (30%): Performance under hidden stress, long-term rollout, generalization.
   - Accuracy (25%): Benchmark/hold-out performance.
- Only strategies that set a new best *combined score* on a challenge receive meaningful weight.
+
+Only strategies that set a new best *combined score* on a challenge receive meaningful weight.
 
 This combination ensures surrogates are not just accurate on known data but genuinely robust and physically trustworthy under unseen conditions.
 
@@ -248,15 +248,17 @@ The broader industry is moving rapidly toward **Software Defined Machines** and 
 ```
 
 - **NVIDIA** owns the compute engine and is increasingly providing open physics foundation models (Apollo, Cosmos). This is largely a demand generator for Carbon, not a direct competitor.
-  
+
 - **Dyad, Ansys, Siemens, and similar platforms** own the modeling tools, environments, and deployment infrastructure. They consume and orchestrate models but generally produce them centrally and self-verify.
-  
+
 - **Carbon** owns the decentralized, independently verified model-supply layer. It produces physics-informed surrogates through competitive network participation with trustless verification — something no single company can replicate at scale. This layer is currently the weakest and most structurally defensible part of the stack.
 
 Carbon's primary advantage is its ability to coordinate distributed discovery and independent verification at scale. Over time, it can also incorporate privacy-preserving signals from proprietary data using confidential computing and other techniques, but its core strength today lies in public and synthetic data regimes combined with strong collective intelligence.
 
 In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the decentralized, trustlessly verified supply of the models themselves.
+
 ---
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    MODEL LIFECYCLE                              │
@@ -285,7 +287,9 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
 ## Dual-Regime Model Supply (DoD/Regulated Markets)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  PUBLIC REGIME (Carbon Subnet)                                  │
@@ -308,46 +312,64 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 │  └─ Packages DI-SESS-82483 deliverable + ATO artifacts          │
 └─────────────────────────────────────────────────────────────────┘
 ```
-- Public Regime: Subnet mechanics, evidence generation, zero ITAR
-- Transfer Layer: Cross-domain solution, secure media, CDS
-- Classified Regime: Air-Gapped Miner Toolkit, fine-tuning loop, ITAR classification, DI-SESS-82483 packaging, ATO evidence
-- Prime Onboarding Checklist (clearance, facility, contract vehicle)
-- Evidence Package Schema (Model Card → DI-SESS-82483 manifest)
+
+- **Public Regime**: Subnet mechanics, evidence generation, zero ITAR
+- **Transfer Layer**: Cross-domain solution, secure media, CDS
+- **Classified Regime**: Air-Gapped Miner Toolkit, fine-tuning loop, ITAR classification, DI-SESS-82483 packaging, ATO evidence
+- **Prime Onboarding Checklist**: Clearance, facility, contract vehicle
+- **Evidence Package Schema**: Model Card → DI-SESS-82483 manifest
 
 ## Go-to-Market: Three Revenue Engines
 
 | Engine | Product | Price | Buyer | Timeline |
 |--------|---------|-------|-------|----------|
-| **Specialist Bank (Tier 1)** | 7→50 certified specialists (ONNX + Model Card + Gate Certs) | $10-50k/yr per model / $100-200k/yr bundle | Sim teams (Aero/Auto/Energy) | Month 3 |
-| **Sponsored Challenges (Tiers 2-4)** | Custom PDE/geometry challenges | T2: $150-300k (open)<br>T3: $400-800k (IP-licensed)<br>T4: $800k-2M+ (private/on-prem) | Primes, OEMs, Labs | Month 6-12 |
-| **DoD Subcontract (SBIR/BAA)** | Evidence Package for IV&V/ATO | Phase I: $250k (6mo)<br>Phase II: $1.5-2M (24mo) | Primes (Shield AI, Anduril, etc.) | Month 12-18 |
-| **Verification Gas/Registry** | Programmatic badge resolution, model card API | $0.001-0.01/query (USD-denominated, α-settled) | Tooling platforms (Dyad, Ansys, nTop, Rescale) | Month 12+ |
+| **Specialist Bank (Tier 1)** | 7→50 certified specialists (ONNX + Model Card + Gate Certs) | $10–50k/yr per model / $100–200k/yr bundle | Sim teams (Aero/Auto/Energy) | Month 3 |
+| **Sponsored Challenges (Tiers 2–4)** | Custom PDE/geometry challenges | T2: $150–300k (open)<br>T3: $400–800k (IP-licensed)<br>T4: $800k–2M+ (private/on-prem) | Primes, OEMs, Labs | Month 6–12 |
+| **DoD Subcontract (SBIR/BAA)** | Evidence Package for IV&V/ATO | Phase I: $250k (6mo)<br>Phase II: $1.5–2M (24mo) | Primes (Shield AI, Anduril, etc.) | Month 12–18 |
+| **Verification Gas/Registry** | Programmatic badge resolution, model card API | $0.001–0.01/query (USD-denominated, α-settled) | Tooling platforms (Dyad, Ansys, nTop, Rescale) | Month 12+ |
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [`SPEC.md`](./SPEC.md) | Core architecture, phases, scoring, incentives |
+| [`docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md) | Trustless procedural generation & verification |
+| [`appendices/JAX_Optimization.md`](./appendices/JAX_Optimization.md) | Validator-side JAX training optimizations (canonical) |
+| [`appendices/Data_Management.md`](./appendices/Data_Management.md) | Seed hierarchy, train/eval separation, stress data |
+| [`appendices/Implementation.md`](./appendices/Implementation.md) | Physics gates, Landscape Agent, Miner Toolkit, SciML |
+| [`appendices/Compute_Optimization.md`](./appendices/Compute_Optimization.md) | Compute efficiency strategy & prioritization |
+| [`appendices/Operations.md`](./appendices/Operations.md) | Deployment, K8s, monitoring, incident response |
+| [`docs/GTM.md`](./docs/GTM.md) | Go-to-market detail |
+| [`docs/FUTURE_DOMAINS.md`](./docs/FUTURE_DOMAINS.md) | Longer-horizon domain roadmap |
+
+---
 
 ## Current State
 
-**Phase 0** foundations (scoring, stress testing across all physics classes, determinism utilities, MCP basics, symbolic skeleton, full integration of stress into scoring, trustless data generation) are advancing rapidly. 
+**Phase 0** foundations are advancing: scoring, stress testing across physics classes, determinism utilities, MCP basics, symbolic skeleton, integration of stress into scoring, and trustless data generation.
 
-See `SPEC.md`, `TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`, `docs/FUTURE_DOMAINS.md`, and other docs in the repository for full technical details.
+Code package paths still use the transitional `hydrogen/` namespace while product naming and documentation are fully Carbon. See `SPEC.md` and the appendices above for full technical detail.
 
 ---
 
 ## Getting Started
+
 ```bash
-git clone https://github.com/jbequ5/Hydrogen.git
-cd Hydrogen
+git clone https://github.com/jbequ5/Carbon--Decentralized-Physics-AI.git
+cd Carbon--Decentralized-Physics-AI
 python neurons/validator.py --dry_run true   # Explore in dry-run mode
 ```
 
-See the `docs/` folder for detailed guides (including MCP/agent usage and validator configuration).
+See the `docs/` folder for agent usage, validator configuration, and design notes. Deep implementation detail lives in `appendices/`.
 
 ---
 
 ## Contributing
+
 We welcome contributions in stress testing, determinism, symbolic integration, MCP enhancements, multi-physics composition, and testing infrastructure.
 
 ---
 
 *Carbon is building the decentralized agentic infrastructure for trustworthy, compounding physical intelligence in engineering and science.*
-```
-
-Now let me generate the updated SPEC.md:
