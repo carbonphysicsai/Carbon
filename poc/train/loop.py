@@ -1,7 +1,8 @@
 """Budget-capped training loop for FNO-1d PoC.
 
-Preferred path: JAX + jax.grad over full FNO parameters.
-Fallback: NumPy finite-difference on lift/proj only (CPU CI / no jax).
+Preferred path: JAX + Adam over *all* FNO parameters (real training).
+Fallback: NumPy finite-difference on lift/proj only — PROTOCOL ONLY.
+  numpy_fd must never be used as evidence of train quality.
 
 Batch sampling is seeded so fixed init_seed → reproducible trajectories (T5).
 """
@@ -63,7 +64,7 @@ def _train_jax(
     init_seed: int,
     cfg: FNO1dConfig,
 ) -> Tuple[Dict[str, np.ndarray], FNO1dConfig, Dict[str, Any]]:
-    """Full-parameter SGD via jax.grad + global-norm clip."""
+    """Full-parameter Adam via jax.grad. This is the only train-quality path."""
     try:
         jax.config.update("jax_default_prng_impl", "threefry")
     except Exception:
@@ -75,6 +76,10 @@ def _train_jax(
     value_fn = jax.jit(loss_fn)
 
     lr = float(strategy["optim"]["lr"])
+    # Adam is more reliable than SGD for short FNO budgets
+    beta1 = 0.9
+    beta2 = 0.999
+    eps = 1e-8
     max_steps = int(strategy["budget"]["max_steps"])
     batch_size = int(strategy["budget"]["batch_size"])
     n = train_batch.u0.shape[0]
@@ -84,16 +89,21 @@ def _train_jax(
     uT_all = jnp.asarray(train_batch.uT)
     nu_all = jnp.asarray(train_batch.nu)
 
+    # Adam state
+    m = jax.tree_util.tree_map(jnp.zeros_like, params)
+    v = jax.tree_util.tree_map(jnp.zeros_like, params)
+
     rng = np.random.default_rng(int(init_seed) % (2**32))
     t0 = time.time()
+    first_loss = None
     last_loss = 0.0
     steps_run = 0
-
-    # Full-batch when dataset fits in one batch → stronger short-budget signal
     use_full = n <= batch_size
 
     for step in range(max_steps):
         steps_run = step + 1
+        t = step + 1  # Adam timestep (1-indexed)
+
         if use_full:
             idx = np.arange(n)
         else:
@@ -102,33 +112,58 @@ def _train_jax(
         uT = uT_all[idx]
         nu = nu_all[idx]
 
+        if first_loss is None:
+            first_loss = float(value_fn(params, u0, uT, nu))
+
         grads = grad_fn(params, u0, uT, nu)
+        grads = jax.tree_util.tree_map(
+            lambda g: jnp.nan_to_num(g, nan=0.0, posinf=0.0, neginf=0.0), grads
+        )
 
-        def _safe_update(p, g):
-            g = jnp.nan_to_num(g, nan=0.0, posinf=0.0, neginf=0.0)
-            return p - lr * g
-
-        # Global norm clip in pytree
+        # Global norm clip
         leaves = jax.tree_util.tree_leaves(grads)
-        sq = sum(jnp.sum(jnp.nan_to_num(g) ** 2) for g in leaves)
+        sq = sum(jnp.sum(g**2) for g in leaves)
         norm = jnp.sqrt(sq) + 1e-12
         scale = jnp.minimum(1.0, clip / norm)
-        grads = jax.tree_util.tree_map(lambda g: jnp.nan_to_num(g) * scale, grads)
-        params = jax.tree_util.tree_map(_safe_update, params, grads)
+        grads = jax.tree_util.tree_map(lambda g: g * scale, grads)
+
+        # Adam update
+        m = jax.tree_util.tree_map(lambda mi, g: beta1 * mi + (1.0 - beta1) * g, m, grads)
+        v = jax.tree_util.tree_map(
+            lambda vi, g: beta2 * vi + (1.0 - beta2) * (g * g), v, grads
+        )
+        mhat = jax.tree_util.tree_map(lambda mi: mi / (1.0 - beta1**t), m)
+        vhat = jax.tree_util.tree_map(lambda vi: vi / (1.0 - beta2**t), v)
+        params = jax.tree_util.tree_map(
+            lambda p, mh, vh: p - lr * mh / (jnp.sqrt(vh) + eps), params, mhat, vhat
+        )
+
         last_loss = float(value_fn(params, u0, uT, nu))
 
         if time.time() - t0 > limits.get("max_wall_s", 600):
             break
+
+    if first_loss is None:
+        first_loss = last_loss
+
+    # Real learning signal: loss must drop materially
+    loss_ratio = (last_loss / first_loss) if first_loss > 1e-12 else 1.0
+    loss_improved = bool(last_loss < first_loss * 0.95)  # ≥5% drop
 
     wall_s = time.time() - t0
     device = "gpu" if any("gpu" in str(d).lower() for d in jax.devices()) else "cpu"
     info = {
         "steps": steps_run,
         "wall_s": wall_s,
-        "last_loss": last_loss,
+        "first_loss": float(first_loss),
+        "last_loss": float(last_loss),
+        "loss_ratio": float(loss_ratio),
+        "loss_improved": loss_improved,
+        "train_quality_claimable": loss_improved,  # only jax path can set True
         "device": device,
         "init_seed": int(init_seed),
         "backend": "jax",
+        "optimizer": "adam",
         "full_batch": use_full,
     }
     return params_to_numpy(params), cfg, info
@@ -141,7 +176,11 @@ def _train_numpy_fd(
     init_seed: int,
     cfg: FNO1dConfig,
 ) -> Tuple[Dict[str, np.ndarray], FNO1dConfig, Dict[str, Any]]:
-    """Fallback: FD grads on lift/proj only (no jax required)."""
+    """PROTOCOL-ONLY fallback. Does NOT claim train quality.
+
+    FD on lift/proj only — insufficient for Burgers FNO learning.
+    Use for schema/gates/card wiring tests when jax is absent.
+    """
     params = init_params(cfg, seed=init_seed)
     rng = np.random.default_rng(int(init_seed) % (2**32))
 
@@ -151,6 +190,7 @@ def _train_numpy_fd(
     loss_cfg = strategy["loss"]
     n = train_batch.u0.shape[0]
     t0 = time.time()
+    first_loss = None
     last_loss = 0.0
     eps = 1e-4
     train_keys = ["lift_w", "lift_b", "proj_w", "proj_b"]
@@ -169,6 +209,8 @@ def _train_numpy_fd(
 
         pred = forward(params, u0, cfg)
         loss, _ = unified_loss(pred, uT, u0, nu, loss_cfg)
+        if first_loss is None:
+            first_loss = loss
         last_loss = loss
 
         grads: Dict[str, np.ndarray] = {}
@@ -200,15 +242,24 @@ def _train_numpy_fd(
         if time.time() - t0 > limits.get("max_wall_s", 600):
             break
 
+    if first_loss is None:
+        first_loss = last_loss
+
     wall_s = time.time() - t0
     info = {
         "steps": steps_run,
         "wall_s": wall_s,
-        "last_loss": last_loss,
+        "first_loss": float(first_loss),
+        "last_loss": float(last_loss),
+        "loss_ratio": float(last_loss / first_loss) if first_loss > 1e-12 else 1.0,
+        "loss_improved": False,  # never claim on FD path
+        "train_quality_claimable": False,  # HARD RULE
         "device": "cpu",
         "init_seed": int(init_seed),
         "backend": "numpy_fd",
+        "optimizer": "fd_sgd_lift_proj_only",
         "full_batch": use_full,
+        "note": "PROTOCOL_ONLY — not train-quality evidence",
     }
     return params, cfg, info
 
@@ -220,7 +271,7 @@ def train(
     init_seed: int = 0,
     prefer_jax: bool = True,
 ) -> Tuple[Dict[str, np.ndarray], FNO1dConfig, Dict[str, Any]]:
-    """Train under strategy budget. JAX if available, else NumPy FD."""
+    """Train under strategy budget. JAX Adam if available, else NumPy FD protocol-only."""
     strategy = _clamp_strategy(dict(strategy), limits)
     cfg = FNO1dConfig(
         modes=int(strategy["backbone_cfg"]["modes"]),
