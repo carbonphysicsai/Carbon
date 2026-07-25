@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: docker/validator/Dockerfile
-    image: hydrogen-validator:latest
+    image: carbon-validator:latest
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
@@ -17,13 +17,13 @@ services:
     build:
       context: .
       dockerfile: docker/miner/Dockerfile
-    image: hydrogen-miner:latest
+    image: carbon-miner:latest
     volumes:
       - .:/app
     environment:
-      - HYDROGEN_HOTKEY=${HYDROGEN_HOTKEY:-}
-      - HYDROGEN_WALLET=${HYDROGEN_WALLET:-}
-      - HYDROGEN_API_KEY=${HYDROGEN_API_KEY:-}
+      - CARBON_HOTKEY=${CARBON_HOTKEY:-}
+      - CARBON_WALLET=${CARBON_WALLET:-}
+      - CARBON_API_KEY=${CARBON_API_KEY:-}
       - CHALLENGE_ID=${CHALLENGE_ID:-}
       - DRY_RUN=${DRY_RUN:-false}
       - ITERATIONS=${ITERATIONS:-8}
