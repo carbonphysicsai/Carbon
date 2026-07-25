@@ -1,22 +1,33 @@
-"""Burgers-1D data generator with stable IMEX Fourier reference solver.
+"""Burgers-1D procedural generator — trustless, publicly seeded.
 
-Roles: train | eval | stress — same code, different seeds and envelopes.
-Generator version: burgers1d_v0.3 (IMEX + dealias; was v0.2 RK4)
+Seed hierarchy (aligned with carbon.common.seeds):
+  master = hash(challenge_id ‖ block_hash ‖ run_nonce)
+  role streams: train / eval / stress are distinct splitmix streams
+
+Same code path for miner local loops and validator eval.
+Only the seed *inputs* differ (local nonce vs chain block_hash).
+
+Generator version: burgers1d_v0.4
 """
 
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Optional, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple
 
 import numpy as np
 import yaml
 
+from carbon.common.seeds import derive_master_seed, derive_role_seed, splitmix64
+
 Role = Literal["train", "eval", "stress"]
 
-GENERATOR_VERSION = "burgers1d_v0.3"
+GENERATOR_VERSION = "burgers1d_v0.4"
+
+# Fixed stream indices — never reorder without version bump
+_ROLE_STREAM = {"train": 10, "eval": 11, "stress": 12}
 
 
 def _repo_root() -> Path:
@@ -38,18 +49,47 @@ def load_challenge_config(fast: bool = False) -> dict:
     return cfg
 
 
-def role_seed(
-    challenge_id: str,
-    role: Role,
-    local_nonce: int | str = 0,
-    run_id: str = "",
-) -> int:
-    material = f"{challenge_id}|{role}|{local_nonce}|{run_id}"
-    return int(hashlib.sha256(material.encode()).hexdigest(), 16) % (2**63 - 1)
-
-
 def payload_hash(arr: np.ndarray) -> str:
     return hashlib.sha256(np.ascontiguousarray(arr).tobytes()).hexdigest()[:16]
+
+
+def resolve_role_seed(
+    role: Role,
+    *,
+    challenge_id: str,
+    block_hash: str = "local",
+    run_nonce: int | str = 0,
+    local_mode: bool = True,
+) -> Tuple[int, Dict[str, Any]]:
+    """Derive role seed + public provenance for the batch card.
+
+    local_mode=True  → derive_role_seed(challenge, role, nonce, run)  [miner loops]
+    local_mode=False → master from block_hash, then splitmix role stream [official]
+    """
+    if local_mode:
+        seed = derive_role_seed(challenge_id, role, run_nonce, str(block_hash))
+        prov = {
+            "mode": "local",
+            "challenge_id": challenge_id,
+            "role": role,
+            "run_nonce": run_nonce,
+            "block_hash": block_hash,
+            "formula": "sha256(challenge_id|role|run_nonce|block_hash)",
+        }
+    else:
+        master = derive_master_seed(challenge_id, block_hash, run_nonce)
+        seed = splitmix64(master, _ROLE_STREAM[role])
+        prov = {
+            "mode": "official",
+            "challenge_id": challenge_id,
+            "role": role,
+            "run_nonce": run_nonce,
+            "block_hash": block_hash,
+            "master_seed": master,
+            "stream": _ROLE_STREAM[role],
+            "formula": "splitmix64(master(challenge|block|nonce), role_stream)",
+        }
+    return seed, prov
 
 
 @dataclass
@@ -61,9 +101,17 @@ class BurgersBatch:
     seed: int
     role: str
     generator_version: str = GENERATOR_VERSION
+    provenance: Dict[str, Any] = field(default_factory=dict)
+    envelope: Dict[str, Any] = field(default_factory=dict)
 
     def hash(self) -> str:
         return payload_hash(self.uT)
+
+    def assert_finite(self) -> None:
+        if not (np.isfinite(self.u0).all() and np.isfinite(self.uT).all()):
+            raise RuntimeError(
+                f"non-finite procedural data role={self.role} seed={self.seed}"
+            )
 
 
 def _sample_ics(
@@ -89,10 +137,7 @@ def burgers_reference_solve(
     t_final: float,
     n_steps: int | None = None,
 ) -> np.ndarray:
-    """IMEX Fourier Burgers: explicit advection + implicit viscosity + 2/3 dealias.
-
-    ∂t u + u ∂x u = ν ∂xx u  on periodic [0,1].
-    """
+    """IMEX Fourier Burgers: explicit advection + implicit viscosity + 2/3 dealias."""
     nx = int(u0.shape[-1])
     k = 2 * np.pi * np.fft.fftfreq(nx, d=1.0 / nx)
     k2 = k**2
@@ -123,10 +168,27 @@ def generate_batch(
     run_id: str = "poc",
     fast: bool = False,
     n: Optional[int] = None,
+    *,
+    block_hash: str = "local",
+    local_mode: bool = True,
+    challenge_id: Optional[str] = None,
 ) -> BurgersBatch:
+    """Procedural batch for role ∈ {train, eval, stress}.
+
+    Official eval: pass block_hash=<chain hash>, local_mode=False.
+    Miner local loop: default local_mode=True, block_hash can be run_id tag.
+    """
     cfg = load_challenge_config(fast=fast)
-    challenge_id = cfg["challenge_id"]
-    seed = role_seed(challenge_id, role, local_nonce, run_id)
+    cid = challenge_id or cfg["challenge_id"]
+    # local_nonce maps to run_nonce; run_id kept as tag in provenance
+    seed, prov = resolve_role_seed(
+        role,
+        challenge_id=cid,
+        block_hash=block_hash if not local_mode else str(run_id),
+        run_nonce=local_nonce,
+        local_mode=local_mode,
+    )
+    prov["run_id"] = run_id
     rng = np.random.default_rng(seed)
 
     nx = int(cfg["domain"]["nx"])
@@ -146,7 +208,17 @@ def generate_batch(
     for i in range(n):
         uT[i] = burgers_reference_solve(u0[i], float(nu[i]), t_final)
 
-    return BurgersBatch(
+    envelope = {
+        "nx": nx,
+        "t_final": t_final,
+        "n": n,
+        "n_modes": n_modes,
+        "nu_range": [float(nu_lo), float(nu_hi)],
+        "coeff_bound": float(coeff_bound),
+        "role": role,
+    }
+
+    batch = BurgersBatch(
         u0=u0.astype(np.float32),
         uT=uT.astype(np.float32),
         nu=nu.astype(np.float32),
@@ -154,4 +226,8 @@ def generate_batch(
         seed=seed,
         role=role,
         generator_version=GENERATOR_VERSION,
+        provenance=prov,
+        envelope=envelope,
     )
+    batch.assert_finite()
+    return batch
