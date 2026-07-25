@@ -1,0 +1,14 @@
+max_steps: 5000
+max_batch_size: 64
+max_modes: 32
+max_width: 64
+max_layers: 6
+lr_min: 1.0e-5
+lr_max: 1.0e-2
+max_wall_s: 600
+
+# POC_FAST=1 CI profile
+fast:
+  max_steps: 50
+  max_batch_size: 16
+  max_wall_s: 120
