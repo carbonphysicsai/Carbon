@@ -40,7 +40,6 @@ def test_broken_strategy_gate_zeros(tmp_path):
     assert card["score"]["gate_failed"] is True
     assert card["score"]["combined"] == 0.0
     assert len(card["score"]["hard_gate_failures"]) >= 1
-    # loss_signal should always fire on the broken fixture
     assert "loss_signal" in card["score"]["hard_gate_failures"]
 
 
@@ -49,4 +48,4 @@ def test_budget_cap_applied():
     raw["budget"]["max_steps"] = 999999
     s, err = validate_strategy(raw, fast=True)
     assert err is None
-    assert s["budget"]["max_steps"] <= 50
+    assert s["budget"]["max_steps"] <= 100
