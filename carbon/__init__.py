@@ -2,4 +2,4 @@
 
 __version__ = "0.9.0"
 
-from . import challenges, physics, landscape
+# Submodules are imported lazily where needed so partial migration does not break import.
