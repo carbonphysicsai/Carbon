@@ -18,6 +18,15 @@ pip install -r poc/requirements.txt
 export PYTHONPATH=.
 ```
 
+### Train backends
+
+| Backend | When | What’s trained |
+|---------|------|----------------|
+| **JAX** (preferred) | `jax` importable | Full FNO params (spectral + local) via `jax.grad` |
+| **NumPy FD** (fallback) | no `jax` | Lift/proj only via finite differences (CI / offline) |
+
+Card `budget_used.backend` reports which path ran (`jax` | `numpy_fd`).
+
 ## Run
 
 ```bash
@@ -59,8 +68,8 @@ poc/
   configs/          challenge, gates, validator limits
   schema/           strategy_poc_v1.json
   generators/       Burgers-1D + reference solver
-  models/           FNO-1d
-  train/            losses + budget-capped loop
+  models/           fno1d.py (NumPy) + fno1d_jax.py
+  train/            losses + loop (JAX preferred, NumPy FD fallback)
   eval/             metrics, gates, score
   validator/        schema_check + run_once
   fixtures/         data_only / physics / broken
