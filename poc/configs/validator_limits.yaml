@@ -6,9 +6,11 @@ max_layers: 6
 lr_min: 1.0e-5
 lr_max: 1.0e-2
 max_wall_s: 600
+grad_clip: 1.0
 
-# POC_FAST=1 CI profile
+# POC_FAST=1 profile — short but enough for protocol smoke
 fast:
-  max_steps: 50
-  max_batch_size: 16
-  max_wall_s: 120
+  max_steps: 100
+  max_batch_size: 32
+  max_wall_s: 180
+  grad_clip: 1.0
