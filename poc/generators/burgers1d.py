@@ -1,7 +1,7 @@
 """Burgers-1D data generator with Fourier pseudo-spectral reference solver.
 
 Roles: train | eval | stress — same code, different seeds and envelopes.
-Generator version: burgers1d_v0.1
+Generator version: burgers1d_v0.2 (RK4 Fourier; was v0.1 ETD)
 """
 
 from __future__ import annotations
@@ -9,14 +9,14 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 import yaml
 
 Role = Literal["train", "eval", "stress"]
 
-GENERATOR_VERSION = "burgers1d_v0.1"
+GENERATOR_VERSION = "burgers1d_v0.2"
 
 
 def _repo_root() -> Path:
@@ -54,10 +54,10 @@ def payload_hash(arr: np.ndarray) -> str:
 
 @dataclass
 class BurgersBatch:
-    u0: np.ndarray       # (N, nx)
-    uT: np.ndarray       # (N, nx)
-    nu: np.ndarray       # (N,)
-    x: np.ndarray        # (nx,)
+    u0: np.ndarray  # (N, nx)
+    uT: np.ndarray  # (N, nx)
+    nu: np.ndarray  # (N,)
+    x: np.ndarray  # (nx,)
     seed: int
     role: str
     generator_version: str = GENERATOR_VERSION
@@ -72,7 +72,7 @@ def _sample_ics(
     nx: int,
     n_modes: int,
     coeff_bound: float,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray]:
     """Sum-of-sines ICs on [0,1] periodic grid."""
     x = np.linspace(0.0, 1.0, nx, endpoint=False)
     u0 = np.zeros((n, nx), dtype=np.float64)
@@ -90,37 +90,29 @@ def burgers_reference_solve(
     t_final: float,
     n_steps: int = 200,
 ) -> np.ndarray:
-    """Fourier pseudo-spectral ETDRK-style integration for 1D viscous Burgers.
+    """Fourier pseudo-spectral RK4 for 1D viscous Burgers (periodic).
 
-    Periodic domain assumed. Operates on a single 1D field (nx,).
+    ∂t u + u ∂x u = ν ∂xx u
     """
-    nx = u0.shape[-1]
+    nx = int(u0.shape[-1])
     k = 2 * np.pi * np.fft.fftfreq(nx, d=1.0 / nx)
-    k2 = k**2
-    dt = t_final / n_steps
+    dt = t_final / max(n_steps, 1)
+    u = np.asarray(u0, dtype=np.float64).copy()
 
-    u_hat = np.fft.fft(u0.astype(np.float64))
-    # Linear propagator for viscosity term
-    L = -nu * k2
-    # Avoid division by zero at k=0
-    E = np.exp(L * dt)
-    E2 = np.exp(L * dt / 2)
-
-    def N(uh):
-        u = np.fft.ifft(uh).real
-        ux = np.fft.ifft(1j * k * uh).real
-        return -np.fft.fft(u * ux)
+    def rhs(field: np.ndarray) -> np.ndarray:
+        u_hat = np.fft.fft(field)
+        ux = np.fft.ifft(1j * k * u_hat).real
+        uxx = np.fft.ifft(-(k**2) * u_hat).real
+        return -field * ux + nu * uxx
 
     for _ in range(n_steps):
-        # 2nd-order exponential time differencing (ETD2RK-ish)
-        a = N(u_hat)
-        u_a = E2 * u_hat + (E2 - 1) / (L + 1e-16) * a
-        u_a[0] = u_hat[0] + dt / 2 * a[0]  # k=0 special
-        b = N(u_a)
-        u_hat = E * u_hat + (E - 1) / (L + 1e-16) * b
-        u_hat[0] = u_hat[0]  # mean evolves via nonlinear (should stay ~const)
+        k1 = rhs(u)
+        k2 = rhs(u + 0.5 * dt * k1)
+        k3 = rhs(u + 0.5 * dt * k2)
+        k4 = rhs(u + dt * k3)
+        u = u + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
-    return np.fft.ifft(u_hat).real
+    return u
 
 
 def generate_batch(
@@ -149,7 +141,7 @@ def generate_batch(
     nu = rng.uniform(nu_lo, nu_hi, size=n)
 
     uT = np.zeros_like(u0)
-    n_steps = 80 if fast else 200
+    n_steps = 100 if fast else 250
     for i in range(n):
         uT[i] = burgers_reference_solve(u0[i], float(nu[i]), t_final, n_steps=n_steps)
 
