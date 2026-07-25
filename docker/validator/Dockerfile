@@ -1,4 +1,4 @@
-# Multi-backend Validator Image for Hydrogen
+# Multi-backend Validator Image for Carbon
 # Supports both PhysicsNeMo and NeuralOperator backbones
 
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
@@ -40,10 +40,10 @@ RUN pip3 install docker
 # Create app directory
 WORKDIR /app
 
-# Copy Hydrogen code
+# Copy Carbon code
 COPY . /app
 
-# Install Hydrogen in editable mode
+# Install Carbon in editable mode
 RUN pip3 install -e .
 
 # Default command
