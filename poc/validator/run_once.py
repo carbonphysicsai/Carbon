@@ -24,13 +24,12 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from poc.generators.burgers1d import GENERATOR_VERSION, generate_batch
-from poc.models.fno1d import forward
 from poc.train.loop import train
 from poc.eval.metrics import evaluate
 from poc.eval.gates import run_gates
 from poc.eval.score import score_run
 from poc.validator.schema_check import load_limits, load_strategy_file
-from carbon.common.model_card import build_model_card, write_model_card, strategy_hash
+from carbon.common.model_card import build_model_card, write_model_card
 
 
 def run_once(
@@ -56,7 +55,7 @@ def run_once(
     eval_batch = generate_batch("eval", local_nonce, run_id, fast=fast)
     stress_batch = generate_batch("stress", local_nonce, run_id, fast=fast)
 
-    # --- Train ---
+    # --- Train (JAX if available, else NumPy FD) ---
     params, cfg, train_info = train(
         strategy, train_batch, limits, init_seed=local_nonce
     )
@@ -64,12 +63,9 @@ def run_once(
     # --- Eval + stress ---
     eval_m = evaluate(params, cfg, eval_batch)
     stress_m = evaluate(params, cfg, stress_batch)
-    # Drop large arrays before card
     eval_metrics = {k: v for k, v in eval_m.items() if k != "pred"}
     stress_metrics = {k: v for k, v in stress_m.items() if k != "pred"}
 
-    # --- Gates (fp32 / float64 diagnostics already) ---
-    # Use eval residual/conservation for gate inputs; finite from both
     gate_inputs = {
         "finite_ok": float(
             eval_metrics.get("finite_ok", 1.0) * stress_metrics.get("finite_ok", 1.0)
@@ -90,6 +86,20 @@ def run_once(
         "local_nonce": local_nonce,
         "run_id": run_id,
     }
+
+    backend = train_info.get("backend", "unknown")
+    software = {
+        "python": platform.python_version(),
+        "numpy": np.__version__,
+        "device": train_info.get("device", "cpu"),
+        "backend": backend,
+    }
+    try:
+        import jax
+
+        software["jax"] = jax.__version__
+    except ImportError:
+        pass
 
     card = build_model_card(
         challenge_id=strategy["challenge_id"],
@@ -115,32 +125,34 @@ def run_once(
             "steps": train_info["steps"],
             "wall_s": train_info["wall_s"],
             "last_loss": train_info["last_loss"],
+            "backend": backend,
         },
         generator_version=GENERATOR_VERSION,
-        software={
-            "python": platform.python_version(),
-            "numpy": np.__version__,
-            "device": train_info.get("device", "cpu"),
-        },
+        software=software,
         extra={"strategy_path": str(strategy_path)},
     )
-    # Align card_id with uuid for PoC
     card["card_id"] = card.get("card_id") or str(uuid.uuid4())
 
     path = write_model_card(card, artifacts_dir)
-    print(json.dumps({
-        "card_path": str(path),
-        "combined": score["combined"],
-        "gate_failed": score["gate_failed"],
-        "failures": score["hard_gate_failures"],
-        "eval_rel_l2": eval_metrics.get("rel_l2"),
-        "steps": train_info["steps"],
-        "seeds": {
-            "train": seeds["train"],
-            "eval": seeds["eval"],
-            "stress": seeds["stress"],
-        },
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "card_path": str(path),
+                "combined": score["combined"],
+                "gate_failed": score["gate_failed"],
+                "failures": score["hard_gate_failures"],
+                "eval_rel_l2": eval_metrics.get("rel_l2"),
+                "steps": train_info["steps"],
+                "backend": backend,
+                "seeds": {
+                    "train": seeds["train"],
+                    "eval": seeds["eval"],
+                    "stress": seeds["stress"],
+                },
+            },
+            indent=2,
+        )
+    )
     return card
 
 
