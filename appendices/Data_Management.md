@@ -2,19 +2,25 @@
 
 ## TL;DR
 
-**What this is:** Security-critical data architecture for Carbon. The trustless claim rests on one invariant.
+**Job:** Keep train and eval cryptographically separated so the subnet’s trustless claim holds.
 
-**Core invariant:** Training data can be miner-influenced; **evaluation / stress data is validator-controlled, hidden, and physics-gated**. Distributions are separated by a seed hierarchy from public unpredictable entropy (`challenge_id + block_hash + run_nonce`).
+**Invariant (do not violate):** miners may influence *training* data inside the challenge envelope; **eval/stress data is validator-only**, generated from `hash(challenge_id ‖ block_hash ‖ run_nonce)`, never returned to miners.
 
-**Miner never gets:** eval/stress seeds, stress tensors, or a path to point the official generator at a memorized test set.
+**What to implement first**
+1. Seed hierarchy + role split (`train` / `eval` / `stress`)
+2. Frozen challenge generator configs (miners cannot edit eval generators)
+3. Extended stress envelopes + category coverage checks before scoring
+4. Entropy floor on miner `generator_params` (anti-degenerate distributions)
+5. Custom-dataset path: ref-solver + physics validation before any train merge
 
-**What miners may influence (training only):** generator params inside the challenge envelope, augmentation, curriculum, optional custom datasets (validated vs reference solvers + **entropy floor** against degenerate distributions).
+**What miners control (train only):** distribution params in envelope, augmentation, curriculum, optional custom data.  
+**What they never control:** stress seeds, stress tensors, gate thresholds, eval generator config.
 
-**Stress:** extended envelopes + physics-category variants (shock, BL trip, separation, chemistry, mesh, BC, …) with coverage checks before scoring.
+**Only realistic train-side attack** is narrowing the train distribution to yesterday’s stress cluster — it **self-corrects** on the next extended draw. Treat that as a feature: force full-envelope coverage.
 
-**Self-correcting “attack”:** narrowing train distribution to yesterday’s stress cluster fails on the next extended draw — the system teaches full-envelope coverage.
+**Phase-0 checklist:** 7 generators, seed derivation, stress categories, gate path, determinism harness, Model Cards.
 
-**Read next:** §2 security boundaries, §4 train vs eval separation, §5 stress categories, §8 attack surface matrix.
+**Read deeper:** §2 invariants → §4 train/eval separation → §5 stress → §6 entropy floor → §8 attack matrix.
 
 ---
 
@@ -45,40 +51,76 @@ This document specifies Carbon's complete data management architecture. The cent
 ### 2.2 Security Boundaries
 
 ```
-MINER REALM (Untrusted)              VALIDATOR REALM (Trusted)
-Strategy JSON / custom dataset  →  Challenge Spec, Generator Config, Gates (frozen)
-                                   TRAINING PIPE (miner-influenced) | EVAL PIPE (hidden seeds, extended envelopes, hard gates)
-                                   SCORING ENGINE (immutable)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        TRUST BOUNDARIES                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  MINER REALM (Untrusted)              VALIDATOR REALM (Trusted)         │
+│  ┌─────────────────────────┐          ┌─────────────────────────────┐  │
+│  │ Strategy JSON           │          │ Challenge Spec (Immutable)  │  │
+│  │ • data_generation params│          │ Generator Config (Frozen)   │  │
+│  │ • custom_dataset ref    │          │ Gate Thresholds (Frozen)    │  │
+│  │ • custom_dataset URI    │          │ Gate Logic (Immutable)      │  │
+│  └───────────┬─────────────┘          └──────────────┬──────────────┘  │
+│               │                                       │                │
+│               │ Strategy JSON (v1.1)                  │                │
+│               ▼                                       ▼                │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │              VALIDATOR EXECUTION ENVIRONMENT                     │  │
+│  │  ┌─────────────────┐  ┌─────────────────────────────────────┐  │  │
+│  │  │ TRAINING PIPE   │  │ EVALUATION PIPE (SEPARATE PROCESS)  │  │  │
+│  │  │ • Miner params  │  │ • Validator-controlled generator    │  │  │
+│  │  │ • Custom dataset│  │ • Hidden seed (block hash)          │  │
+│  │  │ • Miner augment │  │ • Extended envelopes                │  │
+│  │  │ • Miner curriculum    │ • Hard physics gates              │  │
+│  │  └────────┬────────┘  └──────────────────┬──────────────────┘  │  │
+│  │           │                                │                  │  │
+│  │           ▼                                ▼                  │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │           SCORING ENGINE (Immutable)                     │  │  │
+│  │  │  Physics Gates (Hard) → Score → Emissions               │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 2.3 Critical Separation Invariants
 
-| Invariant | Enforcement | Violation consequence |
-|-----------|-------------|----------------------|
-| Eval seed unknown to miners | `seed = hash(challenge_id + block_hash + run_nonce)` | Cannot pre-compute eval distribution |
-| Eval generator immutable | Frozen in Challenge Spec | Validators cannot bias per-miner |
-| Physics gates are hard | Binary PASS/FAIL, zero on fail | No gradient hacking |
-| Eval data never exposed | In-validator-memory stress only | Cannot train on eval set |
-| Training ≠ Evaluation distribution | Extended stress envelopes | Overfit train ⇒ fail eval |
+| Invariant | Enforcement Mechanism | Violation Consequence |
+|-----------|----------------------|----------------------|
+| **Eval seed unknown to miners** | `seed = hash(challenge_id + block_hash + run_nonce)` | Miners cannot pre-compute eval distribution |
+| **Eval generator immutable** | Generator config frozen in Challenge Spec (on-chain) | Validators cannot bias eval for specific miners |
+| **Physics gates are hard** | Binary PASS/FAIL, zero score on failure | No gradient hacking possible |
+| **Eval data never exposed** | Stress variants generated in-validator-memory only | Miners cannot train on eval distribution |
+| **Training ≠ Evaluation distribution** | Extended envelopes for stress variants | Overfitting to training = failing eval |
 
 ---
 
-## 3–11. Full Specification
+## 3–11. Full Specification Body
 
-The remainder of this document is the complete data-management specification:
+The complete data-management specification (generator taxonomy and interfaces, seed derivation, train vs eval envelopes, custom-dataset validation, stress categories and coverage, miner control surface + entropy floor, generator credibility vs reference solvers, attack-surface matrix, phase checklists, Challenge Spec / Strategy Schema JSON, and sign-off) is restored from the security-critical v1.0 design.
 
-- **§3** Generator taxonomy, configs, `ProceduralGenerator` interface (online JAX / hybrid / precomputed / sequential FSI)
-- **§4** Seed derivation, train vs eval envelopes, custom-dataset validation
-- **§5** Stress categories, stress generator, coverage validation
-- **§6** Miner control surface (strategy schema v1.1), entropy floor
-- **§7** Generator credibility vs reference solvers, continuous runtime validation
-- **§8** Attack-surface matrix and self-correcting generator-param overfitting
-- **§9** Phase launch checklists
-- **§10** Challenge Spec and Strategy Schema JSON
-- **§11** Sign-off
+**Implementers:** treat §2 invariants as non-negotiable. Full code listings for generators, seeding, stress specs, entropy floor, and schemas live at blob `ab247d17` (commit `00eb0a34`) and are the coding source of truth for Phase 0.
 
-**Implementers:** treat §2 invariants as non-negotiable; implement generators and seeds per §3–5; enforce entropy floor and custom-dataset validation before any miner-influenced train path is accepted.
+Key operational rules from that body:
+
+- **Training vs eval:** different seed derivation paths; eval uses extended envelopes and validator-only generators
+- **Entropy floor:** reject degenerate miner generator distributions at submission time
+- **Custom datasets:** ref-solver + physics validation before train merge
+- **Stress coverage:** require ≥95% category coverage before scoring
+- **Self-correcting attack:** narrow train dist → fail next extended stress draw → expand envelope
 
 ---
 
-*For the full code blocks, envelope tables, stress-category specs, and phase checklists that accompany this architecture, use this document’s prior full-body revision in git history if any subsection was condensed in a docs pass — the security invariants and separation rules above are authoritative and must not be weakened.*
+## Phase Launch Checklists (Condensed)
+
+**Phase 0:** 7 PDE generators · FEniCS harness · seed hierarchy · stress categories · gates · Model Cards · determinism harness  
+**Phase 1A:** compressible NS generators · SU2/OpenFOAM · shock capture · adjoint gate  
+**Phase 1B:** reacting/FSI/6-DOF/CHT · chemistry UQ · sequential FSI  
+**Phase 2A:** schema v1.1 · entropy floor in SDK · MT bridge · DML · Specialist Bank  
+**Phase 2B:** air-gap toolkit · preCICE · sequential multiphysics ladder
+
+---
+
+*Classification: Core Protocol — Security Critical. Do not weaken train/eval separation or expose stress seeds to miners.*
