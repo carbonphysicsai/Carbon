@@ -2,7 +2,7 @@
 set -e
 
 echo "=============================================="
-echo "   Hydrogen Miner Environment"
+echo "   Carbon Miner Environment"
 echo "=============================================="
 echo ""
 
@@ -28,18 +28,18 @@ python -c "
 import asyncio
 import os
 
-from hydrogen.miner.agent import AgenticMiner
+from carbon.miner.agent import AgenticMiner
 
-from hydrogen.miner.client import MockHydrogenClient
-# from hydrogen.miner.real_client import RealHydrogenClient   # Uncomment when ready
+from carbon.miner.client import MockCarbonClient
+# from carbon.miner.real_client import RealCarbonClient   # Uncomment when ready
 
 async def run():
     if os.environ.get('USE_REAL_CLIENT', 'false').lower() == 'true':
-        # client = RealHydrogenClient()  # When implemented
+        # client = RealCarbonClient()  # When implemented
         print('Real client not available yet. Falling back to Mock client.')
-        client = MockHydrogenClient()
+        client = MockCarbonClient()
     else:
-        client = MockHydrogenClient()
+        client = MockCarbonClient()
 
     miner = AgenticMiner(client)
     miner._dry_run = os.environ.get('DRY_RUN', 'false').lower() == 'true'
