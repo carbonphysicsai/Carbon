@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -18,7 +18,11 @@ def load_gate_config() -> dict:
         return yaml.safe_load(f)["gates"]
 
 
-def run_gates(metrics: Dict[str, float], gate_cfg: dict | None = None) -> List[Dict[str, Any]]:
+def run_gates(
+    metrics: Dict[str, float],
+    gate_cfg: dict | None = None,
+    strategy: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
     cfg = gate_cfg or load_gate_config()
     results: List[Dict[str, Any]] = []
 
@@ -41,6 +45,31 @@ def run_gates(metrics: Dict[str, float], gate_cfg: dict | None = None) -> List[D
         val = float(metrics.get("residual_mean", 0.0))
         results.append(
             {"id": "residual_ceiling", "pass": val <= tau, "value": val, "tau": tau}
+        )
+
+    # accuracy ceiling (eval rel L2)
+    if cfg.get("accuracy_ceiling", {}).get("enabled", False):
+        tau = float(cfg["accuracy_ceiling"]["tau_rel_l2"])
+        val = float(metrics.get("eval_rel_l2", metrics.get("rel_l2", 1.0)))
+        results.append(
+            {"id": "accuracy_ceiling", "pass": val <= tau, "value": val, "tau": tau}
+        )
+
+    # at least one loss term enabled
+    if cfg.get("loss_signal", {}).get("enabled", False) and strategy is not None:
+        loss = strategy.get("loss") or {}
+        any_on = bool(
+            loss.get("data_mse", False)
+            or loss.get("physics_residual", False)
+            or loss.get("conservation_penalty", False)
+        )
+        results.append(
+            {
+                "id": "loss_signal",
+                "pass": any_on,
+                "value": float(any_on),
+                "tau": 1.0,
+            }
         )
 
     return results
