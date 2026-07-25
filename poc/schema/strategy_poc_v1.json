@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carbonsubnet.org/schemas/strategy/poc_v1.json",
+  "title": "Carbon PoC Strategy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "challenge_id", "backbone", "backbone_cfg", "loss", "optim", "budget"],
+  "properties": {
+    "schema_version": {"const": "poc_v1"},
+    "challenge_id": {"const": "burgers1d_v0"},
+    "backbone": {"const": "fno1d"},
+    "backbone_cfg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["modes", "width", "layers"],
+      "properties": {
+        "modes": {"type": "integer", "minimum": 1, "maximum": 32},
+        "width": {"type": "integer", "minimum": 4, "maximum": 64},
+        "layers": {"type": "integer", "minimum": 1, "maximum": 6}
+      }
+    },
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_mse", "physics_residual", "conservation_penalty"],
+      "properties": {
+        "data_mse": {"type": "boolean"},
+        "data_mse_weight": {"type": "number", "minimum": 0},
+        "physics_residual": {"type": "boolean"},
+        "physics_residual_weight": {"type": "number", "minimum": 0},
+        "conservation_penalty": {"type": "boolean"},
+        "conservation_penalty_weight": {"type": "number", "minimum": 0}
+      }
+    },
+    "optim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "lr"],
+      "properties": {
+        "name": {"type": "string", "enum": ["adam", "adamw"]},
+        "lr": {"type": "number", "minimum": 1e-6, "maximum": 1.0},
+        "weight_decay": {"type": "number", "minimum": 0}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_steps", "batch_size"],
+      "properties": {
+        "max_steps": {"type": "integer", "minimum": 1},
+        "batch_size": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}
