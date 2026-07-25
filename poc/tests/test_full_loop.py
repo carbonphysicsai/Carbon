@@ -27,7 +27,8 @@ def test_full_loop_writes_card(tmp_path):
     assert (tmp_path / f"{card['card_id']}.json").exists()
 
 
-def test_broken_strategy_gate_or_zero(tmp_path):
+def test_broken_strategy_gate_zeros(tmp_path):
+    """T4: all-loss-disabled + tiny model must fail hard gates → combined=0."""
     card = run_once(
         str(FIXTURES / "strategy_broken.json"),
         local_nonce=12,
@@ -35,12 +36,12 @@ def test_broken_strategy_gate_or_zero(tmp_path):
         artifacts_dir=tmp_path,
         fast=True,
     )
-    # Broken path: either gates fail or score is very low; card still written
-    assert "score" in card
-    # With no data_mse and tiny model, predictions are near-random → residual high
-    # Prefer gate_failed or combined near 0
-    assert card["score"]["combined"] >= 0.0
     assert (tmp_path / f"{card['card_id']}.json").exists()
+    assert card["score"]["gate_failed"] is True
+    assert card["score"]["combined"] == 0.0
+    assert len(card["score"]["hard_gate_failures"]) >= 1
+    # loss_signal should always fire on the broken fixture
+    assert "loss_signal" in card["score"]["hard_gate_failures"]
 
 
 def test_budget_cap_applied():
