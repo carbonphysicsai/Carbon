@@ -1,0 +1,20 @@
+# Hard gates for Burgers-1D PoC. Any fail → combined_score = 0.
+# Thresholds are conservative for a short-budget PoC; tighten in Phase 0.
+
+gates:
+  finite:
+    enabled: true
+    # no NaN/Inf in predictions
+
+  conservation:
+    enabled: true
+    # |mean(u_T) - mean(u_0)| ≤ tau (periodic mass proxy)
+    tau_mass: 0.05
+
+  residual_ceiling:
+    enabled: true
+    # mean |Burgers residual diagnostic| on predicted field
+    tau_residual: 5.0
+
+  boundary:
+    enabled: false  # periodic BC — no boundary gate
