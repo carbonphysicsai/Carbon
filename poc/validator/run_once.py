@@ -1,11 +1,6 @@
-"""Carbon PoC entry point: strategy handoff → procedural data → train → gates → card.
+"""Carbon PoC: handoff → seed bundle → procedural data → stress suite → train → gates → card.
 
-Exit codes:
-  0  completed (card written even if gate failed / score 0)
-  2  handoff / schema reject
-  3  internal error
-
-Submission rule: strategy JSON only. No weights, data, or seed overrides.
+Exit codes: 0 completed · 2 handoff reject · 3 internal error
 """
 
 from __future__ import annotations
@@ -25,13 +20,15 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from poc.generators.burgers1d import GENERATOR_VERSION, generate_batch
+from poc.generators.stress_categories import generate_stress_suite, coverage_ok
+from poc.generators.justification import justification_table
 from poc.train.loop import train
 from poc.eval.metrics import evaluate
 from poc.eval.gates import run_gates
 from poc.eval.score import score_run
 from poc.validator.handoff import accept_submission
 from carbon.common.model_card import build_model_card, write_model_card
-from carbon.common.seeds import splitmix64, derive_master_seed
+from carbon.common.seeds import build_seed_bundle, SEED_MAP_VERSION
 
 
 def run_once(
@@ -46,7 +43,6 @@ def run_once(
     if fast is None:
         fast = os.environ.get("POC_FAST", "0") == "1"
 
-    # --- Handoff: strategy-only acceptance ---
     envelope, err = accept_submission(
         strategy_path,
         block_hash=block_hash,
@@ -63,62 +59,103 @@ def run_once(
     artifacts_dir = Path(artifacts_dir or (_ROOT / "artifacts" / "model_cards"))
     ctx = envelope.seed_context
 
-    # --- Procedural data (validator-owned seeds) ---
-    gen_kw = dict(
-        local_nonce=local_nonce,
+    # --- SPEC §9 seed bundle ---
+    seed_bundle = build_seed_bundle(
+        ctx.challenge_id,
+        ctx.block_hash,
+        ctx.run_nonce,
+        local_mode=ctx.local_mode,
+    )
+    data_seed = int(seed_bundle["data_seed"])
+    eval_seed = int(seed_bundle["eval_seed"])
+    stress_seed = int(seed_bundle["stress_seed"])
+    init_seed = int(seed_bundle["init_seed"])
+
+    # Train / eval from role seeds (local) or pipeline (official)
+    train_batch = generate_batch(
+        "train",
+        local_nonce=data_seed if not ctx.local_mode else local_nonce,
         run_id=run_id,
         fast=fast,
         block_hash=ctx.block_hash,
         local_mode=ctx.local_mode,
         challenge_id=ctx.challenge_id,
     )
-    train_batch = generate_batch("train", **gen_kw)
-    eval_batch = generate_batch("eval", **gen_kw)
-    stress_batch = generate_batch("stress", **gen_kw)
+    eval_batch = generate_batch(
+        "eval",
+        local_nonce=eval_seed if not ctx.local_mode else local_nonce,
+        run_id=run_id,
+        fast=fast,
+        block_hash=ctx.block_hash,
+        local_mode=ctx.local_mode,
+        challenge_id=ctx.challenge_id,
+    )
 
-    # init seed from hierarchy (not miner-supplied)
-    if ctx.local_mode:
-        init_seed = int(local_nonce) % (2**31 - 1)
-    else:
-        master = derive_master_seed(ctx.challenge_id, ctx.block_hash, ctx.run_nonce)
-        init_seed = splitmix64(master, 2)  # init stream
+    # Stress category suite (validator-owned stress_seed)
+    stress_suite = generate_stress_suite(stress_seed, fast=fast)
+    cov_ok, cov_msg = coverage_ok(stress_suite)
 
     params, cfg, train_info = train(
         strategy, train_batch, limits, init_seed=init_seed
     )
 
     eval_m = evaluate(params, cfg, eval_batch)
-    stress_m = evaluate(params, cfg, stress_batch)
+    # Weighted stress metrics across categories
+    cat_rel: dict = {}
+    stress_finite = 1.0
+    for cat, batch in stress_suite.batches.items():
+        m = evaluate(params, cfg, batch)
+        cat_rel[cat] = m["rel_l2"]
+        stress_finite *= m.get("finite_ok", 1.0)
+    stress_rel = stress_suite.mean_rel_l2(cat_rel) if cat_rel else 1.0
+    # Use first category residual/conservation as physics stress probe
+    first_cat = next(iter(stress_suite.batches.values()), None)
+    if first_cat is not None:
+        sm0 = evaluate(params, cfg, first_cat)
+        stress_metrics = {
+            "rel_l2": stress_rel,
+            "residual_mean": sm0["residual_mean"],
+            "conservation_error": sm0["conservation_error"],
+            "finite_ok": stress_finite,
+            "per_category_rel_l2": cat_rel,
+        }
+    else:
+        stress_metrics = {"rel_l2": 1.0, "finite_ok": 0.0, "per_category_rel_l2": {}}
+
     eval_metrics = {k: v for k, v in eval_m.items() if k != "pred"}
-    stress_metrics = {k: v for k, v in stress_m.items() if k != "pred"}
 
     gate_inputs = {
-        "finite_ok": float(
-            eval_metrics.get("finite_ok", 1.0) * stress_metrics.get("finite_ok", 1.0)
-        ),
+        "finite_ok": float(eval_metrics.get("finite_ok", 1.0) * stress_metrics.get("finite_ok", 1.0)),
         "conservation_error": float(eval_metrics.get("conservation_error", 0.0)),
         "residual_mean": float(eval_metrics.get("residual_mean", 0.0)),
         "eval_rel_l2": float(eval_metrics.get("rel_l2", 1.0)),
         "rel_l2": float(eval_metrics.get("rel_l2", 1.0)),
     }
     gates = run_gates(gate_inputs, strategy=strategy)
-    score = score_run(eval_metrics, stress_metrics, gates)
+    score = score_run(
+        eval_metrics,
+        stress_metrics,
+        gates,
+        stress_coverage=stress_suite.coverage,
+    )
 
     seeds = {
+        "bundle": {k: v for k, v in seed_bundle.items() if not str(k).startswith("_")},
+        "seed_map_version": SEED_MAP_VERSION,
         "train": train_batch.seed,
         "eval": eval_batch.seed,
-        "stress": stress_batch.seed,
+        "stress": stress_seed,
+        "init_seed": init_seed,
         "train_hash": train_batch.hash(),
         "eval_hash": eval_batch.hash(),
-        "stress_hash": stress_batch.hash(),
-        "init_seed": init_seed,
+        "stress_payload_hashes": stress_suite.meta.get("payload_hashes", {}),
+        "stress_coverage": stress_suite.coverage,
+        "stress_categories": stress_suite.categories_present,
+        "coverage_msg": cov_msg,
         "local_nonce": local_nonce,
         "run_id": run_id,
         "block_hash": ctx.block_hash,
         "local_mode": ctx.local_mode,
-        "train_provenance": train_batch.provenance,
-        "eval_provenance": eval_batch.provenance,
-        "stress_provenance": stress_batch.provenance,
     }
 
     backend = train_info.get("backend", "unknown")
@@ -159,8 +196,10 @@ def run_once(
         metrics={
             "eval_rel_l2": eval_metrics.get("rel_l2", 0.0),
             "stress_rel_l2": stress_metrics.get("rel_l2", 0.0),
+            "stress_per_category": cat_rel,
             "residual_mean": eval_metrics.get("residual_mean", 0.0),
             "conservation_error": eval_metrics.get("conservation_error", 0.0),
+            "precision": eval_metrics.get("precision", "fp32"),
         },
         gates=gates,
         score={
@@ -170,6 +209,8 @@ def run_once(
             "combined": score["combined"],
             "gate_failed": score["gate_failed"],
             "hard_gate_failures": score["hard_gate_failures"],
+            "stress_coverage": score.get("stress_coverage"),
+            "coverage_fail": score.get("coverage_fail"),
         },
         budget_used=budget_used,
         generator_version=GENERATOR_VERSION,
@@ -178,6 +219,8 @@ def run_once(
             "strategy_path": str(strategy_path),
             "strategy_hash": envelope.strategy_hash,
             "handoff": envelope.to_public_dict(),
+            "justification_version": justification_table()["version"],
+            "stress_spec": stress_suite.spec_version,
         },
     )
     card["card_id"] = card.get("card_id") or str(uuid.uuid4())
@@ -192,19 +235,16 @@ def run_once(
                 "gate_failed": score["gate_failed"],
                 "failures": score["hard_gate_failures"],
                 "eval_rel_l2": eval_metrics.get("rel_l2"),
+                "stress_rel_l2": stress_metrics.get("rel_l2"),
+                "stress_coverage": stress_suite.coverage,
+                "stress_categories": stress_suite.categories_present,
                 "steps": train_info["steps"],
                 "backend": backend,
                 "first_loss": train_info.get("first_loss"),
                 "last_loss": train_info.get("last_loss"),
-                "loss_ratio": train_info.get("loss_ratio"),
                 "train_quality_claim": train_quality_claim,
-                "seeds": {
-                    "train": seeds["train"],
-                    "eval": seeds["eval"],
-                    "stress": seeds["stress"],
-                    "block_hash": ctx.block_hash,
-                    "local_mode": ctx.local_mode,
-                },
+                "seed_map_version": SEED_MAP_VERSION,
+                "precision": "fp32",
             },
             indent=2,
         )
@@ -212,11 +252,6 @@ def run_once(
     if backend == "numpy_fd":
         print(
             "NOTE: backend=numpy_fd is PROTOCOL_ONLY — not train-quality evidence.",
-            file=sys.stderr,
-        )
-    elif not train_quality_claim:
-        print(
-            "NOTE: train_quality_claim=false (loss did not drop ≥5%).",
             file=sys.stderr,
         )
     return card
@@ -227,14 +262,10 @@ def main(argv=None):
     p.add_argument("strategy", help="Path to strategy JSON (strategy-only handoff)")
     p.add_argument("--local-nonce", type=int, default=42)
     p.add_argument("--run-id", default="poc_run")
-    p.add_argument("--block-hash", default="local", help="Chain block hash (official eval)")
-    p.add_argument(
-        "--official",
-        action="store_true",
-        help="Official seed path (master from block_hash); default is local miner loop",
-    )
+    p.add_argument("--block-hash", default="local")
+    p.add_argument("--official", action="store_true")
     p.add_argument("--artifacts", default=None)
-    p.add_argument("--fast", action="store_true", help="CI fast profile")
+    p.add_argument("--fast", action="store_true")
     args = p.parse_args(argv)
 
     try:
