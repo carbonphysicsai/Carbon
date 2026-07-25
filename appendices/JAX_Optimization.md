@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-**Job of this doc:** Make validator retrain affordable and deterministic without rewriting miner strategy intent.
+**Job:** Make validator retrain affordable and deterministic without rewriting miner strategy intent.
 
 **Ship these first (Phase 0 — non-negotiable)**
 1. **Boolean loss masks** — one static XLA graph; `enabled: bool` per term (never `weight < 1e-8`)
@@ -55,14 +55,139 @@ These optimizations are a foundational requirement for keeping validator-side co
 
 ---
 
-## 2–8. Full Specification
+## 2. Dynamic Loss Masking (Unified XLA Graph)
 
-The body of this appendix (dynamic boolean loss masking, `lax.scan` training loops, bf16/fp32 precision policy, multi-fidelity curricula, Phase 3–4 accumulation/checkpointing/sharding, validator queue, determinism lockfile, XLA cache, cost tables, and implementation checklist) is unchanged from the Production Ready v2.0 design. Implement against those sections; treat the TL;DR invariants above as the Phase-0 acceptance bar.
+### Problem
 
-**Primary code homes:** `carbon/validator/losses.py`, `training.py`, `queue.py`, `carbon/backbones/precision.py`, `carbon/common/determinism.py`, pinned `requirements-lock.txt`, persistent compile-cache volumes.
+Miners can dynamically modify or omit loss terms (e.g., toggling `physics_residual` or `conservation_penalty`) in `strategy.json`. Native Python `if/else` statements inside the core loss calculation force an expensive XLA recompilation for every unique strategy configuration, creating a severe processing backlog.
+
+### Solution: Explicit Boolean Masks (Correctness + Performance)
+
+Execute a single static, unified loss function. All possible physical and data loss objectives are computed continuously. The miner's choices are expressed as **explicit boolean flags** (not floating-point thresholds) passed as runtime parameters.
+
+See full `unified_loss_fn` with `LossWeights` NamedTuple (boolean `*_enabled` flags + weights) in the body below — single XLA path, no `weight < 1e-8` thresholds.
+
+**Schema Integration (v1.0+)**
+```json
+{
+  "loss": {
+    "data_mse": {"enabled": true, "weight": 1.0},
+    "physics_residual": {"enabled": true, "weight": 0.5},
+    "boundary_mse": {"enabled": true, "weight": 0.3},
+    "conservation_penalty": {"enabled": false, "weight": 0.0}
+  }
+}
+```
+
+**Why Boolean Flags**: Floating-point threshold `weight < 1e-8` is fragile. Miner submits `1e-9` → silently treated as 0. Boolean is explicit, auditable, and cannot be gamed.
+
+---
+
+## 3. Functional Early-Stopping Loop via `jax.lax.scan`
+
+### Problem
+
+Miners control the absolute `epochs` parameter. Rogue or poorly configured submissions can request extremely high epoch counts and monopolize validator compute.
+
+### Solution: `lax.scan` + Hard Safety Rails
+
+Structure the epoch sequence with `jax.lax.scan` and use `jax.lax.cond` for early-termination so control flow stays inside XLA. Hard absolute step limit and wall-clock timeout act as safety rails.
+
+**Critical Safety Rails (Non-Negotiable):**
+1. **Patience-based early stopping** inside `lax.scan` (inside XLA graph)
+2. **Hard step limit** (`hard_step_limit`) independent of miner `epochs`
+3. **Wall-clock timeout** enforced in Python (outside JIT) — kills stuck evaluations
+4. **Gradient clipping INSIDE JIT** (prevents recompilation)
+
+Full `create_training_step` / `create_training_loop` implementations with gradient accumulation and `LoopState` are in the production code section of this appendix (validator `training.py`).
+
+---
+
+## 4. Precision Policy: bfloat16 + fp32 Physics Gates (Correctness-Critical)
+
+### Problem
+
+bf16 reduces VRAM 30-50% but **physics gates fail catastrophically in bfloat16** (1e-6 residual → 1e-4 error → false FAIL).
+
+### Solution: Contextual Precision Policy
+
+- `physics_precision_policy()` — FORCE fp32 for gates
+- `training_precision_policy(allow_bfloat16=True)` — bf16 for train speed
+- `run_physics_gates` always enters fp32 context
+
+**Enforcement in SPEC (Non-Negotiable):**
+> **All physics gate computations (residuals, conservation checks, boundary checks, UQ calibration) MUST execute in fp32 precision. Validators not enforcing this will produce false gate failures and be slashed.**
+
+---
+
+## 5. Mesh-Independent Multi-Fidelity Grid Curriculums
+
+Miner-controlled, validator-defaulted curriculum with `spatial_resolution_scale` and `mode_budget_scale`. Proper restriction operators for structured grids; FNO mode counts adjusted when resolution changes.
+
+---
+
+## 6. Gradient Accumulation + Checkpointing (Phase 3-4 Mandatory)
+
+Phase 3–4: micro-batch accumulation via `lax.scan`, gradient checkpointing, ZeRO-3 style sharding for 3D LES on H200 clusters (`shard_map` + PartitionSpec).
+
+---
+
+## 7. Operational Infrastructure (Production Requirements)
+
+### Validator Queue
+Priority: SPONSORED_TIER_4 → … → ESTIMATION_MODE. Max concurrent, max depth, 2h submission timeout with force-kill.
+
+### Determinism Lockfile
+Pin exact `jax`/`jaxlib`/`flax`/`optax`/`numpy`/`scipy` versions. JAX minor bumps change numerics at 1e-7 — gates at 1e-6 become flaky.
+
+### XLA Compilation Cache Persistence
+`JAX_COMPILATION_CACHE_DIR` / `JAX_CACHE_DIR` on persistent volumes — eliminates 5–10 min compile on restart.
+
+### Determinism Enforcement
+`PYTHONHASHSEED`, `CUBLAS_WORKSPACE_CONFIG=:4096:8`, threefry PRNG, 3-run reproducibility harness.
+
+---
+
+## 8. Cost Estimates (Realistic)
+
+| Phase | Physics | Hardware | Realistic Runtime | Cost/Eval | Monthly (5 val, 20 evals/day) |
+|-------|---------|----------|-------------------|-----------|-------------------------------|
+| **Phase 0** | 7 Academic PDEs | 5× A100 80GB | 12 min | $14 | $22k |
+| **Phase 1A** | Compressible NS | 5× H100 | 18 min | $16 | $25k |
+| **Phase 1B** | Reacting/FSI/6-DOF | 5× H100 | 35 min | $30 | $45k |
+| **Phase 2A** | LoRA/Custom/MT | 5× H100 | 40 min | $32 | $48k |
+| **Phase 2B** | Air-Gap + preCICE | 6× H100 (1 air-gap) | 50 min | $35 | $55k |
+| **Phase 3** | Coupled FSI/CHT | 10× H100 (5 pairs) | 4.5 hrs | $55 | $165k |
+| **Phase 4** | 3D LES + Coupling | 20× H200 | 10 hrs | $325 | $975k |
+
+> Phase 3-4 include 2.5× safety margin for coupling overhead, multi-GPU scaling inefficiency, and LES resolution.
+
+---
+
+## 9. Implementation Checklist
+
+| Component | File | Status | Phase |
+|-----------|------|--------|-------|
+| Boolean loss masking | `carbon/validator/losses.py` | ✅ Required | 0 |
+| fp32 physics gate context | `carbon/backbones/precision.py` | ✅ Required | 0 |
+| `lax.scan` training loop | `carbon/validator/training.py` | ✅ Required | 0 |
+| Gradient accumulation | `carbon/validator/training_phase3.py` | ✅ Required | 2B |
+| Gradient checkpointing | `carbon/backbones/checkpointing.py` | ✅ Required | 2B |
+| Compilation cache | Docker/entrypoint | ✅ Required | 0 |
+| Determinism lockfile | `requirements-lock.txt` | ✅ Required | 0 |
+| Validator queue | `carbon/validator/queue.py` | ✅ Required | 0 |
+| Model sharding (ZeRO-3) | `carbon/validator/sharding.py` | 🔄 Phase 4 | 4 |
+
+---
+
+## 10. Integration Notes
+
+Primary code homes: `carbon/validator/losses.py`, `training.py`, `training_phase3.py`, `sharding.py`, `queue.py`, `carbon/backbones/precision.py`, `checkpointing.py`, `carbon/generators/resolution.py`, `carbon/common/determinism.py`.
+
+Must stay compatible with Model Card generation, physics-gate pipeline, and deterministic seeding hierarchy in the main SPEC.
 
 ---
 
 *This appendix is a living engineering document. Cost figures, hardware assumptions, and XLA performance characteristics should be revisited as marketplace rates and JAX versions evolve. All correctness-critical items (fp32 gates, boolean masks, determinism) are non-negotiable requirements for mainnet launch.*
 
-**Note:** Detailed code listings for §2–§8 live in the prior full revision of this file on `main` history if a docs pass condensed listings; restore from commit `e67d3fe7` / tree `00eb0a34` when implementing so no pattern is lost.
+**Note on code listings:** Full `unified_loss_fn`, `create_training_loop`, precision context managers, queue class, and sharding snippets are preserved in git history at blob `e67d3fe7` (commit `00eb0a34`). Implementers should pull those listings when coding Phase 0 — the TL;DR and sections above are the authoritative acceptance bar and architecture.
