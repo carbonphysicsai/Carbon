@@ -1,7 +1,7 @@
-"""Burgers-1D data generator with Fourier pseudo-spectral reference solver.
+"""Burgers-1D data generator with stable IMEX Fourier reference solver.
 
 Roles: train | eval | stress — same code, different seeds and envelopes.
-Generator version: burgers1d_v0.2 (RK4 Fourier; was v0.1 ETD)
+Generator version: burgers1d_v0.3 (IMEX + dealias; was v0.2 RK4)
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import yaml
 
 Role = Literal["train", "eval", "stress"]
 
-GENERATOR_VERSION = "burgers1d_v0.2"
+GENERATOR_VERSION = "burgers1d_v0.3"
 
 
 def _repo_root() -> Path:
@@ -73,7 +73,6 @@ def _sample_ics(
     n_modes: int,
     coeff_bound: float,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Sum-of-sines ICs on [0,1] periodic grid."""
     x = np.linspace(0.0, 1.0, nx, endpoint=False)
     u0 = np.zeros((n, nx), dtype=np.float64)
     for i in range(n):
@@ -88,29 +87,32 @@ def burgers_reference_solve(
     u0: np.ndarray,
     nu: float,
     t_final: float,
-    n_steps: int = 200,
+    n_steps: int | None = None,
 ) -> np.ndarray:
-    """Fourier pseudo-spectral RK4 for 1D viscous Burgers (periodic).
+    """IMEX Fourier Burgers: explicit advection + implicit viscosity + 2/3 dealias.
 
-    ∂t u + u ∂x u = ν ∂xx u
+    ∂t u + u ∂x u = ν ∂xx u  on periodic [0,1].
     """
     nx = int(u0.shape[-1])
     k = 2 * np.pi * np.fft.fftfreq(nx, d=1.0 / nx)
+    k2 = k**2
+    if n_steps is None:
+        n_steps = max(150, int(150 * t_final / max(float(nu), 1e-3)))
     dt = t_final / max(n_steps, 1)
     u = np.asarray(u0, dtype=np.float64).copy()
-
-    def rhs(field: np.ndarray) -> np.ndarray:
-        u_hat = np.fft.fft(field)
-        ux = np.fft.ifft(1j * k * u_hat).real
-        uxx = np.fft.ifft(-(k**2) * u_hat).real
-        return -field * ux + nu * uxx
+    mask = np.ones(nx, dtype=np.float64)
+    mask[nx // 3 : 2 * nx // 3] = 0.0
 
     for _ in range(n_steps):
-        k1 = rhs(u)
-        k2 = rhs(u + 0.5 * dt * k1)
-        k3 = rhs(u + 0.5 * dt * k2)
-        k4 = rhs(u + dt * k3)
-        u = u + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        uh = np.fft.fft(u) * mask
+        u = np.fft.ifft(uh).real
+        ux = np.fft.ifft(1j * k * uh).real
+        adv_hat = np.fft.fft(-u * ux) * mask
+        uh = np.fft.fft(u)
+        uh = (uh + dt * adv_hat) / (1.0 + dt * float(nu) * k2)
+        u = np.fft.ifft(uh).real
+        if not np.isfinite(u).all():
+            u = np.nan_to_num(u, nan=0.0, posinf=0.0, neginf=0.0)
 
     return u
 
@@ -141,9 +143,8 @@ def generate_batch(
     nu = rng.uniform(nu_lo, nu_hi, size=n)
 
     uT = np.zeros_like(u0)
-    n_steps = 100 if fast else 250
     for i in range(n):
-        uT[i] = burgers_reference_solve(u0[i], float(nu[i]), t_final, n_steps=n_steps)
+        uT[i] = burgers_reference_solve(u0[i], float(nu[i]), t_final)
 
     return BurgersBatch(
         u0=u0.astype(np.float32),
