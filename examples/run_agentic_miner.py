@@ -1,7 +1,7 @@
 """Example: Running an Agentic Miner
 
 This script shows how an autonomous agent (LLM-based, evolutionary, RL, etc.)
-can participate in Hydrogen using the AgenticMiner + tool interface.
+can participate in Carbon using the AgenticMiner + tool interface.
 
 It demonstrates the full loop:
 - Get challenges
@@ -13,14 +13,14 @@ It demonstrates the full loop:
 
 import asyncio
 
-from hydrogen.miner.agent import AgenticMiner
-from hydrogen.miner.agent_tools import HydrogenMiningTools
+from carbon.miner.agent import AgenticMiner
+from carbon.miner.agent_tools import CarbonMiningTools
 
 
 async def main():
-    # In a real setup, you would initialize the HydrogenClient with your hotkey/wallet
-    # from hydrogen_miner import HydrogenClient
-    # client = HydrogenClient(hotkey="5F...")
+    # In a real setup, you would initialize the CarbonClient with your hotkey/wallet
+    # from carbon.miner.client import CarbonClient
+    # client = CarbonClient(hotkey="5F...")
 
     # For this example we use a mock or placeholder client
     # Replace this with a real client in production
@@ -51,7 +51,7 @@ async def main():
 
     client = MockClient()
     miner = AgenticMiner(client)
-    tools = HydrogenMiningTools(miner)
+    tools = CarbonMiningTools(miner)
 
     print("=== Starting Agentic Mining Loop ===\n")
 
