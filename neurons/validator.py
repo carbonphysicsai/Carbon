@@ -1,14 +1,14 @@
 # neurons/validator.py
 
 """
-Hydrogen Validator - Determinism fully integrated across evaluation.
+Carbon Validator - Determinism fully integrated across evaluation.
 """
 
 import time
 
 import bittensor as bt
 
-from neurons.scoring.hydrogen_scorer import HydrogenScorer
+from neurons.scoring.carbon_scorer import CarbonScorer
 from neurons.scoring.challenge_winner_tracker import ChallengeWinnerTracker
 from neurons.strategy.strategy_store import LocalFileStrategyStore
 
@@ -30,7 +30,7 @@ class Validator:
         self.wallet = bt.wallet(config)
         self.metagraph = bt.metagraph(netuid=config.netuid)
 
-        self.scorer = HydrogenScorer(config)
+        self.scorer = CarbonScorer(config)
         self.tracker = ChallengeWinnerTracker(decay_factor=0.85)
         self.strategy_store = LocalFileStrategyStore(
             storage_dir=getattr(config, "strategy_storage_dir", "./strategies")
@@ -44,7 +44,7 @@ class Validator:
         ]
         self.dry_run = getattr(config, "dry_run", False)
 
-        bt.logging.info(f"Hydrogen Validator initialized (Dry run: {self.dry_run})")
+        bt.logging.info(f"Carbon Validator initialized (Dry run: {self.dry_run})")
 
     def run(self):
         while True:
