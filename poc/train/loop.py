@@ -21,7 +21,7 @@ try:
     import jax
     import jax.numpy as jnp
 
-    from poc.models.fno1d_jax import init_params_jax, params_to_numpy, forward_jax
+    from poc.models.fno1d_jax import init_params_jax, params_to_numpy
     from poc.train.losses_jax import make_loss_fn
 
     JAX_AVAILABLE = True
@@ -47,6 +47,15 @@ def _clamp_strategy(strategy: dict, limits: dict) -> dict:
     return strategy
 
 
+def _clip_grads_numpy(grads: Dict[str, np.ndarray], max_norm: float = 1.0) -> Dict[str, np.ndarray]:
+    total = 0.0
+    for g in grads.values():
+        total += float(np.sum(g.astype(np.float64) ** 2))
+    norm = np.sqrt(total) + 1e-12
+    scale = min(1.0, max_norm / norm)
+    return {k: (v * scale).astype(v.dtype) for k, v in grads.items()}
+
+
 def _train_jax(
     strategy: dict,
     train_batch: BurgersBatch,
@@ -54,8 +63,7 @@ def _train_jax(
     init_seed: int,
     cfg: FNO1dConfig,
 ) -> Tuple[Dict[str, np.ndarray], FNO1dConfig, Dict[str, Any]]:
-    """Full-parameter SGD via jax.grad (all spectral + local weights)."""
-    # Determinism hooks (best-effort)
+    """Full-parameter SGD via jax.grad + global-norm clip."""
     try:
         jax.config.update("jax_default_prng_impl", "threefry")
     except Exception:
@@ -64,13 +72,13 @@ def _train_jax(
     params = init_params_jax(cfg, seed=init_seed)
     loss_fn = make_loss_fn(cfg, strategy["loss"])
     grad_fn = jax.jit(jax.grad(loss_fn))
-    # Also jit value for logging
     value_fn = jax.jit(loss_fn)
 
     lr = float(strategy["optim"]["lr"])
     max_steps = int(strategy["budget"]["max_steps"])
     batch_size = int(strategy["budget"]["batch_size"])
     n = train_batch.u0.shape[0]
+    clip = float(limits.get("grad_clip", 1.0))
 
     u0_all = jnp.asarray(train_batch.u0)
     uT_all = jnp.asarray(train_batch.uT)
@@ -81,15 +89,32 @@ def _train_jax(
     last_loss = 0.0
     steps_run = 0
 
+    # Full-batch when dataset fits in one batch → stronger short-budget signal
+    use_full = n <= batch_size
+
     for step in range(max_steps):
         steps_run = step + 1
-        idx = rng.integers(0, n, size=min(batch_size, n))
+        if use_full:
+            idx = np.arange(n)
+        else:
+            idx = rng.integers(0, n, size=batch_size)
         u0 = u0_all[idx]
         uT = uT_all[idx]
         nu = nu_all[idx]
 
         grads = grad_fn(params, u0, uT, nu)
-        params = jax.tree_util.tree_map(lambda p, g: p - lr * g, params, grads)
+
+        def _safe_update(p, g):
+            g = jnp.nan_to_num(g, nan=0.0, posinf=0.0, neginf=0.0)
+            return p - lr * g
+
+        # Global norm clip in pytree
+        leaves = jax.tree_util.tree_leaves(grads)
+        sq = sum(jnp.sum(jnp.nan_to_num(g) ** 2) for g in leaves)
+        norm = jnp.sqrt(sq) + 1e-12
+        scale = jnp.minimum(1.0, clip / norm)
+        grads = jax.tree_util.tree_map(lambda g: jnp.nan_to_num(g) * scale, grads)
+        params = jax.tree_util.tree_map(_safe_update, params, grads)
         last_loss = float(value_fn(params, u0, uT, nu))
 
         if time.time() - t0 > limits.get("max_wall_s", 600):
@@ -104,6 +129,7 @@ def _train_jax(
         "device": device,
         "init_seed": int(init_seed),
         "backend": "jax",
+        "full_batch": use_full,
     }
     return params_to_numpy(params), cfg, info
 
@@ -128,11 +154,15 @@ def _train_numpy_fd(
     last_loss = 0.0
     eps = 1e-4
     train_keys = ["lift_w", "lift_b", "proj_w", "proj_b"]
+    use_full = n <= batch_size
 
     steps_run = 0
     for step in range(max_steps):
         steps_run = step + 1
-        idx = rng.integers(0, n, size=min(batch_size, n))
+        if use_full:
+            idx = np.arange(n)
+        else:
+            idx = rng.integers(0, n, size=min(batch_size, n))
         u0 = train_batch.u0[idx]
         uT = train_batch.uT[idx]
         nu = train_batch.nu[idx]
@@ -141,11 +171,12 @@ def _train_numpy_fd(
         loss, _ = unified_loss(pred, uT, u0, nu, loss_cfg)
         last_loss = loss
 
+        grads: Dict[str, np.ndarray] = {}
         for key in train_keys:
             g = np.zeros_like(params[key])
             flat = params[key].ravel()
             g_flat = g.ravel()
-            n_coords = min(8, flat.size)
+            n_coords = min(16, flat.size)
             coords = np.linspace(0, flat.size - 1, n_coords, dtype=int)
             for c in coords:
                 orig = flat[c]
@@ -160,7 +191,11 @@ def _train_numpy_fd(
                 g_flat[c] = (loss_p - loss_m) / (2 * eps)
                 flat[c] = orig
                 params[key] = flat.reshape(params[key].shape)
-            params[key] = params[key] - lr * g
+            grads[key] = g
+
+        grads = _clip_grads_numpy(grads, max_norm=1.0)
+        for key in train_keys:
+            params[key] = params[key] - lr * grads[key]
 
         if time.time() - t0 > limits.get("max_wall_s", 600):
             break
@@ -173,6 +208,7 @@ def _train_numpy_fd(
         "device": "cpu",
         "init_seed": int(init_seed),
         "backend": "numpy_fd",
+        "full_batch": use_full,
     }
     return params, cfg, info
 
