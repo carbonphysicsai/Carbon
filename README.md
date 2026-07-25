@@ -188,7 +188,7 @@ Agents receive detailed scores, gate outcomes, and diagnostics. All results are 
 - Updates a compounding knowledge base and priors.
 - Drives specialist distillation and better future challenges.
 
-**Phasing**: PySR symbolic regression (Phase 0) → ModelingToolkit.jl bridge (Phase 1) → Double ML causal inference (Phase 2A) → Cross-domain causal mapping (Phase 2B). ModelingToolkit.jl bridge via JSON serialization first, JuliaCall later.
+**Phasing**: PySR symbolic regression (Phase 0) → ModelingToolkit.jl bridge (Phase 1) → Double ML causal inference (Phase 2A) → Cross-domain causal mapping (Phase 2B). ModelingToolkit.jl bridge via JSON serialization first, JuliaCall later. Full architecture and value-routing: [`appendices/Landscape_Agent.md`](./appendices/Landscape_Agent.md).
 
 This creates accelerating returns: better data → better insights → better strategies → even richer data. The Specialist Bank and knowledge base form a self-reinforcing flywheel and long-term moat.
 
@@ -338,7 +338,8 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 | [`docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md) | Trustless procedural generation & verification |
 | [`appendices/JAX_Optimization.md`](./appendices/JAX_Optimization.md) | Validator-side JAX training optimizations (canonical) |
 | [`appendices/Data_Management.md`](./appendices/Data_Management.md) | Seed hierarchy, train/eval separation, stress data |
-| [`appendices/Implementation.md`](./appendices/Implementation.md) | Physics gates, Landscape Agent, Miner Toolkit, SciML |
+| [`appendices/Landscape_Agent.md`](./appendices/Landscape_Agent.md) | Landscape value routing, architecture, phased build-out |
+| [`appendices/Implementation.md`](./appendices/Implementation.md) | Physics gates, Miner Toolkit, SciML, contracts, MCP |
 | [`appendices/Compute_Optimization.md`](./appendices/Compute_Optimization.md) | Compute efficiency strategy & prioritization |
 | [`appendices/Operations.md`](./appendices/Operations.md) | Deployment, K8s, monitoring, incident response |
 | [`docs/GTM.md`](./docs/GTM.md) | Go-to-market detail |
