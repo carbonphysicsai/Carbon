@@ -1,4 +1,4 @@
-"""Hydrogen Miner with Landscape prior integration.
+"""Carbon Miner with Landscape prior integration.
 
 Miners can now optionally load the latest published (noisy) priors
 from the Landscape to build stronger strategies.
@@ -11,14 +11,14 @@ import os
 import random
 import bittensor as bt
 
-from hydrogen.protocol import StrategySynapse
-from hydrogen.base.miner import BaseMinerNeuron
-from hydrogen.miner.strategy_generator import generate_strategy, get_local_validation_score
+from carbon.protocol import StrategySynapse
+from carbon.base.miner import BaseMinerNeuron
+from carbon.miner.strategy_generator import generate_strategy, get_local_validation_score
 
 
 class Miner(BaseMinerNeuron):
     """
-    Improved Hydrogen Miner that can use Landscape-published priors.
+    Improved Carbon Miner that can use Landscape-published priors.
     """
 
     def __init__(self, config=None):
@@ -26,7 +26,7 @@ class Miner(BaseMinerNeuron):
         self.local_validation_enabled = True
         self.use_landscape_priors = True
         self.published_priors_dir = "./data/published_priors"
-        bt.logging.info("Hydrogen Miner initialized with Landscape prior support.")
+        bt.logging.info("Carbon Miner initialized with Landscape prior support.")
 
     def _load_latest_priors(self, challenge_id: str, backbone: str = "PINO") -> dict:
         """Load the latest published (noisy) priors for this challenge."""
@@ -122,5 +122,5 @@ class Miner(BaseMinerNeuron):
 if __name__ == "__main__":
     with Miner() as miner:
         while True:
-            bt.logging.info("Hydrogen Miner running...")
+            bt.logging.info("Carbon Miner running...")
             time.sleep(10)
