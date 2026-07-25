@@ -1,5 +1,30 @@
 # IMPLEMENTATION.md — Carbon Physics Intelligence Subnet
 
+## TL;DR
+
+**What this is:** Engineering index for building Carbon components — gates, generators, validator pipeline, miner toolkit, MCP, genesis contracts, and the Julia/SciML ground-truth service.
+
+**Ownership rule:** Do not duplicate large designs here.
+
+| Concern | Canonical doc |
+|---------|----------------|
+| JAX train loop, bf16/fp32, queue, determinism | `JAX_Optimization.md` |
+| Seeds, train≠eval, stress, entropy floor | `Data_Management.md` |
+| Compute strategy / kernels | `Compute_Optimization.md` |
+| K8s, monitoring, incidents | `Operations.md` |
+| Landscape / specialists | `Landscape_Agent.md`, `Specialist_Bank.md` |
+| Gates, generators (high-level), MCP, SciML, miner toolkit | **This file** |
+
+**Critical invariants:** Physics gates in **fp32**; loss terms use **explicit boolean enables**; hard step/wall-clock limits independent of miner epochs; pinned lockfile + threefry determinism.
+
+**Validator path:** derive seeds → generate train data → JAX train from strategy → hidden stress → fp32 gates → optional SciML check → Model Card + score.
+
+**SciML role:** Julia service (DifferentialEquations / ModelingToolkit / SciMLSensitivity) for reference solves, adjoint consistency, symbolic losses — validators call via `SciMLClient`.
+
+**Read next if implementing:** ownership table below, §2 gates, §4 validator pipeline, §11–13 SciML.
+
+---
+
 **Version:** 3.1 (July 2026)  
 **Status:** Core Engineering Implementation Guide  
 **Audience:** Harshdeep Sharma (Tech Lead) + Engineering Team  
