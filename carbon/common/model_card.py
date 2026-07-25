@@ -1,7 +1,7 @@
 """Model Card — SPEC validator output + Landscape Agent D1 ingest contract.
 
 Every full evaluation must emit a card with strategy, seeds, gates, scores,
-and software provenance. Cards feed the Landscape Agent (appendices/Landscape_Agent.md).
+and software provenance.
 """
 
 from __future__ import annotations
@@ -57,12 +57,18 @@ def build_model_card(
     return card
 
 
+def _score_combined(score: Dict[str, Any]) -> float | None:
+    """Accept either PoC key 'combined' or SPEC key 'combined_score'."""
+    if "combined" in score:
+        return score.get("combined")
+    return score.get("combined_score")
+
+
 def write_model_card(card: Dict[str, Any], directory: str | Path) -> Path:
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"{card['card_id']}.json"
     path.write_text(json.dumps(card, indent=2, sort_keys=True))
-    # Append lightweight registry line
     registry = directory / "registry.jsonl"
     with registry.open("a") as f:
         f.write(
@@ -70,8 +76,9 @@ def write_model_card(card: Dict[str, Any], directory: str | Path) -> Path:
                 {
                     "card_id": card["card_id"],
                     "strategy_hash": card["strategy_hash"],
-                    "combined_score": card.get("score", {}).get("combined_score"),
+                    "combined_score": _score_combined(card.get("score") or {}),
                     "challenge_id": card["challenge_id"],
+                    "gate_failed": (card.get("score") or {}).get("gate_failed"),
                 }
             )
             + "\n"
