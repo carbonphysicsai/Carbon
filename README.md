@@ -294,17 +294,6 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 ┌─────────────────────────────────────────────────────────────────┐
 │  PUBLIC REGIME (Carbon Subnet)                                  │
 │  ├─ Discovers architectures on public/synthetic data            │
-│  ├─ Adversarial verification + physics gates                    │
-│  ├─ Outputs: Strategy.json + Model Card + ONNX + Evidence       │
-│  └─ Zero ITAR/controlled data                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    CROSS-DOMAIN SOLUTION / SECURE TRANSFER
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  CLASSIFIED REGIME (Prime Enclave IL5/IL6)                      │
-│  ├─ Ingests architecture blueprint (strategy.json)              │
 │  ├─ Fine-tunes on classified telemetry / proprietary geometry   │
 │  ├─ Deploys ONNX locally (HIL, edge, air-gapped)                │
 │  ├─ Runs inference LOCALLY — zero network calls                 │
@@ -355,7 +344,7 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 
 **Mechanism PoC (build target):** one PDE × one backbone vertical slice — Burgers-1D + FNO-1D — specified in [`appendices/POC_Burgers_FNO.md`](./appendices/POC_Burgers_FNO.md) (strategy → seeded data → train → gates → 45/30/25 → Model Card).
 
-Code package paths still use the transitional `hydrogen/` namespace while product naming and documentation are fully Carbon. See `SPEC.md` and the appendices above for full technical detail.
+Python package namespace is **`carbon/`** (`pip install -e .` installs the `carbon` package). See `SPEC.md` and the appendices above for full technical detail.
 
 ---
 
@@ -364,6 +353,7 @@ Code package paths still use the transitional `hydrogen/` namespace while produc
 ```bash
 git clone https://github.com/jbequ5/Carbon--Decentralized-Physics-AI.git
 cd Carbon--Decentralized-Physics-AI
+pip install -e .
 python neurons/validator.py --dry_run true   # Explore in dry-run mode
 ```
 
