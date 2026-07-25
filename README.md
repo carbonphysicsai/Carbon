@@ -336,6 +336,7 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 |----------|---------|
 | [`SPEC.md`](./SPEC.md) | Core architecture, phases, scoring, incentives |
 | [`docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md) | Trustless procedural generation & verification |
+| [`appendices/POC_Burgers_FNO.md`](./appendices/POC_Burgers_FNO.md) | **Build guide:** Burgers-1D × FNO-1D full-loop PoC |
 | [`appendices/JAX_Optimization.md`](./appendices/JAX_Optimization.md) | Validator-side JAX training optimizations (canonical) |
 | [`appendices/Data_Management.md`](./appendices/Data_Management.md) | Seed hierarchy, train/eval separation, stress data |
 | [`appendices/Landscape_Agent.md`](./appendices/Landscape_Agent.md) | Landscape value routing, architecture, phased build-out |
@@ -351,6 +352,8 @@ In short: NVIDIA owns the engine. Dyad and Ansys own the tools. Carbon owns the 
 ## Current State
 
 **Phase 0** foundations are advancing: scoring, stress testing across physics classes, determinism utilities, MCP basics, symbolic skeleton, integration of stress into scoring, and trustless data generation.
+
+**Mechanism PoC (build target):** one PDE × one backbone vertical slice — Burgers-1D + FNO-1D — specified in [`appendices/POC_Burgers_FNO.md`](./appendices/POC_Burgers_FNO.md) (strategy → seeded data → train → gates → 45/30/25 → Model Card).
 
 Code package paths still use the transitional `hydrogen/` namespace while product naming and documentation are fully Carbon. See `SPEC.md` and the appendices above for full technical detail.
 
