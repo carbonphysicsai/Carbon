@@ -1,4 +1,4 @@
-# User-friendly Docker image for Hydrogen miners and agentic miners
+# User-friendly Docker image for Carbon miners and agentic miners
 
 FROM python:3.11-slim
 
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Install Hydrogen
+# Install Carbon
 COPY pyproject.toml .
 RUN pip install --upgrade pip && pip install -e .
 
