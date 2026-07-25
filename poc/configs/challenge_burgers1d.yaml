@@ -1,6 +1,6 @@
 # Burgers-1D PoC challenge envelope — no magic numbers in code
 challenge_id: burgers1d_v0
-generator_version: burgers1d_v0.1
+generator_version: burgers1d_v0.2
 
 domain:
   x_min: 0.0
