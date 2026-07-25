@@ -4,6 +4,10 @@ Exit codes:
   0  completed (card written even if gate failed / score 0)
   2  schema reject
   3  internal error
+
+Train quality rule:
+  Only backend=jax AND loss_improved may set train_quality_claim=true.
+  numpy_fd is protocol-only and never claims learning.
 """
 
 from __future__ import annotations
@@ -86,6 +90,11 @@ def run_once(
     }
 
     backend = train_info.get("backend", "unknown")
+    # HARD RULE: only jax + measured loss drop may claim train quality
+    train_quality_claim = bool(
+        backend == "jax" and train_info.get("train_quality_claimable", False)
+    )
+
     software = {
         "python": platform.python_version(),
         "numpy": np.__version__,
@@ -98,6 +107,18 @@ def run_once(
         software["jax"] = jax.__version__
     except ImportError:
         pass
+
+    budget_used = {
+        "steps": train_info["steps"],
+        "wall_s": train_info["wall_s"],
+        "first_loss": train_info.get("first_loss"),
+        "last_loss": train_info.get("last_loss"),
+        "loss_ratio": train_info.get("loss_ratio"),
+        "loss_improved": train_info.get("loss_improved", False),
+        "train_quality_claim": train_quality_claim,
+        "backend": backend,
+        "optimizer": train_info.get("optimizer"),
+    }
 
     card = build_model_card(
         challenge_id=strategy["challenge_id"],
@@ -119,12 +140,7 @@ def run_once(
             "gate_failed": score["gate_failed"],
             "hard_gate_failures": score["hard_gate_failures"],
         },
-        budget_used={
-            "steps": train_info["steps"],
-            "wall_s": train_info["wall_s"],
-            "last_loss": train_info["last_loss"],
-            "backend": backend,
-        },
+        budget_used=budget_used,
         generator_version=GENERATOR_VERSION,
         software=software,
         extra={"strategy_path": str(strategy_path)},
@@ -142,6 +158,10 @@ def run_once(
                 "eval_rel_l2": eval_metrics.get("rel_l2"),
                 "steps": train_info["steps"],
                 "backend": backend,
+                "first_loss": train_info.get("first_loss"),
+                "last_loss": train_info.get("last_loss"),
+                "loss_ratio": train_info.get("loss_ratio"),
+                "train_quality_claim": train_quality_claim,
                 "seeds": {
                     "train": seeds["train"],
                     "eval": seeds["eval"],
@@ -151,6 +171,16 @@ def run_once(
             indent=2,
         )
     )
+    if backend == "numpy_fd":
+        print(
+            "NOTE: backend=numpy_fd is PROTOCOL_ONLY — not train-quality evidence.",
+            file=sys.stderr,
+        )
+    elif not train_quality_claim:
+        print(
+            "NOTE: train_quality_claim=false (loss did not drop ≥5%).",
+            file=sys.stderr,
+        )
     return card
 
 
