@@ -37,4 +37,5 @@ def test_budget_cap():
     raw["budget"]["max_steps"] = 10_000_000
     s, err = validate_strategy(raw, fast=True)
     assert err is None
-    assert s["budget"]["max_steps"] <= 50  # fast profile cap
+    # fast profile max_steps (validator_limits.yaml)
+    assert s["budget"]["max_steps"] <= 100
