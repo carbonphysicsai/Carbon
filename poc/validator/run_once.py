@@ -18,7 +18,6 @@ from pathlib import Path
 
 import numpy as np
 
-# Ensure repo root on path
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
@@ -50,17 +49,14 @@ def run_once(
     limits = load_limits(fast=fast)
     artifacts_dir = Path(artifacts_dir or (_ROOT / "artifacts" / "model_cards"))
 
-    # --- Data (role-separated seeds) ---
     train_batch = generate_batch("train", local_nonce, run_id, fast=fast)
     eval_batch = generate_batch("eval", local_nonce, run_id, fast=fast)
     stress_batch = generate_batch("stress", local_nonce, run_id, fast=fast)
 
-    # --- Train (JAX if available, else NumPy FD) ---
     params, cfg, train_info = train(
         strategy, train_batch, limits, init_seed=local_nonce
     )
 
-    # --- Eval + stress ---
     eval_m = evaluate(params, cfg, eval_batch)
     stress_m = evaluate(params, cfg, stress_batch)
     eval_metrics = {k: v for k, v in eval_m.items() if k != "pred"}
@@ -72,8 +68,10 @@ def run_once(
         ),
         "conservation_error": float(eval_metrics.get("conservation_error", 0.0)),
         "residual_mean": float(eval_metrics.get("residual_mean", 0.0)),
+        "eval_rel_l2": float(eval_metrics.get("rel_l2", 1.0)),
+        "rel_l2": float(eval_metrics.get("rel_l2", 1.0)),
     }
-    gates = run_gates(gate_inputs)
+    gates = run_gates(gate_inputs, strategy=strategy)
     score = score_run(eval_metrics, stress_metrics, gates)
 
     seeds = {
