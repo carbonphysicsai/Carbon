@@ -1,16 +1,16 @@
 # tests/test_scorer.py
 
 """
-Tests for HydrogenScorer multi-objective scoring.
+Tests for CarbonScorer multi-objective scoring.
 """
 
 import pytest
 
-from neurons.scoring.hydrogen_scorer import HydrogenScorer
+from neurons.scoring.carbon_scorer import CarbonScorer
 
 
 def test_weighted_combined_score():
-    scorer = HydrogenScorer()
+    scorer = CarbonScorer()
     # Simulate base metrics
     base = {
         "physics_fidelity": 0.9,
@@ -25,7 +25,7 @@ def test_weighted_combined_score():
 
 
 def test_score_strategy_without_stress():
-    scorer = HydrogenScorer()
+    scorer = CarbonScorer()
     result = scorer.score_strategy(model=None, base_metrics={"accuracy": 0.9})
     assert "combined_score" in result
     assert result["accuracy"] == 0.85  # default in compute_accuracy
