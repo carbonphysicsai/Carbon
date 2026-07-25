@@ -1,5 +1,23 @@
 # PoC Build Guide — Burgers-1D × FNO-1D Full Loop
 
+## TL;DR
+
+**What this is:** The build plan for Carbon’s smallest end-to-end proof — one PDE, one backbone, full validator loop.
+
+**The loop:** `strategy.json` → schema check → seeded train/eval/stress data → JAX retrain (FNO-1d) → metrics → hard physics gates → 45/30/25 score → Model Card on disk.
+
+**Choices:** 1D viscous Burgers; operator map IC → solution at final time; FNO-1d only; no chain, MCP, Landscape, or multi-challenge.
+
+**Why it matters:** Proves the mechanism (strategy in, not weights; train ≠ eval seeds; gates can zero score; card out) before scaling Phase 0.
+
+**Done when:** Acceptance tests T1–T7 pass (schema reject, seed separation, full loop, gate fail, reproducibility, strategy discrimination, budget cap).
+
+**Build order:** Milestone A data → B train → C protocol spine → D scoring → E harden. Do not expand scope until green.
+
+**Read next if implementing:** §5 schema, §13 repo layout, §15 tests, §16 milestones.
+
+---
+
 **Carbon Subnet**  
 **Version:** 1.0 (July 2026)  
 **Status:** Phase-0 proof-of-concept build specification  
