@@ -1,5 +1,38 @@
 # OPERATIONS.md — Carbon Subnet Operations & Deployment Guide
 
+## TL;DR
+
+**Job:** Run the subnet day-to-day without breaking determinism, gate integrity, or the SciML oracle.
+
+**What this document owns**
+- Validator fleet + miner toolkit Docker/K8s
+- Julia/SciML Ground Truth Oracle (port 8083) — reference solves, adjoints, symbolic losses
+- Queue, monitoring, alerts, incident response, backups
+- Capacity planning by phase
+
+**Non-negotiable ops rules**
+1. Physics gates always run in **fp32** (validators that skip this get false fails and should be treated as faulty)
+2. JAX determinism: pinned lockfile + `threefry` + persistent XLA compile cache volumes
+3. SciML Oracle is on the critical path — if it is down, validation is degraded; treat as SEV-1
+4. Train ≠ eval seeds; stress tensors never leave the validator process
+5. Hard step + wall-clock kills on every evaluation (ignore runaway miner `epochs`)
+
+**Daily operator loop**
+- Morning: pod health, SciML `/health`, queue depth, overnight submission count
+- Mid-day: GPU util / OOM, stuck submissions (>2 h), SciML latency
+- Evening: reward snapshot, queue trend, backup verification
+
+**Key services**
+| Service | Port | Failure impact |
+|---------|------|----------------|
+| Validator | 8080/8081 | No scoring |
+| SciML Oracle | 8083 | No reference/adjoint validation |
+| Queue processor | — | Backlog → latency |
+
+**Read deeper:** §1 architecture → §4 validator ops → §5 SciML ops → §8 incident response → runbooks at end.
+
+---
+
 **Version:** 3.0 (July 2026)  
 **Status:** Production Operations Manual  
 **Audience:** DevOps Engineers, Validator Operators, Platform Engineers, On-Call Engineers  
