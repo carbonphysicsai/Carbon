@@ -1,0 +1,27 @@
+{
+  "schema_version": "poc_v1",
+  "challenge_id": "burgers1d_v0",
+  "backbone": "fno1d",
+  "backbone_cfg": {
+    "modes": 16,
+    "width": 32,
+    "layers": 4
+  },
+  "loss": {
+    "data_mse": true,
+    "data_mse_weight": 1.0,
+    "physics_residual": false,
+    "physics_residual_weight": 0.0,
+    "conservation_penalty": false,
+    "conservation_penalty_weight": 0.0
+  },
+  "optim": {
+    "name": "adam",
+    "lr": 0.001,
+    "weight_decay": 0.0
+  },
+  "budget": {
+    "max_steps": 2000,
+    "batch_size": 32
+  }
+}
