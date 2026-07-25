@@ -1,5 +1,23 @@
 # Compute Optimization Strategy
 
+## TL;DR
+
+**What this is:** System-level plan for where Neural Operator training cost goes and how Carbon spends less without weakening gates or incentives.
+
+**Cost reality (FNO-family):** spectral convolution often 35–55% of step time; residual/loss can dominate; pure kernel work alone is not enough.
+
+**Levers (use together):**
+1. **Algorithmic** — multi-fidelity curricula, early stop, mode schedules, LoRA on priors (highest system ROI)
+2. **Kernel** — low-rank spectral weights, fused FFT+GEMM, adaptive modes
+3. **System** — progressive Tier-1/Tier-2 eval, reputation-weighted depth, priority queue, sponsored capacity, hard GPU-second budgets
+
+**Principle:** expose efficiency knobs in `strategy.json` so the network *searches* efficiency; validators ship high-ROI backends; **full physics gates remain mandatory** for real emissions weight or Specialist Bank entry.
+
+**Build priority:** multi-fidelity + early stop + low-rank kernels + progressive eval first; broad custom kernel libraries later.
+
+**Read next:** §2 cost profile, §4 algorithmic levers, §5 system mechanisms, §7 priority matrix.
+
+---
 
 # Compute Optimization Strategy for Carbon
 
@@ -172,66 +190,7 @@ Priority (or a soft requirement) can be given to submissions that have already d
 
 ### 5.5 Validator Queue Management & Prioritization
 
-```python
-# carbon/validator/queue.py
-from dataclasses import dataclass
-from enum import Enum
-from typing import Optional
-import time
-import heapq
-
-class Priority(Enum):
-    SPONSORED_TIER_4 = 0      # Highest: paid priority
-    SPONSORED_TIER_3 = 1
-    SPONSORED_TIER_2 = 2
-    HIGH_REPUTATION = 3       # Reputation > threshold
-    STANDARD = 4              # Normal submissions
-    ESTIMATION_MODE = 5       # Lowest priority
-
-@dataclass
-class QueuedSubmission:
-    priority: Priority
-    submit_time: float
-    hotkey: str
-    challenge_id: str
-    strategy_hash: str
-    estimated_gpu_seconds: float
-    
-    def __lt__(self, other):
-        # Priority queue: lower priority value = higher priority
-        if self.priority != other.priority:
-            return self.priority.value < other.priority.value
-        return self.submit_time < other.submit_time
-
-class ValidatorQueue:
-    def __init__(self, max_concurrent: int = 3, max_queue_depth: int = 100):
-        self.max_concurrent = max_concurrent
-        self.max_queue_depth = max_queue_depth
-        self.pending: list = []
-        self.active: dict = {}  # submission_id -> submission
-        self.completed_recently: set = set()
-    
-    def enqueue(self, submission: QueuedSubmission) -> bool:
-        if len(self.pending) >= self.max_queue_depth:
-            return False  # Queue full
-        heapq.heappush(self.pending, submission)
-        return True
-    
-    def pop_next(self) -> Optional[QueuedSubmission]:
-        if not self.pending:
-            return None
-        return heapq.heappop(self.pending)
-    
-    def get_queue_status(self) -> dict:
-        return {
-            "pending_count": len(self.pending),
-            "active_count": len(self.active),
-            "by_priority": {
-                p.name: sum(1 for s in self.pending if s.priority == p)
-                for p in Priority
-            }
-        }
-```
+See `JAX_Optimization.md` for the production queue implementation. Priority order: sponsored tiers → high reputation → standard → estimation mode.
 
 ---
 
@@ -289,11 +248,10 @@ This posture expands parallel search capacity, improves the quality–cost front
 
 ## 9. Relationship to Other Documents
 
-- `appendices/JAX_Optimization.md` — Detailed implementation designs for unified loss masking, early-stopping via `lax.scan`, bfloat16 policy, multi-fidelity resolution handling, `vmap` cohorting, gradient accumulation, gradient checkpointing, and `vmap` cohorting.
+- `appendices/JAX_Optimization.md` — Detailed implementation designs for unified loss masking, early-stopping via `lax.scan`, bfloat16 policy, multi-fidelity resolution handling, gradient accumulation, gradient checkpointing.
 - Main `SPEC.md` — Phase roadmap, physics gates, scoring, and trustless verification requirements that any efficiency mechanism must respect.
 - `TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md` — Constraints on reproducibility and auditability that custom kernels and evaluation-depth policies must satisfy.
 
 ---
 
 *This document is intended as a living technical analysis. Cost models, kernel performance numbers, and priority rankings should be updated as empirical measurements from the running subnet become available.*
-```
