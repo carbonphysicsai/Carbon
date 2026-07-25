@@ -1,7 +1,8 @@
 """Budget-capped training loop for FNO-1d PoC.
 
 Uses finite-difference parameter gradients for portability (CPU CI).
-When budget is tiny (POC_FAST), this still exercises the protocol spine.
+Batch sampling is driven by a seeded Generator so fixed init_seed →
+reproducible trajectories (acceptance test T5).
 """
 
 from __future__ import annotations
@@ -47,6 +48,8 @@ def train(
         layers=int(strategy["backbone_cfg"]["layers"]),
     )
     params = init_params(cfg, seed=init_seed)
+    rng = np.random.default_rng(int(init_seed) % (2**32))
+
     lr = float(strategy["optim"]["lr"])
     max_steps = int(strategy["budget"]["max_steps"])
     batch_size = int(strategy["budget"]["batch_size"])
@@ -61,8 +64,10 @@ def train(
     # This still learns a usable mapping under data_mse for discrimination tests.
     train_keys = ["lift_w", "lift_b", "proj_w", "proj_b"]
 
+    steps_run = 0
     for step in range(max_steps):
-        idx = np.random.randint(0, n, size=min(batch_size, n))
+        steps_run = step + 1
+        idx = rng.integers(0, n, size=min(batch_size, n))
         u0 = train_batch.u0[idx]
         uT = train_batch.uT[idx]
         nu = train_batch.nu[idx]
@@ -76,7 +81,7 @@ def train(
             g = np.zeros_like(params[key])
             flat = params[key].ravel()
             g_flat = g.ravel()
-            # subsample coordinates for speed
+            # subsample coordinates for speed (deterministic linspace)
             n_coords = min(8, flat.size)
             coords = np.linspace(0, flat.size - 1, n_coords, dtype=int)
             for c in coords:
@@ -95,14 +100,14 @@ def train(
             params[key] = params[key] - lr * g
 
         if time.time() - t0 > limits.get("max_wall_s", 600):
-            max_steps = step + 1
             break
 
     wall_s = time.time() - t0
     info = {
-        "steps": max_steps,
+        "steps": steps_run,
         "wall_s": wall_s,
         "last_loss": last_loss,
         "device": "cpu",
+        "init_seed": int(init_seed),
     }
     return params, cfg, info
