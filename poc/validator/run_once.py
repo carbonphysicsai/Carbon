@@ -1,13 +1,11 @@
-"""Carbon PoC entry point: strategy.json → train → gates → score → Model Card.
+"""Carbon PoC entry point: strategy handoff → procedural data → train → gates → card.
 
 Exit codes:
   0  completed (card written even if gate failed / score 0)
-  2  schema reject
+  2  handoff / schema reject
   3  internal error
 
-Train quality rule:
-  Only backend=jax AND loss_improved may set train_quality_claim=true.
-  numpy_fd is protocol-only and never claims learning.
+Submission rule: strategy JSON only. No weights, data, or seed overrides.
 """
 
 from __future__ import annotations
@@ -31,8 +29,9 @@ from poc.train.loop import train
 from poc.eval.metrics import evaluate
 from poc.eval.gates import run_gates
 from poc.eval.score import score_run
-from poc.validator.schema_check import load_limits, load_strategy_file
+from poc.validator.handoff import accept_submission
 from carbon.common.model_card import build_model_card, write_model_card
+from carbon.common.seeds import splitmix64, derive_master_seed
 
 
 def run_once(
@@ -41,24 +40,51 @@ def run_once(
     run_id: str = "poc_run",
     artifacts_dir: str | Path | None = None,
     fast: bool | None = None,
+    block_hash: str = "local",
+    local_mode: bool = True,
 ) -> dict:
     if fast is None:
         fast = os.environ.get("POC_FAST", "0") == "1"
 
-    strategy, err = load_strategy_file(strategy_path, fast=fast)
+    # --- Handoff: strategy-only acceptance ---
+    envelope, err = accept_submission(
+        strategy_path,
+        block_hash=block_hash,
+        run_nonce=local_nonce,
+        fast=fast,
+        local_mode=local_mode,
+    )
     if err:
-        print(f"SCHEMA REJECT: {err}", file=sys.stderr)
+        print(f"HANDOFF REJECT: {err}", file=sys.stderr)
         sys.exit(2)
 
-    limits = load_limits(fast=fast)
+    strategy = envelope.strategy
+    limits = envelope.limits
     artifacts_dir = Path(artifacts_dir or (_ROOT / "artifacts" / "model_cards"))
+    ctx = envelope.seed_context
 
-    train_batch = generate_batch("train", local_nonce, run_id, fast=fast)
-    eval_batch = generate_batch("eval", local_nonce, run_id, fast=fast)
-    stress_batch = generate_batch("stress", local_nonce, run_id, fast=fast)
+    # --- Procedural data (validator-owned seeds) ---
+    gen_kw = dict(
+        local_nonce=local_nonce,
+        run_id=run_id,
+        fast=fast,
+        block_hash=ctx.block_hash,
+        local_mode=ctx.local_mode,
+        challenge_id=ctx.challenge_id,
+    )
+    train_batch = generate_batch("train", **gen_kw)
+    eval_batch = generate_batch("eval", **gen_kw)
+    stress_batch = generate_batch("stress", **gen_kw)
+
+    # init seed from hierarchy (not miner-supplied)
+    if ctx.local_mode:
+        init_seed = int(local_nonce) % (2**31 - 1)
+    else:
+        master = derive_master_seed(ctx.challenge_id, ctx.block_hash, ctx.run_nonce)
+        init_seed = splitmix64(master, 2)  # init stream
 
     params, cfg, train_info = train(
-        strategy, train_batch, limits, init_seed=local_nonce
+        strategy, train_batch, limits, init_seed=init_seed
     )
 
     eval_m = evaluate(params, cfg, eval_batch)
@@ -85,12 +111,17 @@ def run_once(
         "train_hash": train_batch.hash(),
         "eval_hash": eval_batch.hash(),
         "stress_hash": stress_batch.hash(),
+        "init_seed": init_seed,
         "local_nonce": local_nonce,
         "run_id": run_id,
+        "block_hash": ctx.block_hash,
+        "local_mode": ctx.local_mode,
+        "train_provenance": train_batch.provenance,
+        "eval_provenance": eval_batch.provenance,
+        "stress_provenance": stress_batch.provenance,
     }
 
     backend = train_info.get("backend", "unknown")
-    # HARD RULE: only jax + measured loss drop may claim train quality
     train_quality_claim = bool(
         backend == "jax" and train_info.get("train_quality_claimable", False)
     )
@@ -143,7 +174,11 @@ def run_once(
         budget_used=budget_used,
         generator_version=GENERATOR_VERSION,
         software=software,
-        extra={"strategy_path": str(strategy_path)},
+        extra={
+            "strategy_path": str(strategy_path),
+            "strategy_hash": envelope.strategy_hash,
+            "handoff": envelope.to_public_dict(),
+        },
     )
     card["card_id"] = card.get("card_id") or str(uuid.uuid4())
 
@@ -152,6 +187,7 @@ def run_once(
         json.dumps(
             {
                 "card_path": str(path),
+                "strategy_hash": envelope.strategy_hash,
                 "combined": score["combined"],
                 "gate_failed": score["gate_failed"],
                 "failures": score["hard_gate_failures"],
@@ -166,6 +202,8 @@ def run_once(
                     "train": seeds["train"],
                     "eval": seeds["eval"],
                     "stress": seeds["stress"],
+                    "block_hash": ctx.block_hash,
+                    "local_mode": ctx.local_mode,
                 },
             },
             indent=2,
@@ -186,9 +224,15 @@ def run_once(
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Carbon Burgers×FNO PoC run_once")
-    p.add_argument("strategy", help="Path to strategy JSON")
+    p.add_argument("strategy", help="Path to strategy JSON (strategy-only handoff)")
     p.add_argument("--local-nonce", type=int, default=42)
     p.add_argument("--run-id", default="poc_run")
+    p.add_argument("--block-hash", default="local", help="Chain block hash (official eval)")
+    p.add_argument(
+        "--official",
+        action="store_true",
+        help="Official seed path (master from block_hash); default is local miner loop",
+    )
     p.add_argument("--artifacts", default=None)
     p.add_argument("--fast", action="store_true", help="CI fast profile")
     args = p.parse_args(argv)
@@ -200,6 +244,8 @@ def main(argv=None):
             run_id=args.run_id,
             artifacts_dir=args.artifacts,
             fast=args.fast or os.environ.get("POC_FAST") == "1",
+            block_hash=args.block_hash,
+            local_mode=not args.official,
         )
     except SystemExit:
         raise
