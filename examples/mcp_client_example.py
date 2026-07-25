@@ -1,7 +1,7 @@
-"""Example MCP Client for Hydrogen Mining Tools.
+"""Example MCP Client for Carbon Mining Tools.
 
 This script demonstrates how an agent (especially an LLM-based one)
-can interact with the Hydrogen MCP-style server.
+can interact with the Carbon MCP-style server.
 
 It shows tool discovery and sequential tool usage.
 """
@@ -25,7 +25,7 @@ async def call_tool(tool_name: str, payload: dict = None):
 
 
 async def main():
-    print("=== Hydrogen MCP Client Example ===\n")
+    print("=== Carbon MCP Client Example ===\n")
 
     # 1. List active challenges
     challenges = await call_tool("list_challenges")
