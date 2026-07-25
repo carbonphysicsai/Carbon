@@ -2,19 +2,21 @@
 
 ## TL;DR
 
-**What this is:** How Landscape evidence becomes banked specialists, who buys them by phase, and the dual-egress product rule.
+**Job:** Productize landscape evidence into regime-scoped specialists without wrecking incentives or revenue.
 
-**Pipeline:** Model Cards → causal/symbolic fit → opportunity rank → recipe from *effects* (not single winners) → controlled retrain → fresh gates → bank entry.
+**Pipeline:** Model Cards → causal/symbolic fit → rank opportunities → recipe from *effects* (not single winners) → controlled retrain → **fresh** gates → bank.
 
-**Dual egress (non-negotiable):**
-- **Miners (free):** noisy, lagged prior/warm-start derivatives only — never full weights or exact bank recipe.
-- **Customers (paid):** closed SKU = ONNX + exact recipe + Model Card + gate cert + license + updates (+ optional air-gap).
+**Dual egress (do not mix)**
+| Path | Who | What they get |
+|------|-----|---------------|
+| **Public / miner (free)** | Miners, agents | Noisy, lagged prior / warm-start derivatives only — never full weights or exact bank recipe |
+| **Commercial (paid)** | Buyers | Closed SKU = ONNX + exact recipe + Model Card + gate cert + license + updates (+ optional air-gap) |
 
-**Why closed sells:** buyers pay for deployable certified artifacts, assurance, license, and update channel — not a public weights dump. Competition never requires purchase.
+Competition never requires purchase. Open the catalog and verification story; close the certified artifact.
 
-**Customers by phase (hero):** 0 SciML baselines → 1A aero transonic → 1B propulsion/CHT/stores → 2A OEM adapters → 2B sealed dual-regime → 3 coupled twin programs → 4 fleet/extreme production.
+**Why closed sells:** deployable certified artifact, assurance language, license, update channel — not a public weights dump.
 
-**Read next:** §2 dual egress, §6 pipeline, §8 phase customers.
+**Phase buyers (hero):** 0 SciML baselines → 1A aero → 1B propulsion/CHT/stores → 2A OEM adapters → 2B sealed dual-regime → 3 coupled twins → 4 fleet/extreme.
 
 ---
 
@@ -324,9 +326,120 @@ Customers differ by **physics maturity**, **regulatory pressure**, and **whether
 
 Miner “adoption” in every phase means **noisy warm-start only**, not free SKU access.
 
-See full phase tables in the sections below (Phase 0–4). Hero buyers move from SciML baselines → aero design loops → propulsion/multiphysics campaigns → OEM specialization → sealed dual-regime → coupled system twins → fleet/extreme production infrastructure.
+---
 
-**Cross-cutting:** miners get free noisy warm-starts only; tooling platforms license SKUs; sponsors pay to create missing regimes (Tier 2–4).
+### Phase 0 — Core single-physics PDEs  
+*(Poisson, Darcy, Burgers, laminar NS, Heat, Elasticity, Thermo-elasticity)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Simulation / SciML teams inside mid-size CAE users and startups | Cheap, **certified** baselines for canonical operators; replace ad-hoc PINN/NO notebooks with gate evidence and a deployable artifact |
+| **Primary (buy)** | University labs & national-lab pilot groups that need procurement-friendly artifacts | Benchmarking and known-good deployables with license clarity |
+| **Secondary (buy)** | Tooling vendors (early design partners) | Embed a verified heat / elasticity / Darcy surrogate in demos; low ITAR risk |
+| **Secondary (free noisy)** | Serious miners / agent operators | Noisy warm-start quality; faster path to first gate-pass (optional, not required) |
+
+**Why Phase 0 specialists sell:**  
+Trust is earned on problems domain experts already understand. A Burgers or Heat specialist with conservation and stability gates is the **credibility SKU**. Revenue is smaller per unit; strategic value is proof that the bank and Model Cards are real. The **closed** cert + ONNX is what turns credibility into a PO.
+
+**Typical offer:** Closed full surrogate SKU + optional support; subscription or per-model list price at the low end of Tier-1.
+
+---
+
+### Phase 1A — Compressible flow  
+*(NACA 0012 transonic flutter-class, NASA CRM wing-body-class)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Aerospace airframe & aeroelasticity groups | Fast **certified** surrogates for transonic separation, shock-boundary interaction, buffet-adjacent exploration |
+| **Primary (buy)** | Defense / UAV airframe contractors (unclassified programs) | Digital-twin and loads screening with **verification evidence**, not a leaderboard screenshot |
+| **Secondary (buy)** | Wind-tunnel & flight-test correlation teams | Licensed emulator between expensive test points |
+| **Secondary (buy)** | CAE ISVs | OEM-facing demos on CRM-like geometry with Carbon gate certs under commercial terms |
+
+**Why Phase 1A specialists sell:**  
+OEM-shaped geometry and compressible physics. Buyers pay for shock/stability evidence **and** a closed artifact they can put in a design loop under license.
+
+**Typical offer:** Closed composite + full SKU; higher Tier-1 pricing; lead-in to sponsored challenges on customer geometry (Tier 2/3).
+
+---
+
+### Phase 1B — Reacting flow + sequential FSI + CHT + 6-DOF  
+*(HIFiRE-class, Turek/Hron sequential FSI, store separation, turbine blade heat transfer)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Propulsion & hypersonics groups | Species/energy-aware certified surrogates where every full-fidelity run is extreme-cost |
+| **Primary (buy)** | Turbomachinery / heat-transfer teams | CHT / film-cooling-adjacent licensed surrogates for DOE |
+| **Primary (buy)** | Weapons / stores integration (unclassified or dual-use) | 6-DOF store separation emulators under commercial license |
+| **Secondary (buy)** | Multiphysics platform teams | Sequential FSI blocks as licensed components before Phase 3 coupling |
+
+**Why Phase 1B specialists sell:**  
+High campaign cost + assurance language. Sponsored challenges (IP-licensed / private) carry more of the revenue mix; catalog SKUs stay closed.
+
+**Typical offer:** Closed regime SKUs + Tier 2–4 sponsored challenges.
+
+---
+
+### Phase 2A — Customization & intelligence  
+*(LoRA / adapters, Abaqus-class custom data paths, MT structured losses in product form)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | OEM methods groups with existing FEA/CFD libraries | Licensed adapters that specialize a Carbon backbone to *their* representation without open-sourcing the result |
+| **Primary (buy)** | Digital-thread / PLM integration teams | Specialists with commercial terms that plug into model trees |
+| **Secondary** | Carbon product services | Higher-margin “specialize this backbone to my regime” using landscape opportunity scores |
+
+**Why Phase 2A specialists sell:**  
+Buyer wants **specialization under license**, not a public method note.
+
+**Typical offer:** Closed adapter recipes + composites; services on Tier-2/3 challenges.
+
+---
+
+### Phase 2B — Air-gap + coupling prep  
+*(Air-gapped toolkit, sequential multiphysics ladder, preCICE-ready architecture)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Defense primes & regulated energy | **Sealed closed packs** that install offline; public discovery, private fine-tune |
+| **Primary (buy)** | Security / accreditation offices | Dual-regime evidence with controlled distribution |
+| **Secondary (buy)** | Coupling infrastructure teams | Licensed components on the sequential multiphysics ladder |
+
+**Why Phase 2B specialists sell:**  
+Deployability under isolation. Open weights would defeat the product.
+
+**Typical offer:** Sealed air-gap specialist packs; dual-regime services; Tier-4 private challenge prep.
+
+---
+
+### Phase 3 — Coupled multiphysics  
+*(preCICE FSI, CHT, thermo-elasticity multi-field)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Full-vehicle / full-system digital twin programs | Licensed coupled surrogates with interface/convergence evidence |
+| **Primary (buy)** | Primes on integrated aero-thermal-structural loops | Verified coupled blocks under program license |
+| **Secondary (buy)** | Platform vendors | Carbon-verified coupled blocks inside orchestration environments under partner terms |
+
+**Why Phase 3 specialists sell:**  
+System-level, program-priced, closed bundles.
+
+**Typical offer:** Closed coupled composites; Tier-3/4 challenges; registry-backed bundles.
+
+---
+
+### Phase 4 — Production 3D + turbulence + extreme regimes  
+*(3D FSI/CHT/thermo-elasticity + turbulence; hypersonic 6-DOF + reacting + ablation-class)*
+
+| Role | Who | Why they want it |
+|------|-----|------------------|
+| **Primary (buy)** | Production digital-twin and fleet digital-thread owners | Licensed 3D turbulent multiphysics surrogates for ops and design-to-fleet loops |
+| **Primary (buy)** | Hypersonics / extreme-environment programs | Ablation- and reacting-aware specialists under strict license and evidence packages |
+| **Secondary (buy)** | Certification / assurance support (long tail) | Evidence-rich closed Model Card packages |
+
+**Why Phase 4 specialists sell:**  
+Program infrastructure. Highest willingness to pay; closed distribution is assumed.
+
+**Typical offer:** Program-priced closed SKUs; multi-year maintenance; Tier-4 private + DoD evidence packages.
 
 ---
 
@@ -342,6 +455,12 @@ See full phase tables in the sections below (Phase 0–4). Hero buyers move from
 | **3** | System digital-twin programs | Coupled multiphysics building blocks | Closed coupled composites + bundles |
 | **4** | Fleet / extreme-environment programs | Production 3D turbulent & extreme surrogates | Program closed SKUs + evidence |
 
+**Cross-cutting**
+
+- **Agent miners:** free **noisy** warm-starts only (efficiency, not SKU rights).  
+- **Tooling platforms:** embed or call **licensed** SKUs; verification gas / registry.  
+- **Sponsors:** pay to *create* regimes the bank does not yet cover (Tier 2–4), with IP terms that stay closed where required.
+
 ---
 
 ## 10. GTM Linkage
@@ -354,6 +473,8 @@ See full phase tables in the sections below (Phase 0–4). Hero buyers move from
 | Customer geometry / envelope | Sponsored Challenges Tier 2–4 | **Closed** per tier IP |
 | Sealed packs + dual-regime | DoD / regulated path | **Closed** |
 | Registry-backed certs | Verification gas / partners | Attestation service; artifact remains licensed |
+
+Landscape opportunity scores: visible to **product**; optional coarse public roadmap — never raw causal coefficients or full recipes.
 
 ---
 
@@ -385,5 +506,3 @@ That is the Landscape → Specialist system: evidence-ranked regimes, effect-syn
 ---
 
 *Canonical reference for Specialist Bank construction, dual egress, and phase customer mapping. Implementation must enforce noisy-only miner derivatives and closed commercial SKUs as specified here and in `appendices/Landscape_Agent.md`.*
-
-**Note:** Detailed Phase 0–4 customer tables (primary/secondary buyers and offer shapes) remain in the full design history of this appendix; the summary matrix in §9 is the operational view.
