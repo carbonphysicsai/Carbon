@@ -1,4 +1,4 @@
-"""Carbon PoC: handoff → seed bundle → procedural data → stress suite → train → gates → card.
+"""Carbon PoC: handoff → seeds → data → stress → train → null baseline → gates → card.
 
 Exit codes: 0 completed · 2 handoff reject · 3 internal error
 """
@@ -22,10 +22,12 @@ if str(_ROOT) not in sys.path:
 from poc.generators.burgers1d import GENERATOR_VERSION, generate_batch
 from poc.generators.stress_categories import generate_stress_suite, coverage_ok
 from poc.generators.justification import justification_table
+from poc.generators.label_checks import assert_labels_ok, check_label_conservation
 from poc.train.loop import train
 from poc.eval.metrics import evaluate
 from poc.eval.gates import run_gates
 from poc.eval.score import score_run
+from poc.eval.null_baseline import null_eval, train_quality_verdict
 from poc.validator.handoff import accept_submission
 from carbon.common.model_card import build_model_card, write_model_card
 from carbon.common.seeds import build_seed_bundle, SEED_MAP_VERSION
@@ -59,7 +61,6 @@ def run_once(
     artifacts_dir = Path(artifacts_dir or (_ROOT / "artifacts" / "model_cards"))
     ctx = envelope.seed_context
 
-    # --- SPEC §9 seed bundle ---
     seed_bundle = build_seed_bundle(
         ctx.challenge_id,
         ctx.block_hash,
@@ -71,7 +72,6 @@ def run_once(
     stress_seed = int(seed_bundle["stress_seed"])
     init_seed = int(seed_bundle["init_seed"])
 
-    # Train / eval from role seeds (local) or pipeline (official)
     train_batch = generate_batch(
         "train",
         local_nonce=data_seed if not ctx.local_mode else local_nonce,
@@ -91,16 +91,25 @@ def run_once(
         challenge_id=ctx.challenge_id,
     )
 
-    # Stress category suite (validator-owned stress_seed)
+    # Label integrity (periodic mass on reference solutions)
+    assert_labels_ok(train_batch)
+    assert_labels_ok(eval_batch)
+    _, train_label_info = check_label_conservation(train_batch)
+    _, eval_label_info = check_label_conservation(eval_batch)
+
     stress_suite = generate_stress_suite(stress_seed, fast=fast)
     cov_ok, cov_msg = coverage_ok(stress_suite)
+    for b in stress_suite.batches.values():
+        assert_labels_ok(b)
 
     params, cfg, train_info = train(
         strategy, train_batch, limits, init_seed=init_seed
     )
 
+    # Null baseline: same cfg + init_seed, zero training
+    null_m = null_eval(cfg, eval_batch, init_seed=init_seed)
+
     eval_m = evaluate(params, cfg, eval_batch)
-    # Weighted stress metrics across categories
     cat_rel: dict = {}
     stress_finite = 1.0
     for cat, batch in stress_suite.batches.items():
@@ -108,7 +117,6 @@ def run_once(
         cat_rel[cat] = m["rel_l2"]
         stress_finite *= m.get("finite_ok", 1.0)
     stress_rel = stress_suite.mean_rel_l2(cat_rel) if cat_rel else 1.0
-    # Use first category residual/conservation as physics stress probe
     first_cat = next(iter(stress_suite.batches.values()), None)
     if first_cat is not None:
         sm0 = evaluate(params, cfg, first_cat)
@@ -125,7 +133,9 @@ def run_once(
     eval_metrics = {k: v for k, v in eval_m.items() if k != "pred"}
 
     gate_inputs = {
-        "finite_ok": float(eval_metrics.get("finite_ok", 1.0) * stress_metrics.get("finite_ok", 1.0)),
+        "finite_ok": float(
+            eval_metrics.get("finite_ok", 1.0) * stress_metrics.get("finite_ok", 1.0)
+        ),
         "conservation_error": float(eval_metrics.get("conservation_error", 0.0)),
         "residual_mean": float(eval_metrics.get("residual_mean", 0.0)),
         "eval_rel_l2": float(eval_metrics.get("rel_l2", 1.0)),
@@ -138,6 +148,15 @@ def run_once(
         gates,
         stress_coverage=stress_suite.coverage,
     )
+
+    backend = train_info.get("backend", "unknown")
+    tq = train_quality_verdict(
+        backend=backend,
+        loss_improved=bool(train_info.get("loss_improved", False)),
+        eval_rel_l2=float(eval_metrics.get("rel_l2", 1.0)),
+        null_rel_l2=float(null_m["rel_l2"]),
+    )
+    train_quality_claim = bool(tq["train_quality_claim"])
 
     seeds = {
         "bundle": {k: v for k, v in seed_bundle.items() if not str(k).startswith("_")},
@@ -157,11 +176,6 @@ def run_once(
         "block_hash": ctx.block_hash,
         "local_mode": ctx.local_mode,
     }
-
-    backend = train_info.get("backend", "unknown")
-    train_quality_claim = bool(
-        backend == "jax" and train_info.get("train_quality_claimable", False)
-    )
 
     software = {
         "python": platform.python_version(),
@@ -184,6 +198,7 @@ def run_once(
         "loss_ratio": train_info.get("loss_ratio"),
         "loss_improved": train_info.get("loss_improved", False),
         "train_quality_claim": train_quality_claim,
+        "train_quality_reasons": tq["reasons"],
         "backend": backend,
         "optimizer": train_info.get("optimizer"),
     }
@@ -195,11 +210,17 @@ def run_once(
         seeds=seeds,
         metrics={
             "eval_rel_l2": eval_metrics.get("rel_l2", 0.0),
+            "null_rel_l2": null_m["rel_l2"],
+            "beats_null": train_quality_claim or (
+                float(eval_metrics.get("rel_l2", 1.0)) < float(null_m["rel_l2"])
+            ),
             "stress_rel_l2": stress_metrics.get("rel_l2", 0.0),
             "stress_per_category": cat_rel,
             "residual_mean": eval_metrics.get("residual_mean", 0.0),
             "conservation_error": eval_metrics.get("conservation_error", 0.0),
             "precision": eval_metrics.get("precision", "fp32"),
+            "label_mass_train": train_label_info,
+            "label_mass_eval": eval_label_info,
         },
         gates=gates,
         score={
@@ -221,6 +242,8 @@ def run_once(
             "handoff": envelope.to_public_dict(),
             "justification_version": justification_table()["version"],
             "stress_spec": stress_suite.spec_version,
+            "null_baseline": null_m,
+            "train_quality": tq,
         },
     )
     card["card_id"] = card.get("card_id") or str(uuid.uuid4())
@@ -235,14 +258,15 @@ def run_once(
                 "gate_failed": score["gate_failed"],
                 "failures": score["hard_gate_failures"],
                 "eval_rel_l2": eval_metrics.get("rel_l2"),
+                "null_rel_l2": null_m["rel_l2"],
                 "stress_rel_l2": stress_metrics.get("rel_l2"),
                 "stress_coverage": stress_suite.coverage,
-                "stress_categories": stress_suite.categories_present,
                 "steps": train_info["steps"],
                 "backend": backend,
                 "first_loss": train_info.get("first_loss"),
                 "last_loss": train_info.get("last_loss"),
                 "train_quality_claim": train_quality_claim,
+                "train_quality_reasons": tq["reasons"],
                 "seed_map_version": SEED_MAP_VERSION,
                 "precision": "fp32",
             },
@@ -254,12 +278,17 @@ def run_once(
             "NOTE: backend=numpy_fd is PROTOCOL_ONLY — not train-quality evidence.",
             file=sys.stderr,
         )
+    elif not train_quality_claim:
+        print(
+            f"NOTE: train_quality_claim=false reasons={tq['reasons']}",
+            file=sys.stderr,
+        )
     return card
 
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Carbon Burgers×FNO PoC run_once")
-    p.add_argument("strategy", help="Path to strategy JSON (strategy-only handoff)")
+    p.add_argument("strategy", help="Path to strategy JSON")
     p.add_argument("--local-nonce", type=int, default=42)
     p.add_argument("--run-id", default="poc_run")
     p.add_argument("--block-hash", default="local")
