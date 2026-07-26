@@ -8,9 +8,16 @@ lr_max: 1.0e-2
 max_wall_s: 600
 grad_clip: 1.0
 
-# POC_FAST=1 profile — short but enough for protocol smoke
+# POC_FAST=1 — protocol smoke only (not train-quality evidence)
 fast:
   max_steps: 100
   max_batch_size: 32
   max_wall_s: 180
+  grad_clip: 1.0
+
+# POC_GOLD=1 — longer budget for learning claims on consumer GPU
+gold:
+  max_steps: 800
+  max_batch_size: 32
+  max_wall_s: 300
   grad_clip: 1.0
