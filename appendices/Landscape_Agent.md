@@ -18,6 +18,8 @@
 - Publish with noise + lag (daily or slower)
 - Never sell eval outcomes; paid tiers buy search orientation or private challenge design only
 - **Port D export law:** *Ground truth in. Verified knowledge out.* No teacher-checkpoint distillation; full commercial SKU requires product battery (see `Specialist_Bank.md`)
+- **Launch Bar:** no L0 public prior publish / “verified card” compounding claims until `appendices/Launch_Bar.md` is green
+- **Epistemic split:** hard gates = protocol truth (when bar green); causal bands = observational estimates — never spoken with gate-level certainty
 
 **Dual threshold**
 | Path | Depth |
@@ -25,28 +27,24 @@
 | Miner → validator (feeds D1) | Lean gates + stress + short rollout |
 | Landscape → Specialist Bank (Port D) | Effect-synthesized recipe → retrain → **product battery** → ship |
 
-**Build order:** L0 card lake + daily noisy packs → L1 symbolic + failure atlas → L2 causal core + specialist *pipeline hooks* → L3 eval/economy → L4 product gauntlet / dual-regime
+**Build order:** L0 card lake + daily noisy packs → L1 symbolic + failure atlas → L2 causal core + specialist *pipeline hooks* → L3 eval/economy → L4 product gauntlet / dual-regime  
+**At raise / pre-bar:** Landscape is architecture and build order — not a live intelligence product.
 
 **Success metric:** post-gate progress and commercial conversion — not guidance-API engagement
 
 ---
 
 **Carbon Subnet**  
-**Version:** 1.1 (July 2026)  
+**Version:** 1.2 (July 2026)  
 **Status:** Core Engineering Appendix  
 **Audience:** Tech lead, Landscape implementers, protocol designers  
-**Related:** `SPEC.md`, [`appendices/Specialist_Bank.md`](./Specialist_Bank.md) (v1.3+), [`appendices/Use_Cases_by_Phase.md`](./Use_Cases_by_Phase.md), `appendices/Implementation.md`, `appendices/Data_Management.md`
+**Related:** `SPEC.md`, [`Launch_Bar.md`](./Launch_Bar.md), [`Scoring.md`](./Scoring.md), [`Specialist_Bank.md`](./Specialist_Bank.md), [`Use_Cases_by_Phase.md`](./Use_Cases_by_Phase.md)
 
 ---
 
 ## 1. Purpose
 
-The Landscape Agent is Carbon’s **compounding knowledge engine**. It consumes verified Model Cards and produces private intelligence that is routed back into:
-
-1. **Miner search efficiency** (noisy priors, causal masks, diagnostics)
-2. **Validator eval efficiency** (progressive depth, adaptive stress emphasis)
-3. **Incentives & challenge design** (maturity signals, bounty assist)
-4. **Commercial products** (specialists via grounded gauntlet, sponsor briefs, air-gap packs)
+The Landscape Agent is Carbon’s **compounding knowledge engine**. It consumes verified Model Cards and produces private intelligence routed into search, eval efficiency, incentives, and (via gauntlet) commercial products.
 
 **Non-negotiable rules**
 
@@ -55,6 +53,21 @@ The Landscape Agent is Carbon’s **compounding knowledge engine**. It consumes 
 - Learning the physics distribution is desired; memorizing stress draws is not.
 - Every landscape feature must declare a **value port**, a **publish boundary**, and a **success metric**.
 - Port D does **not** distill teacher weights; it multiplies graph evidence into recipes and product tasks, re-executes, and only then exports (see §2.8).
+- **Cards are not “verified” for compounding until Launch Bar is green** (`Launch_Bar.md`).
+
+---
+
+## 1b. Epistemic Status (Do Not Collapse)
+
+| Artifact | Status | How to speak about it |
+|----------|--------|----------------------|
+| Hard physics gates + lean `S_combined` | Protocol ground truth **when Launch Bar green** | “Passed / failed the registered exam” |
+| Score Pack margins / category vectors | Deterministic functions of predictions + pack | Auditable components of the exam |
+| Causal effect library (D3) | Observational estimates (selection, confounding, non-random miner behavior) | “Band suggests association under stated confounders; CI hygiene required” — **not** “proven causes” |
+| Noisy priors / masks | Decision-support scaffolds | Orientation for search — not guarantees |
+| Product battery | Separate promotion exam | Shelf truth ≠ leaderboard truth |
+
+**Carbon applies its own standard to its own brain:** gate-level certainty language is reserved for gates. Causal publish requires overlap, stability windows, and withdrawable versioning — and still remains decision-support.
 
 ---
 
@@ -109,11 +122,12 @@ The Landscape Agent is Carbon’s **compounding knowledge engine**. It consumes 
 | Causal credit masks | D3 | Schema-field importance mask (not values) | Cut dead dimensions |
 | Estimation Mode anchors | D3, D6 noisy only | Proxy scores; never full champion / bank weights | Cheap garbage reject |
 | Diagnostics | D4 | Black-box failure class tiers | Faster repair |
-| Warm-start orientation | D6 **noisy derivatives only** | Masks / coarse bands influenced by banked regimes — **never** full `specialist_bank_item` | Compositional search without SKU leak |
+| Warm-start orientation | D6 **noisy derivatives only** | Masks / coarse bands — **never** full `specialist_bank_item` | Compositional search without SKU leak |
 
-**Port A law:** Competition never requires purchase. Full Specialist Bank items are Port D only (`Specialist_Bank.md` dual egress).
+**Port A law:** Competition never requires purchase. Full Specialist Bank items are Port D only.  
+**L0 publish** only after `Launch_Bar.md` green; L0 priors are aggregates/noise — not causal bands.
 
-### 2.4 Port B — Validator Eval Efficiency
+### 2.4 Port B — Validator Eval Efficiency (Safety-Sensitive)
 
 | Mechanism | Inputs | Behavior | Value |
 |-----------|--------|----------|-------|
@@ -122,7 +136,26 @@ The Landscape Agent is Carbon’s **compounding knowledge engine**. It consumes 
 | Gate health | D1 aggregates | Unstable gates → more samples / stricter fp32 checks | Consensus quality |
 | Near-prior detection | D6 noisy lineage, D10 | Clones still gated; reduced exploration credit only | Anti-cloning |
 
-Port B remains **lean-exam aligned**. Full product battery (INV/ADV/latency) is **not** a default validator path.
+Port B remains **lean-exam aligned**. Full product battery is **not** a default validator path.
+
+#### Port B floor rules (mandatory)
+
+Progressive depth influences *how hard the exam looks*. Misrouting can create blind spots the gates never fully stress.
+
+**Force full depth when any of the following hold:**
+
+1. Hotkey has insufficient full-depth history on this `challenge_id` (threshold in validator policy)  
+2. Random audit draw (fixed fraction per tempo — not miner-predictable)  
+3. Submission is near record / top-K threat on that board  
+4. Rank movement after a prior shallow path exceeds policy delta  
+5. Launch Bar not yet green → **all** evals full depth (no progressive routing)
+
+**Hard constraints**
+
+- Routing signals are **validator-private RPC only** — never miner-reachable  
+- Routing **never** writes into `S_combined` or gate pass/fail  
+- Gates still judge; shallow path may only reduce *volume* of stress samples within registered pack bounds — not disable mandatory gates  
+- Red-team priority: adversary who models D9 to farm shallow paths  
 
 ### 2.5 Port C — Incentives & Challenges
 
@@ -131,22 +164,13 @@ Port B remains **lean-exam aligned**. Full product battery (INV/ADV/latency) is 
 | Challenge weight proposals | D5 | More emissions to unsaturated high-upside boards | Search where EV remains |
 | Breakthrough assist | D3, D1 | Flag new-best + novel causal region (gov final) | Bounty quality |
 | Decay tuning hints | D5 | Faster decay on flat frontiers | Stale winner pressure |
-| Stress / challenge evolution | D4, D5, D7, D11 | Versioned stress catalogs; gap-driven challenge ideas; PB failure modes → new stress families | Adversarial roadmap |
+| Stress / challenge evolution | D4, D5, D7, D11 | Versioned stress catalogs; PB failure modes → new stress families | Adversarial roadmap |
 
 **Forbidden:** landscape similarity as a direct score term.
 
 ### 2.6 Port D — Commercial & Dual-Regime
 
-Canonical pipeline detail lives in [`Specialist_Bank.md`](./Specialist_Bank.md). Landscape owns **graph + opportunity + repair routing**; the bank owns **gauntlet execution + dual egress**.
-
-| Product | Fuel | Notes |
-|---------|------|-------|
-| Specialist Bank | D2, D3, D6, D11 | Effect-synthesized recipes; **controlled retrain**; **product battery** mandatory for full SKU |
-| Sponsored challenges | D8, D5, D4 | Counterfactual briefs; may define extra PB tests in challenge brief |
-| Evidence language | D3, D4, D11 | Conservative claims; PB report on commercial cards |
-| Sealed air-gap prior packs | Noisy D2/D3/D6 + D4 checklist | One-way public → private; no live landscape API in enclave |
-| Registry provenance | D10 | Attestation for tooling vendors |
-| Optional UQ tier (later) | D1 ensembles / conformal on KPIs | Product add-on for design/safety jobs — **not** L0 Port A surface |
+Canonical pipeline: [`Specialist_Bank.md`](./Specialist_Bank.md). Landscape owns graph + opportunity + repair; bank owns gauntlet + dual egress.
 
 ### 2.7 Anti-Gaming Rules
 
@@ -158,246 +182,25 @@ Canonical pipeline detail lives in [`Specialist_Bank.md`](./Specialist_Bank.md).
 6. Paid tiers buy search orientation or private challenge design — never eval outcomes.  
 7. Success = post-gate progress + commercial conversion, not guidance-API engagement.  
 8. **No full specialist on miner API.**  
-9. **No commercial full SKU without product battery pass** (grounding gate).
+9. **No commercial full SKU without product battery pass.**  
+10. **No L0 compounding publish until Launch Bar green.**  
+11. **Causal language never inherits gate-level certainty.**
 
 ### 2.8 Export Doctrine (Port D alignment)
 
 > **Ground truth in. Verified knowledge out.**
 
-Landscape must not implement Port D as “export last week’s winner weights.”
-
-| Gauntlet stage | Landscape role |
-|----------------|----------------|
-| **Sources** | Ingest lean-verified Model Cards (+ later PB outcomes) |
-| **Connected graph** | Cards ↔ regimes ↔ effects ↔ failures ↔ promotion_fail |
-| **Multiply** | Opportunity rank → candidate specs from **effects**; `product_jobs` → PB task definitions |
-| **Execute** | Hand off to bank controlled retrain (not landscape-side weight copy) |
-| **Judge → repair** | Consume PB pass/fail into D11; re-rank / de-prioritize regimes |
-| **Decontaminate** | Enforce seed/cutoff policy in opportunity vs bank verify metadata |
-| **Grounding gate** | Refuse product export signals unless bank reports required PB pass |
-| **Export** | ProductExporter emits only bank-approved artifacts; Port A gets noisy derivatives only |
-
-**Anti-distillation:** teacher-logit / checkpoint mimicry is not a specialist construction path. See Specialist Bank §3.
-
-**Dual threshold reminder**
-
-```text
-Lean validator path     → volume telemetry (D1) → search quality (Port A)
-Promotion / bank path   → product battery (D11) → commercial SKUs (Port D)
-```
-
-Job-shaped tests (inverse design, plant depth, adversarial) belong on the **promotion** path so search stays affordable and the shelf stays honest (`Use_Cases_by_Phase.md`).
+Landscape must not implement Port D as “export last week’s winner weights.” Gauntlet stages, anti-distillation, and dual threshold remain as in v1.1 — see Specialist Bank for execution.
 
 ---
 
 ## 3. Recommended Architecture
 
-### 3.1 Design Principles
+Design principles, component diagram, repo layout, feature contracts, symbolic/causal paths, opportunity ranker, prior pack publisher, cadence — **unchanged in substance from v1.1**.
 
-1. **Batch over online** for causal/symbolic fits — stability > recency theater.  
-2. **Append-only Model Card lake** — reproducible reprocessing.  
-3. **Feature contracts versioned** — schema evolution without silent breaks.  
-4. **Separate serve path from train path** — prior pack publisher ≠ research notebook.  
-5. **Julia where symbolic/MT is strongest; Python/JAX where subnet glue is strongest.**  
-6. **Every served artifact carries `landscape_version` + `data_cutoff_block`.**  
-7. **Port D construction follows Specialist Bank contracts** — Landscape does not fork a second distillation policy.
+**Additional control-plane rule:** `VersionGovernor` and prior publisher check `Launch_Bar` status (or equivalent CI flag) before marking a prior pack `public_publish=true`.
 
-### 3.2 Logical Component Diagram
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        LANDSCAPE AGENT SERVICE                          │
-├─────────────────────────────────────────────────────────────────────────┤
-│  INGEST                                                                 │
-│  ├─ ModelCardIngestor          (validator → queue → lake)               │
-│  ├─ PromotionOutcomeIngestor   (bank PB results → D11)                  │
-│  ├─ SchemaValidator            (reject incomplete cards)                │
-│  └─ FeatureExtractor           (strategy flatten + gate vector encode)  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  STORAGE                                                                │
-│  ├─ CardLake (object store)    append-only JSON/Parquet by challenge    │
-│  ├─ FeatureStore (columnar)    training tables for PySR / DML           │
-│  ├─ ArtifactRegistry           models, graphs, prior packs, specialists │
-│  └─ MetadataDB                 versions, cutoffs, CI summaries, PB logs │
-├─────────────────────────────────────────────────────────────────────────┤
-│  FITTERS (scheduled)                                                    │
-│  ├─ SymbolicFitter             PySR batch → expression library          │
-│  ├─ MTBridge                   expressions → MT.jl → JAX loss snippets  │
-│  ├─ CausalFitter               Double ML / orthogonalized learners      │
-│  ├─ FailureAtlasBuilder        cluster gate failures                    │
-│  ├─ FrontierMapper             saturation / difficulty / density        │
-│  └─ SpecialistOpportunityRanker  effects + D11 → queue for bank         │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ROUTER / SERVER                                                        │
-│  ├─ PriorPackBuilder           noise + lag + schema masks               │
-│  ├─ DiagnosticMapper           gate vector → failure tier labels        │
-│  ├─ EvalSignalService          D9 for validators only (private RPC)     │
-│  ├─ EconomySignalService       D5 proposals for governance / tracker    │
-│  └─ ProductExporter            bank-approved SKUs, sealed packs, briefs │
-├─────────────────────────────────────────────────────────────────────────┤
-│  CONTROL PLANE                                                          │
-│  ├─ Scheduler                  batch cadences (hourly cards, daily fit) │
-│  ├─ VersionGovernor            promote / rollback artifacts             │
-│  └─ Metrics & KillSwitches     post-gate KPIs; auto-withdraw guidance   │
-└─────────────────────────────────────────────────────────────────────────┘
-         │                    │                      │
-         ▼                    ▼                      ▼
-   MCP / Prior API      Validator private       Product / Bank / Air-gap
-   (miners, agents)     RPC (D9, routing)       (gauntlet-gated exports)
-```
-
-### 3.3 Repository Layout (Recommended)
-
-```text
-carbon/landscape/
-  contracts/
-    model_card_v1.py
-    features_v1.py
-    prior_pack_v1.py
-    promotion_outcome_v1.py      # PB vectors, product_jobs
-  ingest/
-    consumer.py
-    promotion_consumer.py
-    validate_card.py
-    extract_features.py
-  storage/
-    lake.py
-    feature_store.py
-    artifact_registry.py
-  fitters/
-    symbolic_pysr.py
-    mt_bridge.py
-    causal_dml.py
-    failure_atlas.py
-    frontier.py
-    opportunity_ranker.py        # feeds Specialist Bank queue
-  serve/
-    prior_pack_builder.py
-    noise.py
-    diagnostic_map.py
-    eval_signals.py              # private
-    economy_signals.py
-    product_export.py            # only bank-approved artifacts
-  pipeline/
-    daily.py
-    promote.py                   # orchestrate handoff to bank gauntlet
-  metrics/
-    kpis.py
-    kill_switches.py
-```
-
-Specialist **gauntlet execution** (controlled retrain, PB-INV/ROLL/ADV, ONNX) lives with the Specialist Bank / validator-grade workers — not inside Landscape fit notebooks. Landscape ranks and records; the bank **grounds and ships**.
-
-### 3.4 Model Card → Feature Contract (Minimum)
-
-```text
-model_card_v1:
-  meta: { card_id, challenge_id, backbone, block_height, validator_set_hash,
-          generator_version, landscape_ingest_version }
-  strategy_features:
-    loss_enables: { data_mse, physics_residual, boundary_mse, conservation_penalty, ... }
-    loss_weights: { ... }
-    curriculum: [{ phase, epochs, spatial_resolution_scale, mode_budget_scale }]
-    optimizer: { name, lr, schedule_family, grad_clip, weight_decay }
-    budget: { max_epochs, effective_epochs, wall_time_s }
-  outcomes:
-    combined_score
-    accuracy_component
-    robustness_component
-    physics_fidelity_component
-    gate_results: [{ gate_id, status, value, threshold }]
-    tier1_passed: bool
-    full_eval_completed: bool
-  dynamics (optional):
-    loss_curves_summary, residual_summaries, early_stop_reason
-```
-
-**Promotion outcome contract (D11, from bank):**
-
-```text
-promotion_outcome_v1:
-  candidate_id, regime, module_type
-  product_jobs: [inverse_design, plant, ...]
-  pb_results: [{ gate_id, pass, value, threshold }]
-  lean_retrain_pass: bool
-  banked: bool
-  landscape_version, data_cutoff_block
-```
-
-**Confounder set (v1 causal):** `physics_class / challenge_id`, `backbone`, `log_budget`, `generator_version`, calendar/block bucket.  
-**Treatments (v1):** loss enables, loss weights (winsorized), curriculum scales, schedule family.  
-**Primary outcomes:** stress robustness component, gate-pass vector, combined score (secondary).
-
-### 3.5 Symbolic Path (D2)
-
-Unchanged in method: PySR → filter → MTBridge → registry → optional templates in prior packs. Prefer few stable expressions; MT failures must not block causal/prior paths.
-
-### 3.6 Causal Path (D3)
-
-Unchanged in method: Double / orthogonalized ML with overlap and stability publish gates. Publish **bands** only when CI excludes zero and direction is stable across consecutive windows.
-
-### 3.7 Failure Atlas & Frontier (D4, D5)
-
-Unchanged. Additionally: fold **PB failure modes** (from D11) into atlas labels when present (e.g. `pb_inv_constraint`, `pb_roll_blowup`) for Port C challenge evolution.
-
-### 3.8 Specialist Path (D6) — Opportunity, Not Silent Distill
-
-Landscape **ranks opportunities** and may propose module *specs* from causal-positive regions. It does **not**:
-
-- copy winner checkpoints into the bank  
-- serve full specialists on Port A  
-- mark a commercial SKU without bank grounding-gate attestation  
-
-```text
-opportunity(regime, module_type) =
-  causal_clarity
-  × support_density
-  × stability
-  × max(commercial_priority, phase_roadmap_priority)
-  × (1 − pure_clone_saturation)
-  × (1 + pb_historical_pass_rate_bonus)
-  / expected_verify_and_pb_cost
-```
-
-Each handoff to the bank carries provenance: `landscape_version`, causal_ids[], symbolic_ids[], card_cutoff, `product_jobs`.
-
-Held-out validation metrics for modules remain required; **full surrogate SKUs** additionally require the Specialist Bank product battery.
-
-### 3.9 Prior Pack Publisher (Port A)
-
-```text
-prior_pack_v1:
-  challenge_id, backbone
-  data_cutoff_block
-  landscape_version
-  strategy_scaffold: { ... noisy JSON ... }
-  causal_masks: { field → {impact: high|low|unknown, conf: low|med} }
-  guidance_bands: [ { field, lo, hi, claim_id } ]   # optional, sparse
-  structured_loss_templates: [ ... ]                # optional, ≤k
-  diagnostic_codebook_version
-  noise_manifest: { seed, noise_scale, lag_hours }
-```
-
-**Noise recipe (v1):** additive noise ∝ uncertainty; occasional field dropout; lag ≥ 24h; daily seed rotate.  
-**Never include:** exact bank recipe, ONNX, PB seeds, tight causal coefficients.
-
-### 3.10 Private Eval Signals (Port B)
-
-Unchanged: validator-only RPC; never miner-reachable; never written into score.
-
-### 3.11 Cadence
-
-| Job | Cadence | Notes |
-|-----|---------|-------|
-| Card ingest | continuous | Queue from validators |
-| Promotion / PB ingest | continuous | Queue from bank workers |
-| Feature materialize | hourly | Incremental |
-| Failure atlas refresh | daily | Includes PB labels when available |
-| PySR batch | daily or every N new cards | Per family |
-| Causal refit | daily | Only publish if diagnostics pass |
-| Prior pack publish | daily | Freeze last good if fit skipped |
-| Opportunity rank → bank queue | weekly or on streaks | Higher bar |
-| Frontier / economy signals | daily | Governance consumes |
+Confounder set, treatments, and publish gates for D3 remain as specified. Primary outcomes still emphasize stress robustness and gate-pass vectors — which is why **honest gates are prerequisite**.
 
 ---
 
@@ -407,59 +210,31 @@ Unchanged: validator-only RPC; never miner-reachable; never written into score.
 
 **Objective:** Reliable card lake + publishable noisy priors from aggregates (no causal yet).
 
+**Prerequisite:** `Launch_Bar.md` green for the challenge families that will emit public priors.
+
 **Deliverables:** model_card schema; CardLake + FeatureStore; baseline PriorPackBuilder; coarse diagnostics; KPI dashboard.
 
-**Exit criteria:** ≥95% full evals ingestible; daily priors for live Phase-0 pairs; MCP priors without blocking validation.
+**Exit criteria:** ≥95% full evals ingestible; daily priors for live Phase-0 pairs *only if Launch Bar green*; MCP priors without blocking validation.
+
+**Until Launch Bar green:** ingest may run offline; **no** marketed prior surface.
 
 ### Phase L1 — Symbolic + Failure Atlas
 
-**Objective:** D2/D4 online; structured loss templates enter priors sparingly.
-
-**Exit criteria:** ≥1 stable template on ≥2 challenges; diagnostic tiers in MCP; rollback tested.
+As v1.1; still no causal certainty language.
 
 ### Phase L2 — Causal Core + Specialist Pipeline Hooks
 
-**Objective:** D3 production; causal masks + bands; **opportunity ranker** feeding Specialist Bank; D11 schema reserved even if PB volume is low.
+**Objective:** D3 production with explicit observational framing; opportunity ranker; D11 schema.
 
-**Deliverables**
-
-1. Double ML fitter + publish gates  
-2. Causal masks in prior packs  
-3. OpportunityRanker v1 (effects → bank queue)  
-4. Kill switches on post-gate KPIs  
-5. Contract alignment with `Specialist_Bank.md` (no weight-copy export path)
-
-**Exit criteria**
-
-- Published bands only with passing overlap/CI  
-- Measurable search lift among prior users *or* faster time-to-first gate-pass in A/B  
-- Ablation: removing public bands does not collapse internal opportunity quality  
-- Zero Port A responses containing full specialist payloads
+**Exit criteria:** bands only with overlap/CI/stability; measurable search lift or faster time-to-gate-pass; zero Port A specialist payloads; **external docs still distinguish gates vs estimates**.
 
 ### Phase L3 — Eval & Economy Coupling
 
-**Objective:** Ports B and C live; PB failure modes optionally inform stress evolution.
-
-**Exit criteria:** GPU-seconds per ranking ↓ without rank instability; no miner path to D9.
+Port B live only with §2.4 floor rules enforced; GPU-seconds ↓ without rank instability; no miner path to D9.
 
 ### Phase L4 — Product Gauntlet & Dual-Regime
 
-**Objective:** Port D full with **grounding gate** enforced.
-
-**Deliverables**
-
-1. PromotionOutcome ingest (D11)  
-2. ProductExporter only emits bank-approved SKUs + PB reports  
-3. Sponsor brief tool  
-4. Sealed air-gap packs  
-5. Optional UQ product tier hooks (KPI conformal / ensemble) — not required for L4 exit
-
-**Exit criteria**
-
-- First paid specialist or brief with landscape provenance **and** PB attestation  
-- Zero commercial full SKUs exported without product battery pass  
-- Air-gap pack offline-installable  
-- Port A still noisy-only under audit
+As v1.1; grounding gate mandatory.
 
 ---
 
@@ -480,27 +255,27 @@ Unchanged: validator-only RPC; never miner-reachable; never written into score.
 
 | Port | KPI |
 |------|-----|
-| A | ↑ share of submissions clearing Tier-1; ↓ attempts to first all-gate pass |
+| A | ↑ share clearing Tier-1; ↓ attempts to first all-gate pass |
 | A | Estimation Mode rank correlation vs full eval (top quartile) |
-| A | **Zero** full specialist payloads observed on miner API |
-| B | ↓ GPU-seconds per finalized ranking; stable validator agreement |
-| C | Emission share on unsaturated challenges; fewer stale single-winner plateaus |
-| D | Specialist held-out gate-pass; **PB pass rate by gate ID**; sponsored brief → challenge conversion |
-| D | **Zero** commercial full SKUs without PB report / grounding gate |
-| D | Anti-distillation: zero bank entries that are weight copies without controlled retrain |
-| Graph | Promotion_fail repair: time-to-requeue; fraction fixed vs abandoned |
-| Moat | Internal routing/specialist quality survives ablation of public prior detail |
-| Goodhart | Monitor lean leaderboard rank vs later PB pass correlation; tighten lean rollout if diverged |
+| A | **Zero** full specialist payloads on miner API |
+| B | ↓ GPU-seconds per ranking; stable agreement; **audit full-depth rate** in policy band |
+| C | Emission share on unsaturated challenges |
+| D | PB pass rate; zero SKUs without PB; anti-distillation |
+| Graph | Promotion_fail repair latency |
+| Moat | Ablation of public prior detail does not collapse internal quality |
+| Goodhart | Lean rank vs later PB pass correlation monitored |
+| Epistemic | Zero public materials equating causal bands with gate proof |
 
 ---
 
 ## 7. Implementation Checklist (Condensed)
 
-**L0** — card schema; lake; features; daily noisy priors; MCP pull; diagnostic map  
-**L1** — PySR + registry; MTBridge best-effort; failure atlas; prior rollback  
-**L2** — causal fitter + publish gates; masks in priors; opportunity ranker; no Port A SKU leak; kill switches  
-**L3** — private eval RPC; adaptive stress hook; frontier → gov proposals  
-**L4** — D11 promotion ingest; ProductExporter grounding gate; sealed packs; sponsor briefs; optional UQ tier hooks  
+**Pre-L0** — Launch Bar CI for first challenge family  
+**L0** — card schema; lake; features; daily noisy priors *gated on bar*; MCP pull  
+**L1** — PySR + registry; failure atlas; prior rollback  
+**L2** — causal fitter + publish gates; masks; opportunity ranker; no Port A SKU leak  
+**L3** — private eval RPC + Port B floors; frontier → gov  
+**L4** — D11; ProductExporter grounding gate; sealed packs  
 
 ---
 
@@ -509,13 +284,13 @@ Unchanged: validator-only RPC; never miner-reachable; never written into score.
 Build the Landscape Agent as a **batch intelligence system with four controlled ports**, not as a live strategy oracle and not as a teacher-distillation factory.
 
 - **Private richness** enables causal and symbolic compounding.  
-- **Public poverty** (noise, lag, masks) preserves incentives and moat.  
-- **Validator coupling** converts intelligence into cheaper, harder **lean** evaluation.  
-- **Product coupling** converts intelligence into specialists only through a **verification gauntlet** (*ground truth in → verified knowledge out*).  
-- **Dual threshold** keeps search affordable and the commercial shelf honest.
-
-The optimal causal use case remains: *identify which training choices cause gated robustness in each regime — then orient search, evaluation, emissions, and gauntlet-gated commercial packaging accordingly.*
+- **Public poverty** preserves incentives and moat.  
+- **Validator coupling** converts intelligence into cheaper, harder **lean** evaluation — under Port B floors.  
+- **Product coupling** converts intelligence into specialists only through a **verification gauntlet**.  
+- **Dual threshold** keeps search affordable and the commercial shelf honest.  
+- **Launch Bar** keeps the flywheel from compounding dishonest labels.  
+- **Epistemic discipline** keeps gates and causal estimates from being sold as the same thing.
 
 ---
 
-*Canonical reference for Landscape Agent value routing and build order (v1.1). Port D construction and dual egress are defined jointly with `Specialist_Bank.md`. Implementation must not bypass publish gates, moat boundaries, or the product-battery grounding gate for commercial full SKUs.*
+*Canonical reference for Landscape Agent value routing and build order (v1.2). Port D with `Specialist_Bank.md`. Launch prerequisites: `Launch_Bar.md`. Scoring labels: `Scoring.md`.*
