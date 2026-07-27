@@ -1,0 +1,84 @@
+# k8s/sciml-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: carbon-sciml-service
+  namespace: carbon
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: carbon-sciml
+  template:
+    metadata:
+      labels:
+        app: carbon-sciml
+    spec:
+      runtimeClassName: nvidia
+      containers:
+      - name: sciml-service
+        image: ghcr.io/carbon/sciml-service:v2.1.0
+        ports:
+        - containerPort: 8083
+        env:
+        - name: JULIA_NUM_THREADS
+          value: "16"
+        - name: JULIA_DEPOT_PATH
+          value: "/opt/julia/depot"
+        - name: MOCK_FALLBACK
+          value: "true"
+        resources:
+          requests:
+            nvidia.com/gpu: 1
+            memory: "32Gi"
+            cpu: "8"
+          limits:
+            nvidia.com/gpu: 1
+            memory: "64Gi"
+            cpu: "16"
+        volumeMounts:
+        - name: julia-depot
+          mountPath: /opt/julia/depot
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: julia-depot
+        persistentVolumeClaim:
+          claimName: carbon-julia-depot
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: carbon-sciml
+  namespace: carbon
+spec:
+  selector:
+    app: carbon-sciml
+  ports:
+  - protocol: TCP
+    port: 8083
+    targetPort: 8083
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: carbon-julia-depot
+  namespace: carbon
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: nvme-fast
