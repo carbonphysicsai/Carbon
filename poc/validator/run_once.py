@@ -91,7 +91,6 @@ def run_once(
         challenge_id=ctx.challenge_id,
     )
 
-    # Label integrity (periodic mass on reference solutions)
     assert_labels_ok(train_batch)
     assert_labels_ok(eval_batch)
     _, train_label_info = check_label_conservation(train_batch)
@@ -106,7 +105,6 @@ def run_once(
         strategy, train_batch, limits, init_seed=init_seed
     )
 
-    # Null baseline: same cfg + init_seed, zero training
     null_m = null_eval(cfg, eval_batch, init_seed=init_seed)
 
     eval_m = evaluate(params, cfg, eval_batch)
@@ -211,9 +209,8 @@ def run_once(
         metrics={
             "eval_rel_l2": eval_metrics.get("rel_l2", 0.0),
             "null_rel_l2": null_m["rel_l2"],
-            "beats_null": train_quality_claim or (
-                float(eval_metrics.get("rel_l2", 1.0)) < float(null_m["rel_l2"])
-            ),
+            "beats_null": train_quality_claim
+            or (float(eval_metrics.get("rel_l2", 1.0)) < float(null_m["rel_l2"])),
             "stress_rel_l2": stress_metrics.get("rel_l2", 0.0),
             "stress_per_category": cat_rel,
             "residual_mean": eval_metrics.get("residual_mean", 0.0),
@@ -221,6 +218,11 @@ def run_once(
             "precision": eval_metrics.get("precision", "fp32"),
             "label_mass_train": train_label_info,
             "label_mass_eval": eval_label_info,
+            "physics_margins": score.get("physics_margins"),
+            "robustness_by_category": score.get("robustness_by_category"),
+            "weakest_category": score.get("weakest_category"),
+            "accuracy_eval": score.get("accuracy_eval"),
+            "errors": score.get("errors"),
         },
         gates=gates,
         score={
@@ -232,6 +234,13 @@ def run_once(
             "hard_gate_failures": score["hard_gate_failures"],
             "stress_coverage": score.get("stress_coverage"),
             "coverage_fail": score.get("coverage_fail"),
+            "scoring_version": score.get("scoring_version"),
+            "scoring_pack_hash": score.get("scoring_pack_hash"),
+            "weights": score.get("weights"),
+            "physics_margins": score.get("physics_margins"),
+            "robustness_by_category": score.get("robustness_by_category"),
+            "weakest_category": score.get("weakest_category"),
+            "accuracy_eval": score.get("accuracy_eval"),
         },
         budget_used=budget_used,
         generator_version=GENERATOR_VERSION,
@@ -244,6 +253,11 @@ def run_once(
             "stress_spec": stress_suite.spec_version,
             "null_baseline": null_m,
             "train_quality": tq,
+            "scoring_pack": {
+                "version": score.get("scoring_version"),
+                "hash": score.get("scoring_pack_hash"),
+                "challenge_id": score.get("challenge_id"),
+            },
         },
     )
     card["card_id"] = card.get("card_id") or str(uuid.uuid4())
@@ -261,6 +275,9 @@ def run_once(
                 "null_rel_l2": null_m["rel_l2"],
                 "stress_rel_l2": stress_metrics.get("rel_l2"),
                 "stress_coverage": stress_suite.coverage,
+                "physics_margins": score.get("physics_margins"),
+                "weakest_category": score.get("weakest_category"),
+                "scoring_pack_hash": score.get("scoring_pack_hash"),
                 "steps": train_info["steps"],
                 "backend": backend,
                 "first_loss": train_info.get("first_loss"),
