@@ -183,7 +183,7 @@ $\[
 m_\sigma(e,\tau) = \left(1 + \exp\!\left(-\frac{\tau - e}{\sigma_0\tau}\right)\right)^{-1}
 \]$
 
-### 4.3 Physics fidelity \(S_{\mathrm{physics}}\) (weight 0.45)
+### 4.3 Physics fidelity $\(S_{\mathrm{physics}}\)$ (weight 0.45)
 
 $\[
 S_{\mathrm{physics}} = \sum_k \alpha_k\, m(e_k, \tau_k)
@@ -199,7 +199,7 @@ Component set **and** \(\alpha_k,\tau_k\) come **only** from the Score Pack. Typ
 | boundary | BC residual when applicable |
 | short_rollout | Lean multi-step / stability proxy |
 
-### 4.4 Robustness \(S_{\mathrm{robustness}}\) (weight 0.30)
+### 4.4 Robustness $\(S_{\mathrm{robustness}}\)$ (weight 0.30)
 
 Per stress category \(c\), field error \(\varepsilon_{c,i}\) (same family as accuracy, usually relative \(L^2\)):
 
@@ -221,7 +221,7 @@ Defaults unless pack overrides: \(\lambda=0.5\), \(q=0.9\), \(\beta=0.6\).
 
 If category coverage \(<\) `min_category_coverage` → evaluation error (do not score).
 
-### 4.5 Accuracy \(S_{\mathrm{accuracy}}\) (weight 0.25)
+### 4.5 Accuracy $\(S_{\mathrm{accuracy}}\)$ (weight 0.25)
 
 Eval set only (never stress):
 
