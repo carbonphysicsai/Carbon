@@ -173,22 +173,22 @@ For each gate in `hard_gates`:
 
 Default:
 
-\[
+$\[
 m(e,\tau) = \mathrm{clip}\left(1 - \frac{e}{\tau},\, 0,\, 1\right)
-\]
+\]$
 
 Optional logistic (pack-selectable):
 
-\[
+$\[
 m_\sigma(e,\tau) = \left(1 + \exp\!\left(-\frac{\tau - e}{\sigma_0\tau}\right)\right)^{-1}
-\]
+\]$
 
 ### 4.3 Physics fidelity \(S_{\mathrm{physics}}\) (weight 0.45)
 
-\[
+$\[
 S_{\mathrm{physics}} = \sum_k \alpha_k\, m(e_k, \tau_k)
 \quad \sum_k \alpha_k = 1
-\]
+\]$
 
 Component set **and** \(\alpha_k,\tau_k\) come **only** from the Score Pack. Typical Phase-0 families:
 
@@ -203,19 +203,19 @@ Component set **and** \(\alpha_k,\tau_k\) come **only** from the Score Pack. Typ
 
 Per stress category \(c\), field error \(\varepsilon_{c,i}\) (same family as accuracy, usually relative \(L^2\)):
 
-\[
+$\[
 E_c^{\mathrm{mean}} = \mathrm{mean}_i\varepsilon_{c,i},\quad
 E_c^{\mathrm{tail}} = \mathrm{quantile}_q(\varepsilon_{c,i})
-\]
+\]$
 
-\[
+$\[
 r_c = m\big(\lambda E_c^{\mathrm{mean}} + (1-\lambda) E_c^{\mathrm{tail}},\, \tau_{\mathrm{rob}}\big)
-\]
+\]$
 
-\[
+$\[
 S_{\mathrm{robustness}} =
 \beta\,\mathrm{mean}_c(r_c) + (1-\beta)\,\min_c(r_c)
-\]
+\]$
 
 Defaults unless pack overrides: \(\lambda=0.5\), \(q=0.9\), \(\beta=0.6\).
 
@@ -225,32 +225,31 @@ If category coverage \(<\) `min_category_coverage` → evaluation error (do not 
 
 Eval set only (never stress):
 
-\[
+$\[
 \varepsilon_{\mathrm{eval}} = \mathrm{agg}_i\,\frac{\|\hat u_i - u_i\|}{\|u_i\| + \delta}
-\]
+\]$
 
-\[
+$\[
 S_{\mathrm{accuracy}} = m(\varepsilon_{\mathrm{eval}}, \tau_{\mathrm{acc}})
-\]
+\]$
 
 ### 4.6 Combined
 
-\[
+$\[
 S_{\mathrm{combined}} =
-\begin{cases}
-0 & \text{any hard gate FAIL} \\
+\begin{cases}0 & \text{any hard gate FAIL} \\
 0.45\,S_{\mathrm{physics}} + 0.30\,S_{\mathrm{robustness}} + 0.25\,S_{\mathrm{accuracy}}
   & \text{else (weights from pack; must sum to 1)}
 \end{cases}
-\]
+\]$
 
 Pack **may** override the 45/30/25 split only via governance version bump — Phase 0 packs should keep the global default unless a scientific note justifies otherwise.
 
 ### 4.7 Emissions
 
-\[
+$\[
 w \propto S_{\mathrm{combined}} \cdot \exp(-\Delta_{\mathrm{blocks}} / t_{1/2})
-\]
+\]$
 
 (`ChallengeWinnerTracker` on lean scores only.)
 
