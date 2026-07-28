@@ -58,7 +58,7 @@ The Specialist Bank is Port D of the Landscape Value Router: private causal/symb
 
 ### 2.1 The problem this solves
 
-Carbon’s value story is inverse design, plant-style response, UQ/exploration, and hybrid truth — not leaderboard screenshots.
+Carbon's value story is inverse design, plant-style response, UQ/exploration, and hybrid truth — not leaderboard screenshots.
 
 If **every** product check runs on the miner→validator path:
 
@@ -69,7 +69,7 @@ If **every** product check runs on the miner→validator path:
 If **no** product check runs until after a sale conversation:
 
 - Miners Goodhart terminal field error.
-- “Winners” fail the first customer optimizer or HIL rollout.
+- "Winners" fail the first customer optimizer or HIL rollout.
 - Credibility dies at the worst moment.
 
 **Rule:** grade **search incentives** lean and continuous; grade **shelf credibility** heavy and rare.
@@ -119,7 +119,7 @@ Promotion / bank entry for a **full surrogate SKU** requires **all** of the foll
 | **PB-ADV** | Adversarial stress: short optimizer under box constraints maximizing violation / residual | Max found violation ≤ policy; document residual holes on card |
 | **PB-LAT** | Batch inference latency class on reference hardware profile | p95 latency ≤ declared class (e.g. L1 interactive / L2 batch) |
 | **PB-ART** | Export deployable artifact (ONNX or approved equiv.) + I/O schema | Round-trip numeric parity within ε vs training framework |
-| **PB-ESC** | Escalation notes on Model Card | Written envelope edges + “call hi-fi when…” tied to observed failures |
+| **PB-ESC** | Escalation notes on Model Card | Written envelope edges + "call hi-fi when…" tied to observed failures |
 
 **Failure on any mandatory PB-* → do not bank as commercial full SKU.**  
 Negative evidence returns to Landscape (promotion_fail records). Rank alone never overrides a PB fail.
@@ -144,7 +144,7 @@ Without *any* time signal on-chain, search collapses to snapshot matching and th
 | ADV hole locations (envelope edge patterns) | PB-ADV |
 | Latency class feasibility | PB-LAT |
 
-These are **high-value, low-frequency** labels. They improve opportunity ranking (“this regime’s winners die on inverse design”) without charging every miner for the OEM exam.
+These are **high-value, low-frequency** labels. They improve opportunity ranking ("this regime's winners die on inverse design") without charging every miner for the OEM exam.
 
 ### 2.5 Module-type vs full SKU battery
 
@@ -185,15 +185,15 @@ This section is the **definable strategy** for Landscape → Specialist. It alig
 
 | Anti-pattern | Why it is banned for commercial export |
 |--------------|----------------------------------------|
-| **Teacher distillation** | Copying winner weights / logits re-encodes that run’s gaps; not verifiable as a *method* |
-| **Leaderboard laundering** | Yesterday’s rank ≠ today’s product; seeds and stress differ |
+| **Teacher distillation** | Copying winner weights / logits re-encodes that run's gaps; not verifiable as a *method* |
+| **Leaderboard laundering** | Yesterday's rank ≠ today's product; seeds and stress differ |
 | **Single-winner JSON as recipe** | Overfits one trajectory; recipes must come from **stable effects** across cards |
 | **Synthetic tasks with no execution** | Product claims (INV, plant) must be **run**, not asserted |
 | **Ship without lineage** | No traceable card/causal/PB evidence → no SKU |
 
-Classic knowledge distillation (match a teacher model) is the wrong process for the Specialist Bank. Carbon’s bank process is **synthesize from verified outcomes + re-prove by execution**.
+Classic knowledge distillation (match a teacher model) is the wrong process for the Specialist Bank. Carbon's bank process is **synthesize from verified outcomes + re-prove by execution**.
 
-### 3.3 Carbon’s “connected engineering graph”
+### 3.3 Carbon's “connected engineering graph”
 
 Substrate is not git/PR/CVE — it is the **verified physics competition record**:
 
@@ -206,7 +206,7 @@ Substrate is not git/PR/CVE — it is the **verified physics competition record*
 | Promotion attempt | PB-* pass/fail, failure modes |
 | Specialist version | lineage to landscape_version + data_cutoff_block |
 
-**Landscape’s job** is to maintain this graph, rank where evidence is dense enough to productize, and **multiply** graph support into candidate specs and product tasks — not to average weights from teachers.
+**Landscape's job** is to maintain this graph, rank where evidence is dense enough to productize, and **multiply** graph support into candidate specs and product tasks — not to average weights from teachers.
 
 ### 3.4 The verification gauntlet (map to bank pipeline)
 
@@ -222,7 +222,7 @@ CONNECTED GRAPH (Landscape)
         │
         ▼
 1  SYNTHESIZE & MULTIPLY
-  One regime’s evidence → loss packs, curricula, composites;
+  One regime's evidence → loss packs, curricula, composites;
   product_jobs → PB-INV targets, PB-ROLL horizons, ADV boxes
         │
         ▼
@@ -317,7 +317,7 @@ Landscape is the **connected graph + multiply + route-to-gauntlet** layer. The S
 
 ### 3.9 Pitch line (external)
 
-> We don’t distill a teacher model’s gaps into a product. We build a graph of physics runs that actually passed gates, multiply that evidence into training recipes and job-shaped tests, re-train and re-run them, and only then export a closed specialist — noisy hints for miners, certified artifacts for buyers.
+> We don't distill a teacher model's gaps into a product. We build a graph of physics runs that actually passed gates, multiply that evidence into training recipes and job-shaped tests, re-train and re-run them, and only then export a closed specialist — noisy hints for miners, certified artifacts for buyers.
 
 ---
 
@@ -394,8 +394,8 @@ Someone may approximate a specialist from noisy priors and publish a clone. That
 
 ### Is Not
 
-- Yesterday’s challenge-winner checkpoint, rebranded.
-- A distilled copy of a teacher network’s outputs.
+- Yesterday's challenge-winner checkpoint, rebranded.
+- A distilled copy of a teacher network's outputs.
 - A substitute for full validator evaluation when re-entering competition.
 - An open export of the causal graph or Model Card lake.
 - A full-fidelity free download for miners.
