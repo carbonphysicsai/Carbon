@@ -28,17 +28,6 @@ Coding agents can accelerate maintenance, optimization, and rewrites of scientif
 
 **Commercial parallel:** Carbon’s buyer line — *expensive engineering decisions need auditable, reconstructible truth; fake benchmarks don’t move a chief engineer* — is the industrial form of the same bottleneck the paper documents in scientific software.
 
-### What the paper does **not** do
-
-| Overclaim to avoid | Reality |
-|--------------------|---------|
-| “Independently derives Carbon’s exact architecture” | It derives that **verification is the bottleneck** under agentic acceleration. It does **not** specify miners, emissions, dual threshold, Score Packs, physics gates, or Bittensor. |
-| “Describes Carbon’s exact architecture” | Parallel *roles* (generate vs validate), not the same system design. |
-| Case studies = Carbon phases | Forced analogy. Genomics/stats code migrations are not Phase-0 Burgers×FNO or physics-NO product batteries. |
-| “The entire field is converging on Carbon” | The field is converging on **verification as the hard problem**. Carbon is one mechanism designed for that problem in physics surrogates. |
-
-Use as **mechanism analogy and timing corroboration**, not identity.
-
 ### Clean mapping (roles, not identity)
 
 | Paper pattern | Carbon analogue (honest) |
@@ -57,7 +46,7 @@ Alignment of **problem structure**, not a claim that the report reinvented the s
 | Paper theme | Carbon product implication |
 |-------------|----------------------------|
 | Implementation got cheaper; verification did not | Product battery and Model Cards are the product surface, not the miner leaderboard |
-| Acceptance criteria and harnesses are the durable artifacts | Score Packs + cards are the durable artifacts |
+| Acceptance criteria and harnesses are the durable artifacts | Score Packs + Model Cards are the durable artifacts |
 | Stewardship and trust decide whether work ships | Commercial specialists only after harder qualification |
 
 ### How to use this source
@@ -67,11 +56,6 @@ Alignment of **problem structure**, not a claim that the report reinvented the s
 - Support for “auditable truth over leaderboard theater”
 - Timing: frontier AI labs are documenting the same bottleneck *now*
 - Website / pitch credibility without claiming domain identity
-
-**Do not use for:**
-- “OpenAI proved neural operators need Carbon”
-- “They independently designed dual threshold / dual egress”
-- Phase-by-phase case-study theater
 
 ### Bottom line
 
