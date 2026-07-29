@@ -82,7 +82,7 @@ Export law for Port D: ***Ground truth in. Verified knowledge out.*** No teacher
 │  │  └─ Full Submission (strategy JSON → validator)              │
 │  └─ Miner Toolkit (Docker + Python SDK + cost estimation)      │
 ├─────────────────────────────────────────────────────────────────┤
-│  VALIDATORS (5+ for consensus)                                  │
+│  VALIDATORS                            │
 │  ├─ Trustless Procedural Data Generation (seeded by block hash) │
 │  ├─ Multi-Fidelity Pipeline:                                    │
 │  │  ├─ Tier 1: Fast stress filter                               │
