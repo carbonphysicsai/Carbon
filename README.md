@@ -1,4 +1,4 @@
-# Carbon
+<img width="1412" height="62" alt="image" src="https://github.com/user-attachments/assets/1d63753c-a391-44d9-a4b8-ee667545bcae" /># Carbon
 
 **A Bittensor subnet for verifying physics-based AI models**
 
@@ -28,7 +28,7 @@ Discovery stays cheap. Anything sold as a product has to clear a higher bar than
 
 ---
 
-## Why this design
+## Why This Design
 
 | Usual failure | Carbon’s answer |
 |---------------|-----------------|
@@ -69,13 +69,15 @@ Validators always grade the same way: hidden data, hard physics checks, public s
 
 ---
 
-## Market and product
+## Market and Product
 
-**Who pays (eventually)**  
+"Expensive engineering decisions need auditable, reconstructible truth; fake benchmarks don’t move a chief engineer."
+
+**Who pays**  
 Teams that already run simulation and are hitting cost or latency walls: design exploration, real-time or hardware-in-the-loop response, uncertainty screening, and hybrid setups where a fast model sits next to a classical solver. The buyer is not “crypto.” It is a chief engineer or SciML lead who will not accept a fake benchmark.
 
 **What we sell**  
-Not “access to the leaderboard.” Competition stays open. The product is **qualified models and evidence**:
+The product is **envelope qualified models and evidence**:
 
 | Offering | What the customer gets |
 |----------|-------------------------|
@@ -99,7 +101,7 @@ We do **not** prioritize dashboards, multi-challenge sprawl, or “AI agent thea
 
 ---
 
-## What the network produces over time
+## What the network learns over time
 
 - **Search signal** — which training ideas actually survive stress  
 - **Qualified models** — for design exploration, real-time response, uncertainty, or hybrid solver loops  
