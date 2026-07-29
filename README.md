@@ -42,7 +42,7 @@ The scarce layer is not “another fast model.” It is **credible verification*
 
 ---
 
-## How a round works (simple)
+## How a Round Works (simple)
 
 1. A **challenge** defines a physics regime and what “good” means (accuracy under stress, physical consistency).  
 2. A miner submits a **strategy** — how to train (architecture choices, losses, schedules, etc.).  
@@ -54,7 +54,7 @@ Details of formulas, configs, and phase roadmap live in the technical docs — n
 
 ---
 
-## How miners iterate without burning a full train every time
+## Agent Friendly MCP Miner Solving Loop
 
 Competing on training strategy only works if people can **try ideas quickly**. Carbon is built so miners (or their agents) can run a tight loop **before** a full submission:
 
