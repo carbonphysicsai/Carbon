@@ -6,7 +6,7 @@ Carbon pays miners to propose better ways to train fast physics models — and p
 
 ---
 
-## The problem
+## The Problem
 
 High-fidelity simulation is accurate but too slow for large design spaces and real-time control.  
 Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail in use.
