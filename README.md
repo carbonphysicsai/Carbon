@@ -15,7 +15,7 @@ Engineering teams will not bet expensive decisions on a model because someone cl
 
 ---
 
-## What Carbon does
+## What Carbon Does
 
 Carbon runs a **competition to find training methods** for neural operators (models that learn entire families of physical simulations, not single cases).
 
