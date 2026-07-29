@@ -1,133 +1,129 @@
-# Carbon -- A Physics Intelligence Subnet
+# Carbon — Protocol Specification
 
-**Spec alignment note (July 2026):** Productization uses a **dual threshold** (lean validator exams vs job-shaped product battery at Specialist Bank graduation). Landscape is a **four-port knowledge flywheel**, not a teacher-distillation step. Lean scoring formulas and challenge-bound Score Bank: [`appendices/Scoring.md`](./appendices/Scoring.md). **Launch Bar** ([`appendices/Launch_Bar.md`](./appendices/Launch_Bar.md)) must be green before Landscape L0 public prior publish — the flywheel must not compound unfinished labels. Canonical detail: `appendices/Landscape_Agent.md` (v1.2+), `appendices/Specialist_Bank.md` (v1.3+), `appendices/Use_Cases_by_Phase.md`.
+**A Bittensor subnet for trustless verification of physics-informed neural operator training strategies**
+
+**Status:** Phase 0 foundations + offline PoC. Landscape and commercial layers are **build-ordered** — not assumed live at launch.
+
+**Canonical companions**
+
+| Doc | Role |
+|-----|------|
+| [`appendices/Scoring.md`](./appendices/Scoring.md) | Lean formulas, Score Bank, validator load path |
+| [`appendices/Launch_Bar.md`](./appendices/Launch_Bar.md) | Stop-ship before public prior publish |
+| [`appendices/Landscape_Agent.md`](./appendices/Landscape_Agent.md) | Four-port knowledge architecture (v1.2+) |
+| [`appendices/Specialist_Bank.md`](./appendices/Specialist_Bank.md) | Product gauntlet, dual egress (v1.3+) |
+| [`appendices/Use_Cases_by_Phase.md`](./appendices/Use_Cases_by_Phase.md) | Inverse design / plant / UQ / hybrid truth |
+| [`appendices/Data_Management.md`](./appendices/Data_Management.md) | Seeds, train ≠ eval |
+| [`docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md) | Generators, seeds, proprietary data plan |
+| [`appendices/Implementation.md`](./appendices/Implementation.md) / `IMPLEMENTATION.md` | Code-level patterns |
+| [`appendices/Compute_Optimization.md`](./appendices/Compute_Optimization.md) | Compute strategy |
+| [`appendices/JAX_Optimization.md`](./appendices/JAX_Optimization.md) | Validator JAX efficiency |
+| [`appendices/Operations.md`](./appendices/Operations.md) | Deploy / ops |
 
 ---
 
-## 1. Executive Summary
+## 1. Executive summary
 
-Carbon is a Bittensor subnet that operates a **decentralized verification layer for physics-informed neural operator surrogates**. It coordinates a network of miners and autonomous agents to discover optimal training strategies for Neural Operators (FNO, GINO, WNO, Transolver) under rigorous, trustless adversarial validation.
+Carbon coordinates miners and agents to **discover training strategies** for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators **retrain and evaluate** those strategies on hidden, procedurally generated data under **hard physics gates**. Emissions follow that independent score — not self-reported metrics.
 
-**Core Innovation**: Miners submit training strategies (loss configurations, curricula, architectures, data generation parameters). Validators execute full deterministic training from scratch on hidden, procedurally generated data, evaluating against hard physics gates. Verified **Model Cards** feed the Landscape Agent, which compounds symbolic and causal insight and routes it back as noisy search priors, eval efficiency signals, incentive proposals, and — only after a **verification gauntlet** — commercial specialists.
+**Core loop:** Miners submit training strategies (loss configurations, curricula, architectures, data-generation parameters). Validators execute deterministic training from scratch on hidden procedural data, evaluate against hard physics gates and challenge-bound Score Packs, and emit **Model Cards**. Verified cards later feed a knowledge layer that compounds insight under strict publish rules and, only after a **verification gauntlet**, commercial specialists.
 
-**Lead capability (raise / pre-launch):** trustless verification + dual threshold + sponsored path.  
-**Landscape:** designed four-port compounding architecture (build-ordered) — not a pre-launch live brain. Public L0 priors only after Launch Bar green.
+**What the network optimizes for**  
+Training methods that survive stress and physical constraints — not low loss on a fixed public set.
 
-**What the network produces (product lens)**  
-Envelope-qualified **solution maps** (problem setup → physical fields) for jobs engineers already run: **inverse design**, **plant-style / real-time response**, **exploration & UQ**, and **hybrid truth** (dense surrogate queries + sparse high-fidelity anchors). See `appendices/Use_Cases_by_Phase.md`.
+**What the network eventually supplies**  
+Envelope-qualified **solution maps** (problem setup → physical fields) for jobs engineers already run: **inverse design**, **plant-style / real-time response**, **exploration & UQ**, and **hybrid truth** (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./appendices/Use_Cases_by_Phase.md).
 
-**Dual threshold (non-negotiable)**
+### Dual threshold (non-negotiable)
 
 | Path | What it grades | Outcome |
 |------|----------------|--------|
 | **Miner → validator (lean)** | Physics gates, stress, short rollout, Model Card | Emissions / leaderboard — **search stays cheap** |
-| **Landscape → Specialist Bank** | Effect-based recipe → controlled retrain → **product battery** (inverse-design bakeoff, deep rollout/plant suite, adversarial stress, latency, ONNX, escalation notes) | **Commercial SKU** — shelf credibility |
+| **Promotion → commercial (Specialist Bank)** | Effect-based recipe → controlled retrain → **product battery** (inverse-design bakeoff, deep rollout/plant suite, adversarial stress, latency, ONNX, escalation notes) | **Commercial SKU** — shelf credibility |
 
 Leaderboard rank ≠ shelf product. No commercial full specialist ships without the product battery. No pay-to-compete.
 
-**Knowledge flywheel (Landscape)**
+**Lead capability (raise / pre-launch):** trustless verification + dual threshold + sponsored path.  
+**Knowledge layer (Landscape):** designed four-port compounding architecture — **build-ordered**, not a pre-launch live brain. Public L0 priors only after [`Launch_Bar.md`](./appendices/Launch_Bar.md) is green.
 
-```text
-Model Cards (lean verified)
-        → private graph (causal / symbolic / failures / promotion outcomes)
-        → Port A: noisy priors to miners     (search compounds)
-        → Port B: eval routing (validators)  (GPU compounds; floor rules)
-        → Port C: challenge weight proposals (incentives aim where EV remains)
-        → Port D: gauntlet-gated specialists (revenue + better priors from banked regimes)
-        → more cards → …
-```
+**Epistemic line:** Hard gates (when Launch Bar is green) are protocol truth. Causal bands are observational estimates — never spoken with gate-level certainty.
 
-**Epistemic line:** Hard gates (when Launch Bar green) are protocol truth. Causal bands are observational estimates — never spoken with gate-level certainty.
-
-Export law for Port D: ***Ground truth in. Verified knowledge out.*** No teacher-checkpoint distillation; recipes from stable effects; re-execute; grounding gate or no ship.
-
-**Carbon's Position in the Physics-AI Stack**:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PHYSICS-AI STACK                             │
-├─────────────────────────────────────────────────────────────────┤
-│  COMPUTE LAYER          │ NVIDIA (H100, Blackwell, CUDA,        │
-│                         │  TensorRT, Apollo, Cosmos)            │
-│                         │ Demand generator — not competitor      │
-├─────────────────────────┼───────────────────────────────────────┤
-│  MODEL SUPPLY LAYER     │ **CARBON** (Decentralized, Verified,  │
-│                         │  Compounding, Trustless)               │
-│                         │ Lean exams + gauntlet-gated products   │
-├─────────────────────────┼───────────────────────────────────────┤
-│  TOOLING/DEPLOYMENT     │ Ansys, Siemens, Dyad, Dassault,      │
-│                         │ nTop, Rescale                          │
-│                         │ Consumers of Carbon's model supply    │
-├─────────────────────────┼───────────────────────────────────────┤
-│  END USERS              │ Aero/Auto/Energy/Defense — Digital    │
-│                         │ Twins, HIL, Design Optimization,      │
-│                         │ hybrid truth loops                    │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-*Implementation details: `IMPLEMENTATION.md`. Landscape / bank / scoring: appendices cited above.*
+**Port D export law:** *Ground truth in. Verified knowledge out.* No teacher-checkpoint distillation; recipes from stable effects; re-execute; grounding gate or no ship.
 
 ---
 
-## 2. Architecture Overview
+## 2. Position in the physics-AI stack
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CARBON SUBNET ARCHITECTURE                   │
-├─────────────────────────────────────────────────────────────────┤
-│  MINERS / AGENTS                                                │
-│  ├─ MCP Layer (Model Context Protocol)                          │
-│  │  ├─ Estimation Mode (near-zero cost screening)               │
-│  │  ├─ Light Training Mode (reduced budget + local eval)        │
-│  │  └─ Full Submission (strategy JSON → validator)              │
-│  └─ Miner Toolkit (Docker + Python SDK + cost estimation)      │
-├─────────────────────────────────────────────────────────────────┤
-│  VALIDATORS                            │
-│  ├─ Trustless Procedural Data Generation (seeded by block hash) │
-│  ├─ Multi-Fidelity Pipeline:                                    │
-│  │  ├─ Tier 1: Fast stress filter                               │
-│  │  └─ Tier 2: Full hidden adversarial + physics gates         │
-│  ├─ Short rollout stability (lean plant signal)                 │
-│  ├─ Score Pack load (challenge-bound; see Scoring.md)           │
-│  └─ Model Card generation (provenance → Landscape ingest)      │
-├─────────────────────────────────────────────────────────────────┤
-│  GROUND TRUTH ORACLE (Julia/SciML Service)                     │
-│  ├─ DifferentialEquations.jl / SciMLSensitivity.jl              │
-│  ├─ ModelingToolkit.jl (symbolic loss terms)                    │
-│  └─ NeuralPDE / MethodOfLines baselines as needed               │
-├─────────────────────────────────────────────────────────────────┤
-│  LANDSCAPE AGENT (Knowledge Flywheel — four ports)              │
-│  ├─ Graph: cards, effects, failures, promotion/PB outcomes      │
-│  ├─ Port A Search: noisy priors, masks, diagnostics             │
-│  ├─ Port B Eval: progressive depth, adaptive stress (private)   │
-│  ├─ Port C Economy: weight / bounty *proposals* only            │
-│  └─ Port D Product: opportunity rank → Specialist Bank gauntlet │
-├─────────────────────────────────────────────────────────────────┤
-│  SPECIALIST BANK (Port D execution)                             │
-│  ├─ Effect-synthesized recipes (not single-winner clones)       │
-│  ├─ Controlled retrain + product battery                        │
-│  └─ Dual egress: noisy miner derivatives | closed commercial SKU│
-├─────────────────────────────────────────────────────────────────┤
-│  INCENTIVES (Yuma Consensus + ChallengeWinnerTracker)           │
-│  ├─ Winner-heavy + exponential decay (lean scores only)         │
-│  ├─ Future: Breakthrough Bounties + Decaying Top stipends       │
-│  └─ Treasury for unclaimed allocations                          │
-└─────────────────────────────────────────────────────────────────┘
+COMPUTE LAYER       NVIDIA (CUDA, TensorRT, PhysicsNeMo / Apollo-class stacks)
+                      → demand generator — not Carbon’s product
+
+MODEL SUPPLY LAYER  **CARBON**
+                      → decentralized strategy search
+                      → independent exams (lean)
+                      → gauntlet-gated commercial artifacts (later)
+
+TOOLING/DEPLOYMENT  Ansys, Siemens, Dyad, Dassault, nTop, Rescale, …
+                      → consumers of verified supply / export paths
+
+END USERS           Aero / auto / energy / defense — digital twins, HIL,
+                      design optimization, hybrid truth loops
 ```
 
-### 2.1 Dual Egress (Specialist artifacts)
+Carbon does not replace the GPU vendor or the CAE seat. It owns **discovery of training methods under an exam the producer does not control**, with a hard line between competition results and sold artifacts.
+
+---
+
+## 3. System architecture
+
+```
+MINERS / AGENTS
+  ├─ Optional local loop: noisy leader insight → estimate → light train → submit
+  ├─ Strategy JSON (schema-versioned)
+  └─ Toolkit: Docker + SDK + cost hints
+
+VALIDATORS
+  ├─ Procedural data (seeded; train ≠ eval ≠ stress)
+  ├─ Multi-fidelity path: fast stress filter → full hidden exam + physics gates
+  ├─ Short rollout stability (lean plant signal)
+  ├─ Challenge-bound Score Pack
+  └─ Model Card (provenance → later Landscape ingest)
+
+GROUND TRUTH ORACLE (as needed)
+  ├─ DifferentialEquations.jl / SciMLSensitivity.jl
+  ├─ ModelingToolkit.jl (structured losses)
+  └─ Mesh-converged references (FEniCS, OpenFOAM, SU2, …) for generator validation
+
+LANDSCAPE AGENT (after Launch Bar)
+  ├─ Private graph: cards, effects, failures, promotion / product-battery outcomes
+  ├─ Port A Search: noisy priors, masks, diagnostics → miners
+  ├─ Port B Eval: progressive depth, adaptive stress → validators (private; floor rules)
+  ├─ Port C Economy: challenge-weight / bounty *proposals* only
+  └─ Port D Product: opportunity rank → Specialist Bank gauntlet
+
+SPECIALIST BANK (Port D execution)
+  ├─ Effect-synthesized recipes (not single-winner clones)
+  ├─ Controlled retrain + product battery
+  └─ Dual egress: noisy miner derivatives | closed commercial SKU
+
+INCENTIVES
+  ├─ Lean scores only → weights / emissions (winner-heavy decay)
+  └─ Landscape similarity never a score term
+```
+
+### 3.1 Dual egress (specialist artifacts)
 
 | Path | Who | What they get |
 |------|-----|---------------|
 | **Public / miner** | Miners, agents | Noisy, lagged prior / warm-start **derivatives only** — never full weights or exact bank recipe |
-| **Commercial** | Buyers | Closed SKU = ONNX + exact recipe + Model Card + **product-battery certs** + license + updates (+ optional air-gap) |
+| **Commercial** | Buyers | Closed SKU = ONNX (or approved) + exact recipe + Model Card + **product-battery certs** + license + updates (+ optional air-gap) |
 
 Competition scoring **never** depends on purchasing the commercial path.
 
-### 2.2 Flywheel loop (why Landscape is real)
+### 3.2 Flywheel loop (why Landscape is real)
 
-1. **Ingest** lean-verified Model Cards (and later promotion/PB outcomes).  
-2. **Fit** symbolic (PySR→MT) and causal (Double ML) structure offline/batch.  
+1. **Ingest** lean-verified Model Cards (and later promotion / product-battery outcomes).  
+2. **Fit** symbolic (e.g. PySR → ModelingToolkit) and causal (Double ML) structure offline / batch.  
 3. **Route**  
    - A: orient agent search without leaking the moat  
    - B: spend validator GPU where it matters (under Port B floor rules)  
@@ -136,180 +132,81 @@ Competition scoring **never** depends on purchasing the commercial path.
 4. **Bank** only what re-trains and passes job-shaped tests.  
 5. **Feed back** banked regimes into noisier priors and better challenge design — search quality rises without opening eval outcomes for sale.
 
-Success metrics for the flywheel: post-gate progress, PB pass rates, commercial conversion — **not** guidance-API engagement. Landscape never overrides gates. **L0 public publish only after Launch Bar green.**
+Success metrics: post-gate progress, product-battery pass rates, commercial conversion — **not** guidance-API engagement. Landscape never overrides gates. **L0 public publish only after Launch Bar green.**
 
 ---
 
-## 3. Trustless Verification & Data Generation System
+## 4. Trustless verification and data generation
 
-### Core Principles
+### Core principles
 
-- **Procedural generation at runtime**: All evaluation data (stress testing and benchmark/held-out) is generated at runtime using open-source generators.
-- **Public unpredictable seeding**: Generation seeded by `hash(challenge_id + block_hash + run_nonce)` (Phase 0); moving toward commit-reveal + drand in Phase 1B+.
-- **Auditable by anyone**: Generator code is open-source; anyone can reproduce evaluation data given the seed.
-- **Scientific credibility**: Generator parameter ranges have documented physical justification; validated against high-fidelity reference solvers (FEniCS, OpenFOAM, SU2, DPLR, US3D, **DifferentialEquations.jl**).
-- **No fixed reference datasets**: Primary evaluation data is procedurally generated to preserve trustlessness; fixed datasets used only for generator validation.
-- **Ground Truth Oracle**: **Julia/SciML Service** provides mathematically rigorous reference solutions via DifferentialEquations.jl, adjoint sensitivities via SciMLSensitivity.jl, and symbolic loss terms via ModelingToolkit.jl.
+- **Procedural generation at runtime:** Primary evaluation and stress data are generated at runtime with open-source generators.
+- **Public unpredictable seeding:** Phase 0 uses `hash(challenge_id + block_hash + run_nonce)`; Phase 1B+ moves toward commit-reveal + drand-class randomness where useful.
+- **Auditable by anyone:** Generator code is open; anyone can reproduce a draw given the seed.
+- **Scientific credibility:** Parameter ranges need documented physical justification; generators validated against high-fidelity references (FEniCS, OpenFOAM, SU2, DPLR, US3D, **DifferentialEquations.jl**, and peers).
+- **No fixed public benchmark as the live exam:** Fixed datasets may validate generators; they are not the miner-facing answer key.
+- **Train ≠ eval ≠ stress:** Distributions and seeds are separated; miner local loops must not see validator eval seeds.
 
-See `TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md` for the full design, including the Proprietary Data Handling Plan (Section 8).
+### Ground truth oracle
 
----
+Julia/SciML (DifferentialEquations.jl, SciMLSensitivity.jl, ModelingToolkit.jl, NeuralPDE / MethodOfLines as needed) supplies reference solutions, adjoints, and structured loss hooks — for generator validation and optional structured losses, not as a substitute for the adversarial exam.
 
-## 4. Dual-Regime Architecture (DoD/Regulated Markets)
+Full design including proprietary-data handling: [`TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md).
 
-Carbon operates a **Dual-Regime Model Supply** for defense and regulated domains:
+### Data generation invariants
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  PUBLIC REGIME (Carbon Subnet)                                  │
-│  ├─ Discovers strategies on public/synthetic data               │
-│  ├─ Adversarial verification + physics gates                    │
-│  ├─ Outputs: Strategy.json + Model Card + (after gauntlet) ONNX │
-│  └─ Zero ITAR/controlled data                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                    CROSS-DOMAIN SOLUTION / SECURE TRANSFER
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  CLASSIFIED REGIME (Prime Enclave IL5/IL6)                      │
-│  ├─ Ingests architecture blueprint (strategy.json)              │
-│  ├─ Fine-tunes on classified telemetry / proprietary geometry   │
-│  ├─ Re-runs product battery policy where required               │
-│  ├─ Deploys ONNX locally (HIL, edge, air-gapped)                │
-│  ├─ Runs inference LOCALLY — zero network calls                 │
-│  ├─ Applies ITAR/EAR classification (Prime's ECO)               │
-│  └─ Packages DI-SESS-82483 deliverable + ATO artifacts          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Data Handling Phases**:
-- **Phase 0-1B**: Public + synthetic data only. No proprietary data enters the network.
-- **Phase 2A**: Customer-controlled local fine-tuning with custom datasets (Abaqus ODB). Raw data never leaves customer control; commercial adapters **re-pass product battery** after adapt.
-- **Phase 2B**: Air-Gapped Miner Toolkit v1 for classified enclaves (IL5/IL6). Zero network dependencies.
-- **Phase 3+**: Confidential Computing (NVIDIA H100 TEEs) on validator side for sensitive workloads (as adopted).
-- **Julia/SciML Service**: Deployable in both regimes (air-gapped Julia deployment for classified regime).
+- `stress_seed` unknown to miners until evaluation.
+- Validator generator config ignores miner-supplied eval params.
+- Score Pack robustness category IDs must align with Generator Pack categories ([`Scoring.md`](./appendices/Scoring.md) + [`Data_Management.md`](./appendices/Data_Management.md)).
+- Stress category coverage targets remain as specified in Data Management (≥95% where defined).
 
 ---
 
-## 5. Miner Compute, Local Iteration & Submission Model
+## 5. Miner participation and local iteration
 
-### Core Philosophy
+### Philosophy
 
-- **Validator authority**: The validator always performs full deterministic training + hidden adversarial stress evaluation identically for every submission (**lean path**).
-- **Miner autonomy**: Miners/agents run local iterative training loops on their own hardware to improve strategies before submission.
-- **Zero-friction submission**: Submission is always free; local training is an *optional enhancement*, not a requirement.
-- **Moat protection**: Only noisy priors are distributed (never the clean champion or full bank SKU). High-value Landscape knowledge (raw causal graphs, DML outputs, PB seeds) remains protected.
+- **Validator authority:** Every emissions path is a full lean exam on hidden data with hard gates.
+- **Miner autonomy:** Local iteration is encouraged, never required.
+- **Zero-friction submit:** Strategy JSON can be submitted with **no** local training.
+- **Moat:** Public leader insight is **noisy and lagged** — not full champion weights, exact bank recipes, raw causal graphs, DML dumps, or product-battery seeds.
 
-### Three-Tier Local System
+### Three tiers (local → official)
 
-| Tier | Compute Cost | Anchored To | Purpose | Required Before Submission? |
-|------|-------------|-------------|---------|----------------------------|
-| **Estimation Mode** | Near-zero | Noisy Prior | Rapid idea screening & filtering | No |
-| **Light Training Mode** | Low | Noisy Prior | Main iterative improvement loop | No (recommended) |
-| **Validator (Official)** | Network-paid | Full hidden data | Official scoring + emissions | Yes |
+| Tier | Compute | Anchored to | Purpose | Emissions? |
+|------|---------|-------------|---------|------------|
+| **Estimation** | Near zero (CPU-class) | Noisy prior / last verified insight | Rapid screening (humans or agents) | No (may log at lower Landscape weight) |
+| **Light training** | Low (optional GPU-hrs) | Same *kinds* of checks on **local** data | Main improve loop | No (may log at lower Landscape weight) |
+| **Full submission** | Network-paid eval | Full hidden validator data | Official score | **Yes — only path** |
 
-**Key Rule**: A miner can submit a strategy JSON at any time with zero local training.
+**Key rule:** A miner can submit at any time with zero local training. Paid or heavy local train is optional enhancement, not a gate to compete.
 
-### Data & Stress Separation (Critical Security Boundary)
+### Data and stress separation (critical security boundary)
 
-| Aspect | Miner Local Loops | Validator Official Evaluation |
+| Aspect | Miner local loops | Validator official evaluation |
 |--------|-------------------|-------------------------------|
-| **Data** | Procedural + custom datasets; different seeds | Procedural (validator config only); hidden seeds |
-| **Stress Tests** | Reduced, non-hidden variants | Full hidden stress variant set |
-| **Physics Gates** | Optional, for learning signal | Mandatory; hard fail = zero score |
-| **Data Visibility** | Miner controls | **Never exposed to miners** |
+| **Data** | Procedural + optional custom; different seeds | Procedural (validator config only); hidden seeds |
+| **Stress tests** | Reduced, non-hidden variants | Full hidden stress variant set |
+| **Physics gates** | Optional learning signal | Mandatory; hard fail → score 0 |
+| **Data visibility** | Miner controls | **Never exposed to miners** |
 
-This separation preserves adversarial integrity: miners optimize for training distribution; validators evaluate on hidden, procedurally generated distribution with hard physics gates.
+Miners optimize against training distribution; validators grade on a hidden, procedural distribution with hard physics gates. Estimation never replaces the exam.
 
----
-
-## 5b. Three-Tier Participation (MCP Layer)
-
-| Mode | Compute | Purpose | Leaderboard Impact |
-|------|---------|---------|-------------------|
-| **Estimation Mode** | Near-zero (CPU, <100ms) | Rapid screening via linear sensitivity around noisy prior | None (logged, lower Landscape weight) |
-| **Light Training** | Low (1-4 GPU-hrs) | Main iteration loop; gates on local data | None (logged, lower Landscape weight) |
-| **Full Submission** | Network-paid | Official scoring + emissions | **Only path to emissions weight** |
-
-*Implementation details in `IMPLEMENTATION.md`.*
+Implementation patterns: `IMPLEMENTATION.md` / [`appendices/Implementation.md`](./appendices/Implementation.md).
 
 ---
 
-## 6. Challenges by Phase (Capability-Gated)
+## 6. Lean validation and scoring
 
-### Phase Transition Criteria (All Gates Must Pass)
+Canonical formulas, Score Pack schema, validator load path, per-challenge bank: **[`appendices/Scoring.md`](./appendices/Scoring.md)**.
 
-| Transition | Entry Gate (ALL Required) | Meaning |
-|------------|---------------------------|---------|
-| **0 → 1A** | 5 validators (99% uptime), 7 PDEs mesh-converged vs FEniCS/DifferentialEquations.jl, 3 backbones, Model Zoo / catalog path live, pilot demand signal | Subnet operational — verification layer live |
-| **1A → 1B** | 2 defense benchmarks mesh-converged + turb UQ framework, Factory v1 live, 1+ Tier 2 LOI | Compressible flow verified — Factory revenue live |
-| **1B → 2A** | 4 defense benchmarks (turb UQ + chem UQ), Factory hardened, Prime teaming, SBIR I submitted | Defense breadth + Factory hardened |
-| **2A → 2B** | Schema v1.1 live (LoRA + Custom Data + MT Losses), Specialist Bank gauntlet path live, DML flowing, Tier 1 traction | Customization + Intelligence live |
-| **2B → 3** | Air-Gap Toolkit v1 in 2+ enclaves, preCICE sidecar tested on sequential FSI, Coupling convergence validated | Classified-ready + Coupling architected |
-| **3 → 4** | 3 coupled benchmarks live (coupling gates passing), preCICE production on validators, SBIR II / Tier 4 signal | Coupled physics supply chain live |
-| **4 → 5** | 3D turbulence benchmarks live, curriculum proven, production contracts / ARR gate | Production-grade 3D turbulence |
+Lean labels are the **trust root** for Landscape ingest. Unfinished gates or scores → no verified compounding claims ([`Launch_Bar.md`](./appendices/Launch_Bar.md)).
 
-> **Phase jumps are capability-gated, not calendar-gated.**
-
-### Phase Overview
-
-| Phase | Name | Physics Scope | Challenge Types | Schema | Revenue |
-|-------|------|---------------|-----------------|--------|---------|
-| **0** | **Foundation** | 7 Academic PDEs | Base (7) | v1.0 | Catalog specialists (Tier 1) |
-| **1A** | **Compressible Flow** | 7 Academic + 2 Defense | Base + Hosted | v1.0 | Tier 1 + Tier 2 |
-| **1B** | **Reacting Flow + Sequential FSI** | + 4 Defense | Base + Hosted | v1.0 | Tier 1–3 |
-| **2A** | **Customization & Intelligence** | + Custom | + LoRA + Custom Data + MT | v1.1 | Tier 1–3 + adapters |
-| **2B** | **Air-Gap + Coupling Prep** | + Custom | + Air-Gap + preCICE arch | v1.1 | Tier 4 pilot |
-| **3** | **Multi-Physics Coupling** | Coupled | Composite v2.0 | v2.0 | Tier 4 + SBIR II |
-| **4** | **Production** | 3D + Turbulence | All + 3D/Turb | v2.0+ | Production |
-
-### Phase 0: Foundation (7 Academic PDEs)
-
-| ID | Problem | Dimension | Key Physics |
-|----|---------|-----------|-------------|
-| 1 | Poisson | 2D/3D | Elliptic, source-driven |
-| 2 | Darcy | 2D/3D | Elliptic, heterogeneous media |
-| 3 | Burgers | 2D | Hyperbolic, shock formation |
-| 4 | Navier-Stokes (laminar) | 2D/3D | Incompressible flow, div-free |
-| 5 | Heat | 2D | Parabolic, transient conduction |
-| 6 | Linear Elasticity | 2D | Vector mechanics, equilibrium |
-| 7 | Thermo-Elasticity | 2D | Coupled thermal-mechanical |
-
-**Mesh/Temporal Convergence Required**: 3-level h-refinement; validated vs FEniCS/DifferentialEquations.jl.
-
-**Productization in Phase 0:** Catalog specialists still run the **product battery** (even on academic PDEs) so the gauntlet muscle exists before OEM regimes — credibility SKUs, not optional theater.
-
-### Phase 1A–4
-
-Physics additions, schema evolution, air-gap, coupling, and 3D/turbulence challenges remain as previously specified (NACA/CRM, HIFiRE, Turek/Hron sequential, store separation, CHT, preCICE composites, 3D turbulence). Sponsored challenges may **extend product-battery definitions** in the challenge brief (`product_jobs`: inverse_design, plant, uq, …).
-
----
-
-## 7. Miner Controls (Strategy Schema Evolution)
-
-| Schema | Phase | Key Fields | Backward Compatible |
-|--------|-------|------------|---------------------|
-| **v1.0** | Phase 0–1B | `backbone`, `training`, `loss` (enabled booleans), `curriculum`, `data` | Base |
-| **v1.1** | Phase 2A–2B | + `lora`, `custom_dataset`, `structured_losses`, `data_generation` | ✅ optional |
-| **v2.0** | Phase 3 | `composite`, `sub_strategies`, `coupling`, `coupling_gates` | ❌ new |
-| **v2.0+** | Phase 4 | + turbulence / 3d curriculum fields | ✅ |
-
-**Entropy floor** on miner `generator_params` remains mandatory (anti-gaming).
-
----
-
-## 8. Validation Strategy (Lean Path)
-
-### Scoring (canonical detail)
-
-**Formulas, Score Pack schema, validator load path, per-challenge bank:** [`appendices/Scoring.md`](./appendices/Scoring.md).
-
-Lean labels are the **trust root** for Landscape ingest. Unfinished gates/scores → no verified compounding claims (`Launch_Bar.md`).
+### Score composition (default lean weights)
 
 | Component | Weight | Composition |
 |-----------|--------|-------------|
-| **Physics Fidelity** | 45% | Weighted gate **margins** (residual, conservation, short rollout, … per Score Pack) |
+| **Physics fidelity** | 45% | Weighted gate **margins** (residual, conservation, short rollout, … per Score Pack) |
 | **Robustness** | 30% | Stress categories: mean/tail blend + weakest-category pressure |
 | **Accuracy** | 25% | Normalized held-out field error |
 
@@ -317,24 +214,25 @@ Lean labels are the **trust root** for Landscape ingest. Unfinished gates/scores
 
 **Not in lean score:** training loss, product battery, Landscape similarity, prior distance.
 
-### Physics Gates (Hard — Zero Score on Failure)
+### Physics gates (hard — zero score on failure)
 
 | Gate | Phase | Notes |
 |------|-------|-------|
-| Mass Conservation | 0+ | Hard |
-| Energy Stability | 0+ | Hard |
-| Boundary Satisfaction | 0+ | Hard |
-| **Rollout Stability (short)** | 0+ | Lean multi-step / stability signal — **not** full HIL-horizon plant suite |
-| Shock Capture / Turbulence UQ / Species / Chemistry / FSI / Coupling / 3D turb gates | 1A–4 | As regime requires |
+| Mass conservation | 0+ | Hard |
+| Energy stability | 0+ | Hard |
+| Boundary satisfaction | 0+ | Hard |
+| **Rollout stability (short)** | 0+ | Lean multi-step / stability signal — **not** full HIL-horizon plant suite |
+| Shock capture / turbulence UQ / species / chemistry / FSI / coupling / 3D turb | 1A–4 | As regime requires |
 
-**Hard Gate Rule**: Any mandatory FAIL → total score = 0.
+**Hard gate rule:** Any mandatory FAIL → total score = 0.
 
-**UQ policy (honest phasing)**  
-- **Phase 0–1A lean path:** stress margins + failure atlas on cards; conformal/ensemble **not** a universal hard gate for every submission.  
-- **Product / specialist tier:** KPI conformal or ensemble bands where `product_jobs` include UQ or safety-margin claims.  
-- **Turbulence/Chemistry model-form UQ:** remains part of **regime gate margins** when those challenges are live (1A/1B+), separate from “every PoC card must ship 95% conformal fields.”
+### UQ policy (honest phasing)
 
-### ChallengeWinnerTracker
+- **Phase 0–1A lean path:** Stress margins + failure atlas on cards; conformal/ensemble **not** a universal hard gate for every submission.
+- **Product / specialist tier:** KPI conformal or ensemble bands where `product_jobs` include UQ or safety-margin claims.
+- **Turbulence / chemistry model-form UQ:** Part of **regime gate margins** when those challenges are live (1A/1B+), separate from “every PoC card must ship 95% conformal fields.”
+
+### Emissions mapping
 
 ```text
 weight = lean_score * exp(-blocks_since_win / half_life)
@@ -344,18 +242,77 @@ Emissions follow **lean validator outcomes only**. Product-battery status does n
 
 ---
 
-## 9. Data Generation Architecture
+## 7. Challenges by phase (capability-gated)
 
-Seed map, train≠eval separation, stress categories (≥95% coverage), and custom dataset validation remain as specified. Critical invariant: `stress_seed` unknown to miners until evaluation; validator generator config ignores miner eval params. Score Pack robustness category IDs must align with Generator Pack categories (`Scoring.md` + `Data_Management.md`).
+> **Phase jumps are capability-gated, not calendar-gated.** All listed entry gates must pass.
+
+### Phase transition criteria
+
+| Transition | Entry gate (ALL required) | Meaning |
+|------------|---------------------------|---------|
+| **0 → 1A** | Validator reliability floor (e.g. 5 validators, high uptime); 7 PDEs mesh-converged vs FEniCS/DifferentialEquations.jl; 3 backbones; Model Zoo / catalog path live; pilot demand signal | Subnet operational — verification layer live |
+| **1A → 1B** | 2 defense benchmarks mesh-converged + turb UQ framework; Factory v1 live; 1+ Tier 2 LOI | Compressible flow verified — sponsored path live |
+| **1B → 2A** | 4 defense benchmarks (turb UQ + chem UQ); Factory hardened; Prime teaming; SBIR I submitted | Defense breadth + Factory hardened |
+| **2A → 2B** | Schema v1.1 live (LoRA + custom data + MT losses); Specialist Bank gauntlet path live; DML flowing; Tier 1 traction | Customization + intelligence live |
+| **2B → 3** | Air-gap toolkit v1 in 2+ enclaves; preCICE sidecar tested on sequential FSI; coupling convergence validated | Classified-ready + coupling architected |
+| **3 → 4** | 3 coupled benchmarks live (coupling gates passing); preCICE production on validators; SBIR II / Tier 4 signal | Coupled physics supply chain live |
+| **4 → 5** | 3D turbulence benchmarks live; curriculum proven; production contracts / ARR gate | Production-grade 3D turbulence |
+
+### Phase overview
+
+| Phase | Name | Physics scope | Challenge types | Schema | Revenue posture |
+|-------|------|---------------|-----------------|--------|-----------------|
+| **0** | Foundation | 7 academic PDEs | Base (7) | v1.0 | Catalog path after exam is real |
+| **1A** | Compressible flow | + 2 defense | Base + hosted | v1.0 | Tier 1 + Tier 2 |
+| **1B** | Reacting flow + sequential FSI | + 4 defense | Base + hosted | v1.0 | Tier 1–3 |
+| **2A** | Customization & intelligence | + custom | + LoRA + custom data + MT | v1.1 | Tier 1–3 + adapters |
+| **2B** | Air-gap + coupling prep | + custom | + air-gap + preCICE arch | v1.1 | Tier 4 pilot |
+| **3** | Multi-physics coupling | Coupled | Composite v2.0 | v2.0 | Tier 4 + SBIR II |
+| **4** | Production | 3D + turbulence | All + 3D/turb | v2.0+ | Production |
+
+### Phase 0: Foundation (7 academic PDEs)
+
+| ID | Problem | Dimension | Key physics |
+|----|---------|-----------|-------------|
+| 1 | Poisson | 2D/3D | Elliptic, source-driven |
+| 2 | Darcy | 2D/3D | Elliptic, heterogeneous media |
+| 3 | Burgers | 1D/2D | Hyperbolic, shock formation |
+| 4 | Navier–Stokes (laminar) | 2D/3D | Incompressible flow, div-free |
+| 5 | Heat | 2D | Parabolic, transient conduction |
+| 6 | Linear elasticity | 2D | Vector mechanics, equilibrium |
+| 7 | Thermo-elasticity | 2D | Coupled thermal–mechanical |
+
+**Mesh/temporal convergence:** Multi-level h-refinement; validated vs FEniCS / DifferentialEquations.jl (and peers).
+
+**Productization in Phase 0:** Catalog specialists still run the **product battery** (even on academic PDEs) so gauntlet discipline exists before OEM regimes — credibility SKUs, not optional theater.
+
+### Phase 1A–4
+
+Physics additions remain as previously specified (NACA/CRM, HIFiRE, Turek/Hron sequential, store separation, CHT, preCICE composites, 3D turbulence). Sponsored challenges may **extend product-battery definitions** in the challenge brief (`product_jobs`: inverse_design, plant, uq, …).
 
 ---
 
-## 10. Landscape Agent (Knowledge Flywheel)
+## 8. Strategy schema evolution
 
-Canonical build guide: **`appendices/Landscape_Agent.md` (v1.2+)**.  
-Launch prerequisites: **`appendices/Launch_Bar.md`**.  
-Canonical product path: **`appendices/Specialist_Bank.md` (v1.3+)**.  
-Scoring labels: **`appendices/Scoring.md`**.
+| Schema | Phase | Key fields | Backward compatible |
+|--------|-------|------------|---------------------|
+| **v1.0** | Phase 0–1B | `backbone`, `training`, `loss` (enabled booleans), `curriculum`, `data` | Base |
+| **v1.1** | Phase 2A–2B | + `lora`, `custom_dataset`, `structured_losses`, `data_generation` | Optional fields |
+| **v2.0** | Phase 3 | `composite`, `sub_strategies`, `coupling`, `coupling_gates` | New major |
+| **v2.0+** | Phase 4 | + turbulence / 3D curriculum fields | Additive |
+
+**Entropy floor** on miner `generator_params` remains mandatory (anti-degenerate data gaming).
+
+Full JSON field lists and training-image acceptance contracts live with implementation schema files / `IMPLEMENTATION.md`.
+
+---
+
+## 9. Landscape agent (knowledge flywheel)
+
+Canonical build guide: **[`appendices/Landscape_Agent.md`](./appendices/Landscape_Agent.md) (v1.2+)**.  
+Launch prerequisites: **[`appendices/Launch_Bar.md`](./appendices/Launch_Bar.md)**.  
+Product path: **[`appendices/Specialist_Bank.md`](./appendices/Specialist_Bank.md) (v1.3+)**.  
+Scoring labels: **[`appendices/Scoring.md`](./appendices/Scoring.md)**.
 
 ### Role
 
@@ -368,9 +325,9 @@ Landscape is Carbon’s **batch intelligence system with four controlled ports**
 | **C Economy** | Governance | Challenge-weight / bounty *proposals* |
 | **D Product** | OpCo / bank | Opportunity specs → gauntlet → closed SKUs / briefs / sealed packs |
 
-**Epistemic split:** gates = protocol truth (when Launch Bar green); causal bands = observational estimates — never gate-level certainty language.
+**Epistemic split:** Gates = protocol truth (when Launch Bar green). Causal bands = observational estimates — never gate-level certainty language.
 
-### What compounds
+### What compounds (private)
 
 | Private asset | Flywheel effect |
 |---------------|-----------------|
@@ -381,7 +338,7 @@ Landscape is Carbon’s **batch intelligence system with four controlled ports**
 | Frontier map (D5) | Emission proposals toward unsaturated boards |
 | Promotion / PB graph (D11) | Repair loop; opportunity rank prefers regimes that graduate |
 
-### Port D export law (SPEC-level)
+### Port D export law
 
 ```text
 ship_commercial_full_sku =
@@ -391,9 +348,9 @@ ship_commercial_full_sku =
     AND dual_egress_policy
 ```
 
-Anti-patterns banned for commercial export: teacher weight copy, single-winner JSON as sole recipe, ship without PB report.
+**Banned for commercial export:** Teacher weight copy; single-winner JSON as sole recipe; ship without product-battery report.
 
-### Phasing (summary)
+### Landscape phases
 
 | Landscape phase | Unlock |
 |-----------------|--------|
@@ -405,7 +362,9 @@ Anti-patterns banned for commercial export: teacher weight copy, single-winner J
 
 ---
 
-## 11. Specialist Bank & Commercial GTM
+## 10. Specialist Bank and commercial GTM
+
+Canonical: **[`appendices/Specialist_Bank.md`](./appendices/Specialist_Bank.md)**.
 
 ### Product battery (full surrogate SKU — summary)
 
@@ -419,90 +378,124 @@ Anti-patterns banned for commercial export: teacher weight copy, single-winner J
 | PB-ART | ONNX (or approved) + I/O parity |
 | PB-ESC | Escalation notes on Model Card |
 
-Detail and module-type exceptions: `Specialist_Bank.md`.
+Module-type exceptions and detail: `Specialist_Bank.md`.
 
 ### Revenue engines
 
 | Engine | Product | Notes |
 |--------|---------|-------|
 | **Tier 1 Specialist Bank** | Closed ONNX + recipe + card + **PB certs** + license | Catalog credibility → regime value |
-| **Tier 2–4 Sponsored Challenges** | Open / IP-licensed / private | May define extra PB tests; creates regimes bank lacks |
+| **Tiers 2–4 sponsored challenges** | Open / IP-licensed / private | May define extra PB tests; creates regimes bank lacks |
 | **DoD / SBIR path** | Evidence packages | Dual-regime; sealed packs |
 | **Verification registry** | Attestation / card API | Artifact remains licensed |
 
-**Conservative principle:** open the verification *standard* and coarse catalog; close the certified artifact and rights/ops around it.
+**Conservative principle:** Open the verification *standard* and coarse catalog; close the certified artifact and rights/ops around it.
 
 ---
 
-## 12. Incentives & Tokenomics
+## 11. Dual-regime architecture (regulated / defense)
 
-ChallengeWinnerTracker on **lean scores**; participation dust; future bounties; treasury for unclaimed. Landscape similarity is **forbidden** as a direct score term.
+```
+PUBLIC REGIME (Carbon subnet)
+  ├─ Discovers strategies on public / synthetic data
+  ├─ Adversarial verification + physics gates
+  ├─ Outputs: strategy.json + Model Card + (after gauntlet) export artifact
+  └─ Zero ITAR / controlled data on the open net
+
+                    cross-domain transfer of blueprint / recipe only
+                                    ▼
+CLASSIFIED / CUSTOMER REGIME (enclave)
+  ├─ Ingests architecture blueprint (strategy.json)
+  ├─ Fine-tunes on classified telemetry / proprietary geometry
+  ├─ Re-runs product battery policy where required
+  ├─ Deploys ONNX locally (HIL, edge, air-gapped)
+  ├─ Inference LOCAL — zero required network calls
+  ├─ Customer owns classification (e.g. ITAR/EAR) and ATO artifacts
+  └─ Packages program deliverables as required by the prime
+```
+
+### Data handling phases
+
+| Phase | Posture |
+|-------|---------|
+| **0–1B** | Public + synthetic only. No proprietary data enters the network. |
+| **2A** | Customer-controlled local fine-tuning with custom datasets (e.g. Abaqus ODB). Raw data never required on subnet; commercial adapters **re-pass product battery** after adapt. |
+| **2B** | Air-gapped miner toolkit v1 for enclaves (IL5/IL6-class). Zero network dependencies. |
+| **3+** | Confidential computing (e.g. H100 TEEs) on validator path for sensitive workloads as adopted. |
+| **Oracle** | Julia/SciML deployable in both regimes (air-gapped Julia for classified). |
 
 ---
 
-## 13. Miner Toolkit & Submission Interface
+## 12. Incentives and tokenomics
 
-Docker toolkit, `carbon-miner` CLI, and Async SDK patterns remain as specified. MCP exposes `get_noisy_prior` and diagnostics — **not** full specialist download.
-
----
-
-## 14. Validator Operations & Economics
-
-Hardware tables, health gates, and queue priority (sponsored > high rep > standard) remain operational guidance. Product-battery runs are **promotion-time** workloads scheduled by bank/OpCo, not unbounded per-submission defaults.
+- **ChallengeWinnerTracker** on **lean scores** with winner-heavy exponential decay.
+- Participation dust optional; future breakthrough bounties and decaying top stipends; treasury for unclaimed allocations.
+- **Forbidden as direct score terms:** Landscape similarity, prior distance, product-battery status.
 
 ---
 
-## 15. Security & Correctness Guarantees
+## 13. Miner toolkit and submission interface
+
+- Docker toolkit, `carbon-miner` CLI, and async SDK patterns as specified in implementation docs.
+- Exposes `get_noisy_prior` and diagnostics — **not** full specialist download.
+- Cost estimation hooks for optional local / rented train paths (e.g. Chutes, Targon) without making pay-to-train mandatory.
+
+---
+
+## 14. Validator operations and economics
+
+- Hardware tables, health gates, and queue priority (**sponsored > high rep > standard**) remain operational guidance in [`Operations.md`](./appendices/Operations.md).
+- Product-battery runs are **promotion-time** workloads scheduled by bank/OpCo — not unbounded per-submission defaults.
+- Compute efficiency strategy: [`Compute_Optimization.md`](./appendices/Compute_Optimization.md), [`JAX_Optimization.md`](./appendices/JAX_Optimization.md).
+
+---
+
+## 15. Security and correctness invariants
 
 | Invariant | Enforcement |
 |-----------|-------------|
-| Physics gates in fp32 | Context manager |
+| Physics gates in fp32 | Context manager / policy |
 | Loss masks are booleans | Schema |
-| Grad clip inside JIT | optax |
-| Determinism | Pin jax stack; threefry; CUBLAS workspace |
-| Eval seed unknown to miners | block-hash derivation |
-| Eval generator immutable | Challenge Spec |
+| Grad clip inside JIT | optax / training policy |
+| Determinism | Pin JAX stack; threefry; documented CUBLAS workspace policy |
+| Eval seed unknown to miners pre-commit | Block-hash / commit-reveal design |
+| Eval generator immutable per challenge version | Challenge registry |
 | Hard gates | Binary; zero score on fail |
 | Train ≠ eval distribution | Extended stress envelope |
 | Score Pack hash pinned | Challenge registry + `Scoring.md` |
 | **No full SKU on miner API** | Dual egress |
-| **No commercial SKU without PB** | Grounding gate |
+| **No commercial SKU without product battery** | Grounding gate |
 | Landscape never overrides gates | Port law |
 | **No L0 prior publish before Launch Bar** | `Launch_Bar.md` |
 
 ---
 
-## 16. Phase Timeline Summary (Capability-Gated)
+## 16. Launch checklist (abbrev.)
 
-Estimates only; transitions follow §6 gates. Early revenue is catalog + sponsored; margin concentrates as regimes and license privacy increase.
-
----
-
-## 17. Appendix: Key Schemas
-
-Strategy schemas v1.0 / v1.1 / v2.0 remain as previously defined (`backbone`, boolean loss enables, optional LoRA/custom_dataset/structured_losses, composite coupling). Product-battery and Model Card extensions are versioned in Specialist Bank / Landscape contracts. Score Pack schema: `Scoring.md`.
-
----
-
-## 18. Security Checklist (Launch)
-
-fp32 gates, boolean loss masks, JIT grad clip, determinism lockfile, compile cache, validator queue, dual-egress audit, grounding-gate enforcement on commercial export path, **Launch Bar green before public prior compounding**, Score Pack hashes pinned, epistemic language review on external materials.
+- [ ] fp32 gates enforced  
+- [ ] Boolean loss masks  
+- [ ] JIT grad clip  
+- [ ] Determinism lockfile / pin set  
+- [ ] Compile cache policy  
+- [ ] Validator queue + health gates  
+- [ ] Dual-egress audit  
+- [ ] Grounding-gate enforcement on commercial export path  
+- [ ] **Launch Bar green before public prior compounding**  
+- [ ] Score Pack hashes pinned  
+- [ ] Epistemic language review on external materials (gates vs estimates)
 
 ---
 
-## 19. Related Documents
+## 17. Schema and card contracts
 
-| Doc | Role |
-|-----|------|
-| `appendices/Scoring.md` | Lean formulas, Score Bank, validator load path |
-| `appendices/Launch_Bar.md` | Stop-ship before Landscape L0 publish |
-| `appendices/Landscape_Agent.md` | Four ports, epistemic status, Port B floors |
-| `appendices/Specialist_Bank.md` | Gauntlet, dual egress, phase customers |
-| `appendices/Use_Cases_by_Phase.md` | Inverse design / plant / UQ / hybrid truth teaching |
-| `appendices/Data_Management.md` | Seeds, train≠eval |
-| `IMPLEMENTATION.md` | Code-level patterns |
-| Trustless verification appendix | Generators, seeds, proprietary data plan |
+Strategy schemas v1.0 / v1.1 / v2.0 as in §8. Product-battery and Model Card extensions are versioned in Specialist Bank / Landscape contracts. Score Pack schema: [`Scoring.md`](./appendices/Scoring.md).
 
 ---
 
-*This specification is scientifically rigorous and buildable. Lean exams keep search and emissions honest; Launch Bar keeps the flywheel from compounding bad labels; Landscape compounds under epistemic discipline; the Specialist Bank ships only gauntlet-verified products. Implementation must not collapse those layers into teacher-checkpoint distillation or pay-to-compete.*
+## 18. Related documents
+
+See the table at the top of this specification.
+
+---
+
+*This specification is intended to be scientifically rigorous and buildable. Lean exams keep search and emissions honest. Launch Bar keeps the knowledge layer from compounding unfinished labels. Landscape compounds under explicit port law and epistemic discipline. The Specialist Bank ships only gauntlet-verified products. Implementation must not collapse these layers into teacher-checkpoint distillation or pay-to-compete.*
