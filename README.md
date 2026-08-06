@@ -11,18 +11,22 @@ Carbon pays miners to find better ways to train fast physics models. It only pay
 High-fidelity simulation is accurate but too slow for large design spaces and real-time control.  
 Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail when you actually try to use them.
 
-Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress, and a clear path from research competition to something they can actually deploy.
+Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress, and a clear path from research competition to something they can actually deploy. Physics breakdowns are expensive and not optional. A chief engineer needs something auditable and reconstructible to defend a model in a design review.
 
 ---
 
 ## What Carbon Does
 
-Carbon runs a competition to find training methods for neural operators (models that learn entire families of physical simulations, not single cases).
+Carbon runs a competition to find training methods for neural operators (models that learn entire families of physical simulations, not single cases). We build off open tooling (NVIDIA PhysicsNeMo, SciML/Julia Labs, and others). Once trained and verified, the models are cheap and fast for design exploration, real-time control systems, agentic solving, and any use case that needs trustworthy next-state prediction.
 
 1. **Miners** submit a training strategy (and optional model artifacts).  
 2. **Validators** retrain and evaluate on data the miner never saw, with hard physics checks. Fail a check → score zero.  
 3. **Emissions** follow that independent score — not self-reported metrics.  
 4. As the network matures, verified results can feed better starting points for the next round of search and, separately, stronger commercial models that pass harder product tests.
+
+Traditional neural operators are dominated by accuracy-driven objectives. They may solve overfitting, but the objective still drives them toward accuracy and learning data, which is why they struggle with real physics in deployment. Carbon changes the optimization target: physics gates, fidelity, and model robustness are weighted more than pure training loss accuracy in the final score. We are driving miners at training strategies that survive a different objective, and learning from them. That is the valuable work Carbon is paying for and that the validators are pressure-testing. It is plausible that the Pareto front of methods under hard physics + stress differs from those under pure accuracy. Bittensor miners are the right tool for finding it.
+
+The training data and evaluation criteria are generated in real time, seed-triggered, impossible for the miners to know ahead of time, challenge-specific, fully auditable, and verified against real physics and real simulation tools. Models are evaluated on benchmark data accuracy, but more importantly on hard physics gates (zero if failed), robustness tests, and physics fidelity designed to make sure the models are verifiable and defensible for real engineering teams. Every training run generates a Model Card that captures how it was trained, how accurate it was, and how it scored on the real physics testing. That data is used to return value to miners, improve the evaluation, improve challenge design, and develop industry-deployable models.
 
 Discovery stays cheap. Anything sold as a product has to clear a higher bar than “won a leaderboard row.”
 
@@ -38,7 +42,7 @@ Discovery stays cheap. Anything sold as a product has to clear a higher bar than
 | Leaderboard model treated as shippable product | Competition score ≠ commercial qualification |
 | No memory across rounds | Over time, verified outcomes can inform search without giving away the exam |
 
-The scarce layer is not another fast model. It is credible verification as agentic and automated training scales.
+The scarce layer is not another fast model. It is credible verification as agentic and automated training scales. Physics is well defined and perfectly suited for the Bittensor evaluation and compounding intelligence loop; this is math. Validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. Bittensor is the value creation engine for Carbon. The open source and auditable training and evaluation mechanism is exactly what a chief engineer needs to defend the deployment of these physics models in high-risk environments.
 
 ---
 
@@ -63,6 +67,8 @@ Competing on training strategy only works if people can try ideas quickly. Carbo
 3. Optionally run a light local train gated by the same kinds of checks the validator cares about — different data than the real exam, so the network stays honest.  
 4. Submit only when the loop looks promising. Full validator scoring is still the only path to emissions. You can submit with no local training; paid or heavy local train is optional, not required.
 
+Mining is deliberately agentic auto-research. The agent-friendly front end (MCP) receives noisy feedback from the current challenge winner’s strategy and provides estimated scoring impacts of local changes, allowing AI solving at scale. This lowers the barrier to entry, raises the quality of submissions, and leverages network effects on the discovery end.
+
 That loop is meant for humans and agents: show up, pull the current leader signal, propose variants, estimate, refine, submit. Low friction on purpose so search scales, without turning the leaderboard into a copy-paste contest or leaking the real evaluation data.
 
 Validators always grade the same way: hidden data, hard physics checks, public scoring rules. Miner-side estimation never replaces the exam.
@@ -74,7 +80,7 @@ Validators always grade the same way: hidden data, hard physics checks, public s
 "Expensive engineering decisions need auditable, reconstructible truth; fake benchmarks don’t move a chief engineer."
 
 **Who pays**  
-Teams that already run simulation and are hitting cost or latency walls: design exploration, real-time or hardware-in-the-loop response, uncertainty screening, and hybrid setups where a fast model sits next to a classical solver. The buyer is not “crypto.” It is a chief engineer or SciML lead who will not accept a fake benchmark.
+Teams that already run simulation and are hitting cost or latency walls: design exploration, real-time or hardware-in-the-loop response, uncertainty screening, and hybrid setups where a fast model sits next to a classical solver. The buyer is not “crypto.” It is a chief engineer or SciML lead who will not accept a fake benchmark. Challenges will progress from simple PDEs to more complex physics regimes targeted at valuable engineering fields and use cases (Aerospace, Auto, Robotics, Propulsion, UAV/Drones). The subnet is designed from day one so competition produces evidence that can later support the development of valuable commercial specialists.
 
 **What we sell**  
 The product is envelope qualified models and evidence:
@@ -86,7 +92,9 @@ The product is envelope qualified models and evidence:
 | **Sponsored licensed challenge** | Same competition, tighter IP and distribution terms |
 | **Private challenge** | Highest control and cost — only when trust and process exist |
 
-Price and privacy go up together. Early revenue is expected from sponsored challenges and licensed specialists, not from charging miners to play.
+Price and privacy go up together. Early revenue is expected from sponsored challenges and licensed specialists, not from charging miners to play. Carbon will enable industry players to sponsor their own challenge targeted at their specific physics envelope. Custom surrogate development and verification without having to expose proprietary data is a valuable service for major engineering players.
+
+The subnet team builds a knowledge graph of the Model Cards and uses them to retrain, retest, and harden specialist models built for industry deployment. That process is purposely more rigorous than the mining evaluation. We want the mine → validate → feedback loop to stay fast, but we build real thorough due diligence into the models we are selling.
 
 **How we aim development**  
 Build order follows what a skeptical buyer would ask:
@@ -130,7 +138,7 @@ GPU vendors and CAE platforms own engines and tools. Carbon owns decentralized d
 
 ## Current status
 
-**Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`).
+**Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`). We have a full protocol specification, scoring and data design, trustless real-time data/eval generation, product path, phased roadmap, and go-to-market structure in the public repo. Phase 0 (academic PDE foundation) is the launch target; we are building that now along with an offline Proof of Concept.
 
 ```bash
 git clone https://github.com/jbequ5/Carbon--Decentralized-Physics-AI.git
