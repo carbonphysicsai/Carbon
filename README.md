@@ -11,7 +11,7 @@ Carbon pays miners to find better ways to train fast physics models. It only pay
 High-fidelity simulation is accurate but too slow for large design spaces and real-time control.  
 Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail when you actually try to use them.
 
-Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress — and a clear path from research competition to something they can actually deploy.
+Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress, and a clear path from research competition to something they can actually deploy.
 
 ---
 
