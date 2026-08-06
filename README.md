@@ -2,27 +2,27 @@
 
 **A Bittensor subnet for verifying physics-based AI models**
 
-Carbon pays miners to propose better ways to train fast physics models — and pays only when those methods survive an independent exam the miner does not control.
+Carbon pays miners to find better ways to train fast physics models. It only pays when those methods survive an independent exam the miner does not control.
 
 ---
 
 ## The Problem
 
 High-fidelity simulation is accurate but too slow for large design spaces and real-time control.  
-Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail in use.
+Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail when you actually try to use them.
 
-Engineering teams will not bet expensive decisions on a model because someone claimed a low test loss. They need **evidence the model still behaves under stress** — and a path from research competition to something they can actually deploy.
+Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress — and a clear path from research competition to something they can actually deploy.
 
 ---
 
 ## What Carbon Does
 
-Carbon runs a **competition to find training methods** for neural operators (models that learn entire families of physical simulations, not single cases).
+Carbon runs a competition to find training methods for neural operators (models that learn entire families of physical simulations, not single cases).
 
 1. **Miners** submit a training strategy (and optional model artifacts).  
-2. **Validators** retrain and evaluate on data the miner never saw, with **hard physics checks**. Fail a check → score zero.  
+2. **Validators** retrain and evaluate on data the miner never saw, with hard physics checks. Fail a check → score zero.  
 3. **Emissions** follow that independent score — not self-reported metrics.  
-4. As the network matures, verified results can feed **better starting points for the next round of search** and, separately, **stronger commercial models** that pass harder product tests.
+4. As the network matures, verified results can feed better starting points for the next round of search and, separately, stronger commercial models that pass harder product tests.
 
 Discovery stays cheap. Anything sold as a product has to clear a higher bar than “won a leaderboard row.”
 
@@ -38,17 +38,17 @@ Discovery stays cheap. Anything sold as a product has to clear a higher bar than
 | Leaderboard model treated as shippable product | Competition score ≠ commercial qualification |
 | No memory across rounds | Over time, verified outcomes can inform search without giving away the exam |
 
-The scarce layer is not “another fast model.” It is **credible verification** as agentic and automated training scales.
+The scarce layer is not another fast model. It is credible verification as agentic and automated training scales.
 
 ---
 
 ## How a Round Works (simple)
 
-1. A **challenge** defines a physics regime and what “good” means (accuracy under stress, physical consistency).  
-2. A miner submits a **strategy** — how to train (architecture choices, losses, schedules, etc.).  
-3. Validators **regenerate evaluation data**, train under the submitted strategy where required, and run **physics gates + held-out and stress tests**.  
-4. A public, challenge-specific **scoring rule** turns results into a score. Critical failures zero the submission.  
-5. Scores drive **on-chain weights / emissions**.
+1. A challenge defines a physics regime and what “good” means (accuracy under stress, physical consistency).  
+2. A miner submits a strategy — how to train (architecture choices, losses, schedules, etc.).  
+3. Validators regenerate evaluation data, train under the submitted strategy where required, and run physics gates + held-out and stress tests.  
+4. A public, challenge-specific scoring rule turns results into a score. Critical failures zero the submission.  
+5. Scores drive on-chain weights / emissions.
 
 Details of formulas, configs, and phase roadmap live in the technical docs — not required to understand the subnet.
 
@@ -56,14 +56,14 @@ Details of formulas, configs, and phase roadmap live in the technical docs — n
 
 ## Agent Friendly MCP Miner Solving Loop
 
-Competing on training strategy only works if people can **try ideas quickly**. Carbon is built so miners (or their agents) can run a tight loop **before** a full submission:
+Competing on training strategy only works if people can try ideas quickly. Carbon is built so miners (or their agents) can run a tight loop before a full submission:
 
-1. **Read the latest public insight from the challenge leader** — a **noisy, delayed summary** of what worked (not the full winning recipe or weights). Enough to steer search; not enough to copy the exam or clone the winner.  
-2. **Estimate** how a candidate strategy might score, using that insight plus cheap proxies (short runs, surrogates of the last verified outcome, or local light trains).  
-3. **Optionally run a light local train** gated by the same *kinds* of checks the validator cares about — different data than the real exam, so the network stays honest.  
-4. **Submit only when the loop looks promising.** Full validator scoring is still the only path to emissions. You can submit with **no** local training; paid or heavy local train is optional, not required.
+1. Read the latest public insight from the challenge leader — a noisy, delayed summary of what worked (not the full winning recipe or weights). Enough to steer search; not enough to copy the exam or clone the winner.  
+2. Estimate how a candidate strategy might score, using that insight plus cheap proxies (short runs, surrogates of the last verified outcome, or local light trains).  
+3. Optionally run a light local train gated by the same kinds of checks the validator cares about — different data than the real exam, so the network stays honest.  
+4. Submit only when the loop looks promising. Full validator scoring is still the only path to emissions. You can submit with no local training; paid or heavy local train is optional, not required.
 
-That loop is meant for **humans and agents**: show up, pull the current leader signal, propose variants, estimate, refine, submit. Low friction on purpose — so search scales — without turning the leaderboard into a copy-paste contest or leaking the real evaluation data.
+That loop is meant for humans and agents: show up, pull the current leader signal, propose variants, estimate, refine, submit. Low friction on purpose so search scales, without turning the leaderboard into a copy-paste contest or leaking the real evaluation data.
 
 Validators always grade the same way: hidden data, hard physics checks, public scoring rules. Miner-side estimation never replaces the exam.
 
@@ -77,7 +77,7 @@ Validators always grade the same way: hidden data, hard physics checks, public s
 Teams that already run simulation and are hitting cost or latency walls: design exploration, real-time or hardware-in-the-loop response, uncertainty screening, and hybrid setups where a fast model sits next to a classical solver. The buyer is not “crypto.” It is a chief engineer or SciML lead who will not accept a fake benchmark.
 
 **What we sell**  
-The product is **envelope qualified models and evidence**:
+The product is envelope qualified models and evidence:
 
 | Offering | What the customer gets |
 |----------|-------------------------|
@@ -86,18 +86,18 @@ The product is **envelope qualified models and evidence**:
 | **Sponsored licensed challenge** | Same competition, tighter IP and distribution terms |
 | **Private challenge** | Highest control and cost — only when trust and process exist |
 
-Price and privacy go up together. Early revenue is expected from **sponsored challenges and licensed specialists**, not from charging miners to play.
+Price and privacy go up together. Early revenue is expected from sponsored challenges and licensed specialists, not from charging miners to play.
 
 **How we aim development**  
 Build order follows what a skeptical buyer would ask:
 
-1. **Make the exam real** — one challenge, honest scoring, reproducible cards. No product claims before this.  
-2. **Prove the loop** — miners can compete; validators can run; scores mean something under stress.  
-3. **Only then productize** — harder qualification for anything sold; clear separation from competition rank.  
-4. **Grow regimes that match demand** — fluids, structures, and multiphysics paths that map to CAE and digital-twin budgets, including sponsored regimes when partners show up.  
-5. **Stay compatible with the tools people already use** — export paths into common ML and simulation stacks; do not try to replace Ansys or the GPU vendor.
+1. Make the exam real — one challenge, honest scoring, reproducible cards. No product claims before this.  
+2. Prove the loop — miners can compete; validators can run; scores mean something under stress.  
+3. Only then productize — harder qualification for anything sold; clear separation from competition rank.  
+4. Grow regimes that match demand — fluids, structures, and multiphysics paths that map to CAE and digital-twin budgets, including sponsored regimes when partners show up.  
+5. Stay compatible with the tools people already use — export paths into common ML and simulation stacks; do not try to replace Ansys or the GPU vendor.
 
-We do **not** prioritize dashboards, multi-challenge sprawl, or “AI agent theater” ahead of a trustworthy first exam. Market fit is earned by **models someone can defend in a design review**, not by subnet narrative alone.
+We do not prioritize dashboards, multi-challenge sprawl, or “AI agent theater” ahead of a trustworthy first exam. Market fit is earned by models someone can defend in a design review, not by subnet narrative alone.
 
 ---
 
@@ -124,7 +124,7 @@ Early phases focus on getting the exam right. Product layers expand only after t
 
 ## Stack position (one sentence)
 
-GPU vendors and CAE platforms own engines and tools. Carbon owns **decentralized discovery of training methods plus independent verification** — with a clear line between competition results and anything offered as a product.
+GPU vendors and CAE platforms own engines and tools. Carbon owns decentralized discovery of training methods plus independent verification — with a clear line between competition results and anything offered as a product.
 
 ---
 
