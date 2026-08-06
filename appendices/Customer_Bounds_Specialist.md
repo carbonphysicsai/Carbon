@@ -1,37 +1,40 @@
-# Customer Bounds Specialist — Plug-and-Play Procedure
+# Customer Bounds Specialist — Plug-and-Play, Data Posture & GTM
 
 **Carbon — requirements · constraints · envelope → bounded specialist SKU**
 
-**Version:** 1.0  
-**Status:** Product & ops procedure  
+**Version:** 1.1  
+**Status:** Product, ops, and go-to-market procedure  
 **Related:** [`Specialist_Bank.md`](./Specialist_Bank.md), [`Landscape_Agent.md`](./Landscape_Agent.md), [`Use_Cases_by_Phase.md`](./Use_Cases_by_Phase.md), `SPEC.md`
 
 ---
 
 ## TL;DR
 
-**Customer provides:** requirements, constraints, operating envelope (and optional latency/export class).  
-**Carbon returns:** a specialist model **set to those bounds**, plus artifact, evidence pack, and escalation notes — only after a product battery **parameterized by those bounds**.
+**Customer provides:** requirements, constraints, operating envelope (not their secret simulation archive).  
+**Carbon returns:** a specialist **set to those bounds**, plus artifact, evidence pack, and escalation notes — only after a product battery **parameterized by those bounds**.
 
-**Subnet is not required for every sale.** If Landscape already holds enough verified intelligence for the regime, OpCo may run specialization **off-subnet** (controlled retrain + full product battery) and sell the SKU. The subnet remains the engine that *grows* regime intelligence; commercial delivery is allowed wherever evidence is sufficient and the grounding gate passes.
+**Default data posture:** *No customer proprietary trajectories in Carbon training.* Bounds in; procedural/eval machinery on Carbon’s side; sensitive data stays with the customer.
 
-**Not claimed:** one form fill → flight certification.  
-**Claimed:** standardized bounds intake → bounded specialist with job-shaped proof.
+**Adapt path:** Customer may retrain/adapt **on their infra** under license. That **voids** the original PB cert until **re-qualification**. Two labels: `Certified` vs `Adapted (customer)`.
+
+**Subnet vs sale:** If Landscape evidence is sufficient, fulfill **off-subnet**. Use sponsored challenges when evidence is thin or the customer wants network search. Emissions never sold.
+
+**GTM:** Trial on non-critical regimes → bounds SKU → optional adapt kit → paid re-verify → sponsored/private only when needed.
 
 ---
 
 ## 1. Purpose
 
-Define a **repeatable commercial procedure** so specialists are plug-and-play at the *contract* layer:
+Define a repeatable commercial system:
 
-1. Structured customer intake (requirements / constraints / envelope).  
-2. Regime match against Landscape evidence (or explicit cold-start path).  
-3. Recipe synthesis + controlled retrain.  
-4. Product battery **configured from customer bounds**.  
-5. Grounding gate → license → deliverable.  
-6. Clear rules for **on-subnet sponsored challenges** vs **off-subnet fulfillment** when intelligence already exists.
+1. Structured bounds intake (requirements / constraints / envelope).  
+2. **Default execution without handling sensitive customer data.**  
+3. Regime match (Landscape) → recipe → controlled retrain → bounds-parameterized product battery.  
+4. On-subnet vs off-subnet fulfillment rules.  
+5. **Customer-side adapt + re-qualification** (optimal product design).  
+6. Go-to-market ladder that matches real buyer confidence, not hype.
 
-This procedure sits **on top of** [`Specialist_Bank.md`](./Specialist_Bank.md). It does not replace lean exams, dual egress, or anti-distillation doctrine.
+Defers to [`Specialist_Bank.md`](./Specialist_Bank.md) for gauntlet definitions, dual egress, and anti-distillation doctrine.
 
 ---
 
@@ -40,16 +43,53 @@ This procedure sits **on top of** [`Specialist_Bank.md`](./Specialist_Bank.md). 
 | Term | Meaning |
 |------|--------|
 | **Plug-and-play** | Customer states bounds in a fixed schema; Carbon configures specialization + battery from that schema; delivery is a closed SKU with envelope-aligned evidence |
-| **Not plug-and-play** | Skip retrain; skip product battery; claim system-level certification; accept free-text requirements with no machine-checkable constraints |
+| **Not plug-and-play** | Skip retrain; skip product battery; claim system certification; accept free-text only; require proprietary datasets for the default SKU |
 
-**Interface promise:** same intake schema across regimes that Carbon supports.  
+**Interface promise:** same intake schema across supported regime templates.  
 **Physics promise:** only regimes with generators, gates, and battery templates.
 
 ---
 
-## 3. Customer intake schema (v1)
+## 3. Default data posture (normative)
 
-Minimal structured fields. Extend per regime template; do not require a full MBSE model to start.
+### 3.1 Principle
+
+> **Bounds in. Sensitive data stays with the customer.**  
+> Standard specialization does **not** require training on customer proprietary meshes, flight logs, production trajectories, or golden solver decks.
+
+| Carbon uses (default) | Customer keeps |
+|------------------------|----------------|
+| Stated requirements, constraints, envelope (numeric) | Proprietary CAD/CFD/FEA archives |
+| Carbon procedural / licensed non-sensitive draws | Operational plant logs |
+| Public or Carbon-owned regime templates | ITAR/export-controlled corpora |
+| Product-battery seeds under Carbon policy | Anything they cannot put in a vendor cloud |
+
+### 3.2 Why this is the default
+
+- Primes and suppliers will **trial** a path that does not open a data-security program.  
+- Carbon’s wedge is **verification and selection**, not “become the lakehouse for their sims.”  
+- Bounds-parameterized INV/ADV already express the customer’s job without absorbing their archive.
+
+### 3.3 Customer-side validation
+
+After delivery, the customer **should** shadow-compare the specialist against their hi-fi on **their** data. That comparison is **their** process. Carbon does not need those runs to ship the default SKU.
+
+### 3.4 When customer data *may* enter Carbon systems
+
+Only under an explicit tier and written `data_policy`:
+
+| Policy value | Meaning |
+|--------------|--------|
+| `no_customer_data` | **Default.** Train/eval without proprietary trajectories |
+| `aggregate_only` | Optional anonymized/aggregate statistics; no raw trajectories retained as train set unless contract says so |
+| `private_challenge` | Sponsored/private regime; data handling per contract (may include air-gap, no-retain, residency) |
+| `customer_adapt_only` | Data never sent to Carbon; adapt kit runs on customer infra only |
+
+**Forbidden as silent default:** “Upload your sims so we can fine-tune” without tier, DPA, and retention terms.
+
+---
+
+## 4. Customer intake schema (v1)
 
 ```text
 CustomerBounds {
@@ -59,7 +99,6 @@ CustomerBounds {
 
   requirements[] {
     id, quantity, relation, value, unit, notes?
-    # e.g. peak_force <= 40 N; cycle_time <= 2 ms
   }
 
   constraints[] {
@@ -68,221 +107,254 @@ CustomerBounds {
 
   envelope {
     inputs[]  { name, min, max, unit, distribution_hint? }
-    context[] { name, min, max, unit }   # ambient, surface_class, …
-    exclusions[]?                       # explicit out-of-scope
+    context[] { name, min, max, unit }
+    exclusions[]?
   }
 
   latency_class?              # L1_interactive | L2_batch | L3_control_rate
   export_class?               # onnx | other_approved
-  escalation_policy?          # text or structured: outside envelope → stop | call_hifi | human
+  escalation_policy?          # outside envelope → stop | call_hifi | human
 
-  data_policy                 # no_customer_data | aggregate_only | private_challenge
-  commercial_tier             # catalog | sponsored_open | sponsored_licensed | private
+  data_policy                 # no_customer_data | aggregate_only | private_challenge | customer_adapt_only
+  commercial_tier             # trial | catalog | bounds_sku | adapt_license | reverify | sponsored_* | private
+  adapt_intent?               # none | customer_side | carbon_assisted
 }
 ```
 
-**Validation rules**
-
-- At least one hard constraint or requirement with numeric bound.  
-- Envelope must be a closed box on all model inputs used at inference.  
-- `regime_template_id` must exist in Carbon’s template registry (or engagement is R&D/cold-start priced).  
-- Free-text alone is insufficient for battery parameterization.
+**Validation:** ≥1 numeric hard constraint or requirement; closed envelope on inference inputs; known `regime_template_id` or cold-start quote; free-text alone insufficient for battery parameterization.
 
 ---
 
-## 4. Procedure (end-to-end)
+## 5. Procedure (end-to-end)
 
 ```text
-INTAKE
-  Validate CustomerBounds schema
-  Map requirements/constraints → PB-INV targets + ADV boxes
-  Map envelope → stress/ADV domain + PB-ESC notes
-  Map use_mode + latency_class → PB-LAT / PB-ROLL depth
-        │
-        ▼
-REGIME MATCH
-  Query Landscape opportunity for regime_template (+ neighbors)
-  IF evidence sufficient → OFF-SUBNET or BANK path (§5)
-  IF evidence thin → SPONSORED CHALLENGE or cold-start premium (§5)
-        │
-        ▼
-SYNTHESIZE RECIPE
-  Effect-based merge from verified cards (not single-winner weights)
-  Inject customer objectives into training recipe where representable
-  Controlled retrain on fresh procedural draws (seed policy per Specialist_Bank)
-        │
-        ▼
+INTAKE → validate CustomerBounds
+MAP bounds → PB-INV targets, ADV boxes, PB-ROLL/LAT depth, PB-ESC
+REGIME MATCH (Landscape)
+  sufficient evidence → OFF-SUBNET fulfillment (§6)
+  thin evidence → SPONSORED CHALLENGE or cold-start quote
+SYNTHESIZE recipe (effects, not champion weight dump)
+CONTROLLED RETRAIN (fresh procedural draws; seed policy)
 PRODUCT BATTERY (bounds-parameterized)
-  PB-PHYS, PB-ROLL, PB-INV(customer targets), PB-ADV(envelope box),
-  PB-LAT, PB-ART, PB-ESC(envelope + escalation_policy)
-        │
-        ▼
-GROUNDING GATE
-  All mandatory PB pass + lineage + seed policy
-  Fail → repair / re-queue / no ship
-        │
-        ▼
-DELIVER
-  Closed SKU: artifact + recipe + Model Card + PB report + license
-  Envelope printed on card is the commercial validity domain
+GROUNDING GATE → DELIVER closed SKU
+OPTIONAL: Adapt license (§7) → customer-side retrain → RE-QUALIFY for Certified label
 ```
 
-### 4.1 How bounds parameterize the battery
+### 5.1 Bounds → battery mapping
 
 | Customer field | Battery effect |
 |----------------|----------------|
-| Requirements / hard constraints | PB-INV target set and pass thresholds |
-| Envelope box | Domain for stress draws and PB-ADV search |
+| Requirements / hard constraints | PB-INV targets and thresholds |
+| Envelope | Stress/ADV domain |
 | use_mode = control_loop | Stronger PB-ROLL + stricter PB-LAT |
-| use_mode = design_sweep | Stronger PB-INV query budget; LAT may be L1/L2 |
-| escalation_policy | PB-ESC text mandatory; ties to observed ADV/INV holes |
+| use_mode = design_sweep | Stronger PB-INV budget |
+| escalation_policy | Mandatory PB-ESC |
 | export_class | PB-ART format |
 
-Lean subnet scoring is **unchanged** by a single customer’s bounds. Customer bounds affect **promotion / commercial** exams only (unless the customer funds a sponsored challenge that defines a public or semi-public regime).
-
-### 4.2 Recipe synthesis (reminder)
-
-Per [`Specialist_Bank.md`](./Specialist_Bank.md):
-
-- Merge **stable effects** from cards (backbone family, loss enables, curriculum tags).  
-- **Do not** dump champion weights as the product.  
-- Add customer-shaped objectives only when they are expressible in train/eval (e.g. constraint penalties, INV targets).  
-- Retrain under control; then prove with PB on **new** seeds.
+Lean subnet scoring is **not** rewritten by one customer’s bounds unless they fund a challenge that defines a regime.
 
 ---
 
-## 5. On-subnet vs off-subnet commercial paths
+## 6. On-subnet vs off-subnet fulfillment
 
-Both paths must hit the **same grounding gate** for a full commercial SKU. They differ in *how evidence is obtained and paid for*.
+Same grounding gate for full commercial SKUs. Difference is how evidence is obtained and paid for.
 
-### 5.1 Off-subnet fulfillment (intelligence already sufficient)
+### 6.1 Off-subnet (intelligence already sufficient)
 
-**When allowed**
+**When:** Landscape support density/stability meet policy; generators/gates/PB templates exist; bounds evaluable; legal accepts `data_policy`.
 
-- Landscape support density and stability for `regime_template_id` meet internal policy thresholds.  
-- Required generators, gates, and PB templates exist.  
-- Customer bounds lie inside (or are a contraction of) a domain Carbon can evaluate.  
-- Legal/commercial review accepts data_policy and license tier.
+**What:** OpCo synthesize → retrain → full PB → ship. No new emissions challenge required.
 
-**What runs**
+**Why allowed:** Subnet’s job is to grow verified strategy intelligence. Once it exists, forcing every sale through live emissions is unnecessary. Buyers pay for **bounded, battery-passed artifacts**.
 
-- OpCo / Specialist Bank pipeline only: synthesize → retrain → **full product battery** → ship.  
-- **No requirement** to open a new subnet challenge or spend emissions on this engagement.  
-- Optional: thin public catalog entry (“regime specialized”) without leaking recipe/weights.
+### 6.2 On-subnet sponsored challenge
 
-**Why this is allowed**
+**When:** Evidence thin; customer wants ongoing network search; novel regime; tier is challenge-sponsored.
 
-The subnet’s job is to **produce verified strategy intelligence at scale**. Once that intelligence exists, forcing every commercial delivery back through emissions is unnecessary theater. Buyers pay for **bounded, battery-passed artifacts**, not for a live challenge ID.
+**What:** Challenge brief + lean cards → Landscape update → graduate still needs PB (sponsor may add tests). Sponsor gets licensed graduate under contract.
 
-**Why this is not a side-door cheat**
-
-- Still no teacher-checkpoint laundering.  
-- Still mandatory PB configured by **their** bounds.  
-- Still dual egress: miners do not receive the closed SKU.  
-- Emissions remain lean-exam-only; purchase never buys rank.
-
-### 5.2 On-subnet sponsored challenge (intelligence thin or customer wants network search)
-
-**When used**
-
-- Sparse Landscape evidence for the regime.  
-- Customer wants ongoing competition against their regime family.  
-- Bounds are novel enough that public or licensed challenge definitions add data Carbon does not yet have.  
-- Pricing tier is challenge-sponsored (open / licensed / private per GTM).
-
-**What runs**
-
-- Challenge brief encodes regime + optional public constraints (private details stay off public brief as tier requires).  
-- Lean exams accumulate cards → Landscape updates.  
-- Graduation still requires product battery (sponsor may **add** PB tests in the brief).  
-- Sponsor receives licensed graduate under contract; network receives search signal.
-
-### 5.3 Decision rule (ops)
+### 6.3 Decision rule
 
 ```text
-if landscape.opportunity_sufficient(regime) and bounds.in_evaluable_domain:
+if landscape.sufficient(regime) and bounds.evaluable:
     prefer OFF_SUBNET_FULFILLMENT
-elif customer.funds_sponsored_challenge or evidence_thin:
-    SPONSORED_CHALLENGE_PATH
+elif customer.funds_challenge or evidence_thin:
+    SPONSORED_CHALLENGE
 else:
-    COLD_START_QUOTE (time + cost premium) or DECLINE
+    COLD_START_QUOTE or DECLINE
 ```
-
-**Principle:** Subnet when you need **new verified search**. Off-subnet when you already have **enough verified intelligence** to specialize honestly.
 
 ---
 
-## 6. Deliverable package (commercial)
+## 7. Customer-side adapt & re-qualification (optimal product design)
+
+### 7.1 Principle
+
+> Selling “add your data and retrain” is smart **only if** adapt runs where the data already lives and **certification is explicit**.
+
+Unconstrained retrain while still marketing the original PB pack is **not** allowed.
+
+### 7.2 Product layers
+
+| Layer | What customer gets | Cert status |
+|-------|--------------------|-------------|
+| **A. Certified specialist** | Artifact + recipe + PB pack + envelope | Valid **as shipped** |
+| **B. Adapt kit (license)** | Train/adapter scripts or API, constraint hooks, local smoke gates | Runs on **customer infra**; Carbon need not hold data |
+| **C. Re-qualification** | Re-run product battery after adapt (customer GPU or paid Carbon job) | **New** PB pack → may restore `Certified` |
+
+### 7.3 Rules
+
+1. Material retrain/fine-tune **voids** the previous PB cert for performance claims.  
+2. SKU labels:  
+   - `Certified` — current PB pass under stated bounds  
+   - `Adapted (customer)` — lineage to a certified base; **no** Carbon performance claim until re-PB  
+3. Prefer **constrained adapt** (frozen physics heads / small adapters, constraint losses on, local gate smoke) over free full retrain when templates allow.  
+4. Envelope expansion requires new ADV/INV domain and a new battery — not a silent widen.  
+5. Default adapt path is `customer_adapt_only` (data never sent to Carbon).
+
+### 7.4 Carbon-assisted adapt (optional high tier)
+
+Only under contract: data residency, retention, deletion, audit. Still requires re-PB for `Certified`. Not the default offer.
+
+### 7.5 Why this is optimal
+
+| Goal | How this design hits it |
+|------|-------------------------|
+| Customer confidence to try | No data-security program for default SKU |
+| OEM need to specialize | Adapt kit on their side |
+| Protect meaning of “Carbon specialist” | Cert resets until battery |
+| Revenue | Re-verify and sponsored tiers stay valuable |
+| Incentives | Purchase still does not buy emissions |
+
+---
+
+## 8. Deliverable package
 
 | Asset | Role |
 |-------|------|
-| Deployable artifact (ONNX-class) | Runs in customer tool / loop |
-| Exact certified recipe | Provenance / fine-tune start under license |
+| Deployable artifact | Runs in their tool / loop |
+| Certified recipe | Provenance / adapt start |
 | Model Card + PB report | Review evidence |
-| Envelope + escalation | Validity domain printed as product boundary |
-| License + update channel | Commercial terms; re-verify when templates move |
+| Envelope + escalation | Printed validity domain |
+| License + update channel | Terms; template drift handling |
+| Adapt kit (if purchased) | Customer-side retrain under §7 |
 
-**Qualification language (allowed)**  
-“Specialist validated against customer-stated requirements, constraints, and envelope under Carbon’s product battery for regime template X.”
-
-**Qualification language (forbidden without separate program)**  
-System certification, flight/safety cert, “replaces customer V&V,” unbounded operational authority.
+**Allowed claim:** validated against customer-stated requirements, constraints, and envelope under Carbon’s product battery for regime template X.  
+**Forbidden without separate program:** system/flight/safety certification; “replaces customer V&V”; unbounded operational authority.
 
 ---
 
-## 7. Incentive and trust boundaries
+## 9. Confidence & adoption ladder
 
-| Rule | Statement |
-|------|-----------|
-| No pay-to-compete | Buying a specialist or funding off-subnet work does not buy emissions |
-| No lean bypass | Off-subnet SKUs still require product battery; they do not redefine subnet scores |
-| No full SKU on miner API | Dual egress unchanged |
-| No teacher distillation | Recipe from effects + retrain + PB |
-| Customer data | Default: no training on proprietary trajectories unless tier and data_policy explicitly allow; prefer bounds-parameterized procedural/eval design |
+Specialists earn a **trial**, not automatic standardization.
 
----
+| Stage | Buyer action | Carbon offer |
+|-------|--------------|--------------|
+| **Try** | Non-critical regime, shadow vs hi-fi | Trial / catalog / small bounds SKU; `no_customer_data` |
+| **Use** | Design sweep or advisory control inside envelope | Bounds SKU + evidence pack |
+| **Adapt** | Specialize on internal data | Adapt license; label `Adapted (customer)` |
+| **Depend** | Production-adjacent reliance | Re-verify → `Certified`; tighter SLA; optional private tier |
 
-## 8. Worked micro-example (gripper / contact)
-
-**Intake**  
-- Requirement: hold part without drop under payload band.  
-- Constraint: force ≤ F_max (no crush).  
-- Envelope: payload [m0, m1], surface classes {dry, slightly_slick}, speed ≤ v_max.  
-- use_mode: control_loop; latency_class: L3_control_rate.
-
-**Match**  
-Contact-force template has sufficient Landscape cards → **off-subnet fulfillment** allowed.
-
-**Recipe**  
-Merge contact-stress-surviving loss/curriculum effects; drop lab-pose-only winners; train with constraint-aware objective.
-
-**Battery**  
-PB-INV/ADV inside envelope (heavier / slicker cases); PB-ROLL horizon for control; PB-LAT at control rate; PB-ESC outside envelope → reduce force / stop.
-
-**Deliver**  
-Force map specialist + envelope card + evidence pack for production grip assistance — not a leaderboard rank.
+Sales must not skip the ladder. Field failures outside envelope are escalations, not “model betrayal,” if PB-ESC was honest.
 
 ---
 
-## 9. Success metrics
+## 10. Go-to-market strategy (optimal)
+
+### 10.1 What we sell (SKU ladder)
+
+| SKU | Contents | Data | Price posture (illustrative) |
+|-----|----------|------|------------------------------|
+| **Trial** | Limited envelope, full honesty on limits, short license | No customer train data | Low / design-partner |
+| **Catalog specialist** | Regime template, generic bounds, PB pack | No customer train data | List |
+| **Bounds specialist** | PB parameterized by their requirements/constraints/envelope | No customer train data (default) | Project |
+| **Adapt license** | Kit + lineage to certified base | Customer infra only | Add-on subscription / seat |
+| **Re-verify** | PB re-run after adapt or template drift | Optional; prefer customer-run harness | Per job or retainer |
+| **Sponsored challenge** | Network search on regime family | Per tier (open → private) | Challenge fee + graduate license |
+| **Private / air-gap** | Sealed pack, residency, no-retain | Contract-only | Program |
+
+### 10.2 Who to sell first
+
+| Priority | Buyer | Why |
+|----------|-------|-----|
+| 1 | Methods groups / digital-eng leads with authority to pilot | Care about evidence packs |
+| 2 | Suppliers under requirements-driven design | Bounds language matches RFQs |
+| 3 | Robotics / autonomy control teams (narrow plant maps) | Latency + envelope story |
+| Later | Full program primes for fleet-wide dependency | After repeated Try→Use proof |
+
+Avoid leading with “replace Ansys.” Lead with **faster search inside a declared envelope, with a battery the scoreboard does not require.**
+
+### 10.3 Motion
+
+1. **Land** — trial or catalog on a template Carbon already covers.  
+2. **Prove** — customer shadow test on their data (their side).  
+3. **Bound** — paid bounds SKU for a real requirements set.  
+4. **Expand** — adapt license when they must fit internal distributions.  
+5. **Lock** — re-verify retainer; sponsored challenges only for net-new regimes.  
+6. **Protect** — never discount away PB; never let purchase touch emissions.
+
+### 10.4 Messaging (external)
+
+- Scoreboard ≠ product.  
+- Input bounds, not your secret archive.  
+- Specialist is valid inside the printed envelope.  
+- Adapt on your side; certification is earned again, not inherited forever.  
+- Off-subnet delivery when intelligence exists is a feature (speed), not a bypass of proof.
+
+### 10.5 What not to do
+
+- Sell unlimited certified retrain on customer data in Carbon cloud as the default.  
+- Imply Phase-0 catalog SKUs are production autonomy stacks.  
+- Use customer pilots as free subnet challenge design without a sponsored agreement.  
+- Open dual egress (full SKU on miner paths).
+
+### 10.6 Success metrics (commercial)
 
 | Metric | Intent |
 |--------|--------|
-| Time intake → grounded SKU (off-subnet path) | Commercial throughput |
-| % engagements served off-subnet vs sponsored | Intelligence maturity |
-| PB pass rate on bounds-parameterized batteries | Procedure quality |
-| Envelope-related field escalations / returns | Honesty of bounds |
-| Zero SKUs without PB report | Grounding gate integrity |
-| Zero emissions coupling to purchase | Incentive integrity |
+| Trial → paid bounds conversion | Offer clarity |
+| % default SKUs with `no_customer_data` | Security-friendly motion |
+| Adapt attach rate | OEM fit |
+| Re-verify attach after adapt | Cert integrity + revenue |
+| Off-subnet vs sponsored mix | Landscape maturity |
+| Zero certified claims post-adapt without new PB | Trust |
+| Zero emissions coupling to revenue | Incentive integrity |
 
 ---
 
-## 10. Thesis
+## 11. Incentive and trust boundaries
 
-Specialists are **bounds-conditioned products**. The customer plugs in requirements, constraints, and envelope; Carbon specializes from verified Landscape intelligence, proves the model under a battery **defined by those bounds**, and ships a closed artifact with a printed validity domain.
-
-When the subnet has already done its job — dense, stable evidence for a regime — **business may proceed off-subnet** without apology. When evidence is thin, **sponsored challenges** buy new verified search. In both cases the commercial object is the same: a model set to the customer’s bounds, not a trophy from the public scoreboard.
+| Rule | Statement |
+|------|-----------|
+| No pay-to-compete | Purchase / off-subnet work / adapt license does not buy emissions |
+| No lean bypass | Commercial SKUs still require product battery |
+| No full SKU on miner API | Dual egress unchanged |
+| No teacher distillation | Effects + retrain + PB |
+| No silent data ingest | Default `no_customer_data` |
+| No inherited cert after adapt | Re-qualify or label `Adapted (customer)` |
 
 ---
 
-*Canonical procedure for customer-bounds intake, bounds-parameterized product battery, and on- vs off-subnet commercial fulfillment. Implements plug-and-play at the contract layer; defers to Specialist_Bank for gauntlet definitions and dual egress.*
+## 12. Worked micro-example (gripper / contact)
+
+**Intake:** Hold without drop; F ≤ F_max; payload and surface envelope; control-rate latency; `no_customer_data`.
+
+**Match:** Contact template evidence sufficient → **off-subnet** bounds SKU.
+
+**Build:** Effect-merged recipe; controlled retrain; PB with heavier/slicker ADV, control-rate LAT, ESC outside envelope.
+
+**Deliver:** `Certified` force map + pack. Customer shadows on their cells.
+
+**Later:** Adapt license on their logs → `Adapted (customer)` → paid re-verify → `Certified` again under same or updated bounds.
+
+---
+
+## 13. Thesis
+
+Specialists are **bounds-conditioned, evidence-backed products**. The default path does not consume proprietary customer trajectories. Customers may adapt on their own infrastructure; Carbon’s name on performance holds only while a product battery says so.
+
+The subnet accumulates verified intelligence. When that intelligence is dense enough, **commerce may run off-subnet** without apology. When it is not, **sponsored search** buys new evidence. Go-to-market follows buyer confidence: try without data drama, buy bounds with proof, adapt locally, re-qualify to depend.
+
+---
+
+*Canonical procedure for customer-bounds intake, default no-sensitive-data posture, customer-side adapt/re-qualify, on- vs off-subnet fulfillment, and GTM ladder. Gauntlet mechanics remain defined in Specialist_Bank.md.*
