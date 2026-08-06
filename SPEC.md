@@ -24,15 +24,15 @@
 
 ## 1. Executive summary
 
-Carbon coordinates miners and agents to **discover training strategies** for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators **retrain and evaluate** those strategies on hidden, procedurally generated data under **hard physics gates**. Emissions follow that independent score — not self-reported metrics.
+Carbon coordinates miners and agents to discover training strategies for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators retrain and evaluate those strategies on hidden, procedurally generated data under hard physics gates. Emissions follow that independent score — not self-reported metrics.
 
-**Core loop:** Miners submit training strategies (loss configurations, curricula, architectures, data-generation parameters). Validators execute deterministic training from scratch on hidden procedural data, evaluate against hard physics gates and challenge-bound Score Packs, and emit **Model Cards**. Verified cards later feed a knowledge layer that compounds insight under strict publish rules and, only after a **verification gauntlet**, commercial specialists.
+**Core loop:** Miners submit training strategies (loss configurations, curricula, architectures, data-generation parameters). Validators execute deterministic training from scratch on hidden procedural data, evaluate against hard physics gates and challenge-bound Score Packs, and emit Model Cards. Verified cards later feed a knowledge layer that compounds insight under strict publish rules and, only after a verification gauntlet, commercial specialists.
 
 **What the network optimizes for**  
 Training methods that survive stress and physical constraints — not low loss on a fixed public set.
 
 **What the network eventually supplies**  
-Envelope-qualified **solution maps** (problem setup → physical fields) for jobs engineers already run: **inverse design**, **plant-style / real-time response**, **exploration & UQ**, and **hybrid truth** (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./appendices/Use_Cases_by_Phase.md).
+Envelope-qualified solution maps (problem setup → physical fields) for jobs engineers already run: inverse design, plant-style / real-time response, exploration & UQ, and hybrid truth (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./appendices/Use_Cases_by_Phase.md).
 
 ### Dual threshold (non-negotiable)
 
@@ -70,7 +70,7 @@ END USERS           Aero / auto / energy / defense — digital twins, HIL,
                       design optimization, hybrid truth loops
 ```
 
-Carbon does not replace the GPU vendor or the CAE seat. It owns **discovery of training methods under an exam the producer does not control**, with a hard line between competition results and sold artifacts.
+Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts.
 
 ---
 
@@ -316,7 +316,7 @@ Scoring labels: **[`appendices/Scoring.md`](./appendices/Scoring.md)**.
 
 ### Role
 
-Landscape is Carbon’s **batch intelligence system with four controlled ports** — not a live strategy oracle and not a teacher-distillation factory.
+Landscape is Carbon’s batch intelligence system with four controlled ports — not a live strategy oracle and not a teacher-distillation factory.
 
 | Port | Consumer | Leaves the building |
 |------|----------|---------------------|
