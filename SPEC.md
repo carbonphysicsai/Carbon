@@ -28,6 +28,10 @@ Carbon coordinates miners and agents to discover training strategies for neural 
 
 **Core loop:** Miners submit training strategies (loss configurations, curricula, architectures, data-generation parameters). Validators execute deterministic training from scratch on hidden procedural data, evaluate against hard physics gates and challenge-bound Score Packs, and emit Model Cards. Verified cards later feed a knowledge layer that compounds insight under strict publish rules and, only after a verification gauntlet, commercial specialists.
 
+Traditional neural operators are dominated by accuracy-driven objectives. They may solve overfitting, but the objective still drives them toward accuracy and learning data, which is why they struggle with real physics in deployment. Carbon changes the optimization target because physics gates, fidelity, and model robustness are weighted more than pure training loss accuracy in the final score. We are driving miners at training strategies that survive a different objective, and learning from them. That is the valuable work Carbon is paying for and that the validators are pressure-testing. It is plausible that the Pareto front of methods under hard physics + stress differs from those under pure accuracy, and Bittensor miners are the right tool for finding it.
+
+The training data and evaluation criteria are generated in real time, seed-triggered, impossible for the miners to know ahead of time, challenge-specific, fully auditable, and verified against real physics and real simulation tools. Every training run generates a Model Card that has every valuable piece of data from how it was trained, how accurate it was, and how it scored on the real physics testing. The data is used to return value to miners, improve the evaluation, improve challenge design, and develop industry deployable models.
+
 **What the network optimizes for**  
 Training methods that survive stress and physical constraints — not low loss on a fixed public set.
 
@@ -70,7 +74,7 @@ END USERS           Aero / auto / energy / defense — digital twins, HIL,
                       design optimization, hybrid truth loops
 ```
 
-Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts.
+Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts. Bittensor works because the Carbon objective is mathematical and fail-closed, validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. It enables an intelligence flywheel by re-feeding miners winning strategy clues. The Bittensor mechanism allows Carbon to provide trustless verification for surrogate models that must be trusted in high-risk environments where physics breakdowns are very expensive and not optional. The open source and auditable training and evaluation mechanism is exactly what a chief engineer needs to defend the deployment of Carbon’s physics models.
 
 ---
 
@@ -134,6 +138,8 @@ Competition scoring **never** depends on purchasing the commercial path.
 
 Success metrics: post-gate progress, product-battery pass rates, commercial conversion — **not** guidance-API engagement. Landscape never overrides gates. **L0 public publish only after Launch Bar green.**
 
+The subnet team builds a knowledge graph of these Model Cards and uses them to retrain/retest and harden specialist models built for industry deployment. This process is purposely more rigorous than the mining evaluation. We want (mine → validate → feedback) to be fast, but we want to build real thorough due diligence into the models we are selling.
+
 ---
 
 ## 4. Trustless verification and data generation
@@ -170,6 +176,8 @@ Full design including proprietary-data handling: [`TRUSTLESS_VERIFICATION_AND_DA
 - **Miner autonomy:** Local iteration is encouraged, never required.
 - **Zero-friction submit:** Strategy JSON can be submitted with **no** local training.
 - **Moat:** Public leader insight is **noisy and lagged** — not full champion weights, exact bank recipes, raw causal graphs, DML dumps, or product-battery seeds.
+
+Mining is agentic auto research encouraged to lower the barrier to entry, raise the quality of submissions, and leverage network effects on the discovery end. An agent friendly front end (MCP) receives noisy feedback from the current challenge winner’s strategy (no full recipe or weights) to start with and provides estimated scoring impacts of the miner/agent’s local changes, allowing for AI solving at scale. Optional light training if miners want to pay to get an edge.
 
 ### Three tiers (local → official)
 
@@ -288,7 +296,7 @@ Emissions follow **lean validator outcomes only**. Product-battery status does n
 
 ### Phase 1A–4
 
-Physics additions remain as previously specified (NACA/CRM, HIFiRE, Turek/Hron sequential, store separation, CHT, preCICE composites, 3D turbulence). Sponsored challenges may **extend product-battery definitions** in the challenge brief (`product_jobs`: inverse_design, plant, uq, …).
+Physics additions remain as previously specified (NACA/CRM, HIFiRE, Turek/Hron sequential, store separation, CHT, preCICE composites, 3D turbulence). Sponsored challenges may **extend product-battery definitions** in the challenge brief (`product_jobs`: inverse_design, plant, uq, …). Challenges will progress from simple PDEs to more complex physics regimes that are targeted at valuable Engineering fields and use cases (Aerospace, Auto, Robotics, Propulsion, UAV/Drones). The subnet is designed from day one so competition produces evidence that can later support the development of valuable commercial specialists. Carbon will use Bittensor to enable industry players to sponsor their own challenge that’s targeted at their specific physics envelope. Custom surrogate development and verification service without exposing proprietary data will prove valuable for major engineering players.
 
 ---
 
