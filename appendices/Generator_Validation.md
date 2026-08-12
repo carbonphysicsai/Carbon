@@ -7,11 +7,21 @@
 
 ---
 
+## TL;DR
+
+Before any Carbon challenge goes live, the data generator has to prove it produces physically credible training data. That proof is a **Validation Dossier**: mesh and temporal convergence, agreement with a reference solver, conservation checks, and statistically calibrated gate thresholds — all reproducible and public.
+
+Reference solutions are precomputed, hashed, and cached. Validators load them at evaluation time. Miners never see those solutions or the live stress/eval seeds. A challenge only launches after every mandatory check passes, the dossier is published, and the Challenge Registry is updated.
+
+This is Carbon’s credibility layer for challenge data: open methods and thresholds, hidden seeds and reference fields, fail-closed gates, and a clear path back into SPEC.
+
+---
+
 ## 1. Purpose
 
-This document defines the **Generator Validation Protocol** — the process by which Carbon proves its procedural data generators produce physically correct training data before any challenge goes live. This is the **credibility layer** that distinguishes Carbon from unverified ML benchmarks.
+This document defines the **Generator Validation Protocol** — how Carbon shows that its procedural data generators produce physically correct training data before a challenge goes live. This is the **credibility layer** that separates Carbon from unverified ML benchmarks.
 
-**Goal:** Every challenge ships with a **Validation Dossier** — a public, reproducible evidence pack proving the generator produces physically correct data across the declared envelope.
+**Goal:** Every challenge ships with a **Validation Dossier** — a public, reproducible evidence pack that the generator produces physically correct data across the declared envelope.
 
 ---
 
@@ -20,8 +30,8 @@ This document defines the **Generator Validation Protocol** — the process by w
 | Principle | Implementation |
 |-----------|----------------|
 | **Trustless verification** | Anyone can re-run validation using public reference solvers |
-| **Procedural transparency** | Generator code + validation code are open source |
-| **Statistical rigor** | Thresholds derived from statistical analysis, not heuristics |
+| **Procedural transparency** | Generator code and validation code are open source |
+| **Statistical rigor** | Thresholds come from statistical analysis, not guesswork |
 | **Reproducibility** | Fixed seeds, pinned solvers, versioned environments |
 | **Transparency** | Full reports published before challenge launch |
 
@@ -38,23 +48,23 @@ This document defines the **Generator Validation Protocol** — the process by w
 │     │                                                           │
 │     ▼                                                           │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  GENERATOR VALIDATION ENGINE                                 │ │
-│  │  ├─ Reference Solver Interface (FEniCS/OpenFOAM/SU2/DPLR)   │ │
-│  │  ├─ Mesh/Temporal Convergence Runner                        │ │
-│  │  ├─ Physics Conservation Checker                            │ │
-│  │  ├─ Statistical Threshold Calibrator                        │ │
-│  │  └─ Report Generator (PDF/HTML/JSON)                        │ │
+│  │  GENERATOR VALIDATION ENGINE                                 │
+│  │  ├─ Reference Solver Interface (FEniCS/OpenFOAM/SU2/DPLR)   │
+│  │  ├─ Mesh/Temporal Convergence Runner                        │
+│  │  ├─ Physics Conservation Checker                            │
+│  │  ├─ Statistical Threshold Calibrator                        │
+│  │  └─ Report Generator (PDF/HTML/JSON)                        │
 │  └─────────────────────────────────────────────────────────────┘ │
 │           │                                                      │
 │           ▼                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  VALIDATION DOSSIER (Public Artifact)                        │ │
-│  │  ├─ Generator Validation Report                              │ │
-│  │  ├─ Mesh/Temporal Convergence Study                          │ │
-│  │  ├─ Physics Conservation Audit                               │ │
-│  │  ├─ Gate Threshold Calibration                               │ │
-│  │  ├─ Turbulence/Chemistry UQ Budget (if applicable)          │ │
-│  │  └─ Reference Solution Cache Manifest                        │ │
+│  │  VALIDATION DOSSIER (Public Artifact)                        │
+│  │  ├─ Generator Validation Report                              │
+│  │  ├─ Mesh/Temporal Convergence Study                          │
+│  │  ├─ Physics Conservation Audit                               │
+│  │  ├─ Gate Threshold Calibration                               │
+│  │  ├─ Turbulence/Chemistry UQ Budget (if applicable)          │
+│  │  └─ Reference Solution Cache Manifest                        │
 │  └─────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -150,6 +160,7 @@ Each challenge ships with a **Validation Dossier** (public PDF/HTML/JSON):
 - **Validation Seeds:** `hash("naca0012_transonic-v1:validation:{0..49}")`
 - **Docker Image:** `ghcr.io/carbon/validation:su2-v7.5.0`
 - **Git Commit:** `a1b2c3d4...`
+```
 
 ---
 
@@ -277,7 +288,6 @@ class GeneratorValidator:
         
         return {
             "levels": self.config.mesh_levels,
-            "errors,
             "refinement_ratio": self.config.spatial_refinement_ratio,
             "errors": errors,
             "convergence_rate": conv_rate,
@@ -325,7 +335,7 @@ class GeneratorValidator:
                 "max_residual": max_res,
                 "threshold": threshold,
                 "passed": max_res < threshold
-            )
+            }
         
         all_passed = all(r["passed"] for r in results.values())
         return {"laws": results, "passed": all_passed}
@@ -423,6 +433,8 @@ s3://carbon-precomputed/{challenge_id}/
 ```
 
 ### 6.3 Validator Access Pattern
+
+Validators check local cache first, then pull from object storage. Subsampling is deterministic from the seed so two validators requesting the same draw get the same points.
 
 ```python
 # carbon/generators/cache.py
@@ -539,6 +551,8 @@ class CompressibleNSGenerator(ProceduralGenerator):
 
 ## 8. What Miners See vs. What Validators See
 
+Public transparency stops where gaming would start. Methods and thresholds can be public. Live solutions and seeds stay with validators.
+
 | Artifact | Miners See | Validators Use |
 |----------|------------|----------------|
 | Validation Dossier (PDF/HTML) | ✅ Public | ✅ Reference |
@@ -557,14 +571,14 @@ class CompressibleNSGenerator(ProceduralGenerator):
 |--------|------------|
 | Miner trains on validation set | Validation seeds = `hash("validation:" + challenge_id + ":" + i)` — different from training seeds |
 | Miner trains on stress distribution | Stress seeds = `splitmix64(master_seed, 1)` — derived from block hash, unknown until eval |
-| Generator overfits to reference solver | Validation uses **different** reference solver than generator (e.g., generator uses JAX-FEM, validation uses FEniCS) |
-| Miner reverse-engineers stress seeds | Stress seeds derived from **future** block hash — unknowable at submission time |
+| Generator overfits to reference solver | Validation uses a **different** reference solver than the generator (e.g., generator uses JAX-FEM, validation uses FEniCS) |
+| Miner reverse-engineers stress seeds | Stress seeds derived from a **future** block hash — unknowable at submission time |
 
 ---
 
 ## 10. Integration with SPEC
 
-This validation protocol implements the **Trustless Verification & Data Generation System** (§3 SPEC) and satisfies:
+This validation protocol implements the **Trustless Verification & Data Generation System** (SPEC §3) and satisfies:
 
 - **Mesh/Temporal Convergence** → SPEC §3 "Mesh & Temporal Convergence Requirements"
 - **Generator Validation** → SPEC §3 "Benchmark data quality is established through strong scientific justification"
@@ -574,4 +588,4 @@ This validation protocol implements the **Trustless Verification & Data Generati
 
 ---
 
-*This document is the canonical reference for generator validation in Carbon. All challenge onboarding must produce a Validation Dossier meeting these standards before going live.*
+*This document is the canonical reference for generator validation in Carbon. All challenge onboarding must produce a Validation Dossier that meets these standards before the challenge goes live.*
