@@ -8,17 +8,17 @@
 
 | Doc | Role |
 |-----|------|
-| [`Design Specs/Scoring.md`](./Design Specs/Scoring.md) | Lean formulas, Score Bank, validator load path |
-| [`Design Specs/Launch_Bar.md`](./Design Specs/Launch_Bar.md) | Stop-ship before public prior publish |
-| [`Design Specs/Landscape_Agent.md`](./Design Specs/Landscape_Agent.md) | Four-port knowledge architecture (v1.2+) |
-| [`Design Specs/Specialist_Bank.md`](./Design Specs/Specialist_Bank.md) | Product gauntlet, dual egress (v1.3+) |
-| [`Design Specs/Use_Cases_by_Phase.md`](./Design Specs/Use_Cases_by_Phase.md) | Inverse design / plant / UQ / hybrid truth |
-| [`Design Specs/Data_Management.md`](./Design Specs/Data_Management.md) | Seeds, train ≠ eval |
-| [`Design Specs/Trustless_Verification.md`](./Design Specs/Trustless_Verification.md) | Generators, seeds, proprietary data plan |
-| [`Design Specs/Implementation.md`](./Design Specs/Implementation.md) / `IMPLEMENTATION.md` | Code-level patterns |
-| [`Design Specs/Compute_Optimization.md`](./Design Specs/Compute_Optimization.md) | Compute strategy |
-| [`Design Specs/JAX_Optimization.md`](./Design Specs/JAX_Optimization.md) | Validator JAX efficiency |
-| [`Design Specs/Operations.md`](./Design Specs/Operations.md) | Deploy / ops |
+| [`Design_Specs/Scoring.md`](./Design_Specs/Scoring.md) | Lean formulas, Score Bank, validator load path |
+| [`Design_Specs/Launch_Bar.md`](./Design_Specs/Launch_Bar.md) | Stop-ship before public prior publish |
+| [`Design_Specs/Landscape_Agent.md`](./Design_Specs/Landscape_Agent.md) | Four-port knowledge architecture (v1.2+) |
+| [`Design_Specs/Specialist_Bank.md`](./Design_Specs/Specialist_Bank.md) | Product gauntlet, dual egress (v1.3+) |
+| [`Design_Specs/Use_Cases_by_Phase.md`](./Design_Specs/Use_Cases_by_Phase.md) | Inverse design / plant / UQ / hybrid truth |
+| [`Design_Specs/Data_Management.md`](./Design_Specs/Data_Management.md) | Seeds, train ≠ eval |
+| [`Design_Specs/Trustless_Verification.md`](./Design_Specs/Trustless_Verification.md) | Generators, seeds, proprietary data plan |
+| [`Design_Specs/Implementation.md`](./Design_Specs/Implementation.md) / `IMPLEMENTATION.md` | Code-level patterns |
+| [`Design_Specs/Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md) | Compute strategy |
+| [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
+| [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
 
 ---
 
@@ -36,7 +36,7 @@ The training data and evaluation criteria are generated in real time, seed-trigg
 Training methods that survive stress and physical constraints — not low loss on a fixed public set.
 
 **What the network eventually supplies**  
-Envelope-qualified solution maps (problem setup → physical fields) for jobs engineers already run: inverse design, plant-style / real-time response, exploration & UQ, and hybrid truth (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./Design Specs/Use_Cases_by_Phase.md).
+Envelope-qualified solution maps (problem setup → physical fields) for jobs engineers already run: inverse design, plant-style / real-time response, exploration & UQ, and hybrid truth (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./Design_Specs/Use_Cases_by_Phase.md).
 
 ### Dual threshold (non-negotiable)
 
@@ -48,7 +48,7 @@ Envelope-qualified solution maps (problem setup → physical fields) for jobs en
 Leaderboard rank ≠ shelf product. No commercial full specialist ships without the product battery. No pay-to-compete.
 
 **Lead capability (raise / pre-launch):** trustless verification + dual threshold + sponsored path.  
-**Knowledge layer (Landscape):** designed four-port compounding architecture — **build-ordered**, not a pre-launch live brain. Public L0 priors only after [`Launch_Bar.md`](./Design Specs/Launch_Bar.md) is green.
+**Knowledge layer (Landscape):** designed four-port compounding architecture — **build-ordered**, not a pre-launch live brain. Public L0 priors only after [`Launch_Bar.md`](./Design_Specs/Launch_Bar.md) is green.
 
 **Epistemic line:** Hard gates (when Launch Bar is green) are protocol truth. Causal bands are observational estimates — never spoken with gate-level certainty.
 
@@ -157,13 +157,13 @@ The subnet team builds a knowledge graph of these Model Cards and uses them to r
 
 Julia/SciML (DifferentialEquations.jl, SciMLSensitivity.jl, ModelingToolkit.jl, NeuralPDE / MethodOfLines as needed) supplies reference solutions, adjoints, and structured loss hooks — for generator validation and optional structured losses, not as a substitute for the adversarial exam.
 
-Full design including proprietary-data handling: [`Trustless_Verification.md`](./Design Specs/Trustless_Verification.md).
+Full design including proprietary-data handling: [`Trustless_Verification.md`](./Design_Specs/Trustless_Verification.md).
 
 ### Data generation invariants
 
 - `stress_seed` unknown to miners until evaluation.
 - Validator generator config ignores miner-supplied eval params.
-- Score Pack robustness category IDs must align with Generator Pack categories ([`Scoring.md`](./Design Specs/Scoring.md) + [`Data_Management.md`](./Design Specs/Data_Management.md)).
+- Score Pack robustness category IDs must align with Generator Pack categories ([`Scoring.md`](./Design_Specs/Scoring.md) + [`Data_Management.md`](./Design_Specs/Data_Management.md)).
 - Stress category coverage targets remain as specified in Data Management (≥95% where defined).
 
 ---
@@ -200,15 +200,15 @@ Mining is agentic auto research encouraged to lower the barrier to entry, raise 
 
 Miners optimize against training distribution; validators grade on a hidden, procedural distribution with hard physics gates. Estimation never replaces the exam.
 
-Implementation patterns: `IMPLEMENTATION.md` / [`Design Specs/Implementation.md`](./Design Specs/Implementation.md).
+Implementation patterns: `IMPLEMENTATION.md` / [`Design_Specs/Implementation.md`](./Design_Specs/Implementation.md).
 
 ---
 
 ## 6. Lean validation and scoring
 
-Canonical formulas, Score Pack schema, validator load path, per-challenge bank: **[`Design Specs/Scoring.md`](./Design Specs/Scoring.md)**.
+Canonical formulas, Score Pack schema, validator load path, per-challenge bank: **[`Design_Specs/Scoring.md`](./Design_Specs/Scoring.md)**.
 
-Lean labels are the **trust root** for Landscape ingest. Unfinished gates or scores → no verified compounding claims ([`Launch_Bar.md`](./Design Specs/Launch_Bar.md)).
+Lean labels are the **trust root** for Landscape ingest. Unfinished gates or scores → no verified compounding claims ([`Launch_Bar.md`](./Design_Specs/Launch_Bar.md)).
 
 ### Score composition (default lean weights)
 
@@ -317,10 +317,10 @@ Full JSON field lists and training-image acceptance contracts live with implemen
 
 ## 9. Landscape agent (knowledge flywheel)
 
-Canonical build guide: **[`Design Specs/Landscape_Agent.md`](./Design Specs/Landscape_Agent.md) (v1.2+)**.  
-Launch prerequisites: **[`Design Specs/Launch_Bar.md`](./Design Specs/Launch_Bar.md)**.  
-Product path: **[`Design Specs/Specialist_Bank.md`](./Design Specs/Specialist_Bank.md) (v1.3+)**.  
-Scoring labels: **[`Design Specs/Scoring.md`](./Design Specs/Scoring.md)**.
+Canonical build guide: **[`Design_Specs/Landscape_Agent.md`](./Design_Specs/Landscape_Agent.md) (v1.2+)**.  
+Launch prerequisites: **[`Design_Specs/Launch_Bar.md`](./Design_Specs/Launch_Bar.md)**.  
+Product path: **[`Design_Specs/Specialist_Bank.md`](./Design_Specs/Specialist_Bank.md) (v1.3+)**.  
+Scoring labels: **[`Design_Specs/Scoring.md`](./Design_Specs/Scoring.md)**.
 
 ### Role
 
@@ -372,7 +372,7 @@ ship_commercial_full_sku =
 
 ## 10. Specialist Bank and commercial GTM
 
-Canonical: **[`Design Specs/Specialist_Bank.md`](./Design Specs/Specialist_Bank.md)**.
+Canonical: **[`Design_Specs/Specialist_Bank.md`](./Design_Specs/Specialist_Bank.md)**.
 
 ### Product battery (full surrogate SKU — summary)
 
@@ -452,9 +452,9 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 
 ## 14. Validator operations and economics
 
-- Hardware tables, health gates, and queue priority (**sponsored > high rep > standard**) remain operational guidance in [`Operations.md`](./Design Specs/Operations.md).
+- Hardware tables, health gates, and queue priority (**sponsored > high rep > standard**) remain operational guidance in [`Operations.md`](./Design_Specs/Operations.md).
 - Product-battery runs are **promotion-time** workloads scheduled by bank/OpCo — not unbounded per-submission defaults.
-- Compute efficiency strategy: [`Compute_Optimization.md`](./Design Specs/Compute_Optimization.md), [`JAX_Optimization.md`](./Design Specs/JAX_Optimization.md).
+- Compute efficiency strategy: [`Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md), [`JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md).
 
 ---
 
@@ -496,7 +496,7 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 
 ## 17. Schema and card contracts
 
-Strategy schemas v1.0 / v1.1 / v2.0 as in §8. Product-battery and Model Card extensions are versioned in Specialist Bank / Landscape contracts. Score Pack schema: [`Scoring.md`](./Design Specs/Scoring.md).
+Strategy schemas v1.0 / v1.1 / v2.0 as in §8. Product-battery and Model Card extensions are versioned in Specialist Bank / Landscape contracts. Score Pack schema: [`Scoring.md`](./Design_Specs/Scoring.md).
 
 ---
 
