@@ -156,21 +156,21 @@ pip install -e .
 | Document | Contents |
 |----------|----------|
 | [SPEC.md](./SPEC.md) | Full protocol |
-| [appendices/Scoring.md](./appendices/Scoring.md) | Scoring rules |
-| [appendices/Launch_Bar.md](./appendices/Launch_Bar.md) | Readiness checklist before public priors |
-| [appendices/Generator_Creation.md](./appendices/Generator_Creation.md) | How we build generators per phase (backends, partners, fallbacks) |
-| [appendices/Generator_Validation.md](./appendices/Generator_Validation.md) | Validation Dossier before a challenge goes LIVE |
-| [docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md](./docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md) | Seeding philosophy, trustless eval design |
-| [appendices/Data_Management.md](./appendices/Data_Management.md) | Seeds, train ≠ eval |
-| [appendices/Runtime_Julia_Truth_Oracle.md](./appendices/Runtime_Julia_Truth_Oracle.md) | SciML reference / adjoint oracle |
-| [appendices/Landscape_Agent.md](./appendices/Landscape_Agent.md) | Knowledge / routing architecture |
-| [appendices/Specialist_Bank.md](./appendices/Specialist_Bank.md) | Product qualification path |
-| [appendices/Use_Cases_by_Phase.md](./appendices/Use_Cases_by_Phase.md) | Use cases by maturity |
-| [appendices/POC_Burgers_FNO.md](./appendices/POC_Burgers_FNO.md) | First PoC build guide |
-| [appendices/Compute_Optimization.md](./appendices/Compute_Optimization.md) | Compute strategy |
-| [appendices/JAX_Optimization.md](./appendices/JAX_Optimization.md) | Validator JAX efficiency |
-| [appendices/Implementation.md](./appendices/Implementation.md) | Gates, toolkit, SciML |
-| [appendices/Operations.md](./appendices/Operations.md) | Deploy / ops |
+| [Design Specs/Scoring.md](./Design Specs/Scoring.md) | Scoring rules |
+| [Design Specs/Launch_Bar.md](./Design Specs/Launch_Bar.md) | Readiness checklist before public priors |
+| [Design Specs/Generator_Creation.md](./Design Specs/Generator_Creation.md) | How we build generators per phase (backends, partners, fallbacks) |
+| [Design Specs/Generator_Validation.md](./Design Specs/Generator_Validation.md) | Validation Dossier before a challenge goes LIVE |
+| [Design Specs/Trustless_Verification.md](./Design Specs/Trustless_Verification.md) | Seeding philosophy, trustless eval design |
+| [Design Specs/Data_Management.md](./Design Specs/Data_Management.md) | Seeds, train ≠ eval |
+| [Design Specs/Runtime_Julia_Truth_Oracle.md](./Design Specs/Runtime_Julia_Truth_Oracle.md) | SciML reference / adjoint oracle |
+| [Design Specs/Landscape_Agent.md](./Design Specs/Landscape_Agent.md) | Knowledge / routing architecture |
+| [Design Specs/Specialist_Bank.md](./Design Specs/Specialist_Bank.md) | Product qualification path |
+| [Design Specs/Use_Cases_by_Phase.md](./Design Specs/Use_Cases_by_Phase.md) | Use cases by maturity |
+| [Design Specs/POC_Burgers_FNO.md](./Design Specs/POC_Burgers_FNO.md) | First PoC build guide |
+| [Design Specs/Compute_Optimization.md](./Design Specs/Compute_Optimization.md) | Compute strategy |
+| [Design Specs/JAX_Optimization.md](./Design Specs/JAX_Optimization.md) | Validator JAX efficiency |
+| [Design Specs/Implementation.md](./Design Specs/Implementation.md) | Gates, toolkit, SciML |
+| [Design Specs/Operations.md](./Design Specs/Operations.md) | Deploy / ops |
 
 ---
 
