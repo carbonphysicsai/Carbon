@@ -1,6 +1,6 @@
 # Appendix C: Miner CLI Specification
 
-**Purpose:** This document specifies the complete command-line interface for miners to interact with the Hydrogen subnet. It covers all commands, JSON schemas, configuration, Python SDK integration, and local validation tools. This is the primary interface for miners (human or agent) to participate in the subnet.
+**Purpose:** This document specifies the complete command-line interface for miners to interact with the carbon subnet. It covers all commands, JSON schemas, configuration, Python SDK integration, and local validation tools. This is the primary interface for miners (human or agent) to participate in the subnet.
 
 ---
 
@@ -11,7 +11,7 @@
 ## C.1 CLI Architecture
 
 ```bash
-hydrogen-miner [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
+carbon-miner [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 ```
 
 **Global Options:**
@@ -22,8 +22,8 @@ hydrogen-miner [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 | `--netuid` | `-n` | Yes | `107` | Subnet UID |
 | `--subtensor.network` | `-s` | No | `finney` | Subtensor network (finney/test/local) |
 | `--subtensor.chain_endpoint` | `-e` | No | `wss://entrypoint-finney.opentensor.ai:443` | Subtensor RPC endpoint |
-| `--api.url` | `-a` | No | `https://api.hydrogen.subnet` | Hydrogen API base URL |
-| `--config` | `-c` | No | `~/.hydrogen/miner.yaml` | Config file path |
+| `--api.url` | `-a` | No | `https://api.carbon.subnet` | carbon API base URL |
+| `--config` | `-c` | No | `~/.carbon/miner.yaml` | Config file path |
 | `--verbose` | `-v` | No | `false` | Verbose logging |
 | `--dry-run` | `-d` | No | `false` | Simulate without submitting |
 
@@ -31,11 +31,11 @@ hydrogen-miner [GLOBAL_OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 
 ## C.2 Commands
 
-### C.2.1 `hydrogen-miner submit` — Submit Strategy or Specialist Pipeline
+### C.2.1 `carbon-miner submit` — Submit Strategy or Specialist Pipeline
 
 ```bash
-hydrogen-miner submit --challenge-id <ID> --strategy <FILE> [OPTIONS]
-hydrogen-miner submit --challenge-id <ID> --pipeline <FILE> [OPTIONS]
+carbon-miner submit --challenge-id <ID> --strategy <FILE> [OPTIONS]
+carbon-miner submit --challenge-id <ID> --pipeline <FILE> [OPTIONS]
 ```
 
 **Options:**
@@ -53,13 +53,13 @@ hydrogen-miner submit --challenge-id <ID> --pipeline <FILE> [OPTIONS]
 **Examples:**
 ```bash
 # Submit strategy
-hydrogen-miner submit --challenge-id ns_2d_v1_0042 --strategy my_strategy.json
+carbon-miner submit --challenge-id ns_2d_v1_0042 --strategy my_strategy.json
 
 # Submit specialist pipeline
-hydrogen-miner submit --challenge-id fsi_2d_v1_0012 --pipeline my_pipeline.json
+carbon-miner submit --challenge-id fsi_2d_v1_0012 --pipeline my_pipeline.json
 
 # With custom data
-hydrogen-miner submit --challenge-id darcy_2d_0003 --strategy strategy.json --custom-data my_data.npz
+carbon-miner submit --challenge-id darcy_2d_0003 --strategy strategy.json --custom-data my_data.npz
 ```
 
 **Output:**
@@ -76,10 +76,10 @@ hydrogen-miner submit --challenge-id darcy_2d_0003 --strategy strategy.json --cu
 
 ---
 
-### C.2.2 `hydrogen-miner challenges` — List Active Challenges
+### C.2.2 `carbon-miner challenges` — List Active Challenges
 
 ```bash
-hydrogen-miner challenges [OPTIONS]
+carbon-miner challenges [OPTIONS]
 ```
 
 **Options:**
@@ -103,10 +103,10 @@ hydrogen-miner challenges [OPTIONS]
 
 ---
 
-### C.2.3 `hydrogen-miner baseline` — Get Current Baseline
+### C.2.3 `carbon-miner baseline` — Get Current Baseline
 
 ```bash
-hydrogen-miner baseline --challenge-id <ID> [OPTIONS]
+carbon-miner baseline --challenge-id <ID> [OPTIONS]
 ```
 
 **Options:**
@@ -144,10 +144,10 @@ hydrogen-miner baseline --challenge-id <ID> [OPTIONS]
 
 ---
 
-### C.2.4 `hydrogen-miner priors` — Get Landscape Priors
+### C.2.4 `carbon-miner priors` — Get Landscape Priors
 
 ```bash
-hydrogen-miner priors --challenge-id <ID> [OPTIONS]
+carbon-miner priors --challenge-id <ID> [OPTIONS]
 ```
 
 **Output:**
@@ -184,10 +184,10 @@ hydrogen-miner priors --challenge-id <ID> [OPTIONS]
 
 ---
 
-### C.2.5 `hydrogen-miner specialists` — List Available Specialists
+### C.2.5 `carbon-miner specialists` — List Available Specialists
 
 ```bash
-hydrogen-miner specialists [OPTIONS]
+carbon-miner specialists [OPTIONS]
 ```
 
 **Options:**
@@ -210,10 +210,10 @@ hydrogen-miner specialists [OPTIONS]
 
 ---
 
-### C.2.6 `hydrogen-miner submit-data` — Submit Custom Data (Phase 1+)
+### C.2.6 `carbon-miner submit-data` — Submit Custom Data (Phase 1+)
 
 ```bash
-hydrogen-miner submit-data --challenge-id <ID> --file <PATH> [OPTIONS]
+carbon-miner submit-data --challenge-id <ID> --file <PATH> [OPTIONS]
 ```
 
 **Options:**
@@ -239,10 +239,10 @@ hydrogen-miner submit-data --challenge-id <ID> --file <PATH> [OPTIONS]
 
 ---
 
-### C.2.7 `hydrogen-miner validate` — Local Validation (Pre-Submit Check)
+### C.2.7 `carbon-miner validate` — Local Validation (Pre-Submit Check)
 
 ```bash
-hydrogen-miner validate --challenge-id <ID> --strategy <FILE> [OPTIONS]
+carbon-miner validate --challenge-id <ID> --strategy <FILE> [OPTIONS]
 ```
 
 **Options:**
@@ -272,10 +272,10 @@ hydrogen-miner validate --challenge-id <ID> --strategy <FILE> [OPTIONS]
 
 ---
 
-### C.2.8 `hydrogen-miner rewards` — Check Rewards & History
+### C.2.8 `carbon-miner rewards` — Check Rewards & History
 
 ```bash
-hydrogen-miner rewards [OPTIONS]
+carbon-miner rewards [OPTIONS]
 ```
 
 **Options:**
@@ -299,23 +299,23 @@ Total: 992 TAO (30 days)
 
 ---
 
-### C.2.9 `hydrogen-miner config` — Manage Configuration
+### C.2.9 `carbon-miner config` — Manage Configuration
 
 ```bash
-hydrogen-miner config [get|set|show] [KEY] [VALUE]
+carbon-miner config [get|set|show] [KEY] [VALUE]
 ```
 
 **Examples:**
 ```bash
-hydrogen-miner config show                           # Show all config
-hydrogen-miner config get wallet.name                # Get single value
-hydrogen-miner config set wallet.name my_wallet      # Set value
-hydrogen-miner config set api.url https://api.myhydrogen.com  # Custom API
+carbon-miner config show                           # Show all config
+carbon-miner config get wallet.name                # Get single value
+carbon-miner config set wallet.name my_wallet      # Set value
+carbon-miner config set api.url https://api.mycarbon.com  # Custom API
 ```
 
 ---
 
-## C.3 Configuration File (`~/.hydrogen/miner.yaml`)
+## C.3 Configuration File (`~/.carbon/miner.yaml`)
 
 ```yaml
 wallet:
@@ -330,7 +330,7 @@ network:
     chain_endpoint: "wss://entrypoint-finney.opentensor.ai:443"
 
 api:
-  url: "https://api.hydrogen.subnet"
+  url: "https://api.carbon.subnet"
   timeout: 30
 
 submission:
@@ -344,16 +344,16 @@ validation:
 
 logging:
   level: "INFO"
-  file: "~/.hydrogen/logs/miner.log"
+  file: "~/.carbon/logs/miner.log"
   max_size_mb: 100
 ```
 
 ---
 
-## C.4 Python SDK Integration (`hydrogen_miner` package)
+## C.4 Python SDK Integration (`carbon_miner` package)
 
 ```python
-from hydrogen_miner import MinerClient, Strategy, SpecialistPipeline
+from carbon_miner import MinerClient, Strategy, SpecialistPipeline
 
 client = MinerClient(
     wallet_name="my_wallet",

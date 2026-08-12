@@ -1,4 +1,4 @@
-"""Strategy Store for Hydrogen Validator.
+"""Strategy Store for Carbon Validator.
 
 Provides a clean abstraction for retrieving and storing miner strategies.
 Supports local file-based storage for development/testing and is designed

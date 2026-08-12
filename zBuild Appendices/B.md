@@ -31,7 +31,7 @@ RUN pip install --no-cache-dir \
     requests \
     pyyaml
 
-# Hydrogen validator code
+# carbon validator code
 COPY validator/ /workspace/validator/
 WORKDIR /workspace/validator
 
@@ -45,16 +45,16 @@ ENTRYPOINT ["python", "entrypoint.py"]
 ### Build Tags (Per Backbone)
 | Image Tag | Backbone | Size Estimate |
 |-----------|----------|---------------|
-| `hydrogen/validator:fno-v24.09` | FNO | ~12 GB |
-| `hydrogen/validator:pino-v24.09` | PINO | ~12 GB |
-| `hydrogen/validator:deeponet-v24.09` | DeepONet | ~12 GB |
-| `hydrogen/validator:gno-v24.09` | GNO | ~13 GB |
-| `hydrogen/validator:oformer-v24.09` | OFormer | ~13 GB |
+| `carbon/validator:fno-v24.09` | FNO | ~12 GB |
+| `carbon/validator:pino-v24.09` | PINO | ~12 GB |
+| `carbon/validator:deeponet-v24.09` | DeepONet | ~12 GB |
+| `carbon/validator:gno-v24.09` | GNO | ~13 GB |
+| `carbon/validator:oformer-v24.09` | OFormer | ~13 GB |
 
 **Build Command:**
 ```bash
-docker build --target fno -t hydrogen/validator:fno-v24.09 .
-docker build --target pino -t hydrogen/validator:pino-v24.09 .
+docker build --target fno -t carbon/validator:fno-v24.09 .
+docker build --target pino -t carbon/validator:pino-v24.09 .
 # ... etc
 ```
 
@@ -73,7 +73,7 @@ import os, json, math, torch, numpy as np
 import sys, traceback
 
 # Determinism - MUST BE FIRST
-seed = int(os.environ.get("HYDROGEN_SEED", "42"))
+seed = int(os.environ.get("carbon_SEED", "42"))
 torch.manual_seed(seed)
 np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
@@ -112,7 +112,7 @@ def main():
                 pipeline=submission["specialist_pipeline"],
                 challenge=challenge,
                 train_data=train_data,  # For adapter training if present
-                seed=int(os.environ["HYDROGEN_SEED"])
+                seed=int(os.environ["carbon_SEED"])
             )
         else:
             # Load training data
@@ -127,7 +127,7 @@ def main():
                 config=submission,
                 train_data=train_data,
                 custom_data=custom_data,
-                seed=int(os.environ["HYDROGEN_SEED"])
+                seed=int(os.environ["carbon_SEED"])
             )
         
         # Evaluate on public holdout
@@ -195,7 +195,7 @@ if __name__ == "__main__":
 | `SUBMISSION_JSON` | Yes | Miner's full submission as JSON string | `{"backbone":"PINO",...}` |
 | `CHALLENGE_DATA_PATH` | Yes | Path to mounted challenge data | `/data/challenge` |
 | `CHALLENGE_PHASE` | Yes | Current subnet phase (0-3) | `0` |
-| `HYDROGEN_SEED` | Yes | Deterministic seed for reproducibility | `42` |
+| `carbon_SEED` | Yes | Deterministic seed for reproducibility | `42` |
 | `SUBMISSION_JSON` | Yes | Miner's full submission as JSON string | `{"backbone":"PINO",...}` |
 | `SUBMISSION_TYPE` | No | `strategy` or `specialist_pipeline` | `strategy` |
 | `CUSTOM_DATA_PATH` | No | Path to custom data if mounted | `/data/custom` |
@@ -219,13 +219,13 @@ if __name__ == "__main__":
 ```yaml
 services:
   validator:
-    image: hydrogen/validator:pino-v24.09
+    image: carbon/validator:pino-v24.09
     environment:
       - CHALLENGE_ID=ns_2d_v1_0042
       - SUBMISSION_JSON=${SUBMISSION_JSON}
       - CHALLENGE_DATA_PATH=/data/challenge
       - CHALLENGE_PHASE=0
-      - HYDROGEN_SEED=42
+      - carbon_SEED=42
     volumes:
       - ./data:/data:ro
       - ./output:/workspace/output
@@ -247,14 +247,14 @@ services:
 
 | Setting | Value | Enforcement |
 |---------|-------|-------------|
-| `torch.manual_seed` | `HYDROGEN_SEED` | Entrypoint |
-| `numpy.random.seed` | `HYDROGEN_SEED` | Entrypoint |
-| `torch.cuda.manual_seed_all` | `HYDROGEN_SEED` | Entrypoint |
+| `torch.manual_seed` | `carbon_SEED` | Entrypoint |
+| `numpy.random.seed` | `carbon_SEED` | Entrypoint |
+| `torch.cuda.manual_seed_all` | `carbon_SEED` | Entrypoint |
 | `torch.backends.cudnn.deterministic` | `True` | Entrypoint |
 | `torch.backends.cudnn.benchmark` | `False` | Entrypoint |
 | `torch.use_deterministic_algorithms` | `True` | Entrypoint |
 | `CUBLAS_WORKSPACE_CONFIG` | `:4096:8` | Dockerfile ENV |
-| `PYTHONHASHSEED` | `HYDROGEN_SEED` | Dockerfile ENV |
+| `PYTHONHASHSEED` | `carbon_SEED` | Dockerfile ENV |
 | `OMP_NUM_THREADS` | `1` | Dockerfile ENV |
 | `MKL_NUM_THREADS` | `1` | Dockerfile ENV |
 
@@ -366,7 +366,7 @@ docker run --rm --gpus all \
   -e SUBMISSION_JSON='{"backbone":"PINO","physics_informed":true}' \
   -e CHALLENGE_DATA_PATH=/data \
   -e CHALLENGE_PHASE=0 \
-  -e HYDROGEN_SEED=$SEED \
+  -e carbon_SEED=$SEED \
   -v $(pwd)/test_data:/data:ro \
   -v $(pwd)/output1:/workspace/output \
   $IMAGE
@@ -377,7 +377,7 @@ docker run --rm --gpus all \
   -e SUBMISSION_JSON='{"backbone":"PINO","physics_informed":true}' \
   -e CHALLENGE_DATA_PATH=/data \
   -e CHALLENGE_PHASE=0 \
-  -e HYDROGEN_SEED=$SEED \
+  -e carbon_SEED=$SEED \
   -v $(pwd)/test_data:/data:ro \
   -v $(pwd)/output2:/workspace/output \
   $IMAGE
@@ -481,12 +481,12 @@ api:
     header: "X-Hotkey-Signature"
 
 validator:
-  docker_image: "hydrogen/validator:{backbone}-v24.09"
+  docker_image: "carbon/validator:{backbone}-v24.09"
   env_vars:
     CHALLENGE_ID: "string"
     SUBMISSION_JSON: "string"
     CHALLENGE_DATA_PATH: "/data/challenge"
-    HYDROGEN_SEED: "int"
+    carbon_SEED: "int"
     SUBMISSION_TYPE: "strategy|specialist_pipeline"
   volumes:
     - "/host/data:/data:ro"
@@ -496,8 +496,8 @@ validator:
   timeout: "7200"
   output: "/workspace/output/result.json"
   determinism:
-    torch_seed: "HYDROGEN_SEED"
-    numpy_seed: "HYDROGEN_SEED"
+    torch_seed: "carbon_SEED"
+    numpy_seed: "carbon_SEED"
     cuda_deterministic: true
     cudnn_benchmark: false
 ```
@@ -520,7 +520,7 @@ jobs:
       - name: Build validator images
         run: ./scripts/build_validator_images.sh
       - name: Run determinism test
-        run: ./scripts/determinism_test.sh hydrogen/validator:pino-v24.09
+        run: ./scripts/determinism_test.sh carbon/validator:pino-v24.09
       - name: Upload result artifact
         uses: actions/upload-artifact@v4
         with:

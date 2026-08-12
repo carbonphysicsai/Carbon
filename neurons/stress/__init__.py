@@ -1,7 +1,7 @@
 # neurons/stress/__init__.py
 
 """
-Hydrogen Stress Test System
+Carbon Stress Test System
 
 Provides hidden, physics-grounded, deterministic stress testing
 for robust and anti-gaming evaluation.

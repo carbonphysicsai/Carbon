@@ -1,7 +1,7 @@
 # neurons/stress/stress_models.py
 
 """
-Core data models for Hydrogen's hidden stress test system.
+Core data models for Carbon's hidden stress test system.
 
 Follows the design in docs/STRESS_TEST_DESIGN.md
 """

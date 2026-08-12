@@ -13,7 +13,7 @@ import os
 import random
 from datetime import datetime, timedelta
 
-from hydrogen.landscape.causal_knowledge_base import CausalKnowledgeBase
+from carbon.landscape.causal_knowledge_base import CausalKnowledgeBase
 
 
 CHALLENGES = [

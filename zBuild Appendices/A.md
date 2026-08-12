@@ -1,6 +1,6 @@
 # Appendix A: Chain Pallet Specification (Substrate FRAME/Rust)
 
-**Purpose:** This document specifies the complete on-chain logic for the Hydrogen subnet as a Substrate FRAME pallet. It defines all on-chain state, extrinsics, events, errors, consensus logic, slashing conditions, and emission mechanics. This pallet is the consensus-critical layer that enforces the incentive mechanics, challenge lifecycle, validator assignments, scoring consensus, specialist promotion, and landscape agent governance. It is the single source of truth for all on-chain state transitions and the final authority for reward distribution.
+**Purpose:** This document specifies the complete on-chain logic for the carbon subnet as a Substrate FRAME pallet. It defines all on-chain state, extrinsics, events, errors, consensus logic, slashing conditions, and emission mechanics. This pallet is the consensus-critical layer that enforces the incentive mechanics, challenge lifecycle, validator assignments, scoring consensus, specialist promotion, and landscape agent governance. It is the single source of truth for all on-chain state transitions and the final authority for reward distribution.
 
 ---
 
@@ -11,7 +11,7 @@
 ## 1. Pallet Overview
 
 ```rust
-// pallets/hydrogen/src/lib.rs
+// pallets/carbon/src/lib.rs
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -350,7 +350,7 @@ pub mod pallet {
     }
 
     /// Commit-Reveal protocol constants
-    pub const COMMITMENT_DOMAIN: &[u8] = b"hydrogen-commit-v2";
+    pub const COMMITMENT_DOMAIN: &[u8] = b"carbon-commit-v2";
     pub const NONCE_SIZE: usize = 32;
     pub const MIN_NONCE_ENTROPY_BITS: u32 = 128;
 ```
@@ -2979,7 +2979,7 @@ pub mod pallet {
             // In production, this would be stored in ValidatorPerformance or separate storage
             // For now, derive from validator hotkey
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-pubkey");
+            input.extend_from_slice(b"carbon-vrf-pubkey");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }
@@ -2993,7 +2993,7 @@ pub mod pallet {
 
         fn derive_vrf_secret(validator: &T::AccountId) -> Result<[u8; 32], Error<T>> {
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-secret");
+            input.extend_from_slice(b"carbon-vrf-secret");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }
@@ -3009,7 +3009,7 @@ pub mod pallet {
 
         fn get_validator_vrf_pubkey(validator: &T::AccountId) -> Result<[u8; 32], Error<T>> {
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-pubkey");
+            input.extend_from_slice(b"carbon-vrf-pubkey");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }
@@ -3021,7 +3021,7 @@ pub mod pallet {
 
         fn derive_vrf_secret(validator: &T::AccountId) -> Result<[u8; 32], Error<T>> {
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-secret");
+            input.extend_from_slice(b"carbon-vrf-secret");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }
@@ -3037,7 +3037,7 @@ pub mod pallet {
 
         fn get_validator_vrf_pubkey(validator: &T::AccountId) -> Result<[u8; 32], Error<T>> {
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-pubkey");
+            input.extend_from_slice(b"carbon-vrf-pubkey");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }
@@ -3049,7 +3049,7 @@ pub mod pallet {
 
         fn derive_vrf_secret(validator: &T::AccountId) -> Result<[u8; 32], Error<T>> {
             let mut input = Vec::new();
-            input.extend_from_slice(b"hydrogen-vrf-secret");
+            input.extend_from_slice(b"carbon-vrf-secret");
             input.extend_from_slice(validator.encode().as_slice());
             Ok(blake2_256(&input))
         }

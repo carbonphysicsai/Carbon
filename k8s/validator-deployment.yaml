@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hydrogen-validator
+  name: Carbon-validator
   labels:
-    app: hydrogen-validator
+    app: Carbon-validator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hydrogen-validator
+      app: Carbon-validator
   template:
     metadata:
       labels:
-        app: hydrogen-validator
+        app: Carbon-validator
     spec:
       containers:
         - name: validator
-          image: hydrogen/validator:latest
+          image: Carbon/validator:latest
           imagePullPolicy: IfNotPresent
 
           resources:
@@ -26,7 +26,7 @@ spec:
               nvidia.com/gpu: 1
 
           env:
-            - name: HYDROGEN_USE_BENCHMARK
+            - name: Carbon_USE_BENCHMARK
               value: "true"
             - name: BT_NETUID
               value: "107"
@@ -38,17 +38,17 @@ spec:
             - name: pdebench-data
               mountPath: /data/pdebench
               readOnly: true
-            - name: hydrogen-code
-              mountPath: /workspace/hydrogen
+            - name: Carbon-code
+              mountPath: /workspace/Carbon
 
       volumes:
         - name: pdebench-data
           hostPath:
             path: /mnt/data/pdebench   # Change to your actual data location
             type: Directory
-        - name: hydrogen-code
+        - name: Carbon-code
           hostPath:
-            path: /opt/hydrogen     # Mount your code if developing
+            path: /opt/Carbon     # Mount your code if developing
             type: Directory
 
       nodeSelector:

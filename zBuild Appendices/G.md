@@ -1,6 +1,6 @@
 # Appendix G: Operational Runbook
 
-**Purpose:** This document specifies the complete operational procedures, incident response runbooks, maintenance procedures, backup/disaster recovery, security incident response, and communication protocols for the Hydrogen subnet operations team. This is the operational handbook for running the subnet in production.
+**Purpose:** This document specifies the complete operational procedures, incident response runbooks, maintenance procedures, backup/disaster recovery, security incident response, and communication protocols for the carbon subnet operations team. This is the operational handbook for running the subnet in production.
 
 ---
 
@@ -132,7 +132,7 @@ severity_levels:
 
 ## Diagnosis Steps
 1. Check subtensor process status: `systemctl status subtensor` or `docker ps`
-2. Check subtensor logs: `docker logs hydrogen-subtensor --tail 100`
+2. Check subtensor logs: `docker logs carbon-subtensor --tail 100`
 3. Check peer count: `curl -s http://localhost:9933 | jq '.peers'`
 4. Check disk space: `df -h /data`
 4. Check memory: `free -h`
@@ -142,25 +142,25 @@ severity_levels:
 ### Database Corruption
 ```bash
 # Stop subtensor
-docker stop hydrogen-subtensor
+docker stop carbon-subtensor
 
 # Backup database
 cp -r /data/subtensor /data/subtensor.backup.$(date +%s)
 
 # Rebuild database
-docker run --rm -v hydrogen_subtensor_data:/data \
+docker run --rm -v carbon_subtensor_data:/data \
   paritytech/substrate:latest \
   substrate purge-chain --chain local -y
 
 # Restart
-docker start hydrogen-subtensor
+docker start carbon-subtensor
 ```
 
 ### Out of Memory
 ```bash
 # Check memory
 free -h
-docker stats hydrogen-subtensor
+docker stats carbon-subtensor
 
 # Increase swap
 fallocate -l 4G /swapfile
@@ -179,7 +179,7 @@ ufw status
 # Ensure 30333/tcp open
 
 # Add bootnodes
-docker restart hydrogen-subtensor
+docker restart carbon-subtensor
 # Add --bootnodes flag to command
 ```
 
@@ -222,7 +222,7 @@ docker system prune -a --volumes -f
 
 ## Diagnosis
 1. Check validator container: `docker ps | grep validator`
-2. Check validator logs: `docker logs hydrogen-validator-pino --tail 200`
+2. Check validator logs: `docker logs carbon-validator-pino --tail 200`
 3. Check GPU: `nvidia-smi`
 3. Check disk: `df -h /workspace/output`
 3. Check API connectivity: `curl http://api:8000/health`
@@ -232,7 +232,7 @@ docker system prune -a --volumes -f
 ### OOM During Training
 ```bash
 # Check memory
-docker stats hydrogen-validator-pino
+docker stats carbon-validator-pino
 
 # Reduce batch size in strategy JSON
 # "batch_size": 8 (was 16)
@@ -241,7 +241,7 @@ docker stats hydrogen-validator-pino
 # Add to strategy: "gradient_checkpointing": true
 
 # Restart validator
-docker restart hydrogen-validator-pino
+docker restart carbon-validator-pino
 ```
 
 ### GPU Not Available
@@ -273,13 +273,13 @@ swapon /swapfile
 ### Container Crashed
 ```bash
 # Check exit code
-docker inspect hydrogen-validator-pino --format '{{.State.ExitCode}}'
+docker inspect carbon-validator-pino --format '{{.State.ExitCode}}'
 
 # Check logs
-docker logs hydrogen-validator-pino --tail 100
+docker logs carbon-validator-pino --tail 100
 
 # Restart
-docker restart hydrogen-validator-pino
+docker restart carbon-validator-pino
 ```
 
 ### Stuck in Scoring
@@ -322,8 +322,8 @@ curl http://api:8000/api/v1/challenges/{challenge_id}
 
 ## Diagnosis
 1. Check API container: `docker ps | grep api`
-2. Check API logs: `docker logs hydrogen-api --tail 100`
-2. Check database: `docker exec hydrogen-postgres pg_isready`
+2. Check API logs: `docker logs carbon-api --tail 100`
+2. Check database: `docker exec carbon-postgres pg_isready`
 2. Check Redis: `redis-cli ping`
 2. Check subtensor connection: `curl http://subtensor:9933/health`
 
@@ -332,13 +332,13 @@ curl http://api:8000/api/v1/challenges/{challenge_id}
 ### Database Connection Pool Exhausted
 ```bash
 # Check connections
-docker exec hydrogen-postgres psql -U hydrogen -c "SELECT count(*) FROM pg_stat_activity;"
+docker exec carbon-postgres psql -U carbon -c "SELECT count(*) FROM pg_stat_activity;"
 
 # Increase pool size
 # In api config: POOL_SIZE=50
 
 # Kill idle connections
-docker exec hydrogen-postgres psql -U hydrogen -c "
+docker exec carbon-postgres psql -U carbon -c "
   SELECT pg_terminate_backend(pid) 
   FROM pg_stat_activity 
   WHERE state = 'idle' AND state_change < now() - interval '5 minutes';
@@ -363,7 +363,7 @@ redis-cli FLUSHDB
 curl http://subtensor:9933/health
 
 # Restart API (will reconnect)
-docker restart hydrogen-api
+docker restart carbon-api
 
 # Check firewall
 ufw status
@@ -372,7 +372,7 @@ ufw status
 ### High Latency - Slow Queries
 ```bash
 # Check slow queries
-docker exec hydrogen-postgres psql -U hydrogen -c "
+docker exec carbon-postgres psql -U carbon -c "
   SELECT query, mean_time, calls 
   FROM pg_stat_statements 
   ORDER BY mean_time DESC 
@@ -386,19 +386,19 @@ docker exec hydrogen-postgres psql -U hydrogen -c "
 ### Subtensor Reorg Handling
 ```bash
 # Check indexer logs
-docker logs hydrogen-indexer --tail 50
+docker logs carbon-indexer --tail 50
 
 # If reorg detected:
 # 1. Indexer should handle automatically
 # 2. If stuck: restart indexer
-docker restart hydrogen-indexer
+docker restart carbon-indexer
 ```
 
 ### Post-Fix Verification
 1. API health: `curl http://localhost:8000/health`
 2. GraphQL: `curl -X POST http://localhost:4000 -d '{"query":"{health}"}'`
 2. Dashboard loads correctly
-2. Miner CLI works: `hydrogen-miner challenges`
+2. Miner CLI works: `carbon-miner challenges`
 ```
 
 ---
@@ -478,9 +478,9 @@ divergence = torch.div(u_double, ...)
 ### Emergency Rollback
 ```bash
 # Rollback validator image
-docker pull hydrogen/validator:pino-v24.08
-docker tag hydrogen/validator:pino-v24.08 hydrogen/validator:pino-v24.09
-docker restart hydrogen-validator-pino
+docker pull carbon/validator:pino-v24.08
+docker tag carbon/validator:pino-v24.08 carbon/validator:pino-v24.09
+docker restart carbon-validator-pino
 
 # Or: Deploy previous known-good commit
 git checkout <previous-good-commit>
@@ -508,35 +508,35 @@ docker compose up -d validator-dev
 - Missing recent challenges/submissions
 
 ## Diagnosis
-1. Check indexer logs: `docker logs hydrogen-indexer --tail 100`
+1. Check indexer logs: `docker logs carbon-indexer --tail 100`
 2. Check current block: `curl -s http://localhost:9933 | jq '.blockNumber'`
 2. Check indexer height: `curl http://indexer:8080/health`
-2. Check database size: `docker exec postgres psql -U hydrogen -c "SELECT pg_size_pretty(pg_database_size('hydrogen_indexer'));`
+2. Check database size: `docker exec postgres psql -U carbon -c "SELECT pg_size_pretty(pg_database_size('carbon_indexer'));`
 
 ## Common Issues & Fixes
 
 ### Stuck at Specific Block
 ```bash
 # Check for error at specific block
-docker logs hydrogen-indexer | grep -A 10 -B 5 "ERROR"
+docker logs carbon-indexer | grep -A 10 -B 5 "ERROR"
 
 # Common: Event decoding failure
 # Fix: Update indexer event decoding logic
 # Then: restart indexer
-docker restart hydrogen-indexer
+docker restart carbon-indexer
 ```
 
 ### Database Lock / Deadlock
 ```bash
 # Check locks
-docker exec hydrogen-postgres psql -U hydrogen -c "
+docker exec carbon-postgres psql -U carbon -c "
   SELECT pid, state, query_start, query 
   FROM pg_stat_activity 
   WHERE state != 'idle';
 "
 
 # Kill blocking queries
-docker exec hydrogen-postgres psql -U hydrogen -c "
+docker exec carbon-postgres psql -U carbon -c "
   SELECT pg_terminate_backend(pid) 
   FROM pg_stat_activity 
   WHERE state = 'idle in transaction' 
@@ -547,30 +547,30 @@ docker exec hydrogen-postgres psql -U hydrogen -c "
 ### Chain Reorg Handling
 ```bash
 # Check for reorg
-docker logs hydrogen-indexer | grep -i reorg
+docker logs carbon-indexer | grep -i reorg
 
 # If stuck on reorg:
 # 1. Reset indexer to block before reorg
 # 2. Restart indexer
-docker exec hydrogen-indexer python -c "
+docker exec carbon-indexer python -c "
 from indexer.sync import reset_to_block
 reset_to_block(SAFE_BLOCK_NUMBER)
 "
-docker restart hydrogen-indexer
+docker restart carbon-indexer
 ```
 
 ### Database Corruption
 ```bash
 # Check corruption
-docker exec hydrogen-postgres pg_dump -U hydrogen hydrogen_indexer > /dev/null
+docker exec carbon-postgres pg_dump -U carbon carbon_indexer > /dev/null
 
 # If corrupt: restore from backup
 # 1. Stop indexer
-docker stop hydrogen-indexer
+docker stop carbon-indexer
 # 2. Restore DB
-pg_restore -U hydrogen -d hydrogen_indexer /backups/latest.dump
+pg_restore -U carbon -d carbon_indexer /backups/latest.dump
 # 3. Restart indexer
-docker start hydrogen-indexer
+docker start carbon-indexer
 ```
 
 ### Slow Sync
@@ -607,9 +607,9 @@ ping subtensor
 
 ## Morning (09:00 UTC)
 - [ ] Check subnet health: `curl http://api:8000/health`
-- [ ] Check active challenges: `hydrogen-miner challenges`
+- [ ] Check active challenges: `carbon-miner challenges`
 - [ ] Verify active validators: `docker ps | grep validator`
-- [ ] Check emission distribution: `hydrogen-miner rewards --days 1`
+- [ ] Check emission distribution: `carbon-miner rewards --days 1`
 - [ ] Review overnight alerts (PagerDuty/Slack)
 - [ ] Check emission budget utilization
 
@@ -713,14 +713,14 @@ backup_schedule:
     frequency: "daily at 02:00 UTC"
     retention: "30 days daily, 12 months monthly, 7 years yearly"
     method: "pg_dump --format=custom --compress=9"
-    storage: "MinIO (s3://hydrogen-backups/postgres/)"
+    storage: "MinIO (s3://carbon-backups/postgres/)"
     verification: "pg_restore --list on 10% of backups monthly"
     
   redis:
     frequency: "daily at 03:00 UTC"
     retention: "7 days"
     method: "BGSAVE + copy RDB"
-    storage: "MinIO (s3://hydrogen-backups/redis/)"
+    storage: "MinIO (s3://carbon-backups/redis/)"
     
   minio:
     frequency: "continuous (versioning enabled)"
@@ -731,7 +731,7 @@ backup_schedule:
     frequency: "daily at 04:00 UTC"
     retention: "90 days"
     method: "Snapshot /data/subtensor"
-    storage: "MinIO (s3://hydrogen-backups/chain/)"
+    storage: "MinIO (s3://carbon-backups/chain/)"
 
   validator_images:
     frequency: "on each release"
@@ -797,14 +797,14 @@ recovery_point_objectives:
 2. Restore PostgreSQL
    ```bash
    # Latest daily backup
-   pg_restore -U hydrogen -d hydrogen_indexer \
-     s3://hydrogen-backups/postgres/latest.dump
+   pg_restore -U carbon -d carbon_indexer \
+     s3://carbon-backups/postgres/latest.dump
    ```
    
 3. Restore Redis
    ```bash
    # Copy RDB to new Redis
-   aws s3 cp s3://hydrogen-backups/redis/dump.rdb /data/dump.rdb
+   aws s3 cp s3://carbon-backups/redis/dump.rdb /data/dump.rdb
    redis-cli SHUTDOWN NOSAVE
    # Restart Redis
    ```
@@ -812,14 +812,14 @@ recovery_point_objectives:
 4. Restore MinIO (versioning enabled, so latest)
    ```bash
    # MinIO versioning handles this automatically
-   mc mirror s3/hydrogen-backups/minio/ minio/hydrogen/
+   mc mirror s3/carbon-backups/minio/ minio/carbon/
    ```
 
 ### Phase 3: Blockchain (Hours 4-8)
 5. Restore Subtensor
    ```bash
    # Restore chain data
-   tar -xzf s3://hydrogen-backups/chain/latest.tar.gz -C /data/subtensor
+   tar -xzf s3://carbon-backups/chain/latest.tar.gz -C /data/subtensor
    
    # Start subtensor
    docker run -d --name subtensor \
@@ -979,33 +979,33 @@ recovery_point_objectives:
 
 ## Internal Channels
 
-### #hydrogen-ops (Operations)
+### #carbon-ops (Operations)
 - Daily ops updates
 - Maintenance windows
 - Routine alerts
 
-### #hydrogen-incidents (Incidents)
+### #carbon-incidents (Incidents)
 - SEV-1/2/3 coordination
 - Real-time incident updates
 - Post-incident reviews
 
-### #hydrogen-alerts (Alerts)
+### #carbon-alerts (Alerts)
 - Automated alerts (Prometheus, PagerDuty)
 - No discussion, alerts only
 
-### #hydrogen-dev (Development)
+### #carbon-dev (Development)
 - Deployments
 - Code reviews
 - Feature flags
 
-### #hydrogen-validators (Validator Operations)
+### #carbon-validators (Validator Operations)
 - Validator-specific alerts
 - Version upgrades
 - Hardware issues
 
 ## External Communication
 
-### Status Page (status.hydrogen.subnet)
+### Status Page (status.carbon.subnet)
 - Updated within 15 min of SEV-1/2
 - Updated hourly during active incidents
 - Post-mortem within 48 hours
@@ -1015,7 +1015,7 @@ recovery_point_objectives:
 - Phase transitions
 - Community-relevant incidents
 
-### Twitter/X (@HydrogenSubnet)
+### Twitter/X (@carbonSubnet)
 - Major milestones
 - Phase launches
 - Major incident resolutions

@@ -1,10 +1,10 @@
-# Agent / MCP Usage Guide for Hydrogen
+# Agent / MCP Usage Guide for carbon
 
-This guide explains how autonomous agents can interact with the Hydrogen subnet using the MCP (Model Context Protocol) server.
+This guide explains how autonomous agents can interact with the carbon subnet using the MCP (Model Context Protocol) server.
 
 ## Overview
 
-Hydrogen exposes an MCP-style server that allows agents to:
+carbon exposes an MCP-style server that allows agents to:
 
 - List active challenges
 - Retrieve current priors / leader strategies
@@ -17,9 +17,9 @@ The server supports persistent sessions, streaming validation, and Pareto front 
 
 ```python
 # Example using a simple MCP client
-from hydrogen.miner.mcp_client import HydrogenMCPClient
+from carbon.miner.mcp_client import carbonMCPClient
 
-client = HydrogenMCPClient(base_url="http://localhost:8000")
+client = carbonMCPClient(base_url="http://localhost:8000")
 
 # Create or resume a session
 session_id = client.create_session()

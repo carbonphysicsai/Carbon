@@ -9,7 +9,7 @@
 
 ## 1. Purpose
 
-The symbolic layer is a core long-term capability of Hydrogen. It enables:
+The symbolic layer is a core long-term capability of carbon. It enables:
 
 - Better physics-aware loss weighting
 - A distinct Symbolic Regression competition track

@@ -1,4 +1,4 @@
-"""Advanced Leaderboard Generator for Hydrogen.
+"""Advanced Leaderboard Generator for Carbon.
 
 Features:
 - Loads real score data from JSON (when available)
@@ -12,7 +12,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
-from hydrogen.landscape.causal_knowledge_base import CausalKnowledgeBase
+from Carbon.landscape.causal_knowledge_base import CausalKnowledgeBase
 
 
 CHALLENGES = [
@@ -61,7 +61,7 @@ def generate_leaderboard_html(challenge_id: str, scores: list) -> str:
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="300"> <!-- Auto refresh every 5 minutes -->
-    <title>Hydrogen • {challenge_id}</title>
+    <title>Carbon • {challenge_id}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
 
@@ -155,7 +155,7 @@ def generate_leaderboard_html(challenge_id: str, scores: list) -> str:
 </head>
 <body>
     <div class="container">
-        <h1>Hydrogen Leaderboard</h1>
+        <h1>Carbon Leaderboard</h1>
         <div class="subtitle">{challenge_id}</div>
 
         <table>
@@ -216,7 +216,7 @@ def generate_combined_dashboard(all_leaderboards: dict) -> str:
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="300">
-    <title>Hydrogen • All Challenges</title>
+    <title>Carbon • All Challenges</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
 
@@ -257,7 +257,7 @@ def generate_combined_dashboard(all_leaderboards: dict) -> str:
 </head>
 <body>
     <div class="container">
-        <h1>Hydrogen Leaderboards</h1>
+        <h1>Carbon Leaderboards</h1>
         <p style="color:#64748b; margin-bottom:40px; font-size:1.1rem;">Live performance across all challenges</p>
 
         <div class="grid">

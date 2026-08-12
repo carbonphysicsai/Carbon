@@ -1,4 +1,4 @@
-"""Local Validation Script for Hydrogen (Phase 0 MVP).
+"""Local Validation Script for carbon (Phase 0 MVP).
 
 Run this to test the full data + gates pipeline before submitting to the subnet.
 
@@ -18,8 +18,8 @@ This proves the gates and challenge loader work end-to-end.
 import argparse
 import torch
 import numpy as np
-from hydrogen.challenges.poisson_2d import load_challenge, get_baseline_error
-from hydrogen.physics.gates import evaluate_all_gates, compute_relative_l2_error
+from carbon.challenges.poisson_2d import load_challenge, get_baseline_error
+from carbon.physics.gates import evaluate_all_gates, compute_relative_l2_error
 
 
 def dummy_forward_pass(
@@ -62,7 +62,7 @@ def dummy_forward_pass(
 
 def run_local_validation(challenge_id: str = "poisson_2d_v1", strategy_overrides: dict = None):
     """Full local dry-run."""
-    print(f"\n=== Hydrogen Local Validation ===")
+    print(f"\n=== carbon Local Validation ===")
     print(f"Challenge: {challenge_id}")
 
     challenge = load_challenge(challenge_id)

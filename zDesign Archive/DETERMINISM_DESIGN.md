@@ -3,7 +3,7 @@
 **Document:** `docs/DETERMINISM_DESIGN.md`
 **Version:** 1.1
 **Date:** July 2026
-**Focus:** Full determinism guarantees across the Hydrogen evaluation pipeline
+**Focus:** Full determinism guarantees across the carbon evaluation pipeline
 
 ---
 
@@ -11,7 +11,7 @@
 
 Determinism is a foundational requirement for Phase 0. Without it, the system cannot credibly claim robustness, reproducibility, or auditability. Every evaluation run for the same submission on the same validator must produce identical results.
 
-This document defines a rigorous, state-of-the-art approach to achieving **full pipeline determinism** in Hydrogen.
+This document defines a rigorous, state-of-the-art approach to achieving **full pipeline determinism** in carbon.
 
 ---
 
@@ -228,8 +228,8 @@ This updated design closes the major practical gaps:
 - Concrete Reproducibility Harness
 - Future preCICE considerations
 
-Combined with the stress test design, this gives Hydrogen one of the strongest determinism and auditability guarantees among decentralized evaluation systems.
+Combined with the stress test design, this gives carbon one of the strongest determinism and auditability guarantees among decentralized evaluation systems.
 
 ---
 
-*This document should be treated as the authoritative reference for determinism in Hydrogen and updated as implementation evolves.*
+*This document should be treated as the authoritative reference for determinism in carbon and updated as implementation evolves.*

@@ -1,6 +1,6 @@
 # Appendix E: Local Development Environment
 
-**Purpose:** This document specifies the complete local development stack for Hydrogen subnet development and testing. It includes Docker Compose stack for all services, Dockerfiles for each service, initialization scripts, test data generation, and quick-start commands. This enables developers to run the entire Hydrogen subnet locally for development and testing.
+**Purpose:** This document specifies the complete local development stack for carbon subnet development and testing. It includes Docker Compose stack for all services, Dockerfiles for each service, initialization scripts, test data generation, and quick-start commands. This enables developers to run the entire carbon subnet locally for development and testing.
 
 ---
 
@@ -20,7 +20,7 @@ services:
   # ============================================================
   subtensor:
     image: opentensor/subtensor:latest
-    container_name: hydrogen-subtensor
+    container_name: carbon-subtensor
     ports:
       - "9944:9944"    # WS RPC
       - "9933:9933"    # HTTP RPC
@@ -50,19 +50,19 @@ services:
   # ============================================================
   postgres:
     image: postgres:16-alpine
-    container_name: hydrogen-postgres
+    container_name: carbon-postgres
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: hydrogen_indexer
-      POSTGRES_USER: hydrogen
-      POSTGRES_PASSWORD: hydrogen_dev
+      POSTGRES_DB: carbon_indexer
+      POSTGRES_USER: carbon
+      POSTGRES_PASSWORD: carbon_dev
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hydrogen -d hydrogen_indexer"]
+      test: ["CMD-SHELL", "pg_isready -U carbon -d carbon_indexer"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -72,7 +72,7 @@ services:
   # ============================================================
   redis:
     image: redis:7-alpine
-    container_name: hydrogen-redis
+    container_name: carbon-redis
     ports:
       - "6379:6379"
     volumes:
@@ -85,23 +85,23 @@ services:
       retries: 5
 
   # ============================================================
-  # Hydrogen API (GraphQL + REST)
+  # carbon API (GraphQL + REST)
   # ============================================================
   api:
     build:
       context: ..
       dockerfile: docker/api.Dockerfile
-    container_name: hydrogen-api
+    container_name: carbon-api
     ports:
       - "8000:8000"    # REST API
       - "4000:4000"    # GraphQL
       - "4001:4001"    # GraphQL WS
     environment:
-      - DATABASE_URL=postgresql://hydrogen:hydrogen_dev@postgres:5432/hydrogen_indexer
+      - DATABASE_URL=postgresql://carbon:carbon_dev@postgres:5432/carbon_indexer
       - REDIS_URL=redis://redis:6379/0
       - SUBTENSOR_WS=ws://subtensor:9944
       - NETUID=107
-      - OWNER_HOTKEY=5F_HydrogenOwnerHotkey
+      - OWNER_HOTKEY=5F_carbonOwnerHotkey
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - GRAPHQL_PORT=4000
@@ -125,9 +125,9 @@ services:
     build:
       context: ..
       dockerfile: docker/indexer.Dockerfile
-    container_name: hydrogen-indexer
+    container_name: carbon-indexer
     environment:
-      - DATABASE_URL=postgresql://hydrogen:hydrogen_dev@postgres:5432/hydrogen_indexer
+      - DATABASE_URL=postgresql://carbon:carbon_dev@postgres:5432/carbon_indexer
       - REDIS_URL=redis://redis:6379/0
       - SUBTENSOR_WS=ws://subtensor:9944
       - NETUID=107
@@ -151,13 +151,13 @@ services:
       context: ..
       dockerfile: docker/validator.Dockerfile
       target: pino
-    container_name: hydrogen-validator-dev
+    container_name: carbon-validator-dev
     environment:
       - CHALLENGE_ID=dev_test
       - SUBMISSION_JSON={"backbone":"PINO","physics_informed":true}
       - CHALLENGE_DATA_PATH=/data/challenge
       - CHALLENGE_PHASE=0
-      - HYDROGEN_SEED=42
+      - carbon_SEED=42
       - PYTHONUNBUFFERED=1
     volumes:
       - ./test_data:/data:ro
@@ -178,7 +178,7 @@ services:
     build:
       context: ..
       dockerfile: docker/miner.Dockerfile
-    container_name: hydrogen-miner-cli
+    container_name: carbon-miner-cli
     environment:
       - WALLET_NAME=test_wallet
       - WALLET_HOTKEY=test_hotkey
@@ -187,7 +187,7 @@ services:
       - SUBTENSOR_CHAIN_ENDPOINT=ws://subtensor:9944
       - API_URL=http://api:8000
     volumes:
-      - ./miner_config:/root/.hydrogen
+      - ./miner_config:/root/.carbon
       - ./miner_strategies:/strategies
     entrypoint: ["bash"]
     stdin_open: true
@@ -198,7 +198,7 @@ services:
   # ============================================================
   prometheus:
     image: prom/prometheus:v2.47.0
-    container_name: hydrogen-prometheus
+    container_name: carbon-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -212,12 +212,12 @@ services:
 
   grafana:
     image: grafana/grafana:10.1.0
-    container_name: hydrogen-grafana
+    container_name: carbon-grafana
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=hydrogen_dev
+      - GF_SECURITY_ADMIN_PASSWORD=carbon_dev
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
@@ -231,13 +231,13 @@ services:
   # ============================================================
   minio:
     image: minio/minio:RELEASE.2024-01-16T16-07-38Z
-    container_name: hydrogen-minio
+    container_name: carbon-minio
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: hydrogen
-      MINIO_ROOT_PASSWORD: hydrogen_dev
+      MINIO_ROOT_USER: carbon
+      MINIO_ROOT_PASSWORD: carbon_dev
       MINIO_PROMETHEUS_AUTH_TYPE: public
     command: server /data --console-address ":9001"
     volumes:
@@ -255,12 +255,12 @@ services:
     build:
       context: ..
       dockerfile: docker/well-downloader.Dockerfile
-    container_name: hydrogen-well-downloader
+    container_name: carbon-well-downloader
     environment:
       - WELL_DATASETS=turbulence,mhd,active_matter,viscoelastic,acoustic_scattering
       - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=hydrogen
-      - MINIO_SECRET_KEY=hydrogen_dev
+      - MINIO_ACCESS_KEY=carbon
+      - MINIO_SECRET_KEY=carbon_dev
       - MINIO_BUCKET=well-data
     volumes:
       - minio_data:/data
@@ -413,7 +413,7 @@ COPY shared/ ./shared/
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["python", "-m", "hydrogen_miner.cli"]
+ENTRYPOINT ["python", "-m", "carbon_miner.cli"]
 ```
 
 ### E.2.5 Well Downloader Dockerfile
@@ -474,19 +474,19 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'hydrogen-api'
+  - job_name: 'carbon-api'
     static_configs:
       - targets: ['api:8000']
 
-  - job_name: 'hydrogen-indexer'
+  - job_name: 'carbon-indexer'
     static_configs:
       - targets: ['indexer:8080']
 
-  - job_name: 'hydrogen-validator'
+  - job_name: 'carbon-validator'
     static_configs:
       - targets: ['validator-dev:8080']
 
-  - job_name: 'hydrogen-api-graphql'
+  - job_name: 'carbon-api-graphql'
     static_configs:
       - targets: ['api:4000']
 
@@ -518,7 +518,7 @@ scrape_configs:
 
 set -e
 
-echo "🚀 Starting Hydrogen Development Environment"
+echo "🚀 Starting carbon Development Environment"
 
 # Check Docker
 if ! docker info > /dev/null 2>&1; then
@@ -572,7 +572,7 @@ if [[ "$1" == "--well-data" ]]; then
 fi
 
 echo ""
-echo "✅ Hydrogen Development Environment Ready!"
+echo "✅ carbon Development Environment Ready!"
 echo ""
 echo "Services:"
 echo "  - Subtensor:     ws://localhost:9944"
@@ -580,8 +580,8 @@ echo "  - API (REST):    http://localhost:8000"
 echo "  - API (GraphQL): http://localhost:4000"
 echo "  - GraphQL WS:    ws://localhost:4001"
 echo "  - Indexer:       http://localhost:8080"
-echo "  - MinIO Console: http://localhost:9001 (hydrogen/hydrogen_dev)"
-echo "  - Grafana:       http://localhost:3000 (admin/hydrogen_dev)"
+echo "  - MinIO Console: http://localhost:9001 (carbon/carbon_dev)"
+echo "  - Grafana:       http://localhost:3000 (admin/carbon_dev)"
 echo "  - Prometheus:    http://localhost:9090"
 echo ""
 echo "Commands:"
@@ -790,7 +790,7 @@ docker compose logs -f validator-dev
 # Access containers
 docker compose exec miner-cli bash
 docker compose exec api bash
-docker compose exec postgres psql -U hydrogen -d hydrogen_indexer
+docker compose exec postgres psql -U carbon -d carbon_indexer
 ```
 
 ---

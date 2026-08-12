@@ -1,7 +1,7 @@
 # neurons/symbolic/__init__.py
 
 """
-Symbolic Layer for Hydrogen.
+Symbolic Layer for Carbon.
 
 Provides symbolic metadata extraction and PySR-based symbolic regression track.
 """

@@ -6,7 +6,7 @@ It triggers the LandscapeAgent's daily causal + symbolic update cycle.
 
 import argparse
 
-from hydrogen.landscape.agent import LandscapeAgent
+from carbon.landscape.agent import LandscapeAgent
 
 
 def main():

@@ -1,6 +1,6 @@
-# Future Physics & Engineering Domains for Hydrogen
+# Future Physics & Engineering Domains for carbon
 
-**Document Purpose:** Identify high-potential future domains where Hydrogen’s decentralized physics-informed neural operator approach can create significant value. For each domain we cover **How** it fits, **Why** it matters, and the relevant **Market** context.
+**Document Purpose:** Identify high-potential future domains where carbon’s decentralized physics-informed neural operator approach can create significant value. For each domain we cover **How** it fits, **Why** it matters, and the relevant **Market** context.
 
 **Last Updated:** July 2026
 
@@ -8,14 +8,14 @@
 
 ## Executive Summary
 
-Hydrogen is currently focused on classical single-physics and early multi-physics PDE challenges with a strong emphasis on hidden stress testing, hard physics gates, and decentralized discovery of robust training strategies.
+carbon is currently focused on classical single-physics and early multi-physics PDE challenges with a strong emphasis on hidden stress testing, hard physics gates, and decentralized discovery of robust training strategies.
 
 This document outlines the most promising **future expansion domains** across engineering, energy, materials, quantum-adjacent work, and scientific computing. These domains were selected based on:
 
 - Technical fit with neural operators / PINOs
 - Strength of physics-gate definitions and stress testing
 - Commercial or strategic value
-- Synergy with Hydrogen’s core strengths (robustness, physics fidelity, decentralized iteration)
+- Synergy with carbon’s core strengths (robustness, physics fidelity, decentralized iteration)
 
 We organize domains into three tiers:
 
@@ -29,7 +29,7 @@ We organize domains into three tiers:
 
 ### 1. Electromagnetics (EM)
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Maxwell’s equations (linear and many nonlinear regimes) are well-suited to neural operators.
 - Clear physics constraints exist (energy conservation, boundary conditions, divergence-free conditions in certain formulations).
 - Hidden stress testing and physics gates map naturally (e.g., energy dissipation, boundary satisfaction, spectral fidelity).
@@ -52,7 +52,7 @@ We organize domains into three tiers:
 
 ### 2. Photonics & Optics (Including Quantum Photonics)
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Wave propagation, Maxwell solvers at optical frequencies, nonlinear optics, photonic crystals, and resonators are excellent for neural operators.
 - Physics gates around energy conservation, dispersion, boundary conditions, and mode confinement are well-defined.
 - Natural bridge to quantum photonics (single-photon sources, detectors, photonic quantum gates).
@@ -60,7 +60,7 @@ We organize domains into three tiers:
 **Why it matters**
 - Critical for photonic integrated circuits (PICs), optical communications, LiDAR, biosensors, imaging systems, lasers, and augmented/virtual reality optics.
 - The silicon photonics and co-packaged optics markets are growing rapidly.
-- Quantum photonics is an emerging high-value niche that aligns with Hydrogen’s quantum crossover potential.
+- Quantum photonics is an emerging high-value niche that aligns with carbon’s quantum crossover potential.
 - Real-time or near-real-time optical simulation has direct value in design, control, and digital twins of photonic systems.
 
 **Market context**
@@ -74,7 +74,7 @@ We organize domains into three tiers:
 
 ### 3. Acoustics & Wave Propagation (Ultrasound, Seismic, Sonar, Room Acoustics)
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Linear and nonlinear wave equations are highly compatible with neural operators.
 - Physics gates are straightforward (energy conservation, boundary conditions, dispersion, attenuation).
 - Hidden stress testing works well for robustness across frequencies, geometries, and material properties.
@@ -95,7 +95,7 @@ We organize domains into three tiers:
 
 ### 4. Phase-Field Modeling & Materials Damage / Fracture
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Phase-field methods (crack propagation, microstructure evolution, damage) are already referenced in the original SPEC with dedicated gates (crack irreversibility, length scale enforcement, degradation function, history variable).
 - Neural operators are well-suited to these moving-boundary and multi-physics problems.
 - Physics gates are natural and rigorous.
@@ -117,7 +117,7 @@ We organize domains into three tiers:
 
 ### 5. Plasmas & Magnetohydrodynamics (MHD) — Especially Fusion-Relevant
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Multi-physics (fluid + electromagnetic + thermal) at extreme conditions.
 - Neural operators are actively researched for plasma and MHD problems.
 - Physics gates around conservation laws, energy dissipation, and stability are critical and well-defined.
@@ -140,15 +140,15 @@ We organize domains into three tiers:
 
 ### 6. Quantum-Informed & Hybrid Classical-Quantum Modeling
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Active research exists in Quantum PINNs (QPINNs), neural quantum states with physics-informed training, and classical surrogates for quantum systems / error mitigation.
-- Hydrogen’s decentralized adversarial + physics-gated approach is well-suited to exploring the complex space of hybrid quantum-classical strategies.
+- carbon’s decentralized adversarial + physics-gated approach is well-suited to exploring the complex space of hybrid quantum-classical strategies.
 - Physics gates (conservation, stability, symmetries) remain relevant and valuable.
 
 **Why it matters**
 - Quantum error mitigation, control, calibration, and surrogate modeling are active investment areas in the NISQ-to-fault-tolerant transition.
 - Classical surrogates that are fast and physics-respecting can accelerate variational algorithms, quantum network optimization, and hardware characterization.
-- Positions Hydrogen at the intersection of scientific ML and quantum technologies (a well-funded narrative).
+- Positions carbon at the intersection of scientific ML and quantum technologies (a well-funded narrative).
 
 **Market context**
 - Quantum computing market is still R&D-heavy but growing rapidly (tens of billions projected by early 2030s).
@@ -161,7 +161,7 @@ We organize domains into three tiers:
 
 ### 7. Multi-Physics Composition as a First-Class Strength
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - The original SPEC already envisions specialist pipelines and staggered coupling for FSI, CHT, and thermo-elasticity (Phase 2).
 - Making verified multi-physics composition a core capability (rather than single-physics challenges only) is a powerful differentiator.
 - The `ChallengeWinnerTracker` and physics-gate framework can be extended to coupled systems.
@@ -183,7 +183,7 @@ We organize domains into three tiers:
 
 ### 8. Gravity (Newtonian + General Relativity)
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Newtonian gravity (Poisson-like) is straightforward.
 - General Relativity (Einstein field equations) is highly nonlinear and tensorial; neural operators are being explored for gravitational waveform surrogates and reduced-order modeling.
 - Physics gates (conservation, stability, symmetries) are conceptually powerful but harder to operationalize at scale.
@@ -204,7 +204,7 @@ We organize domains into three tiers:
 
 ### 9. Climate & Earth System Modeling
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Coupled atmosphere-ocean-ice-chemistry models at massive scale.
 - Neural operators and physics-informed approaches are actively researched for faster ensemble runs and uncertainty quantification.
 - Physics gates around conservation laws and stability are highly relevant.
@@ -224,7 +224,7 @@ We organize domains into three tiers:
 
 ### 10. Nuclear / Radiation Transport
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Neutron/photon transport, reactor physics, shielding.
 - Neural operators / surrogates are researched for faster reactor simulation and UQ.
 - High-stakes, regulated domain with strong physics constraints.
@@ -244,7 +244,7 @@ We organize domains into three tiers:
 
 ### 11. Biological & Biomechanical Systems
 
-**How it fits Hydrogen**
+**How it fits carbon**
 - Blood flow, tissue mechanics, cell mechanics, drug transport, organ-level digital twins.
 - Multi-physics and often stochastic/uncertain.
 - Physics-informed approaches are gaining traction in biomechanics.
@@ -290,9 +290,9 @@ otes |
 
 ---
 
-## How Hydrogen’s Core Strengths Apply Across These Domains
+## How carbon’s Core Strengths Apply Across These Domains
 
-Hydrogen’s unique combination of strengths maps well to all the domains above:
+carbon’s unique combination of strengths maps well to all the domains above:
 
 - **Decentralized adversarial discovery** of training strategies (large strategy space in complex physics).
 - **Hidden stress testing + hard physics gates** (robustness and trustworthiness — critical for engineering adoption).

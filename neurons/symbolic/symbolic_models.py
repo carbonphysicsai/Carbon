@@ -1,7 +1,7 @@
 # neurons/symbolic/symbolic_models.py
 
 """
-Symbolic Metadata models for Hydrogen.
+Symbolic Metadata models for Carbon.
 
 Basic structure for Phase 0 symbolic layer.
 """

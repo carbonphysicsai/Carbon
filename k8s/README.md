@@ -1,6 +1,6 @@
-# Kubernetes Deployment for Hydrogen Validator
+# Kubernetes Deployment for Carbon Validator
 
-This directory contains basic Kubernetes manifests for deploying the Hydrogen validator.
+This directory contains basic Kubernetes manifests for deploying the Carbon validator.
 
 ## Files
 

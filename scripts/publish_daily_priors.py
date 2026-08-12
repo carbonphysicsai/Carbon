@@ -12,7 +12,7 @@ import json
 import os
 import sys
 
-from hydrogen.landscape.causal_knowledge_base import CausalKnowledgeBase
+from carbon.landscape.causal_knowledge_base import CausalKnowledgeBase
 
 
 CHALLENGES = [

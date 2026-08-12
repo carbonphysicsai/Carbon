@@ -1,6 +1,6 @@
 # Appendix F: Testing & CI/CD Specification
 
-**Purpose:** This document specifies the complete testing strategy, CI/CD pipelines, and quality gates for the Hydrogen subnet. It covers unit testing, integration testing, end-to-end testing, determinism validation, physics regression testing, performance benchmarks, and the complete CI/CD pipeline configuration. This ensures the subnet meets the highest standards of correctness, determinism, and physics fidelity.
+**Purpose:** This document specifies the complete testing strategy, CI/CD pipelines, and quality gates for the carbon subnet. It covers unit testing, integration testing, end-to-end testing, determinism validation, physics regression testing, performance benchmarks, and the complete CI/CD pipeline configuration. This ensures the subnet meets the highest standards of correctness, determinism, and physics fidelity.
 
 ---
 
@@ -78,7 +78,7 @@ quality_gates:
 
 unit_test_structure:
   chain_pallet:
-    path: "pallets/hydrogen/tests/"
+    path: "pallets/carbon/tests/"
     coverage_targets:
       - challenge_management: 95%
       - submission_handling: 95%
@@ -621,7 +621,7 @@ resource_limits:
 ```yaml
 # .github/workflows/ci.yml
 
-name: Hydrogen CI/CD
+name: carbon CI/CD
 
 on:
   push:
@@ -729,13 +729,13 @@ jobs:
           file: docker/validator.Dockerfile
           target: ${{ matrix.target }}
           load: true
-          tags: hydrogen/validator:${{ matrix.target }}-test
+          tags: carbon/validator:${{ matrix.target }}-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
       - name: Test image runs
         run: |
-          docker run --rm hydrogen/validator:${{ matrix.target }}-test \
+          docker run --rm carbon/validator:${{ matrix.target }}-test \
             python -c "import physicsnemo; import neuralop; print('OK')"
 
   # ============================================================
@@ -755,10 +755,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run determinism test
         run: |
-          ./scripts/determinism_test.sh hydrogen/validator:pino-test
+          ./scripts/determinism_test.sh carbon/validator:pino-test
         env:
           CHALLENGE_ID: determinism_test
-          HYDROGEN_SEED: 42
+          carbon_SEED: 42
 
   # ============================================================
   # Physics Regression Tests
@@ -857,7 +857,7 @@ jobs:
       - name: Run determinism test on all images
         run: |
           for img in fno pino deeponet gno oformer; do
-            ./scripts/determinism_test.sh hydrogen/validator:$img-latest
+            ./scripts/determinism_test.sh carbon/validator:$img-latest
           done
 
   # ============================================================
@@ -903,7 +903,7 @@ jobs:
       - name: Generate Release Notes
         run: |
           cat <<EOF > RELEASE_NOTES.md
-          # Hydrogen ${{ github.ref_name }}
+          # carbon ${{ github.ref_name }}
           
           ## Changes
           $(git log --oneline --grep="^[A-Z]+" --since="$(git describe --tags --abbrev=0 HEAD^)"..HEAD)

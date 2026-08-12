@@ -1,6 +1,6 @@
-# STRATEGY.md — Miner Strategy Guide for Hydrogen
+# STRATEGY.md — Miner Strategy Guide for carbon
 
-This guide explains how to write effective strategies for the Hydrogen subnet. The goal is to **democratize access** — you don’t need to be an expert to compete.
+This guide explains how to write effective strategies for the carbon subnet. The goal is to **democratize access** — you don’t need to be an expert to compete.
 
 ## What is a Strategy?
 
@@ -22,10 +22,10 @@ Using these priors gives you a strong, evidence-based starting point instead of 
 
 ```bash
 # See the current baseline performance for a challenge
-hydrogen-miner baseline poisson_2d_v1
+carbon-miner baseline poisson_2d_v1
 
 # Get symbolically/causally recommended priors
-hydrogen-miner priors poisson_2d_v1
+carbon-miner priors poisson_2d_v1
 ```
 
 The `priors` command returns suggested values such as:
@@ -183,10 +183,10 @@ Pass extra arguments to the backbone via `model_kwargs`:
 
 ## Recommended Workflow
 
-1. Run `hydrogen-miner priors <challenge>` to get symbolically recommended values.
+1. Run `carbon-miner priors <challenge>` to get symbolically recommended values.
 2. Copy the suggested `loss_vector` and curriculum settings into your strategy.
 3. Make small, intentional changes (e.g., slightly increase one loss term).
-4. Test locally with `hydrogen-miner validate`.
+4. Test locally with `carbon-miner validate`.
 5. Submit when you’re confident.
 
 This workflow lets you leverage the collective causal knowledge discovered by the Landscape Agent.
@@ -204,6 +204,6 @@ This workflow lets you leverage the collective causal knowledge discovered by th
 
 ## Philosophy
 
-Hydrogen is designed to be **democratized**. You don’t need a PhD or a giant GPU cluster to compete effectively. By starting with the symbolically and causally recommended configurations and then making thoughtful adjustments, almost anyone can produce competitive strategies.
+carbon is designed to be **democratized**. You don’t need a PhD or a giant GPU cluster to compete effectively. By starting with the symbolically and causally recommended configurations and then making thoughtful adjustments, almost anyone can produce competitive strategies.
 
 The Landscape Agent exists to surface what actually works. Your job is to propose good ideas and let the system learn from them.

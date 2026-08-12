@@ -1,6 +1,6 @@
 # Appendix D: Dashboard & Indexer Specification
 
-**Purpose:** This document specifies the complete Dashboard & Indexer architecture for the Hydrogen subnet, including the GraphQL API schema, REST API endpoints, database schema, real-time subscriptions, indexer architecture, and webhook endpoints. This is the data layer that powers the Hydrogen dashboard, provides query access to subnet state, and enables real-time monitoring of challenges, submissions, specialists, and network health.
+**Purpose:** This document specifies the complete Dashboard & Indexer architecture for the carbon subnet, including the GraphQL API schema, REST API endpoints, database schema, real-time subscriptions, indexer architecture, and webhook endpoints. This is the data layer that powers the carbon dashboard, provides query access to subnet state, and enables real-time monitoring of challenges, submissions, specialists, and network health.
 
 ---
 
@@ -583,7 +583,7 @@ GET  /api/v1/version                       # Version info
 # indexer.yaml
 
 indexer:
-  name: "hydrogen-indexer"
+  name: "carbon-indexer"
   version: "1.0.0"
   
   blockchain:
@@ -596,7 +596,7 @@ indexer:
     type: "postgresql"
     host: "${DB_HOST}"
     port: 5432
-    database: "hydrogen_indexer"
+    database: "carbon_indexer"
     user: "${DB_USER}"
     password: "${DB_PASSWORD}"
     pool_size: 20
@@ -619,7 +619,7 @@ indexer:
     workers: 4
     batch_size: 50
     queue_size: 10000
-    dead_letter_queue: "hydrogen_dlq"
+    dead_letter_queue: "carbon_dlq"
   
   graphql:
     host: "0.0.0.0"
@@ -633,8 +633,8 @@ indexer:
     host: "0.0.0.0"
     port: 8000
     cors_origins:
-      - "https://dashboard.hydrogen.subnet"
-      - "https://app.hydrogen.subnet"
+      - "https://dashboard.carbon.subnet"
+      - "https://app.carbon.subnet"
     rate_limit:
       requests_per_minute: 120
       burst: 20

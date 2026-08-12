@@ -1,10 +1,10 @@
-# Hydrogen Emissions Overview (Current State)
+# carbon Emissions Overview (Current State)
 
 **Last Updated:** July 2026
 
 ## Current Emissions Model
 
-Hydrogen currently uses **standard Yuma Consensus** miner emissions.
+carbon currently uses **standard Yuma Consensus** miner emissions.
 
 - The validator computes weights using the `ChallengeWinnerTracker`.
 - Weights are submitted via the standard `subtensor.set_weights()` call.

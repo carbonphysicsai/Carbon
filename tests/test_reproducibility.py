@@ -6,11 +6,11 @@ Basic reproducibility tests for scoring.
 
 import pytest
 
-from neurons.scoring.hydrogen_scorer import HydrogenScorer
+from neurons.scoring.carbon_scorer import carbonScorer
 
 
 def test_scoring_reproducibility():
-    scorer = HydrogenScorer()
+    scorer = carbonScorer()
     base = {"physics_fidelity": 0.85, "robustness": 0.8, "accuracy": 0.9}
 
     result1 = scorer.score_strategy(model=None, base_metrics=base)
@@ -20,7 +20,7 @@ def test_scoring_reproducibility():
 
 
 def test_stress_scoring_reproducibility():
-    scorer = HydrogenScorer()
+    scorer = carbonScorer()
     # Without real stress set, just check that the method doesn't crash
     result = scorer.score_strategy(model=None, base_metrics={"accuracy": 0.85})
     assert "combined_score" in result

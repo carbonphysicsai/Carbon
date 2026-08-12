@@ -1,7 +1,7 @@
 # neurons/symbolic/pysr_runner.py
 
 """
-PySR Track Runner - Skeleton for Symbolic Regression track in Hydrogen.
+PySR Track Runner - Skeleton for Symbolic Regression track in Carbon.
 
 Follows docs/SYMBOLIC_LAYER_DESIGN.md
 """

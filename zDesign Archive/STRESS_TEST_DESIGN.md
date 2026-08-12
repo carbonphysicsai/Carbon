@@ -9,7 +9,7 @@
 
 ## 1. Purpose & Goals
 
-The hidden stress test system is one of Hydrogen’s core mechanisms for ensuring **robustness** and **anti-gaming**. It evaluates submissions under conditions that miners and agents do not have access to during strategy development.
+The hidden stress test system is one of carbon’s core mechanisms for ensuring **robustness** and **anti-gaming**. It evaluates submissions under conditions that miners and agents do not have access to during strategy development.
 
 ### Primary Goals
 
@@ -249,7 +249,7 @@ Each new layer can be added as a new `StressSource` and integrated via the regis
 
 ## 12. Summary
 
-This design ensures that Hydrogen’s stress testing is:
+This design ensures that carbon’s stress testing is:
 
 - **Hidden** from miners during development
 - **Deterministic and reproducible** for auditing

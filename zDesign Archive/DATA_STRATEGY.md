@@ -1,4 +1,4 @@
-# Data Strategy for Hydrogen
+# Data Strategy for carbon
 
 ## Goal
 Score miners against the highest quality reference solutions possible so that emissions reward *actually useful* scientific work.
@@ -16,9 +16,9 @@ Best public benchmark for PINO/FNO work.
 ### How to Download
 
 ```bash
-# From Hydrogen root
-python -m hydrogen.data.download_pdebench --pde_name darcy
-python -m hydrogen.data.download_pdebench --pde_name ns_incom
+# From carbon root
+python -m carbon.data.download_pdebench --pde_name darcy
+python -m carbon.data.download_pdebench --pde_name ns_incom
 ```
 
 Then place the downloaded `.h5` files inside `./data/pdebench/` (or the path configured in `PDEBenchLoader`).

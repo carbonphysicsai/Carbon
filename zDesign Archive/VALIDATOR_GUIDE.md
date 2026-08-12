@@ -1,8 +1,8 @@
-# Hydrogen Validator Guide
+# carbon Validator Guide
 
 ## Overview
 
-The Hydrogen validator evaluates miner-submitted training strategies across multiple physics challenges using a multi-objective scorer and a challenge winner tracker.
+The carbon validator evaluates miner-submitted training strategies across multiple physics challenges using a multi-objective scorer and a challenge winner tracker.
 
 It produces weights using a **winner-heavy + participation dust** distribution and submits them via standard Yuma Consensus.
 
@@ -10,7 +10,7 @@ It produces weights using a **winner-heavy + participation dust** distribution a
 
 ```bash
 # Clone and install
-cd Hydrogen
+cd carbon
 pip install -r requirements.txt
 
 # Run the validator
@@ -28,7 +28,7 @@ python neurons/validator.py --netuid 63
 ## How It Works
 
 1. **Strategy Retrieval** — Pulls strategies via `StrategyStore` (currently local file based).
-2. **Scoring** — Uses `HydrogenScorer` to compute Physics, Robustness, and Accuracy scores.
+2. **Scoring** — Uses `carbonScorer` to compute Physics, Robustness, and Accuracy scores.
 3. **Tracking** — `ChallengeWinnerTracker` updates per-challenge leaders with exponential decay.
 4. **Weighting** — Produces winner-heavy + dust weights.
 5. **Submission** — Calls `set_weights()` (unless in dry-run mode).
@@ -82,4 +82,4 @@ Save it as `{hotkey}_default.json` in the strategies directory.
 
 ## Support
 
-For issues or questions, open an issue on the Hydrogen GitHub repository.
+For issues or questions, open an issue on the carbon GitHub repository.
