@@ -53,7 +53,6 @@ This document specifies the **minimal viable Julia/SciML Ground Truth Oracle** �
 
 #### `POST /solve_pde`
 ```json
-// Request
 {
   "action": "solve_pde",
   "pde_spec": {
@@ -64,22 +63,26 @@ This document specifies the **minimal viable Julia/SciML Ground Truth Oracle** �
   },
   "params": { "mach": 0.8, "reynolds": 1e6, "aoa": 2.0 }
 }
+```
 
-// Response
+#### `POST /adjoint`
+```json
 {
-  "solution": [[...]],
-  "coords": [[...]],
-  "times": [0.0, 0.01],
-  "metadata": {
-    "solver": "Vern9",
-    "abstol": 1e-12,
-    "reltol": 1e-12,
-    "solve_time_seconds": 2.3
-  }
+  "action": "adjoint_sensitivity",
+  "initial_state": [[...]],
+  "params": { "mach": 0.8 },
+  "loss_function": "physics_residual"
 }
 ```
 
-Validators integrate via `SciMLClient` (see `IMPLEMENTATION.md` §11–13). Full deployment (Dockerfile, K8s, bridge code) remains as previously specified in this appendix and `Operations.md`.
+#### `POST /symbolic_loss`
+```json
+{
+  "action": "symbolic_loss",
+  "pde_spec": { "type": "navier_stokes" },
+  "model_state": [[...]]
+}
+```
 
 ---
 
@@ -99,7 +102,8 @@ Validators integrate via `SciMLClient` (see `IMPLEMENTATION.md` §11–13). Full
 - Health checks on the oracle when oracle-backed gates are active
 - Lean eval SLO must not be blocked indefinitely by oracle latency — timeouts and fail-closed policy per `Operations.md`
 - Do not expose oracle endpoints to miners
+- Deployment (Dockerfile, K8s, `SciMLClient`) as previously specified under `IMPLEMENTATION.md` §11–13 and `Operations.md`
 
 ---
 
-*Canonical runtime contract for the Julia/SciML ground-truth path. Expand deployment annexes as the live service lands; keep Phase 0 mock path valid until 1A requires otherwise.*
+*Canonical runtime contract for the Julia/SciML ground-truth path. Keep Phase 0 mock path valid until 1A requires the live service.*
