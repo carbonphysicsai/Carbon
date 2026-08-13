@@ -1,8 +1,8 @@
 # Miner MCP Specification
 
-**Carbon — noisy priors · estimation · light train · submit**
+**Carbon — steer · experiment · submit · independent exam · structured feedback**
 
-**Version:** 1.1  
+**Version:** 2.0  
 **Status:** Implementation contract  
 **Scope:** Miner- and agent-facing interface only  
 **Non-scope:** Validator training internals, Landscape private graph / Port B, product-battery packs, Score Pack math (see [`Scoring.md`](./Scoring.md))
@@ -11,25 +11,64 @@
 
 ## TLDR
 
-- **Tools:** `get_prior` → `estimate` → optional `light_train` → `submit` (+ free `get_challenge_info`, `dry_validate`).
-- **Priors** are produced subnet-side from lean-verified cards: lag → k-aggregate → coarsen → noise → redact → three channels (steer / avoid / explore).
-- **Estimation** is a deterministic, avoid-atlas-first **filter** — trusted as triage, never as official grade.
-- **Light train** uses the public generator *family* with **miner seeds** and a **mock range subset** — cannot reproduce the official exam draw.
-- **Submit** is the only emissions path: hidden data, hard gates, small exam fee.
-- **Hard rules:** prior similarity forbidden in lean score; priors never thin gates; no VIP prior channel.
+Carbon’s Miner MCP is the **agent-native control surface** for competitive scientific search on physics training strategies.
+
+**Closed loop (normative):**
+
+```text
+get_challenge_info / get_prior
+        → estimate (optional)
+        → light_train (optional, miner compute)
+        → submit (exam fee)
+        → get_submission_result  ← miner-visible evaluation card
+        → mutate from failure_modes / scores
+        → repeat
+```
+
+- **Priors** — lagged, coarsened, noisy steer / avoid / explore (never weights or eval seeds).
+- **Estimate** — non-binding triage filter.
+- **Light train** — mock generator only; cannot reproduce the official draw.
+- **Submit** — only emissions path; hidden data; hard gates; small fee.
+- **get_submission_result** — structured feedback after the independent exam (tags + scores, never seeds).
+- **Hard rules:** prior similarity banned in lean score; priors never thin gates; no VIP channel; result cards use the same failure-tag vocabulary as avoid-atlas.
+
+**Position:** Carbon does not need to build the best AI scientist. It is the **place where AI scientists compete** — problems, tools, incentives, and a trustworthy referee.
 
 ---
 
-## 1. Purpose
+## 1. Purpose and thesis
 
-Enable humans and agents to run a tight search loop against Carbon challenges with minimum friction and maximum upside:
+### 1.1 What this interface is for
 
-1. Pull a **steering prior** for the active challenge  
-2. Propose strategy deltas and **estimate** risk/value  
+Enable humans **and autonomous research agents** (Hermes, Mira-class, AutoScience-class, university bots, anonymous Bittensor miners) to run a continuous search loop against Carbon challenges:
+
+1. Orient with a **steering prior**  
+2. Propose strategy deltas; **estimate** risk  
 3. Optionally **light-train** on local compute  
-4. **Submit** once for the only official lean score  
+4. **Submit** for the only official lean grade  
+5. **Read structured feedback** and form the next hypothesis  
 
-Casual path skips light train. Power path spends miner compute before paying the exam fee.
+Casual path: prior → submit → result.  
+Power path: full loop with estimate + light train under a compute/fee budget.
+
+### 1.2 Operating-system framing
+
+As AI research becomes autonomous, the scarce layer is a **trustworthy referee**: hard problems, open competition over methods, independent hidden evaluation, economic incentives, and compounding failure knowledge — not another self-reported leaderboard.
+
+```text
+More researchers → more experiments → more verified outcomes
+  → better priors / avoid-atlas → smarter search → better strategies
+  → harder commercial challenges → greater rewards → better researchers
+```
+
+Phase 0/1 stays primitive on purpose: one credible challenge, one clean MCP, enough participants to show open search finds better training strategies. The MCP must still be **loop-complete** so agents can plug in without Carbon-specific forks.
+
+### 1.3 Design principle
+
+> Build the Miner MCP correctly. Do not build per-lab integrations.  
+> If an off-the-shelf autonomous ML scientist can mine Carbon, that is the proof point.
+
+Pitch line: **Bring your scientist. Carbon brings the problems, incentives, and independent exam.**
 
 ---
 
@@ -37,19 +76,22 @@ Casual path skips light train. Power path spends miner compute before paying the
 
 ### Goals
 
+- Closed research loop for agents (hypothesis → exam → feedback → next hypothesis)  
 - Compound network search without handing out the answer key  
 - Agent-stable JSON tools (idempotent, versioned, cost-aware)  
-- Clear trust boundary: steer ≠ grade ≠ sell  
+- Clear trust boundary: steer ≠ triage ≠ grade ≠ sell  
 - Spam-resistant full exams  
-- Upside unbounded in *local* iteration, bounded only by miner resources  
+- Upside unbounded in local iteration; official grade only via submit  
 
 ### Non-goals
 
 - Local replay of the official exam  
-- Distribution of champion weights or exact winning recipes  
-- Estimation as a substitute for Yuma / lean score  
-- VIP prior channels  
+- Champion weights or exact winning recipes  
+- Estimation as a substitute for lean score / Yuma  
+- VIP prior or VIP result channels  
 - Embedding Landscape causal graphs in the miner toolkit  
+- Building Carbon’s own “best AI scientist” product inside this MCP  
+- AutoScience- / Mira- / Hermes-specific adapters  
 
 ---
 
@@ -60,85 +102,66 @@ Casual path skips light train. Power path spends miner compute before paying the
 | Noisy prior document | Yes | Lagged, coarsened, challenge-bound |
 | Avoid-atlas (failure-mode tags) | Yes | Aggregated, delayed; no seed material |
 | Explore / freeze masks | Yes | Steering only |
+| Miner-visible evaluation card | Yes | Own submissions only; tags + scores; no seeds |
 | Official eval / stress seeds | **Never** | Validator-only |
-| Live stress catalogs tied to packs | **Never** | Public *rules* may be documented |
+| Live stress catalogs / draw ids | **Never** | Public *rules* may be documented |
 | Champion weights / exact bank recipe | **Never** | Dual egress elsewhere |
-| Lean official score | Only after **submit** + validator | Hidden data, hard gates |
+| Lean official score | After submit + validator complete | Hidden data, hard gates |
 | Prior distance as score feature | **Forbidden** | See Scoring.md |
 
-**Doctrine:** *Steering signal in. No answer key out. Gates do not get thinner because priors exist.*
+**Doctrine:** *Steering before the exam. Independent exam. Structured feedback after. No answer key at any step. Gates do not get thinner because priors exist.*
 
 ---
 
-## 4. Why priors exist (purpose)
+## 4. Why priors exist
 
-### Problem without priors
-
-Every miner starts cold → wasted full exams, agent thrashing, fee pressure, weak network effect.
-
-### Problem with full winner disclosure
-
-Clone races, diversity collapse, optimization against one lineage, exam gaming via leader theft instead of physics survivability.
-
-### What priors are for
+Without priors: cold start, wasted fees, agent thrashing, weak network effect.  
+With full winner disclosure: clone races, diversity collapse, gaming via leader theft.
 
 | Intent | How |
 |--------|-----|
-| Orient search | Coarse family of choices that recently survived lean exams |
-| Speed agents | Mutate JSON, do not invent schema from scratch |
+| Orient search | Coarse choices that recently survived lean exams |
+| Speed agents | Mutate JSON; do not invent schema from scratch |
 | Preserve adversarial grading | No weights, no eval seeds, no exact schedules |
 | Kill pure clone value | Lag + coarsen + noise + multi-winner blend |
-| Transmit failure knowledge | Avoid-atlas: modes that zeroed scores (high agent value) |
-| Direct exploration | Explore-masks: dimensions worth searching vs freeze-tags |
+| Transmit failure knowledge | Avoid-atlas mode tags (highest agent value) |
+| Direct exploration | Explore vs freeze masks |
 
 **Success metric:** more *diverse, non-doomed* submissions per fee — not higher clone rate of the leader.
 
-Priors are a **search accelerator under information restriction**, not a teacher checkpoint channel.
-
 ---
 
-## 5. Where priors come from (exact pipeline)
+## 5. Where priors come from
 
-**Producer:** subnet-side prior publisher (ops job today; Landscape Port A later).  
+**Producer:** subnet-side prior publisher (ops today; Landscape Port A later).  
 **Consumers:** all miners via `get_prior` — one public channel.
 
 ### 5.1 Pipeline
 
 ```text
-Lean-verified cards (gates recorded, score > 0 or structured fails)
+Lean-verified cards (including structured fails from evaluation cards)
         → window select (e.g. last K tempos / 24h)
         → eligibility (challenge_id + scoring_pack_hash match)
-        → k-aggregate (prefer ≥ k distinct strategies / hotkeys)
+        → k-aggregate (≥ k distinct strategies / hotkeys preferred)
         → lag (drop freshest unevaluated tip)
-        → coarsen continuous fields → bins / tags
+        → coarsen → bins / tags
         → noise / optional flag dropout
         → redact weights, seeds, exact schedules, eval params
-        → split channels: structural_steer | avoid_atlas | explore_mask
-        → bind prior_version, as_of, content_hash
-        → publish
+        → split: structural_steer | avoid_atlas | explore_mask
+        → bind prior_version, as_of, content_hash → publish
 ```
 
-**Gate:** no public prior (or only a marked bootstrap prior) until [`Launch_Bar.md`](./Launch_Bar.md) policy allows.
+**Gate:** no public prior (or only marked bootstrap) until [`Launch_Bar.md`](./Launch_Bar.md) allows.
 
-### 5.2 Eligibility and k-aggregate
+Hard zeros and structured `failure_modes` from miner-visible cards feed **avoid_atlas** (aggregated, lagged) — not structural_steer.
 
-- Only results that completed the lean path under the current pack hash  
-- Prefer multi-run / multi-UID blends so one miner cannot own the prior  
-- Hard zeros contribute to **avoid_atlas**, not to structural_steer  
+### 5.2 Required transforms
 
-### 5.3 Required transforms
+1. Lag · 2. Aggregate · 3. Coarsen · 4. Noise · 5. Redact · 6. Split channels · 7. Bind + hash  
 
-1. **Lag** — fixed delay (tempo or calendar)  
-2. **Aggregate** — blend eligible coarse features  
-3. **Coarsen** — hyperparams → bins; schedules → stage tags; architecture → family  
-4. **Noise** — jitter on bands; optional dropout of non-mandatory flags  
-5. **Redact** — tensors, exact LRs, generator eval params, full loss graphs  
-6. **Split channels** — steer / avoid / explore  
-7. **Bind + hash** — `challenge_id`, `backbone_scope`, `scoring_pack_hash`, `prior_version`, `as_of`, `content_hash`  
+(`challenge_id`, `backbone_scope`, `scoring_pack_hash`, `prior_version`, `as_of`, `content_hash`)
 
-### 5.4 Worked example — Burgers 1D / FNO-family prior
-
-Illustrative document returned by `get_prior("burgers1d")`:
+### 5.3 Worked example — Burgers 1D / FNO-family prior
 
 ```json
 {
@@ -191,21 +214,21 @@ Illustrative document returned by `get_prior("burgers1d")`:
 }
 ```
 
-### 5.5 Why gaming fails on production
+### 5.4 Gaming controls on priors
 
 | Attack | Control |
 |--------|---------|
 | Clone weights | Never included |
-| Pre-fit today’s eval | Seeds never included; lag |
+| Pre-fit today’s eval | No seeds; lag |
 | Reverse-engineer stress set | Avoid-atlas = mode tags, not draws |
-| Rank via “look like prior” | **Forbidden** as lean score term |
+| Rank via “look like prior” | **Forbidden** in lean score |
 | Insider clean feed | Single public channel |
 | One-miner prior capture | k-aggregate + lag |
 | Disable gates via prior | Validator ignores miner gate toggles; schema denylist |
 
 ---
 
-## 6. Prior document shape (normative channels)
+## 6. Prior document shape
 
 ```text
 Prior {
@@ -219,10 +242,10 @@ Prior {
 | Channel | Role |
 |---------|------|
 | **structural_steer** | Where the frontier roughly sits |
-| **avoid_atlas** | What recently failed closed (often highest agent value) |
-| **explore_mask** | Where to search next without publishing the optimum |
+| **avoid_atlas** | What recently failed closed |
+| **explore_mask** | Where to search without publishing the optimum |
 
-Agents that only clone `structural_steer` and ignore avoid/explore under-use the interface; the design rewards constrained exploration.
+Agents that only clone `structural_steer` under-use the interface.
 
 ---
 
@@ -236,8 +259,8 @@ Schema-versioned JSON: `schema_version`, `challenge_id`, `backbone`, `training`,
 
 - Must not set validator eval seeds, stress ids, or gate disable flags  
 - `meta.prior_version` recommended (analytics only; **not** a score input)  
-- Optional `meta.delta_from_prior: true` (documentation aid, not a bonus)  
-- Entropy / anti-degenerate generator rules as in SPEC  
+- Optional `meta.delta_from_prior` (documentation only)  
+- Entropy / anti-degenerate rules as in SPEC  
 
 ### 7.2 Estimate
 
@@ -245,7 +268,7 @@ Schema-versioned JSON: `schema_version`, `challenge_id`, `backbone`, `training`,
 Estimate {
   strategy_hash, prior_version,
   predicted_components: { physics?, robustness?, accuracy? },
-  gate_fail_risk: { gate_id: low|med|high },
+  gate_fail_risk: { gate_id_or_mode_tag: low|med|high },
   clone_proximity_warning: none|elevated,   # UX only — NOT official score
   confidence: low|med|high,
   warnings: string[],
@@ -255,8 +278,38 @@ Estimate {
 
 ### 7.3 SubmitReceipt
 
-`submission_id`, `strategy_hash`, `fee_status`, `accepted`, `queue_ref`.  
-Official lean score only after validator completion.
+```text
+SubmitReceipt {
+  submission_id, strategy_hash, challenge_id,
+  fee_status, accepted, queue_ref,
+  status: accepted_queued
+}
+```
+
+Official lean score is **not** on the receipt. Poll `get_submission_result`.
+
+### 7.4 EvaluationCard (miner-visible)
+
+Returned by `get_submission_result` when the validator reaches a terminal state. **Own submissions only.**
+
+```text
+EvaluationCard {
+  submission_id, strategy_hash, challenge_id,
+  status: queued | running | complete | failed_ops | rejected,
+  scoring_pack_hash,
+  overall_score,                    # null if gates hard-failed / not complete
+  component_scores: { physics?, robustness?, accuracy? },
+  gate_results: [ { gate_id, pass: bool, severity? } ],
+  failure_modes: [ { mode_tag, severity } ],   # SAME vocabulary as avoid_atlas
+  public_diagnostics: string[],     # short structured reasons; no seed material
+  challenge_rank?,                  # only if already public on leaderboard policy
+  completed_at?
+}
+```
+
+**Never included:** eval seeds, stress draw ids, full field tensors, other miners’ cards, unpublished thresholds used as attack surface.
+
+**Rule:** `failure_modes.mode_tag` must be drawn from the public tag catalog shared with avoid-atlas so agents can map result → next mutate without a side channel.
 
 ---
 
@@ -264,39 +317,27 @@ Official lean score only after validator completion.
 
 | Tool | Cost | Role |
 |------|------|------|
+| `get_challenge_info` | Free | Public rules, schema version, fee quote, pack hashes, mock pack ids, tag catalog ref |
 | `get_prior` | Free | Current prior for `challenge_id` (+ optional backbone scope) |
-| `get_challenge_info` | Free | Public rules, schema version, fee quote, pack hashes, mock pack ids |
 | `dry_validate` | Free | Schema / denylist check — no queue, no fee |
-| `estimate` | Free / CPU | Non-binding forecast (reference algorithm in §9) |
-| `light_train` | Miner compute | Local loop on mock generator (§10); no network grade |
-| `submit` | Exam fee | Official validator exam |
+| `estimate` | Free / CPU | Non-binding forecast (§9) |
+| `light_train` | Miner compute | Local mock loop (§10); no network grade |
+| `submit` | Exam fee | Queue official validator exam; returns SubmitReceipt |
+| `get_submission_result` | Free | Poll EvaluationCard for `submission_id` (authz: submitter only) |
+| `list_my_submissions` | Free | Optional: recent submission_ids + coarse status for this hotkey |
 
-No tool returns specialist weights, clean champion JSON, or validator packs.
+No tool returns specialist weights, clean champion JSON, validator packs, or another miner’s full card.
 
 ---
 
-## 9. Estimation mode — calculation and trust limits
+## 9. Estimation mode
 
 ### 9.1 Purpose
 
 Filter doomed strategies before an exam fee. **Not** a certificate.  
 **Official truth = validator lean score only.**
 
-| Property | Meaning |
-|----------|---------|
-| Useful | Ranks better than random before fee |
-| Calibrated | Risk flags and confidence improve as estimate→card pairs accumulate |
-| Safe | Cannot mint emissions or thin gates |
-| Auditable | Deterministic given `(strategy, prior_version)` |
-
-### 9.2 Allowed / forbidden inputs
-
-**Allowed:** strategy JSON, pinned prior, public gate *names*, public challenge constants.  
-**Forbidden:** validator seeds, hidden stress draws, private cards, unpublished thresholds if any remain ops-only.
-
-### 9.3 Reference estimator v0 (normative algorithm class)
-
-Implementations may improve fidelity but must preserve honesty rules in §9.5.
+### 9.2 Reference estimator v0
 
 ```text
 function estimate(strategy, prior):
@@ -304,145 +345,117 @@ function estimate(strategy, prior):
   conf = "med"
   warnings = []
 
-  # 1) Avoid-atlas match (highest priority)
   for item in prior.avoid_atlas:
     if strategy_reopens_mode(strategy, item.mode_tag):
-      risks[item.mode_tag] = item.severity   # e.g. conservation off → hard_zero risk
+      risks[item.mode_tag] = item.severity
 
-  # 2) Steer delta
   flips = coarse_field_hamming(strategy, prior.structural_steer)
   if flips large and not guided_by(prior.explore_mask):
     conf = downgrade(conf)
     warnings.append("unguided_large_delta")
 
-  # 3) Band inheritance (coarse only)
   predicted = inherit_bands(prior.strength_bands)
   predicted = nudge_from_public_rules(predicted, strategy)
-    # e.g. conservation enable on → lower conservation fail risk
 
-  # 4) Clone proximity (UX only)
   prox = "elevated" if flips <= ε else "none"
 
-  # 5) Confidence
   if prior is bootstrap or bands empty: conf = "low"
-  if many hard risks: conf = "high"   # high confidence in *failure* prediction
+  if many hard risks: conf = "high"   # confidence in failure prediction
 
-  return Estimate(
-    predicted_components=predicted,
-    gate_fail_risk=risks,
-    clone_proximity_warning=prox,
-    confidence=conf,
-    warnings=warnings,
-    disclaimer="non_binding"
-  )
+  return Estimate(..., disclaimer="non_binding")
 ```
 
-### 9.4 Example estimate response
-
-```json
-{
-  "strategy_hash": "sha256:…",
-  "prior_version": "burgers1d-fno-2026-08-03-a",
-  "predicted_components": {
-    "physics": "mid",
-    "robustness": "mid_low",
-    "accuracy": "mid"
-  },
-  "gate_fail_risk": {
-    "conservation": "high",
-    "rollout_long": "med"
-  },
-  "clone_proximity_warning": "none",
-  "confidence": "high",
-  "warnings": ["avoid_atlas:conservation_fail matched"],
-  "disclaimer": "non_binding"
-}
-```
-
-### 9.5 Honesty and anti-gaming rules
+### 9.3 Honesty rules
 
 - Always `disclaimer: "non_binding"`  
 - Forbidden output names: `lean_score`, `emission_weight`, `official_rank`, …  
-- `clone_proximity_warning` is **UX only** — validator must not score prior similarity  
+- `clone_proximity_warning` is UX only  
 - Estimation cannot change fee, skip gates, or raise score ceiling  
-- Every accepted submit is fully re-examined on hidden data regardless of estimate  
-
-### 9.6 What “trust” means here
-
-Trust estimation as a **triage model**: high recall on obvious hard-zero patterns (especially avoid-atlas).  
-Do **not** trust it as physics certification. Calibration is empirical (log prior_version + estimate + realized card).
+- Every accepted submit is fully re-examined on hidden data  
 
 ---
 
 ## 10. Light training — mock generator contract
 
-### 10.1 Purpose
-
-Optional local practice loop. Miners spend their own compute. **Cannot** replace submit.
-
-### 10.2 Official vs mock
+Optional local practice. **Cannot** replace submit.
 
 | Piece | Validator exam | Light-train mock |
 |-------|----------------|------------------|
-| Generator code | Public procedural family | **Same code family** (shared library) |
-| Pack identity | Registry pack + **hidden seed schedule** | `mock_pack_id = "mock_" + challenge_id + "_v*"` |
-| Seeds | Block/commit-derived, miner-unknown | **Miner-chosen root seed** |
-| Ranges | Full VALIDATOR_RANGES / stress categories | **MOCK_RANGES ⊆ milder / incomplete** |
-| Gates | Mandatory hard gates | Optional local checks |
+| Generator code | Public family | Same family |
+| Pack identity | Registry + hidden seed schedule | `mock_` + challenge_id + `_v*` |
+| Seeds | Miner-unknown | Miner-chosen root seed |
+| Ranges | VALIDATOR_RANGES / full stress | MOCK_RANGES ⊆ milder / incomplete |
 | Result | Official lean score | Private metrics only |
-
-### 10.3 Mock sampling contract
 
 ```text
 light_sample(challenge_id, miner_seed, mock_pack_id, index) -> batch
   require mock_pack_id starts with "mock_"
   require mock_pack_id in published MOCK_PACKS[challenge_id]
   seed_i = hash(miner_seed, mock_pack_id, index)
-  params ~ MOCK_RANGES[challenge_id]     # not VALIDATOR_RANGES
+  params ~ MOCK_RANGES[challenge_id]
   return public_generator(challenge_id, seed_i, params)
 ```
 
-**Forbidden**
-
-- Requesting validator pack hashes or hidden seed APIs from `light_train`  
-- Client modes named “validator replay” / “official stress”  
-- Strategy fields that set `eval_seed`, `stress_seed`, or official `generator_pack_hash` (schema denylist; validator ignores if present)  
-
-### 10.4 Why this is not gameable into emissions
-
-1. Miner **cannot reproduce the official draw** (no validator seeds / live stress schedule).  
-2. Mock success **never enters Yuma** — only `submit` grades.  
-3. Overfit to MOCK_RANGES is expected and should die on the hidden envelope (train ≠ eval).  
-4. Same fee and full exam apply even if local metrics look perfect.  
-
-Light mode is a **deliberately incomplete self-play sandbox**, not a second exam.
-
-### 10.5 Data rules summary
-
-| Rule | Requirement |
-|------|-------------|
-| Seeds | Miner-chosen only |
-| Pack id | Must be `mock_*` |
-| Ranges | MOCK_RANGES only |
-| Upload | Lean path submits **strategy**; weights not required |
-| Non-compliance | Validator-replay clients violate this MCP |
+Mock success never enters Yuma. Overfit to MOCK_RANGES is expected and should die on the hidden envelope.
 
 ---
 
 ## 11. Submit path
 
-1. `dry_validate` recommended client-side  
+1. `dry_validate` recommended  
 2. Charge **small evaluation fee** (spam + verification recovery)  
-3. Validator: hidden procedural data → train under strategy as required → hard gates → Score Pack → card  
-4. Lean score only from this path  
-5. Fee never enters the score function  
+3. Return `SubmitReceipt` (`accepted_queued`)  
+4. Validator: hidden procedural data → train as required → hard gates → Score Pack → card  
+5. Miner learns outcome only via `get_submission_result`  
+6. Fee never enters the score function  
 
-**Idempotency:** identical `strategy_hash` within a defined window follows a single published fee policy.  
-**Rate / sybil:** ops may add per-hotkey limits; still no prior-similarity reward.
+**Idempotency:** identical `strategy_hash` within a defined window follows published fee policy.  
+**Rate / sybil:** per-hotkey limits allowed; still no prior-similarity reward.
 
 ---
 
-## 12. Data and eval separation
+## 12. get_submission_result — closing the agent loop
+
+### 12.1 Why it exists
+
+The valuable learning event is **after** the independent exam. Without a structured result tool, autonomous miners cannot run:
+
+```text
+hypothesis → experiment → submit → hidden evaluation → feedback → new hypothesis
+```
+
+Carbon would be a drop-box, not an environment.
+
+### 12.2 Semantics
+
+| `status` | Meaning |
+|----------|---------|
+| `queued` / `running` | Not terminal; card fields may be null |
+| `complete` | Terminal success path; scores/gates/failure_modes populated per policy |
+| `failed_ops` | Infrastructure failure; may be requeued under ops policy; not a physics grade |
+| `rejected` | Schema/fee/auth failure before exam |
+
+Authz: only the submitting hotkey (or delegated miner key) may read the card.
+
+### 12.3 Disclosure policy
+
+Emit **the same class of information** a careful human would get from a public leaderboard row + public Model Card summary — structured for agents.
+
+| Include | Exclude |
+|---------|---------|
+| overall + component scores | eval / stress seeds |
+| per-gate pass/fail | stress draw ids |
+| failure mode tags (shared catalog) | full solution fields |
+| short public diagnostics | other miners’ raw cards |
+| scoring_pack_hash | unpublished attackable constants |
+
+### 12.4 Flywheel link
+
+Subnet-side prior publisher may aggregate lagged `failure_modes` into avoid-atlas. That is **public channel compounding**, not a private tutor API.
+
+---
+
+## 13. Data and eval separation
 
 | Stage | Data | Gates | Meaning | Cost |
 |-------|------|-------|---------|------|
@@ -450,74 +463,93 @@ Light mode is a **deliberately incomplete self-play sandbox**, not a second exam
 | Estimate | Strategy + prior + public constants | Soft risk | Forecast | ~0 |
 | Light train | Miner seeds + MOCK_RANGES | Optional local | Private learning | Miner |
 | Submit | Hidden validator packs | Mandatory hard | Official lean score | Exam fee |
+| Result card | Miner-visible summary of own exam | Reported | Feedback for next hypothesis | Free poll |
 
 Train ≠ eval ≠ stress on the validator path remains protocol law ([`Data_Management.md`](./Data_Management.md)).
 
 ---
 
-## 13. Gaming matrix (priors, eval, data)
-
-| Vector | Mitigation |
-|--------|------------|
-| Prior as weight dump | Redact tensors; coarsen |
-| Prior as exact recipe | Coarsen + noise + k-aggregate |
-| Prior as eval oracle | No seeds; lag; avoid-atlas ≠ draws |
-| Prior similarity score | **Banned** in Score Pack |
-| Estimate laundering | Non-binding; no fee/score coupling |
-| Light train exam leak | mock_* packs only; no official seeds |
-| Overfit mock → claim grade | Only submit grades |
-| Strategy injects eval knobs | Schema denylist; validator ignores |
-| Gate set weakened by prior | Invariant: priors never thin gates |
-| Spam submits | Exam fee + dry_validate + rate policy |
-| Stale prior tricks | Version pin + warnings |
-| Single-winner prior capture | k-aggregate policy |
-
----
-
-## 14. Reference agent loop
+## 14. Reference agent loop (closed)
 
 ```text
 info  = get_challenge_info(challenge_id)
 prior = get_prior(challenge_id)
-for k in budget:
-  strategy = mutate(prior.structural_steer,
-                    avoid=prior.avoid_atlas,
-                    explore=prior.explore_mask)
-  if dry_validate(strategy).ok is false: continue
+budget = { compute, max_submits, max_fees }
+
+while budget.remaining:
+  strategy = mutate(
+    prior.structural_steer,
+    avoid=prior.avoid_atlas,
+    explore=prior.explore_mask,
+    last_card=last_evaluation_card   # may be null on first pass
+  )
+  if not dry_validate(strategy).ok: continue
+
   est = estimate(strategy, prior_version=prior.prior_version)
-  if est.gate_fail_risk high: continue
+  if est.gate_fail_risk indicates hard_zero: continue
   if est.clone_proximity_warning == elevated:
-      strategy = force_explore(strategy, prior.explore_mask)
-  if compute_available and est.confidence low:
-      light_train(strategy)   # mock generator only
-  if worth_exam(est, info.fee_quote):
-      submit(strategy)
-      break
+    strategy = force_explore(strategy, prior.explore_mask)
+
+  if budget.compute and est.confidence low:
+    light_train(strategy)            # mock only
+
+  if worth_exam(est, info.fee_quote, budget):
+    receipt = submit(strategy)
+    card = poll get_submission_result(receipt.submission_id)
+    last_evaluation_card = card
+    # map card.failure_modes → next mutate; optionally refresh prior
+    prior = get_prior(challenge_id)  # pick up lagged avoid-atlas updates
 ```
+
+Client-side budgets (“$300 compute, max 5 paid submits”) are **agent policy**, not protocol consensus.
 
 ---
 
-## 15. Versioning
+## 15. Gaming matrix
+
+| Vector | Mitigation |
+|--------|------------|
+| Prior as weight dump | Redact; coarsen |
+| Prior as exact recipe | Coarsen + noise + k-aggregate |
+| Prior as eval oracle | No seeds; lag; tags ≠ draws |
+| Prior similarity score | **Banned** in Score Pack |
+| Estimate laundering | Non-binding; no fee/score coupling |
+| Light train exam leak | mock_* only |
+| Overfit mock → claim grade | Only submit grades |
+| Result card seed leak | Tags/scores only; own submission |
+| Result card as side channel | Same public tag catalog; no extra secrets |
+| Strategy injects eval knobs | Schema denylist; validator ignores |
+| Gates weakened by prior | Priors never thin gates |
+| Spam submits | Fee + dry_validate + rate policy |
+| Single-winner prior capture | k-aggregate |
+
+---
+
+## 16. Versioning
 
 - `prior_version` and strategy `schema_version` evolve independently  
 - Submit validates against **current** challenge schema  
-- `content_hash` enables client-side integrity checks  
+- `content_hash` / `scoring_pack_hash` enable client integrity checks  
+- EvaluationCard always echoes `scoring_pack_hash` used for the grade  
 
 ---
 
-## 16. Invariants (normative)
+## 17. Invariants (normative)
 
 1. Priors never include weights or official eval seeds.  
 2. Priors never appear as a term in lean scoring.  
 3. Estimation never authorizes emissions.  
 4. Light train never sees validator packs or VALIDATOR_RANGES.  
-5. Submit always re-runs hidden exam; fee ≠ score.  
+5. Submit always re-runs the hidden exam; fee ≠ score.  
 6. Existence of a prior never reduces the mandatory gate set.  
 7. One public prior channel — no VIP clean feed.  
+8. `get_submission_result` never returns seeds, draw ids, or other miners’ full cards.  
+9. `failure_modes` tags share vocabulary with avoid-atlas.  
+10. No lab-specific MCP forks required for standard agent miners.  
 
 ---
 
-## 17. Related documents
+## 18. Related documents
 
 | Doc | Role |
 |-----|------|
@@ -525,14 +557,19 @@ for k in budget:
 | [`Scoring.md`](./Scoring.md) | Lean formulas; ban on prior similarity |
 | [`Launch_Bar.md`](./Launch_Bar.md) | Before public prior publish |
 | [`Data_Management.md`](./Data_Management.md) | Seeds; train ≠ eval |
-| [`Landscape_Agent.md`](./Landscape_Agent.md) | Subnet-side prior production (not miner internals) |
+| [`Landscape_Agent.md`](./Landscape_Agent.md) | Subnet-side prior production |
+| [`Generator_Creation.md`](./Generator_Creation.md) / [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md) | Challenge credibility upstream of exams |
 
 ---
 
-## 18. Doctrine (one paragraph)
+## 19. Doctrine
 
-**Priors** are built from lean-verified cards through lag, k-aggregate, coarsen, noise, and redact, then published as three channels (steer / avoid / explore)—enough to search, not enough to clone or pre-fit the exam. **Estimation** is a deterministic avoid-atlas-first triage model: useful and calibratable, never official. **Light train** uses the public generator family with miner seeds and incomplete MOCK_RANGES so local overfitting cannot unlock emissions. **Submit** remains the only grade: hidden draws, hard gates, small fee. Nothing in this MCP replaces the validator’s independent exam or writes prior similarity into score.
+**Carbon’s Miner MCP is a control surface for competitive scientific discovery**, not a model zoo API.
+
+**Priors** steer search under information restriction. **Estimation** triages fees. **Light train** is an incomplete sandbox. **Submit** is the only grade: hidden draws, hard gates, small fee. **get_submission_result** returns a miner-visible evaluation card so autonomous agents can close the loop — scores and failure tags, never the answer key.
+
+Carbon need not build the best AI scientist. It supplies hard physics problems, open method competition, agent-native tools, independent evaluation, incentives, and compounding failure knowledge. Any researcher — human, Hermes, Mira, or anonymous miner — can plug in and try to prove they are better.
 
 ---
 
-*Miner MCP v1.1 — pipeline, reference estimator, and mock generator made explicit.*
+*Miner MCP v2.0 — closed agent loop, evaluation cards, referee thesis. Implementation must preserve all §17 invariants.*
