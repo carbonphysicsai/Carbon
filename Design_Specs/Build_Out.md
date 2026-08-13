@@ -1,6 +1,6 @@
 # Carbon Build-Out Specification
 
-**Audience:** Coding agents, lead engineers, SciML reviewers (Harshdeep-class), contractors.  
+**Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
 **Version:** 1.1  
 **Status:** Executable requirements contract  
 **Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`
