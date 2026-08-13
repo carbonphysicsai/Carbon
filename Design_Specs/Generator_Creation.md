@@ -1,9 +1,9 @@
 # Generator Creation — Per-Phase Build Plan
 
 **Carbon Subnet**  
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Build & onboarding guide  
-**Related:** [`Generator_Validation.md`](./Generator_Validation.md) (dossier protocol), [`Runtime_Julia_Truth_Oracle.md`](./Runtime_Julia_Truth_Oracle.md), [`Data_Management.md`](./Data_Management.md), `SPEC.md`
+**Related:** [`Generator_Validation.md`](./Generator_Validation.md), [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md), [`Runtime_Julia_Truth_Oracle.md`](./Runtime_Julia_Truth_Oracle.md), [`Data_Management.md`](./Data_Management.md), `SPEC.md`
 
 ---
 
@@ -20,16 +20,21 @@ Envelope → generator code → sample → reference backend → dossier → Sco
 
 **Phase rule:** Depth of reference rigor scales with physics difficulty. Phase 0 is analytic/light FEM. Do not claim industrial V&V on day one.
 
+**Claim rule:** Strength of verification claim ≤ strength of dossier evidence. Envelope is the maximum defendable domain (see [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md)).
+
 ---
 
 ## 1. Purpose
 
 `Generator_Validation.md` defines **how** a generator proves credibility (dossier).  
+`Evidence_and_Envelope_Standards.md` defines **reference ranks, coverage metrics, and threshold calibration**.  
 This document defines **how we create** generators challenge-by-challenge: inputs, phases, backends, fallbacks, and done-when.
+
+Carbon is building **qualification infrastructure for physics problem distributions** — not a static public answer key.
 
 ---
 
-## 2. What “a generator” is
+## 2. What "a generator" is
 
 A challenge generator is versioned code + config that maps:
 
@@ -40,7 +45,7 @@ A challenge generator is versioned code + config that maps:
 | Asset | Public? | Notes |
 |-------|---------|--------|
 | Generator code + parameter ranges | Yes | Scientific justification required |
-| Score Pack + gate thresholds | Yes (versioned) | Bound to generator version |
+| Score Pack + gate thresholds | Yes (versioned) | Bound to generator version; calibrated per Evidence Standards |
 | Validation Dossier | Yes | Evidence pack before LIVE |
 | Live eval/stress tensors | **No** | Materialized on validator at runtime |
 | Dossier reference cache | Controlled | Qualification only; not miner exam feed |
@@ -54,11 +59,12 @@ A challenge generator is versioned code + config that maps:
 | Input | Source |
 |-------|--------|
 | Physics family + dimension | Internal roadmap or partner |
-| Operating envelope (ranges, BCs, regimes) | Spec owner / partner |
+| Operating envelope (ranges, BCs, regimes, **exclusions**) | Spec owner / partner |
 | Conserved quantities & failure modes | Physics lead |
 | Stress taxonomy (categories that must be covered) | Score Pack design |
 | Backbone allowlist | Protocol |
 | Acceptance tolerances for dossier | Physics lead |
+| Target reference rank (R5–R1) | Physics lead — see Evidence Standards |
 
 ### 3.2 Optional (strengthen dossier)
 
@@ -73,53 +79,49 @@ A challenge generator is versioned code + config that maps:
 - Shipping a public fixed train/test dump as the exam  
 - Requiring raw OEM trajectories on the network for Phase 0–1  
 - Using partner goldens as the only scored instances  
+- Adaptive stress that evolves from live miner failures (later Port B — not Phase 0 Creation scope)  
 
 ---
 
-## 4. Per-phase requirements
+## 4. Envelope = claim boundary
+
+Freeze the envelope **before** expensive reference runs. It is the maximum domain this generator may support in marketing or LIVE claims.
+
+Must include:
+
+- Parameter ranges and geometry/BC class  
+- **Excluded regimes** (first-class, not footnotes)  
+- Stress categories required for coverage  
+- Intended reference rank for dossier  
+
+If dossier evidence is weaker than the written envelope → **shrink the envelope**, do not inflate the claim.
+
+---
+
+## 5. Per-phase requirements
 
 | Phase | Physics (examples) | Generator complexity | Minimum reference bar | Fallback if reference is hard |
 |-------|--------------------|----------------------|------------------------|-------------------------------|
-| **0** | Burgers, Poisson, Darcy, heat, linear elasticity | Low (1D/2D, clear conservation) | Analytic and/or light FEM; published harness | Analytic-only packs first; defer hard geometries |
-| **1A** | Simplified compressible / aero-like screening | Medium | FOSS or commercial solver + mesh study on sample set | Narrow envelope; inviscid or reduced model; Julia where honest |
+| **0** | Burgers, Poisson, Darcy, heat, linear elasticity | Low (1D/2D, clear conservation) | Analytic and/or light FEM (R5/R4); published harness | Analytic-only packs first; defer hard geometries |
+| **1A** | Simplified compressible / aero-like screening | Medium | FOSS or commercial solver + mesh study (R4/R3) | Narrow envelope; inviscid or reduced model; Julia where honest |
 | **1B** | Reacting / sequential FSI screening | High | Mechanism-aware reference policy; coupled checks | Split packs (flow-only then coupled); longer dossier cycle |
-| **2** | Customer-adapted envelopes | Medium–high | Partner criteria + goldens for **qualification** | Bounds-only SKU; customer local adapt path |
-| **3–4** | Coupled multiphysics / 3D turbulence-class | Very high | Statistical / multi-code agreement policy | Don’t LIVE until dossier depth matches claim |
+| **2** | Customer-adapted envelopes | Medium–high | Partner criteria + goldens (R2) for **qualification** + independent sample checks | Bounds-only SKU; customer local adapt path |
+| **3–4** | Coupled multiphysics / 3D turbulence-class | Very high | Statistical / multi-code agreement (R3+) | Don’t LIVE until dossier depth matches claim |
 
 **Phase 0 done-when (example):** generator + Score Pack + dossier with analytic/FEM agreement + stress category coverage + CI harness green.
 
 ---
 
-## 5. SOTA build plan (standard sequence)
+## 6. SOTA build plan (standard sequence)
 
 ```text
-1. Envelope freeze
-   - Ranges, BCs, excluded regimes, stress categories
-   - Written scientific justification (even if short in Phase 0)
-
-2. Implement generator
-   - Deterministic from seed + role
-   - Train/eval/stress role split enforced
-   - Entropy floor / anti-degenerate checks (Data_Management)
-
-3. Choose reference backend(s)  ← see §6
-
-4. Sample & solve
-   - Fixed audit seeds for dossier
-   - N cases sized to claim (Phase 0: tens; harder packs: more)
-
-5. Dossier
-   - Mesh/time convergence where applicable
-   - Reference agreement metrics
-   - Conservation / residual sanity on generated fields
-   - Gate threshold calibration from statistics (not vibes)
-
-6. Bind Score Pack
-   - generator_version + scoring_version pinned together
-
-7. Registry LIVE
-   - Only after mandatory Level-1 dossier checks pass
-   - Publish dossier artifact + content hashes
+1. Envelope freeze (ranges, exclusions, stress categories, target reference rank)
+2. Implement generator (deterministic seed+role; train≠eval≠stress; entropy floors)
+3. Choose reference backend(s) and rank  ← §7
+4. Sample & solve (fixed audit seeds; N sized to claim)
+5. Dossier (convergence, reference agreement, coverage metrics, calibrated thresholds)
+6. Bind Score Pack (generator_version + scoring_version)
+7. Registry LIVE only after Level-1 dossier pass + published hashes
 ```
 
 **Owners (recommended):**
@@ -129,14 +131,14 @@ A challenge generator is versioned code + config that maps:
 | Envelope + justification | Physics / SciML lead |
 | Generator implementation | SciML + protocol eng |
 | Reference runs | SciML + solver ops (Julia and/or CAE) |
-| Score Pack | Protocol + physics |
+| Score Pack + threshold calibration | Protocol + physics |
 | LIVE decision | Stop-ship checklist (`Launch_Bar.md` spirit) |
 
 ---
 
-## 6. Reference backend options
+## 7. Reference backend options
 
-Pick **one primary** and document **fallback** before starting expensive runs.
+Pick **one primary** and document **fallback** before starting expensive runs. State the **evidence rank** (R5–R1) the dossier will claim.
 
 | Backend | Best for | Strengths | Limits |
 |---------|----------|-----------|--------|
@@ -144,6 +146,8 @@ Pick **one primary** and document **fallback** before starting expensive runs.
 | **B. FOSS solvers** (FEniCS, OpenFOAM, SU2, …) | Open credibility, third-party re-run | Public, dossier-friendly | Ops + scheme sensitivity |
 | **C. Commercial CAE** (Ansys / Abaqus / STAR-CCM+ via ops e.g. Simr) | Partner-grade regimes | Industry-recognizable truth path | Cost, licenses, less “anyone re-run” |
 | **D. Partner goldens** | Sponsored challenges | Locks acceptance to buyer’s trusted cases | Must not replace procedural live exam |
+
+Full rank definitions and disagreement policy: [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md).
 
 ### Recommended defaults
 
@@ -165,7 +169,7 @@ When two references disagree:
 
 ---
 
-## 7. Challenge partner path
+## 8. Challenge partner path
 
 ```text
 Partner supplies: envelope + criteria (+ optional goldens)
@@ -181,9 +185,11 @@ Output:           searchable regime → specialist / licensed path for partner
 - Partner does not need to upload production trajectory archives for default path  
 - If evidence is too thin → don’t LIVE; offer bounds-only or delayed pack  
 
+**Simr-class ops (optional):** Carbon defines cases → partner/ops runs commercial solvers → results feed dossier → generator approved. Ops supply reference capacity; they do not replace the open generator.
+
 ---
 
-## 8. Fallback playbook (when stuck)
+## 9. Fallback playbook (when stuck)
 
 | Failure mode | Response |
 |--------------|----------|
@@ -194,19 +200,22 @@ Output:           searchable regime → specialist / licensed path for partner
 | Julia can’t express the PDE honestly | Don’t force it — switch to FOSS/CAE backend |
 | Team bandwidth | Cap concurrent packs; Phase 0 depth > many weak LIVEs |
 | Suspect generator degeneracy | Entropy floors, category coverage, reject pack |
+| Coverage metrics fail | Shrink envelope or fix sampler — never relax hard gates to “pass” |
 
 **Global fallback:** fewer LIVE challenges with strong dossiers beat many weak ones.
 
 ---
 
-## 9. Done-when checklist (per challenge)
+## 10. Done-when checklist (per challenge)
 
-- [ ] Envelope and excluded regimes written  
+- [ ] Envelope and **excluded regimes** written  
+- [ ] Target reference rank stated  
 - [ ] Generator deterministic by `(seed, role)`  
 - [ ] Train ≠ eval ≠ stress role separation tested  
 - [ ] Primary reference backend chosen and version-pinned  
 - [ ] Fallback backend or shrink-envelope plan written  
 - [ ] Dossier Level-1 checks pass (see `Generator_Validation.md`)  
+- [ ] Coverage / calibration notes per Evidence Standards  
 - [ ] Score Pack bound to `generator_version`  
 - [ ] Stress category coverage defined and enforceable  
 - [ ] Content hashes published; registry updated  
@@ -214,15 +223,17 @@ Output:           searchable regime → specialist / licensed path for partner
 
 ---
 
-## 10. Relationship to other docs
+## 11. Relationship to other docs
 
 | Doc | Role |
 |-----|------|
 | **This file** | How we **build** generators and choose truth sources |
+| **`Evidence_and_Envelope_Standards.md`** | Reference ranks, coverage, threshold calibration, envelope claims |
 | **`Generator_Validation.md`** | How we **prove** a generator before LIVE |
 | **`Runtime_Julia_Truth_Oracle.md`** | Native SciML reference/adjoint service |
 | **`Data_Management.md`** | Seed hierarchy; train/eval/stress isolation |
 | **`Scoring.md`** | Score Pack binding after generator exists |
+| **`Specialist_Bank.md`** | Product battery inherits envelope discipline at higher depth |
 
 ---
 
