@@ -1,29 +1,29 @@
-# PoC Build Guide — Burgers-1D × FNO-1D Full Loop
-
 ## TL;DR
 
-**What this is:** The build plan for Carbon’s smallest end-to-end proof — one PDE, one backbone, full **lean** validator loop.
+**What this is:** The build plan for Carbon’s smallest end-to-end proof — one PDE, one backbone, full **lean** validator loop. It produces the **TrainEvalAPI** handoff that Phase 0 MCP and validators call.
 
-**The loop:** `strategy.json` → schema check → seeded train/eval/stress data → JAX retrain (FNO-1d) → metrics → hard physics gates → 45/30/25 score → Model Card on disk.
+**The loop:** `strategy.json` → schema check → seeded train/eval/stress data → JAX retrain (FNO-1d) → metrics → hard physics gates → 45/30/25 score → **Model Card** (full internal record) on disk.
 
-**Choices:** 1D viscous Burgers; operator map IC → solution at final time; FNO-1d only; no chain, MCP, Landscape, specialists, or product battery.
+**Choices:** 1D viscous Burgers; operator map IC → solution at final time; FNO-1d only; no chain, Landscape, specialists, or product battery **in this PoC**.
 
-**Path class:** **Lean eval only.** Product battery (INV / deep plant / ADV / ONNX certs) is out of scope — see `Specialist_Bank.md`.
+**Path class:** **Lean eval only.** Product battery is out of scope — see `Specialist_Bank.md`.
 
-**Why it matters:** Proves the mechanism (strategy in, not weights; train ≠ eval seeds; gates can zero score; card out) before scaling Phase 0.
+**Handoff to full Phase 0:** This PoC is a **dependency** of `Build_Out.md` Phase 0, not a competing SOW. MCP, fees, testnet, and noisy priors are **out of this PoC** and **in** Build_Out Waves A–C once `TrainEvalAPI.run(strategy, batches, mode, limits)` exists. Do not treat “no MCP here” as “MCP is not part of Carbon.”
+
+**Why it matters:** Proves the mechanism (strategy in, not weights; train ≠ eval seeds; gates can zero score; card out) before scaling the agent surface.
 
 **Done when:** Acceptance tests T1–T7 pass (schema reject, seed separation, full loop, gate fail, reproducibility, strategy discrimination, budget cap).
 
-**Build order:** Milestone A data → B train → C protocol spine → D scoring → E harden. Do not expand scope until green.
+**Build order:** Milestone A data → B train → C protocol spine → D scoring → E harden → then Build_Out MCP/validator wiring. Do not expand PoC scope until green.
 
-**Read next if implementing:** §5 schema, §13 repo layout, §15 tests, §16 milestones.
+**Read next if implementing:** §5 schema, §13 repo layout, §15 tests, §16 milestones; then `Build_Out.md` + `Miner_MCP.md`.
 
 ---
 
 **Carbon Subnet**  
-**Version:** 1.1 (July 2026)  
+**Version:** 1.2 (August 2026)  
 **Status:** Phase-0 proof-of-concept build specification  
-**Related:** `SPEC.md`, `appendices/Data_Management.md`, `appendices/JAX_Optimization.md`, `docs/TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md`
+**Related:** `SPEC.md`, `Build_Out.md`, `Miner_MCP.md`, `Data_Management.md`, `Scoring.md`
 
 ---
 
@@ -41,6 +41,8 @@ strategy.json → schema check → seeded train/eval/stress data
 
 If this PoC passes its acceptance tests, Carbon’s atomic unit is real: miners submit **strategies**, validators **retrain**, eval data is **seed-generated**, gates can **zero** a run, and every run emits a **Model Card**.
 
+Export the train/eval entrypoint as **`TrainEvalAPI`** so `Build_Out` validator + MCP `light_*` paths share one harness (`mode=official` vs `mode=mock`).
+
 ---
 
 ## 2. Scope Lock
@@ -51,168 +53,53 @@ If this PoC passes its acceptance tests, Carbon’s atomic unit is real: miners 
 |------|--------|
 | PDE | 1D viscous Burgers |
 | Backbone | FNO-1d only |
-| Operator form | IC → solution at final time \(u(\cdot,T)\) |
+| Operator form | IC → solution at final time |
 | Strategy JSON | Minimal but real schema |
 | Data | Procedural generator; train ≠ eval ≠ stress seeds |
 | Train | JAX, budget-capped |
 | Gates | Finite, conservation, residual ceiling (+ BC if used) |
-| Score | 45% physics / 30% robustness / 25% accuracy |
+| Score | 45% physics / 30% robustness / 25% accuracy (Score Pack fields) |
 | Output | Model Card JSON on disk |
-| Entry point | CLI `run_once` (no chain required) |
+| Entry point | CLI `run_once` + TrainEvalAPI surface (no chain required) |
 
-### Out of scope (explicit non-goals)
+### Out of scope (explicit non-goals for *this PoC*)
 
-- Bittensor neuron / Yuma / emissions  
-- MCP, Estimation Mode, Light Training productization  
-- Landscape Agent, PySR, specialists, noisy prior service  
+- Bittensor neuron / Yuma / emissions (**→ Build_Out C15**)  
+- Miner MCP, estimate, light_compare, light_train, get_submission_result (**→ `Miner_MCP.md` / Build_Out C9** — after TrainEvalAPI)  
+- Landscape Agent, specialists, noisy prior *service* (**→ later phases**)  
 - **Product battery** (PB-INV, deep PB-ROLL, PB-ADV, PB-LAT, PB-ART)  
 - Multi-challenge, multi-backbone, multi-physics  
 - TPU, multi-GPU, full ONNX commercial pipeline  
 - Adaptive stress, D9 routing, multi-fidelity curricula  
 - “Best possible Burgers accuracy”  
-- Any package path named `hydrogen/` — use **`poc/`** only
+- Any package path named `hydrogen/` — use **`poc/`** only  
+
+**Note:** Out of PoC ≠ out of Carbon. Full Phase 0 subnet loop is specified in `Build_Out.md`.
 
 ---
 
-## 3. Challenge Definition
+## 3. Challenge Definition (summary)
 
-### 3.1 PDE
-
-Viscous Burgers (1D):
-
-\[
-\partial_t u + u \, \partial_x u = \nu \, \partial_{xx} u
-\]
-
-- Domain: \(x \in [0,1]\), \(t \in [0, T]\)  
-- Periodic or fixed BC — **pick one and freeze** in config (recommend periodic for FNO-1d simplicity)  
-- \(\nu\) drawn from a closed interval in the generator envelope  
-
-### 3.2 Operator learning task
-
-Map initial condition to solution at final time:
-
-\[
-\mathcal{G}: u_0(x) \mapsto u(x, T)
-\]
-
-### 3.3 Grid & envelope (freeze in YAML)
-
-| Parameter | PoC default | Notes |
-|-----------|-------------|-------|
-| \(N_x\) | 128 | power-of-two friendly |
-| \(T\) | 1.0 | fixed |
-| \(\nu\) range | \([10^{-3}, 10^{-2}]\) | stress may use lower \(\nu\) |
-| IC family | sum of sines, bounded coeffs | documented in generator |
-| \(N_{\mathrm{train}}\) | 256–512 | keep wall-clock small |
-| \(N_{\mathrm{eval}}\) | 64–128 | |
-| \(N_{\mathrm{stress}}\) | 32–64 | harder envelope |
-
-All values live in `poc/configs/challenge_burgers1d.yaml`.
-
-### 3.4 Reference solver
-
-Classical, stable solver for labels. **Not** the neural operator. Generator version string must change if the reference solver changes.
+1D viscous Burgers; operator IC → u(·,T); FNO-1d; procedural data with role-separated seeds. Full numeric envelope and schema live in-repo under `poc/` and Score Pack YAML when implemented.
 
 ---
 
-## 4. Backbone
+## 4. Acceptance (T1–T7)
 
-**FNO-1d only.** Reject any `backbone != "fno1d"`. Clamp modes/width/layers in validator limits.
-
----
-
-## 5. Strategy Schema (`poc_v1`)
-
-Minimal schema with boolean loss enables, optim, budget — as previously specified in `poc/schema/strategy_poc_v1.json`. Unknown keys reject; validator hard-caps steps and batch.
+T1 schema reject · T2 seed separation · T3 full loop · T4 gate fail zeros score · T5 reproducibility · T6 strategy discrimination · T7 budget cap.
 
 ---
 
-## 6. Seed Hierarchy & Data Roles
+## 5. Handoff checklist (before Build_Out MCP wave)
 
-```text
-seed_material = challenge_id || role || local_nonce || run_id
-seed = SHA256(seed_material) → uint64
-```
+- [ ] `TrainEvalAPI.run(strategy, batches, mode, limits) -> metrics` exists  
+- [ ] `mode=official` uses validator roles/seeds  
+- [ ] `mode=mock` can be wired later to mock packs without code fork  
+- [ ] Model Card written with pack hash + gate vectors  
+- [ ] T1–T7 green  
 
-| Role | Purpose |
-|------|---------|
-| `train` | training pairs |
-| `eval` | held-out accuracy |
-| `stress` | robustness (harder envelope) |
-
-Train ≠ eval ≠ stress. Miner cannot supply eval/stress tensors.
+Then proceed to `Build_Out.md` Waves A–C (MCP, fees, cards, testnet).
 
 ---
 
-## 7–12. Losses, Train, Eval, Gates, Score, Model Card
-
-Unchanged policy from v1.0: boolean-masked losses; JAX train with budget cap; fp32 gates; 45/30/25 only if gates pass; Model Card on disk under `artifacts/model_cards/`.
-
-Gates: `finite`, `conservation`, `residual_ceiling`, optional `boundary`. No conformal UQ hard gate in PoC.
-
----
-
-## 13. Repository Layout
-
-**Canonical root: `poc/` only.** Do not use `hydrogen/` paths.
-
-```text
-poc/
-  configs/
-  schema/
-  generators/
-  models/
-  train/
-  eval/
-  validator/
-  fixtures/
-  tests/
-  scripts/smoke.sh
-```
-
----
-
-## 14–18. Entry Points, Acceptance Tests, Build Sequence, Limits, Determinism
-
-As v1.0: `run_once` CLI; T1–T7 acceptance; milestones A–E; validator limits YAML; CPU stricter for repro.
-
----
-
-## 19. Mapping to Full Carbon (forward compatibility)
-
-| PoC element | Full subnet successor |
-|-------------|----------------------|
-| `run_once` | Validator lean train worker |
-| `local_nonce` | block hash / session seed hierarchy |
-| `registry.jsonl` | verification registry |
-| Fixtures | Miner MCP submissions |
-| Single stress envelope | ProceduralStressGenerator families |
-| Card JSON | Landscape Agent ingest (D1) |
-| *(not in PoC)* | Product battery / Specialist Bank |
-
-Do not implement successors inside `poc/` until T1–T7 pass.
-
----
-
-## 20. Proof Statement (after green tests)
-
-1. A **strategy** (not weights) is the submission unit.  
-2. The system **retrains** under that strategy with a hard budget.  
-3. Train/eval/stress data are **seed-derived** and role-separated.  
-4. **Hard physics gates** can zero the combined score.  
-5. Scoring uses **physics / robustness / accuracy** weights.  
-6. Every completed run emits a **Model Card**.  
-7. Results are **reproducible** under fixed seeds within documented tolerance.
-
-That is Carbon’s **lean** atomic loop for one PDE and one backbone.
-
----
-
-## 21. Thesis
-
-Build **Burgers-1D + FNO-1D** as a vertical slice of validator-controlled, trustless, gated training. Keep surface area small enough to finish; keep the protocol faithful so Phase-0 multi-challenge work is multiplication—not reinvention. Productization (gauntlet, dual egress) comes after the lean loop is green.
-
----
-
-*Canonical build specification for the Carbon Phase-0 mechanism proof (v1.1). Lean path only; `poc/` namespace only.*
+*POC_Burgers_FNO v1.2 — atomic lean loop + explicit TrainEvalAPI handoff to full Phase 0.*
