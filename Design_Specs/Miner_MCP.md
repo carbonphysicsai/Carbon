@@ -2,11 +2,6 @@
 
 **Carbon — steer · free iterate · submit · independent exam · structured feedback**
 
-**Version:** 2.2  
-**Status:** Implementation contract  
-**Scope:** Miner- and agent-facing interface only  
-**Non-scope:** Validator training internals, Landscape private graph / Port B, product-battery packs, Score Pack math (see [`Scoring.md`](./Scoring.md))
-
 ---
 
 ## TLDR
