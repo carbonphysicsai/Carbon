@@ -1,619 +1,590 @@
 # Carbon Build-Out Specification
 
-**Audience:** Lead engineer, small team, or contractor building Carbon to run.  
-**Version:** 1.0  
-**Status:** Requirements contract  
-**Companion docs:** `SPEC.md`, `Miner_MCP.md`, `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`
+**Audience:** Coding agents, lead engineers, SciML reviewers (Harshdeep-class), contractors.  
+**Version:** 1.1  
+**Status:** Executable requirements contract  
+**Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`
 
 ---
 
-## How to use this document
+## 0. Read this first — execution plan
 
-1. **High-level map (§1–3)** — what exists, what is global vs per-challenge, which phase needs it.  
-2. **Phase milestones (§4)** — definition of done for Phase 0 / 1A / 1B / 2.  
-3. **Component requirements (§5+)** — buildable requirements, acceptance checks, dependencies.  
+### 0.1 Principle
 
-**Rule for builders:** Phase 0 is a *vertical slice* (one challenge, full loop), not a horizontal skeleton of every future feature.
+**Coding agents build the full framework.**  
+**Humans (SciML / protocol lead) fill science, thresholds, and launch judgment.**
+
+Wherever a human must decide physics or incentives, the agent still ships:
+
+- interfaces and types  
+- loaders and registries  
+- validation hooks  
+- fixture packs with **clear `HUMAN_INPUT` / `TODO(sciml)` markers**  
+- tests that pass against fixtures and fail closed when human inputs are missing in LIVE mode  
+
+An agent never invents gate thresholds, envelope claims, or dossier pass/fail as truth.
+
+### 0.2 Confidence matrix (who owns what)
+
+| ID | Component | Agent confidence | Agent builds | Human fills |
+|----|-----------|------------------|--------------|-------------|
+| C0 | Monorepo / CI | **High** | All | Review |
+| C1 | Challenge registry | **High** | All | LIVE decision |
+| C2 | Strategy schema | **High** | All | Rare field adds |
+| C3 | Procedural generator | **Med** | Interface, roles, determinism harness, fixture generator | Envelope, sampling law, exclusions |
+| C4 | Dossier | **Low** | Script skeleton, artifact layout, registry gate | Pass/fail, reference rank, calibration |
+| C5 | Scoring engine + packs | **High** / **Low** | Engine, YAML schema, fail-closed | Thresholds, weights |
+| C6 | Seeding / roles | **High** | All policy code + tests | Seed derivation formula confirm |
+| C7 | Validator neuron | **Med** | Queue, harness, limits, card write | Train backend accept, BT edge |
+| C8 | Miner neuron | **High** | Optional thin client | — |
+| C9 | Miner MCP | **High** | All tools + policy guards | Bootstrap prior content |
+| C10 | Prior publisher | **Med** | Pipeline + redact tests | Coarsen policy, first prior |
+| C11 | Mock packs / scaffolds | **Med** | Format, registry, mock_ guards | MOCK_RANGES, scaffold body |
+| C12 | Card store | **High** | All + disclosure filter | Tier policy confirm |
+| C13 | Fees | **High** | All | Fee amount |
+| C14 | Leaderboard | **High** | All | — |
+| C15 | Bittensor | **Med** | Template wiring, weight map stub | Mainnet params |
+| C16 | Observability | **High** | All | Alert thresholds |
+| C17–18 | Landscape / specialists | **Out P0** | Optional card schema hooks only | Design later |
+| C19 | Reference solvers | **Low** | Wrapper + pin skeleton | Convergence evidence |
+
+### 0.3 Agent build sequence (Phase 0)
+
+Execute in order. Do not start C7 train integration before `TrainEvalAPI` exists (stub allowed).
+
+```text
+WAVE A — pure agent (no SciML blocked)
+  C0 monorepo + CI
+  C2 strategy schema + dry_validate
+  C1 registry (file-backed) + hashes
+  C6 seeding + mock_ enforcement
+  C5 scoring ENGINE (load pack, gates fail-closed) + fixture pack numbers
+  C12 card store + Phase 0 disclosure filter
+  C13 fees
+  C9 MCP skeleton: info, prior, scaffold, dry_validate, estimate, submit, get_submission_result
+  C14 leaderboard API
+  C16 logging
+
+WAVE B — agent frameworks; SciML fills content
+  C3 Generator API + Burgers fixture stub (HUMAN_INPUT ranges)
+  C11 mock pack schema + one mock_ fixture; scaffold schema + placeholder scaffold
+  C9 light_compare / light_train wired to TrainEvalAPI stub
+  C10 prior pipeline code + bootstrap prior JSON placeholder
+  C4 dossier directory layout + “cannot LIVE without dossier flag”
+  C19 reference runner interface
+
+WAVE C — integrate
+  C7 validator: queue → generate hidden → TrainEvalAPI → score → card
+  C9 e2e: free loop then paid loop against local validator
+  C15 testnet weight mapping
+  C8 optional
+
+WAVE D — human gates (not agent-owned)
+  SciML: real envelope, dossier Level-1, gate thresholds, MOCK incompleteness, scaffold mediocrity
+  Protocol: Launch_Bar, testnet, fee value, LIVE flip
+```
+
+### 0.4 Hard interfaces the agent must define early
+
+These are the contracts everything hangs on. Ship them in Wave A/B even with stub implementations.
+
+```text
+# packs/interfaces.py (normative names)
+
+class Generator(Protocol):
+    version: str
+    def generate(self, seed: int, role: Literal["train","eval","stress"], params: dict) -> Batch: ...
+
+class TrainEvalAPI(Protocol):
+    """Used by validator AND light_compare/light_train."""
+    def run(self, strategy: dict, batches: list[Batch], *, mode: Literal["mock","official"],
+            limits: ResourceLimits) -> RunMetrics: ...
+
+class ScoreEngine(Protocol):
+    def evaluate(self, metrics: RunMetrics, pack: ScorePack, stress_batches: list[Batch] | None) -> InternalResult: ...
+
+class CardStore(Protocol):
+    def write_internal(self, submission_id: str, result: InternalResult) -> None: ...
+    def read_budgeted(self, submission_id: str, hotkey: str) -> EvaluationCard: ...
+```
+
+**Rule:** `mode="mock"` path must refuse non-`mock_` packs and validator seeds. Enforce in code.
+
+### 0.5 `HUMAN_INPUT` convention
+
+Any file or field the agent cannot truthfully complete:
+
+```yaml
+# Example in score pack
+thresholds:
+  conservation_rel: null  # HUMAN_INPUT(sciml): set from dossier calibration
+  _status: BLOCKED_FOR_LIVE_UNTIL_SET
+```
+
+Registry must not transition `status: live` while any `BLOCKED_FOR_LIVE_UNTIL_SET` remains on that challenge.
+
+### 0.6 Definition of done for an agent PR
+
+- Implements the framework for its Wave  
+- Tests pass on fixtures  
+- LIVE-path fails closed without human inputs  
+- No invented physics thresholds presented as final  
+- Cross-links to this doc component IDs in PR description  
 
 ---
 
 ## 1. What “running Carbon” means
 
-Minimum live system:
-
 ```text
-Miner/agent  →  Miner MCP / submit strategy
-                    ↓
-Validator    →  hidden procedural data → train per strategy → physics gates → Score Pack → card
-                    ↓
-Network      →  weights / emissions from lean scores only
-                    ↓
-Public       →  leaderboard + budgeted feedback to submitter
-                    ↓
-Ops          →  priors + mock scaffolds updated from verified cards
+Miner/agent → Miner MCP (free loop + submit)
+               ↓
+Validator  → hidden data → train → physics gates → Score Pack → card
+               ↓
+Network    → weights from lean scores only
+               ↓
+Public     → leaderboard + budgeted feedback
+               ↓
+Ops        → priors + mock scaffolds from verified cards
 ```
 
-Later: Landscape graph, specialist bank, sponsored challenges — **not** required to run Phase 0.
+Phase 0 = one challenge vertical slice. Not a horizontal demo of every future feature.
 
 ---
 
-## 2. Component map (high level)
+## 2. Component map
 
-| ID | Component | Scope | Phase 0 | Phase 1A | Phase 1B+ |
-|----|-----------|-------|---------|----------|-----------|
-| C0 | Monorepo, packaging, CI | Global | Required | — | — |
-| C1 | Challenge registry | Global + per challenge row | Required | Extend | Extend |
-| C2 | Strategy schema + denylist | Global (+ per-challenge fields) | Required | Extend | Extend |
-| C3 | Procedural generator | **Per challenge** | 1 challenge | More packs | Partner packs |
-| C4 | Generator validation / dossier | **Per challenge** | Level-1 dossier | Level-2/3 | Partner goldens |
-| C5 | Score Pack + scoring engine | **Per challenge** + engine global | Required | Regime packs | — |
-| C6 | Seeding / data roles | Global policy | Required | Per-validator seeds optional | — |
-| C7 | Validator neuron | Global | Required | Perf / scale | — |
-| C8 | Miner neuron (thin) | Global | Optional if MCP-first | — | — |
-| C9 | Miner MCP | Global | Required | Harden | — |
-| C10 | Prior publisher | Global | Bootstrap prior OK | Automated | Landscape Port A |
-| C11 | Mock packs + scaffolds | **Per challenge** | 1 pack + 1 scaffold | Rotation | Multiple families |
-| C12 | Evaluation card store | Global | Required | Feedback tiers | — |
-| C13 | Fees / rate limits | Global | Simple fee | Sybil controls | — |
-| C14 | Leaderboard / public API | Global | Minimal | Polish | — |
-| C15 | Bittensor integration | Global | Testnet | Mainnet | — |
-| C16 | Observability / ops | Global | Basic logs | Metrics | — |
-| C17 | Landscape agent | Global | **Out** | Thin telemetry | Full |
-| C18 | Specialist bank | Global | **Out** | Rehearse optional | Product path |
-| C19 | Julia / reference oracle | Per backend | Phase 0 analytic/FEM path | CFD backends | — |
+| ID | Component | Scope | P0 |
+|----|-----------|-------|----|
+| C0 | Monorepo, packaging, CI | Global | Required |
+| C1 | Challenge registry | Global + rows | Required |
+| C2 | Strategy schema + denylist | Global | Required |
+| C3 | Procedural generator | **Per challenge** | 1 pack |
+| C4 | Generator dossier | **Per challenge** | Level-1 |
+| C5 | Score Pack + engine | Engine global; pack per challenge | Required |
+| C6 | Seeding / data roles | Global | Required |
+| C7 | Validator neuron | Global | Required |
+| C8 | Miner neuron | Global | Optional |
+| C9 | Miner MCP | Global | Required |
+| C10 | Prior publisher | Global | Bootstrap OK |
+| C11 | Mock packs + scaffolds | **Per challenge** | 1+1 |
+| C12 | Evaluation card store | Global | Required |
+| C13 | Fees / rate limits | Global | Required |
+| C14 | Leaderboard / public API | Global | Minimal |
+| C15 | Bittensor integration | Global | Testnet |
+| C16 | Observability | Global | Basic |
+| C17 | Landscape agent | Global | **Out** |
+| C18 | Specialist bank | Global | **Out** |
+| C19 | Reference / truth backends | Per challenge | Min bar |
 
----
-
-## 3. Global vs per-challenge
-
-### Always global (build once)
-
-- MCP server and tool surface  
-- Validator orchestration (queue, train harness, gate runner interface)  
-- Scoring *engine* (loads Score Pack YAML; computes legs)  
-- Card store, fee ledger, hotkey auth  
-- Prior/scaffold *publish pipeline*  
-- Bittensor neuron wiring, emissions mapping  
-- CI, images, deployment  
-
-### Per challenge (repeatable pack)
-
-- Generator code + envelope + MOCK_RANGES + VALIDATOR ranges  
-- Score Pack (gates, weights, thresholds)  
-- Validation dossier + reference evidence  
-- Mock pack(s) + mock scaffold(s)  
-- Challenge registry entry (hashes, versions, disclosure tier)  
-- Optional: challenge-specific gate implementations  
-
-**Builder implication:** invest in a **pack format** so challenge #2 is config + generator, not a fork of the subnet.
+**Global once:** MCP, validator harness, scoring engine, cards, fees, BT, CI.  
+**Per challenge pack:** generator, dossier, score pack, mock pack, scaffold, registry row.
 
 ---
 
-## 4. Phase milestones
+## 3. Phase milestones
 
-### Phase 0 — “One real loop” (launch bar)
+### Phase 0 — one real loop
 
-**Goal:** One physics challenge; agents and humans can free-iterate and submit; validators grade under hidden data; emissions reflect lean scores only.
+| ID | Done when |
+|----|-----------|
+| P0.1 | Generator deterministic `(seed, role)`; train≠eval≠stress; MOCK ⊂ envelope |
+| P0.2 | Level-1 dossier; claim ≤ evidence; LIVE blocked until flag |
+| P0.3 | Score Pack bound to generator_version; hard gates; no prior similarity |
+| P0.4 | Validator: strategy → hidden data → train → gates → card |
+| P0.5 | MCP tools complete per Miner_MCP v2.2 |
+| P0.6 | Free path: estimate + light_compare; mock only |
+| P0.7 | Paid path: fee → queue → budgeted card |
+| P0.8 | Testnet weights + minimal leaderboard |
+| P0.9 | Launch_Bar green |
 
-| Milestone | Done when |
-|-----------|-----------|
-| **P0.1 Pack** | Burgers (or chosen PDE) generator deterministic by `(seed, role)`; train≠eval≠stress; MOCK_RANGES ⊂ envelope |
-| **P0.2 Dossier** | Level-1 validation dossier published; reference rank stated; gates calibrated; claim ≤ evidence |
-| **P0.3 Score Pack** | YAML pack bound to `generator_version`; hard gates fail-closed; prior similarity **absent** |
-| **P0.4 Validator** | Accept strategy → materialize hidden data → train → gates → components → card record |
-| **P0.5 MCP** | Tools: info, prior, scaffold, dry_validate, estimate, light_compare, light_train, submit, get_submission_result |
-| **P0.6 Free path** | Agent can loop estimate+compare without fee; mock-only; no validator seeds |
-| **P0.7 Paid path** | Fee → queue → card with Phase 0 disclosure tier |
-| **P0.8 Network** | Testnet neuron; weights from lean score; leaderboard shows hotkey + score |
-| **P0.9 Launch bar** | Checklist in `Launch_Bar.md` green; bootstrap prior marked if needed |
+**Out of P0:** Landscape graph, specialist SKUs, automated mock corr service, commercial CAE, per-lab agent plugins.
 
-**Out of Phase 0:** Landscape causal graph, specialist bank SKUs, multi-mock rotation automation, commercial CAE backends, per-validator seed diversity.
+### Phase 1A / 1B / 2
 
-### Phase 1A — “Credible regime expansion”
-
-- Additional packs (e.g. Darcy / elasticity / simplified aero-like)  
-- Automated prior publisher from cards  
-- Mock pack rotation policy + manual/assisted corr monitor  
-- Stronger FOSS/Julia reference path  
-- Validator throughput optimizations  
-- Mainnet candidate  
-
-### Phase 1B — “Harder physics + partners”
-
-- Reacting / sequential multiphysics *screening* packs only if dossier depth matches  
-- Partner golden qualification path  
-- Optional commercial solver ops integration  
-
-### Phase 2 — “Product path”
-
-- Landscape opportunity ranking (read-only from cards first)  
-- Specialist bank pilot (closed SKU, product battery)  
-- Sponsored challenge tier  
-- Customer bounds path without training on raw proprietary dumps  
+- **1A:** more packs, automated priors, mock rotation, FOSS reference depth, mainnet candidate  
+- **1B:** harder screening packs only with matching dossiers; partner goldens  
+- **2:** Landscape ranking, specialist pilot, sponsored challenges  
 
 ---
 
-## 5. C0 — Monorepo, packaging, CI
+## 4. Component requirements
 
-**Scope:** Global  
-
-### Requirements
-
-- Installable Python package (`pyproject.toml`); `pip install -e .`  
-- Clear layout: `carbon/` (library), `neurons/`, `challenges/` or `packs/`, `mcp/`, `tests/`  
-- CI: lint, unit tests, schema tests on PR  
-- Pinned dependency policy for validator image vs miner-light extras  
-- Docker image targets: `validator`, `mcp` (and optional `miner`)  
-
-### Acceptance
-
-- Fresh clone → install → unit tests pass  
-- CI required to merge  
-
-### Phase
-
-- P0: required  
+Each component: **Agent builds** · **Human fills** · **Requirements** · **Acceptance** · **Phase**
 
 ---
 
-## 6. C1 — Challenge registry
+### C0 — Monorepo, packaging, CI
 
-**Scope:** Global service + per-challenge records  
+**Agent:** High — build all.  
 
-### Requirements
+**Requirements**
 
-Each LIVE challenge record includes:
+- `pyproject.toml`; `pip install -e .`  
+- Layout: `carbon/`, `neurons/`, `packs/`, `mcp/`, `tests/`  
+- CI: lint, unit, schema tests  
+- Docker targets: `validator`, `mcp`  
 
-- `challenge_id`, display metadata  
-- `generator_version`, `scoring_pack_hash`, `schema_version`  
-- `disclosure_tier`  
-- Active `mock_pack_ids[]`, current `scaffold_id`  
-- Fee quote  
-- Status: `draft | dossier | live | retired`  
-- Content hashes for generator + pack artifacts  
-
-### Acceptance
-
-- MCP `get_challenge_info` reads only registry  
-- Submit rejected if strategy targets non-live or hash mismatch policy  
-
-### Phase
-
-- P0: file- or DB-backed registry with one live row  
-- P1: admin tooling to publish versions  
+**Acceptance:** clean clone → install → tests pass.  
+**Phase:** P0 Wave A.
 
 ---
 
-## 7. C2 — Strategy schema
+### C1 — Challenge registry
 
-**Scope:** Global schema + optional per-challenge extensions  
+**Agent:** High — build all.  
+**Human:** LIVE flip only after dossier + thresholds set.
 
-### Requirements
+**Requirements**
 
-- Versioned JSON Schema for strategies  
-- **Denylist:** `eval_seed`, `stress_seed`, official `generator_pack_hash`, gate disable flags  
-- Allowed: backbone, training, loss enables, curriculum, data hints, `meta.prior_version`  
+Record fields: `challenge_id`, `generator_version`, `scoring_pack_hash`, `schema_version`, `disclosure_tier`, `mock_pack_ids[]`, `scaffold_id`, fee, `status ∈ {draft,dossier,live,retired}`, content hashes.
+
+**Acceptance:** MCP reads registry only; submit rejects non-live; LIVE blocked if HUMAN_INPUT nulls remain.  
+**Phase:** P0 Wave A.
+
+---
+
+### C2 — Strategy schema
+
+**Agent:** High — build all.
+
+**Requirements**
+
+- Versioned JSON Schema  
+- Denylist: `eval_seed`, `stress_seed`, official `generator_pack_hash`, gate disables  
 - `dry_validate` implements schema + denylist  
 
-### Acceptance
-
-- Invalid strategies never enter train harness  
-- Denylist fields ignored or rejected (document which)  
-
-### Phase
-
-- P0: one schema version  
+**Acceptance:** invalid strategies never train.  
+**Phase:** P0 Wave A.
 
 ---
 
-## 8. C3 — Procedural generator (**per challenge**)
+### C3 — Procedural generator (per challenge)
 
-**Scope:** Per challenge  
-**Primary docs:** `Generator_Creation.md`, `Data_Management.md`  
+**Agent:** Medium — **framework required**; physics content is human.
 
-### Requirements
+**Agent builds**
 
-- `generate(seed, role ∈ {train, eval, stress}) → batch`  
-- Deterministic given `(generator_version, seed, role, params)`  
-- Envelope + **excluded regimes** documented  
-- Role separation enforced (train≠eval≠stress draws)  
-- Entropy / anti-degenerate checks  
-- Public code for the generator **family**  
+- `Generator` protocol + registration  
+- `generate(seed, role, params)` dispatch  
+- Determinism tests (fixed seed replay)  
+- Role isolation tests  
+- Envelope schema + exclusion list structure  
+- **Fixture generator** (e.g. simple Burgers-like) marked `fixture` so MCP/validator e2e work before SciML pack  
 
-### Acceptance
+**Human fills**
 
-- Fixed seeds replay byte-stable (or documented float tolerance)  
-- Role split tested  
-- Envelope violations impossible by construction or rejected  
+- Real sampling distributions  
+- Envelope bounds and excluded regimes  
+- Anti-degenerate rules content  
+- Generator version string for LIVE  
 
-### Phase
+**Requirements**
 
-- P0: one PDE pack (recommended: Burgers 1D or similar)  
-- P1+: additional packs via same interface  
+- Deterministic `(generator_version, seed, role, params)`  
+- train≠eval≠stress  
+- Public generator family code  
 
----
-
-## 9. C4 — Generator validation / dossier (**per challenge**)
-
-**Scope:** Per challenge  
-**Primary docs:** `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`  
-
-### Requirements
-
-- Level-1: mesh/time convergence where applicable, reference agreement, conservation sanity  
-- Stated reference rank (R5–R1)  
-- Gate threshold calibration notes  
-- Coverage notes (even light in P0)  
-- Published dossier artifact + hashes before LIVE  
-
-### Acceptance
-
-- Registry cannot mark `live` without dossier pass flag  
-- Claim width ≤ dossier evidence  
-
-### Phase
-
-- P0: Level-1 mandatory  
-- P1A: Level-2 coverage  
-- Partner: goldens for qualification only  
+**Acceptance:** fixture path green in CI; LIVE path requires human pack + dossier flag.  
+**Phase:** P0 Wave B framework; SciML before LIVE.
 
 ---
 
-## 10. C5 — Score Pack + scoring engine
+### C4 — Generator dossier (per challenge)
 
-**Scope:** Engine global; packs **per challenge**  
-**Primary doc:** `Scoring.md`  
+**Agent:** Low science / **High framework**.
 
-### Requirements
+**Agent builds**
 
-**Engine**
+- Directory layout: `packs/<id>/dossier/`  
+- Template markdown/JSON for Level-1 sections  
+- Scripts that *run* reference checks when configured  
+- Registry field `dossier_passed: bool` default false  
+- CI check: `status=live` ⇒ `dossier_passed`  
 
-- Load Score Pack by hash  
-- Run hard gates fail-closed  
-- Compute component scores (physics, robustness, accuracy) per pack weights  
-- Emit structured internal result (may include fine margins for ops)  
-- **Forbidden:** prior similarity, fee amount, estimate output as score inputs  
+**Human fills**
 
-**Pack (per challenge)**
+- Reference rank, convergence results, calibration notes, pass decision  
 
-- Gate IDs + thresholds  
-- Component weights  
-- Bound `generator_version`  
-- Stress category coverage rules  
-
-### Acceptance
-
-- Unit tests: gate fail → zero / no emission path  
-- Same strategy + same hidden draw → same score (determinism policy)  
-
-### Phase
-
-- P0: one pack, physics-heavy weights  
+**Acceptance:** cannot mark LIVE without dossier_passed.  
+**Phase:** P0 Wave B framework; SciML sign-off P0.2.
 
 ---
 
-## 11. C6 — Seeding / data roles
+### C5 — Score Pack + scoring engine
 
-**Scope:** Global policy  
+**Agent:** Engine **High**; thresholds **Low**.
 
-### Requirements
+**Agent builds**
 
-- Official exam seeds derived from commit/block policy (miner-unknown before eval)  
-- Train / eval / stress isolation  
-- Mock path: miner-chosen seeds only + `mock_*` packs  
-- No MCP tool exposes official seeds  
+- Score Pack YAML schema  
+- Engine: load by hash, hard gates fail-closed, component weights, InternalResult  
+- Forbidden inputs enforced (no prior similarity, no fee)  
+- Fixture pack with **placeholder thresholds** tagged HUMAN_INPUT  
+- Unit tests: gate fail → non-emitting outcome  
 
-### Acceptance
+**Human fills**
 
-- Security tests: MCP handlers cannot return validator seed material  
-- Light path rejects non-`mock_` packs  
+- Gate IDs that matter for the physics  
+- Numeric thresholds from dossier  
+- Component weights (physics-heavy default allowed as proposal, human confirms)  
 
-### Phase
-
-- P0: shared seed policy across validators OK if documented  
-- Later: per-validator diversity optional  
-
----
-
-## 12. C7 — Validator neuron
-
-**Scope:** Global  
-
-### Requirements
-
-1. Pull/accept queued submissions (strategy JSON + hotkey + payment status)  
-2. Resolve challenge registry → generator_version + Score Pack  
-3. Materialize **hidden** train/eval/stress data  
-4. Execute training under strategy constraints (timeouts, resource limits)  
-5. Run gates → scoring engine  
-6. Persist **internal** result + **budgeted** EvaluationCard  
-7. Map scores to on-chain weights per metagraph rules  
-8. Fail closed on infra errors without inventing physics passes  
-
-### Acceptance
-
-- End-to-end: known strategy on fixture pack produces expected gate pattern  
-- Resource limits prevent runaway jobs  
-- Card visible to submitter only via MCP authz  
-
-### Phase
-
-- P0: single-worker validator OK  
-- P1: queue scale-out, caching of dossier reference as needed  
-
-### Note
-
-Validator **compute cost** is the main ops limfac — implement timeouts and max epochs from Score Pack / challenge config on day one.
+**Acceptance:** engine tests green; LIVE pack has no null thresholds.  
+**Phase:** P0 Wave A engine; SciML pack numbers before LIVE.
 
 ---
 
-## 13. C8 — Miner neuron (optional thin client)
+### C6 — Seeding / data roles
 
-**Scope:** Global  
+**Agent:** High — build all.
 
-### Requirements
+**Requirements**
 
-- Optional: classic Bittensor miner that calls MCP or submits strategies  
-- Not required if MCP is the supported agent path  
+- Official seeds from documented commit/block policy  
+- Mock: miner seeds only + `mock_*`  
+- MCP never returns official seeds  
+- light_* rejects non-mock packs  
 
-### Phase
-
-- P0: optional  
-
----
-
-## 14. C9 — Miner MCP
-
-**Scope:** Global  
-**Primary doc:** `Miner_MCP.md` v2.2  
-
-### Requirements (tooling)
-
-| Tool | Req |
-|------|-----|
-| `get_challenge_info` | Registry-backed |
-| `get_prior` | Serve published prior JSON |
-| `get_mock_scaffold` | Serve runnable scaffold; **not** prior invert |
-| `dry_validate` | Schema + denylist |
-| `estimate` | Avoid-atlas + prior_delta; `non_binding` |
-| `light_compare` | Shared mock draws; candidate vs scaffold_id |
-| `light_train` | Mock only; private metrics |
-| `submit` | Fee + queue + SubmitReceipt |
-| `get_submission_result` | Budgeted card; submitter authz |
-
-### Requirements (policy)
-
-- Free path never sees VALIDATOR packs/seeds  
-- `corr` doctrine: free signal informative but imperfect  
-- Phase 0 card: no fine margins / per-stress breakdowns  
-- Invariants in Miner_MCP §14 enforced in code where possible  
-
-### Acceptance
-
-- Integration test: agent script free-loops then submits once; card returned  
-- Attempt to pass validator pack id into light_* → reject  
-
-### Phase
-
-- P0: all tools above  
-- P1: mock rotation hooks, list_my_submissions  
+**Acceptance:** security unit tests for leak paths.  
+**Phase:** P0 Wave A.
 
 ---
 
-## 15. C10 — Prior publisher
+### C7 — Validator neuron
 
-**Scope:** Global  
+**Agent:** Medium — build harness; plug TrainEvalAPI.
 
-### Requirements
+**Agent builds**
 
-- Input: lean cards (incl. structured failure tags)  
-- Pipeline: window → eligibility → k-aggregate → lag → coarsen → noise → redact → channels  
-- Output: versioned prior JSON + content_hash  
-- Bootstrap prior allowed at launch if marked  
+- Submission queue + fee check  
+- Resolve registry → generator + pack  
+- Materialize hidden train/eval/stress  
+- Call `TrainEvalAPI.run(..., mode="official")` with resource limits  
+- ScoreEngine → write internal + budgeted card  
+- Weight mapping stub for C15  
+- Timeouts/max steps from config (no unbounded train)  
 
-### Acceptance
+**Human fills**
 
-- No weights/seeds in prior  
-- Hard zeros feed avoid_atlas not structural_steer  
+- Production TrainEvalAPI implementation quality  
+- Limit values informed by GPU budget  
+- BT operational wiring acceptance  
 
-### Phase
-
-- P0: manual or semi-manual publish OK  
-- P1: automated job  
-
----
-
-## 16. C11 — Mock packs + scaffolds (**per challenge**)
-
-**Scope:** Per challenge  
-
-### Requirements
-
-- At least one `mock_*` pack with MOCK_RANGES and listed missing stress tags  
-- At least one versioned mock scaffold (mediocre, runnable, public)  
-- Registry points MCP at active ids  
-- Rotation procedure documented (manual OK in P0)  
-
-### Acceptance
-
-- light_compare runs against scaffold on mock pack  
-- Official ranges not accessible from light_*  
-
-### Phase
-
-- P0: one each  
-- P1: rotation when offline corr too high  
+**Acceptance:** e2e on fixture strategy; OOM/timeout fail closed (not physics pass).  
+**Phase:** P0 Wave C.
 
 ---
 
-## 17. C12 — Evaluation card store
+### C8 — Miner neuron (optional)
 
-**Scope:** Global  
-
-### Requirements
-
-- Store internal result (ops) and miner-visible card (budgeted)  
-- Authz: only submitting hotkey reads full card via MCP  
-- Idempotent write on exam completion  
-
-### Acceptance
-
-- Unauthorized hotkey cannot read card  
-- Disclosure tier filter applied on read or write  
-
-### Phase
-
-- P0: required  
+**Agent:** High. Thin client calling MCP or submit API.  
+**Phase:** P0 optional.
 
 ---
 
-## 18. C13 — Fees and rate limits
+### C9 — Miner MCP
 
-**Scope:** Global  
+**Agent:** High — primary agent-owned surface.  
+**Spec:** `Miner_MCP.md` v2.2 (normative).
 
-### Requirements
+**Agent builds (all tools)**
 
-- Small exam fee charged on accept (spam + partial verification recovery)  
-- Fee **not** an input to score  
-- Optional per-hotkey submit rate limits  
-- Policy for identical strategy_hash resubmits  
+| Tool | Notes |
+|------|-------|
+| `get_challenge_info` | Registry |
+| `get_prior` | Blob store |
+| `get_mock_scaffold` | Scaffold registry; not prior invert |
+| `dry_validate` | C2 |
+| `estimate` | Avoid-atlas + prior_delta; non_binding |
+| `light_compare` | Shared mock draws vs scaffold_id |
+| `light_train` | Mock only |
+| `submit` | Fee + queue + receipt |
+| `get_submission_result` | Budgeted card, authz |
 
-### Acceptance
+**Policy in code:** mock isolation; no predicted lean_score; Phase 0 disclosure tier.
 
-- Unpaid submit rejected  
-- Score fixtures unchanged by fee amount  
+**Human fills:** bootstrap prior content; first real scaffold body (agent can ship placeholder).
 
-### Phase
-
-- P0: simple fee  
-
----
-
-## 19. C14 — Leaderboard / public API
-
-**Scope:** Global  
-
-### Requirements
-
-- Public: hotkey, challenge_id, overall_score, timestamp (and rank)  
-- Does not expose seeds or fine internal margins  
-- Consistent with card overall_score when complete  
-
-### Acceptance
-
-- Matches validator-written scores  
-
-### Phase
-
-- P0: minimal table or API  
-- P1: polish / per-challenge pages  
+**Acceptance:** integration test free-loop → one submit → card; validator pack id to light_* rejected.  
+**Phase:** P0 Waves A–C.
 
 ---
 
-## 20. C15 — Bittensor integration
+### C10 — Prior publisher
 
-**Scope:** Global  
+**Agent:** Medium — pipeline code high.
 
-### Requirements
+**Agent builds**
 
-- Validator sets weights from lean scores per tempo  
-- Miner registration / hotkey association with submissions  
-- Testnet first  
-- Document network UID / hyperparameters ownership  
+- Card intake → window → eligibility → k-aggregate → lag → coarsen → noise → redact → channels  
+- Output versioned JSON + hash  
+- Tests: no weights/seeds in output; hard zeros → avoid_atlas  
+- Bootstrap prior file path  
 
-### Acceptance
-
-- Testnet: scores → weights → visible on metagraph tooling  
-
-### Phase
-
-- P0: testnet  
-- P1: mainnet readiness  
+**Human fills:** coarsen bins, lag length, first bootstrap content.  
+**Phase:** P0 framework + bootstrap; automate P1.
 
 ---
 
-## 21. C16 — Observability
+### C11 — Mock packs + scaffolds (per challenge)
 
-**Scope:** Global  
+**Agent:** Medium — format and guards high.
 
-### Requirements
+**Agent builds**
 
-- Structured logs: submit, exam start/end, gate fails, errors  
-- Metrics: queue depth, exam latency, fail rates, MCP call counts  
-- Alerts on validator crash / queue backup  
+- Mock pack schema (`mock_` prefix enforced)  
+- `missing_stress_tags[]` field  
+- Scaffold schema + registry  
+- Placeholder scaffold strategy JSON  
+- Rotation doc + manual CLI stub  
 
-### Phase
-
-- P0: logs + basic metrics  
-
----
-
-## 22. C17–C18 — Landscape & Specialist Bank
-
-**Scope:** Global  
-**Phase:** **Not in Phase 0 build contract**  
-
-Telemetry may *write* Model Cards in a format Landscape can later read. Do not block launch on causal graph or product battery.
+**Human fills:** MOCK_RANGES incompleteness, scaffold mediocrity, when to rotate.  
+**Acceptance:** light_compare works on fixture mock; official ranges blocked.  
+**Phase:** P0 Wave B.
 
 ---
 
-## 23. C19 — Reference / truth backends
+### C12 — Evaluation card store
 
-**Scope:** Per challenge dossier path  
+**Agent:** High.
 
-### Requirements
+**Requirements**
 
-- Phase 0: analytic and/or light FEM / Julia as appropriate to pack  
-- Dossier scripts reproducible  
-- Version-pin solver containers where used  
+- Internal result (ops) vs budgeted card (miner)  
+- Phase 0 allowlist: status, hashes, overall, coarse components, gate pass/fail, failure tags, short diagnostics  
+- **Withhold:** fine margins, per-stress breakdowns, seeds  
+- Authz by submitting hotkey  
 
-### Phase
-
-- P0: minimum bar per `Generator_Creation` phase table  
-- P1A: FOSS CFD/FEA where claimed  
+**Acceptance:** unauthorized read fails; allowlist tested.  
+**Phase:** P0 Wave A.
 
 ---
 
-## 24. Suggested team shape
+### C13 — Fees / rate limits
+
+**Agent:** High. Fee on accept; not a score input; optional rate limits.  
+**Human:** fee amount.  
+**Phase:** P0 Wave A.
+
+---
+
+### C14 — Leaderboard / public API
+
+**Agent:** High. Public: hotkey, challenge_id, overall_score, time, rank. No seeds/margins.  
+**Phase:** P0 Wave A.
+
+---
+
+### C15 — Bittensor integration
+
+**Agent:** Medium — template + weight map from lean scores.  
+**Human:** network UID, hyperparams, mainnet.  
+**Acceptance:** testnet scores → weights visible.  
+**Phase:** P0 Wave C testnet.
+
+---
+
+### C16 — Observability
+
+**Agent:** High. Structured logs + basic metrics (queue, latency, fail rates, MCP counts).  
+**Phase:** P0 Wave A.
+
+---
+
+### C17–C18 — Landscape / Specialist bank
+
+**Out of P0.** Agent may emit Model Card-shaped JSON from exams for future read path. Do not build causal graph or product battery in P0 SOW.
+
+---
+
+### C19 — Reference / truth backends
+
+**Agent:** Low science / framework wrappers.
+
+**Agent builds:** `ReferenceSolver` protocol, container pin config, dossier script hooks.  
+**Human:** convergence runs, rank claim.  
+**Phase:** P0 framework; SciML evidence before LIVE.
+
+---
+
+## 5. TrainEvalAPI (critical shared contract)
+
+Agent ships interface + **stub** that returns deterministic fake metrics for CI.
+
+```text
+run(strategy, batches, mode, limits) -> RunMetrics
+```
+
+| mode | Allowed data |
+|------|----------------|
+| `mock` | mock packs, miner seeds |
+| `official` | validator generator roles, hidden seeds |
+
+SciML/dev replaces stub with real NO train (JAX/PyTorch). Validator and MCP both call the same API so light_compare and official exam do not diverge in harness bugs.
+
+---
+
+## 6. Team / agent operating model
 
 | Role | Owns |
 |------|------|
-| Protocol / subnet eng | C7, C15, C13, queue, weights |
-| SciML eng | C3, C4, C5 packs, C19, train harness |
-| Fullstack / agent eng | C9 MCP, C10–C12, C14 |
-| Ops | Registry LIVE, priors/scaffolds publish, mock rotation |
+| **Coding agent** | Waves A–C frameworks, tests, MCP, registry, engine, cards, fees, guards |
+| **SciML lead (Harshdeep-class)** | C3 content, C4 pass, C5 thresholds, C11 ranges/scaffold, C19 evidence |
+| **Protocol / founder** | Launch_Bar, fee, LIVE, BT network params, incentive edge cases |
+| **Dev maintainer** | Production TrainEvalAPI, GPU ops, C7 hardening, C15 mainnet |
 
-One strong generalist can sequence P0 in series; two people should split **train/validator** vs **MCP/card**.
-
----
-
-## 25. Phase 0 delivery checklist (send to builder)
-
-- [ ] Pack: generator + MOCK + validator ranges + role split  
-- [ ] Dossier Level-1 + registry hashes  
-- [ ] Score Pack + engine + gate unit tests  
-- [ ] Validator e2e on fixture strategy  
-- [ ] MCP free loop (estimate + light_compare + scaffold)  
-- [ ] MCP paid loop (submit + budgeted card)  
-- [ ] Fee gate  
-- [ ] Testnet weights from scores  
-- [ ] Minimal leaderboard  
-- [ ] Bootstrap prior + one scaffold published  
-- [ ] Launch_Bar checklist signed  
+**Rule:** Agent opens PRs with `HUMAN_INPUT` list in the description for SciML.
 
 ---
 
-## 26. Explicit non-goals for the initial contractor SOW
+## 7. Phase 0 checklist
 
-Unless separately contracted:
+### Agent-deliverable
 
-- Landscape causal / symbolic stack  
-- Specialist commercial SKU / product battery  
-- Multi-challenge production marketplace UI  
-- Automated mock corr rotation service  
+- [ ] C0 CI green  
+- [ ] C1–C2 registry + schema + dry_validate  
+- [ ] C5 engine + fixture pack schema  
+- [ ] C6 seed/mock guards tested  
+- [ ] C9 all MCP tools against stubs  
+- [ ] C12 budgeted cards  
+- [ ] C13 fee gate  
+- [ ] C14 leaderboard  
+- [ ] C3/C11/C4/C10 frameworks + placeholders  
+- [ ] C7 e2e on fixture TrainEvalAPI  
+- [ ] C15 testnet stub path  
+
+### Human-deliverable before LIVE
+
+- [ ] Real generator envelope + sampling  
+- [ ] Dossier Level-1 passed  
+- [ ] Score thresholds set (no nulls)  
+- [ ] MOCK incompleteness intentional  
+- [ ] Scaffold mediocre but fair  
+- [ ] TrainEvalAPI real backend  
+- [ ] Launch_Bar signed  
+
+---
+
+## 8. Non-goals (initial SOW)
+
+- Landscape causal/symbolic stack  
+- Specialist commercial SKU  
+- Marketplace UI  
+- Automated corr-rotation service (manual OK)  
 - Full commercial CAE mesh pipeline  
-- Hermes/Mira vendor-specific plugins  
+- Hermes/Mira vendor plugins  
+- Agent-invented LIVE physics thresholds  
 
 ---
 
-*This document is the engineering requirements map for building Carbon to run. Design authority remains SPEC + appendices; where conflict exists, SPEC and scoring/MCP invariants win.*
+## 9. Doctrine for coding agents
+
+1. Build the stadium and the rules engine.  
+2. Leave the physics calibration to SciML.  
+3. Fail closed when human inputs are missing.  
+4. Prefer one vertical fixture loop over ten empty modules.  
+5. Enforce Miner_MCP invariants in code (mock isolation, no prior-in-score, budgeted cards).  
+6. Never present placeholder thresholds as production truth.  
+
+---
+
+*Build_Out v1.1 — agent execution plan, confidence matrix, framework-first SciML slots. Design authority: SPEC + Miner_MCP + Scoring; this doc is the build map.*
