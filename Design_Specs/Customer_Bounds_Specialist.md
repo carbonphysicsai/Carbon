@@ -2,12 +2,6 @@
 
 **Carbon — requirements · constraints · envelope → bounded specialist SKU**
 
-**Version:** 1.1  
-**Status:** Product, ops, and go-to-market procedure  
-**Related:** [`Specialist_Bank.md`](./Specialist_Bank.md), [`Landscape_Agent.md`](./Landscape_Agent.md), [`Use_Cases_by_Phase.md`](./Use_Cases_by_Phase.md), `SPEC.md`
-
----
-
 ## TL;DR
 
 **Customer provides:** requirements, constraints, operating envelope (not their secret simulation archive).  
