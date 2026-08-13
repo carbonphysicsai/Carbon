@@ -11,9 +11,9 @@
 
 ---
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Protocol stop-ship checklist  
-**Related:** `Scoring.md`, `Data_Management.md`, `POC_Burgers_FNO.md`, `Landscape_Agent.md`, `SPEC.md` §8
+**Related:** `Scoring.md`, `Data_Management.md`, `POC_Burgers_FNO.md`, `Miner_MCP.md`, `Build_Out.md`, `Landscape_Agent.md`, `SPEC.md` §8
 
 ---
 
@@ -37,7 +37,7 @@ Causal libraries cannot be more trustworthy than the labels that feed them. This
 - [ ] **Score Pack** loaded by `(challenge_id, scoring_version)`; content hash pinned; **no silent global default**
 - [ ] Generator version required by Score Pack matches active Generator Pack
 - [ ] Stress **category coverage** ≥ pack minimum before soft score
-- [ ] Physics / robustness / accuracy legs computed per `appendices/Scoring.md`
+- [ ] Physics / robustness / accuracy legs computed per Score Pack (see `Scoring.md`)
 
 ### 2.2 Discrimination & reproducibility
 
@@ -50,10 +50,25 @@ Causal libraries cannot be more trustworthy than the labels that feed them. This
 
 - [ ] Card writes: gate results, `physics_margins`, `robustness_by_category`, accuracy summary, `S_*`, pack hash, generator version, seeds roles
 - [ ] Cards from full evals are append-only loggable (even if Landscape publish is off)
+- [ ] Miner-visible **EvaluationCard** is a budgeted projection of the Model Card (see `Miner_MCP.md`) — not a second scoring path
 
-### 2.4 Landscape publish gates (L0)
+### 2.4 Miner MCP readiness (Phase 0 subnet loop)
 
-Until §2.1–2.3 are green for at least one live challenge family:
+Required before marketing agent mining or public prior surfaces that agents will grind against. Detail: `Miner_MCP.md`, `Build_Out.md`.
+
+- [ ] **Mock isolation:** `light_compare` / `light_train` reject non-`mock_` packs; no official seeds on free path
+- [ ] **Free signal imperfect:** mock ranges intentionally incomplete; free metrics **never** enter lean score / Yuma
+- [ ] **Scaffold path:** `get_mock_scaffold` serves a versioned mediocre baseline (not champion weights; not silent prior invert)
+- [ ] **Budgeted EvaluationCard:** miner-visible card withholds fine margins / per-stress breakdowns / seeds
+- [ ] **Fee ≠ score:** exam fee does not enter Score Pack
+- [ ] **Forbidden score inputs:** no prior similarity, estimate, or light_compare in `S_combined`
+- [ ] **PoC handoff:** TrainEvalAPI (or equivalent) used by both official exam and mock path without mode confusion
+
+`Build_Out` Phase 0.9 = this document’s lean exam bar **plus** §2.4 when shipping the full agent/subnet loop (not required for offline PoC-only demos).
+
+### 2.5 Landscape publish gates (L0)
+
+Until §2.1–2.3 are green for at least one live challenge family (and §2.4 if public agent/MCP mining is claimed):
 
 - [ ] **No** public claim that Landscape “produces intelligence” or causal effects
 - [ ] **No** Port A daily noisy-prior product surface marketed as verified guidance
@@ -110,6 +125,15 @@ Launch_Bar_GREEN(challenge_family) =
 ```
 
 ```text
+MCP_AGENT_SURFACE_GREEN =
+    Launch_Bar_GREEN(family)
+    AND mock_isolation_tested
+    AND free_metrics_not_in_yuma
+    AND budgeted_evaluation_card
+    AND fee_not_in_score
+```
+
+```text
 Landscape_L0_PUBLISH_ALLOWED =
     Launch_Bar_GREEN(at least one live family)
     AND representation_discipline_acknowledged
@@ -132,6 +156,7 @@ Landscape_L2_CAUSAL_PUBLISH_ALLOWED =
 | Gate/score implementation | Protocol + SciML eng |
 | Score Pack science (τ, categories) | Physics lead |
 | Launch Bar CI enforcement | Tech lead |
+| MCP free-path guards | Protocol + agent eng |
 | External representation | Founder / GTM — must match this doc |
 
 ---
