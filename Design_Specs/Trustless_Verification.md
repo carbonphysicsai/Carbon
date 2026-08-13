@@ -1,10 +1,5 @@
 # TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md
 
-**Carbon PDE Subnet — Trustless Verification & Data Generation System**
-
-**Version:** 1.2 (July 2026) — **Proprietary Data Handling Plan Added**
-**Status**: Core Design Document
-
 This document defines Carbon’s approach to generating evaluation data (both for stress testing and benchmarking) in a way that is **trustless, auditable, unpredictable to miners, and scientifically credible**.
 
 ---
