@@ -62,18 +62,21 @@ Details of formulas, configs, and phase roadmap live in the technical docs — n
 
 ## Agent Friendly MCP Miner Solving Loop
 
-Competing on training strategy only works if people can try ideas quickly. Carbon is built so miners (or their agents) can run a tight loop before a full submission:
+Competing on training strategy only works if people can try ideas quickly. Carbon’s miner surface is specified in [`Design_Specs/Miner_MCP.md`](./Design_Specs/Miner_MCP.md) (normative).
 
-1. Read the latest public insight from the challenge leader — a noisy, delayed summary of what worked (not the full winning recipe or weights). Enough to steer search; not enough to copy the exam or clone the winner.  
-2. Estimate how a candidate strategy might score, using that insight plus cheap proxies (short runs, surrogates of the last verified outcome, or local light trains).  
-3. Optionally run a light local train gated by the same kinds of checks the validator cares about — different data than the real exam, so the network stays honest.  
-4. Submit only when the loop looks promising. Full validator scoring is still the only path to emissions. You can submit with no local training; paid or heavy local train is optional, not required.
+**Free loop (default — no exam fee):**
 
-Mining is deliberately agentic auto-research. The agent-friendly front end (MCP) receives noisy feedback from the current challenge winner’s strategy and provides estimated scoring impacts of local changes, allowing AI solving at scale. This lowers the barrier to entry, raises the quality of submissions, and leverages network effects on the discovery end.
+1. **`get_prior`** — noisy, lagged steer / avoid / explore (not weights, not the exam).  
+2. **`get_mock_scaffold`** — versioned, deliberately mediocre *runnable* baseline (not an invert of the prior).  
+3. **`estimate`** — doom filter + prior-delta only; **non-binding**; never a predicted lean score.  
+4. **`light_compare` / `light_train`** — practice on **mock** packs only (intentionally incomplete vs the official exam so free signal stays useful but not a leaked surrogate of the validator).  
 
-That loop is meant for humans and agents: show up, pull the current leader signal, propose variants, estimate, refine, submit. Low friction on purpose so search scales, without turning the leaderboard into a copy-paste contest or leaking the real evaluation data.
+**Paid loop (rare — only official grade):**
 
-Validators always grade the same way: hidden data, hard physics checks, public scoring rules. Miner-side estimation never replaces the exam.
+5. **`submit`** — small fee; hidden data; hard gates; Score Pack.  
+6. **`get_submission_result`** — **budgeted** EvaluationCard (overall, coarse components, gate pass/fail, failure tags). Enough to repair the next hypothesis; not enough to reconstruct the hidden exam through repeated queries.
+
+Mining is agentic auto-research on purpose: grind free, submit when the free signal justifies the fee. Validators always grade the same way. Estimate and light_compare never enter emissions. Full tool contract, anti-gaming rules, and invariants: `Miner_MCP.md`. Build order: `Build_Out.md`.
 
 ---
 
@@ -143,8 +146,8 @@ GPU vendors and CAE platforms own engines and tools. Carbon owns decentralized d
 **Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`). We have a full protocol specification, scoring and data design, trustless procedural eval generation, **generator creation + Validation Dossier path**, product path, phased roadmap, and go-to-market structure in the public repo. Phase 0 (academic PDE foundation) is the launch target; we are building that now along with an offline Proof of Concept.
 
 ```bash
-git clone https://github.com/jbequ5/Carbon--Decentralized-Physics-AI.git
-cd Carbon--Decentralized-Physics-AI
+git clone https://github.com/jbequ5/Carbon.git
+cd Carbon
 pip install -e .
 ./poc/scripts/smoke.sh
 ```
@@ -156,20 +159,22 @@ pip install -e .
 | Document | Contents |
 |----------|----------|
 | [SPEC.md](./SPEC.md) | Full protocol |
+| [Design_Specs/Miner_MCP.md](./Design_Specs/Miner_MCP.md) | **Miner/agent MCP** (free + paid loops) |
+| [Design_Specs/Build_Out.md](./Design_Specs/Build_Out.md) | Build map, Phase 0 waves, agent vs SciML |
 | [Design_Specs/Scoring.md](./Design_Specs/Scoring.md) | Scoring rules |
 | [Design_Specs/Launch_Bar.md](./Design_Specs/Launch_Bar.md) | Readiness checklist before public priors |
-| [Design_Specs/Generator_Creation.md](./Design_Specs/Generator_Creation.md) | How we build generators per phase (backends, partners, fallbacks) |
-| [Design_Specs/Generator_Validation.md](./Design_Specs/Generator_Validation.md) | Validation Dossier before a challenge goes LIVE |
-| [Design_Specs/Trustless_Verification.md](./Design_Specs/Trustless_Verification.md) | Seeding philosophy, trustless eval design |
+| [Design_Specs/Generator_Creation.md](./Design_Specs/Generator_Creation.md) | How we build generators per phase |
+| [Design_Specs/Generator_Validation.md](./Design_Specs/Generator_Validation.md) | Validation Dossier before LIVE |
+| [Design_Specs/Trustless_Verification.md](./Design_Specs/Trustless_Verification.md) | Seeding / trustless eval |
 | [Design_Specs/Data_Management.md](./Design_Specs/Data_Management.md) | Seeds, train ≠ eval |
 | [Design_Specs/Runtime_Julia_Truth_Oracle.md](./Design_Specs/Runtime_Julia_Truth_Oracle.md) | SciML reference / adjoint oracle |
 | [Design_Specs/Landscape_Agent.md](./Design_Specs/Landscape_Agent.md) | Knowledge / routing architecture |
 | [Design_Specs/Specialist_Bank.md](./Design_Specs/Specialist_Bank.md) | Product qualification path |
 | [Design_Specs/Use_Cases_by_Phase.md](./Design_Specs/Use_Cases_by_Phase.md) | Use cases by maturity |
-| [Design_Specs/POC_Burgers_FNO.md](./Design_Specs/POC_Burgers_FNO.md) | First PoC build guide |
+| [Design_Specs/POC_Burgers_FNO.md](./Design_Specs/POC_Burgers_FNO.md) | Atomic lean loop PoC (TrainEvalAPI) |
 | [Design_Specs/Compute_Optimization.md](./Design_Specs/Compute_Optimization.md) | Compute strategy |
 | [Design_Specs/JAX_Optimization.md](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
-| [Design_Specs/Implementation.md](./Design_Specs/Implementation.md) | Gates, toolkit, SciML |
+| [Design_Specs/Implementation.md](./Design_Specs/Implementation.md) | Gates, toolkit, SciML patterns |
 | [Design_Specs/Operations.md](./Design_Specs/Operations.md) | Deploy / ops |
 
 ---
