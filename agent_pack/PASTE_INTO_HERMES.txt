@@ -1,0 +1,20 @@
+Read HERMES_KICKOFF.md and .agent/INVARIANTS.md and .agent/WAVE.md in this repo.
+
+You are executing Carbon Build_Out Wave A only on the cheap inference path.
+
+Model routing:
+- Default: glm-5.2 (Engy)
+- Optional tools: kimi-k3
+- Escalate: grok-4.6 only after fail ×2 on the same ticket (or if human enables it)
+- Do not run entire Wave A on Grok
+
+Rules:
+- One ticket at a time from .agent/tickets/ in order A0 → A12
+- Do not invent physics thresholds or flip LIVE
+- Stubs must set emission_capable=False
+- Mock/light paths must refuse official packs/seeds
+- Fail twice on default model → mark blocked OR one Grok escalate attempt; log in DECISIONS.md
+- After each done ticket, update .agent/WAVE.md with evidence
+- When Wave A checklist is complete, write .agent/WAVE_A_REPORT.md and stop
+
+Start with ticket A0. Show the plan for A0, then implement.
