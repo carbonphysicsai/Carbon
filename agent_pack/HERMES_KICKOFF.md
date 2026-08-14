@@ -6,6 +6,26 @@ You are the **build agent** for the Carbon subnet codebase. You are not a miner.
 
 Execute **Wave A only** until the Wave A acceptance checklist is evidence-backed (tests + files exist). Then stop and report. Do not start Wave B/C/D unless the human explicitly expands scope.
 
+## Mandatory orientation (before any ticket)
+
+**Do not start A0 until this pass is done.** Spend the first session reading the repo, then write a short orientation note.
+
+1. **Map the tree** — list top-level dirs and what exists (`Design_Specs/`, `poc/`, `neurons/`, `docs/`, `appendices/`, `agent_pack/`, etc.).
+2. **Read in order (skim deep, don’t invent):**
+   - `Design_Specs/Build_Out.md` (esp. §0–§4, §12 Wave A, invariants)
+   - `Design_Specs/Miner_MCP.md` (tool surface; free vs paid)
+   - `Design_Specs/Scoring.md` (forbidden inputs; gates vs continuous)
+   - `SPEC.md` or root README if present (product intent only)
+   - Existing `poc/` / training code if present (what already works)
+3. **Write** `.agent/ORIENTATION.md` with:
+   - Repo map (what’s real vs missing)
+   - Which docs are authoritative for Wave A
+   - Gaps vs Build_Out Wave A checklist
+   - What you will **not** touch (LIVE, science thresholds, Landscape)
+4. Only then open ticket **A0**.
+
+If a required Design_Spec is missing, note it in ORIENTATION.md and proceed with agent_pack + whatever exists — do not hallucinate missing SPEC text as fact.
+
 ## Authority order (when docs conflict)
 
 1. `Design_Specs/SPEC.md` (if present)
@@ -47,13 +67,14 @@ This pack’s `INVARIANTS.md` and tickets implement Build_Out; they do not overr
 
 ## Working style
 
-1. Read `.agent/WAVE.md` and open tickets under `.agent/tickets/`.
-2. Pick the lowest-id incomplete Wave A ticket.
-3. Implement the minimum change that satisfies DoD.
-4. Run the listed tests (or add them if missing).
-5. Update `.agent/WAVE.md` status.
-6. Commit with a clear message when a ticket is done.
-7. After all Wave A tickets are done, write `.agent/WAVE_A_REPORT.md` with: what shipped, test commands, remaining risks, escalate log, what needs human/SciML next.
+1. Complete **A-1 orientation** first (see Mandatory orientation).
+2. Read `.agent/WAVE.md` and open tickets under `.agent/tickets/`.
+3. Pick the lowest-id incomplete Wave A ticket.
+4. Implement the minimum change that satisfies DoD.
+5. Run the listed tests (or add them if missing).
+6. Update `.agent/WAVE.md` status.
+7. Commit with a clear message when a ticket is done.
+8. After all Wave A tickets are done, write `.agent/WAVE_A_REPORT.md` with: what shipped, test commands, remaining risks, escalate log, what needs human/SciML next.
 
 ## Success
 

@@ -1,6 +1,12 @@
-Read HERMES_KICKOFF.md and .agent/INVARIANTS.md and .agent/WAVE.md in this repo.
+Read agent_pack/HERMES_KICKOFF.md (or HERMES_KICKOFF.md), agent_pack/.agent/INVARIANTS.md, and agent_pack/.agent/WAVE.md.
 
 You are executing Carbon Build_Out Wave A only on the cheap inference path.
+
+BEFORE any ticket:
+1. Map the full repo tree
+2. Read Build_Out.md, Miner_MCP.md, Scoring.md, README/SPEC, and existing poc/ as available
+3. Write .agent/ORIENTATION.md (repo map, doc authority, gaps, non-goals)
+4. Only then start ticket A0
 
 Model routing:
 - Default: glm-5.2 (Engy)
@@ -17,4 +23,4 @@ Rules:
 - After each done ticket, update .agent/WAVE.md with evidence
 - When Wave A checklist is complete, write .agent/WAVE_A_REPORT.md and stop
 
-Start with ticket A0. Show the plan for A0, then implement.
+Start with the orientation pass. Show the plan for orientation, then produce ORIENTATION.md.

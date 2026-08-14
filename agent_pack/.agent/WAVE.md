@@ -8,6 +8,7 @@
 
 | ID | Item | Status | Evidence |
 |----|------|--------|----------|
+| A-1 | **Orientation** — repo map + ORIENTATION.md | todo | |
 | A0 | Repo layout + `.agent/` present | todo | |
 | A1 | CI skeleton (pytest) runs | todo | |
 | A2 | Strategy schema + dry_validate | todo | |
@@ -26,6 +27,7 @@
 
 ## Notes
 
+- Complete **A-1 orientation** before any implementation ticket.
 - Do not mark done without test or file evidence.
 - After all `done`, write `WAVE_A_REPORT.md`.
 - Escalate to grok-4.6 only after fail ×2; log in DECISIONS.md.
