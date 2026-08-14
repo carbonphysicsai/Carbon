@@ -1,9 +1,10 @@
 # Carbon Build-Out Specification
 
 **Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
-**Version:** 1.3  
+**Version:** 1.4  
 **Status:** Executable requirements contract  
-**Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`
+**Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`  
+**Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`
 
 ---
 
@@ -77,7 +78,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C14 | Leaderboard | **High** | Public fields only | — |
 | C15 | Bittensor | **Med** | Wiring + weight map | Mainnet params |
 | C16 | Observability | **High** | Logs/metrics | Alert thresholds |
-| C17–18 | Landscape / specialists | **Out P0** | Card schema hooks only | Design later |
+| C17–18 | Landscape / specialists | **Out P0** | Card schema hooks only in P0; Waves E–F in §18 | See `Landscape_Agent.md`, `Specialist_Bank.md` |
 | C19 | Reference solvers | **Low** | Wrapper + pin skeleton | Convergence evidence |
 
 ---
@@ -111,6 +112,11 @@ WAVE C — vertical integration
 WAVE D — human qualification (not agent-owned)
   SciML: envelope, dossier Level-1, thresholds, MOCK incompleteness, scaffold mediocrity
   Protocol: Launch_Bar (+ MCP §2.4), fee value, qualification manifest signed, LIVE flip
+
+POST-P0 (not required for P0; see §18)
+  WAVE E — Landscape signals          → Landscape_Agent.md
+  WAVE F — Specialist bank            → Specialist_Bank.md
+  WAVE G — Customer bounds / sponsors → Customer_Bounds_Specialist.md
 ```
 
 **Stub policy:** Wave A/B may use TrainEvalAPI stubs for CI and MCP plumbing. **Stub metrics must never write emission weights or LIVE leaderboard ranks.** Wave C swaps in real backend before testnet acceptance.
@@ -340,7 +346,7 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 **C9:** Tool surface and disclosure per `Miner_MCP.md`. Free loop default; paid rare.  
 **C13:** Fee ledger with §6 semantics.  
 **C15:** P0 = working testnet path; mainnet = human.  
-**C17–C18:** Out of SOW; preserve Model Card hooks only.  
+**C17–C18:** Out of **Phase 0** SOW; preserve Model Card hooks in P0. Sequenced as Post-P0 Waves E–F (§18).  
 
 ---
 
@@ -359,15 +365,18 @@ Detail may live in Operations docs; **absence of isolation is a P0 blocker**, no
 
 ---
 
-## 15. Non-goals (initial SOW)
+## 15. Non-goals (Phase 0 / initial SOW)
 
-- Landscape causal / symbolic stack  
-- Specialist commercial SKU / product battery  
+These are **out of Phase 0 waves A–D**. They are not “never.” Post-P0 sequencing is §18.
+
+- Landscape causal / symbolic stack → **Wave E** (`Landscape_Agent.md`)  
+- Specialist commercial SKU / product battery → **Wave F** (`Specialist_Bank.md`)  
+- Customer bounds / sponsored-challenge GTM → **Wave G** (`Customer_Bounds_Specialist.md`)  
 - Marketplace UI  
-- Automated mock correlation rotation service  
+- Automated mock correlation rotation service (track as P1 ops; §17)  
 - Full commercial CAE mesh pipeline  
 - Hermes/Mira vendor plugins  
-- Agent-invented LIVE physics thresholds  
+- Agent-invented LIVE physics thresholds (**permanent** non-goal)  
 - Repo-wide rename as a deliverable  
 - Major C8 investment unless subnet requires it  
 
@@ -405,4 +414,69 @@ Do **not** block Wave A on these.
 
 ---
 
-*Build_Out v1.3 — executable sequencing + boundary contracts. Authority: SPEC → Miner_MCP → Scoring → science packs → Launch_Bar → this file.*
+## 18. Post-P0 waves (company + compounding product)
+
+Phase 0 ends at **Wave D / LIVE** for at least one challenge and a working **testnet** path (Wave C).  
+What follows is **not** required to claim P0 subnet readiness. It *is* required to claim Landscape intelligence, commercial specialists, or sponsored-challenge GTM.
+
+**Hard rule:** Post-P0 waves **must not** weaken Phase 0 invariants (gates judge score; stubs never emit; no seed leakage; fee≠score). Landscape never overrides hard gates.
+
+**Prerequisites before public product claims:**
+- Wave C green (real TrainEval + validator e2e + testnet weights observable)
+- Wave D green for the challenge versions that feed cards into Landscape
+- `Launch_Bar.md` green before L0 “verified card” compounding or public prior-quality claims (`Landscape_Agent.md`)
+
+```text
+WAVE E — Landscape signals (C17)
+  Card lake from Launch-Bar-grade Model Cards only
+  L0: ingest + daily noisy prior packs (redact, lag, no full champ weights)
+  L1: failure atlas / symbolic hooks
+  L2: causal core + specialist *pipeline hooks* (not full SKU)
+  Ports: A search (miners) · B eval (validators only) · C economy proposals · D product hooks
+  Authority: Landscape_Agent.md
+  Human: coarsen policy, publish cadence, what may leave the building
+
+WAVE F — Specialist bank (C18)
+  Effect-synthesized recipes from Landscape → controlled retrain
+  Product battery (verification gauntlet) before any commercial SKU
+  Dual egress: noisy search path vs closed product path
+  No teacher-checkpoint distillation as the product
+  Authority: Specialist_Bank.md
+  Human: which regimes to productize; battery pass/fail signoff
+
+WAVE G — Customer bounds & sponsored challenges (GTM)
+  Bounds intake: requirements / constraints / envelope (default: no customer proprietary trajectories)
+  Match Landscape evidence → fulfill off-subnet when sufficient
+  Sponsored / open / IP-licensed / private challenge tiers when network search is needed
+  Customer-side adapt kit voids prior cert until re-qualification
+  Authority: Customer_Bounds_Specialist.md, Use_Cases_by_Phase.md
+  Human: pricing, contracts, which challenges to host
+```
+
+### 18.1 Post-P0 acceptance (directional)
+
+| Wave | Done when (summary) |
+|------|---------------------|
+| **E** | Card lake + noisy prior publish path exist; gates still sole score authority; Launch_Bar respected |
+| **F** | At least one regime can run recipe → retrain → **product battery** → closed artifact (fixture or real) |
+| **G** | Bounds schema + fulfillment rules documented and demoed; one trial path without requiring customer secret data |
+
+### 18.2 What stays human
+
+- LIVE thresholds and dossier science (still Wave D discipline per challenge)
+- Mainnet parameters and emission economics
+- Commercial pricing, sponsorship terms, IP licenses
+- Any claim that a specialist is “system certified” for a customer plant
+
+### 18.3 Explicit non-coupling
+
+| Do not | Why |
+|--------|-----|
+| Feed free-path mock metrics into Landscape as verified truth | Corrupts Port D |
+| Sell eval outcomes or emission weight | Protocol integrity |
+| Ship specialist without product battery | `Specialist_Bank.md` doctrine |
+| Block Phase 0 on Waves E–G | P0 is subnet readiness, not OpCo scale |
+
+---
+
+*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. Authority: SPEC → Miner_MCP → Scoring → science packs → Launch_Bar → this file; Post-P0 product docs as cited in §18.*
