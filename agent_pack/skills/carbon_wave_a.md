@@ -2,9 +2,9 @@
 
 When the user says to build Carbon, execute Wave A, or continue tickets:
 
-1. Read `HERMES_KICKOFF.md` (repo root or agent_pack/).
-2. Read `.agent/INVARIANTS.md`, `.agent/MODEL_ROUTING.md`, and `.agent/WAVE.md`.
-3. Open the next `todo` ticket in `.agent/tickets/` (numeric order A0→A12).
+1. If `.agent/ORIENTATION.md` is missing, complete ticket **A-1** first (full repo read + orientation note).
+2. Read `HERMES_KICKOFF.md` (repo root or agent_pack/), `.agent/INVARIANTS.md`, `.agent/MODEL_ROUTING.md`, and `.agent/WAVE.md`.
+3. Open the next `todo` ticket in `.agent/tickets/` (A-1, then A0→A12).
 4. Implement minimum viable DoD; add tests first or with code.
 5. Run the ticket’s test command.
 6. Update `.agent/WAVE.md` status + evidence.

@@ -11,6 +11,10 @@ escalate:    grok-4.6  (xAI)      → fail ×2 only
 cleanup:     Fable/Sol (optional) → after WAVE_A_REPORT
 ```
 
+## Agent learns the repo first
+
+Hermes is instructed to **map and read the full Carbon repo** (Build_Out, Miner_MCP, Scoring, poc/, etc.) and write `.agent/ORIENTATION.md` **before** ticket A0. See ticket `A-1_orientation.md`.
+
 ## What’s in this pack
 
 | Path | Purpose |
@@ -22,7 +26,7 @@ cleanup:     Fable/Sol (optional) → after WAVE_A_REPORT
 | `.agent/INVARIANTS.md` | Never-violate rules |
 | `.agent/MODEL_ROUTING.md` | Model + cost policy |
 | `.agent/DECISIONS.md` | Decision log |
-| `.agent/tickets/A0–A12` | Bounded Wave A work units |
+| `.agent/tickets/A-1, A0–A12` | Orientation + Wave A work units |
 | `skills/carbon_wave_a.md` | Optional Hermes skill text |
 
 ## Setup (human, ~10 minutes)
