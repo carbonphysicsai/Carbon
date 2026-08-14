@@ -1,14 +1,22 @@
-# Ticket A7 — Fees + submission FSM
+# Ticket A7 — Fees + submission FSM (C13 + Wave A FSM skeleton)
 
 **Wave:** A  
-**Goal:** submit returns permanent submission_id; state machine; fee≠score.
+**Build_Out:** §5–§6 submission_id + fees, C13  
+**Depends on:** A2 (validate before accept)  
+
+**Goal:** Every submit gets a permanent `submission_id`; state machine; fee never enters score.
 
 **DoD:**
-- [ ] States: RECEIVED → VALIDATED → QUEUED → RUNNING → SCORED → PUBLISHED (+ REJECTED, FAILED_INFRA, FAILED_STRATEGY)
-- [ ] Idempotent behavior documented/tested for duplicate strategy_hash+hotkey
-- [ ] Fee ledger stub; fee not passed into ScoreEngine inputs
-- [ ] Unit tests for transitions and reject path
+- [ ] States: `RECEIVED → VALIDATED → QUEUED → RUNNING → SCORED → PUBLISHED` plus `REJECTED`, `FAILED_INFRA`, `FAILED_STRATEGY`
+- [ ] `submit(hotkey, challenge_id, strategy) -> submission_id`
+- [ ] Idempotency: duplicate `strategy_hash + hotkey + challenge version` returns existing open `submission_id` (Build_Out default)
+- [ ] Fee ledger stub: record fee event; **fee amount not passed into ScoreEngine**
+- [ ] Invalid strategy → `REJECTED` without fee charge (or explicit policy documented)
+- [ ] Infra failure path does not invent physics gate results
+- [ ] Unit tests: happy path transitions, idempotent resubmit, reject path, fee≠score assertion
 
-**Must not:** Charge fee into scoring formula.
+**Must not:** Use fee as a score feature. Must not emit weights from FSM alone.
 
 **Tests:** `pytest tests/test_submission_fsm.py -q`
+
+**Pin to Carbon:** Fee is anti-spam / cost recovery only; scoring integrity is independent.
