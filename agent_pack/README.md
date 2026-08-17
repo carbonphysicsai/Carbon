@@ -1,59 +1,39 @@
 # Carbon agent pack — executor-agnostic Wave work
 
-Bounded tickets + acceptance tests + invariants for building Carbon against **Build_Out v1.4**.
-
-Works with **Codex, Hermes, Claude Code, Cursor, or a human**. The valuable pattern is:
+Protocol docs and optional harness notes. **Live board and tickets live at repo root `.agent/`.**
 
 ```text
 spec → bounded ticket → DoD → tests → review → next ticket
 ```
 
-Not any single vendor harness.
+---
+
+## Canonical paths
+
+| Path | Role |
+|------|------|
+| **`/AGENTS.md`** | Constitution for every agent/human |
+| **`/.agent/`** | WAVE, ORIENTATION, DECISIONS, INVARIANTS, tickets, plans |
+| **`agent_pack/EXECUTION_PROTOCOL.md`** | Ticket loop |
+| **`agent_pack/PLANS.md`** | Plan template for complex tickets |
+| **`agent_pack/executors/`** | Optional Hermes/etc. only |
 
 ---
 
-## Start here
+## Process rules
 
-| Doc | Role |
-|-----|------|
-| **`/AGENTS.md`** (repo root) | Constitutional rules for every agent/human |
-| **`EXECUTION_PROTOCOL.md`** | Wave ticket loop, orientation, audit-first |
-| **`.agent/WAVE.md`** | Checklist / status board |
-| **`.agent/INVARIANTS.md`** | Never-violate list |
-| **`.agent/tickets/`** | A-1, A0–A12 work units |
-| **`PLANS.md`** | Optional plan template for complex tickets |
-| **`executors/`** | Optional harness-specific notes (Hermes, etc.) |
+- Build_Out **v1.4**
+- Orientation + KEEP/WRAP/REPAIR/REPLACE
+- Baseline tests before/after each ticket
+- One ticket per branch/worktree
+- v1.4 FSM/LIVE hash semantics
+- Start agents with **A-1 only**, then checkpoint
 
 ---
 
-## Process rules (keep)
+## First experiment
 
-- Sync to **Build_Out v1.4**
-- Mandatory orientation + **KEEP/WRAP/REPAIR/REPLACE**
-- Preserve existing PoC / Grok-shipped code unless REPLACE is justified
-- Baseline regression **before and after** each ticket
-- One ticket per branch/worktree (harness-native is fine)
-- Explicit stop / block on repeated failure or unresolved science decisions
-- Stronger observability (logs + metrics + failure tags)
-- v1.4 FSM/LIVE semantics (`CANCELLED`, FAILED_INFRA, hash-bound qualification)
-
----
-
-## What moved out of the core protocol
-
-Model routing (GLM/Kimi/Grok), Engy URLs, and Hermes `${VAR}` config are **not** part of the execution protocol. They live under `executors/` if you still use that harness.
-
----
-
-## Suggested first gate
-
-1. Orientation (A-1)  
-2. A0 → A1 → A2 → A3  
-3. Human review of orientation quality + diffs  
+1. Run **A-1** orientation only  
+2. Human reviews ORIENTATION.md  
+3. If solid → A0→A3 → checkpoint  
 4. Continue Wave A  
-
----
-
-## Out of scope unless human expands
-
-Wave B/C/D full run, LIVE flip, inventing thresholds, Landscape/specialists, multi-agent swarm on core contracts.
