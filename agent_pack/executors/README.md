@@ -1,11 +1,15 @@
 # Optional executor notes
 
-Core Wave work is defined in `../EXECUTION_PROTOCOL.md` and is **harness-agnostic**.
+Core Wave work is defined by:
+
+- root `AGENTS.md`
+- `agent_pack/EXECUTION_PROTOCOL.md`
+- root `.agent/tickets/`
 
 This folder holds optional, non-authoritative setup hints for specific tools.
 
-| File | When to use |
+| Path | When to use |
 |------|-------------|
-| `hermes.md` | If running Wave tickets via Hermes Agent + OpenAI-compatible APIs |
+| `hermes/` | If running Wave tickets via Hermes Agent |
 
-Codex users: prefer root `AGENTS.md` + tickets; use Codex worktrees/threads per ticket. No Hermes config required.
+Codex users: root `AGENTS.md` + `.agent/` tickets only. No Hermes config required.
