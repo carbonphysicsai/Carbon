@@ -1,9 +1,0 @@
-# OPTIONAL — Hermes only. Not part of Carbon protocol.
-# Prefer agent_pack/executors/hermes.md
-# Hermes expands ${VAR} only (not bare $VAR).
-
-model:
-  provider: "custom"
-  default: "glm-5.2"
-  base_url: "https://api.engy.ai/v1"
-  api_key: "${ENGY_API_KEY}"
