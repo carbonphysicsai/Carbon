@@ -1,34 +1,9 @@
-# Example Hermes config for Carbon cheap path + Grok escalate
-# Copy relevant sections into ~/.hermes/config.yaml
-# Do NOT commit real API keys.
-#
-# IMPORTANT: Hermes expands ${VAR} only — bare $VAR is NOT expanded.
+# OPTIONAL — Hermes only. Not part of Carbon protocol.
+# Prefer agent_pack/executors/hermes.md
+# Hermes expands ${VAR} only (not bare $VAR).
 
-# --- Default: Engy GLM (bulk Wave A) ---
 model:
   provider: "custom"
   default: "glm-5.2"
   base_url: "https://api.engy.ai/v1"
   api_key: "${ENGY_API_KEY}"
-
-# Optional tool-heavy default swap for a single session:
-# default: "kimi-k3"
-
-# --- Escalate: Grok 4.6 (xAI) ---
-# Use only after fail ×2 on a ticket, or when human requests hard coding pass.
-# Configure as a second provider if your Hermes version supports named providers.
-#
-# providers:
-#   engy:
-#     base_url: "https://api.engy.ai/v1"
-#     api_key: "${ENGY_API_KEY}"
-#   xai:
-#     base_url: "https://api.x.ai/v1"
-#     api_key: "${XAI_API_KEY}"
-#
-# escalate_model: "grok-4.6"
-# escalate_provider: "xai"
-
-# Secrets in ~/.hermes/.env (never commit):
-# ENGY_API_KEY=...
-# XAI_API_KEY=...

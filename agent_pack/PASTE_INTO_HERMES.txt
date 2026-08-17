@@ -1,35 +1,24 @@
-Read agent_pack/HERMES_KICKOFF.md, agent_pack/.agent/INVARIANTS.md, agent_pack/.agent/MODEL_ROUTING.md, and agent_pack/.agent/WAVE.md.
+Read the repo root AGENTS.md and agent_pack/EXECUTION_PROTOCOL.md, then agent_pack/.agent/INVARIANTS.md and agent_pack/.agent/WAVE.md.
 
-You are executing Carbon Build_Out **v1.4 Wave A only** on the cheap inference path.
+You are executing Carbon Build_Out v1.4 Wave A only. Executor brand does not matter; follow the protocol and tickets.
 
 BEFORE any ticket:
-1. Map the full repo tree (including poc/, Carbon_Logic/, tests, CI)
-2. Read Build_Out.md v1.4, Miner_MCP.md, Scoring.md, README/SPEC, and existing poc/ as available
+1. Map the full repo tree (poc/, Carbon_Logic/, tests, CI, Design_Specs/)
+2. Read Build_Out.md v1.4, Miner_MCP.md, Scoring.md, README/SPEC, existing code
 3. Classify major modules KEEP / WRAP / REPAIR / REPLACE
-4. Record git commit SHA + Build_Out version in .agent/ORIENTATION.md
-5. Write .agent/ORIENTATION.md (repo map, doc authority, gaps, non-goals, classification table)
-6. Only then start ticket A0 on branch agent/wave-a/A0
-
-Model routing:
-- Default: glm-5.2 (Engy)
-- Optional tools: kimi-k3
-- Escalate: grok-4.6 only after fail ×2 on the same ticket (or if human enables it)
-- Soft $ budget per ticket (see MODEL_ROUTING.md) — stop/report if exceeded
-- Do not run entire Wave A on Grok
-- Do not self-approve: leave a clean diff for human/Codex review
+4. Record git commit SHA + Build_Out version in orientation note
+5. Write .agent/ORIENTATION.md (or agent_pack/.agent/ORIENTATION.md)
+6. Only then start ticket A0
 
 Rules:
-- Audit-first: reuse/wrap/repair before create/replace; never delete existing code only for tree cosmetics
-- One ticket at a time from .agent/tickets/ in order A-1, A0 → A12
-- Branch per ticket; do not push straight to main
-- Before and after each change: run existing baseline pytest/PoC smoke, then ticket tests
+- Audit-first: reuse/wrap/repair before create/replace
+- One ticket at a time; baseline tests before and after changes
 - Do not invent physics thresholds or flip LIVE
-- Stubs must set emission_capable=False
-- Mock/light paths must refuse official packs/seeds
-- FSM must include CANCELLED; idempotency key = strategy_hash + hotkey + challenge version; FAILED_INFRA is refund/retry not physics fail
-- LIVE gate requires qualification hashes bound to exact challenge version (not merely non-null fields)
-- Fail twice on default model → mark blocked OR one Grok escalate; log in DECISIONS.md
-- After each done ticket, update .agent/WAVE.md with evidence and wait for merge unless human says continue
-- When Wave A checklist is complete, write .agent/WAVE_A_REPORT.md and stop
+- Stubs emission_capable=False; mock refuses official packs/seeds
+- FSM: include CANCELLED; FAILED_INFRA is refund/retry; idempotency = strategy_hash+hotkey+challenge version
+- LIVE gate requires qualification hashes on exact challenge version
+- On repeated failure or unresolved science decision: mark blocked and report
+- Update WAVE.md with evidence; prefer review/merge between tickets
+- When Wave A is complete, write WAVE_A_REPORT.md and stop
 
-Start with the orientation pass. Show the plan for orientation, then produce ORIENTATION.md.
+Harness/model config is out of band. Start with orientation; show plan, then write ORIENTATION.md.

@@ -1,21 +1,22 @@
 # Carbon Agent Wave Status
 
 **Current wave:** A  
-**Mode:** Cheap inference (Hermes + Engy GLM/Kimi; Grok escalate on fail ×2)  
+**Executor:** any (Codex / Hermes / human / …) — see `../EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A  
+**Constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA in ORIENTATION.md at start  
 
 ## Workflow
 
 ```text
-A-1 orientation → branch agent/wave-a/<id> → baseline tests → implement → tests → review/merge → next
+A-1 orientation → one ticket → baseline tests → implement → tests → review/merge → next
 ```
 
-- Sequential by default (no swarm on interdependent contracts).
-- No direct pushes to `main` from the agent.
-- Soft $ budget per ticket — see MODEL_ROUTING.md.
+- Sequential by default.
+- Harness-native worktrees/branches preferred; no in-repo branching engine required.
+- Model routing is **not** part of this board (optional under `../executors/`).
 
-## Wave A checklist (maps to Build_Out v1.4 components)
+## Wave A checklist
 
 | ID | Build_Out | Item | Status | Evidence |
 |----|-----------|------|--------|----------|
@@ -42,7 +43,7 @@ A-1 orientation → branch agent/wave-a/<id> → baseline tests → implement �
 A-1 → A0 → A1 → A2 → A3 → A4 → A5 → A6 → A7 → A8 → A9 → A10 → A11 → A12
 ```
 
-Recommended money gate: stop after **A3** for human review, then continue.
+Recommended gate: human review after **A3**, then continue.
 
 A9 depends on A2, A6, A7, A8. A12 depends on A4–A10.
 
@@ -52,5 +53,4 @@ A9 depends on A2, A6, A7, A8. A12 depends on A4–A10.
 - Do not mark done without test or file evidence.
 - Before/after each ticket: run **baseline** pytest/PoC smoke.
 - After all `done`, write `WAVE_A_REPORT.md`.
-- Escalate to grok-4.6 only after fail ×2; log in DECISIONS.md with spend.
-- Wave B+ (generator, real TrainEval, validator neuron) is **out of scope** for this pack unless human expands.
+- Wave B+ out of scope unless human expands.
