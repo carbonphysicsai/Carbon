@@ -545,8 +545,8 @@
       <h2>One codebase, two backends, used differently on each side</h2>
       <div class="two-col">
         <div class="col-panel">
-          <h3>Miner side: stay hardware-agnostic</h3>
-          <p>JAX/XLA compiles the same model to GPU or TPU with no rewrite. Don't require TPU for mining: TPU access is cloud/TRC-gated, not consumer hardware, so mandating it narrows the miner pool against Bittensor's own decentralization incentive.</p>
+          <h3>Miner side: no hardware decision at all</h3>
+          <p>A strategy names a backbone (<code>fno</code>, <code>transolver</code>, ...), it never specifies GPU or TPU. That choice doesn't exist on the miner's side to make, because the miner never runs the model. Whatever the strategy asks for, the validator is the one who executes it.</p>
         </div>
         <div class="col-panel right">
           <h3>Validator side: TPU is the clearer win</h3>
