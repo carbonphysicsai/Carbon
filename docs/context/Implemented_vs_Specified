@@ -1,0 +1,68 @@
+# Carbon — Implemented vs Specified
+**Status:** v1 — provisional implementation ledger for team review
+
+Current design specs supersede the historical Grok-era framework. This ledger never infers implementation from specification. Implementation assessments below are preliminary and should be tightened ticket-by-ticket during Build Out.
+
+## Status vocabulary
+**SPECIFIED** = normative behavior exists.  
+**IMPLEMENTED** = code materially implements it.  
+**TESTED** = acceptance/invariant tests demonstrate it in the intended environment.  
+**PRODUCTION-QUALIFIED** = required human scientific/security/operational qualification is complete.
+
+## P0 trust path
+
+| Capability | Specified | Implemented | Tested | Production-qualified | v1 assessment / next action |
+|---|---|---|---|---|---|
+| Domain-owned spec authority | Yes | N/A | N/A | N/A | Reconciled in specs/Build Out. |
+| One complete P0 vertical | Yes | Partial historical PoC/framework | Partial historical evidence | No | Re-audit PoC against reconciled P0 contract. |
+| Strategy schema | Yes | Partial/legacy | Partial | No | Reconcile schema with P0 allowed search surface. |
+| Independent validator retraining | Yes | Partial/legacy | End-to-end not established | No | Build/repair through Wave C. |
+| Challenge registry + immutable version binding | Yes | Partial/unknown | Not established | No | Audit against Build Out C1. |
+| Shared official exam identity | Yes | Legacy seed primitives exist; reconciled end-to-end flow not established | No current acceptance proof | No | Implement submission-bound official seed flow. |
+| Train/eval/stress role separation | Yes | Partial primitives + PoC history | Partial historical tests | No | Rebuild acceptance tests under current contract. |
+| Hidden-seed leakage prevention | Yes | Partial/unknown | Not established end-to-end | No | Regression tests across cards/MCP/logs. |
+| Mock/official structural isolation | Yes | Partial/unknown | Not established | No | Prove mock cannot access official packs/seeds. |
+| Generator API + first qualified generator | Yes | Prototype/PoC pieces | Partial | No | Select KEEP/WRAP/REPAIR pieces; science qualification pending. |
+| Validation Dossier machinery | Yes | Skeleton/prototype likely | Not established | No | Build evidence-appropriate dossier path. |
+| Challenge-bound Score Pack loader/hash pin | Yes | Partial/legacy | Not established | No | No silent defaults. |
+| Binary mandatory hard gates | Yes | Some prototype zeroing exists | Partial | No | Rebuild against current `Scoring.md`. |
+| Physics/robustness/accuracy pack semantics | Yes | Legacy/partial | Not established | No | Implement current weighted-geometric design. |
+| Weighted-geometric aggregate | Yes | Historical code used other semantics | No | No | Treat current spec as implementation target. |
+| Model Card internal record | Yes | Partial/legacy | Not established | No | Reconcile required fields and append-only behavior. |
+| Budgeted EvaluationCard | Yes | Partial/unknown | Not established | No | Implement disclosure allow-list. |
+| Submission FSM/idempotency | Yes | Partial/unknown | Not established | No | Audit against Build Out lifecycle. |
+| Fee ≠ score | Yes | Partial/unknown | Not established | No | Add explicit invariant test. |
+| Infra failure ≠ scientific failure | Yes | Partial/unknown | Not established | No | Implement retry/refund/status semantics. |
+| Pinned execution/resource isolation | Yes | Partial/legacy | Not established | No | Security-critical P0 work. |
+| Reproducibility within qualified tolerance | Yes | Determinism utilities exist historically | Partial | No | Define human-approved tolerance and test matrix. |
+| Bittensor testnet scores → weights | Yes | Legacy wiring exists | Current acceptance not established | No | Wave C must prove actual testnet path. |
+| Launch-Bar enforcement | Yes | Partial/unknown | Not established | No | Gate LIVE on exact qualification artifacts. |
+
+## Post-P0 / later layers
+
+| Capability | Specified | Implemented | Tested | Production-qualified | v1 assessment |
+|---|---|---|---|---|---|
+| Landscape card lake / priors | Yes, post-Launch-Bar | Prototype/legacy code may exist | Not qualified | No | Do not represent as live intelligence. |
+| Landscape causal/symbolic core | Yes, later | Prototype/legacy fragments may exist | Not qualified | No | Observational decision support only. |
+| Port B progressive routing | Yes, constrained | Not established | No | No | Must preserve same mandatory score-bearing exam. |
+| Specialist Bank | Yes | Prototype/legacy fragments may exist | Not qualified | No | Product path remains future. |
+| Product Battery | Yes | Not established as qualified system | No | No | Product-specific packs/thresholds still human-owned. |
+| Customer bounds / adaptation | Yes, later | Not established | No | No | Requalification required after adaptation. |
+| Air-gap / confidential regimes | Specified by phase | Not established | No | No | Future security/ops qualification. |
+
+## Archaeology rule
+For each Build Out ticket, classify relevant historical code:
+
+1. **KEEP** — already compliant and testable.
+2. **WRAP** — useful implementation behind a new required interface.
+3. **REPAIR** — close to spec but semantically incomplete.
+4. **REPLACE** — materially conflicts with the reconciled spec or creates unacceptable risk.
+
+No code is kept merely because it exists, and no code is replaced merely because it is old.
+
+## Immediate ledger work
+1. Re-run repository orientation against the reconciled specs.
+2. Map every Wave A–C acceptance criterion to code/tests.
+3. Replace “partial/unknown” with file/test evidence.
+4. Keep science-dependent items blocked with explicit human-input markers.
+5. Do not mark anything PRODUCTION-QUALIFIED until the corresponding qualification evidence exists.
