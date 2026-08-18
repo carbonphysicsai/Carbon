@@ -1,5 +1,8 @@
 # Appendix: Generator Validation & Credibility Dossier
 
+> **Reconciliation (post-ratification):** Universal-looking numerical criteria are **not** globally normative. Validation requirements are **conditional on physics/evidence type**. **Reference caches are dossier evidence**, not live official exam data.
+
+
 **Carbon Subnet**  
 **Version:** 1.0 (July 2026)  
 **Status:** Core Engineering Appendix  
@@ -89,7 +92,7 @@ This document defines the **Generator Validation Protocol** — how Carbon shows
 |------|--------|----------------|
 | **Parameter Sweep Coverage** | Latin Hypercube Sampling | 95% of envelope sampled |
 | **Edge Case Coverage** | Explicit corner cases | 100% of envelope corners tested |
-| **Stress Variant Generation** | Extended envelope sampling | 100% coverage of stress categories |
+| **Stress Variant Generation** | Edge/rare-regime sampling **inside declared envelope** | 100% coverage of stress categories |
 
 ### Level 3: Uncertainty Quantification (Phase 1A+)
 
@@ -588,4 +591,4 @@ This validation protocol implements the **Trustless Verification & Data Generati
 
 ---
 
-*This document is the canonical reference for generator validation in Carbon. All challenge onboarding must produce a Validation Dossier that meets these standards before the challenge goes live.*
+*This document is the canonical reference for generator validation in Carbon. All challenge onboarding must produce a Validation Dossier whose required checks are **conditional on the physics/evidence type** of that challenge; numerical cutoffs in examples are illustrative unless the challenge’s dossier explicitly adopts them.*
