@@ -4,6 +4,17 @@
 
 **Status:** Phase 0 foundations + offline PoC. Landscape and commercial layers are **build-ordered** — not assumed live at launch.
 
+> **Reconciliation (post-ratification):** SPEC remains **architectural**. Mathematical scoring authority lives only in `Design_Specs/Scoring.md` (binary hard gates; weighted geometric soft aggregate; P0 baseline **45/30/25** pack-bound).
+>
+> **P0 launch slice vs Phase-0 expansion:** The **P0 launch slice** is the minimum LIVE subnet loop (one lean challenge path, mandatory lean pack, binary gates, weighted geometric scoring). **Phase-0 expansion** adds further academic PDEs/packs under the same invariants — not a different scoring constitution.
+>
+> **Shared exam identity.** Official evaluation pins one exam identity per `(challenge_id, scoring_version, generator_version)`.
+>
+> **Public physics / hidden realizations.** Declared envelope + dossier are public; official draws/seeds stay hidden.
+>
+> **Port B.** Every scored nonzero submission completes the **same mandatory lean pack**; progressive depth is scheduling/prefilter/supplemental, not variable grading.
+
+
 **Canonical companions**
 
 | Doc | Role |
@@ -106,7 +117,7 @@ LANDSCAPE AGENT (after Launch Bar)
   └─ Port D Product: opportunity rank → Specialist Bank gauntlet
 
 SPECIALIST BANK (Port D execution)
-  ├─ Effect-synthesized recipes (not single-winner clones)
+  ├─ Candidate recipes (winning strategy allowed as candidate; rank/checkpoint ≠ qualification)
   ├─ Controlled retrain + product battery
   └─ Dual egress: noisy miner derivatives | closed commercial SKU
 
@@ -356,7 +367,7 @@ ship_commercial_full_sku =
     AND dual_egress_policy
 ```
 
-**Banned for commercial export:** Teacher weight copy; single-winner JSON as sole recipe; ship without product-battery report.
+**Banned for commercial export:** Teacher weight copy; shipping a single-winner strategy/JSON **without** fresh independent qualification (retrain + product battery); ship without product-battery report. A winning strategy **may** be a candidate seed.
 
 ### Landscape phases
 
@@ -459,6 +470,11 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 ---
 
 ## 15. Security and correctness invariants
+
+- **Shared exam identity:** all emission-capable evals for a `(challenge_id, scoring_version, generator_version)` pin the same official exam identity (pack hashes + seed domain). Validators do not invent private alternate exams for scoring.
+- **Public physics / hidden realization:** the declared envelope, generator code, and validation dossier are public; official realization draws and seeds remain hidden.
+- **Port B:** every scored nonzero submission completes the **same mandatory lean pack**; progressive depth must not change the graded identity of the lean exam.
+
 
 | Invariant | Enforcement |
 |-----------|-------------|
