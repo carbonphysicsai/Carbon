@@ -1,5 +1,9 @@
 # TRUSTLESS_VERIFICATION_AND_DATA_GENERATION.md
 
+> **Reconciliation (post-ratification):** Keep shared-seed **Path A**. Add: submission-specific **future beacon** rule; **official exam identity**; validator identities excluded from seed derivation; production direction = **hybrid beacon**; **declared challenge envelope contains all score-bearing draws**.
+> Replace “validator-controlled execution (adversarially constrained, independently reproducible)” language with: **validator-controlled execution, adversarially constrained and independently reproducible**.
+
+
 This document defines Carbon’s approach to generating evaluation data (both for stress testing and benchmarking) in a way that is **trustless, auditable, unpredictable to miners, and scientifically credible**.
 
 ---
