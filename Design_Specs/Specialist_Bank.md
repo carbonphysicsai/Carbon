@@ -1,5 +1,8 @@
 # Specialist Bank — Landscape → Specialist Pipeline & Phase Customers
 
+> **Reconciliation (post-ratification):** Anti-checkpoint-laundering and Product Battery retained. A **single winning strategy may be a specialist candidate**. What is prohibited is **direct product promotion without fresh independent qualification** (product battery / gauntlet as specified).
+
+
 ## TL;DR
 
 **Job:** Productize landscape evidence into regime-scoped specialists without wrecking incentives or revenue.
@@ -17,7 +20,7 @@ Do **not** distill teacher checkpoints or launder leaderboard weights. Build a *
 Leaderboard rank ≠ shelf product. **No commercial specialist ships without the product battery.**  
 Heavy evals run rarely (promote candidates), not on every submission.
 
-**Pipeline:** Model Cards → connected landscape graph → causal/symbolic fit → rank opportunities → recipe from *effects* (not single winners) → controlled retrain → **fresh** lean gates → **product battery** → bank.
+**Pipeline:** Model Cards → connected landscape graph → causal/symbolic fit → rank opportunities → recipe from landscape evidence (single-winner strategy may be a **candidate**; rank/checkpoint alone is **not** qualification) → controlled retrain → **fresh** lean gates → **product battery** → bank.
 
 **Dual egress (do not mix)**
 | Path | Who | What they get |
@@ -187,7 +190,7 @@ This section is the **definable strategy** for Landscape → Specialist. It alig
 |--------------|----------------------------------------|
 | **Teacher distillation** | Copying winner weights / logits re-encodes that run's gaps; not verifiable as a *method* |
 | **Leaderboard laundering** | Yesterday's rank ≠ today's product; seeds and stress differ |
-| **Single-winner JSON as recipe** | Overfits one trajectory; recipes must come from **stable effects** across cards |
+| **Rank/checkpoint as qualification** | Winning strategy **may seed** a candidate; **rank/checkpoint alone is not qualification** — needs controlled retrain + product battery |
 | **Synthetic tasks with no execution** | Product claims (INV, plant) must be **run**, not asserted |
 | **Ship without lineage** | No traceable card/causal/PB evidence → no SKU |
 
@@ -413,7 +416,7 @@ Someone may approximate a specialist from noisy priors and publish a clone. That
 | **Composite specialist** | Locked combination of the above | Internal + **closed** product |
 | **Full surrogate SKU** | ONNX + Model Card + gate + **PB certs** from controlled retrain | Primary **paid** product |
 
-**Default path:** graph evidence → effect-synthesized recipe → controlled retrain → lean re-gate → **gauntlet / product battery** → bank → dual egress.
+**Default path:** graph evidence → candidate recipe (may start from a winning strategy; must not rely on rank alone) → controlled retrain → lean re-gate → **gauntlet / product battery** → bank → dual egress.
 
 ---
 
@@ -475,7 +478,7 @@ Model Cards (lean verified)     ← ground truth ingest
 CONNECTED GRAPH (Landscape fitters + PB outcomes)
         │
         ▼
-Multiply: opportunity rank → candidate spec (effects, not single winner)
+Multiply: opportunity rank → candidate spec (winning strategy allowed as input; effects/evidence preferred; rank alone insufficient)
         │
         ▼
 Execute: construct recipe + controlled retrain (new stress seeds)
@@ -502,7 +505,7 @@ Noisy prior pack         Closed SKU + license + PB certs
 
 **A — Select:** opportunity scores; min support; causal stability; commercial priority.  
 **B — Specify:** `specialist_candidate_v1` with `product_battery` required set and provenance.  
-**C — Construct:** loss/curriculum/composite from **effect bands**, not raw winner JSON.  
+**C — Construct:** candidate may start from a **winning strategy** or landscape effect bands (preferred when available). Rank/checkpoint is not qualification.  
 **D — Execute + judge:** fresh train; new seeds; lean gates; full PB for `full_surrogate`.  
 **E — Package:** `specialist_bank_item_v1` including `product_battery_report`, latency_class, lineage.  
 **F — Operate:** noisy miner path only; commercial closed path; refresh/retire on PB regression.
@@ -515,7 +518,7 @@ Noisy prior pack         Closed SKU + license + PB certs
 
 ### Policy rules
 
-- Recipes from **effects**, not single winners.  
+- Recipes may incorporate a **winning strategy as a candidate seed**; qualification requires fresh independent retrain + product battery — **not** single-winner rank or checkpoint copy.  
 - **No teacher-weight distillation** as bank entry.  
 - **No pay-to-compete.**  
 - **No full specialist on the miner API.**  
@@ -528,7 +531,7 @@ Noisy prior pack         Closed SKU + license + PB certs
 
 **Graph support:** Burgers + FNO cards show stable positive causal effect of conservation-penalty band and a resolution curriculum on stress robustness; n≈120; `product_jobs: [inverse_design, plant]`.
 
-**Multiply:** composite recipe from effect bands; PB-INV targets on late-time shape/energy; PB-ROLL multi-step; PB-ADV low-ν box.
+**Multiply:** candidate recipe (winner-seeded or effect-synthesized); PB-INV / PB-ROLL / PB-ADV as specified; always fresh independent qualification.
 
 **Execute:** controlled retrains, new stress seeds, lean gates + short rollout.
 
@@ -616,7 +619,7 @@ Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evide
 | Stage | Metric |
 |-------|--------|
 | Graph health | Support density; lineage completeness on bank items |
-| Multiply quality | % candidates with effect-based recipes (not single-winner clones) |
+| Multiply quality | % candidates that pass fresh independent qualification (not promoted by rank/checkpoint alone) |
 | Execute | Lean retrain gate pass rate |
 | **Gauntlet** | PB pass rate by gate ID; INV constraint rate; ADV max violation |
 | Repair loop | Time-to-requeue after promotion_fail; fraction fixed vs abandoned |
@@ -642,7 +645,7 @@ Connected graph of gated runs → multiply into recipes and product tasks → ex
 - **Dual egress** protects incentives and revenue.  
 - Phase customers move from canonical baselines → OEM design loops → sealed dual-regime → coupled production twins.
 
-That is the Landscape → Specialist system: evidence-ranked regimes, effect-synthesized recipes, mandatory re-execution, job-shaped verification, noisy public derivatives, and closed certified artifacts buyers pay for because assurance matches the physics and the job.
+That is the Landscape → Specialist system: evidence-ranked regimes, candidate recipes (winning strategies allowed as candidates; rank/checkpoint is not qualification evidence), mandatory re-execution, job-shaped verification, noisy public derivatives, and closed certified artifacts buyers pay for because assurance matches the physics and the job.
 
 ---
 
