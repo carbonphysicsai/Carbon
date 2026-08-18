@@ -1,5 +1,8 @@
 # Evidence & Envelope Standards
 
+> **Reconciliation (post-ratification):** All **score-bearing stress** stays inside the **declared exam envelope**. Evidence ranks are **provenance descriptors**, not scalar vote weights in `S_combined`.
+
+
 **Carbon Subnet**  
 **Version:** 1.0  
 **Status:** Shared standards for generator dossiers and commercial specialists  
