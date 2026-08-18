@@ -1,5 +1,11 @@
 # Carbon Build-Out Specification
 
+> **Reconciliation:** sequencing authority only. Scoring: binary gates + weighted geometric; P0 baseline **0.45/0.30/0.25**.
+
+
+> **Reconciliation (post-ratification):** `Build_Out.md` remains **sequencing authority**, not an alternate design spec. Reflect reconciled semantics only after higher-level docs (`Scoring.md`, `Trustless_Verification.md`, `Miner_MCP.md`, `Launch_Bar.md`) are treated as source of truth. Do not re-introduce sigmoid-hard-gates, raw soft-leg multiplication as normative aggregate, or mock-as-false-physics language in tickets.
+
+
 **Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
 **Version:** 1.4  
 **Status:** Executable requirements contract  
@@ -10,22 +16,23 @@
 
 ## 0. Normative authority (read first)
 
-When documents conflict, resolve in this order:
+Authority is **domain-owned**, not a single global precedence ladder. When documents overlap, use the document that owns the semantic domain below. A higher-level document's example does not override the domain owner's normative rule.
 
-| Priority | Doc | Owns |
-|----------|-----|------|
-| 1 | `SPEC.md` | System architecture / protocol doctrine |
-| 2 | `Miner_MCP.md` | Miner-facing behaviour, free vs paid loop, disclosure |
-| 3 | `Scoring.md` | Scoring semantics, forbidden inputs, Score Pack rules |
-| 4 | Challenge Generator / Validation / Evidence docs | Scientific implementation of a pack |
-| 5 | `Launch_Bar.md` | Stop-ship before priors / compounding claims |
-| 6 | **This file (`Build_Out.md`)** | Implementation sequencing, ownership, Wave acceptance |
+| Domain | Canonical owner |
+|--------|-----------------|
+| System architecture / protocol doctrine / constitutional invariants | `SPEC.md` |
+| Miner-facing behaviour, free vs paid loop, disclosure | `Miner_MCP.md` |
+| Exact scoring mathematics, forbidden score inputs, Score Pack schema | `Scoring.md` |
+| Official data, seed hierarchy, train/eval/stress separation | `Data_Management.md` + `Trustless_Verification.md` |
+| Generator construction, scientific evidence, envelope qualification | `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md` |
+| Stop-ship and representation readiness | `Launch_Bar.md` |
+| Commercial specialist qualification | `Specialist_Bank.md` |
+| Landscape knowledge-layer behaviour | `Landscape_Agent.md` |
+| Implementation sequencing, ownership, dependencies, Wave acceptance | **This file (`Build_Out.md`)** |
 
-`Build_Out` does **not** override Miner_MCP behaviour or Scoring semantics. Agents working from this file must still obey higher-priority docs.
+`Build_Out.md` does **not** override semantic behaviour owned by another domain document. If two documents within the same domain materially conflict, stop the affected implementation, record the exact conflict, and request a human decision rather than inventing a resolution.
 
-**No historical version pointers.** Acceptance criteria live in *this* document and the current companions above — not in “v1.1 somewhere.”
-
----
+**No historical version pointers.** Acceptance criteria live in the current documents — not in “v1.1 somewhere.”
 
 ## 1. Execution principle
 
@@ -53,7 +60,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 9. **No placeholder LIVE.** Placeholder, fixture, or mock values never enter LIVE configuration or emission weights.
 10. **No silent rescore.** Historical evaluation records are never silently reinterpreted under newer packs; new pack ⇒ new scoring_version for future runs only.
 11. **Forbidden score inputs.** Prior similarity, `estimate` / `light_*` metrics, exam fee, and mock metrics never enter `S_combined` / Yuma weights.
-12. **Free path imperfect.** Free-loop signal may be directionally useful but must remain intentionally incomplete vs the official exam (see Miner_MCP corr doctrine).
+12. **Free path imperfect.** Free-loop signal may be directionally useful but must remain a **non-oracle** vs the official exam (no reliable rank substitution / exam reconstruction; see Miner_MCP).
 
 ---
 
@@ -294,7 +301,7 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 **P0 acceptance includes actual Bittensor testnet path** (scores → weights visible).  
 **Agent Wave C deliverable** includes wiring; **P0 done** ≠ “testnet stub only.”
 
-**Out of P0:** Landscape graph, specialist SKUs, automated mock-corr service, commercial CAE, mainnet.
+**Out of P0:** Landscape graph, specialist SKUs, automated free-loop non-oracle monitoring, commercial CAE, mainnet.
 
 **PoC handoff:** `POC_Burgers_FNO.md` proves lean loop without MCP. Promote its TrainEvalAPI into Wave C; PoC green is a dependency of P0, not a competing SOW.
 
@@ -373,7 +380,7 @@ These are **out of Phase 0 waves A–D**. They are not “never.” Post-P0 sequ
 - Specialist commercial SKU / product battery → **Wave F** (`Specialist_Bank.md`)  
 - Customer bounds / sponsored-challenge GTM → **Wave G** (`Customer_Bounds_Specialist.md`)  
 - Marketplace UI  
-- Automated mock correlation rotation service (track as P1 ops; §17)  
+- free-surface non-oracle monitoring / mock refresh service (track as P1 ops; §17)  
 - Full commercial CAE mesh pipeline  
 - Hermes/Mira vendor plugins  
 - Agent-invented LIVE physics thresholds (**permanent** non-goal)  
@@ -391,7 +398,7 @@ These are **out of Phase 0 waves A–D**. They are not “never.” Post-P0 sequ
 5. Enforce cross-cutting invariants in tests.  
 6. Never present placeholder thresholds as production truth.  
 7. Never emit from stubs.  
-8. When docs conflict, obey §0 authority order.  
+8. When docs conflict, obey §0 domain ownership.  
 
 ---
 
@@ -479,4 +486,4 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 
 ---
 
-*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. Authority: SPEC → Miner_MCP → Scoring → science packs → Launch_Bar → this file; Post-P0 product docs as cited in §18.*
+*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*
