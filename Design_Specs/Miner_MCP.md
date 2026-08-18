@@ -1,5 +1,8 @@
 # Miner MCP Specification
 
+> **Reconciliation (post-ratification):** Two-loop architecture and feedback budget retained. Replace literal non-oracle requirement doctrine with the **non-oracle requirement**: free-loop signals must not be sufficient to reconstruct or reliably rank-substitute the hidden official exam. **Mock incompleteness is computational/evaluative** (coverage, budget, rotation, non-binding metrics) — **not** intentionally false physics.
+
+
 **Carbon — steer · free iterate · submit · independent exam · structured feedback**
 
 ---
@@ -22,7 +25,7 @@ PAID LOOP (rare — only official grade)
 **Hardening (v2.2):**
 
 1. Free surface is **directionally informative but intentionally imperfect**  
-   `corr(free_signal, official_exam) > random` and `≪ 1`  
+   free-loop signal may correlate above random with official outcomes, but must remain a **non-oracle** (insufficient to reconstruct or rank-substitute the hidden exam)  
 2. Evaluation feedback is a **budget** — enough to repair, not enough to reconstruct the hidden exam  
 3. **`get_mock_scaffold`** supplies a versioned runnable baseline; priors stay coarse and non-executable  
 
@@ -57,11 +60,10 @@ Carbon need not build the best AI scientist. It is where AI scientists **compete
 ### 1.3 Free-surface doctrine (normative)
 
 ```text
-corr(light_compare metrics, official lean exam) > random
-corr(light_compare metrics, official lean exam) ≪ 1
+light_compare may be informative for repair, but must remain a non-oracle for the official lean exam
 ```
 
-The free surface must **not** become a public surrogate of the private exam. Mock packs are rotated, incomplete, and versioned so dominating `light_compare` is not equivalent to dominating the validator.
+The free surface must **not** become a public surrogate of the private exam. Mock packs are rotated, coverage-limited, and versioned so dominating `light_compare` is not equivalent to dominating the validator. Incompleteness is computational/evaluative — mock physics remains honest within its declared mock envelope.
 
 ### 1.4 Feedback doctrine (normative)
 
@@ -79,7 +81,7 @@ Granularity is a security parameter. Seeds are necessary but not sufficient prot
 - Closed paid loop with budgeted feedback  
 - Agent-stable JSON tools  
 - steer ≠ triage ≠ mock-relative ≠ grade ≠ sell  
-- Intentional decorrelation of mock vs official exam  
+- Non-oracle separation of mock vs official exam (computational/evaluative incompleteness — not false physics)  
 
 ### Non-goals
 
@@ -104,7 +106,7 @@ Granularity is a security parameter. Seeds are necessary but not sufficient prot
 | Champion weights | **Never** | Dual egress elsewhere |
 | Prior similarity in score | **Forbidden** | Scoring.md |
 
-**Doctrine:** *Steering before the exam. Intentionally imperfect free practice. Independent exam when you pay. Budgeted feedback after. No answer key.*
+**Doctrine:** *Steering before the exam. Free practice is incomplete by computational/evaluative design (not false physics). Independent exam when you pay. Budgeted feedback after. No answer key. Non-oracle free surface.*
 
 ---
 
@@ -219,7 +221,7 @@ Always `disclaimer: "non_binding"`. No official score fields.
 | **Optional multiple mock families** | Reduce single-surface Goodhart |
 | **Published `mock_pack_id` list** | Clients pin versions; old packs may retire |
 
-Ops may measure empirical rank correlation offline. If correlation drifts toward 1, **rotate or degrade mock** — do not tighten the official exam to match mock.
+Ops may measure empirical rank correlation offline. High correlation is **not** itself a failure if miners have genuinely improved physics. Act only if free-loop signals become a **reliable rank substitute** for the hidden exam or enable exam reconstruction: then rotate coverage, reduce feedback budget, or refresh mock packs — do **not** tighten the official exam to match mock.
 
 ### 9.2 light_compare contract
 
@@ -332,7 +334,7 @@ while budget.remaining:
 
 | Vector | Mitigation |
 |--------|------------|
-| Goodhart light_compare | Rotating incomplete mocks; corr ≪ 1 doctrine |
+| Goodhart light_compare | Rotating incomplete mocks; **non-oracle** requirement (prevent reliable rank substitution / exam reconstruction) |
 | Immortal mock ≈ exam | Pack versioning + retirement |
 | Estimate as official score | No lean_score field |
 | Scaffold = champion | Mediocre versioned baseline only |
