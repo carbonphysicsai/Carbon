@@ -1,5 +1,12 @@
 # Scoring.md — Lean Emission Scoring & Challenge Score Bank
 
+> **Reconciliation (post-ratification):** This document is the **sole mathematical authority** for scoring.
+> **45/30/25 is the P0 protocol baseline**, not a scientific universal. Approved Score Packs may change component weights; dossiers govern scientific thresholds (τ).
+> Hard gates are **binary**. Soft legs aggregate via **weighted geometric mean**.
+> P0 baseline category weights: **physics 0.45 / robustness 0.30 / accuracy 0.25** (pack may specialize; all τ dossier-calibrated).
+> UQ components are **challenge-specific** and pack-bound. No global sigmoid-as-hard-gate; no raw unconstrained multiplication of soft legs as the normative aggregate.
+
+
 **Carbon Subnet**  
 **Version:** 2.0 (July 2026)  
 **Status:** Protocol Appendix — Security & Incentive Critical  
@@ -80,8 +87,8 @@ precision: fp32
 
 # === GLOBAL WEIGHTS (must sum to 1.0) ===
 weights:
-  physics: 0.40
-  robustness: 0.35
+  physics: 0.45
+  robustness: 0.30
   accuracy: 0.25
 
 # === HARD GATES (binary kill-switch) ===
@@ -112,8 +119,8 @@ hard_gates:
   - id: uq_calibration
     type: threshold
     error_key: e_uq
-    tau: 0.05  # 95% coverage
-    mandatory: true
+    tau: 0.05  # illustrative; 95% coverage if pack adopts UQ
+    mandatory: false  # P0 protocol baseline: UQ is challenge/claim-dependent, not universally mandatory
   - id: adjoint_consistency
     type: adjoint_consistency
     tau: 1.0e-4
@@ -150,9 +157,9 @@ margin:
   # m(e,τ) = 1 - (e/τ)^2   for e < τ; 0 otherwise
   # Quadratic barrier: increasing returns for safety margin
 
-# === PHYSICS FIDELITY (weight 0.40) ===
+# === PHYSICS FIDELITY (weight 0.45 P0 baseline) ===
 physics:
-  weight: 0.40
+  weight: 0.45
   components:
     - key: mass_conservation
       alpha: 0.40
@@ -172,9 +179,9 @@ physics:
       definition: shock_position_error
       # Phase 1A+ only
 
-# === ROBUSTNESS (weight 0.35) ===
+# === ROBUSTNESS (weight 0.30 P0 baseline) ===
 robustness:
-  weight: 0.35
+  weight: 0.30
   # Category weights by engineering consequence severity
   category_weights:
     low_viscosity: 0.15
@@ -194,11 +201,11 @@ robustness:
 # === GENERALIZATION / ACCURACY (weight 0.25) ===
 accuracy:
   weight: 0.25
-  # 50% in-distribution, 50% out-of-distribution (extended envelope)
+  # 50% in-distribution, 50% edge/rare-regime stress (still inside declared challenge envelope)
   field_error: relative_l2
   tau_acc: 1.0e-1
   ood_weight: 0.50
-  ood_tau: 2.0e-1   # 2× tau_acc for extended envelope
+  ood_tau: 2.0e-1   # 2× tau_acc for edge/rare-regime stress inside declared envelope
   aggregate: mean
   # Soft gate: warn if max_rel_l2 > 3 * tau_acc
   soft_gate:
@@ -207,13 +214,15 @@ accuracy:
 
 # === COMBINED SCORE ===
 combination:
-  type: multiplicative  # multiplicative | weighted_sum
-  # S = S_phys * S_robust * S_acc
-  # Any near-zero component → near-zero emissions
+  type: weighted_geometric  # normative: weighted geometric mean of soft legs
+  # S = S_phys**w_p * S_robust**w_r * S_acc**w_a
+  # P0 protocol baseline (w_p, w_r, w_a) = (0.45, 0.30, 0.25); pack may override under dossier calibration
+  # Any near-zero soft leg → near-zero S_combined (geometric property)
 
 # === EMISSIONS ===
 emissions:
-  type: multiplicative  # w ∝ S_phys * S_robust * S_acc * exp(-Δblocks / t_half)
+  type: lean_score_decay  # w ∝ S_combined * exp(-Δblocks / t_half); S_combined is weighted-geometric
+  # NOT an unweighted product of category legs
   half_life_blocks: 21600  # ~30 days at 12s blocks
 
 # === CARD REQUIRED FIELDS ===
@@ -247,26 +256,25 @@ schema_version: "1.0"
 
 ## 4. Lean Scoring Formulas (Protocol)
 
-### 4.1 Hard Gates — Steep Sigmoid (Differentiable Binary)
+### 4.1 Hard Gates — Binary (Normative)
+
+Hard gates are **binary pass/fail**, not soft sigmoid scores.
 
 ```python
-def hard_gate_score(error, tau, sharpness=1000.0):
-    """
-    Steep sigmoid approximation of hard threshold.
-    - error < tau:  score ≈ 1.0
-    - error > tau:  score → 0 exponentially
-    - At error = tau: score = 0.5
-    """
-    return 1.0 / (1.0 + jnp.exp(sharpness * (error - tau) / tau))
+def hard_gate_pass(error: float, tau: float) -> bool:
+    """Mandatory gate: pass iff error < tau (strict)."""
+    return bool(error < tau)
 
-# Hard gates evaluated in fp32 (physics_precision_policy context)
-def compute_hard_gates(gate_results: List[GateResult]) -> Float[Array, ""]:
-    scores = jnp.array([g.score for g in gate_results if g.mandatory])
-    return jnp.prod(scores)  # multiplicative: any near-zero → near-zero total
+def compute_hard_gates(gate_results: List[GateResult]) -> bool:
+    """All mandatory gates must pass. Fail-closed."""
+    mandatory = [g for g in gate_results if g.mandatory]
+    return all(hard_gate_pass(g.value, g.tau) for g in mandatory)
 ```
 
-**Hard Gate Rule:** Any mandatory gate with score < 0.99 → `S_combined = 0`.  
-*Implementation: `hard_score = jnp.prod(hard_gate_scores); if hard_score < 0.99: return Score(0, ...)`*
+**Hard Gate Rule:** If any mandatory gate fails → `S_combined = 0` and emission_capable = false for this result.  
+Soft sigmoid approximations may appear only in **non-emission diagnostics**, never as the official hard-gate implementation.
+
+All scientific thresholds `τ` are **Score-Pack-bound** and **dossier-calibrated** (see Generator Validation / Evidence standards). Validators do not invent τ at runtime.
 
 ---
 
@@ -297,7 +305,7 @@ def physics_margin(error: Float[Array, ""], tau: float) -> Float[Array, ""]:
     return margin
 ```
 
-**Physics Fidelity Score (40% weight):**
+**Physics Fidelity Score (component in [0,1]; 45% appears only in final aggregate):**
 
 ```python
 def compute_physics_fidelity(gate_results: List[GateResult], pack: ScorePack) -> Float:
@@ -306,7 +314,7 @@ def compute_physics_fidelity(gate_results: List[GateResult], pack: ScorePack) ->
         gate_result = next(g for g in gate_results if g.gate_id == gate.key)
         margin = physics_margin(gate_result.value, gate.tau)
         margins.append(gate.alpha * margin)
-    return jnp.sum(jnp.array(margins))  # already weighted by alpha, sum α_k = 1
+    return jnp.sum(jnp.array(margins))  # within-leg alpha only (sum to 1); NOT pack.weights.physics
 ```
 
 **Why Quadratic?**  
@@ -352,7 +360,8 @@ def compute_robustness(stress_errors: Dict[str, Array], pack: ScorePack) -> Floa
         
         scores.append(pack.category_weights[cat] * r_score)
     
-    S_robust = 0.35 * jnp.sum(jnp.array(scores))
+    # Category weights inside sum are within-leg (sum to 1). Do NOT multiply by pack.weights.robustness here.
+    S_robust = jnp.sum(jnp.array(scores))  # unweighted component score in [0,1]
     return S_robust
 ```
 
@@ -379,7 +388,7 @@ def compute_accuracy(model_fn, eval_data, ood_data, pack):
     pred_in = model_fn(eval_data.inputs)
     rel_l2_in = jnp.mean(jnp.abs(pred_in - eval_data.targets) / (jnp.abs(eval_data.targets) + 1e-8))
     
-    # Out-of-distribution (extended envelope stress variants)
+    # Edge/rare-regime stress distribution (score-bearing; inside declared challenge envelope)
     pred_ood = model_fn(ood_data.inputs)
     rel_l2_ood = jnp.mean(jnp.abs(pred_ood - ood_data.targets) / (jnp.abs(ood_data.targets) + 1e-8))
     
@@ -391,8 +400,9 @@ def compute_accuracy(model_fn, eval_data, ood_data, pack):
     S_ood = 1.0 / (1.0 + rel_l2_ood / pack.ood_tau)
     
     # 50% in-dist, 50% OOD → forces generalization
-    S_acc = 0.25 * (0.5 * (1.0 / (1.0 + rel_l2_in / pack.tau_acc)) + 
-                    0.5 * (1.0 / (1.0 + rel_l2_ood / pack.ood_tau)))
+    # 50/50 in-dist vs edge-regime blend is within-leg. Do NOT multiply by pack.weights.accuracy here.
+    S_acc = 0.5 * (1.0 / (1.0 + rel_l2_in / pack.tau_acc)) + \
+            0.5 * (1.0 / (1.0 + rel_l2_ood / pack.ood_tau))  # unweighted component score in [0,1]
     
     # Soft gate warning on card (not hard fail)
     soft_gate_warning = jnp.maximum(0.0, max_rel_l2 - 3.0 * pack.tau_acc) / (3.0 * pack.tau_acc)
@@ -402,8 +412,8 @@ def compute_accuracy(model_fn, eval_data, ood_data, pack):
 
 **Why 50% OOD?**  
 - Eval set is hidden but from *same distribution* as training → measures interpolation.  
-- **OOD (extended envelope) measures extrapolation** — what matters for inverse design, extrapolation, digital twins.  
-- 50/50 split forces miners to optimize for **extrapolation**, not interpolation.
+- **Edge/rare-regime stress (inside declared envelope)** measures harder in-envelope generalization. True outside-envelope probes, if used, are **non-score-bearing diagnostics** only.  
+- 50/50 split forces miners to optimize for **edge-regime generalization**, not interpolation.
 
 ---
 
@@ -443,24 +453,27 @@ async def adjoint_consistency_gate(model_fn, params, loss_fn, tau=1e-4):
 
 ---
 
-### 4.6 Combined Score — Multiplicative (Series System Reliability)
+### 4.6 Combined Score — Weighted Geometric (after binary hard gates)
 
 ```python
 def compute_combined_score(S_phys: float, S_robust: float, S_acc: float,
-                           hard_gate_score: float) -> float:
+                           all_mandatory_gates_passed: bool, pack: ScorePack) -> float:
     """
-    Multiplicative combination = series system reliability.
+    Weighted geometric aggregate after binary gates (series-system property retained).
     Any near-zero component → near-zero total.
     No compensation: excellent physics cannot compensate for zero robustness.
     """
-    if hard_gate_score < 0.99:  # any mandatory gate near failure
+    if not all_mandatory_gates_passed:  # binary hard gates fail-closed
         return 0.0
     
-    S_combined = S_phys * S_robust * S_acc
+    # Normative aggregate: weighted geometric mean (P0 baseline w = 0.45/0.30/0.25)
+    # Requires hard gates already passed; legs in (0,1].
+    w_p, w_r, w_a = pack.weights.physics, pack.weights.robustness, pack.weights.accuracy
+    S_combined = (S_phys ** w_p) * (S_robust ** w_r) * (S_acc ** w_a)
     return S_combined
 ```
 
-**Why Multiplicative?**  
+**Why weighted geometric (series-system property)?**  
 - **Series system reliability:** All subsystems must work.  
 - **No compensation:** Excellent physics cannot compensate for zero robustness.  
 - **No gaming:** Miners must excel in *all* dimensions.  
@@ -468,14 +481,14 @@ def compute_combined_score(S_phys: float, S_robust: float, S_acc: float,
 
 ---
 
-### 4.7 Emissions — Multiplicative in Components
+### 4.7 Emissions — Decay on S_combined
 
 ```python
 def compute_emission_weight(S_combined: float, blocks_since_win: int, 
                             half_life_blocks: int = 21600) -> float:
     """
     Emission weight ∝ S_combined * exp(-Δblocks / t_half)
-    Multiplicative in components → no component can be near-zero.
+    S_combined already encodes weighted-geometric series property; emissions decay that scalar.
     """
     decay = jnp.exp(-blocks_since_win / half_life_blocks)
     return S_combined * jnp.exp(-blocks_since_win / half_life_blocks)
@@ -602,7 +615,7 @@ PoC may inline a single pack under `poc/configs/scoring_burgers1d.yaml` until th
 |--------|--------|
 | Tune τ or α | Bump `scoring_version`; old live challenges unchanged |
 | Add stress category | Generator bump **and** scoring bump together |
-| Change 40/35/25 split | Governance + scoring major version |
+| Change P0 baseline component weights (45/30/25) or pack weights | Governance + scoring major version |
 | Fix metric bug in code | Metric code version in card; consider rescoring policy |
 
 **Historical scores remain comparable only within `(challenge_id, scoring_version)`.**
@@ -634,8 +647,8 @@ generator_version_required: "burgers1d_v0.1"
 precision: fp32
 
 weights:
-  physics: 0.40
-  robustness: 0.35
+  physics: 0.45
+  robustness: 0.30
   accuracy: 0.25
 
 hard_gates:
@@ -665,19 +678,19 @@ hard_gates:
   - id: uq_calibration
     type: threshold
     error_key: e_uq
-    tau: 0.05
-    mandatory: true
+    tau: 0.05  # illustrative only in generic example
+    mandatory: false  # enable only when challenge/product claims require UQ
 
 margin:
   type: quadratic_barrier
 
 weights:
-  physics: 0.40
-  robustness: 0.35
+  physics: 0.45
+  robustness: 0.30
   accuracy: 0.25
 
 physics:
-  weight: 0.40
+  weight: 0.45
   components:
     - key: mass_conservation
       alpha: 0.40
@@ -697,7 +710,7 @@ physics:
       definition: short_rollout_rel_l2
 
 robustness:
-  weight: 0.35
+  weight: 0.30
   category_weights:
     low_viscosity: 0.15
     high_amplitude_ic: 0.25
@@ -723,10 +736,10 @@ accuracy:
     max_rel_l2_multiple: 3.0
 
 combination:
-  type: multiplicative
+  type: weighted_geometric  # S = S_phys**w_p * S_robust**w_r * S_acc**w_a
 
 emissions:
-  type: multiplicative
+  type: lean_score_decay  # w ∝ S_combined * exp(-Δblocks / t_half)
   half_life_blocks: 21600
 
 card_required_fields:
@@ -826,11 +839,11 @@ Steep sigmoid (sharpness=20) provides usable gradient in ±2τ band:
 
 ---
 
-### A.4 Multiplicative Combination — Series System Reliability
+### A.4 Weighted Geometric Aggregate — Series System Reliability
 
-For a system with components in series: `R_system = ∏ R_i`.  
-If any `R_i ≈ 0`, system reliability ≈ 0.  
-No compensation between subsystems — matches engineering design philosophy: **a chain is only as strong as its weakest link.**
+Weighted geometric mean preserves the series-system property: any near-zero soft leg drives `S_combined` toward 0.  
+Component weights appear **once** in the exponents, not inside each leg.  
+No compensation between subsystems — **a chain is only as strong as its weakest link.**
 
 ---
 
