@@ -1,5 +1,8 @@
 # Launch_Bar.md — Gate & Score Bar Before Landscape Compounds
 
+> **Reconciliation (post-ratification):** **Port B** strengthened — every scored nonzero submission completes the **same mandatory lean pack**. Progressive depth is **scheduling / prefilter / supplemental**, not variable grading of the lean exam identity.
+
+
 ## TL;DR
 
 **Problem:** The Landscape flywheel treats lean Model Cards as training labels. If gates and scores are unfinished, **garbage-in compounds**.
