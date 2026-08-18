@@ -1,5 +1,8 @@
 # Carbon Subnet Data Management Specification
 
+> **Reconciliation (post-ratification):** Align with Trustless Verification — shared-seed Path A retained; official exam identity; future-beacon direction; validator IDs excluded from seed derivation; all score-bearing draws inside declared envelope. Train ≠ eval ≠ stress domains remain mandatory.
+
+
 ## TL;DR
 
 **Job:** Keep train and eval cryptographically separated so the subnet’s trustless claim holds.
@@ -83,7 +86,7 @@ Productization adds a second decontamination rule: **opportunity-justifying lean
 | **Eval generator immutable** | Generator config frozen in Challenge Spec | Validators cannot bias eval for specific miners |
 | **Physics gates are hard** | Binary PASS/FAIL, zero score on failure | No gradient hacking on lean path |
 | **Eval data never exposed** | Stress variants generated in-validator-memory only | Miners cannot train on eval distribution |
-| **Training ≠ Evaluation distribution** | Extended envelopes for stress variants | Overfitting to training = failing eval |
+| **Training ≠ Evaluation distribution** | Hidden eval + edge/rare-regime stress, **all inside declared challenge envelope** | Overfitting to training-accessible subregion = failing eval |
 | **Bank/PB ≠ lean justifying draws** | Separate seed material / nonce family for promotion | No leaderboard laundering into SKUs |
 
 ---
@@ -96,7 +99,7 @@ The complete data-management specification (generator taxonomy, seed derivation,
 
 Key operational rules:
 
-- **Training vs eval:** different seed derivation paths; eval uses extended envelopes and validator-only generators
+- **Training vs eval:** different seed derivation paths; eval uses hidden eval + edge/rare-regime stress (score-bearing), all inside declared envelope; validator-only generators
 - **Entropy floor:** reject degenerate miner generator distributions at submission time
 - **Custom datasets:** ref-solver + physics validation before train merge
 - **Stress coverage:** require ≥95% category coverage before scoring
