@@ -20,7 +20,7 @@ A-1 orientation → one ticket → baseline tests → implement → tests → re
 
 | ID | Build_Out | Item | Status | Evidence |
 |----|-----------|------|--------|----------|
-| A-1 | — | Orientation — repo map, KEEP/WRAP table, ORIENTATION.md | todo | |
+| A-1 | — | Orientation — repo map, KEEP/WRAP table, ORIENTATION.md | done | `.agent/ORIENTATION.md`; baseline commands/results recorded there at commit `0eed4e9` |
 | A0 | C0 | Package layout (audit-first; map poc/Carbon_Logic) | todo | |
 | A1 | C0 | CI skeleton (pytest, CPU) + preserve existing CI | todo | |
 | A2 | C2 | Strategy schema + dry_validate | todo | |
