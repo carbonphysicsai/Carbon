@@ -1,4 +1,3 @@
-
 # Carbon Architecture Rationale
 **Status:** v1 — team review
 
@@ -41,6 +40,57 @@ Agents need dense feedback, but an exact public replica of the official grader b
 ## Why feedback is budgeted
 Repeated detailed queries can reconstruct a hidden exam even when seeds are protected. Diagnostic granularity is therefore part of the security boundary.
 
+## Why an EvaluationReceipt exists
+A Model Card is scientifically rich but not the best primitive for protocol audit, while an EvaluationCard is intentionally too coarse. Carbon therefore needs a compact signed execution-evidence object between the private transcript and public/miner projections.
+
+The EvaluationReceipt commits to what was executed, under which versions/backend, and what result was produced without publishing the hidden exam. This makes the same evidence usable for reproducibility, disputes, validator accountability, network publication, later qualification, and customer provenance.
+
+## Why commitment is not disclosure
+Public auditability and hidden evaluation are not opposites. A cryptographic commitment can prove that a validator fixed an exam/result identity before later dispute handling without revealing the seed or draw. Carbon therefore commits to hidden evidence rather than serializing hidden evidence into public logs.
+
+## Why reproducibility has three layers
+Exact floating-point bit identity across arbitrary accelerators is neither necessary nor generally defensible. Carbon instead requires exact identity for discrete/configuration artifacts, measured numerical reproducibility inside a qualified backend cohort, and stable scientific decisions within the approved uncertainty band.
+
+This avoids weakening scientific gates to accommodate uncontrolled hardware while also avoiding a false universal bitwise-determinism promise.
+
+## Why P0 uses a narrow qualified backend cohort
+The first trust proof benefits more from a measured, reproducible execution environment than from broad hardware portability. Carbon can add backends and accelerator cohorts later as separate qualification events. P0 therefore targets a JAX-first qualified path and treats other backend adapters as non-emission-capable until separately qualified.
+
+## Why infrastructure failures are type-separated from science
+A solver crash, node failure, OOM policy kill, queue loss, or reference-service exception says nothing about whether the submitted strategy violates physics. Encoding infrastructure outcomes in distinct result types prevents accidental conversion of operational failures into authoritative scientific zeros.
+
+## Why scientific consensus and emission consensus are separate
+Bittensor is Carbon's economic coordination layer, not the definition of physical truth. The durable scientific record should survive changes in weight-setting mechanics, validator incentives, or even future network implementations.
+
+Carbon therefore records the canonical scientific result from qualified evaluation evidence first, then maps that result into Bittensor weights/emissions. Economic consensus cannot silently rewrite historical scientific evidence.
+
+## Why validator free-riding is an explicit threat
+Independent scientific evaluation is expensive. If a validator can cheaply follow public consensus instead of executing the exam, honest evaluation becomes a public-good problem. Carbon should design for a nonzero copier/free-rider population rather than assuming perfect validator participation.
+
+The correct response is not to label correlated weights as cheating. Honest validators share an exam and should correlate. Carbon instead measures whether enough real execution evidence exists, whether honest evaluator economics remain sustainable, and whether network emissions remain aligned with the canonical scientific result.
+
+## Why probabilistic re-execution audits
+Re-running every expensive evaluation on every validator wastes compute. Running none provides weak execution assurance. Random post-commit re-execution creates a middle ground: validators cannot know which evaluations will be checked when they sign the first receipt, while Carbon spends duplicate compute only on a sampled subset.
+
+Disagreement triggers contest/retry/quarantine, not an automatic miner physics zero.
+
+## Why the evidence ledger is append-only
+Scientific provenance loses value if historical records can be silently edited. An append-only receipt commitment log provides tamper evidence while keeping bulk transcripts and tensors off-chain. Signed Merkle/MMR checkpoints provide durable ordering and integrity without making the blockchain a data warehouse.
+
+## Why Bittensor is behind an adapter
+Scientific challenge logic should not be coupled to SDK-specific metagraph, commit/reveal, or extrinsic objects. A narrow chain adapter protects Carbon's scientific core from network API churn, improves testing, and preserves the option to use the evidence protocol in other deployment contexts.
+
+## Why CI is constitutional
+Carbon is agent-assisted software with security- and science-critical invariants. Ordinary unit tests are not sufficient if a future change can make the suite green by weakening the invariant itself. Dedicated trust-boundary tests make no-seed-leakage, mock isolation, score semantics, stub non-emission, infra/science separation, and qualification gating mechanically difficult to regress.
+
+## Why industry V&V/VVUQ terminology matters
+Carbon should not invent a private language for credibility if established engineering reviewers already use concepts such as context of use, verification, validation, uncertainty, configuration management, and evidence lineage. Mapping Carbon dossiers onto that vocabulary improves legibility and commercial trust while keeping Carbon's actual qualification decisions challenge-specific.
+
+A terminology crosswalk is not the same as claiming compliance with a standard.
+
+## Why P0 is proof-ready but proof-free
+Proving neural-operator training is not a sensible P0 dependency. Stable canonical commitments and receipt schemas preserve future cryptographic option value at low current cost. If narrow proofs over committed predictions or gate verdicts become commercially useful later, the evidence objects already exist.
+
 ## Why adaptive science is not adaptive grading
 Landscape should discover weaknesses and propose better future exams. It must not silently vary the mandatory score-bearing exam per miner. Changes become supplemental probes or new pack versions.
 
@@ -53,11 +103,14 @@ Carbon pays miners to discover useful methods. A winner should be eligible as a 
 ## Why Landscape remains epistemically subordinate
 Causal/symbolic models are useful hypotheses fitted from observational competition data. They can guide decisions but cannot become hard-gate truth or waive fresh execution.
 
+## Why Carbon can be an evidence rail rather than only a CAE platform
+The highest-value durable asset is the verified lineage of which methods, models, and operating envelopes survive independent scientific exams. That evidence can be consumed by Carbon products or by external engineering-AI platforms. Keeping the evidence/provenance layer neutral expands possible roles for outside platforms: competitor, miner, integrator, customer, or qualified-evidence consumer.
+
 ## Why P0 is narrow
-One honest end-to-end challenge proves more than many partial PDE modules. P0 should expose integration, security, scoring, disclosure, determinism, qualification, and Bittensor wiring before breadth.
+One honest end-to-end challenge proves more than many partial PDE modules. P0 should expose integration, security, scoring, disclosure, determinism, qualification, evidence, and Bittensor wiring before breadth.
 
 ## Why agents do not make science
-Agents can implement interfaces, harnesses, tests, and approved formulas. Production thresholds, envelopes, solver credibility, and launch judgment require designated human authority.
+Agents can implement interfaces, harnesses, tests, and approved formulas. Production thresholds, envelopes, solver credibility, reproducibility tolerances, and launch judgment require designated human authority.
 
 ## Why KEEP → WRAP → REPAIR → REPLACE
 The reconciled design supersedes historical scaffolding, but useful code should not be discarded reflexively. Preserve it when it can satisfy current specs without weakening invariants.
