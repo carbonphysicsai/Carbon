@@ -60,8 +60,13 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 | Port B progressive routing | Yes, constrained | Not established | No | No | Must preserve same mandatory score-bearing exam. |
 | Specialist Bank | Yes | Prototype/legacy fragments may exist | Not qualified | No | Product path remains future. |
 | Product Battery | Yes | Not established as qualified system | No | No | Product-specific packs/thresholds still human-owned. |
-| Qualified Strategy/Model evidence package | Yes, later | Not established | No | No | Reuse receipt/dossier/provenance spine after product qualification exists. |
-| Customer bounds / adaptation | Yes, later | Not established | No | No | Requalification required after adaptation. |
+| Product Candidate Model Card lineage | Yes | Not established | No | No | Fresh product retrain must create a distinct immutable Model Card linked to source strategy/evidence; never mutate competition card. |
+| Product Battery Record | Yes | Not established | No | No | Persist every qualification attempt, including failures, bound to exact candidate/context/battery versions. |
+| Qualification Record | Yes | Not established | No | No | New canonical bounded product-claim object; implement signed/versioned schema, evidence references, limitations, escalation and requalification semantics. |
+| Qualification disclosure tiers | Yes | Not established | No | No | Public/catalog, buyer/diligence and private/audit projections must be allow-listed and leakage-safe. |
+| Qualification lifecycle / supersession | Yes | Not established | No | No | Append-only current-state/supersession semantics required; exact status enum still needs schema ratification. |
+| Qualified Specialist evidence package | Yes, later | Not established | No | No | Package artifact + product Model Card + Product Battery Record + Qualification Record + deployment/commercial identity. |
+| Customer bounds / adaptation | Yes, later | Not established | No | No | Governing qualification policy must declare material requalification triggers; adaptation cannot inherit qualification silently. |
 | Air-gap / confidential regimes | Specified by phase | Not established | No | No | Future security/ops qualification. |
 | Narrow cryptographic proofs over committed outputs/gates | Proof-ready only | No ZK system | No | No | Explicitly out of P0; stable commitments preserve future option value. |
 
@@ -80,5 +85,5 @@ No code is kept merely because it exists, and no code is replaced merely because
 2. Map every Wave A–C acceptance criterion, including `Build_Out_Protocol_Extension.md`, to code/tests.
 3. Replace “partial/unknown” with file/test evidence.
 4. Keep science-dependent items blocked with explicit human-input markers.
-5. Do not mark receipts, backend profiles, audits, validator economics, credibility mappings, or any other newly specified capability IMPLEMENTED/TESTED merely because the specification now exists.
+5. Do not mark receipts, backend profiles, audits, validator economics, credibility mappings, Product Battery Records, Qualification Records, qualification disclosure/lifecycle, or any other newly specified capability IMPLEMENTED/TESTED merely because the specification now exists.
 6. Do not mark anything PRODUCTION-QUALIFIED until the corresponding scientific/security/operational qualification evidence exists.
