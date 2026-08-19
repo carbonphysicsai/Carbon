@@ -187,15 +187,17 @@ No Wave A checklist item is currently evidence-green.
 
 No material conflict was found among the current domain-owned architecture, Miner MCP, Scoring, and Build Out sequencing rules that A-1 needs to resolve. Where legacy behavior differs, it is classified as legacy rather than silently elevated.
 
-## Human decisions needed before A0 or subsequent implementation
+## Maintainer dispositions recorded after the audit
 
-Before A0 closes, a human architecture/maintainer review should confirm:
+The maintainer supplied the following directions after the audit. The canonical decision record is `.agent/DECISIONS.md`; these notes preserve their relationship to the audit findings:
 
-1. the intended migration mechanism from `Carbon_Logic/` to importable lowercase `carbon/` (rename, packaging map, selective new package, or compatibility wrapper), including how long old import paths must remain supported; **Human Decision: Renamed to carbon/. Only support import paths needed.**
-2. whether the Burgers PoC is the designated first vertical to wrap/repair, without thereby approving its science or fixed values; **Human Decision: Yes, Burgers first vertical.**
-3. which legacy namespaces/entrypoints require compatibility (`Carbon_Logic`, `hydrogen`, `Carbon`, current `neurons/*`) and which may be explicitly retired later; **Human Decision: Retire: Carbon_Logic, hydrogen, Carbon. Reuse neurons/ if useful.**
-4. whether Julia is part of the first supported developer/CI matrix and who owns repair/validation of its manifest and scientific service; **Humann Decision: Julia is part of the first build as the verification path for the v0 data generator.**
-5. whether the context filenames should be normalized and whether the proposal appendix in `Open_Questions.md` should be separated from unresolved questions. **Human Decision: filenames should be normalized and appendix proposal in Open_Questions.md should be treated as truth for v0 but auditable by team if needed.**
+1. Establish lowercase `carbon/` as canonical and support only needed import paths; retire `Carbon_Logic`, `hydrogen`, and `Carbon` as canonical namespaces.
+2. Use Burgers as the first vertical promotion source without approving its present science or fixed values.
+3. Reuse `neurons/` only if useful after audit.
+4. Include Julia in the first build as the v0 data-generator verification path; inclusion is not scientific qualification.
+5. Normalize context filenames in a scoped ticket. Use the `Open_Questions.md` proposal appendix as the v0 direction subject to team audit and the existing authority order.
+
+These dispositions narrow A0 but do not authorize mass deletion, semantic carry-over, LIVE activation, or work beyond the active ticket.
 Before the corresponding later tickets/LIVE work, designated humans must also supply/approve: strategy search surface and resource rails; seed derivation/timing; first challenge envelope/dossier; Score Pack thresholds/categories; reproducibility tolerances/hardware profile; disclosure budget; fee/rate/retry policy; security/isolation acceptance; authorized signers; and the LIVE decision. None is decided here.
 
 ## Risks A0 and subsequent Wave A tickets must address
