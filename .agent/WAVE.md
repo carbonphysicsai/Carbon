@@ -21,7 +21,7 @@ A-1 orientation → one ticket → baseline tests → implement → tests → re
 | ID | Build_Out | Item | Status | Evidence |
 |----|-----------|------|--------|----------|
 | A-1 | — | Orientation — repo map, KEEP/WRAP table, ORIENTATION.md | done | `.agent/ORIENTATION.md` audits `0eed4e9`; DoD checked in `.agent/tickets/A-1_orientation.md`; maintainer dispositions in `.agent/DECISIONS.md` |
-| A0 | C0 | Package layout (audit-first; map poc/Carbon_Logic) | done | Root `carbon/` + 14 reserved role packages; import/deferred-caller map and identical red baseline delta in `.agent/DECISIONS.md`; `python -c "import carbon"` and `git diff --check` pass |
+| A0 | C0 | Package layout (audit-first; map poc/Carbon_Logic) | done | Root `carbon/` + 14 reserved roles; isolated `pip install --no-deps -e` and outside-tree imports pass; exact base/head workflow delta has no A0 regression; evidence in `.agent/DECISIONS.md` |
 | A1 | C0 | CI skeleton (pytest, CPU) + preserve existing CI | todo | |
 | A2 | C2 | Strategy schema + dry_validate | todo | |
 | A3 | C1 | Challenge registry + LIVE qualification **hash** gate | todo | |

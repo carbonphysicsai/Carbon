@@ -88,6 +88,92 @@ new baseline failures, but the inherited repository baseline remains red.
 0. Generated smoke/test artifacts and bytecode caches were removed and are not
 part of the change.
 
+### Blocking-review follow-up: installability and CI-equivalent evidence
+
+**Compared states and isolation.** The review follow-up compared detached,
+clean Git worktrees created with `git worktree add --detach`: base
+`ab765b07bc8c41106194ce6d06b4a2bd1c03f9a1` at
+`/private/tmp/carbon-a0-base.Mxz8U8` and the pre-follow-up A0 head
+`e2f91a428c91a963caf261747f2ffd05ea0e1821` at
+`/private/tmp/carbon-a0-head.ZWnuEh`. Each workflow path used a separate clean
+virtual environment. Local comparisons used CPython 3.11.11 on macOS arm64
+with virtual-environment pip 24.0. Neither worktree was dirty.
+
+**No-dependency editable-install proof (A0 head).** From a clean virtual
+environment, the actual project build configuration succeeded without a
+packaging-metadata change:
+
+```text
+python -m pip install --no-deps -e /private/tmp/carbon-a0-head.ZWnuEh
+exit 0; built and installed distribution carbon==0.9.0
+```
+
+Build isolation was left enabled; `--no-build-isolation` was not necessary.
+From `/private/tmp` (outside the repository), the installed interpreter
+`/private/tmp/carbon-a0-venvs.pRnWzd/head-editable/bin/python` imported
+`carbon` and all fourteen required role packages at exit 0. Resolved paths
+were:
+
+```text
+carbon              -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/__init__.py
+carbon.schema       -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/schema/__init__.py
+carbon.registry     -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/registry/__init__.py
+carbon.seeding      -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/seeding/__init__.py
+carbon.scoring      -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/scoring/__init__.py
+carbon.cards        -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/cards/__init__.py
+carbon.fees         -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/fees/__init__.py
+carbon.traineval    -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/traineval/__init__.py
+carbon.mcp          -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/mcp/__init__.py
+carbon.leaderboard  -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/leaderboard/__init__.py
+carbon.logging_utils -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/logging_utils/__init__.py
+carbon.evaluation   -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/evaluation/__init__.py
+carbon.audit        -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/audit/__init__.py
+carbon.chain        -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/chain/__init__.py
+carbon.qualification -> /private/tmp/carbon-a0-head.ZWnuEh/carbon/qualification/__init__.py
+```
+
+This proves only editable installation and import discovery for A0. It does
+not prove that application dependencies, scientific behavior, CI, or any
+backend is healthy or production-qualified.
+
+**Exact current-workflow base/head comparison.** The authoritative workflow is
+`.github/workflows/ci.yml`. It uses Python 3.11, a test job with
+`pip install -e ".[dev]"` followed by `pytest tests/ -q --tb=no`, and a lint
+job with `pip install ruff black pytest`, `ruff check .`, then
+`black --check .`.
+
+| Workflow command / stage | Base `ab765b07` | A0 head `e2f91a42` | Delta |
+|---|---|---|---|
+| `pip install -e ".[dev]"` | Exit 1 while resolving declared dependencies: `No matching distribution found for physicsnemo` | Exit 1 at the same stage with the same first material error | No new A0 failure; the workflow test command was not reached in either sequential job. |
+| `pytest tests/ -q --tb=no` (forced in the isolated lint-tool environment because the test-job install cannot complete) | Exit 2; five collection errors; first material signatures are missing `neurons`, then `carbon` | Exit 2 with the same five files and signatures | No delta. This forced run is not represented as a successful or reached test-job stage. |
+| `pip install ruff black pytest` | Exit 0 | Exit 0 | No delta. |
+| `ruff check .` | Exit 1; 776 errors, 544 fixable | Exit 1; 776 errors, 544 fixable | Identical inherited lint failure. |
+| `black --check .` (forced after Ruff for comparison; Actions skips it after Ruff fails) | Exit 123; 66 files would reformat, 56 unchanged, and two legacy parse failures | Exit 123; 66 files would reformat, 70 unchanged, and the same two parse failures | Same failure stage/signatures; the fourteen new one-line package markers account for the additional unchanged files. |
+
+GitHub Actions corroborates the local comparison. Base run
+`32232686102` and PR-head run `32234794106` both fail the test job at
+`pip install -e ".[dev]"` on unavailable `physicsnemo`, skip the test step,
+install lint tools successfully, and fail Ruff with the same 776 findings;
+Black is skipped in both actual runs. These are inherited CI failures, not A0
+regressions.
+
+**Maturity statement.** The lowercase namespace and fourteen behavior-free
+package boundaries are **IMPLEMENTED**. Editable installation and outside-tree
+imports are **TESTED** by the isolated proof above. Full dependency resolution,
+the inherited test/lint baseline, scientific semantics, backend behavior,
+Bittensor integration, LIVE readiness, and production qualification are not
+green and are not claimed. No packaging defect was found, so A0 changes no
+packaging metadata or dependency declaration. The evidence supports retaining
+A0 as `done`: installation/import acceptance is proven, exact base/head
+workflow failures are non-regressing, and the base-to-head diff remains solely
+A0 layout, mapping, evidence, and status work.
+
+After this evidence-only documentation update, the no-dependency editable
+install and all outside-tree imports passed again; the full workflow install,
+forced test/Ruff/Black comparisons, and every original A0 baseline command
+retained the signatures recorded above. `git diff --check` also passed. No
+generated smoke artifacts, bytecode, or editable-install metadata is included.
+
 ## 2026-08-19 — Evaluation evidence / validator audit extension
 
 - `Design_Specs/Evaluation_Evidence_and_Validator_Audit.md` is the normative owner for execution evidence, receipts, reproducibility qualification, validator audit/re-execution, and scientific-vs-emission separation.
