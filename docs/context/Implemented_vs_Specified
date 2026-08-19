@@ -28,15 +28,28 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 | Binary mandatory hard gates | Yes | Some prototype zeroing exists | Partial | No | Rebuild against current `Scoring.md`. |
 | Physics/robustness/accuracy pack semantics | Yes | Legacy/partial | Not established | No | Implement current weighted-geometric design. |
 | Weighted-geometric aggregate | Yes | Historical code used other semantics | No | No | Treat current spec as implementation target. |
-| Model Card internal record | Yes | Partial/legacy | Not established | No | Reconcile required fields and append-only behavior. |
-| Budgeted EvaluationCard | Yes | Partial/unknown | Not established | No | Implement disclosure allow-list. |
+| Private ExecutionTranscript | Yes | Not established | No | No | Implement controlled evidence store after A6/A8 structure is in place. |
+| Signed EvaluationReceipt | Yes | Not established | No | No | New evidence spine; fixture/stub structure in Wave A, real signed receipts in Wave C. |
+| Append-only receipt commitment log | Yes | Not established | No | No | Merkle/MMR checkpointing is specified; implementation belongs in Wave C extension. |
+| Model Card internal record | Yes | Partial/legacy | Not established | No | Reconcile required fields and append-only behavior; reference receipt. |
+| Budgeted EvaluationCard | Yes | Partial/unknown | Not established | No | Implement disclosure allow-list as public projection of internal evidence. |
 | Submission FSM/idempotency | Yes | Partial/unknown | Not established | No | Audit against Build Out lifecycle. |
 | Fee ≠ score | Yes | Partial/unknown | Not established | No | Add explicit invariant test. |
-| Infra failure ≠ scientific failure | Yes | Partial/unknown | Not established | No | Implement retry/refund/status semantics. |
+| Infra failure ≠ scientific failure | Yes | Partial/unknown | Not established | No | Implement typed retry/refund/status semantics; ScoreEngine must reject infra results. |
+| Typed Julia/reference failure boundary | Yes | Not established | No | No | Wrap SciML/reference exceptions as explicit infra/reference statuses in Wave B. |
 | Pinned execution/resource isolation | Yes | Partial/legacy | Not established | No | Security-critical P0 work. |
-| Reproducibility within qualified tolerance | Yes | Determinism utilities exist historically | Partial | No | Define human-approved tolerance and test matrix. |
-| Bittensor testnet scores → weights | Yes | Legacy wiring exists | Current acceptance not established | No | Wave C must prove actual testnet path. |
-| Launch-Bar enforcement | Yes | Partial/unknown | Not established | No | Gate LIVE on exact qualification artifacts. |
+| R0 exact artifact reproducibility | Yes | Historical determinism primitives only | Not established | No | Build exact artifact comparison harness. |
+| R1 numerical reproducibility | Yes | Not established under current backend contract | No | No | Measure and human-approve backend-specific tolerance. |
+| R2 gate/ranking decision reproducibility | Yes | Not established | No | No | Add decision-stability and contested-band acceptance tests. |
+| JAX-first P0 backend profile | Yes | PoC/JAX fragments exist; canonical backend not established | No | No | Build JAX backend behind TrainEvalAPI and qualify narrow hardware/software cohort. |
+| Scientific plane → canonical result | Yes | Not established | No | No | Record authoritative scientific evidence before Bittensor weight transformation. |
+| Bittensor testnet scores → weights | Yes | Legacy wiring exists | Current acceptance not established | No | Wave C must prove actual testnet path through chain adapter. |
+| Chain/Bittensor adapter boundary | Yes | Not established as canonical interface | No | No | Introduce narrow chain/metagraph/weight interfaces; do not couple scientific modules directly. |
+| Validator free-riding economics model | Yes, pre-mainnet requirement | Not established | No | No | Build scenario simulator/tool before mainnet planning; never use similarity as score input. |
+| Probabilistic re-execution audit | Yes, testnet/Wave C target | Not established | No | No | Prototype post-commit audit under R0/R1/R2; disagreement => contested/retry. |
+| Constitutional invariant CI | Yes | Current CI insufficient | No | No | A1/A12 must gate leakage, mock isolation, scoring, stub emission, infra/science and receipt projection. |
+| Credibility Dossier crosswalk | Yes | Not established | No | No | Add machine-readable V&V/VVUQ/context-of-use mapping in Wave B; no automatic compliance claim. |
+| Launch-Bar enforcement | Yes | Partial/unknown | Not established | No | Gate LIVE on exact qualification artifacts including backend/reproducibility/disclosure readiness. |
 
 ## Post-P0 / later layers
 
@@ -47,8 +60,10 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 | Port B progressive routing | Yes, constrained | Not established | No | No | Must preserve same mandatory score-bearing exam. |
 | Specialist Bank | Yes | Prototype/legacy fragments may exist | Not qualified | No | Product path remains future. |
 | Product Battery | Yes | Not established as qualified system | No | No | Product-specific packs/thresholds still human-owned. |
+| Qualified Strategy/Model evidence package | Yes, later | Not established | No | No | Reuse receipt/dossier/provenance spine after product qualification exists. |
 | Customer bounds / adaptation | Yes, later | Not established | No | No | Requalification required after adaptation. |
 | Air-gap / confidential regimes | Specified by phase | Not established | No | No | Future security/ops qualification. |
+| Narrow cryptographic proofs over committed outputs/gates | Proof-ready only | No ZK system | No | No | Explicitly out of P0; stable commitments preserve future option value. |
 
 ## Archaeology rule
 For each Build Out ticket, classify relevant historical code:
@@ -61,8 +76,9 @@ For each Build Out ticket, classify relevant historical code:
 No code is kept merely because it exists, and no code is replaced merely because it is old.
 
 ## Immediate ledger work
-1. Re-run repository orientation against the reconciled specs.
-2. Map every Wave A–C acceptance criterion to code/tests.
+1. Continue Wave A from the current board; do not reorder A0–A12 because the protocol-evidence extension was added.
+2. Map every Wave A–C acceptance criterion, including `Build_Out_Protocol_Extension.md`, to code/tests.
 3. Replace “partial/unknown” with file/test evidence.
 4. Keep science-dependent items blocked with explicit human-input markers.
-5. Do not mark anything PRODUCTION-QUALIFIED until the corresponding qualification evidence exists.
+5. Do not mark receipts, backend profiles, audits, validator economics, credibility mappings, or any other newly specified capability IMPLEMENTED/TESTED merely because the specification now exists.
+6. Do not mark anything PRODUCTION-QUALIFIED until the corresponding scientific/security/operational qualification evidence exists.
