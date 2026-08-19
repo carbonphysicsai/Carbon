@@ -1,0 +1,701 @@
+<title>Carbon Compute Architecture</title>
+<style>
+  :root {
+    --bg: #F4F6F5;
+    --surface: #FFFFFF;
+    --surface-2: #EAEFEE;
+    --ink: #10171A;
+    --ink-muted: #4C5A5F;
+    --ink-faint: #7C8B8F;
+    --line: #D7DFDE;
+    --accent: #0B7C86;
+    --accent-ink: #FFFFFF;
+    --accent-2: #B5602A;
+    --accent-2-ink: #FFFFFF;
+    --accent-soft: #E3F1F1;
+    --accent-2-soft: #F3E7DD;
+    --shadow: rgba(16,23,26,0.10);
+    --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", "Berkeley Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A1113;
+      --surface: #101A1D;
+      --surface-2: #162326;
+      --ink: #E7EEEE;
+      --ink-muted: #93A7AB;
+      --ink-faint: #5E7377;
+      --line: #223338;
+      --accent: #35D6C7;
+      --accent-ink: #04211F;
+      --accent-2: #E68A4C;
+      --accent-2-ink: #2B1400;
+      --accent-soft: #12292A;
+      --accent-2-soft: #2A1D12;
+      --shadow: rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A1113;
+    --surface: #101A1D;
+    --surface-2: #162326;
+    --ink: #E7EEEE;
+    --ink-muted: #93A7AB;
+    --ink-faint: #5E7377;
+    --line: #223338;
+    --accent: #35D6C7;
+    --accent-ink: #04211F;
+    --accent-2: #E68A4C;
+    --accent-2-ink: #2B1400;
+    --accent-soft: #12292A;
+    --accent-2-soft: #2A1D12;
+    --shadow: rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-display);
+    overflow: hidden;
+  }
+  body { position: relative; }
+
+  .deck {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .stage {
+    position: relative;
+    width: min(94vw, 177.7vh);
+    height: min(52.87vw, 100vh - 4rem);
+    max-height: 88vh;
+    aspect-ratio: 16 / 9;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: 0 20px 60px var(--shadow);
+    overflow: hidden;
+  }
+
+  /* Blueprint corner registration marks */
+  .stage::before, .stage::after,
+  .stage .mark-tr, .stage .mark-bl {
+    content: "";
+    position: absolute;
+    width: 18px; height: 18px;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .stage::before { top: 10px; left: 10px; border-top: 1.5px solid var(--ink-faint); border-left: 1.5px solid var(--ink-faint); }
+  .stage::after { bottom: 10px; right: 10px; border-bottom: 1.5px solid var(--ink-faint); border-right: 1.5px solid var(--ink-faint); }
+  .mark-tr { top: 10px; right: 10px; border-top: 1.5px solid var(--ink-faint); border-right: 1.5px solid var(--ink-faint); }
+  .mark-bl { bottom: 10px; left: 10px; border-bottom: 1.5px solid var(--ink-faint); border-left: 1.5px solid var(--ink-faint); }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 3.4rem 4.2rem 3rem;
+    opacity: 0;
+    transform: translateX(24px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+    z-index: 2;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: opacity 0.01s linear; transform: none; }
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.9rem;
+  }
+  h1, h2 { text-wrap: balance; margin: 0; }
+  h1 { font-size: 3rem; font-weight: 800; letter-spacing: -0.02em; }
+  h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.015em; line-height: 1.15; margin-bottom: 1.1rem; }
+  p { line-height: 1.55; color: var(--ink-muted); font-size: 1.02rem; max-width: 62ch; }
+  .lede { font-size: 1.18rem; color: var(--ink); max-width: 60ch; }
+
+  /* ---- Footer spec strip ---- */
+  .spec-strip {
+    position: absolute;
+    left: 4.2rem; right: 4.2rem; bottom: 1.2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+    z-index: 4;
+  }
+  .spec-strip .dots { display: flex; gap: 6px; }
+  .spec-strip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--line); transition: background 0.25s; }
+  .spec-strip .dot.on { background: var(--accent); }
+
+  /* ---- Title slide ---- */
+  .title-slide { justify-content: center; align-items: flex-start; }
+  .title-slide .wordmark { font-size: 4.6rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .title-slide .sub { font-size: 1.3rem; color: var(--ink-muted); margin-top: 0.9rem; max-width: 34ch; }
+  .title-slide .meta { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-faint); margin-top: 2.4rem; letter-spacing: 0.02em; }
+  .title-slide .hint { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); position: absolute; bottom: 1.2rem; right: 4.2rem; }
+  .title-slide .hint .touch-only { display: none; }
+  .accent-rule { width: 54px; height: 4px; background: var(--accent); border-radius: 2px; margin: 1.6rem 0 0; }
+
+  /* ---- Generic content blocks ---- */
+  .content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .cards { display: grid; gap: 1rem; margin-top: 1.2rem; }
+  .cards.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cards.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .card {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.1rem 1.2rem;
+  }
+  .card .tag {
+    font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent-2); margin-bottom: 0.5rem; display: block;
+  }
+  .card p { font-size: 0.92rem; margin: 0; max-width: none; }
+  .card h3 { font-size: 1rem; margin: 0 0 0.4rem; font-weight: 700; }
+
+  /* ---- Table ---- */
+  .table-wrap { overflow-x: auto; margin-top: 1rem; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.82rem; background: var(--surface); }
+  th, td { text-align: left; padding: 0.62rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-faint); background: var(--surface-2); border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.hl { color: var(--accent); font-weight: 700; font-family: var(--font-mono); font-size: 0.78rem; }
+  th:first-child, td:first-child { color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.72rem; white-space: nowrap; }
+
+  /* ---- Diagram (slide 4) ---- */
+  .diagram { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; margin-top: 0.4rem; }
+  .dbox {
+    border: 1.5px solid var(--line);
+    border-radius: 7px;
+    background: var(--surface-2);
+    padding: 0.55rem 1.4rem;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  .dbox.chain { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .dbox.miner { border-color: var(--accent-2); color: var(--accent-2); background: var(--accent-2-soft); }
+  .varrow { font-family: var(--font-mono); color: var(--ink-faint); font-size: 0.85rem; line-height: 1; }
+  .validator-group {
+    border: 1.5px dashed var(--ink-faint);
+    border-radius: 9px;
+    padding: 0.9rem 1.1rem 0.7rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+    position: relative;
+  }
+  .validator-group .glabel {
+    position: absolute; top: -0.62rem; left: 1rem; background: var(--surface);
+    font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint);
+    padding: 0 0.4rem;
+  }
+  .row3 { display: flex; gap: 0.6rem; align-items: stretch; }
+  .row3 .dbox { font-size: 0.78rem; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .tier-sub { display: flex; flex-direction: column; gap: 0.3rem; }
+  .tier-sub .dbox { font-size: 0.68rem; padding: 0.3rem 0.7rem; }
+  .vdl {
+    border: 1.5px dashed var(--accent-2);
+    color: var(--accent-2);
+    border-radius: 7px;
+    padding: 0.5rem 1.3rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--accent-2-soft);
+  }
+
+  /* ---- Two column ---- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.3rem; flex: 1; margin-top: 0.6rem; min-height: 0; }
+  .col-panel {
+    border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.25rem;
+    background: var(--surface-2); display: flex; flex-direction: column; gap: 0.55rem;
+  }
+  .col-panel h3 { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase; margin: 0; color: var(--accent); }
+  .col-panel.right h3 { color: var(--accent-2); }
+  .col-panel p { font-size: 0.88rem; margin: 0; max-width: none; }
+  .callout {
+    margin-top: 1rem; padding: 0.85rem 1.1rem; border-radius: 8px;
+    background: var(--accent-soft); border: 1px solid var(--accent);
+    font-size: 0.88rem; color: var(--ink); font-weight: 600;
+  }
+
+  /* ---- Formula block ---- */
+  .formula {
+    font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.9;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 1rem 1.3rem; margin-top: 0.9rem; white-space: pre; color: var(--ink);
+  }
+  .formula .kw { color: var(--accent); }
+  .formula .kw2 { color: var(--accent-2); }
+
+  /* ---- Lists ---- */
+  ul.qlist { list-style: none; margin: 1rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  ul.qlist li {
+    display: flex; gap: 0.8rem; align-items: baseline; font-size: 1rem; color: var(--ink);
+    padding-bottom: 0.7rem; border-bottom: 1px solid var(--line);
+  }
+  ul.qlist li:last-child { border-bottom: none; }
+  ul.qlist .qn { font-family: var(--font-mono); color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+  .chip {
+    font-family: var(--font-mono); font-size: 0.74rem; padding: 0.3rem 0.65rem;
+    border: 1px solid var(--line); border-radius: 5px; color: var(--ink-muted); background: var(--surface-2);
+  }
+
+  .closing-grid { display: flex; flex-direction: column; gap: 1.4rem; margin-top: 1rem; flex: 1; justify-content: center; }
+  .closing-grid .line { display: flex; gap: 1rem; align-items: baseline; }
+  .closing-grid .k { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-2); width: 8rem; flex-shrink: 0; }
+  .closing-grid .v { font-size: 1rem; color: var(--ink); }
+
+  /* Nav affordances */
+  .navzone { position: absolute; top: 0; bottom: 0; width: 12%; z-index: 6; cursor: pointer; }
+  .navzone.left { left: 0; }
+  .navzone.right { right: 0; }
+  .navbtn {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--ink-muted); font-family: var(--font-mono); font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s;
+    z-index: 6; cursor: pointer;
+  }
+  .navzone:hover .navbtn { opacity: 0.9; }
+  .navbtn.prev { left: 14px; }
+  .navbtn.next { right: 14px; }
+  .navbtn:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  /* Touch devices have no hover, so the nav arrows need to be visible by default */
+  @media (hover: none) and (pointer: coarse) {
+    .navbtn { opacity: 0.6; width: 40px; height: 40px; }
+    .navzone:active .navbtn { opacity: 1; }
+  }
+
+  /* Phones (mostly portrait): drop the fixed 16:9 lock, use the screen, scale type down */
+  @media (max-width: 640px), (max-aspect-ratio: 4/3) {
+    .deck { padding: 0; }
+    .stage { width: 97vw; height: 94vh; max-height: none; aspect-ratio: auto; border-radius: 4px; }
+    .slide { padding: 1.5rem 1.3rem 2.9rem; }
+    .eyebrow { font-size: 0.62rem; margin-bottom: 0.6rem; }
+    h1 { font-size: 1.9rem; }
+    h2 { font-size: 1.3rem; margin-bottom: 0.7rem; }
+    .lede { font-size: 0.95rem; }
+    p { font-size: 0.85rem; }
+    .title-slide .wordmark { font-size: 2.5rem; }
+    .title-slide .sub { font-size: 1rem; max-width: none; }
+    .title-slide .meta { margin-top: 1.4rem; font-size: 0.68rem; }
+    .cards.cols-3, .cards.cols-2, .two-col { grid-template-columns: 1fr; }
+    .row3 { flex-direction: column; }
+    .diagram { gap: 0.5rem; }
+    .dbox { font-size: 0.72rem; padding: 0.45rem 0.8rem; }
+    table { font-size: 0.68rem; }
+    th, td { padding: 0.45rem 0.55rem; }
+    .formula { font-size: 0.68rem; padding: 0.75rem 0.9rem; }
+    .spec-strip { left: 1.3rem; right: 1.3rem; }
+    .navzone { width: 20%; }
+    .hint .kb-only { display: none; }
+    .hint .touch-only { display: inline; }
+  }
+</style>
+
+<div class="deck">
+  <div class="stage" id="stage" tabindex="0">
+    <span class="mark-tr"></span><span class="mark-bl"></span>
+
+    <!-- 1 -->
+    <section class="slide title-slide active">
+      <div class="eyebrow">Subnet Design Review</div>
+      <div class="wordmark">Carbon</div>
+      <div class="sub">Compute architecture for physics-informed AI on Bittensor</div>
+      <div class="accent-rule"></div>
+      <div class="meta">Harshdeep Sharma &middot; Ryan Bequette &middot; Nick Fitz &middot; Aug 15, 2026</div>
+      <div class="hint"><span class="kb-only">&rarr; / space to advance &middot; f for fullscreen</span><span class="touch-only">swipe to advance &middot; tap edges to jump</span></div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <div class="eyebrow">01 &middot; The Pitch</div>
+      <h2>A subnet that sells trained models, not answered requests</h2>
+      <div class="content">
+        <p class="lede">Miners propose training strategies (backbone choice, loss terms, curriculum) for a physics challenge. Validators run the official train and eval of that exact strategy against real-time-generated data and battle-test it against real physics. The output is a Model Card, and the growing set of those is the product: a licensable model zoo for engineering teams, not a live answer to a submitted request.</p>
+        <div class="cards cols-3">
+          <div class="card">
+            <span class="tag">Constraint 01</span>
+            <h3>Validator compute is the scarce resource</h3>
+            <p>The validator trains and evaluates every submission from scratch. That's the real cost center now, not a separate verification step layered on top.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Constraint 02</span>
+            <h3>Registration is a sunk cost</h3>
+            <p>Current dynamic registration burn runs $1.5&ndash;2.5M+, non-refundable, and roughly doubles with each new subnet.</p>
+          </div>
+          <div class="card">
+            <span class="tag">Constraint 03</span>
+            <h3>The hardware burden is asymmetric</h3>
+            <p>A miner submits a JSON strategy: no GPU required at all. The validator needs real training capacity. That's the opposite shape from a typical GPU-mining subnet.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <div class="eyebrow">02 &middot; Prior Art</div>
+      <h2>Carbon isn't the first physics subnet</h2>
+      <div class="content">
+        <p class="lede">Subnet 25 (Mainframe) solved the same trust problem for protein folding, and just partnered with Rowan Scientific to generate DFT data for neural network potentials. Same pitch, one science over.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th></th><th>Carbon (proposed)</th><th>SN25 Mainframe</th><th>SN68 NOVA</th><th>SN64 / SN19</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Domain</td>
+                <td class="hl">Structural &amp; mechanical PDEs</td>
+                <td>Protein folding &rarr; general scientific compute</td>
+                <td>Drug discovery, virtual screening</td>
+                <td>General LLM inference</td>
+              </tr>
+              <tr>
+                <td>Miner task</td>
+                <td>Submit a training strategy (JSON config), no compute required</td>
+                <td>Produce a protein config or DFT calculation</td>
+                <td>Submit candidate molecules for scoring</td>
+                <td>Serve LLM inference requests</td>
+              </tr>
+              <tr>
+                <td>Verification</td>
+                <td>Validator trains + evals the submitted strategy on fresh physics data</td>
+                <td>Independently computed physical energy</td>
+                <td>Binding-affinity model run by the validator</td>
+                <td>Output quality &amp; latency checks</td>
+              </tr>
+              <tr>
+                <td>Reward shape</td>
+                <td>Open question (see Incentives)</td>
+                <td>Top-K, 80/20 winner-take-most</td>
+                <td>Tiered by novelty &amp; score</td>
+                <td>Continuous, throughput-weighted</td>
+              </tr>
+              <tr>
+                <td>Validator hardware</td>
+                <td>2&times; 48GB+ GPU class, comparable to NOVA (verified against its README, not a secondhand estimate)</td>
+                <td>GPU cluster for MD / DFT</td>
+                <td>2&times; GPU, &gt;48GB VRAM each for parallel inference</td>
+                <td>Multi-GPU / H100 clusters</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <div class="eyebrow">03 &middot; System Shape</div>
+      <h2>Strategy in, trained model out</h2>
+      <div class="diagram">
+        <div class="dbox miner">Miner &middot; submits a Strategy (JSON, no compute)</div>
+        <div class="varrow">&#8595;&#8593;</div>
+        <div class="dbox chain">Bittensor Chain &middot; Yuma Consensus</div>
+        <div class="varrow">&#8595;&#8593;</div>
+        <div class="validator-group">
+          <span class="glabel">Validator</span>
+          <div class="row3">
+            <div class="dbox">Data Generator<br><span style="font-weight:400;font-size:0.68rem">real-time, fresh seeded draws</span></div>
+            <div class="dbox">Train + Eval<br><span style="font-weight:400;font-size:0.68rem">executes the exact strategy</span></div>
+            <div class="dbox">Gate &amp; Score<br><span style="font-weight:400;font-size:0.68rem">hard gates, then weighted legs</span></div>
+          </div>
+        </div>
+        <div class="varrow">&#8595;</div>
+        <div class="dbox">Model Card &middot; strategy + performance + physics results</div>
+        <div class="varrow">&#8595;</div>
+        <div class="vdl">Model Zoo &middot; engineering teams license models, sponsors fund custom challenges</div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide">
+      <div class="eyebrow">04 &middot; Why This Can Work</div>
+      <h2>The validator is the only one who ever runs it</h2>
+      <div class="content">
+        <p class="lede">A miner can propose anything, but they never touch the data or the training run. The validator executes the exact submitted strategy itself, on data the miner couldn't have seen coming. That's what makes the result trustworthy, not a cheap post-hoc check.</p>
+        <div class="two-col">
+          <div class="col-panel">
+            <h3>Fresh seeded draws</h3>
+            <p>Every train and eval set is generated in real time from a qualified procedural generator, seed-triggered per run. There's no static answer key to memorize or reverse-engineer.</p>
+          </div>
+          <div class="col-panel right">
+            <h3>Fail-closed hard gates</h3>
+            <p>Finite output, mass conservation, energy stability, short-rollout stability: any mandatory gate failing zeroes the score outright. No partial credit for a strategy that looks close.</p>
+          </div>
+        </div>
+        <div class="callout">A miner who proposes a strategy that only works on data they've seen has nowhere to hide: the validator's own execution on unseen draws is the entire test.</div>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <div class="eyebrow">05 &middot; Miner Side</div>
+      <h2>Miners propose, they don't compute</h2>
+      <div class="content">
+        <p class="lede">A strategy is a menu selection plus a recipe: which backbone, which loss terms, what curriculum. The miner never trains it themselves, so mining requires no GPU at all, just a well-reasoned JSON submission and a small evaluation fee.</p>
+        <div class="chip-row">
+          <span class="chip">FNO</span><span class="chip">GINO</span><span class="chip">WNO</span>
+          <span class="chip">GNO</span><span class="chip">Transolver</span><span class="chip">GAOT</span>
+          <span class="chip">PhysicsNeMo-FNO</span><span class="chip">PINO</span>
+        </div>
+        <p style="margin-top:0.9rem">This is the backbone menu already live in code (<code>ALLOWED_BACKBONES</code>), plus GAOT and GNO for geometries that outgrow a regular grid. Full detail on the knobs around each choice is next.</p>
+        <div class="callout">Zero hardware requirement for mining is a real structural difference from typical Bittensor subnets, where miners themselves bear the GPU cost. Here that cost concentrates entirely on the validator.</div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <div class="eyebrow">06 &middot; Strategy Schema</div>
+      <h2>Every new knob earns its place on a scored leg</h2>
+      <div class="content">
+        <p class="lede">Scoring weights physics 0.40, robustness 0.35, accuracy 0.25 (detail on the Incentives slide), with accuracy deliberately lowest so memorization can't dominate. A knob only belongs in the schema if it gives a miner a real lever on one of those legs.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>New loss term</th><th>Moves</th><th>Why it's there</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="hl">noise_robustness</td>
+                <td>Robustness leg (0.35, highest-weighted)</td>
+                <td>Penalizes output sensitivity to small input/IC perturbations, directly targeting the stress categories</td>
+              </tr>
+              <tr>
+                <td class="hl">rollout_consistency</td>
+                <td>short_rollout hard gate</td>
+                <td>Penalizes drift under autoregressive rollout vs. single-step prediction</td>
+              </tr>
+              <tr>
+                <td>spectral_matching</td>
+                <td>Physics leg</td>
+                <td>Counters FNO's known high-wavenumber spectral bias</td>
+              </tr>
+              <tr>
+                <td>sobolev_penalty</td>
+                <td>Physics leg</td>
+                <td>Matches spatial derivatives, not just field values: gradients matter for elasticity and NS</td>
+              </tr>
+              <tr>
+                <td>smoothness_tv</td>
+                <td>Physics leg</td>
+                <td>Standard fix for Gibbs-like oscillation near shocks (Burgers)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">Phase 0 priority: <code>noise_robustness</code> and <code>rollout_consistency</code> first. Both map onto the two highest-weighted scoring elements and need no new generator or reference-solver work to implement.</div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide">
+      <div class="eyebrow">07 &middot; Strategy Schema, cont.</div>
+      <h2>Curriculum, and what stays off-limits</h2>
+      <div class="two-col">
+        <div class="col-panel">
+          <h3>Curriculum &middot; new, not yet implemented</h3>
+          <p>Named by the team as a wanted knob but absent from the live schema. Proposed: <code>viscosity_anneal</code> trains on smooth high-viscosity draws first, then anneals toward the shock-forming regime. <code>loss_weight_schedule</code> starts data-fit dominant, then ramps physics weight up, the standard fix for physics losses blocking early convergence.</p>
+        </div>
+        <div class="col-panel right">
+          <h3>Explicitly off-limits to miners</h3>
+          <p>No control over seeds: fresh validator-generated draws are the entire anti-gaming invariant. No visibility into gate thresholds, Score Pack weights, or eval/stress data. What's exposed is the recipe, never the answer key.</p>
+        </div>
+      </div>
+      <div class="callout">Also proposed: a <code>regularization</code> block (dropout, normalization, activation, weight init, EMA) and a <code>compute_tier</code> field tying the "pay for an edge" idea to a concrete, still hard-capped budget ceiling. Backbone list needs reconciling too: fold TFNO into an FNO factorization option rather than a separate backbone name, since it's the same architecture, not a different one.</div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <div class="eyebrow">08 &middot; Framework &amp; Hardware</div>
+      <h2>One codebase, two backends, used differently on each side</h2>
+      <div class="two-col">
+        <div class="col-panel">
+          <h3>Miner side: no hardware decision at all</h3>
+          <p>A strategy names a backbone (<code>fno</code>, <code>transolver</code>, ...), it never specifies GPU or TPU. That choice doesn't exist on the miner's side to make, because the miner never runs the model. Whatever the strategy asks for, the validator is the one who executes it.</p>
+        </div>
+        <div class="col-panel right">
+          <h3>Validator side: TPU is the clearer win</h3>
+          <p>The validator has to train and evaluate every submitted strategy on real-time-generated data fast enough to keep up with submission traffic. <code>pmap</code>/<code>pjit</code> batching across a TPU pod scales that well, and FNO-style spectral convolutions (FFT + dense matmul) map cleanly onto the MXU. The nearest public comparable, NOVA (SN68), runs its validator-side model on 2&times; GPUs with &gt;48GB VRAM each, verified directly against its README rather than a secondhand estimate.</p>
+        </div>
+      </div>
+      <div class="callout">Recommendation: JAX everywhere as the framework choice. TPU where the validator needs batch throughput. Miners need no GPU at all, they only submit a strategy.</div>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide">
+      <div class="eyebrow">09 &middot; Distributed Training, Resolved</div>
+      <h2>Validator-side parallelism, not cross-miner training</h2>
+      <div class="content">
+        <p class="lede">An earlier version of this design explored an orchestrator that split one shared model's training across many miners, pipeline-parallel, IOTA-style. That doesn't match the confirmed mechanism: one strategy in, one validator trains it, one Model Card out. There's no step where multiple miners' compute combines into a single job.</p>
+        <div class="cards cols-2">
+          <div class="card">
+            <span class="tag">What's actually needed</span>
+            <h3>Validator-side execution capacity</h3>
+            <p>If a submitted strategy specifies a large model, the validator's own training infrastructure needs to run it, potentially across its own multi-GPU box (standard sharding, e.g. ZeRO/FSDP), not across the network.</p>
+          </div>
+          <div class="card">
+            <span class="tag">What's not needed, for now</span>
+            <h3>An orchestrator role</h3>
+            <p>SN9/IOTA-style cross-miner pipeline parallelism stays on the shelf unless the product direction moves toward one large shared foundation model instead of many strategy-scoped ones.</p>
+          </div>
+        </div>
+        <div class="callout">Keeping this slide rather than deleting it on purpose: it's a real design decision we made and then walked back once the mechanism was confirmed, worth having on record so it doesn't get re-litigated from scratch later.</div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide">
+      <div class="eyebrow">10 &middot; The Data Flywheel</div>
+      <h2>Every run is a data point, not just a result</h2>
+      <div class="two-col">
+        <div class="col-panel">
+          <h3>Open path &middot; the Model Zoo</h3>
+          <p>Model Cards accumulate into a licensable, growing catalog. This is the direct product: engineering teams get fast surrogates for design exploration, real-time control, and agentic solving.</p>
+        </div>
+        <div class="col-panel right">
+          <h3>Specialist path &middot; sponsored hardening</h3>
+          <p>The knowledge graph of what's working and what isn't feeds a deliberately more rigorous re-validation pass, building specialist models for industry sponsors targeting their own physics envelope, without exposing their proprietary data.</p>
+        </div>
+      </div>
+      <div class="callout">Mining is expected to be agentic. The miner feedback loop, next up after this deck, is the mechanism that lets agents iterate locally on the accumulated intelligence without paying the submission fee every time.</div>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide">
+      <div class="eyebrow">11 &middot; Incentives</div>
+      <h2>Gate first, then score, then shape the curve</h2>
+      <div class="content">
+        <p class="lede">The real Score Pack formula, not an approximation of it.</p>
+        <div class="formula"><span class="kw">gate_failed</span> = any mandatory gate fails   <span class="kw2"># finite, mass_conservation, energy_stability, short_rollout</span>
+<span class="kw">S_combined</span>  = 0   <span class="kw2"># if gate_failed: fail-closed, no partial credit</span>
+<span class="kw">S_combined</span>  = 0.40&middot;physics + 0.35&middot;robustness + 0.25&middot;accuracy   <span class="kw2"># otherwise</span>
+<span class="kw">weight</span>      = reward_curve(S_combined)   <span class="kw2"># Top-K / 80-20, or continuous (open)</span></div>
+        <p style="margin-top:0.9rem">Accuracy is deliberately the lowest-weighted leg, so pure memorization can't dominate emissions. SN25 uses Top-K, winner-take-most: sharper competition, higher variance, discourages small miners. Continuous scoring is gentler but slower to punish mediocre strategies. Still open which shape Carbon uses.</p>
+      </div>
+    </section>
+
+    <!-- 13 -->
+    <section class="slide">
+      <div class="eyebrow">12 &middot; For This Meeting</div>
+      <h2>What we need to decide?</h2>
+      <ul class="qlist">
+        <li><span class="qn">01</span> Backbone list reconciliation: collapse fno1d/fno2d, fold TFNO into a factorization option. Code decision, not just an addition.</li>
+        <li><span class="qn">02</span> Phase 0 priority for the five new loss terms: proposing noise_robustness and rollout_consistency first.</li>
+        <li><span class="qn">03</span> Is compute_tier / fee-gating in scope now, or a later-phase concern?</li>
+        <li><span class="qn">04</span> Confirm the 256-slot cap: combined miner+validator pool (as NOVA appears to run) or miners plus validators on top?</li>
+      </ul>
+    </section>
+
+    <!-- 14 -->
+    <section class="slide">
+      <div class="eyebrow">Next Steps</div>
+      <h2>Where this leaves us</h2>
+      <div class="closing-grid">
+        <div class="line"><span class="k">Direction</span><span class="v">Strategy in, validator trains and evaluates on fresh physics data, Model Card out, model zoo is the product. JAX everywhere, TPU on the validator, zero hardware for miners.</span></div>
+        <div class="line"><span class="k">Grounded in</span><span class="v">The live strategy_schema.py and Score Pack already in the repo, extended rather than replaced; NOVA (SN68) as the closest verified compute comparable.</span></div>
+        <div class="line"><span class="k">Next</span><span class="v">Agree the Strategy Schema v1.1 proposal, then design the miner feedback loop: noisy leader hints plus a local scoring-impact estimator.</span></div>
+      </div>
+    </section>
+
+    <div class="navzone left" onclick="go(-1)"><div class="navbtn prev">&larr;</div></div>
+    <div class="navzone right" onclick="go(1)"><div class="navbtn next">&rarr;</div></div>
+
+    <div class="spec-strip">
+      <span id="section-tag">SUBNET DESIGN REVIEW</span>
+      <div class="dots" id="dots"></div>
+      <span id="counter">01 / 14</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let idx = 0;
+  const dotsEl = document.getElementById('dots');
+  const counterEl = document.getElementById('counter');
+  const tagEl = document.getElementById('section-tag');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    dotsEl.appendChild(d);
+  });
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    Array.from(dotsEl.children).forEach((d, i) => d.classList.toggle('on', i === idx));
+    counterEl.textContent = pad(idx + 1) + ' / ' + pad(total);
+    const eyebrow = slides[idx].querySelector('.eyebrow');
+    tagEl.textContent = eyebrow ? eyebrow.textContent : '';
+  }
+  function go(delta) {
+    idx = Math.min(total - 1, Math.max(0, idx + delta));
+    render();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', ' ', 'PageDown'].includes(e.key)) { go(1); e.preventDefault(); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { go(-1); e.preventDefault(); }
+    else if (e.key === 'Home') { idx = 0; render(); }
+    else if (e.key === 'End') { idx = total - 1; render(); }
+    else if (e.key.toLowerCase() === 'f') {
+      const stage = document.getElementById('stage');
+      if (!document.fullscreenElement) stage.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+  document.getElementById('stage').focus();
+
+  // Swipe left/right to navigate on touch devices (no keyboard arrows on a phone)
+  const stageForTouch = document.getElementById('stage');
+  let touchStartX = null, touchStartY = null;
+  stageForTouch.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].clientX;
+    touchStartY = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stageForTouch.addEventListener('touchend', (e) => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      go(dx < 0 ? 1 : -1);
+    }
+    touchStartX = null; touchStartY = null;
+  }, { passive: true });
+
+  render();
+</script>
