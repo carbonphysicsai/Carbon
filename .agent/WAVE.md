@@ -22,7 +22,7 @@ A-1 orientation → one ticket → baseline tests → implement → tests → re
 |----|-----------|------|--------|----------|
 | A-1 | — | Orientation — repo map, KEEP/WRAP table, ORIENTATION.md | done | `.agent/ORIENTATION.md` audits `0eed4e9`; DoD checked in `.agent/tickets/A-1_orientation.md`; maintainer dispositions in `.agent/DECISIONS.md` |
 | A0 | C0 | Package layout (audit-first; map poc/Carbon_Logic) | done | Root `carbon/` + 14 reserved roles; isolated `pip install --no-deps -e` and outside-tree imports pass; exact base/head workflow delta has no A0 regression; evidence in `.agent/DECISIONS.md` |
-| A1 | C0 | CI skeleton (pytest, CPU) + preserve existing CI | in_progress | Local clean-environment install, 22 CPU tests, wheel/import proof, and blocking quality ratchet pass; draft-PR Actions evidence still required before `done` |
+| A1 | C0 | CI skeleton (pytest, CPU) + preserve existing CI | done | Draft PR #5 run `32250522522`: CPU tests job `96060233144` reached pytest (22 passed); code-quality job `96060233203` passed and uploaded full inventory artifact `9364221072`; local dependency/wheel/PoC evidence in `.agent/DECISIONS.md` |
 | A2 | C2 | Strategy schema + dry_validate | todo | |
 | A3 | C1 | Challenge registry + LIVE qualification **hash** gate | todo | |
 | A4 | C6 | Seeding domains + leakage tests | todo | |

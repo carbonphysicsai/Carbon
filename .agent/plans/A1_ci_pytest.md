@@ -85,6 +85,6 @@ The dependency boundary, 22-test CPU lane, explicit legacy/PoC classification,
 lazy optional-backend failure contracts, fingerprint quality ratchet, and
 repaired two-job workflow are implemented. Clean-environment editable and wheel
 installation/import proofs pass; default pytest and the blocking local quality
-gate are green. The inherited PoC terminal failure is unchanged. A1 remains
-`in_progress` until both blocking jobs pass on the draft PR; no A2+ behavior was
-introduced.
+gate are green. The inherited PoC terminal failure is unchanged. Draft PR #5
+run `32250522522` passed both blocking jobs, reached 22 CPU tests, and uploaded
+the full quality inventory. A1 is complete; no A2+ behavior was introduced.

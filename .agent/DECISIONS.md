@@ -87,9 +87,19 @@ two parse failures. `git diff --check` exited 0.
 The post-change `POC_FAST=1 bash poc/scripts/smoke.sh` again exited 2 at the
 same missing-`role_seed` collection error after completing its oracle/fixtures.
 This is an unchanged inherited PoC failure, not a passed A1 stage or scientific
-claim. A1 remains **IMPLEMENTED and locally TESTED**, but not complete until the
-draft PR's blocking CPU-test and code-quality jobs pass. Scientific, security,
-LIVE, emissions, and production qualification remain unclaimed.
+claim.
+
+**Authoritative draft-PR result.** Draft PR #5 run `32250522522` completed
+successfully on Ubuntu/Python 3.11.15. CPU tests job `96060233144` passed the
+supported development install, reached the actual `python -m pytest -q` step,
+and reported 22 passed in 0.13 seconds. Code-quality job `96060233203` passed at
+Ruff 769/776 and Black 64/68 with all 12 changed Python files strict-clean, then
+uploaded complete report artifact `9364221072`. No blocking step was skipped.
+
+A1 is now **IMPLEMENTED and TESTED** for its CPU engineering-infrastructure
+scope. Scientific, security, LIVE, emissions, and production qualification
+remain unclaimed. The exact final PR head and its post-evidence Actions run are
+maintained in the draft PR body because a commit cannot record its own SHA.
 
 ## 2026-08-19 — A0 canonical package layout
 

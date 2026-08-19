@@ -13,7 +13,7 @@
 - [x] `.github/workflows/ci.yml` runs `pytest -q` on push/PR (ubuntu, CPU) — WRAP existing workflow if one exists
 - [x] Document `pytest -q` and PoC smoke command if present
 - [x] Optional: pytest marker `invariant` registered for A12
-- [ ] **Baseline + new smoke still green** — local clean-environment evidence is green; draft-PR blocking Actions evidence is pending
+- [x] **Baseline + new smoke still green** — local clean-environment evidence and draft-PR run `32250522522` are green
 
 **Must not:** Require GPU, network services, or secrets in default CI. Must not delete existing green CI without REPLACE justification in DECISIONS.md.
 
@@ -56,8 +56,12 @@ failures. `git diff --check` exited 0.
 
 The post-change PoC smoke command again exited 2 only when final pytest
 collection reached the same missing `role_seed`; A1 did not worsen or claim the
-PoC. Draft-PR Actions results, final PR head, and final changed-file inventory
-will be recorded in the PR evidence before A1 is marked `done`.
+PoC. Draft PR #5 Actions run `32250522522` passed both blocking jobs. CPU tests
+job `96060233144` installed the supported environment, reached the literal
+`python -m pytest -q`, and passed 22 tests. Code-quality job `96060233203`
+passed the 769/776 Ruff and 64/68 Black ratchet, then uploaded complete inventory
+artifact `9364221072`. The final PR head, changed-file inventory, and final
+post-evidence Actions run are recorded in the PR body.
 
 **Classification:** The five inherited root tests remain under `tests/legacy/`
 with their assertions preserved. All 67 PoC tests are marked `poc`; 32 are
