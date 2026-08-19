@@ -13,7 +13,7 @@ Full design: [`appendices/POC_Burgers_FNO.md`](../appendices/POC_Burgers_FNO.md)
 ## Install
 
 ```bash
-pip install -r poc/requirements.txt
+python -m pip install -e ".[dev,poc]"
 export PYTHONPATH=.   # from repo root
 ```
 
@@ -29,8 +29,7 @@ Card `budget_used.backend` reports `jax` or `numpy_fd`.
 ## One-command smoke (recommended)
 
 ```bash
-chmod +x poc/scripts/smoke.sh
-./poc/scripts/smoke.sh
+POC_FAST=1 bash poc/scripts/smoke.sh
 ```
 
 Runs all three fixtures + pytest T1–T7 under `POC_FAST=1`.
@@ -66,7 +65,7 @@ Broken fixture (`strategy_broken.json`) disables all losses → `loss_signal` fa
 ## Tests (T1–T7)
 
 ```bash
-POC_FAST=1 PYTHONPATH=. pytest poc/tests -q
+POC_FAST=1 PYTHONPATH=. python -m pytest poc/tests -q
 ```
 
 ## Layout

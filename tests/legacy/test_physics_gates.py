@@ -4,8 +4,6 @@
 Tests for physics gates in carbonScorer.
 """
 
-import pytest
-
 from neurons.scoring.carbon_scorer import carbonScorer
 
 

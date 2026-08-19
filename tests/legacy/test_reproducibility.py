@@ -4,8 +4,6 @@
 Basic reproducibility tests for scoring.
 """
 
-import pytest
-
 from neurons.scoring.carbon_scorer import carbonScorer
 
 

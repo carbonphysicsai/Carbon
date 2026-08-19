@@ -1,5 +1,96 @@
 # Agent decisions log
 
+## 2026-08-19 — A1 truthful CPU CI and pytest baseline
+
+**Base, branch, and scope.** A fresh fetch verified `origin/main` at the
+authorized `0b2eec30250f1767cc434836e189cca219154d4d`, which is also merged PR
+#4's merge commit. A1 started from that exact commit on
+`agent/a1-ci-skeleton`. This decision implements engineering infrastructure
+only; it does not promote or qualify A2+ schemas, registries, seeding, scoring,
+cards, fees, TrainEval, MCP, leaderboard, logging, invariants, Bittensor
+transport, or scientific behavior.
+
+**Inherited baseline and actual Actions stages.** The local baseline used an
+isolated detached worktree, CPython 3.11.11, and pip 24.0. Exact results:
+
+| Command | Base result |
+|---|---|
+| `python -m pip install -e ".[dev]"` | Exit 1: no matching `physicsnemo` distribution. |
+| `python -m pytest -q` | Forced diagnostic, exit 2: 22 collection errors from unavailable PoC/scientific and legacy dependencies. |
+| `pytest tests/ -q --tb=no` | Forced exact-workflow diagnostic, exit 2: five legacy collection errors; first material signature is missing `neurons`. |
+| `ruff check .` | Exit 1: 776 findings, 544 fixable. |
+| `black --check .` | Exit 123: 66 files would reformat, 70 unchanged, and parse failures at `carbon/challenges/navier_stokes_2d.py:34:61` and `carbon/validator/sciml_validation.py:37:8`. |
+| `POC_FAST=1 bash poc/scripts/smoke.sh` | Exit 2 after the oracle and three JAX fixture runs; final pytest collection cannot import `role_seed` from `poc.generators.burgers1d`. |
+| Editable `--no-deps` install plus isolated imports from outside the tree | Exit 0 for `carbon==0.9.0`, `carbon`, and all 14 A0 role packages. |
+| `git diff --check` | Exit 0. |
+
+Base Actions run `32244438188` is the authoritative workflow record. Test job
+`96041796858` failed installation and **skipped** its pytest step. Quality job
+`96041796669` installed tools, failed Ruff on 776 findings, and skipped Black.
+The forced commands above are diagnostics, not descriptions of skipped Actions
+stages.
+
+**Dependency decision (REPAIR).** The canonical root and 14 A0 role packages
+import with every inherited third-party dependency blocked, so the truthful
+core dependency set is empty. The supported `dev` extra pins pytest 9.1.1,
+Ruff 0.16.3, and Black 26.5.1. Bittensor is retained only behind optional
+`chain`, `validator`, and `miner` aliases; the aliases use plain Bittensor
+because upstream has no `validator` or `miner` extras. NeuralOperator,
+PhysicsNeMo, and the historical PoC each have explicit optional extras.
+PhysicsNeMo uses the actual `nvidia-physicsnemo` distribution and its documented
+`physicsnemo.models.fno` import boundary; that extra is Python 3.11+ upstream.
+The retained NeuralOperator model-argument compatibility remains explicitly
+deferred and unqualified.
+
+Both backend adapters now register lazily without importing their scientific
+packages. Direct or registry-based construction without an extra raises an
+actionable extra-specific error. A missing transitive module in an installed
+backend is re-raised rather than mislabeled as an absent backend. No fake or
+vendored scientific package was introduced.
+
+**Test classification (WRAP).** The default `python -m pytest -q` lane is
+`tests/cpu/`: 22 tests cover `carbon`, all 14 A0 roles, distribution identity,
+isolated outside-tree imports, optional-dependency absence, and backend failure
+contracts. Five inherited root tests were moved with assertions preserved to
+`tests/legacy/`; they target retired `neurons` APIs or superseded
+scoring/schema/seeding behavior and contain collection/API failures not solved
+by installing heavyweight dependencies. The 67 PoC tests remain in place and
+are marked `poc`; 32 are additionally integration, two JAX-backend, and one
+gold. The `invariant` marker is registered for A12, but no A12 tests or behavior
+were added.
+
+**Quality debt decision (WRAP/REPAIR).** Full cleanup is not appropriate in A1:
+the base has 776 Ruff findings across legacy code, 66 Black reformat candidates,
+and two files Black cannot parse. A complete normalized fingerprint inventory
+is committed at `.ci/quality-baseline.json` and anchored to the authorized base.
+The blocking gate enumerates Python files explicitly, runs pinned isolated
+Ruff, runs Black with the empty `/dev/null` configuration, validates Black's
+full-file summary, rejects diagnostics absent from the base inventory, and
+strictly checks every added/touched Python file. It permits debt removal, not
+new debt, and uploads the complete current report. This converts a permanently
+red inherited job into a meaningful ratchet without deleting, excluding, or
+making quality controls non-blocking. Running the committed generator against
+a second clean detached checkout of the starting SHA reproduced the baseline
+JSON byte-for-byte: 776 Ruff diagnostics and 68 Black debt entries.
+
+**Local clean-candidate result.** In a detached candidate worktree, `python -m
+pip install -e ".[dev]"` exited 0 and installed `carbon==0.9.0`; `python -m
+pytest -q` exited 0 with 22 passed. Isolated imports from `/private/tmp` passed
+for the package and all 14 roles. A separate wheel build/install contained 69
+files, included all 14 roles, and imported `carbon` from `site-packages`. The
+quality gate exited 0 at Ruff 769/776 and Black 64/68, with seven Ruff and four
+Black baseline entries removed, no additions, and 12 changed Python files
+strict-clean. Raw audits remain visibly red at 769 Ruff findings (537 fixable)
+and Black exit 123 with 62 reformat candidates, 79 unchanged files, and the same
+two parse failures. `git diff --check` exited 0.
+
+The post-change `POC_FAST=1 bash poc/scripts/smoke.sh` again exited 2 at the
+same missing-`role_seed` collection error after completing its oracle/fixtures.
+This is an unchanged inherited PoC failure, not a passed A1 stage or scientific
+claim. A1 remains **IMPLEMENTED and locally TESTED**, but not complete until the
+draft PR's blocking CPU-test and code-quality jobs pass. Scientific, security,
+LIVE, emissions, and production qualification remain unclaimed.
+
 ## 2026-08-19 — A0 canonical package layout
 
 **Base and scope.** A0 started from clean `main`/`origin/main` at

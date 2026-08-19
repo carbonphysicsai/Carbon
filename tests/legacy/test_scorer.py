@@ -4,8 +4,6 @@
 Tests for CarbonScorer multi-objective scoring.
 """
 
-import pytest
-
 from neurons.scoring.carbon_scorer import CarbonScorer
 
 
