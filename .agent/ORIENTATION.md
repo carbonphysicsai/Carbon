@@ -191,12 +191,11 @@ No material conflict was found among the current domain-owned architecture, Mine
 
 Before A0 closes, a human architecture/maintainer review should confirm:
 
-1. the intended migration mechanism from `Carbon_Logic/` to importable lowercase `carbon/` (rename, packaging map, selective new package, or compatibility wrapper), including how long old import paths must remain supported;
-2. whether the Burgers PoC is the designated first vertical to wrap/repair, without thereby approving its science or fixed values;
-3. which legacy namespaces/entrypoints require compatibility (`Carbon_Logic`, `hydrogen`, `Carbon`, current `neurons/*`) and which may be explicitly retired later;
-4. whether Julia is part of the first supported developer/CI matrix and who owns repair/validation of its manifest and scientific service;
-5. whether the context filenames should be normalized and whether the proposal appendix in `Open_Questions.md` should be separated from unresolved questions.
-
+1. the intended migration mechanism from `Carbon_Logic/` to importable lowercase `carbon/` (rename, packaging map, selective new package, or compatibility wrapper), including how long old import paths must remain supported; **Human Decision: Renamed to carbon/. Only support import paths needed.**
+2. whether the Burgers PoC is the designated first vertical to wrap/repair, without thereby approving its science or fixed values; **Human Decision: Yes, Burgers first vertical.**
+3. which legacy namespaces/entrypoints require compatibility (`Carbon_Logic`, `hydrogen`, `Carbon`, current `neurons/*`) and which may be explicitly retired later; **Human Decision: Retire: Carbon_Logic, hydrogen, Carbon. Reuse neurons/ if useful.**
+4. whether Julia is part of the first supported developer/CI matrix and who owns repair/validation of its manifest and scientific service; **Humann Decision: Julia is part of the first build as the verification path for the v0 data generator.**
+5. whether the context filenames should be normalized and whether the proposal appendix in `Open_Questions.md` should be separated from unresolved questions. **Human Decision: filenames should be normalized and appendix proposal in Open_Questions.md should be treated as truth for v0 but auditable by team if needed.**
 Before the corresponding later tickets/LIVE work, designated humans must also supply/approve: strategy search surface and resource rails; seed derivation/timing; first challenge envelope/dossier; Score Pack thresholds/categories; reproducibility tolerances/hardware profile; disclosure budget; fee/rate/retry policy; security/isolation acceptance; authorized signers; and the LIVE decision. None is decided here.
 
 ## Risks A0 and subsequent Wave A tickets must address
