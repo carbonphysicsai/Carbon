@@ -4,31 +4,52 @@ version = "0.9.0"
 description = "Decentralized Physics-Informed Neural Operator Subnet for Bittensor"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = [
-    "bittensor>=9.0.0",
-    "torch>=2.4.0",
-    "numpy>=1.26",
-    "scipy",
-    "pandas",
-    "scikit-learn",
-    "pyyaml",
-    "tqdm",
-    "h5py",
-    "pysr",
-    "neuraloperator",           # Core neural operator library
-    "physicsnemo",            # NVIDIA PhysicsNeMo / Modulus
-    "econml",                 # Causal inference
-    "docker",
-]
+dependencies = []
 
 [project.optional-dependencies]
+dev = [
+    "black==26.5.1",
+    "pytest==9.1.1",
+    "ruff==0.16.3",
+]
+chain = [
+    "bittensor>=9.0.0",
+]
 validator = [
-    "bittensor[validator]",
+    "bittensor>=9.0.0",
 ]
 miner = [
-    "bittensor[miner]",
+    "bittensor>=9.0.0",
+]
+neuraloperator = [
+    "neuraloperator>=2.0,<3",
+    "torch>=2.4.0",
+]
+physicsnemo = [
+    "nvidia-physicsnemo>=2.0,<3",
+    "torch>=2.4.0",
+]
+poc = [
+    "jax>=0.4.30",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["carbon*"]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-markers"]
+testpaths = ["tests/cpu"]
+markers = [
+    "invariant: constitutional invariant tests introduced by A12 and later tickets",
+    "legacy: retained tests for retired namespaces or superseded prototype behavior",
+    "poc: optional, scientifically unqualified PoC tests requiring carbon[poc]",
+    "poc_integration: slow PoC generator, training, or end-to-end integration tests",
+    "backend_jax: tests that require the optional JAX scientific backend",
+    "gold: opt-in long-budget PoC tests requiring POC_GOLD=1",
+]
+
+[tool.black]
+target-version = ["py310"]

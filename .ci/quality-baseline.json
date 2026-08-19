@@ -1,0 +1,7431 @@
+{
+  "black_diagnostics": [
+    {
+      "column": 61,
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 34,
+      "status": "cannot-parse"
+    },
+    {
+      "column": 8,
+      "path": "carbon/validator/sciml_validation.py",
+      "row": 37,
+      "status": "cannot-parse"
+    },
+    {
+      "path": "carbon/backbones/__init__.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/backbones/neural_operator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/backbones/physicsnemo.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/backbones/registry.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/base/miner.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/base/neuron.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/__init__.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/base.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/burgers.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/darcy_2d.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/elasticity_2d.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/heat.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/challenges/poisson_2d.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/common/scoring.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/common/seeds.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/data/__init__.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/data/benchmark_loader.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/data/synthetic_loader.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/emission/mechanics.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/landscape/agent.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/miner/agent.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/miner/agent_tools.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/miner/client.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/miner/real_client.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/miner/strategy_generator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/physics/gates.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/physics/stress.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/sciml/client.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/specialist/bank.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/specialist/distillation.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/training/physicsnemo_trainer.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/training/trainer.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "carbon/validator/validator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "examples/mcp_client_example.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/challenge/generator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/miner.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/scoring/carbon_scorer.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/strategy/strategy_store.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/stress/base_generator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/stress/procedural_generator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/stress/stress_models.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/stress/well_generator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/symbolic/extractor.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/symbolic/pysr_runner.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/validator.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "neurons/validator_config.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/eval/oracle_check.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/generators/justification.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/generators/stress_categories.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/models/fno1d.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/tests/test_category_ablation.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/tests/test_discrimination.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/tests/test_score_pack.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/tests/test_stress_and_seeds.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/train/loop.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/validator/run_once.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "poc/validator/schema_check.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "scripts/generate_leaderboard.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "scripts/generate_score_data.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "scripts/local_validate.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "scripts/publish_daily_priors.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "tests/test_scoring_spec.py",
+      "status": "would-reformat"
+    },
+    {
+      "path": "tests/test_tracker.py",
+      "status": "would-reformat"
+    }
+  ],
+  "ruff_diagnostics": [
+    {
+      "code": "B023",
+      "column": 54,
+      "end_column": 59,
+      "end_row": 128,
+      "message": "Function definition does not bind loop variable `scale`",
+      "path": "poc/train/loop.py",
+      "row": 128
+    },
+    {
+      "code": "B023",
+      "column": 69,
+      "end_column": 70,
+      "end_row": 135,
+      "message": "Function definition does not bind loop variable `t`",
+      "path": "poc/train/loop.py",
+      "row": 135
+    },
+    {
+      "code": "B023",
+      "column": 69,
+      "end_column": 70,
+      "end_row": 136,
+      "message": "Function definition does not bind loop variable `t`",
+      "path": "poc/train/loop.py",
+      "row": 136
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 144,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 144
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 156,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 156
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 179,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/specialist/distillation.py",
+      "row": 179
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 28,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/training/trainer.py",
+      "row": 28
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 329,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/validator/run_once.py",
+      "row": 329
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 40,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/utils/determinism.py",
+      "row": 40
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 43,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 43
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 70,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/train/loop.py",
+      "row": 70
+    },
+    {
+      "code": "BLE001",
+      "column": 12,
+      "end_column": 21,
+      "end_row": 81,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 81
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 102,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 102
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 103,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/challenges/heat.py",
+      "row": 103
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 105,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/challenges/burgers.py",
+      "row": 105
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 113,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/validator/validator.py",
+      "row": 113
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 118,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/miner.py",
+      "row": 118
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 173,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/specialist/distillation.py",
+      "row": 173
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 198,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/generators/stress_categories.py",
+      "row": 198
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 25,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/eval/fp32_context.py",
+      "row": 25
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 29,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/eval/fp32_context.py",
+      "row": 29
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 35,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/data/__init__.py",
+      "row": 35
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 38,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/training/physicsnemo_trainer.py",
+      "row": 38
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 49,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/base/validator.py",
+      "row": 49
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 59,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/utils/determinism.py",
+      "row": 59
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 64,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/base/miner.py",
+      "row": 64
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 75,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/landscape/storage.py",
+      "row": 75
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 78,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 78
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 96,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 96
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 96,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/miner.py",
+      "row": 96
+    },
+    {
+      "code": "BLE001",
+      "column": 16,
+      "end_column": 25,
+      "end_row": 97,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 97
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 112,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 112
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 126,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 126
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 159,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/validator/validator.py",
+      "row": 159
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 40,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "poc/eval/fp32_context.py",
+      "row": 40
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 45,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/miner.py",
+      "row": 45
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 57,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 57
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 60,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/validator.py",
+      "row": 60
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 71,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "scripts/publish_daily_priors.py",
+      "row": 71
+    },
+    {
+      "code": "BLE001",
+      "column": 20,
+      "end_column": 29,
+      "end_row": 96,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "neurons/validator.py",
+      "row": 96
+    },
+    {
+      "code": "BLE001",
+      "column": 24,
+      "end_column": 33,
+      "end_row": 120,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/specialist/distillation.py",
+      "row": 120
+    },
+    {
+      "code": "BLE001",
+      "column": 24,
+      "end_column": 33,
+      "end_row": 37,
+      "message": "Do not catch blind exception: `Exception`",
+      "path": "carbon/specialist/bank.py",
+      "row": 37
+    },
+    {
+      "code": "C408",
+      "column": 14,
+      "end_column": 6,
+      "end_row": 28,
+      "message": "Unnecessary `dict()` call (rewrite as a literal)",
+      "path": "poc/tests/test_reproducibility.py",
+      "row": 22
+    },
+    {
+      "code": "DTZ003",
+      "column": 25,
+      "end_column": 42,
+      "end_row": 89,
+      "message": "`datetime.datetime.utcnow()` used",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 89
+    },
+    {
+      "code": "DTZ005",
+      "column": 24,
+      "end_column": 38,
+      "end_row": 52,
+      "message": "`datetime.datetime.now()` called without a `tz` argument",
+      "path": "scripts/generate_score_data.py",
+      "row": 52
+    },
+    {
+      "code": "DTZ005",
+      "column": 28,
+      "end_column": 42,
+      "end_row": 204,
+      "message": "`datetime.datetime.now()` called without a `tz` argument",
+      "path": "scripts/generate_leaderboard.py",
+      "row": 204
+    },
+    {
+      "code": "DTZ005",
+      "column": 29,
+      "end_column": 43,
+      "end_row": 51,
+      "message": "`datetime.datetime.now()` called without a `tz` argument",
+      "path": "scripts/generate_leaderboard.py",
+      "row": 51
+    },
+    {
+      "code": "E722",
+      "column": 9,
+      "end_column": 15,
+      "end_row": 83,
+      "message": "Do not use bare `except`",
+      "path": "carbon/sciml/client.py",
+      "row": 83
+    },
+    {
+      "code": "F401",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 16,
+      "message": "`onnx` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "path": "carbon/specialist/distillation.py",
+      "row": 16
+    },
+    {
+      "code": "F401",
+      "column": 17,
+      "end_column": 19,
+      "end_row": 10,
+      "message": "`numpy` imported but unused",
+      "path": "carbon/emission/mechanics.py",
+      "row": 10
+    },
+    {
+      "code": "F401",
+      "column": 17,
+      "end_column": 19,
+      "end_row": 8,
+      "message": "`numpy` imported but unused",
+      "path": "carbon/physics/gates.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 17,
+      "end_column": 19,
+      "end_row": 8,
+      "message": "`numpy` imported but unused",
+      "path": "carbon/sciml/client.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 18,
+      "end_column": 26,
+      "end_row": 3,
+      "message": "`copy.deepcopy` imported but unused",
+      "path": "poc/tests/test_clamps.py",
+      "row": 3
+    },
+    {
+      "code": "F401",
+      "column": 18,
+      "end_column": 26,
+      "end_row": 5,
+      "message": "`copy.deepcopy` imported but unused",
+      "path": "poc/tests/test_category_ablation.py",
+      "row": 5
+    },
+    {
+      "code": "F401",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 8,
+      "message": "`typing.List` imported but unused",
+      "path": "neurons/stress/procedural_generator.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 8,
+      "message": "`typing.List` imported but unused",
+      "path": "neurons/stress/well_generator.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 9,
+      "message": "`typing.Dict` imported but unused",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 9
+    },
+    {
+      "code": "F401",
+      "column": 21,
+      "end_column": 23,
+      "end_row": 4,
+      "message": "`bittensor` imported but unused",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 4
+    },
+    {
+      "code": "F401",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 5,
+      "message": "`pathlib.Path` imported but unused",
+      "path": "poc/tests/test_score_pack.py",
+      "row": 5
+    },
+    {
+      "code": "F401",
+      "column": 22,
+      "end_column": 31,
+      "end_row": 1,
+      "message": "`.trainer.get_model` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "path": "carbon/training/__init__.py",
+      "row": 1
+    },
+    {
+      "code": "F401",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 12,
+      "message": "`pysr.PySRRegressor` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "path": "carbon/validator/validator.py",
+      "row": 12
+    },
+    {
+      "code": "F401",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 20,
+      "message": "`pysr.PySRRegressor` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 20
+    },
+    {
+      "code": "F401",
+      "column": 26,
+      "end_column": 29,
+      "end_row": 3,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/data/synthetic_loader.py",
+      "row": 3
+    },
+    {
+      "code": "F401",
+      "column": 26,
+      "end_column": 29,
+      "end_row": 4,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/sciml/client.py",
+      "row": 4
+    },
+    {
+      "code": "F401",
+      "column": 26,
+      "end_column": 29,
+      "end_row": 8,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 26,
+      "end_column": 29,
+      "end_row": 8,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/emission/mechanics.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 26,
+      "end_column": 29,
+      "end_row": 9,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 9
+    },
+    {
+      "code": "F401",
+      "column": 28,
+      "end_column": 41,
+      "end_row": 12,
+      "message": "`.stress_models.StressTestSet` imported but unused",
+      "path": "neurons/stress/base_generator.py",
+      "row": 12
+    },
+    {
+      "code": "F401",
+      "column": 28,
+      "end_column": 41,
+      "end_row": 12,
+      "message": "`.stress_models.StressVariant` imported but unused",
+      "path": "neurons/stress/procedural_generator.py",
+      "row": 12
+    },
+    {
+      "code": "F401",
+      "column": 31,
+      "end_column": 35,
+      "end_row": 13,
+      "message": "`typing.List` imported but unused",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 13
+    },
+    {
+      "code": "F401",
+      "column": 31,
+      "end_column": 35,
+      "end_row": 9,
+      "message": "`typing.List` imported but unused",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 9
+    },
+    {
+      "code": "F401",
+      "column": 31,
+      "end_column": 39,
+      "end_row": 4,
+      "message": "`typing.Optional` imported but unused",
+      "path": "carbon/sciml/client.py",
+      "row": 4
+    },
+    {
+      "code": "F401",
+      "column": 31,
+      "end_column": 39,
+      "end_row": 8,
+      "message": "`typing.Optional` imported but unused",
+      "path": "carbon/miner/client.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 31,
+      "end_column": 46,
+      "end_row": 8,
+      "message": "`.synthetic_loader.SyntheticLoader` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "path": "carbon/data/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 32,
+      "end_column": 35,
+      "end_row": 8,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/backbones/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "F401",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 10,
+      "message": "`typing.Type` imported but unused",
+      "path": "neurons/stress/base_generator.py",
+      "row": 10
+    },
+    {
+      "code": "F401",
+      "column": 33,
+      "end_column": 44,
+      "end_row": 1,
+      "message": "`.trainer.train_model` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "path": "carbon/training/__init__.py",
+      "row": 1
+    },
+    {
+      "code": "F401",
+      "column": 36,
+      "end_column": 39,
+      "end_row": 3,
+      "message": "`typing.Any` imported but unused",
+      "path": "carbon/backbones/registry.py",
+      "row": 3
+    },
+    {
+      "code": "F401",
+      "column": 37,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.Optional` imported but unused",
+      "path": "carbon/challenges/base.py",
+      "row": 4
+    },
+    {
+      "code": "F401",
+      "column": 37,
+      "end_column": 52,
+      "end_row": 22,
+      "message": "`hydrogen.physics.stress.run_stress_test` imported but unused",
+      "path": "carbon/specialist/distillation.py",
+      "row": 22
+    },
+    {
+      "code": "F401",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.List` imported but unused",
+      "path": "carbon/sciml/client.py",
+      "row": 4
+    },
+    {
+      "code": "F401",
+      "column": 43,
+      "end_column": 55,
+      "end_row": 12,
+      "message": "`.stress_models.StressSource` imported but unused",
+      "path": "neurons/stress/procedural_generator.py",
+      "row": 12
+    },
+    {
+      "code": "F401",
+      "column": 47,
+      "end_column": 52,
+      "end_row": 13,
+      "message": "`typing.Tuple` imported but unused",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 13
+    },
+    {
+      "code": "F401",
+      "column": 5,
+      "end_column": 15,
+      "end_row": 22,
+      "message": "`carbon.common.seeds.splitmix64` imported but unused",
+      "path": "neurons/utils/determinism.py",
+      "row": 22
+    },
+    {
+      "code": "F401",
+      "column": 5,
+      "end_column": 17,
+      "end_row": 26,
+      "message": "`poc.generators.burgers1d.payload_hash` imported but unused",
+      "path": "poc/generators/stress_categories.py",
+      "row": 26
+    },
+    {
+      "code": "F401",
+      "column": 52,
+      "end_column": 71,
+      "end_row": 15,
+      "message": "`Carbon.landscape.causal_knowledge_base.CausalKnowledgeBase` imported but unused",
+      "path": "scripts/generate_leaderboard.py",
+      "row": 15
+    },
+    {
+      "code": "F401",
+      "column": 58,
+      "end_column": 76,
+      "end_row": 21,
+      "message": "`carbon.challenges.poisson_2d.get_baseline_error` imported but unused",
+      "path": "scripts/local_validate.py",
+      "row": 21
+    },
+    {
+      "code": "F401",
+      "column": 59,
+      "end_column": 77,
+      "end_row": 3,
+      "message": "`carbon.common.scoring.score_from_metrics` imported but unused",
+      "path": "tests/test_scoring_spec.py",
+      "row": 3
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 10,
+      "end_row": 11,
+      "message": "`os` imported but unused",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 11
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 11,
+      "end_row": 13,
+      "message": "`sys` imported but unused",
+      "path": "scripts/publish_daily_priors.py",
+      "row": 13
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 12,
+      "end_row": 6,
+      "message": "`json` imported but unused",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 6
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 14,
+      "end_row": 11,
+      "message": "`random` imported but unused",
+      "path": "neurons/miner.py",
+      "row": 11
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 14,
+      "end_row": 7,
+      "message": "`pytest` imported but unused",
+      "path": "tests/test_physics_gates.py",
+      "row": 7
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 14,
+      "end_row": 7,
+      "message": "`pytest` imported but unused",
+      "path": "tests/test_reproducibility.py",
+      "row": 7
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 14,
+      "end_row": 7,
+      "message": "`pytest` imported but unused",
+      "path": "tests/test_scorer.py",
+      "row": 7
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 14,
+      "end_row": 7,
+      "message": "`pytest` imported but unused",
+      "path": "tests/test_tracker.py",
+      "row": 7
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 15,
+      "end_row": 5,
+      "message": "`asyncio` imported but unused",
+      "path": "carbon/miner/agent.py",
+      "row": 5
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 15,
+      "end_row": 7,
+      "message": "`asyncio` imported but unused",
+      "path": "carbon/sciml/client.py",
+      "row": 7
+    },
+    {
+      "code": "F401",
+      "column": 8,
+      "end_column": 18,
+      "end_row": 15,
+      "message": "`subprocess` imported but unused",
+      "path": "carbon/data/download_pdebench.py",
+      "row": 15
+    },
+    {
+      "code": "F541",
+      "column": 11,
+      "end_column": 31,
+      "end_row": 107,
+      "message": "f-string without any placeholders",
+      "path": "scripts/local_validate.py",
+      "row": 107
+    },
+    {
+      "code": "F541",
+      "column": 11,
+      "end_column": 37,
+      "end_row": 92,
+      "message": "f-string without any placeholders",
+      "path": "scripts/local_validate.py",
+      "row": 92
+    },
+    {
+      "code": "F541",
+      "column": 11,
+      "end_column": 47,
+      "end_row": 65,
+      "message": "f-string without any placeholders",
+      "path": "scripts/local_validate.py",
+      "row": 65
+    },
+    {
+      "code": "F541",
+      "column": 11,
+      "end_column": 61,
+      "end_row": 122,
+      "message": "f-string without any placeholders",
+      "path": "scripts/local_validate.py",
+      "row": 122
+    },
+    {
+      "code": "F541",
+      "column": 15,
+      "end_column": 71,
+      "end_row": 58,
+      "message": "f-string without any placeholders",
+      "path": "carbon/landscape/agent.py",
+      "row": 58
+    },
+    {
+      "code": "F541",
+      "column": 23,
+      "end_column": 58,
+      "end_row": 78,
+      "message": "f-string without any placeholders",
+      "path": "carbon/miner/agent.py",
+      "row": 78
+    },
+    {
+      "code": "F541",
+      "column": 23,
+      "end_column": 60,
+      "end_row": 86,
+      "message": "f-string without any placeholders",
+      "path": "carbon/emission/mechanics.py",
+      "row": 86
+    },
+    {
+      "code": "F541",
+      "column": 31,
+      "end_column": 48,
+      "end_row": 99,
+      "message": "f-string without any placeholders",
+      "path": "neurons/miner.py",
+      "row": 99
+    },
+    {
+      "code": "F811",
+      "column": 8,
+      "end_column": 15,
+      "end_row": 7,
+      "message": "Redefinition of unused `asyncio` from line 3: `asyncio` redefined here",
+      "path": "carbon/sciml/client.py",
+      "row": 7
+    },
+    {
+      "code": "F821",
+      "column": 28,
+      "end_column": 36,
+      "end_row": 99,
+      "message": "Undefined name `Callable`",
+      "path": "carbon/specialist/distillation.py",
+      "row": 99
+    },
+    {
+      "code": "F821",
+      "column": 29,
+      "end_column": 34,
+      "end_row": 150,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 150
+    },
+    {
+      "code": "F821",
+      "column": 39,
+      "end_column": 44,
+      "end_row": 150,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 150
+    },
+    {
+      "code": "F821",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 27,
+      "message": "Undefined name `Dict`",
+      "path": "scripts/local_validate.py",
+      "row": 27
+    },
+    {
+      "code": "F821",
+      "column": 68,
+      "end_column": 73,
+      "end_row": 158,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 158
+    },
+    {
+      "code": "F821",
+      "column": 69,
+      "end_column": 74,
+      "end_row": 147,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 147
+    },
+    {
+      "code": "F821",
+      "column": 71,
+      "end_column": 76,
+      "end_row": 150,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 150
+    },
+    {
+      "code": "F821",
+      "column": 81,
+      "end_column": 86,
+      "end_row": 150,
+      "message": "Undefined name `torch`",
+      "path": "carbon/validator/validator.py",
+      "row": 150
+    },
+    {
+      "code": "F841",
+      "column": 13,
+      "end_column": 19,
+      "end_row": 105,
+      "message": "Local variable `result` is assigned to but never used",
+      "path": "carbon/validator/validator.py",
+      "row": 105
+    },
+    {
+      "code": "F841",
+      "column": 13,
+      "end_column": 19,
+      "end_row": 34,
+      "message": "Local variable `priors` is assigned to but never used",
+      "path": "carbon/miner/agent.py",
+      "row": 34
+    },
+    {
+      "code": "F841",
+      "column": 29,
+      "end_column": 30,
+      "end_row": 198,
+      "message": "Local variable `e` is assigned to but never used",
+      "path": "poc/generators/stress_categories.py",
+      "row": 198
+    },
+    {
+      "code": "F841",
+      "column": 9,
+      "end_column": 12,
+      "end_row": 166,
+      "message": "Local variable `key` is assigned to but never used",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 166
+    },
+    {
+      "code": "F841",
+      "column": 9,
+      "end_column": 20,
+      "end_row": 38,
+      "message": "Local variable `weight_keys` is assigned to but never used",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 38
+    },
+    {
+      "code": "F841",
+      "column": 9,
+      "end_column": 26,
+      "end_row": 212,
+      "message": "Local variable `interaction_model` is assigned to but never used",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 212
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "examples/mcp_client_example.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 4,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/data/synthetic_loader.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 6,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/burgers.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 6,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 6,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 6,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/heat.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 6,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 13,
+      "end_row": 9,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/physics/gates.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 14,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "tests/test_scoring_spec.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 14,
+      "end_row": 5,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 19,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/emission/mechanics.py",
+      "row": 8
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 19,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 19,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 19,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/sciml/client.py",
+      "row": 2
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 2,
+      "end_row": 15,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/emission/__init__.py",
+      "row": 10
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 2,
+      "end_row": 23,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/validator.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 2,
+      "end_row": 28,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/generators/stress_categories.py",
+      "row": 14
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 22,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/stress_models.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 23,
+      "end_row": 17,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 10
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 23,
+      "end_row": 4,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 1
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 23,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/base/neuron.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 32,
+      "end_row": 13,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/specialist/distillation.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/backbones/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 37,
+      "end_row": 14,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_category_ablation.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 37,
+      "end_row": 4,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_gate_fail.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 3,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/backbones/registry.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/miner/client.py",
+      "row": 8
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/protocol.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 41,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_gold_optional.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 41,
+      "end_row": 19,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_discrimination.py",
+      "row": 12
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 42,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/base/miner.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 44,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/base/validator.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 44,
+      "end_row": 13,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 44,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/training/trainer.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 14,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/landscape/storage.py",
+      "row": 11
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/base.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 9,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/specialist/bank.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 46,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/symbolic/extractor.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 46,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/data/__init__.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 47,
+      "end_row": 9,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/validator/validator.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 49,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 49,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/miner/real_client.py",
+      "row": 8
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 50,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/eval/null_baseline.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 50,
+      "end_row": 14,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_reproducibility.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 50,
+      "end_row": 19,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/train/loop.py",
+      "row": 10
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 18,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/landscape/agent.py",
+      "row": 6
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 19,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_stress_and_seeds.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 23,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/specialist/distillation.py",
+      "row": 22
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 5,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_null_and_labels.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 7,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_handoff.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_clamps.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/common/scoring.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 55,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/procedural_generator.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 55,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/well_generator.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 56,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/base_generator.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 56,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/challenges/__init__.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 62,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/challenge/generator.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 64,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/eval/metrics.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 64,
+      "end_row": 8,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/training/physicsnemo_trainer.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 65,
+      "end_row": 7,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/physics/stress.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 67,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/symbolic/__init__.py",
+      "row": 9
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 67,
+      "end_row": 7,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/miner/agent.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 68,
+      "end_row": 33,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/validator/run_once.py",
+      "row": 22
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 69,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/landscape/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 69,
+      "end_row": 26,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 26
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 70,
+      "end_row": 12,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/__init__.py",
+      "row": 12
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 70,
+      "end_row": 16,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 10
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 71,
+      "end_row": 1,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/generators/__init__.py",
+      "row": 1
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 71,
+      "end_row": 11,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_train_quality.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 71,
+      "end_row": 15,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "scripts/generate_leaderboard.py",
+      "row": 11
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 71,
+      "end_row": 15,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "scripts/publish_daily_priors.py",
+      "row": 10
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 71,
+      "end_row": 16,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "scripts/generate_score_data.py",
+      "row": 11
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 72,
+      "end_row": 18,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_loop_wiring.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 72,
+      "end_row": 3,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/tests/test_oracle_ci.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 75,
+      "end_row": 13,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 79,
+      "end_row": 22,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "scripts/local_validate.py",
+      "row": 18
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 85,
+      "end_row": 10,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/stress/stress_evaluator.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 87,
+      "end_row": 17,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/common/__init__.py",
+      "row": 3
+    },
+    {
+      "code": "I001",
+      "column": 1,
+      "end_column": 90,
+      "end_row": 16,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "neurons/miner.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 5,
+      "end_column": 51,
+      "end_row": 7,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/backbones/neural_operator.py",
+      "row": 7
+    },
+    {
+      "code": "I001",
+      "column": 5,
+      "end_column": 73,
+      "end_row": 13,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 13
+    },
+    {
+      "code": "I001",
+      "column": 9,
+      "end_column": 28,
+      "end_row": 39,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/miner/agent.py",
+      "row": 39
+    },
+    {
+      "code": "I001",
+      "column": 9,
+      "end_column": 88,
+      "end_row": 118,
+      "message": "Import block is un-sorted or un-formatted",
+      "path": "carbon/validator/validator.py",
+      "row": 117
+    },
+    {
+      "code": "PERF102",
+      "column": 25,
+      "end_column": 43,
+      "end_row": 77,
+      "message": "When using only the values of a dict use the `values()` method",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 77
+    },
+    {
+      "code": "PIE790",
+      "column": 9,
+      "end_column": 13,
+      "end_row": 31,
+      "message": "Unnecessary `pass` statement",
+      "path": "neurons/stress/base_generator.py",
+      "row": 31
+    },
+    {
+      "code": "PLR0124",
+      "column": 13,
+      "end_column": 24,
+      "end_row": 39,
+      "message": "Name compared with itself, consider replacing `null_rel_l2 == null_rel_l2`",
+      "path": "poc/eval/null_baseline.py",
+      "row": 39
+    },
+    {
+      "code": "PLR0124",
+      "column": 13,
+      "end_column": 27,
+      "end_row": 41,
+      "message": "Name compared with itself, consider replacing `trained_rel_l2 == trained_rel_l2`",
+      "path": "poc/eval/null_baseline.py",
+      "row": 41
+    },
+    {
+      "code": "PLR0124",
+      "column": 16,
+      "end_column": 17,
+      "end_row": 17,
+      "message": "Name compared with itself, consider replacing `r == r`",
+      "path": "poc/tests/test_oracle_ci.py",
+      "row": 17
+    },
+    {
+      "code": "PLR0402",
+      "column": 8,
+      "end_column": 22,
+      "end_row": 12,
+      "message": "Use `from torch import nn` in lieu of alias",
+      "path": "carbon/specialist/distillation.py",
+      "row": 12
+    },
+    {
+      "code": "PLR0402",
+      "column": 8,
+      "end_column": 22,
+      "end_row": 6,
+      "message": "Use `from torch import nn` in lieu of alias",
+      "path": "carbon/training/trainer.py",
+      "row": 6
+    },
+    {
+      "code": "PLR1730",
+      "column": 5,
+      "end_column": 39,
+      "end_row": 34,
+      "message": "Replace `if` statement with `steps = min(steps, len(energy_trajectory))`",
+      "path": "carbon/physics/gates.py",
+      "row": 33
+    },
+    {
+      "code": "RUF012",
+      "column": 24,
+      "end_column": 6,
+      "end_row": 21,
+      "message": "Mutable default value for class attribute",
+      "path": "neurons/stress/well_generator.py",
+      "row": 16
+    },
+    {
+      "code": "RUF013",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 113,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/physics/stress.py",
+      "row": 113
+    },
+    {
+      "code": "RUF013",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 110,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/training/trainer.py",
+      "row": 110
+    },
+    {
+      "code": "RUF013",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 36,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/training/trainer.py",
+      "row": 36
+    },
+    {
+      "code": "RUF013",
+      "column": 19,
+      "end_column": 35,
+      "end_row": 33,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/landscape/agent.py",
+      "row": 33
+    },
+    {
+      "code": "RUF013",
+      "column": 19,
+      "end_column": 35,
+      "end_row": 42,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 42
+    },
+    {
+      "code": "RUF013",
+      "column": 20,
+      "end_column": 36,
+      "end_row": 34,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/landscape/agent.py",
+      "row": 34
+    },
+    {
+      "code": "RUF013",
+      "column": 20,
+      "end_column": 36,
+      "end_row": 43,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 43
+    },
+    {
+      "code": "RUF013",
+      "column": 46,
+      "end_column": 50,
+      "end_row": 16,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "examples/mcp_client_example.py",
+      "row": 16
+    },
+    {
+      "code": "RUF013",
+      "column": 47,
+      "end_column": 56,
+      "end_row": 47,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "carbon/landscape/agent.py",
+      "row": 47
+    },
+    {
+      "code": "RUF013",
+      "column": 83,
+      "end_column": 87,
+      "end_row": 63,
+      "message": "PEP 484 prohibits implicit `Optional`",
+      "path": "scripts/local_validate.py",
+      "row": 63
+    },
+    {
+      "code": "RUF015",
+      "column": 110,
+      "end_column": 147,
+      "end_row": 143,
+      "message": "Prefer `next(iter(challenge.stress_data.keys()))` over single element slice",
+      "path": "carbon/validator/validator.py",
+      "row": 143
+    },
+    {
+      "code": "RUF015",
+      "column": 118,
+      "end_column": 155,
+      "end_row": 50,
+      "message": "Prefer `next(iter(challenge.stress_data.keys()))` over single element slice",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 50
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 2,
+      "end_row": 17,
+      "message": "`__all__` is not sorted",
+      "path": "carbon/landscape/__init__.py",
+      "row": 12
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 2,
+      "end_row": 22,
+      "message": "`__all__` is not sorted",
+      "path": "carbon/emission/__init__.py",
+      "row": 17
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 2,
+      "end_row": 34,
+      "message": "`__all__` is not sorted",
+      "path": "carbon/common/__init__.py",
+      "row": 19
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 50,
+      "end_row": 3,
+      "message": "`__all__` is not sorted",
+      "path": "poc/generators/__init__.py",
+      "row": 3
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 61,
+      "end_row": 14,
+      "message": "`__all__` is not sorted",
+      "path": "neurons/stress/__init__.py",
+      "row": 14
+    },
+    {
+      "code": "RUF022",
+      "column": 11,
+      "end_column": 78,
+      "end_row": 12,
+      "message": "`__all__` is not sorted",
+      "path": "neurons/symbolic/__init__.py",
+      "row": 12
+    },
+    {
+      "code": "RUF059",
+      "column": 12,
+      "end_column": 17,
+      "end_row": 52,
+      "message": "Unpacked variable `width` is never used",
+      "path": "poc/models/fno1d.py",
+      "row": 52
+    },
+    {
+      "code": "RUF059",
+      "column": 20,
+      "end_column": 32,
+      "end_row": 138,
+      "message": "Unpacked variable `gate_details` is never used",
+      "path": "carbon/validator/validator.py",
+      "row": 138
+    },
+    {
+      "code": "RUF059",
+      "column": 45,
+      "end_column": 57,
+      "end_row": 69,
+      "message": "Unpacked variable `gate_details` is never used",
+      "path": "neurons/miner.py",
+      "row": 69
+    },
+    {
+      "code": "RUF059",
+      "column": 5,
+      "end_column": 11,
+      "end_row": 100,
+      "message": "Unpacked variable `cov_ok` is never used",
+      "path": "poc/validator/run_once.py",
+      "row": 100
+    },
+    {
+      "code": "RUF059",
+      "column": 5,
+      "end_column": 6,
+      "end_row": 52,
+      "message": "Unpacked variable `B` is never used",
+      "path": "poc/models/fno1d.py",
+      "row": 52
+    },
+    {
+      "code": "RUF059",
+      "column": 5,
+      "end_column": 6,
+      "end_row": 67,
+      "message": "Unpacked variable `B` is never used",
+      "path": "poc/models/fno1d.py",
+      "row": 67
+    },
+    {
+      "code": "RUF059",
+      "column": 8,
+      "end_column": 10,
+      "end_row": 67,
+      "message": "Unpacked variable `nx` is never used",
+      "path": "poc/models/fno1d.py",
+      "row": 67
+    },
+    {
+      "code": "S110",
+      "column": 13,
+      "end_column": 21,
+      "end_row": 127,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 126
+    },
+    {
+      "code": "S110",
+      "column": 13,
+      "end_column": 21,
+      "end_row": 160,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/validator/validator.py",
+      "row": 159
+    },
+    {
+      "code": "S110",
+      "column": 13,
+      "end_column": 21,
+      "end_row": 41,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "poc/eval/fp32_context.py",
+      "row": 40
+    },
+    {
+      "code": "S110",
+      "column": 5,
+      "end_column": 13,
+      "end_row": 180,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/specialist/distillation.py",
+      "row": 179
+    },
+    {
+      "code": "S110",
+      "column": 5,
+      "end_column": 13,
+      "end_row": 29,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/training/trainer.py",
+      "row": 28
+    },
+    {
+      "code": "S110",
+      "column": 5,
+      "end_column": 13,
+      "end_row": 41,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "neurons/utils/determinism.py",
+      "row": 40
+    },
+    {
+      "code": "S110",
+      "column": 5,
+      "end_column": 13,
+      "end_row": 71,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "poc/train/loop.py",
+      "row": 70
+    },
+    {
+      "code": "S110",
+      "column": 9,
+      "end_column": 17,
+      "end_row": 104,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/challenges/heat.py",
+      "row": 103
+    },
+    {
+      "code": "S110",
+      "column": 9,
+      "end_column": 17,
+      "end_row": 30,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "poc/eval/fp32_context.py",
+      "row": 29
+    },
+    {
+      "code": "S110",
+      "column": 9,
+      "end_column": 17,
+      "end_row": 60,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "neurons/utils/determinism.py",
+      "row": 59
+    },
+    {
+      "code": "S110",
+      "column": 9,
+      "end_column": 17,
+      "end_row": 97,
+      "message": "`try`-`except`-`pass` detected, consider logging the exception",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 96
+    },
+    {
+      "code": "S112",
+      "column": 13,
+      "end_column": 25,
+      "end_row": 58,
+      "message": "`try`-`except`-`continue` detected, consider logging the exception",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 57
+    },
+    {
+      "code": "S112",
+      "column": 17,
+      "end_column": 29,
+      "end_row": 38,
+      "message": "`try`-`except`-`continue` detected, consider logging the exception",
+      "path": "carbon/specialist/bank.py",
+      "row": 37
+    },
+    {
+      "code": "S112",
+      "column": 9,
+      "end_column": 21,
+      "end_row": 76,
+      "message": "`try`-`except`-`continue` detected, consider logging the exception",
+      "path": "carbon/landscape/storage.py",
+      "row": 75
+    },
+    {
+      "code": "SIM102",
+      "column": 13,
+      "end_column": 46,
+      "end_row": 93,
+      "message": "Use a single `if` statement instead of nested `if` statements",
+      "path": "carbon/physics/stress.py",
+      "row": 92
+    },
+    {
+      "code": "SIM102",
+      "column": 5,
+      "end_column": 43,
+      "end_row": 90,
+      "message": "Use a single `if` statement instead of nested `if` statements",
+      "path": "carbon/physics/stress.py",
+      "row": 89
+    },
+    {
+      "code": "SIM102",
+      "column": 5,
+      "end_column": 49,
+      "end_row": 109,
+      "message": "Use a single `if` statement instead of nested `if` statements",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 108
+    },
+    {
+      "code": "SIM102",
+      "column": 5,
+      "end_column": 87,
+      "end_row": 91,
+      "message": "Use a single `if` statement instead of nested `if` statements",
+      "path": "carbon/emission/mechanics.py",
+      "row": 90
+    },
+    {
+      "code": "SIM118",
+      "column": 5,
+      "end_column": 65,
+      "end_row": 53,
+      "message": "Use `key in dict` instead of `key in dict.keys()`",
+      "path": "neurons/stress/well_generator.py",
+      "row": 53
+    },
+    {
+      "code": "SIM201",
+      "column": 8,
+      "end_column": 40,
+      "end_row": 39,
+      "message": "Use `null_rel_l2 != null_rel_l2` instead of `not null_rel_l2 == null_rel_l2`",
+      "path": "poc/eval/null_baseline.py",
+      "row": 39
+    },
+    {
+      "code": "SIM201",
+      "column": 8,
+      "end_column": 46,
+      "end_row": 41,
+      "message": "Use `trained_rel_l2 != trained_rel_l2` instead of `not trained_rel_l2 == trained_rel_l2`",
+      "path": "poc/eval/null_baseline.py",
+      "row": 41
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 107,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 107
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 165,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 165
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/stress_evaluator.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 27,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/stress/base_generator.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 32,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 32
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 48,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 48
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 50,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 50
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 53,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/real_client.py",
+      "row": 53
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 56,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 56
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 66,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 66
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 73,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 73
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 82,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 82
+    },
+    {
+      "code": "UP006",
+      "column": 10,
+      "end_column": 14,
+      "end_row": 98,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 98
+    },
+    {
+      "code": "UP006",
+      "column": 102,
+      "end_column": 107,
+      "end_row": 26,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/validator/schema_check.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 11,
+      "end_column": 15,
+      "end_row": 25,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 25
+    },
+    {
+      "code": "UP006",
+      "column": 11,
+      "end_column": 15,
+      "end_row": 37,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 37
+    },
+    {
+      "code": "UP006",
+      "column": 11,
+      "end_column": 15,
+      "end_row": 39,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/oracle_check.py",
+      "row": 39
+    },
+    {
+      "code": "UP006",
+      "column": 11,
+      "end_column": 15,
+      "end_row": 53,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/storage.py",
+      "row": 53
+    },
+    {
+      "code": "UP006",
+      "column": 11,
+      "end_column": 15,
+      "end_row": 81,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 81
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 178,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 178
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 27,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 273,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 273
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 29,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 30,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 30
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/losses.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 12,
+      "end_column": 16,
+      "end_row": 66,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 66
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 10,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/backbones/__init__.py",
+      "row": 10
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 41,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 41
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 5,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/backbones/registry.py",
+      "row": 5
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 67,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 67
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 68,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 68
+    },
+    {
+      "code": "UP006",
+      "column": 13,
+      "end_column": 17,
+      "end_row": 81,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 81
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 185,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 185
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 186,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 186
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 187,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 187
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/storage.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 27,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 28,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 28
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 73,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 73
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 75,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 75
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 76,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 76
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 18,
+      "end_row": 78,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 14,
+      "end_column": 19,
+      "end_row": 113,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 113
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 105,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/burgers1d.py",
+      "row": 105
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 21,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 26,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 31,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/stress_models.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 41,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/losses.py",
+      "row": 41
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 47,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/stress/stress_models.py",
+      "row": 47
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 51,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/stress_models.py",
+      "row": 51
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 76,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 76
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 82,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 82
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 87,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 87
+    },
+    {
+      "code": "UP006",
+      "column": 15,
+      "end_column": 19,
+      "end_row": 89,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 89
+    },
+    {
+      "code": "UP006",
+      "column": 16,
+      "end_column": 20,
+      "end_row": 216,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 216
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 104,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/burgers1d.py",
+      "row": 104
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 12,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/challenges/base.py",
+      "row": 12
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 15,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 15
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 15,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 15
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 16,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 16
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 21,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 21,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 21,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 28,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/stress_models.py",
+      "row": 28
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 31,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 57,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 57
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 63,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/burgers1d.py",
+      "row": 63
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 21,
+      "end_row": 64,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 64
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 14,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 14
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 14,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 14
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 20,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 20,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 20,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 38,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 38
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 41,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 41
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 46,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 46
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 47,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 47
+    },
+    {
+      "code": "UP006",
+      "column": 17,
+      "end_column": 22,
+      "end_row": 48,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 48
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 15,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/base.py",
+      "row": 15
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 17,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 17
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 17,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 17
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 27,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/label_checks.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 31,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 55,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 55
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 65,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 65
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 71,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 71
+    },
+    {
+      "code": "UP006",
+      "column": 18,
+      "end_column": 22,
+      "end_row": 74,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 74
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 16,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 16
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 16,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 16
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 25,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 25
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 27,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 42,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 42
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 42,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 42
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 42,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/losses.py",
+      "row": 42
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/emission/mechanics.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 60,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 60
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 63,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 63
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 74,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 74
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 91,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 91
+    },
+    {
+      "code": "UP006",
+      "column": 19,
+      "end_column": 23,
+      "end_row": 93,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 93
+    },
+    {
+      "code": "UP006",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 37,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 37
+    },
+    {
+      "code": "UP006",
+      "column": 20,
+      "end_column": 24,
+      "end_row": 43,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 43
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 18,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 18
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 19,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 19
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 35,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 35
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 65,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d.py",
+      "row": 65
+    },
+    {
+      "code": "UP006",
+      "column": 21,
+      "end_column": 25,
+      "end_row": 92,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 92
+    },
+    {
+      "code": "UP006",
+      "column": 23,
+      "end_column": 27,
+      "end_row": 10,
+      "message": "Use `type` instead of `Type` for type annotation",
+      "path": "carbon/backbones/__init__.py",
+      "row": 10
+    },
+    {
+      "code": "UP006",
+      "column": 23,
+      "end_column": 27,
+      "end_row": 19,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 19
+    },
+    {
+      "code": "UP006",
+      "column": 23,
+      "end_column": 27,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 23,
+      "end_column": 27,
+      "end_row": 46,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 46
+    },
+    {
+      "code": "UP006",
+      "column": 23,
+      "end_column": 28,
+      "end_row": 39,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 39
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 16,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/base.py",
+      "row": 16
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 17,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 17
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 18,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 18
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 18,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 18
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/storage.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/protocol.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 50,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/stress_models.py",
+      "row": 50
+    },
+    {
+      "code": "UP006",
+      "column": 24,
+      "end_column": 28,
+      "end_row": 93,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 93
+    },
+    {
+      "code": "UP006",
+      "column": 25,
+      "end_column": 29,
+      "end_row": 71,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 71
+    },
+    {
+      "code": "UP006",
+      "column": 25,
+      "end_column": 29,
+      "end_row": 78,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 25,
+      "end_column": 29,
+      "end_row": 79,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/utils/determinism.py",
+      "row": 79
+    },
+    {
+      "code": "UP006",
+      "column": 25,
+      "end_column": 30,
+      "end_row": 37,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 37
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 16,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 16
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 20,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/challenges/base.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 32,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 32
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 48,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 48
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 58,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 58
+    },
+    {
+      "code": "UP006",
+      "column": 26,
+      "end_column": 30,
+      "end_row": 64,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 64
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 20,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 31,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 40,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/stress/base_generator.py",
+      "row": 40
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 57,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 57
+    },
+    {
+      "code": "UP006",
+      "column": 27,
+      "end_column": 31,
+      "end_row": 68,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 68
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 19,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 19
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 191,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 191
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 36,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 36
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 45,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 45
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 60,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 60
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 62,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 62
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 67,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 67
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 79,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 79
+    },
+    {
+      "code": "UP006",
+      "column": 28,
+      "end_column": 32,
+      "end_row": 99,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 99
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 17,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 17
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 219,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 219
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 26,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 48,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 48
+    },
+    {
+      "code": "UP006",
+      "column": 29,
+      "end_column": 33,
+      "end_row": 54,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 54
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 13,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/generators/justification.py",
+      "row": 13
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 25,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 25
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 31,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/protocol.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 51,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 51
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 78,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 34,
+      "end_row": 92,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/justification.py",
+      "row": 92
+    },
+    {
+      "code": "UP006",
+      "column": 30,
+      "end_column": 35,
+      "end_row": 47,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 47
+    },
+    {
+      "code": "UP006",
+      "column": 31,
+      "end_column": 35,
+      "end_row": 37,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 37
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 54,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 54
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 68,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 68
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 95,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 95
+    },
+    {
+      "code": "UP006",
+      "column": 32,
+      "end_column": 36,
+      "end_row": 97,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 97
+    },
+    {
+      "code": "UP006",
+      "column": 33,
+      "end_column": 37,
+      "end_row": 13,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/data/synthetic_loader.py",
+      "row": 13
+    },
+    {
+      "code": "UP006",
+      "column": 33,
+      "end_column": 37,
+      "end_row": 26,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/schema_check.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 33,
+      "end_column": 37,
+      "end_row": 30,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 30
+    },
+    {
+      "code": "UP006",
+      "column": 33,
+      "end_column": 37,
+      "end_row": 79,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 79
+    },
+    {
+      "code": "UP006",
+      "column": 33,
+      "end_column": 37,
+      "end_row": 85,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 85
+    },
+    {
+      "code": "UP006",
+      "column": 34,
+      "end_column": 38,
+      "end_row": 181,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 181
+    },
+    {
+      "code": "UP006",
+      "column": 34,
+      "end_column": 38,
+      "end_row": 38,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 38
+    },
+    {
+      "code": "UP006",
+      "column": 35,
+      "end_column": 39,
+      "end_row": 13,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/justification.py",
+      "row": 13
+    },
+    {
+      "code": "UP006",
+      "column": 35,
+      "end_column": 39,
+      "end_row": 21,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 35,
+      "end_column": 39,
+      "end_row": 78,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 36,
+      "end_column": 40,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 37,
+      "end_column": 41,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 37,
+      "end_column": 41,
+      "end_row": 40,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/stress/base_generator.py",
+      "row": 40
+    },
+    {
+      "code": "UP006",
+      "column": 37,
+      "end_column": 41,
+      "end_row": 97,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 97
+    },
+    {
+      "code": "UP006",
+      "column": 37,
+      "end_column": 42,
+      "end_row": 33,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 39,
+      "end_column": 43,
+      "end_row": 13,
+      "message": "Use `type` instead of `Type` for type annotation",
+      "path": "carbon/backbones/__init__.py",
+      "row": 13
+    },
+    {
+      "code": "UP006",
+      "column": 39,
+      "end_column": 43,
+      "end_row": 21,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 21
+    },
+    {
+      "code": "UP006",
+      "column": 40,
+      "end_column": 44,
+      "end_row": 29,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/utils/determinism.py",
+      "row": 29
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 28,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/challenge/generator.py",
+      "row": 28
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 30,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 30
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 41,
+      "end_column": 45,
+      "end_row": 52,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 52
+    },
+    {
+      "code": "UP006",
+      "column": 43,
+      "end_column": 47,
+      "end_row": 27,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 43,
+      "end_column": 47,
+      "end_row": 83,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 83
+    },
+    {
+      "code": "UP006",
+      "column": 44,
+      "end_column": 48,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 46,
+      "end_column": 50,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/losses_jax.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 46,
+      "end_column": 51,
+      "end_row": 26,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/models/fno1d.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 47,
+      "end_column": 51,
+      "end_row": 191,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 191
+    },
+    {
+      "code": "UP006",
+      "column": 47,
+      "end_column": 51,
+      "end_row": 47,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/landscape/agent.py",
+      "row": 47
+    },
+    {
+      "code": "UP006",
+      "column": 48,
+      "end_column": 52,
+      "end_row": 178,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 178
+    },
+    {
+      "code": "UP006",
+      "column": 48,
+      "end_column": 52,
+      "end_row": 273,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 273
+    },
+    {
+      "code": "UP006",
+      "column": 48,
+      "end_column": 52,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 48,
+      "end_column": 52,
+      "end_row": 60,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/seeds.py",
+      "row": 60
+    },
+    {
+      "code": "UP006",
+      "column": 48,
+      "end_column": 52,
+      "end_row": 66,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 66
+    },
+    {
+      "code": "UP006",
+      "column": 49,
+      "end_column": 53,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 51,
+      "end_column": 55,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 51,
+      "end_column": 55,
+      "end_row": 52,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 52
+    },
+    {
+      "code": "UP006",
+      "column": 51,
+      "end_column": 55,
+      "end_row": 57,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 57
+    },
+    {
+      "code": "UP006",
+      "column": 52,
+      "end_column": 56,
+      "end_row": 36,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 36
+    },
+    {
+      "code": "UP006",
+      "column": 52,
+      "end_column": 56,
+      "end_row": 82,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 82
+    },
+    {
+      "code": "UP006",
+      "column": 53,
+      "end_column": 57,
+      "end_row": 181,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 181
+    },
+    {
+      "code": "UP006",
+      "column": 53,
+      "end_column": 57,
+      "end_row": 32,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d.py",
+      "row": 32
+    },
+    {
+      "code": "UP006",
+      "column": 53,
+      "end_column": 57,
+      "end_row": 47,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/stress/base_generator.py",
+      "row": 47
+    },
+    {
+      "code": "UP006",
+      "column": 54,
+      "end_column": 58,
+      "end_row": 17,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 17
+    },
+    {
+      "code": "UP006",
+      "column": 54,
+      "end_column": 58,
+      "end_row": 24,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 24
+    },
+    {
+      "code": "UP006",
+      "column": 54,
+      "end_column": 58,
+      "end_row": 33,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 54,
+      "end_column": 58,
+      "end_row": 36,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 36
+    },
+    {
+      "code": "UP006",
+      "column": 54,
+      "end_column": 58,
+      "end_row": 40,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/real_client.py",
+      "row": 40
+    },
+    {
+      "code": "UP006",
+      "column": 55,
+      "end_column": 59,
+      "end_row": 61,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 61
+    },
+    {
+      "code": "UP006",
+      "column": 55,
+      "end_column": 60,
+      "end_row": 78,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 57,
+      "end_column": 61,
+      "end_row": 26,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 59,
+      "end_column": 63,
+      "end_row": 67,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 67
+    },
+    {
+      "code": "UP006",
+      "column": 59,
+      "end_column": 64,
+      "end_row": 69,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 69
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 102,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/seeds.py",
+      "row": 102
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 102,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/emission/mechanics.py",
+      "row": 102
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 102,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/distillation.py",
+      "row": 102
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 115,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/training/trainer.py",
+      "row": 115
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 141,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/emission/mechanics.py",
+      "row": 141
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 15,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/training/physicsnemo_trainer.py",
+      "row": 15
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 194,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/distillation.py",
+      "row": 194
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/null_baseline.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 25,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/metrics.py",
+      "row": 25
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 25,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 25
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 28,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 28
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/oracle_check.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 35,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/model_card.py",
+      "row": 35
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 40,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 40
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 41,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 41
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 50,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 50
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 51,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/heat.py",
+      "row": 51
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 52,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/challenges/burgers.py",
+      "row": 52
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 53,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "carbon/landscape/storage.py",
+      "row": 53
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 58,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/null_baseline.py",
+      "row": 58
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 80,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/scoring.py",
+      "row": 80
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 93,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 93
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 10,
+      "end_row": 98,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 98
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 113,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/validator/handoff.py",
+      "row": 113
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 123,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/generators/burgers1d.py",
+      "row": 123
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 178,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 178
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 20,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 27,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/generators/label_checks.py",
+      "row": 27
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 273,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 273
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 31,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 31
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 42,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 42
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 42,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/train/losses.py",
+      "row": 42
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 44,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 55,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 55
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 60,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/eval/score.py",
+      "row": 60
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 63,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/generators/burgers1d.py",
+      "row": 63
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 65,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 65
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 66,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 66
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 68,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/emission/mechanics.py",
+      "row": 68
+    },
+    {
+      "code": "UP006",
+      "column": 6,
+      "end_column": 11,
+      "end_row": 74,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/physics/gates.py",
+      "row": 74
+    },
+    {
+      "code": "UP006",
+      "column": 60,
+      "end_column": 64,
+      "end_row": 22,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/symbolic/extractor.py",
+      "row": 22
+    },
+    {
+      "code": "UP006",
+      "column": 60,
+      "end_column": 64,
+      "end_row": 61,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/specialist/bank.py",
+      "row": 61
+    },
+    {
+      "code": "UP006",
+      "column": 60,
+      "end_column": 72,
+      "end_row": 103,
+      "message": "Use `tuple` instead of `typing.Tuple` for type annotation",
+      "path": "neurons/miner.py",
+      "row": 103
+    },
+    {
+      "code": "UP006",
+      "column": 62,
+      "end_column": 66,
+      "end_row": 33,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 33
+    },
+    {
+      "code": "UP006",
+      "column": 65,
+      "end_column": 69,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 66,
+      "end_column": 70,
+      "end_row": 23,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 23
+    },
+    {
+      "code": "UP006",
+      "column": 66,
+      "end_column": 70,
+      "end_row": 53,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/agent.py",
+      "row": 53
+    },
+    {
+      "code": "UP006",
+      "column": 66,
+      "end_column": 70,
+      "end_row": 56,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 56
+    },
+    {
+      "code": "UP006",
+      "column": 66,
+      "end_column": 70,
+      "end_row": 60,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/real_client.py",
+      "row": 60
+    },
+    {
+      "code": "UP006",
+      "column": 67,
+      "end_column": 71,
+      "end_row": 78,
+      "message": "Use `list` instead of `List` for type annotation",
+      "path": "poc/eval/gates.py",
+      "row": 78
+    },
+    {
+      "code": "UP006",
+      "column": 70,
+      "end_column": 74,
+      "end_row": 101,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 101
+    },
+    {
+      "code": "UP006",
+      "column": 70,
+      "end_column": 74,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 71,
+      "end_column": 76,
+      "end_row": 35,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 35
+    },
+    {
+      "code": "UP006",
+      "column": 72,
+      "end_column": 77,
+      "end_row": 26,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/validator/schema_check.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 74,
+      "end_column": 78,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/sciml/client.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 78,
+      "end_column": 82,
+      "end_row": 26,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/validator/schema_check.py",
+      "row": 26
+    },
+    {
+      "code": "UP006",
+      "column": 79,
+      "end_column": 83,
+      "end_row": 51,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/train/loop.py",
+      "row": 51
+    },
+    {
+      "code": "UP006",
+      "column": 79,
+      "end_column": 84,
+      "end_row": 217,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "poc/generators/stress_categories.py",
+      "row": 217
+    },
+    {
+      "code": "UP006",
+      "column": 8,
+      "end_column": 12,
+      "end_row": 34,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "poc/models/fno1d.py",
+      "row": 34
+    },
+    {
+      "code": "UP006",
+      "column": 80,
+      "end_column": 84,
+      "end_row": 101,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 101
+    },
+    {
+      "code": "UP006",
+      "column": 80,
+      "end_column": 84,
+      "end_row": 44,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 44
+    },
+    {
+      "code": "UP006",
+      "column": 83,
+      "end_column": 88,
+      "end_row": 20,
+      "message": "Use `tuple` instead of `Tuple` for type annotation",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 89,
+      "end_column": 93,
+      "end_row": 28,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 28
+    },
+    {
+      "code": "UP006",
+      "column": 89,
+      "end_column": 93,
+      "end_row": 69,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 69
+    },
+    {
+      "code": "UP006",
+      "column": 96,
+      "end_column": 100,
+      "end_row": 20,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 20
+    },
+    {
+      "code": "UP006",
+      "column": 96,
+      "end_column": 100,
+      "end_row": 46,
+      "message": "Use `dict` instead of `Dict` for type annotation",
+      "path": "carbon/miner/client.py",
+      "row": 46
+    },
+    {
+      "code": "UP007",
+      "column": 16,
+      "end_column": 31,
+      "end_row": 102,
+      "message": "Use `X | Y` for type annotations",
+      "path": "neurons/utils/determinism.py",
+      "row": 102
+    },
+    {
+      "code": "UP007",
+      "column": 16,
+      "end_column": 31,
+      "end_row": 47,
+      "message": "Use `X | Y` for type annotations",
+      "path": "carbon/common/seeds.py",
+      "row": 47
+    },
+    {
+      "code": "UP007",
+      "column": 16,
+      "end_column": 31,
+      "end_row": 99,
+      "message": "Use `X | Y` for type annotations",
+      "path": "carbon/common/seeds.py",
+      "row": 99
+    },
+    {
+      "code": "UP007",
+      "column": 18,
+      "end_column": 33,
+      "end_row": 86,
+      "message": "Use `X | Y` for type annotations",
+      "path": "carbon/common/seeds.py",
+      "row": 86
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 24,
+      "end_row": 5,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/eval/metrics.py",
+      "row": 5
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 24,
+      "end_row": 8,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/stress/procedural_generator.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 24,
+      "end_row": 8,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/stress/well_generator.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 28,
+      "end_row": 11,
+      "message": "Import from `collections.abc` instead: `Iterator`",
+      "path": "poc/eval/fp32_context.py",
+      "row": 11
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/data/synthetic_loader.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/training/physicsnemo_trainer.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/miner/real_client.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/eval/null_baseline.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/symbolic/extractor.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 29,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/models/fno1d_jax.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 31,
+      "end_row": 14,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/models/fno1d.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 31,
+      "end_row": 14,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/models/fno1d.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 31,
+      "end_row": 23,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/common/seeds.py",
+      "row": 23
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 31,
+      "end_row": 5,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/train/losses.py",
+      "row": 5
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 31,
+      "end_row": 5,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/train/losses.py",
+      "row": 5
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 10,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/symbolic/symbolic_models.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 12,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/eval/oracle_check.py",
+      "row": 12
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 12,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "poc/eval/oracle_check.py",
+      "row": 12
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 7,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/backbones/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 8,
+      "message": "`typing.Type` is deprecated, use `type` instead",
+      "path": "carbon/backbones/__init__.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/generators/justification.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 35,
+      "end_row": 9,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "poc/generators/justification.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/stress/base_generator.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 10,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/stress/base_generator.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 10,
+      "message": "`typing.Type` is deprecated, use `type` instead",
+      "path": "neurons/stress/base_generator.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 13,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/train/loop.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 13,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/train/loop.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/burgers.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/heat.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/challenges/burgers.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/challenges/darcy_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/challenges/elasticity_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/challenges/heat.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 4,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/challenges/poisson_2d.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 7,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/physics/gates.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 7,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/physics/gates.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/emission/mechanics.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/validator/schema_check.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 8,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/emission/mechanics.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 8,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/validator/schema_check.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/generators/label_checks.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 36,
+      "end_row": 9,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/generators/label_checks.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 37,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 37,
+      "end_row": 3,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 37,
+      "end_row": 3,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/symbolic/pysr_evolver.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 10,
+      "message": "Import from `collections.abc` instead: `Callable`",
+      "path": "poc/train/losses_jax.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/train/losses_jax.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 11,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 11
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 13,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 3,
+      "message": "Import from `collections.abc` instead: `Callable`",
+      "path": "carbon/backbones/registry.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/backbones/registry.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/training/trainer.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 7,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/stress/stress_evaluator.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/miner/client.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/protocol.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/specialist/distillation.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 39,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/challenge/generator.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 40,
+      "end_row": 2,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 2
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 40,
+      "end_row": 2,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 2
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 41,
+      "end_row": 15,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/utils/determinism.py",
+      "row": 15
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 42,
+      "end_row": 17,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/generators/stress_categories.py",
+      "row": 17
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 42,
+      "end_row": 17,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "poc/generators/stress_categories.py",
+      "row": 17
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 42,
+      "end_row": 17,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/generators/stress_categories.py",
+      "row": 17
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 10,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "neurons/stress/stress_models.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 10,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 10,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "neurons/stress/stress_models.py",
+      "row": 10
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 14,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/common/model_card.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 14,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/landscape/storage.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 14,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/common/model_card.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 14,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/landscape/storage.py",
+      "row": 14
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 3,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/miner/agent.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 3,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/miner/agent.py",
+      "row": 3
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/challenges/base.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/sciml/client.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/challenges/base.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 4,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/sciml/client.py",
+      "row": 4
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 7,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/landscape/agent.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 7,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/landscape/agent.py",
+      "row": 7
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/specialist/bank.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 45,
+      "end_row": 9,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/specialist/bank.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 46,
+      "end_row": 25,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/validator/handoff.py",
+      "row": 25
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 46,
+      "end_row": 25,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/validator/handoff.py",
+      "row": 25
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 11,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/eval/score.py",
+      "row": 11
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 11,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "poc/eval/score.py",
+      "row": 11
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 11,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/eval/score.py",
+      "row": 11
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 13,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 13,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 13,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 13
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 6,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/eval/gates.py",
+      "row": 6
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 6,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "poc/eval/gates.py",
+      "row": 6
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 6,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/eval/gates.py",
+      "row": 6
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 8,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 8,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 8,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 8
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/common/scoring.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/common/scoring.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.List` is deprecated, use `list` instead",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/common/scoring.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 52,
+      "end_row": 9,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 9
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 55,
+      "end_row": 18,
+      "message": "`typing.Dict` is deprecated, use `dict` instead",
+      "path": "poc/generators/burgers1d.py",
+      "row": 18
+    },
+    {
+      "code": "UP035",
+      "column": 1,
+      "end_column": 55,
+      "end_row": 18,
+      "message": "`typing.Tuple` is deprecated, use `tuple` instead",
+      "path": "poc/generators/burgers1d.py",
+      "row": 18
+    },
+    {
+      "code": "UP045",
+      "column": 10,
+      "end_column": 34,
+      "end_row": 74,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/bank.py",
+      "row": 74
+    },
+    {
+      "code": "UP045",
+      "column": 11,
+      "end_column": 24,
+      "end_row": 101,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 101
+    },
+    {
+      "code": "UP045",
+      "column": 11,
+      "end_column": 24,
+      "end_row": 64,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 64
+    },
+    {
+      "code": "UP045",
+      "column": 12,
+      "end_column": 25,
+      "end_row": 32,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 32
+    },
+    {
+      "code": "UP045",
+      "column": 12,
+      "end_column": 36,
+      "end_row": 34,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/model_card.py",
+      "row": 34
+    },
+    {
+      "code": "UP045",
+      "column": 12,
+      "end_column": 37,
+      "end_row": 113,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/validator/handoff.py",
+      "row": 113
+    },
+    {
+      "code": "UP045",
+      "column": 13,
+      "end_column": 28,
+      "end_row": 65,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 65
+    },
+    {
+      "code": "UP045",
+      "column": 14,
+      "end_column": 50,
+      "end_row": 39,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/scoring.py",
+      "row": 39
+    },
+    {
+      "code": "UP045",
+      "column": 15,
+      "end_column": 28,
+      "end_row": 18,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/strategy_generator.py",
+      "row": 18
+    },
+    {
+      "code": "UP045",
+      "column": 15,
+      "end_column": 39,
+      "end_row": 24,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/landscape/storage.py",
+      "row": 24
+    },
+    {
+      "code": "UP045",
+      "column": 15,
+      "end_column": 39,
+      "end_row": 24,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/protocol.py",
+      "row": 24
+    },
+    {
+      "code": "UP045",
+      "column": 15,
+      "end_column": 39,
+      "end_row": 24,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/eval/gates.py",
+      "row": 24
+    },
+    {
+      "code": "UP045",
+      "column": 15,
+      "end_column": 39,
+      "end_row": 33,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/model_card.py",
+      "row": 33
+    },
+    {
+      "code": "UP045",
+      "column": 16,
+      "end_column": 29,
+      "end_row": 42,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 42
+    },
+    {
+      "code": "UP045",
+      "column": 16,
+      "end_column": 40,
+      "end_row": 79,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/utils/determinism.py",
+      "row": 79
+    },
+    {
+      "code": "UP045",
+      "column": 17,
+      "end_column": 30,
+      "end_row": 109,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/training/trainer.py",
+      "row": 109
+    },
+    {
+      "code": "UP045",
+      "column": 17,
+      "end_column": 31,
+      "end_row": 31,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 31
+    },
+    {
+      "code": "UP045",
+      "column": 17,
+      "end_column": 31,
+      "end_row": 45,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/protocol.py",
+      "row": 45
+    },
+    {
+      "code": "UP045",
+      "column": 17,
+      "end_column": 31,
+      "end_row": 48,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 48
+    },
+    {
+      "code": "UP045",
+      "column": 18,
+      "end_column": 31,
+      "end_row": 14,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/data/__init__.py",
+      "row": 14
+    },
+    {
+      "code": "UP045",
+      "column": 18,
+      "end_column": 31,
+      "end_row": 54,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 54
+    },
+    {
+      "code": "UP045",
+      "column": 18,
+      "end_column": 31,
+      "end_row": 82,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/validator/handoff.py",
+      "row": 82
+    },
+    {
+      "code": "UP045",
+      "column": 18,
+      "end_column": 32,
+      "end_row": 30,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 30
+    },
+    {
+      "code": "UP045",
+      "column": 18,
+      "end_column": 42,
+      "end_row": 31,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/model_card.py",
+      "row": 31
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 32,
+      "end_row": 174,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/generators/burgers1d.py",
+      "row": 174
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 32,
+      "end_row": 29,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/stress/stress_models.py",
+      "row": 29
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 32,
+      "end_row": 51,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/landscape/storage.py",
+      "row": 51
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 37,
+      "end_row": 99,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 99
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 43,
+      "end_row": 36,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/landscape/agent.py",
+      "row": 36
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 43,
+      "end_row": 45,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/landscape/causal_knowledge_base.py",
+      "row": 45
+    },
+    {
+      "code": "UP045",
+      "column": 19,
+      "end_column": 49,
+      "end_row": 79,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/scoring.py",
+      "row": 79
+    },
+    {
+      "code": "UP045",
+      "column": 20,
+      "end_column": 33,
+      "end_row": 29,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/protocol.py",
+      "row": 29
+    },
+    {
+      "code": "UP045",
+      "column": 20,
+      "end_column": 33,
+      "end_row": 50,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/landscape/storage.py",
+      "row": 50
+    },
+    {
+      "code": "UP045",
+      "column": 20,
+      "end_column": 34,
+      "end_row": 37,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 37
+    },
+    {
+      "code": "UP045",
+      "column": 20,
+      "end_column": 39,
+      "end_row": 98,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 98
+    },
+    {
+      "code": "UP045",
+      "column": 21,
+      "end_column": 44,
+      "end_row": 94,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 94
+    },
+    {
+      "code": "UP045",
+      "column": 21,
+      "end_column": 46,
+      "end_row": 47,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 47
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 21,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/stress/stress_evaluator.py",
+      "row": 21
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 46,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/data/pdebench_loader.py",
+      "row": 46
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 55,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 55
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 35,
+      "end_row": 96,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 96
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 37,
+      "end_row": 95,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/eval/score.py",
+      "row": 95
+    },
+    {
+      "code": "UP045",
+      "column": 22,
+      "end_column": 40,
+      "end_row": 113,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/training/trainer.py",
+      "row": 113
+    },
+    {
+      "code": "UP045",
+      "column": 23,
+      "end_column": 45,
+      "end_row": 74,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 74
+    },
+    {
+      "code": "UP045",
+      "column": 23,
+      "end_column": 45,
+      "end_row": 75,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 75
+    },
+    {
+      "code": "UP045",
+      "column": 23,
+      "end_column": 49,
+      "end_row": 54,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 54
+    },
+    {
+      "code": "UP045",
+      "column": 23,
+      "end_column": 49,
+      "end_row": 95,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 95
+    },
+    {
+      "code": "UP045",
+      "column": 23,
+      "end_column": 53,
+      "end_row": 97,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 97
+    },
+    {
+      "code": "UP045",
+      "column": 24,
+      "end_column": 48,
+      "end_row": 30,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent.py",
+      "row": 30
+    },
+    {
+      "code": "UP045",
+      "column": 25,
+      "end_column": 44,
+      "end_row": 38,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/scoring.py",
+      "row": 38
+    },
+    {
+      "code": "UP045",
+      "column": 27,
+      "end_column": 40,
+      "end_row": 29,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 29
+    },
+    {
+      "code": "UP045",
+      "column": 27,
+      "end_column": 40,
+      "end_row": 91,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/common/strategy_schema.py",
+      "row": 91
+    },
+    {
+      "code": "UP045",
+      "column": 31,
+      "end_column": 53,
+      "end_row": 76,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 76
+    },
+    {
+      "code": "UP045",
+      "column": 31,
+      "end_column": 53,
+      "end_row": 77,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/distillation.py",
+      "row": 77
+    },
+    {
+      "code": "UP045",
+      "column": 32,
+      "end_column": 46,
+      "end_row": 20,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/carbon_scorer.py",
+      "row": 20
+    },
+    {
+      "code": "UP045",
+      "column": 32,
+      "end_column": 46,
+      "end_row": 33,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/symbolic/pysr_runner.py",
+      "row": 33
+    },
+    {
+      "code": "UP045",
+      "column": 32,
+      "end_column": 56,
+      "end_row": 28,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/challenge/generator.py",
+      "row": 28
+    },
+    {
+      "code": "UP045",
+      "column": 33,
+      "end_column": 59,
+      "end_row": 22,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/challenge/generator.py",
+      "row": 22
+    },
+    {
+      "code": "UP045",
+      "column": 35,
+      "end_column": 48,
+      "end_row": 60,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/eval/score.py",
+      "row": 60
+    },
+    {
+      "code": "UP045",
+      "column": 39,
+      "end_column": 52,
+      "end_row": 113,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/validator/handoff.py",
+      "row": 113
+    },
+    {
+      "code": "UP045",
+      "column": 42,
+      "end_column": 66,
+      "end_row": 57,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/specialist/bank.py",
+      "row": 57
+    },
+    {
+      "code": "UP045",
+      "column": 45,
+      "end_column": 58,
+      "end_row": 101,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 101
+    },
+    {
+      "code": "UP045",
+      "column": 45,
+      "end_column": 58,
+      "end_row": 44,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 44
+    },
+    {
+      "code": "UP045",
+      "column": 47,
+      "end_column": 60,
+      "end_row": 99,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/validator/handoff.py",
+      "row": 99
+    },
+    {
+      "code": "UP045",
+      "column": 49,
+      "end_column": 63,
+      "end_row": 106,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/miner/agent_tools.py",
+      "row": 106
+    },
+    {
+      "code": "UP045",
+      "column": 55,
+      "end_column": 68,
+      "end_row": 28,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 28
+    },
+    {
+      "code": "UP045",
+      "column": 55,
+      "end_column": 68,
+      "end_row": 69,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 69
+    },
+    {
+      "code": "UP045",
+      "column": 57,
+      "end_column": 70,
+      "end_row": 64,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 64
+    },
+    {
+      "code": "UP045",
+      "column": 58,
+      "end_column": 71,
+      "end_row": 53,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/scoring/challenge_winner_tracker.py",
+      "row": 53
+    },
+    {
+      "code": "UP045",
+      "column": 74,
+      "end_column": 99,
+      "end_row": 20,
+      "message": "Use `X | None` for type annotations",
+      "path": "carbon/data/benchmark_loader.py",
+      "row": 20
+    },
+    {
+      "code": "UP045",
+      "column": 8,
+      "end_column": 21,
+      "end_row": 170,
+      "message": "Use `X | None` for type annotations",
+      "path": "poc/generators/burgers1d.py",
+      "row": 170
+    },
+    {
+      "code": "UP045",
+      "column": 80,
+      "end_column": 104,
+      "end_row": 28,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 28
+    },
+    {
+      "code": "UP045",
+      "column": 80,
+      "end_column": 104,
+      "end_row": 69,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 69
+    },
+    {
+      "code": "UP045",
+      "column": 82,
+      "end_column": 95,
+      "end_row": 36,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 36
+    },
+    {
+      "code": "UP045",
+      "column": 82,
+      "end_column": 95,
+      "end_row": 82,
+      "message": "Use `X | None` for type annotations",
+      "path": "neurons/strategy/strategy_store.py",
+      "row": 82
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 1,
+      "end_column": 1,
+      "end_row": 49,
+      "message": "Expected `}`, found dedent",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 49
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 1,
+      "end_column": 5,
+      "end_row": 50,
+      "message": "Unexpected indentation",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 50
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 10,
+      "end_column": 1,
+      "end_row": 38,
+      "message": "Expected `,`, found newline",
+      "path": "carbon/validator/sciml_validation.py",
+      "row": 37
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 25,
+      "end_column": 28,
+      "end_row": 49,
+      "message": "Expected `)`, found `...`",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 49
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 28,
+      "end_column": 29,
+      "end_row": 49,
+      "message": "Expected newline, found `)`",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 49
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 29,
+      "end_column": 30,
+      "end_row": 49,
+      "message": "Expected a statement",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 49
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 5,
+      "end_column": 5,
+      "end_row": 39,
+      "message": "Expected `}`, found dedent",
+      "path": "carbon/validator/sciml_validation.py",
+      "row": 39
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 6,
+      "end_column": 1,
+      "end_row": 47,
+      "message": "Expected `,`, found newline",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 46
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 62,
+      "end_column": 63,
+      "end_row": 34,
+      "message": "Expected an expression or a '}'",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 34
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 63,
+      "end_column": 64,
+      "end_row": 34,
+      "message": "Expected an expression or a '}'",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 34
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 65,
+      "end_column": 1,
+      "end_row": 50,
+      "message": "Expected a statement",
+      "path": "carbon/challenges/navier_stokes_2d.py",
+      "row": 49
+    },
+    {
+      "code": "invalid-syntax",
+      "column": 9,
+      "end_column": 10,
+      "end_row": 37,
+      "message": "Expected `,`, found `)`",
+      "path": "carbon/validator/sciml_validation.py",
+      "row": 37
+    }
+  ],
+  "schema_version": 1,
+  "source_commit": "0b2eec30250f1767cc434836e189cca219154d4d",
+  "tool_arguments": {
+    "black": [
+      "--config",
+      "/dev/null",
+      "--check",
+      "--target-version",
+      "py310",
+      "--no-color"
+    ],
+    "ruff": [
+      "check",
+      "--isolated",
+      "--no-cache",
+      "--target-version",
+      "py310",
+      "--output-format",
+      "json"
+    ]
+  },
+  "tool_versions": {
+    "black": "26.5.1",
+    "ruff": "0.16.3"
+  },
+  "tracked_python_files": [
+    "carbon/__init__.py",
+    "carbon/audit/__init__.py",
+    "carbon/backbones/__init__.py",
+    "carbon/backbones/neural_operator.py",
+    "carbon/backbones/physicsnemo.py",
+    "carbon/backbones/registry.py",
+    "carbon/base/miner.py",
+    "carbon/base/neuron.py",
+    "carbon/base/validator.py",
+    "carbon/cards/__init__.py",
+    "carbon/chain/__init__.py",
+    "carbon/challenges/__init__.py",
+    "carbon/challenges/base.py",
+    "carbon/challenges/burgers.py",
+    "carbon/challenges/darcy_2d.py",
+    "carbon/challenges/elasticity_2d.py",
+    "carbon/challenges/heat.py",
+    "carbon/challenges/navier_stokes_2d.py",
+    "carbon/challenges/poisson_2d.py",
+    "carbon/common/__init__.py",
+    "carbon/common/model_card.py",
+    "carbon/common/scoring.py",
+    "carbon/common/seeds.py",
+    "carbon/common/strategy_schema.py",
+    "carbon/data/__init__.py",
+    "carbon/data/benchmark_loader.py",
+    "carbon/data/download_pdebench.py",
+    "carbon/data/pdebench_loader.py",
+    "carbon/data/synthetic_loader.py",
+    "carbon/emission/__init__.py",
+    "carbon/emission/mechanics.py",
+    "carbon/evaluation/__init__.py",
+    "carbon/fees/__init__.py",
+    "carbon/landscape/__init__.py",
+    "carbon/landscape/agent.py",
+    "carbon/landscape/causal_knowledge_base.py",
+    "carbon/landscape/storage.py",
+    "carbon/leaderboard/__init__.py",
+    "carbon/logging_utils/__init__.py",
+    "carbon/mcp/__init__.py",
+    "carbon/miner/agent.py",
+    "carbon/miner/agent_tools.py",
+    "carbon/miner/client.py",
+    "carbon/miner/real_client.py",
+    "carbon/miner/strategy_generator.py",
+    "carbon/physics/gates.py",
+    "carbon/physics/stress.py",
+    "carbon/protocol.py",
+    "carbon/qualification/__init__.py",
+    "carbon/registry/__init__.py",
+    "carbon/schema/__init__.py",
+    "carbon/sciml/client.py",
+    "carbon/scoring/__init__.py",
+    "carbon/seeding/__init__.py",
+    "carbon/specialist/__init__.py",
+    "carbon/specialist/bank.py",
+    "carbon/specialist/distillation.py",
+    "carbon/symbolic/__init__.py",
+    "carbon/symbolic/pysr_evolver.py",
+    "carbon/traineval/__init__.py",
+    "carbon/training/__init__.py",
+    "carbon/training/physicsnemo_trainer.py",
+    "carbon/training/trainer.py",
+    "carbon/validator/sciml_validation.py",
+    "carbon/validator/validator.py",
+    "examples/mcp_client_example.py",
+    "examples/run_agentic_miner.py",
+    "neurons/challenge/generator.py",
+    "neurons/miner.py",
+    "neurons/scoring/carbon_scorer.py",
+    "neurons/scoring/challenge_winner_tracker.py",
+    "neurons/strategy/strategy_store.py",
+    "neurons/stress/__init__.py",
+    "neurons/stress/base_generator.py",
+    "neurons/stress/procedural_generator.py",
+    "neurons/stress/stress_evaluator.py",
+    "neurons/stress/stress_models.py",
+    "neurons/stress/well_generator.py",
+    "neurons/symbolic/__init__.py",
+    "neurons/symbolic/extractor.py",
+    "neurons/symbolic/pysr_runner.py",
+    "neurons/symbolic/symbolic_models.py",
+    "neurons/utils/determinism.py",
+    "neurons/validator.py",
+    "neurons/validator_config.py",
+    "poc/__init__.py",
+    "poc/eval/__init__.py",
+    "poc/eval/fp32_context.py",
+    "poc/eval/gates.py",
+    "poc/eval/metrics.py",
+    "poc/eval/null_baseline.py",
+    "poc/eval/oracle_check.py",
+    "poc/eval/score.py",
+    "poc/generators/__init__.py",
+    "poc/generators/burgers1d.py",
+    "poc/generators/justification.py",
+    "poc/generators/label_checks.py",
+    "poc/generators/stress_categories.py",
+    "poc/models/__init__.py",
+    "poc/models/fno1d.py",
+    "poc/models/fno1d_jax.py",
+    "poc/tests/__init__.py",
+    "poc/tests/test_category_ablation.py",
+    "poc/tests/test_clamps.py",
+    "poc/tests/test_discrimination.py",
+    "poc/tests/test_full_loop.py",
+    "poc/tests/test_gate_fail.py",
+    "poc/tests/test_gold_optional.py",
+    "poc/tests/test_handoff.py",
+    "poc/tests/test_loop_wiring.py",
+    "poc/tests/test_multiseed_variance.py",
+    "poc/tests/test_null_and_labels.py",
+    "poc/tests/test_oracle_ci.py",
+    "poc/tests/test_reproducibility.py",
+    "poc/tests/test_schema.py",
+    "poc/tests/test_score_pack.py",
+    "poc/tests/test_seed_separation.py",
+    "poc/tests/test_strategy_discrimination.py",
+    "poc/tests/test_stress_and_seeds.py",
+    "poc/tests/test_train_quality.py",
+    "poc/train/__init__.py",
+    "poc/train/loop.py",
+    "poc/train/losses.py",
+    "poc/train/losses_jax.py",
+    "poc/validator/__init__.py",
+    "poc/validator/handoff.py",
+    "poc/validator/run_once.py",
+    "poc/validator/schema_check.py",
+    "scripts/generate_leaderboard.py",
+    "scripts/generate_score_data.py",
+    "scripts/local_validate.py",
+    "scripts/publish_daily_priors.py",
+    "scripts/run_landscape_daily.py",
+    "tests/test_physics_gates.py",
+    "tests/test_reproducibility.py",
+    "tests/test_scorer.py",
+    "tests/test_scoring_spec.py",
+    "tests/test_tracker.py"
+  ]
+}

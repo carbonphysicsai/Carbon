@@ -1,23 +1,34 @@
-"""PhysicsNeMo backbone wrapper (existing integration)."""
+"""Lazy wrapper for the optional NVIDIA PhysicsNeMo backend."""
 
-try:
-    from physicsnemo.models import FNO as PhysicsNeMoFNO
-    PHYSICSNEMO_AVAILABLE = True
-except ImportError:
-    PHYSICSNEMO_AVAILABLE = False
-    PhysicsNeMoFNO = None
-
+from importlib import import_module
 
 from . import register_backbone
 
 
+def _fno_class():
+    try:
+        module = import_module("physicsnemo.models.fno")
+    except ModuleNotFoundError as exc:
+        if exc.name != "physicsnemo":
+            raise
+        raise ModuleNotFoundError(
+            "PhysicsNeMo is an optional Carbon backend. Install the "
+            '`physicsnemo` extra with `python -m pip install -e ".[physicsnemo]"`.',
+            name="physicsnemo",
+        ) from exc
+    return module.FNO
+
+
 class PhysicsNeMoFNOWrapper:
-    """Wrapper for PhysicsNeMo FNO."""
+    """Wrapper for the documented PhysicsNeMo FNO model API."""
 
     def __init__(self, in_channels: int = 3, out_channels: int = 1, **kwargs):
-        if not PHYSICSNEMO_AVAILABLE:
-            raise ImportError("physicsnemo not installed")
-        self.model = PhysicsNeMoFNO(in_channels=in_channels, out_channels=out_channels, **kwargs)
+        model = _fno_class()
+        self.model = model(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            **kwargs,
+        )
 
     def forward(self, x):
         return self.model(x)
@@ -26,5 +37,4 @@ class PhysicsNeMoFNOWrapper:
         return self.forward(x)
 
 
-if PHYSICSNEMO_AVAILABLE:
-    register_backbone("physicsnemo_fno", PhysicsNeMoFNOWrapper)
+register_backbone("physicsnemo_fno", PhysicsNeMoFNOWrapper)

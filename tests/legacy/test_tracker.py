@@ -4,15 +4,14 @@
 Tests for ChallengeWinnerTracker.
 """
 
-import pytest
-
 from neurons.scoring.challenge_winner_tracker import ChallengeWinnerTracker
 
 
 def test_tracker_only_new_best_updates():
     tracker = ChallengeWinnerTracker(decay_factor=0.85)
     tracker.update("hotkey1", "challenge_A", 0.8)
-    tracker.update("hotkey1", "challenge_A", 0.7)  # Lower score, should not become new leader
+    # Lower score, should not become new leader.
+    tracker.update("hotkey1", "challenge_A", 0.7)
 
     assert tracker.get_current_leader("challenge_A") == "hotkey1"
     # Score should still be the best one (0.8)

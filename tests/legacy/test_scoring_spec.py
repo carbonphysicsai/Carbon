@@ -1,13 +1,18 @@
 """SPEC alignment tests — scoring hard gates + strategy schema."""
 
-from carbon.common.scoring import compute_combined_score, score_from_metrics
+import pytest
+
+from carbon.common.scoring import compute_combined_score
+from carbon.common.seeds import (
+    derive_master_seed,
+    derive_pipeline_seeds,
+    derive_role_seed,
+)
 from carbon.common.strategy_schema import (
     StrategyValidationError,
-    validate_and_normalize_strategy,
     loss_enabled_flags,
+    validate_and_normalize_strategy,
 )
-from carbon.common.seeds import derive_master_seed, derive_pipeline_seeds, derive_role_seed
-import pytest
 
 
 def test_hard_gate_zeros_score():

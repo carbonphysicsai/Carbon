@@ -146,11 +146,16 @@ GPU vendors and CAE platforms own engines and tools. Carbon owns decentralized d
 **Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`). We have a full protocol specification, scoring and data design, trustless procedural eval generation, **generator creation + Validation Dossier path**, product path, phased roadmap, and go-to-market structure in the public repo. Phase 0 (academic PDE foundation) is the launch target; we are building that now along with an offline Proof of Concept.
 
 ```bash
-git clone https://github.com/jbequ5/Carbon.git
+git clone https://github.com/carbonphysicsai/Carbon.git
 cd Carbon
-pip install -e .
-./poc/scripts/smoke.sh
+python -m pip install -e ".[dev]"
+python -m pytest -q
 ```
+
+The supported default is the Python 3.11 CPU development lane. Scientific and
+chain backends are optional and are not qualified by that test result. See
+[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) for dependency extras, test
+classifications, the quality ratchet, and the separate PoC smoke command.
 
 ---
 

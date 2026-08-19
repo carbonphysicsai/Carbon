@@ -76,4 +76,4 @@ else
   echo "=== SMOKE DONE (PROTOCOL_ONLY — install jax for train-quality proof) ==="
 fi
 echo "Cards: $ROOT/artifacts/model_cards/"
-echo "Gold run: POC_GOLD=1 ./poc/scripts/smoke.sh"
+echo "Gold run: POC_GOLD=1 bash poc/scripts/smoke.sh"
