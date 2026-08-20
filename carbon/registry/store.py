@@ -28,6 +28,7 @@ _CORE_RECORD_FIELDS = {
     "allowed_backbones",
     "artifacts",
     "challenge_id",
+    "fixture_origin",
     "qualification",
     "status",
     "version",
@@ -220,6 +221,7 @@ def _record_from_object(value: object) -> ChallengeRecord:
     try:
         challenge_id = record["challenge_id"]
         version = record["version"]
+        fixture_origin = record["fixture_origin"]
         status = record["status"]
         if type(challenge_id) is not str:
             raise RegistryError(
@@ -233,6 +235,12 @@ def _record_from_object(value: object) -> ChallengeRecord:
                 "/version",
                 "Registry field has an invalid JSON type.",
             )
+        if type(fixture_origin) is not bool:
+            raise RegistryError(
+                "record.field_type",
+                "/fixture_origin",
+                "Registry field has an invalid JSON type.",
+            )
         if type(status) is not str:
             raise RegistryError(
                 "record.field_type",
@@ -242,6 +250,7 @@ def _record_from_object(value: object) -> ChallengeRecord:
         return ChallengeRecord(
             challenge_id=challenge_id,
             version=version,
+            fixture_origin=fixture_origin,
             status=status,
             allowed_backbones=tuple(
                 _array(record["allowed_backbones"], "/allowed_backbones")
@@ -306,6 +315,7 @@ def _record_object(record: ChallengeRecord) -> dict[str, object]:
             for artifact_id, binding in record.artifacts.items()
         },
         "challenge_id": record.challenge_id,
+        "fixture_origin": record.fixture_origin,
         "qualification": _manifest_object(record.qualification),
         "receipt_schema_version": record.receipt_schema_version,
         "required_backend_profile_id": record.required_backend_profile_id,
@@ -736,6 +746,12 @@ class RegistryStore:
                         "mutation.live_immutable",
                         "/status",
                         "An existing LIVE record is immutable through ordinary save.",
+                    )
+                if existing.fixture_origin != record.fixture_origin:
+                    raise RegistryError(
+                        "mutation.fixture_origin_immutable",
+                        "/fixture_origin",
+                        "Fixture origin is immutable for an existing ChallengeKey.",
                     )
             self._atomic_write(record)
         return record

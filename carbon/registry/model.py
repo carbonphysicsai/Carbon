@@ -169,6 +169,7 @@ class ChallengeRecord:
 
     challenge_id: str
     version: str
+    fixture_origin: bool = field(kw_only=True)
     status: str = "draft"
     allowed_backbones: tuple[str, ...] = ()
     artifacts: Mapping[str, ArtifactBinding] = field(default_factory=dict)
@@ -180,6 +181,8 @@ class ChallengeRecord:
     def __post_init__(self) -> None:
         validate_challenge_id(self.challenge_id)
         validate_version(self.version)
+        if type(self.fixture_origin) is not bool:
+            raise TypeError("fixture_origin must be a boolean")
         if type(self.status) is not str or self.status not in LIFECYCLE_STATES:
             raise ValueError("status is not a supported lifecycle state")
 
@@ -206,6 +209,11 @@ class ChallengeRecord:
             self.qualification, QualificationManifest
         ):
             raise TypeError("qualification must be a QualificationManifest")
+        if not self.fixture_origin and (
+            self.status == "fixture"
+            or (self.qualification is not None and self.qualification.mode == "fixture")
+        ):
+            raise ValueError("fixture-labelled records must declare fixture_origin")
 
         if self.receipt_schema_version is not None:
             validate_version(self.receipt_schema_version)

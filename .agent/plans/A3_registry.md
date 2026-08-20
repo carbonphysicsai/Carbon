@@ -14,8 +14,9 @@
   beneath an explicitly configured artifact root.
 - Require the exact eight qualification slots and their slot-specific states;
   do not interpret evidence as scientific or signer authorization.
-- Preserve three independent fixture barriers: fixture status, fixture
-  qualification mode, and an explicit fixture-mode gate call.
+- Preserve four independent fixture barriers: fixture status, fixture
+  qualification mode, save-immutable-per-key `fixture_origin`, and an explicit
+  fixture-mode gate call. Production rejects fixture origin after relabelling.
 - The ratified `Build_Out_Protocol_Extension.md` adds optional reserved bindings
   for receipt schema and backend profile identity. A3 will represent those
   bindings without selecting or approving a real backend. The generic artifact
@@ -47,8 +48,9 @@ currently ratified.
 3. Add descriptor-relative artifact access and one-open SHA-256 verification of
    actual regular-file bytes.
 4. Add deterministic diagnostic LIVE assessment, effective-LIVE revalidation,
-   checked activation, ordinary-save restrictions, fixture isolation, and exact
-   challenge-version backbone compatibility lookup.
+   checked activation, ordinary-save restrictions, fixture-origin isolation,
+   a non-empty production LIVE backbone declaration, and exact challenge-version
+   backbone compatibility lookup.
 5. Export the public dependency-free API from `carbon.registry`.
 
 The canonical record path is
@@ -92,7 +94,8 @@ verify a qualification signer, or make a receipt signed.
   isolation.
 - Add a static structure-only record and artifact under
   `tests/fixtures/registry/`; its `fixture` lifecycle, `fixture` qualification
-  mode, and explicit `fixture_mode=True` call are three independent barriers.
+  mode, required save-immutable-per-key `fixture_origin`, and explicit
+  `fixture_mode=True` call are four independent barriers.
 - Run the focused registry suite and full default CPU suite.
 - Run strict Ruff and Black on every changed Python file, the no-new-debt gate
   against the exact base, and `git diff --check`.
@@ -107,6 +110,8 @@ verify a qualification signer, or make a receipt signed.
   fails closed without leaking values, bytes, or private paths.
 - A3 verifies structure, exact-version references, and artifact bytes only. It
   does not decide whether human evidence is scientifically correct.
+- No ratified A2/A3 convention bounds canonical identifier length; this repair
+  intentionally defers a protocol maximum instead of inventing one.
 - No real challenge, fixture default, scientific threshold, backend approval,
   receipt/signature system, scoring, seeding, submission version resolution,
   or emission capability is added.
@@ -114,13 +119,13 @@ verify a qualification signer, or make a receipt signed.
 ## Local verification evidence
 
 - Untouched supported baseline: `258 passed`.
-- Focused registry suite: `127 passed in 0.34s`.
-- Complete default CPU suite: `385 passed in 0.86s`.
+- Focused registry suite: `134 passed in 0.33s`.
+- Complete default CPU suite: `392 passed in 0.74s`.
 - Strict Ruff and Black: all six changed Python files clean.
 - CI-equivalent no-new-debt gate against exact base: passed; inventory
-  `Ruff 757/776; Black 62/68`, with 19 Ruff and 6 Black debt items removed.
+  `Ruff 757/776; Black 62/68`, unchanged from the exact A3 base; no new debt.
 - Fresh no-dependency wheel SHA-256:
-  `bed35b88db038e6b4c89cae6b813d3b721703ff8d70b6c4d161f098fee18c08c`;
+  `06acded5a9b11c8420e660bf922f656fbc5d8fb85a96a46a0cd36e4e8089edbb`;
   outside-tree use loaded no blocked optional or Carbon execution modules.
 - Inherited PoC smoke: exit 2 after protocol-only NumPy runs because
   `poc.generators.burgers1d.role_seed` is absent during legacy test collection.

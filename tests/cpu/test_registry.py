@@ -65,6 +65,7 @@ def _complete_record(
     version: str = VERSION,
     status: str = "draft",
     mode: str = "production",
+    fixture_origin: bool = False,
     artifact_path: str = ARTIFACT_PATH,
     artifact_digest: str | None = None,
     write_artifact: bool = True,
@@ -88,6 +89,7 @@ def _complete_record(
     return ChallengeRecord(
         challenge_id=challenge_id,
         version=version,
+        fixture_origin=fixture_origin,
         status=status,
         allowed_backbones=allowed_backbones,
         artifacts={
@@ -217,7 +219,7 @@ def _contending_save_worker(
     fcntl.flock = probed_flock
     registry = ChallengeRegistry(registry_root, artifact_root)
     try:
-        registry.save(ChallengeRecord(CHALLENGE_ID, VERSION))
+        registry.save(ChallengeRecord(CHALLENGE_ID, VERSION, fixture_origin=False))
     except RegistryError as exc:
         results.put(("save", exc.code))
     else:
@@ -235,7 +237,7 @@ def _reason_codes(
 
 def test_default_record_is_draft_and_not_live(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
-    record = ChallengeRecord(CHALLENGE_ID, VERSION)
+    record = ChallengeRecord(CHALLENGE_ID, VERSION, fixture_origin=False)
     assert record.status == "draft"
     assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
 
@@ -259,6 +261,42 @@ def test_missing_identity_field_is_rejected(tmp_path: Path, missing: str) -> Non
         registry.load(CHALLENGE_ID, VERSION)
     assert captured.value.code == "record.field_required"
     assert captured.value.path == f"/{missing}"
+
+
+def test_missing_fixture_origin_is_rejected(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    payload = _stored_object(_complete_record(registry))
+    del payload["fixture_origin"]
+    _write_raw_record(registry, payload)
+    with pytest.raises(RegistryError) as captured:
+        registry.load(CHALLENGE_ID, VERSION)
+    assert captured.value.code == "record.field_required"
+    assert captured.value.path == "/fixture_origin"
+
+
+def test_fixture_origin_must_be_a_boolean(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    payload = _stored_object(_complete_record(registry))
+    payload["fixture_origin"] = "false"
+    _write_raw_record(registry, payload)
+    with pytest.raises(RegistryError) as captured:
+        registry.load(CHALLENGE_ID, VERSION)
+    assert captured.value.code == "record.field_type"
+    assert captured.value.path == "/fixture_origin"
+
+
+@pytest.mark.parametrize(
+    ("status", "mode"),
+    (("fixture", "production"), ("draft", "fixture")),
+)
+def test_fixture_labels_require_fixture_origin(
+    tmp_path: Path,
+    status: str,
+    mode: str,
+) -> None:
+    registry = _registry(tmp_path)
+    with pytest.raises(ValueError, match="must declare fixture_origin"):
+        _complete_record(registry, status=status, mode=mode)
 
 
 @pytest.mark.parametrize(
@@ -755,7 +793,10 @@ def test_same_name_artifact_file_substitution_blocks(tmp_path: Path) -> None:
 
 def test_stored_live_without_evidence_is_not_effectively_live(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
-    _store_live_directly(registry, ChallengeRecord(CHALLENGE_ID, VERSION))
+    _store_live_directly(
+        registry,
+        ChallengeRecord(CHALLENGE_ID, VERSION, fixture_origin=False),
+    )
     assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
 
 
@@ -926,7 +967,9 @@ def test_reason_codes_and_order_are_deterministic(tmp_path: Path) -> None:
     record = ChallengeRecord(
         challenge_id=CHALLENGE_ID,
         version=VERSION,
+        fixture_origin=True,
         status="fixture",
+        allowed_backbones=("fno",),
         artifacts={
             "z_artifact": ArtifactBinding(path=None, digest="bad"),
             "a_artifact": ArtifactBinding(path=None, digest=None),
@@ -949,11 +992,12 @@ def test_reason_codes_and_order_are_deterministic(tmp_path: Path) -> None:
         "lifecycle.fixture_blocked",
         "qualification.fixture_mode_blocked",
     )
-    slot_paths = tuple(reason.path for reason in first.reasons[4:12])
+    assert codes[4] == "provenance.fixture_origin_blocked"
+    slot_paths = tuple(reason.path for reason in first.reasons[5:13])
     assert slot_paths == tuple(
         f"/qualification/slots/{slot}" for slot, _ in REQUIRED_QUALIFICATION_STATES
     )
-    assert tuple(reason.path for reason in first.reasons[12:]) == (
+    assert tuple(reason.path for reason in first.reasons[13:]) == (
         "/artifacts/a_artifact/path",
         "/artifacts/a_artifact/digest",
         "/artifacts/z_artifact/path",
@@ -1010,7 +1054,15 @@ def test_assessment_opens_only_the_configured_trusted_roots(
 
 def test_complete_fixture_requires_explicit_fixture_mode(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
-    registry.save(_complete_record(registry, status="fixture", mode="fixture"))
+    registry.save(
+        _complete_record(
+            registry,
+            status="fixture",
+            mode="fixture",
+            fixture_origin=True,
+            allowed_backbones=(),
+        )
+    )
     assert not registry.can_go_live(CHALLENGE_ID, VERSION)
     assert registry.can_go_live(CHALLENGE_ID, VERSION, fixture_mode=True)
     assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
@@ -1018,7 +1070,12 @@ def test_complete_fixture_requires_explicit_fixture_mode(tmp_path: Path) -> None
 
 def test_fixture_mode_requires_fixture_status(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
-    record = _complete_record(registry, status="draft", mode="fixture")
+    record = _complete_record(
+        registry,
+        status="draft",
+        mode="fixture",
+        fixture_origin=True,
+    )
     registry.save(record)
     assessment = registry.assess_live_eligibility(
         CHALLENGE_ID, VERSION, fixture_mode=True
@@ -1031,7 +1088,12 @@ def test_fixture_mode_requires_fixture_status(tmp_path: Path) -> None:
 
 def test_fixture_mode_requires_fixture_qualification_mode(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
-    record = _complete_record(registry, status="fixture", mode="production")
+    record = _complete_record(
+        registry,
+        status="fixture",
+        mode="production",
+        fixture_origin=True,
+    )
     registry.save(record)
     assessment = registry.assess_live_eligibility(
         CHALLENGE_ID, VERSION, fixture_mode=True
@@ -1042,22 +1104,89 @@ def test_fixture_mode_requires_fixture_qualification_mode(tmp_path: Path) -> Non
     )
 
 
-def test_changing_only_fixture_status_to_live_cannot_make_it_production_eligible(
+def test_fixture_mode_requires_fixture_origin(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    registry.save(_complete_record(registry))
+    assessment = registry.assess_live_eligibility(
+        CHALLENGE_ID, VERSION, fixture_mode=True
+    )
+    assert not assessment.eligible
+    assert "provenance.fixture_origin_required" in tuple(
+        reason.code for reason in assessment.reasons
+    )
+
+
+def test_fixture_origin_blocks_production_after_status_and_mode_relabelling(
     tmp_path: Path,
 ) -> None:
     registry = _registry(tmp_path)
-    fixture = _complete_record(registry, status="fixture", mode="fixture")
-    _store_live_directly(registry, fixture)
+    fixture = _complete_record(
+        registry,
+        status="fixture",
+        mode="fixture",
+        fixture_origin=True,
+    )
+    registry.save(fixture)
+    assert fixture.qualification is not None
+    relabelled = replace(
+        fixture,
+        status="draft",
+        qualification=replace(fixture.qualification, mode="production"),
+    )
+    registry.save(relabelled)
+
+    path = registry.registry_root / CHALLENGE_ID / f"{VERSION}.json"
+    before = path.read_bytes()
     assert not registry.can_go_live(CHALLENGE_ID, VERSION)
+    assert _reason_codes(registry) == ("provenance.fixture_origin_blocked",)
+    with pytest.raises(LiveActivationError) as captured:
+        registry.activate_live(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in captured.value.eligibility.reasons) == (
+        "provenance.fixture_origin_blocked",
+    )
+    assert path.read_bytes() == before
+    _store_live_directly(registry, registry.load(CHALLENGE_ID, VERSION))
     assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
-    assert "qualification.fixture_mode_blocked" in _reason_codes(registry)
+
+
+def test_fixture_origin_cannot_be_changed_for_an_existing_key(
+    tmp_path: Path,
+) -> None:
+    registry = _registry(tmp_path)
+    fixture = _complete_record(
+        registry,
+        status="fixture",
+        mode="fixture",
+        fixture_origin=True,
+    )
+    registry.save(fixture)
+    path = registry.registry_root / CHALLENGE_ID / f"{VERSION}.json"
+    before = path.read_bytes()
+    assert fixture.qualification is not None
+    promoted = replace(
+        fixture,
+        fixture_origin=False,
+        status="draft",
+        qualification=replace(fixture.qualification, mode="production"),
+    )
+    with pytest.raises(RegistryError) as captured:
+        registry.save(promoted)
+    assert captured.value.code == "mutation.fixture_origin_immutable"
+    assert path.read_bytes() == before
 
 
 def test_fixture_evidence_cannot_be_activated_and_is_not_mutated(
     tmp_path: Path,
 ) -> None:
     registry = _registry(tmp_path)
-    registry.save(_complete_record(registry, status="fixture", mode="fixture"))
+    registry.save(
+        _complete_record(
+            registry,
+            status="fixture",
+            mode="fixture",
+            fixture_origin=True,
+        )
+    )
     path = registry.registry_root / CHALLENGE_ID / f"{VERSION}.json"
     before = path.read_bytes()
     with pytest.raises(LiveActivationError) as captured:
@@ -1073,7 +1202,14 @@ def test_draft_with_fixture_manifest_cannot_be_activated_or_mutated(
     tmp_path: Path,
 ) -> None:
     registry = _registry(tmp_path)
-    registry.save(_complete_record(registry, status="draft", mode="fixture"))
+    registry.save(
+        _complete_record(
+            registry,
+            status="draft",
+            mode="fixture",
+            fixture_origin=True,
+        )
+    )
     path = registry.registry_root / CHALLENGE_ID / f"{VERSION}.json"
     before = path.read_bytes()
     with pytest.raises(LiveActivationError) as captured:
@@ -1105,6 +1241,7 @@ def test_static_fixture_is_structurally_isolated_from_production() -> None:
     )
     record = registry.load("example_fixture", VERSION)
     assert record.status == "fixture"
+    assert record.fixture_origin
     assert record.qualification is not None
     assert record.qualification.mode == "fixture"
     assert not registry.can_go_live("example_fixture", VERSION)
@@ -1122,11 +1259,32 @@ def test_exact_backbone_compatibility_lookup(tmp_path: Path) -> None:
     assert captured.value.code == "backbone.identifier_invalid"
 
 
+def test_production_live_requires_at_least_one_allowed_backbone(
+    tmp_path: Path,
+) -> None:
+    registry = _registry(tmp_path)
+    registry.save(_complete_record(registry, allowed_backbones=()))
+    path = registry.registry_root / CHALLENGE_ID / f"{VERSION}.json"
+    before = path.read_bytes()
+
+    assert not registry.can_go_live(CHALLENGE_ID, VERSION)
+    assert _reason_codes(registry) == ("backbone.allowed_missing",)
+    with pytest.raises(LiveActivationError) as captured:
+        registry.activate_live(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in captured.value.eligibility.reasons) == (
+        "backbone.allowed_missing",
+    )
+    assert path.read_bytes() == before
+    _store_live_directly(registry, registry.load(CHALLENGE_ID, VERSION))
+    assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
+
+
 def test_duplicate_allowed_backbone_is_rejected() -> None:
     with pytest.raises(ValueError):
         ChallengeRecord(
             CHALLENGE_ID,
             VERSION,
+            fixture_origin=False,
             allowed_backbones=("fno", "fno"),
         )
 
@@ -1142,7 +1300,12 @@ def test_direct_model_rejects_string_where_identifier_tuple_is_required(
     field: str, value: str
 ) -> None:
     with pytest.raises(TypeError):
-        ChallengeRecord(CHALLENGE_ID, VERSION, **{field: value})  # type: ignore[arg-type]
+        ChallengeRecord(
+            CHALLENGE_ID,
+            VERSION,
+            fixture_origin=False,
+            **{field: value},  # type: ignore[arg-type]
+        )
 
 
 def test_compatibility_is_declarative_and_not_limited_to_a2_names(
@@ -1153,6 +1316,7 @@ def test_compatibility_is_declarative_and_not_limited_to_a2_names(
         ChallengeRecord(
             CHALLENGE_ID,
             VERSION,
+            fixture_origin=False,
             allowed_backbones=("future_operator",),
         )
     )
@@ -1179,7 +1343,8 @@ artifacts = root / "artifacts"
 artifacts.mkdir()
 registry = ChallengeRegistry(root / "registry", artifacts)
 registry.save(ChallengeRecord(
-    {CHALLENGE_ID!r}, {VERSION!r}, allowed_backbones=("future_operator",)
+    {CHALLENGE_ID!r}, {VERSION!r}, fixture_origin=False,
+    allowed_backbones=("future_operator",)
 ))
 allowed = registry.is_backbone_allowed(
     {CHALLENGE_ID!r}, {VERSION!r}, "future_operator"
@@ -1295,6 +1460,8 @@ def test_reserved_binding_strings_do_not_qualify_a_challenge(tmp_path: Path) -> 
         ChallengeRecord(
             CHALLENGE_ID,
             VERSION,
+            fixture_origin=False,
+            allowed_backbones=("future_operator",),
             receipt_schema_version="reserved_schema-v1.0",
             required_backend_profile_id="reserved_profile_a-v1.0",
             allowed_backend_profile_ids=("reserved_profile_a-v1.0",),
@@ -1414,7 +1581,8 @@ artifact_root = root / "artifacts"
 artifact_root.mkdir()
 registry = ChallengeRegistry(root / "registry", artifact_root)
 registry.save(ChallengeRecord(
-    {CHALLENGE_ID!r}, {VERSION!r}, allowed_backbones=("future_operator",)
+    {CHALLENGE_ID!r}, {VERSION!r}, fixture_origin=False,
+    allowed_backbones=("future_operator",)
 ))
 loaded = registry.load({CHALLENGE_ID!r}, {VERSION!r})
 sensitive_loaded = sorted(

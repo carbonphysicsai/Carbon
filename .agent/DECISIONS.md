@@ -11,7 +11,9 @@ registry and LIVE-manifest contract; the ratified
 backend-profile identities. No authoritative source changes the exact
 ChallengeKey, tagged SHA-256, eight-slot, or fixture-isolation requirements,
 and no qualification-manifest signature algorithm is ratified. A3 remains
-`in_progress`; local evidence is recorded below, while independent review,
+`in_progress`. Initial PR #14 review found a fixture-relabel provenance gap, a
+missing production-backbone requirement, and incorrect quality attribution;
+the same-branch repair is recorded below, while independent rereview/approval,
 merge, and post-merge CI are not established by this entry.
 
 **Canonical boundary (REPLACE/RETIRE).** `carbon.registry` is the canonical A3
@@ -34,6 +36,9 @@ deterministically and use a per-key interprocess lock, a fsynced temporary file
 in the destination directory, descriptor-relative atomic replacement, and a
 directory fsync where available. These mechanics provide the A3 file boundary;
 they are not a general distributed transaction or remote-filesystem guarantee.
+No ratified A2/A3 source supplies a maximum length for the shared canonical
+identifier syntax, so A3 does not invent one in this correction; a protocol
+limit remains explicitly deferred.
 
 **Qualification gate.** The exact ordered requirements are
 `generator_envelope=APPROVED`, `generator_validation=PASSED`,
@@ -44,15 +49,21 @@ human-owned reference and a known artifact identifier. Every declared artifact
 uses only canonical `sha256:<64 lowercase hex>` and is re-hashed from the bytes
 of the same securely opened regular file. An effective-LIVE query re-runs the
 gate, and only checked production activation may persist `live`; ordinary save
-cannot create or mutate LIVE state.
+cannot create or mutate LIVE state. Production LIVE also requires at least one
+allowed backbone, without restricting that declarative list to today's A2
+backbone names.
 
 **Fixture and protocol-extension boundaries.** Fixture eligibility requires
-all three independent barriers: fixture lifecycle status, fixture manifest
-mode, and an explicit fixture-mode API call. Production assessment rejects
-fixture provenance, and activation has no fixture bypass. The record's ordered
-allowed-backend-profile binding and required selection are structurally bound
-to `train_backend` evidence; the receipt schema version is structurally bound
-to `mcp_readiness` evidence. Equality of those identifiers never approves a
+four independent barriers: fixture lifecycle status, fixture manifest mode, a
+required `fixture_origin=true` record provenance bit, and an explicit
+fixture-mode API call. Fixture labels require that origin at model validation,
+and ordinary save cannot change it for an existing `ChallengeKey`. Production
+assessment rejects fixture origin even after status and mode are relabelled;
+activation has no fixture bypass. This is structural provenance, not an
+authenticated or signed origin claim. The record's ordered allowed-backend-
+profile binding and required selection are structurally bound to
+`train_backend` evidence; the receipt schema version is structurally bound to
+`mcp_readiness` evidence. Equality of those identifiers never approves a
 backend or environment, makes evidence scientifically correct, verifies a
 signer, or proves that a receipt is signed.
 
@@ -61,10 +72,12 @@ exact-version `load`, `save`, diagnostic/boolean eligibility,
 effective-LIVE, checked activation, and backbone-compatibility operations plus
 deterministic `scan()`. The focused path is
 `tests/cpu/test_registry.py`, with structure-only static data under
-`tests/fixtures/registry/`. Local verification passed 127 focused and 385
-complete default CPU tests, strict Ruff/Black on all six changed Python files,
-the CI-equivalent no-new-debt gate against the exact base, `git diff --check`,
-and a fresh no-dependency outside-tree wheel/import boundary. The inherited PoC
+`tests/fixtures/registry/`. Local repair verification passed 134 focused tests
+in 0.33s and 392 complete default CPU tests in 0.74s, with strict Ruff/Black on
+all six changed Python files. The CI-equivalent gate introduced no new debt and
+left inventory unchanged from the exact A3 base at
+`Ruff 757/776; Black 62/68`; `git diff --check` and a fresh no-dependency
+outside-tree wheel/import boundary also passed. The inherited PoC
 smoke still exits 2 on its pre-existing missing `role_seed` collection import.
 A3 does not ship a production-LIVE record or real
 scientific hashes and does not implement scientific/backend qualification,

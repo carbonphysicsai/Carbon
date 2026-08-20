@@ -10,6 +10,7 @@
     }
   },
   "challenge_id": "example_fixture",
+  "fixture_origin": true,
   "qualification": {
     "challenge_id": "example_fixture",
     "challenge_version": "1.0",

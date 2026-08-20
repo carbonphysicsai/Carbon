@@ -179,6 +179,14 @@ class ChallengeRegistry(RegistryStore):
                         "Fixture assessment requires fixture qualification mode.",
                     )
                 )
+            if not record.fixture_origin:
+                reasons.append(
+                    _reason(
+                        "provenance.fixture_origin_required",
+                        "/fixture_origin",
+                        "Fixture assessment requires fixture-origin provenance.",
+                    )
+                )
         else:
             if record.status == "fixture":
                 reasons.append(
@@ -205,6 +213,22 @@ class ChallengeRegistry(RegistryStore):
                             "Production qualification mode is required.",
                         )
                     )
+            if record.fixture_origin:
+                reasons.append(
+                    _reason(
+                        "provenance.fixture_origin_blocked",
+                        "/fixture_origin",
+                        "Fixture-origin qualification is blocked from production.",
+                    )
+                )
+            if not record.allowed_backbones:
+                reasons.append(
+                    _reason(
+                        "backbone.allowed_missing",
+                        "/allowed_backbones",
+                        "Production LIVE requires at least one allowed backbone.",
+                    )
+                )
 
         if manifest is not None:
             # 3. Required slots, always in the canonical eight-slot order.
