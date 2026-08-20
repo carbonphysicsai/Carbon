@@ -5,7 +5,7 @@
 # if/when this artifact is ever registered. Do not add an internal canonical content_hash.
 
 physical_system_spec_id: burgers1d_v0_physical_system
-version: "prototype-0.1"
+version: "prototype-0.2"
 status: authoring_prototype
 
 challenge_binding:
@@ -53,7 +53,8 @@ parameters:
       stress: [0.0005, 0.005]
     notes:
       - "Role-specific ranges are copied from poc/configs/challenge_burgers1d.yaml."
-      - "poc/generators/justification.py currently states stress [0.0003, 0.005]; this mismatch is unresolved and must not be silently reconciled here."
+      - "PROVISIONAL DESIGN DECISION SN-BURGERS-001: use 5e-4 as the stress lower bound because it is the value consumed by the executable generator config."
+      - "poc/generators/justification.py currently states 3e-4; if the tech/science lead accepts this decision, that explanatory metadata should be corrected to 5e-4. If 3e-4 is intended scientifically, the executable config/generator must instead be versioned and changed deliberately."
 
 initial_condition_family:
   construction: truncated_fourier_series
@@ -128,10 +129,12 @@ known_reconciliation_issues:
   - id: SN-BURGERS-001
     severity: scientific_metadata_mismatch
     field: viscosity.stress.lower_bound
+    selected_provisional_value: 0.0005
     executable_config_value: 0.0005
     justification_value: 0.0003
-    disposition: HUMAN_INPUT
-    rule: "Do not silently choose a new value; scientific owner must reconcile the justification or config."
+    disposition: PROVISIONAL_DECISION_PENDING_TECH_LEAD_REVIEW
+    rationale: "The executable challenge config is the value actually consumed by generate_batch; choosing 5e-4 preserves current realized P0 behavior rather than silently expanding the stress envelope."
+    modification_rule: "If 3e-4 is preferred, change/version the executable Challenge semantics deliberately; do not alter only this representation."
   - id: SN-BURGERS-002
     severity: missing_semantic_authority
     field: governing_relations.canonical_symbolic_form
