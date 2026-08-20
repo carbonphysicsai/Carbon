@@ -2,6 +2,7 @@
 
 **Status:** DESIGN INTEGRATION — owner-directed exploration initiated 2026-08-20; reconciled against `main` after A3 closeout. Exact schema/runtime changes remain reviewable; no P0 scoring or execution change is ratified by this file.  
 **Primary draft spec:** `Design_Specs/Physical_System_Representation.md`.  
+**Relation IR draft:** `Design_Specs/physical_system_specs/RELATION_IR.md`.  
 **Reconciliation:** `docs/context/SYMBOLIC_NUMERIC_RECONCILIATION.md`.
 
 ---
@@ -84,17 +85,50 @@ byte identity     = A3 ArtifactBinding.digest
 
 A3's tagged SHA-256 digest is the canonical identity of the exact registered bytes. `PhysicalSystemSpec` should not carry a competing canonical `content_hash` field. Authoring tools may compute temporary hashes, but they do not become protocol identity unless a future explicit migration ratifies that change.
 
-### SN-D12 — PhysicalSystemSpec is public-safe scientific semantics by design
+### SN-D12 — Registered PhysicalSystemSpec defaults to public Challenge semantics
 
-Current generator doctrine makes generator code and parameter ranges public while keeping realized exam data and official seed material protected. The representation should therefore be safe to publish when it contains only public Challenge semantics.
+Current generator doctrine makes generator code + parameter ranges, Score Packs, and Validation Dossiers public while keeping live materialized eval/stress tensors protected. A registered `PhysicalSystemSpec` should therefore default to the publication class:
 
-The schema must forbid official realized seeds/draws, master-secret material, hidden tensors, and unauthorized partner-private information. Actual publication of a particular artifact remains a Challenge/governance decision.
+```text
+public_challenge_semantics
+```
+
+when it contains only the same public scientific semantics: governing relations, variables, parameter/envelope descriptions, assumptions, topology, and qualified references.
+
+This does **not** imply that the artifact is returned on every miner-facing API/card call. A6/A9/A10 disclosure remains separately allow-listed. Trusted-root paths, official seeds/draw IDs, hidden tensors, master-secret material, reconstruction-sensitive state, and unauthorized partner-private information are forbidden from the public semantic artifact.
+
+A partner Challenge may require a controlled/private semantic extension, but that must be a separately declared artifact/class rather than silently mixing private fields into the public object.
 
 ### SN-D13 — Source conflicts are first-class reconciliation objects
 
 The Burgers prototype exposed a real source mismatch: `poc/configs/challenge_burgers1d.yaml` uses stress viscosity `[0.0005, 0.005]`, while `poc/generators/justification.py` documents `[0.0003, 0.005]`.
 
 A `PhysicalSystemSpec` must preserve such disagreement explicitly rather than silently choosing or averaging values. Scientific owners resolve the source; the semantic layer records the state of evidence.
+
+### SN-D14 — Use a tiny representation-agnostic relation IR
+
+The first governing-relation representation should contain:
+
+1. a human-readable equation string for review;
+2. a small Carbon-owned expression tree for machine portability.
+
+Prototype operators are limited to variables, parameters, constants, algebra (`add`, `mul`, `pow`, `neg`), equality, and ordinary/partial derivatives. The relation IR deliberately excludes solver/discretization state, thresholds, residual normalization, gates, and score semantics.
+
+For Burgers, current reference-solver behavior supports the provisional relation:
+
+```text
+d_t(u) + u*d_x(u) = nu*d_xx(u)
+```
+
+or, for display:
+
+```text
+∂u/∂t + u ∂u/∂x = ν ∂²u/∂x²
+```
+
+because `burgers_reference_solve()` implements explicit `-u*u_x` advection plus implicit `nu*u_xx` viscosity. This representation is pending tech/science review but is grounded in implemented Carbon behavior rather than inserted solely from textbook knowledge.
+
+Prototype-0.1 does **not** assume algebraic/symbolic equivalence between differently structured expression trees. Any future canonicalization/simplification rules must be explicit and versioned.
 
 ---
 
@@ -104,6 +138,8 @@ This integration does **not** ratify:
 
 - a final serialization format;
 - a final physical ontology;
+- a final relation-IR grammar beyond the prototype;
+- automatic symbolic equivalence/canonicalization;
 - ModelingToolkit as mandatory infrastructure;
 - automatic derivation of gates or thresholds;
 - H16-H19 as true;
@@ -113,9 +149,9 @@ This integration does **not** ratify:
 - reopening A1-A3;
 - widening A4 or A5;
 - a ninth LIVE qualification slot for `PhysicalSystemSpec`;
-- miner disclosure of trusted-root artifact paths or protected digests;
-- the unresolved Burgers stress-viscosity metadata mismatch;
-- a canonical symbolic Burgers equation string/AST before scientific-owner ratification.
+- automatic miner/API disclosure of the public artifact;
+- partner-private semantics inside the public artifact;
+- a repair of the Burgers stress-viscosity mismatch on `main` before review.
 
 ---
 
@@ -136,6 +172,8 @@ This integration does **not** ratify:
 > **A3 owns exact artifact bytes; the spec owns semantic meaning.**
 
 > **Source disagreement is recorded, not normalized away.**
+
+> **A parseable relation is not a validated relation, residual, gate, or threshold.**
 
 ---
 
