@@ -1,0 +1,80 @@
+{
+  "allowed_backend_profile_ids": [],
+  "allowed_backbones": [
+    "synthetic_backbone"
+  ],
+  "artifacts": {
+    "fixture_bundle": {
+      "digest": "sha256:bc70e80a097eae158841e7d7bf96526084f1e123d777c36add04f5bfd8098f83",
+      "path": "example_fixture/1.0/qualification/bundle.txt"
+    }
+  },
+  "challenge_id": "example_fixture",
+  "qualification": {
+    "challenge_id": "example_fixture",
+    "challenge_version": "1.0",
+    "mode": "fixture",
+    "slots": {
+      "dossier_level_1": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "APPROVED"
+      },
+      "generator_envelope": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "APPROVED"
+      },
+      "generator_validation": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "PASSED"
+      },
+      "launch_bar": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "SIGNED"
+      },
+      "mcp_readiness": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "SIGNED"
+      },
+      "mock_incompleteness": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "APPROVED"
+      },
+      "score_pack": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "APPROVED"
+      },
+      "train_backend": {
+        "artifact_id": "fixture_bundle",
+        "backend_profile_ids": [],
+        "receipt_schema_version": null,
+        "reference": "synthetic-fixture-structure-only",
+        "state": "QUALIFIED"
+      }
+    }
+  },
+  "receipt_schema_version": null,
+  "required_backend_profile_id": null,
+  "status": "fixture",
+  "version": "1.0"
+}

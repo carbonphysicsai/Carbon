@@ -1,5 +1,76 @@
 # Agent decisions log
 
+## 2026-08-20 — A3 exact-version registry and structural LIVE gate
+
+**Base, authority, and scope.** A3 began on `agent/a3-challenge-registry` from
+exact `origin/main` commit
+`e6fb20b1dc361ded442fcf41d118cea5f2c775cd`, after the reviewed A2 merge and
+post-merge CI closure. `Design_Specs/Build_Out.md` C1 and §8 define the core
+registry and LIVE-manifest contract; the ratified
+`Design_Specs/Build_Out_Protocol_Extension.md` reserves receipt-schema and
+backend-profile identities. No authoritative source changes the exact
+ChallengeKey, tagged SHA-256, eight-slot, or fixture-isolation requirements,
+and no qualification-manifest signature algorithm is ratified. A3 remains
+`in_progress`; local evidence is recorded below, while independent review,
+merge, and post-merge CI are not established by this entry.
+
+**Canonical boundary (REPLACE/RETIRE).** `carbon.registry` is the canonical A3
+authority. It replaces historical mutable challenge record/loader semantics
+for this boundary. `carbon/challenges/*` is RETIRE/defer evidence, remains
+untouched, and does not become registry authority. The mutable runtime backbone
+registry remains independent; A3 stores only exact declarative compatibility
+identifiers and imports no backend. PoC hashing contributes only the raw-byte
+SHA-256 concept and is not reused as an authority for scoring, execution, or
+qualification.
+
+**Exact identity and persistence.** One immutable `ChallengeKey` is the exact
+pair `(challenge_id, version)`, stored only at
+`<registry_root>/<challenge_id>/<version>.json`; embedded and file-location
+identities must match. Strict JSON rejects duplicate keys, unknown fields,
+non-JSON constants, malformed types, and duplicate embedded keys during scans.
+Registry and artifact files are opened descriptor-relatively with symbolic
+links disallowed and regular-file checks applied. Writes serialize
+deterministically and use a per-key interprocess lock, a fsynced temporary file
+in the destination directory, descriptor-relative atomic replacement, and a
+directory fsync where available. These mechanics provide the A3 file boundary;
+they are not a general distributed transaction or remote-filesystem guarantee.
+
+**Qualification gate.** The exact ordered requirements are
+`generator_envelope=APPROVED`, `generator_validation=PASSED`,
+`dossier_level_1=APPROVED`, `score_pack=APPROVED`,
+`mock_incompleteness=APPROVED`, `train_backend=QUALIFIED`,
+`launch_bar=SIGNED`, and `mcp_readiness=SIGNED`. Every slot also needs a
+human-owned reference and a known artifact identifier. Every declared artifact
+uses only canonical `sha256:<64 lowercase hex>` and is re-hashed from the bytes
+of the same securely opened regular file. An effective-LIVE query re-runs the
+gate, and only checked production activation may persist `live`; ordinary save
+cannot create or mutate LIVE state.
+
+**Fixture and protocol-extension boundaries.** Fixture eligibility requires
+all three independent barriers: fixture lifecycle status, fixture manifest
+mode, and an explicit fixture-mode API call. Production assessment rejects
+fixture provenance, and activation has no fixture bypass. The record's ordered
+allowed-backend-profile binding and required selection are structurally bound
+to `train_backend` evidence; the receipt schema version is structurally bound
+to `mcp_readiness` evidence. Equality of those identifiers never approves a
+backend or environment, makes evidence scientifically correct, verifies a
+signer, or proves that a receipt is signed.
+
+**Public API and unclaimed maturity.** A configured `ChallengeRegistry` exposes
+exact-version `load`, `save`, diagnostic/boolean eligibility,
+effective-LIVE, checked activation, and backbone-compatibility operations plus
+deterministic `scan()`. The focused path is
+`tests/cpu/test_registry.py`, with structure-only static data under
+`tests/fixtures/registry/`. Local verification passed 127 focused and 385
+complete default CPU tests, strict Ruff/Black on all six changed Python files,
+the CI-equivalent no-new-debt gate against the exact base, `git diff --check`,
+and a fresh no-dependency outside-tree wheel/import boundary. The inherited PoC
+smoke still exits 2 on its pre-existing missing `role_seed` collection import.
+A3 does not ship a production-LIVE record or real
+scientific hashes and does not implement scientific/backend qualification,
+receipt signing, Score Pack semantics, official seeding, scoring, model cards,
+execution, MCP transport, Bittensor operation, or any A4+ capability.
+
 ## 2026-08-20 — A2 closure after reviewed merge
 
 **Closure evidence.** The initial A2 implementation received independent
