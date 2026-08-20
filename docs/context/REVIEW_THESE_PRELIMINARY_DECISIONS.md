@@ -9,7 +9,7 @@
 
 ## Executive recommendation
 
-Proceed on the design branch as though **R1–R6 are accepted provisionally**, with the modifications and guardrails below. The six decisions are mutually coherent and preserve Carbon's existing authority model:
+Proceed on the design branch as though **R1–R7 are accepted provisionally**, with the modifications and guardrails below. The decisions are mutually coherent and preserve Carbon's existing authority model:
 
 ```text
 physical semantics
@@ -105,7 +105,7 @@ The equation does **not** by itself define a Carbon residual metric, discretizat
 
 Keep both:
 
-1. a human-readable canonical display string; and
+1. a human-readable display string; and
 2. a small Carbon-owned structured expression tree.
 
 Initial grammar:
@@ -125,9 +125,7 @@ Also keep operator semantics explicit rather than relying on parser conventions.
 
 ### Why
 
-A small neutral IR gives Carbon a stable adapter target without binding the protocol to ModelingToolkit, SymPy, Modelica, or another modeling language. Current symbolic-numeric systems themselves represent equations as structured symbolic trees and distinguish variables, parameters, equations, and derivative operators; Carbon can adopt the abstraction without adopting their internal types.
-
-Starting smaller is preferable. Additional operators should be added only when a real Challenge requires them and their semantics can be defined unambiguously.
+A small neutral IR gives Carbon a stable adapter target without binding the protocol to ModelingToolkit, SymPy, Modelica, or another modeling language. Starting smaller is preferable. Additional operators should be added only when a real Challenge requires them and their semantics can be defined unambiguously.
 
 ### Explicit non-features
 
@@ -254,6 +252,59 @@ Public artifact status also does not imply automatic inclusion in miner Evaluati
 
 ---
 
+## R7 — Current Burgers “residual” metric semantics
+
+### Preliminary decision: **ACCEPT AS A PROXY; DO NOT TREAT AS FULL PDE RESIDUAL**
+
+The current PoC function `poc/train/losses.py::residual_diagnostic()` computes:
+
+```text
+mean |u*u_x - nu*u_xx|
+```
+
+on the predicted final-time field.
+
+It does **not** compute `d_t(u)`. The implementation itself states that it is a cheap final-time proxy and not a full spacetime residual.
+
+### Decision
+
+For symbolic-numeric traceability, classify the current quantity as:
+
+```text
+final_state_spatial_balance_proxy
+```
+
+or retain the legacy name `burgers_residual_mean` only when the metadata explicitly carries:
+
+```text
+semantic_class: proxy
+limitation: omits d_t(u); not the full governing-equation residual
+```
+
+Do not allow the existence of the governing-relation IR to upgrade this metric into a full PDE residual automatically.
+
+### Why
+
+The accepted governing relation is:
+
+```text
+d_t(u) + u*d_x(u) - nu*d_xx(u) = 0.
+```
+
+A metric that omits `d_t(u)` is not mathematically the residual of that full relation. Since the current P0 model maps initial condition directly to final-time state rather than producing a time trajectory, the missing derivative cannot be recovered honestly from the current output alone without introducing another modeling/approximation assumption.
+
+The current metric can still be useful as a heuristic physics-sensitive proxy. Its utility and PoC discriminative behavior are separate questions from its mathematical name.
+
+### A5 implication
+
+Do **not** widen A5. A5 should still consume registered metrics + Score Pack. But when its fixture Score Pack is implemented, the metric definition should preserve this proxy limitation rather than silently presenting it as a fully qualified PDE residual. A future full residual metric would be a separately defined, implemented, dossier-qualified quantity.
+
+### Confidence
+
+**Very high on the mathematical classification; medium on the preferred final naming.**
+
+---
+
 # Consolidated preliminary disposition
 
 | Decision | Preliminary verdict | Confidence | Important qualifier |
@@ -264,6 +315,7 @@ Public artifact status also does not imply automatic inclusion in miner Evaluati
 | R4 identity | ACCEPT | Very high | A3 digest owns exact bytes |
 | R5 A3 integration | ACCEPT | Very high | No migration; invariant tests later |
 | R6 public/private | ACCEPT WITH GUARDRAIL | High | Public by default only for public-authorized instances |
+| R7 current “residual” metric | ACCEPT AS PROXY | Very high | Omits `d_t(u)`; never call it a full PDE residual without a new implementation |
 
 ---
 
@@ -277,7 +329,7 @@ The preliminary acceptance above does **not** decide:
 - a ModelingToolkit adapter implementation;
 - units for the current dimensionless/normalized Burgers prototype where Carbon sources do not yet specify them;
 - which Burgers conserved/invariant quantities should become qualified Carbon metrics;
-- any residual discretization or threshold;
+- a full PDE residual discretization, normalization, or threshold;
 - whether `PhysicalSystemSpec` becomes required for future Challenge classes;
 - private-partner artifact transport/storage policy;
 - any change to P0 scoring, emissions, A4, A5, or miner strategy schema.
@@ -297,6 +349,7 @@ R3  ACCEPT / MODIFY / REJECT
 R4  ACCEPT / MODIFY / REJECT
 R5  ACCEPT / MODIFY / REJECT
 R6  ACCEPT / MODIFY / REJECT
+R7  ACCEPT / MODIFY / REJECT
 ```
 
 For a modification, record:
@@ -313,6 +366,6 @@ For a modification, record:
 
 Until review says otherwise, proceed with the following design doctrine:
 
-> **Carbon should carry a small, public-safe when authorized, representation-agnostic description of the physical system; bind its exact bytes through the existing A3 artifact mechanism; keep its machine relation semantics in a minimal neutral IR; and require all score-bearing scientific meaning to pass through the existing generator, dossier, and Score-Pack authority chain.**
+> **Carbon should carry a small, public-safe when authorized, representation-agnostic description of the physical system; bind its exact bytes through the existing A3 artifact mechanism; keep its machine relation semantics in a minimal neutral IR; accurately classify physics-sensitive proxies rather than upgrading them by name; and require all score-bearing scientific meaning to pass through the existing generator, dossier, and Score-Pack authority chain.**
 
 This preserves the value of symbolic-numeric integration while preventing it from becoming a second protocol or a source of automatic scientific truth.
