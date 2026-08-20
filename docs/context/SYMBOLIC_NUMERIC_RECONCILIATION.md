@@ -7,36 +7,30 @@
 
 ---
 
-## 1. First reconciliation finding — A1, A2, A3 are complete
+## 1. Current build-state reconciliation
 
 Repository history and `.agent/WAVE.md` establish:
 
 - **A1:** done;
 - **A2:** done;
 - **A3:** done;
-- **A4:** todo / not started at the reviewed `main`;
-- **A5:** todo / not started at the reviewed `main`;
-- **A6:** todo / not started at the reviewed `main`.
+- **A4:** todo / next ordinary Wave-A ticket at reviewed base;
+- **A5:** todo;
+- **A6:** todo.
 
-Therefore the symbolic-numeric integration must **not** be described as work to fold into A1-A3. Those tickets are historical completed boundaries. A4 is the next ordinary Wave-A ticket.
-
-The current next Wave-A sequencing remains governed by `Build_Out.md`; symbolic-numeric work must enter only through a new bounded extension or through later tickets that have not yet been implemented.
+Symbolic-numeric integration does not reopen A1-A3 and does not displace A4+ sequencing.
 
 ---
 
-## 2. A3 already contains a suitable non-invasive binding mechanism
+## 2. A3 attachment mechanism — resolved
 
-The completed A3 `ChallengeRecord` is strict about top-level fields and exact-version identity, but already contains:
+Completed A3 already supplies:
 
 ```text
-artifacts: Mapping[str, ArtifactBinding]
+ChallengeRecord.artifacts: Mapping[str, ArtifactBinding]
 ```
 
-where an `ArtifactBinding` carries a trusted-root-relative path and tagged digest. Artifact identifiers are generic canonical identifiers rather than a fixed closed list.
-
-### Reconciliation consequence
-
-Do **not** add proposed top-level physical-system fields to A3 merely for future-proofing. The preferred P0-compatible design is:
+Use the optional conventional binding:
 
 ```text
 artifacts["physical_system_spec"] = {
@@ -45,131 +39,63 @@ artifacts["physical_system_spec"] = {
 }
 ```
 
-The bound artifact carries semantic identity/version. A3 binds exact bytes. A3 remains responsible only for structural identity and bytes, not interpretation of physical semantics.
-
-This is a **WRAP**, not a REPAIR of A3.
-
-The completed A3 LIVE gate re-hashes every declared artifact. Absence of `physical_system_spec` remains valid, but once a Challenge declares it, missing or digest-mismatched bytes make that exact Challenge ineligible for LIVE. This is fail-closed provenance, not a new scientific gate.
-
 ### SN-H1 disposition
 
-Reconciliation now concludes that **SN-H1 requires no A3 schema/code change**. `physical_system_spec` is a valid canonical artifact identifier under the existing model, and the generic artifact mechanism already provides the required content binding. Any additive proof should be an invariant/integration test later (preferably A12), not a reopening of A3.
+**Resolved: no A3 schema/code migration is needed.**
 
----
+- `physical_system_spec` is a valid canonical artifact id;
+- absence remains valid;
+- if declared, ordinary A3 byte-integrity checks apply;
+- no ninth qualification slot is created;
+- no score/disclosure authority follows from the binding;
+- later A12/integration tests should prove the negative invariants rather than reopening A3.
 
-## 3. Near-term hooks
-
-### SN-H1 — Challenge physical-system artifact binding
-
-Use the completed A3 generic artifact map to optionally bind one exact `PhysicalSystemSpec` artifact.
-
-**No A3 schema migration. No score change. No ninth qualification slot.**
-
-### SN-H2 — Evidence provenance propagation
-
-Natural owner: **A6 Card store**, which is still `todo` at the reviewed base.
-
-When an official Challenge binds a `physical_system_spec` artifact, internal evidence should preserve immutable artifact identity/digest needed for future Landscape joins. Miner/public disclosure remains separately allow-listed.
-
-### SN-H3 — Burgers semantic prototype
-
-Authoring-only SciML work. `Design_Specs/physical_system_specs/burgers1d_v0.prototype.yaml` now captures current implemented/configured Burgers semantics without becoming a runtime dependency.
-
----
-
-## 4. Reconciliation against current P0 doctrine
-
-The integration is compatible with current `Build_Out.md` if it obeys these limits:
-
-- completed A1-A3 remain closed;
-- A4+ sequencing is not displaced;
-- `Scoring.md` remains sole scoring authority;
-- Challenge science remains human-qualified;
-- no symbolic package is added to validator/miner runtime;
-- no new required LIVE qualification slot is introduced;
-- missing `PhysicalSystemSpec` remains valid during P0;
-- fixture / mock / official isolation is unchanged;
-- physical metadata cannot contain official realized draws or seed material.
-
----
-
-## 5. Burgers source reconciliation
-
-The implemented/configured P0 sources support a richer prototype than the older PoC summary alone implied. Current supported facts include:
-
-- system label: 1D viscous Burgers;
-- initial model class: FNO-1d;
-- operator map: initial condition → solution at final time;
-- periodic spatial domain on `[0,1)`;
-- `nx=128`, `T=1.0` for normal mode;
-- four-mode Fourier initial-condition family;
-- train/eval viscosity `[1e-3,1e-2]`;
-- stress viscosity configured as `[5e-4,5e-3]`;
-- role-specific IC coefficient bounds `0.5/0.5/0.8`;
-- procedural role-separated train/eval/stress data;
-- IMEX Fourier reference realization with explicit advection, implicit viscosity, and 2/3 dealiasing.
-
-The current Carbon sources still do not provide a separately ratified canonical symbolic equation string/AST for `PhysicalSystemSpec`; that field remains `HUMAN_INPUT` pending scientific-owner review.
-
-### SN-BURGERS-001 — selected provisional value
-
-The executable challenge config and `poc/generators/justification.py` disagree on the lower stress-viscosity bound:
+Identity rule:
 
 ```text
-executable config:  5e-4
-justification text: 3e-4
+semantic identity = physical_system_spec_id + version
+byte identity     = A3 ArtifactBinding.digest
 ```
 
-**Provisional design decision: use `5e-4`.**
-
-Rationale:
-
-1. `generate_batch()` reads the executable YAML and therefore samples from `5e-4` today.
-2. A `PhysicalSystemSpec` should describe current realized Challenge behavior, not silently expand it.
-3. Choosing `3e-4` only in semantic metadata would create a false claim about what the generator actually covers.
-4. Changing runtime to `3e-4` would be a scientific/protocol change that should be explicit and versioned.
-
-If the tech/science lead accepts this decision, the intended repair is to change the stale explanatory justification range to `5e-4`. If the lead instead decides `3e-4` is the scientifically intended boundary, the generator/config must be deliberately revised/versioned and the semantic representation should follow that change.
-
-This is a design-branch decision pending technical review, not a silent mutation of `main`.
+No second canonical internal content hash.
 
 ---
 
-## 6. A4 reconciliation — seeding is a secrecy boundary, not a semantic carrier
+## 3. Wave-A boundary reconciliation
 
-A4 is not complete. `PhysicalSystemSpec` should not enter seed derivation. It may describe public envelope semantics but must not contain master secrets, official seeds, draw IDs, or reconstruction-sensitive realized exam state.
+### A4 — keep pure secrecy/seed-domain work
 
-**Recommendation:** do not add symbolic-numeric implementation scope to A4. Preserve A4 exactly; later A12/integration tests can assert that physical metadata respects A4 leakage invariants.
+`PhysicalSystemSpec` does not participate in official seed derivation, role-domain separation, master-secret handling, or realized draw identity. It may describe public Challenge semantics only.
 
----
+### A5 — keep pure scoring work
 
-## 7. A5 reconciliation — scoring remains downstream and independent
-
-A5 is not complete. `PhysicalSystemSpec` must not be parsed by `ScoreEngine` to invent or alter a score. The scoring dependency remains:
-
-```text
-qualified generator / reference realization
-        ↓
-metrics + gate inputs
-        ↓
-registered Score Pack
-        ↓
-ScoreEngine
-```
-
-A future symbolic authoring tool may propose candidate residuals, invariants, or regime features, but they become score-bearing only after the existing human-qualified path converts them into explicit registered metrics/gates.
-
-Required invariant:
+`ScoreEngine` must not parse `PhysicalSystemSpec` to invent gates, thresholds, weights, or `S_combined` behavior.
 
 ```text
 PhysicalSystemSpec ─X─> ScoreEngine authority
 ```
 
+Official path remains:
+
+```text
+qualified generator/reference
+        ↓
+metrics + gate inputs
+        ↓
+registered Score Pack
+        ↓
+A5 ScoreEngine
+```
+
+### A6 — first natural evidence-provenance propagation point
+
+When A6 is implemented, preserve physical-system semantic id/version + bound artifact digest in full internal evidence when present. Do not expose trusted-root paths or automatically add this information to the miner-facing allow-list.
+
 ---
 
-## 8. Generator / dossier / envelope reconciliation — true semantic owner path
+## 4. Generator / dossier / envelope semantic owner path
 
-`PhysicalSystemSpec` attaches upstream of generator implementation but downstream of human/domain science:
+The physical semantic representation sits inside the existing authority chain:
 
 ```text
 DOMAIN SCIENCE / PARTNER REQUIREMENTS
@@ -187,75 +113,164 @@ DOMAIN SCIENCE / PARTNER REQUIREMENTS
        Registry LIVE
 ```
 
-Existing semantic owners remain authoritative:
+Canonical owners remain:
 
-- envelope claims → `Evidence_and_Envelope_Standards.md`;
+- envelope / claim boundary → `Evidence_and_Envelope_Standards.md`;
 - generator construction → `Generator_Creation.md`;
-- validation evidence → `Generator_Validation.md`;
-- score math / gates → `Scoring.md`.
+- generator evidence / dossier → `Generator_Validation.md`;
+- scoring → `Scoring.md`.
 
-### First concrete dossier-traceability targets
-
-The Burgers prototype now uses five test chains to determine whether structured semantics improve auditability:
-
-1. **Periodic domain** → YAML config → Fourier reference realization → boundary/numerical evidence → possible future qualified BC metric.
-2. **Viscosity role domains** → YAML config → role sampler → convergence/reference evidence across the envelope → stress-case semantics; Score Pack still owns any threshold.
-3. **Fourier IC family** → YAML + `_sample_ics()` → procedural draws → distribution/reference credibility evidence → data/stress semantics.
-4. **IMEX Fourier reference method** → `burgers_reference_solve()` → convergence/cross-reference evidence → dossier reference rank → downstream metric reference source.
-5. **Conservation/residual candidates** → PoC scientific intent → future explicit metric implementation → applicability/calibration evidence → only then a registered Score-Pack gate/component.
-
-The traceability table is maintained in `Design_Specs/physical_system_specs/README.md`. Missing dossier evidence remains explicitly missing; symbolic structure cannot fill it by implication.
+`PhysicalSystemSpec` links those meanings; it does not supersede them.
 
 ---
 
-## 9. A6 reconciliation — internal provenance is the first natural Wave-A propagation point
+## 5. Burgers semantic prototype — current decisions
 
-A6 remains `todo`. When it is implemented:
-
-- if the active Challenge binds `artifacts["physical_system_spec"]`, preserve artifact digest plus semantic identity/version in the full internal evidence object;
-- do not expose trusted-root paths;
-- do not add the physical spec to the miner-facing allow-list by default;
-- future Landscape joins use immutable internal identity rather than miner-facing summaries.
-
-Reconcile again when the concrete `InternalResult` shape exists.
-
----
-
-## 10. Identity authority decision
-
-The design now locks:
+Prototype:
 
 ```text
-semantic identity = physical_system_spec_id + version
-byte identity     = A3 ArtifactBinding.digest
+Design_Specs/physical_system_specs/burgers1d_v0.prototype.yaml
 ```
 
-Do **not** add a second canonical `content_hash` inside the spec. A3 already owns exact registered bytes; duplicate hash authority would create avoidable disagreement modes.
+Current implemented/configured facts include:
+
+- 1D viscous Burgers;
+- final-time operator map;
+- periodic `x∈[0,1)`;
+- `nx=128`, `T=1.0` normal mode;
+- four-mode Fourier IC family;
+- train/eval `nu=[1e-3,1e-2]`;
+- stress `nu=[5e-4,5e-3]` in executable config;
+- IC coefficient bounds `0.5/0.5/0.8`;
+- IMEX Fourier reference realization with 2/3 dealiasing.
+
+### SN-BURGERS-001 — stress lower bound
+
+**Provisional decision: `5e-4`.**
+
+The explanatory justification source says `3e-4`, but the executable config consumed by the generator says `5e-4`. The semantic layer follows current executable behavior pending review. If `3e-4` is scientifically preferred, version/change the executable Challenge and re-qualify rather than editing metadata alone.
+
+### R2 — governing relation
+
+Provisional relation matched to current reference implementation:
+
+```text
+d_t(u) + u*d_x(u) = nu*d_xx(u)
+```
+
+The relation is descriptive. The Carbon relation IR carries machine semantics; human display text is review/presentation only and does not define identity or symbolic equivalence.
 
 ---
 
-## 11. KEEP / WRAP / REPAIR / REPLACE
+## 6. SN-1 — Burgers end-to-end traceability test
+
+Detailed analysis:
+
+```text
+Design_Specs/physical_system_specs/BURGERS_TRACEABILITY.md
+```
+
+### Test chain
+
+```text
+physical relation / assumption
+        ↓
+generator + numerical realization
+        ↓
+Validation Dossier evidence
+        ↓
+qualified metric definition
+        ↓
+Score Pack
+        ↓
+A5 ScoreEngine
+```
+
+### Verdict
+
+**SN-1 PASS.**
+
+The representation has already exposed two real integrity problems that were easier to miss when scientific meaning was distributed across code/config/prose.
+
+#### Finding 1 — source-envelope drift
+
+`5e-4` executable stress lower bound vs `3e-4` explanatory metadata.
+
+#### Finding 2 — SN-BURGERS-004 residual-proxy mismatch
+
+Current `poc/train/losses.py::residual_diagnostic()` computes:
+
+```text
+mean |u*u_x - nu*u_xx|
+```
+
+on a final-time predicted field. It omits `d_t(u)` and the implementation itself says it is not a full spacetime residual.
+
+Therefore it must not be semantically promoted to the full residual of:
+
+```text
+d_t(u) + u*d_x(u) - nu*d_xx(u) = 0.
+```
+
+Recommended classification:
+
+```text
+final_state_spatial_balance_proxy
+```
+
+or retain the legacy name only with explicit `proxy` status and the omitted-time-derivative limitation.
+
+**A5 implication:** do not widen A5, but do not let the fixture Score Pack accidentally harden a PoC proxy into a falsely named authoritative PDE residual. Any future full residual requires a new mathematical definition, implementation, dossier evidence, calibration, and registered Score-Pack use.
+
+### Conservation chain
+
+The current discrete mean conservation metric is physically motivated by the accepted Burgers relation + periodic domain, but remains a proxy requiring numerical/reference floor characterization and threshold calibration before production authority.
+
+### Boundary chain
+
+Periodic semantic structure does not automatically imply a boundary gate. The current endpoint-excluded Fourier representation makes a naive endpoint equality test inappropriate; any future diagnostic must be explicitly defined and qualified.
+
+---
+
+## 7. Public/private disposition
+
+A registered `PhysicalSystemSpec` may be classified `public_challenge_semantics` when every field is already authorized public science. This aligns with existing generator doctrine that publishes generator code/ranges, Score Packs, and Validation Dossiers while protecting realized exam material.
+
+Never include:
+
+- master secrets;
+- official seeds/draw IDs;
+- materialized eval/stress tensors;
+- reconstruction-sensitive protected state;
+- unauthorized partner-private semantics.
+
+Publication classification is instance-level, not a universal property of the type. Miner-facing disclosure remains separately allow-listed.
+
+---
+
+## 8. KEEP / WRAP / REPAIR / REPLACE
 
 ### KEEP
 
 - A1-A3 completed implementations;
-- A4 seed/leakage scope;
-- A5 sole Score-Pack scoring path;
-- A3 exact-version Challenge identity and generic artifact binding;
-- generator/dossier/envelope scientific authority chain;
-- current Wave-A sequencing and trust boundaries.
+- A4 secrecy scope;
+- A5 metrics + Score-Pack-only scoring boundary;
+- A3 generic artifact provenance;
+- generator/dossier/envelope authority chain;
+- current build sequencing.
 
 ### WRAP
 
-- bind optional `physical_system_spec` through A3 artifacts;
-- use `PhysicalSystemSpec` for structured traceability around the generator/dossier/envelope path;
-- later propagate immutable identity into A6 internal evidence.
+- optional `physical_system_spec` via A3 artifacts;
+- semantic traceability around generator/reference/dossier/scoring;
+- later A6 internal provenance.
 
 ### REPAIR / EXTEND
 
-- repair `poc/generators/justification.py` stress bound to `5e-4` if the provisional decision is accepted;
-- later dossier relation/assumption identifiers;
-- future Challenge-authoring primitives and Landscape physical context after evidence supports them.
+- reconcile `5e-4` vs `3e-4` source drift after lead review;
+- classify current Burgers residual diagnostic honestly as a proxy;
+- later stable relation/assumption/metric provenance IDs;
+- later schema/validator/adapters/primitives only after generality tests.
 
 ### REPLACE
 
@@ -263,19 +278,18 @@ Do **not** add a second canonical `content_hash` inside the spec. A3 already own
 
 ---
 
-## 12. Next reconciliation steps
+## 9. Next symbolic-numeric steps
 
-1. Tech/science lead review of SN-BURGERS-001 (`5e-4` provisional decision).
-2. Decide and ratify a canonical symbolic representation for the Burgers governing relation; do not import one silently.
-3. Determine whether the current generator/reference evidence is sufficient to populate any dossier-traceability links now, or only define the required future evidence objects.
-4. Reconcile public-vs-private status of the physical spec against generator transparency and A6/A9/A10 disclosure controls.
-5. When A6 is designed, add the minimal internal provenance fields there rather than inventing an out-of-band evidence store.
-6. At A12, add invariants proving physical metadata cannot change score or leak protected exam state.
+1. **Tech/science review:** `docs/context/REVIEW_THESE_PRELIMINARY_DECISIONS.md` now contains R1-R7.
+2. **SN-2 schema minimization:** derive the smallest `PhysicalSystemSpec v0.1` candidate justified by Burgers; keep optional/extension fields out of core where possible.
+3. **SN-3 second-system test:** test the candidate on a structurally different physics family, preferably Poisson if Carbon's source semantics are sufficiently specified.
+4. Only after two-system survival, build a Carbon-native structural validator.
+5. Only after a stable target contract, build a ModelingToolkit authoring adapter.
+6. Later build candidate evaluation primitives and dossier linkage; never auto-authorize gates.
+7. At A6 preserve physical provenance internally; at A12 prove score/secrecy/disclosure non-interference.
 
 ---
 
-## 13. Current recommendation
+## 10. Current recommendation
 
-> **Preserve A4 and A5 as clean protocol boundaries. Use `5e-4` as the provisional Burgers stress lower bound because it matches current executable behavior. Treat the physical semantic layer as traceability around the generator/dossier chain, not as a new source of scientific or scoring authority.**
-
-The integration is now concrete enough for tech-lead review without expanding P0 runtime scope.
+> **Continue. The Burgers traceability test demonstrates that structured physical semantics can catch real scientific/provenance drift without touching runtime authority. Move next to schema minimization and a second-physics generality test, while ordinary Wave-A work proceeds independently.**
