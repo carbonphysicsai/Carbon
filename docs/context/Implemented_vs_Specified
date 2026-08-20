@@ -17,7 +17,7 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 | One complete P0 vertical | Yes | Partial historical PoC/framework | Partial historical evidence | No | Re-audit PoC against reconciled P0 contract. |
 | Strategy schema | Yes | Yes — canonical A2 Strategy v1.0 plus `dry_validate` | Yes — focused/default CPU acceptance tests and CI | No | Remaining: parameter execution semantics; parser/resource limits; strategy hashing/submission identity; challenge registry binding; sandbox/execution qualification; MCP/submit integration. |
 | Independent validator retraining | Yes | Partial/legacy | End-to-end not established | No | Build/repair through Wave C. |
-| Challenge registry + immutable version binding | Yes | Partial/unknown | Not established | No | Audit against Build Out C1. |
+| Challenge registry + immutable version binding | Yes | Yes — A3 branch implements strict JSON records keyed by exact `(challenge_id, version)`, descriptor-relative artifact hashing, and checked LIVE activation | Yes locally — repaired head passes 134 focused and 392 complete default CPU tests; changed files are clean, no new debt was introduced, the `Ruff 757/776; Black 62/68` inventory is unchanged from base, and a fresh outside-tree wheel passed; independent rereview/CI pending | No | Exact eight mixed slot states, actual-byte tagged SHA-256, effective-LIVE revalidation, immutable LIVE saves, save-immutable-per-key fixture origin, four fixture barriers, and non-empty production backbone declarations are represented. Reserved receipt/backend identities are structural bindings only; no backend, science, signer, or receipt is qualified. |
 | Shared official exam identity | Yes | Legacy seed primitives exist; reconciled end-to-end flow not established | No current acceptance proof | No | Implement submission-bound official seed flow. |
 | Train/eval/stress role separation | Yes | Partial primitives + PoC history | Partial historical tests | No | Rebuild acceptance tests under current contract. |
 | Hidden-seed leakage prevention | Yes | Partial/unknown | Not established end-to-end | No | Regression tests across cards/MCP/logs. |
@@ -49,7 +49,7 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 | Probabilistic re-execution audit | Yes, testnet/Wave C target | Not established | No | No | Prototype post-commit audit under R0/R1/R2; disagreement => contested/retry. |
 | Constitutional invariant CI | Yes | Current CI insufficient | No | No | A1/A12 must gate leakage, mock isolation, scoring, stub emission, infra/science and receipt projection. |
 | Credibility Dossier crosswalk | Yes | Not established | No | No | Add machine-readable V&V/VVUQ/context-of-use mapping in Wave B; no automatic compliance claim. |
-| Launch-Bar enforcement | Yes | Partial/unknown | Not established | No | Gate LIVE on exact qualification artifacts including backend/reproducibility/disclosure readiness. |
+| Launch-Bar enforcement | Yes | Partial — A3 branch structurally requires exact-version `launch_bar=SIGNED` evidence and matching artifact bytes | A3 structural checks tested locally; no independent or scientific acceptance proof | No | A3 checks manifest structure and bytes only. Human scientific, backend, reproducibility, disclosure, signer, security, and operations qualification remain required. |
 
 ## Post-P0 / later layers
 
