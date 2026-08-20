@@ -44,15 +44,18 @@ ratified A2 contract supplied for this ticket.
 
 ## Resolved source conflicts
 
-The ticket text names `strategy_version`, while current miner-facing examples
-use `schema_version`; other SPEC/Miner MCP examples show a richer object-valued
-backbone and top-level training/loss fields. The ratified A2 contract supplied
-for this implementation resolves those stale examples to exactly four required
+At implementation start the ticket text named `strategy_version`, while
+miner-facing examples used `schema_version` and some SPEC/Miner MCP examples
+showed a richer object-valued backbone and top-level training/loss fields. The
+ratified A2 contract resolves the wire envelope to exactly four required
 fields: `schema_version`, `challenge_id`, scalar `backbone`, and object
-`parameters`. `parameters` is inert and does not ratify any scientific knob
-catalog. The same ratified contract supplies the declarative capability boundary
-that `docs/context/Open_Questions.md` previously left for security/protocol
-approval.
+`parameters`. The Miner MCP scaffold is now reconciled to that envelope; the
+pending Strategy Schema proposal remains unratified future design input.
+`parameters` is inert and does not ratify any scientific knob catalog. For
+OQ-008, the ratified contract settles only A2's declarative schema/validation
+boundary. It does not close the broader execution threat model:
+the permitted execution surface, sandbox/process isolation, parser and resource
+limits, and production security/operations qualification remain unresolved.
 
 ## Implemented changes
 
@@ -64,9 +67,11 @@ approval.
    active-ancestor cycle detection and completed-container tracking so hostile
    depth, cycles, and shared DAGs cannot trigger recursive or repeated-work
    non-termination.
-3. Reject fixed-node unknowns and recursively reject targeted executable,
-   external-reference, dependency/environment, opaque artifact, data/evaluation
-   control, and precomputed-result fields under `parameters`.
+3. Reject fixed-node unknowns and recursively reject an explicit, versioned
+   vocabulary of capability and official-control fields under `parameters`.
+   Match only superficial spelling variants of reserved names; arbitrary key
+   semantics and string contents remain inert. The denylist is defense in
+   depth, not executable-intent detection.
 4. Use stable codes, generic non-echoing messages, escaped JSON-Pointer-like
    paths, and final deterministic issue sorting.
 5. Export only the A2 public result types and validation function from
@@ -110,8 +115,9 @@ does not normalize input.
   as parser limits. Iterative traversal and cycle detection address
   non-termination now and keep explicit counters/limits addable later.
 - `parameters` has no execution semantics in A2. Later execution must explicitly
-  understand a field before acting on it and must independently enforce the
-  qualified sandbox/resource policy.
+  register and understand a field before acting on it, must never execute,
+  import, fetch, blindly forward, or silently drop unknown fields, and must
+  independently enforce the qualified sandbox/resource policy.
 - This ticket does not define persistent canonicalization or `strategy_hash`;
   A7/evidence work owns submission identity.
 - Passing A2 tests establishes IMPLEMENTED/TESTED schema behavior only, not
@@ -125,9 +131,12 @@ A2 is locally **IMPLEMENTED** and **TESTED** on
 `carbon.schema.{ValidationIssue,ValidationResult,dry_validate}`; it recognizes
 only the ratified four backbones and returns immutable, deterministic,
 miner-safe issues without returning a normalized document or defining a hash.
-An independent adversarial review found and drove regression fixes for shared
-DAG traversal, compact denylist spellings, URI/path variants, and injective
-control/non-BMP path escaping; its final review was clean.
+An initial local adversarial pass drove regression fixes for shared DAG
+traversal and path ambiguity. Independent review on draft PR #12 subsequently
+identified the overly broad semantic classifier, generic string-value
+heuristics, non-ASCII public paths, specification/status drift, and quality
+attribution corrected by the focused follow-up on this branch. Independent
+rereview of that correction remains outstanding.
 
 Verification from the exact starting commit:
 
@@ -135,8 +144,9 @@ Verification from the exact starting commit:
 - Focused A2 suite: 181 passed.
 - Full default CPU suite: 208 passed.
 - Ruff and Black: all three changed Python files strict-clean.
-- Repository quality ratchet: passed at Ruff 757/776 and Black 62/68, removing
-  19 Ruff and six Black debt entries and adding none.
+- Repository quality ratchet: passed at Ruff 757/776 and Black 62/68, unchanged
+  from the A2 base; A2 added no Ruff or Black debt. The 19 Ruff and six Black
+  reduction is cumulative from older baseline work, not attributable to A2.
 - `git diff --check`: passed.
 - A fresh non-editable, no-dependency wheel imported from `site-packages`
   outside the checkout; validation succeeded while all optional scientific,
@@ -152,3 +162,18 @@ fees/FSM, execution, transport, leaderboard, logging, Bittensor, or scientific
 behavior was added. External review/merge remains outstanding, so the Wave
 board remains `in_progress`; scientific validity, end-to-end isolation, LIVE
 qualification, and production qualification remain explicitly unclaimed.
+
+Draft PR #12 review correction verification:
+
+- Focused A2 suite: 231 passed.
+- Full default CPU suite: 258 passed.
+- Ruff and Black: both correction Python files strict-clean.
+- Repository quality inventory: Ruff 757/776 and Black 62/68, unchanged from
+  the exact A2 base; no A2 debt was added. The gate's 19 Ruff / six Black
+  reduction is cumulative against the older committed baseline.
+- `git diff --check`: passed.
+- A fresh no-dependency wheel imported from `site-packages` outside the tree
+  with optional scientific/Bittensor and every non-schema Carbon boundary
+  blocked; no blocked import was attempted or loaded.
+- The reconciled Miner MCP Strategy is covered by a positive acceptance test.
+- Independent rereview and merge remain outstanding.

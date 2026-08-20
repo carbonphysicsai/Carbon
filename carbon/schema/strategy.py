@@ -28,79 +28,84 @@ _SUPPORTED_BACKBONES = frozenset(
 )
 _IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*\Z", re.ASCII)
 _CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])", re.ASCII)
-_NON_TOKEN = re.compile(r"[^A-Za-z0-9]+", re.ASCII)
-_URI_SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:", re.ASCII)
-_WINDOWS_ABSOLUTE_PATH = re.compile(r"[A-Za-z]:[\\/]", re.ASCII)
+_POLICY_SEPARATOR = re.compile(r"[-_ ]+", re.ASCII)
 
-_FORBIDDEN_TOKEN_ROOTS = frozenset(
+# Strategy v1.0 deliberately uses an explicit vocabulary, not semantic token
+# roots. Matching ignores only superficial case/camel-case differences and
+# hyphen, ASCII-space, or underscore separators (including compact forms). A
+# compound parameter such as ``module_count`` therefore remains inert JSON
+# rather than inheriting policy from ``modules``.
+_V1_RESERVED_PARAMETER_KEYS = frozenset(
     {
-        "artifact",
-        "blob",
-        "checkpoint",
+        # Executable material and execution capabilities.
         "code",
-        "command",
-        "containerfile",
-        "dataset",
-        "dependency",
-        "dockerfile",
-        "entrypoint",
-        "environment",
-        "executable",
-        "file",
-        "gate",
-        "import",
-        "metric",
-        "module",
-        "network",
-        "package",
-        "path",
-        "payload",
-        "pickle",
-        "prediction",
-        "pyproject",
-        "repo",
-        "repository",
-        "requirement",
-        "score",
-        "scoring",
         "script",
-        "seed",
-        "shell",
-        "socket",
-        "subprocess",
-        "uri",
-        "url",
-    }
-)
-_FORBIDDEN_COMPACT_KEYS = frozenset(
-    {
-        "blockhash",
-        "disablegates",
-        "drawid",
-        "drawids",
+        "source_code",
+        "imports",
+        "modules",
         "entrypoint",
         "entrypoints",
-        "examid",
-        "examids",
-        "executableblob",
-        "filereference",
-        "filepath",
-        "gateoverride",
-        "gatethreshold",
-        "modelartifact",
-        "modelweights",
-        "officialexamoverride",
-        "precomputedmetrics",
-        "repositoryreference",
-        "runnonce",
-        "scoreoverride",
-        "scorepack",
-        "scoringweights",
-        "serializedblob",
-        "shellcommand",
-        "sourcecode",
-        "statedict",
+        "command",
+        "shell_command",
+        "subprocess",
+        "executable_blob",
+        # External resource and dependency/environment references.
+        "path",
+        "file_path",
+        "file_reference",
+        "url",
+        "uri",
+        "repository_reference",
+        "dependencies",
+        "requirements",
+        "packages",
+        "environment",
+        # Opaque serialized or model artifacts.
+        "pickle",
+        "serialized_blob",
+        "model_weights",
+        "state_dict",
+        "checkpoint",
+        "model_artifact",
+        # Evaluation data, hidden identity, and official-control overrides.
+        "training_dataset",
+        "eval_dataset",
+        "evaluation_dataset",
+        "seed",
+        "seeds",
+        "official_seed",
+        "eval_seed",
+        "evaluation_seed",
+        "stress_seed",
+        "draw_id",
+        "draw_ids",
+        "exam_id",
+        "exam_ids",
+        "official_exam_override",
+        "block_hash",
+        "run_nonce",
+        # Gate, Score Pack, and precomputed-result overrides.
+        "disable_gates",
+        "gate_override",
+        "gate_threshold",
+        "score_pack",
+        "scoring_weights",
+        "score_override",
+        "precomputed_metrics",
+        "scores",
+        "gates",
+        "predictions",
     }
+)
+
+
+def _policy_key(value: str) -> str:
+    separated = _CAMEL_BOUNDARY.sub("_", value)
+    return _POLICY_SEPARATOR.sub("", separated).lower()
+
+
+_V1_RESERVED_PARAMETER_KEY_FORMS = frozenset(
+    _policy_key(key) for key in _V1_RESERVED_PARAMETER_KEYS
 )
 
 
@@ -128,7 +133,7 @@ def _issue(code: str, path: str, message: str) -> ValidationIssue:
 def _pointer_segment(value: str) -> str:
     escaped = value.replace("~", "~0").replace("/", "~1")
     return "".join(
-        character if character.isprintable() else f"~u{ord(character):06x}"
+        character if 0x20 <= ord(character) <= 0x7E else f"~u{ord(character):06x}"
         for character in escaped
     )
 
@@ -137,92 +142,8 @@ def _child_path(path: str, segment: str) -> str:
     return f"{path}/{_pointer_segment(segment)}"
 
 
-def _policy_key(value: str) -> tuple[str, frozenset[str]]:
-    separated = _CAMEL_BOUNDARY.sub("_", value)
-    normalized = _NON_TOKEN.sub("_", separated).strip("_").lower()
-    return normalized, frozenset(token for token in normalized.split("_") if token)
-
-
-def _singular_token(value: str) -> str:
-    if value.endswith("ies") and len(value) > 3:
-        return f"{value[:-3]}y"
-    if value.endswith("s") and not value.endswith("ss") and len(value) > 1:
-        return value[:-1]
-    return value
-
-
 def _is_forbidden_parameter_key(value: str) -> bool:
-    normalized, tokens = _policy_key(value)
-    singular_tokens = frozenset(_singular_token(token) for token in tokens)
-    compact = normalized.replace("_", "")
-
-    if singular_tokens & _FORBIDDEN_TOKEN_ROOTS:
-        return True
-    if compact in _FORBIDDEN_COMPACT_KEYS:
-        return True
-    if compact.endswith(("seed", "seeds", "dataset", "datasets")):
-        return True
-    if normalized in {"source", "sources", "weights"}:
-        return True
-    if "entry" in singular_tokens and "point" in singular_tokens:
-        return True
-    if {"state", "dict"}.issubset(singular_tokens) or {
-        "state",
-        "dictionary",
-    }.issubset(singular_tokens):
-        return True
-    if "data" in singular_tokens and singular_tokens & {
-        "eval",
-        "evaluation",
-        "official",
-        "stress",
-        "train",
-        "training",
-    }:
-        return True
-    if "draw" in singular_tokens and "id" in singular_tokens:
-        return True
-    if "exam" in singular_tokens and singular_tokens & {"id", "override"}:
-        return True
-    if {"block", "hash"}.issubset(singular_tokens):
-        return True
-    if {"run", "nonce"}.issubset(singular_tokens):
-        return True
-    if "model" in singular_tokens and singular_tokens & {
-        "artifact",
-        "state",
-        "weight",
-    }:
-        return True
-    if "serialized" in singular_tokens or "serialization" in singular_tokens:
-        return True
-    if "override" in singular_tokens:
-        return bool(
-            singular_tokens
-            & {
-                "eval",
-                "evaluation",
-                "exam",
-                "gate",
-                "official",
-                "score",
-                "scoring",
-                "threshold",
-            }
-        )
-    return False
-
-
-def _is_forbidden_string_value(value: str) -> bool:
-    candidate = value.strip()
-    return bool(
-        candidate in {".", "..", "~"}
-        or _URI_SCHEME.match(candidate)
-        or _WINDOWS_ABSOLUTE_PATH.match(candidate)
-        or candidate.startswith(
-            ("/", "\\", "~/", "~\\", "./", ".\\", "../", "..\\", "git@")
-        )
-    )
+    return _policy_key(value) in _V1_RESERVED_PARAMETER_KEY_FORMS
 
 
 def _validate_parameters(parameters: dict[object, object]) -> list[ValidationIssue]:
@@ -304,14 +225,6 @@ def _validate_parameters(parameters: dict[object, object]) -> list[ValidationIss
                 )
             continue
         if value_type is str:
-            if _is_forbidden_string_value(value):
-                issues.append(
-                    _issue(
-                        "capability.forbidden",
-                        path,
-                        "This value can supply a forbidden external reference.",
-                    )
-                )
             continue
 
         issues.append(

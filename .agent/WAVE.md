@@ -23,7 +23,7 @@ A-1 orientation → one ticket → baseline tests → implement → tests → re
 | A-1 | — | Orientation — repo map, KEEP/WRAP table, ORIENTATION.md | done | `.agent/ORIENTATION.md` audits `0eed4e9`; DoD checked in `.agent/tickets/A-1_orientation.md`; maintainer dispositions in `.agent/DECISIONS.md` |
 | A0 | C0 | Package layout (audit-first; map poc/Carbon_Logic) | done | Root `carbon/` + 14 reserved roles; isolated `pip install --no-deps -e` and outside-tree imports pass; exact base/head workflow delta has no A0 regression; evidence in `.agent/DECISIONS.md` |
 | A1 | C0 | CI skeleton (pytest, CPU) + preserve existing CI | done | Corrective PR #9 merged as `819da3c163c2fb9476a6881aab8740cc6984066e` after independent rereview; final-head CI run `32326384939` passed 27 CPU tests and the code-quality gate |
-| A2 | C2 | Strategy schema + dry_validate | in_progress | Locally IMPLEMENTED/TESTED from exact base `e696cc4`: 181 focused and 208 default CPU tests pass; strict quality, fresh wheel/import isolation, and independent adversarial review pass; external review/merge remains outstanding |
+| A2 | C2 | Strategy schema + dry_validate | in_progress | Draft PR #12 review correction is locally verified from exact base `e696cc4`: 231 focused and 258 default CPU tests, strict quality, and fresh wheel/import isolation pass; independent rereview/merge remains outstanding |
 | A3 | C1 | Challenge registry + LIVE qualification **hash** gate | todo | |
 | A4 | C6 | Seeding domains + leakage tests | todo | |
 | A5 | C5 | Scoring engine + fixture Score Pack | todo | |

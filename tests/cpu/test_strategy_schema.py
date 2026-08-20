@@ -95,6 +95,65 @@ def test_valid_inert_nested_parameters_are_not_interpreted() -> None:
     assert dry_validate(strategy) == ValidationResult(ok=True, errors=())
 
 
+def test_reconciled_miner_mcp_embedded_strategy_is_valid() -> None:
+    strategy = {
+        "schema_version": "1.0",
+        "challenge_id": "burgers1d",
+        "backbone": "fno",
+        "parameters": {
+            "backbone_config": {"modes": 16, "width": 32, "layers": 4},
+            "loss": {
+                "data_l2": True,
+                "residual": True,
+                "conservation": True,
+            },
+            "training": {"optimizer": "adam", "lr": 0.001, "epochs": 20},
+            "curriculum": {"stages": ["smooth_ic"]},
+            "meta": {
+                "role": "mock_scaffold",
+                "quality": "deliberately_baseline",
+            },
+        },
+    }
+
+    assert dry_validate(strategy) == ValidationResult(ok=True, errors=())
+
+
+@pytest.mark.parametrize(
+    "benign_key",
+    (
+        "network_width",
+        "prediction_horizon",
+        "metric_learning",
+        "gate_activation",
+        "path_length_regularization",
+        "module_count",
+        "cmd",
+        "exec",
+        "ckpt",
+        "model_ckpt",
+        "validation_data",
+        "filesystem",
+        "source",
+        "repository",
+        "file",
+        "score",
+        "gate",
+        "prediction",
+        "private_seed",
+        "validation_dataset",
+        "checkpoints",
+        "official.seed",
+        "official/seed",
+        "official:seed",
+        "official+seed",
+        "official\tseed",
+    ),
+)
+def test_unreserved_dangerous_looking_keys_remain_inert(benign_key: str) -> None:
+    assert dry_validate(_strategy(parameters={benign_key: "value"})).ok is True
+
+
 @pytest.mark.parametrize("backbone", SUPPORTED_BACKBONES)
 def test_each_strategy_v1_backbone_is_accepted(backbone: str) -> None:
     assert dry_validate(_strategy(backbone=backbone)).ok is True
@@ -305,7 +364,7 @@ def test_non_finite_numbers_are_rejected(value: float) -> None:
 
 
 @pytest.mark.parametrize(
-    "external_reference",
+    "dangerous_value",
     (
         "https://miner.invalid/model.pkl",
         "file:///private/hidden-pack.json",
@@ -331,18 +390,18 @@ def test_non_finite_numbers_are_rejected(value: float) -> None:
         "C:\\private\\artifact.bin",
         "\\\\server\\share\\artifact.bin",
         "git@host.invalid:miner/repository.git",
+        "key:value",
+        "linear:warmup",
+        "import os; subprocess.run('anything')",
+        "code: __import__('os').system('anything')",
     ),
 )
-def test_external_reference_values_are_forbidden_under_neutral_keys(
-    external_reference: str,
+def test_dangerous_looking_strings_are_inert_under_neutral_keys(
+    dangerous_value: str,
 ) -> None:
-    issue = _assert_single_issue(
-        _strategy(parameters={"value": external_reference}),
-        code="capability.forbidden",
-        path="/parameters/value",
-    )
-    if len(external_reference.strip()) > 3:
-        assert external_reference not in issue.message
+    result = dry_validate(_strategy(parameters={"value": dangerous_value}))
+
+    assert result == ValidationResult(ok=True, errors=())
 
 
 def test_json_pointer_paths_escape_mapping_keys() -> None:
@@ -353,26 +412,66 @@ def test_json_pointer_paths_escape_mapping_keys() -> None:
     )
 
 
-def test_control_character_path_escaping_is_unambiguous() -> None:
+def test_non_ascii_and_control_path_escaping_is_ascii_and_unambiguous() -> None:
     result = dry_validate(
         _strategy(
             parameters={
                 "\n": float("nan"),
+                "\x1f": float("nan"),
+                "\x7f": float("nan"),
                 "\\u000a": float("nan"),
                 "~u00000a": float("nan"),
                 "\ufefff": float("nan"),
                 "\U000fefff": float("nan"),
+                "caf\N{LATIN SMALL LETTER E WITH ACUTE}": float("nan"),
+                "snow\N{CJK UNIFIED IDEOGRAPH-96EA}": float("nan"),
+                "emoji\N{GRINNING FACE}": float("nan"),
+                "\N{GREEK SMALL LETTER ALPHA}": float("nan"),
+                "\N{RIGHT-TO-LEFT OVERRIDE}": float("nan"),
+                "\U0010ffff": float("nan"),
+                "printable key": float("nan"),
+                "slash/key": float("nan"),
+                "tilde~key": float("nan"),
             }
         )
     )
 
     assert {issue.path for issue in result.errors} == {
         "/parameters/~u00000a",
+        "/parameters/~u00001f",
+        "/parameters/~u00007f",
         "/parameters/\\u000a",
         "/parameters/~0u00000a",
         "/parameters/~u00fefff",
         "/parameters/~u0fefff",
+        "/parameters/caf~u0000e9",
+        "/parameters/snow~u0096ea",
+        "/parameters/emoji~u01f600",
+        "/parameters/~u0003b1",
+        "/parameters/~u00202e",
+        "/parameters/~u10ffff",
+        "/parameters/printable key",
+        "/parameters/slash~1key",
+        "/parameters/tilde~0key",
     }
+    assert all(path.isascii() for path in (issue.path for issue in result.errors))
+
+
+def test_escaped_non_ascii_error_order_ignores_mapping_insertion_order() -> None:
+    items = [
+        ("\N{GREEK SMALL LETTER BETA}", float("nan")),
+        ("\N{RIGHT-TO-LEFT OVERRIDE}", float("nan")),
+        ("\N{GREEK SMALL LETTER ALPHA}", float("nan")),
+    ]
+    forward = dry_validate(_strategy(parameters=dict(items)))
+    reverse = dry_validate(_strategy(parameters=dict(reversed(items))))
+
+    assert forward == reverse
+    assert tuple(issue.path for issue in forward.errors) == (
+        "/parameters/~u0003b1",
+        "/parameters/~u0003b2",
+        "/parameters/~u00202e",
+    )
 
 
 def test_mapping_cycle_is_rejected() -> None:
@@ -461,10 +560,11 @@ FORBIDDEN_PARAMETER_KEYS = (
     # Executable material and execution capabilities.
     "code",
     "script",
-    "source",
+    "source_code",
     "imports",
     "modules",
     "entrypoint",
+    "entrypoints",
     "command",
     "shell_command",
     "subprocess",
@@ -475,7 +575,7 @@ FORBIDDEN_PARAMETER_KEYS = (
     "file_reference",
     "url",
     "uri",
-    "repository",
+    "repository_reference",
     "dependencies",
     "requirements",
     "packages",
@@ -488,21 +588,29 @@ FORBIDDEN_PARAMETER_KEYS = (
     "checkpoint",
     "model_artifact",
     # Miner-controlled evaluation material and identity overrides.
+    "seed",
+    "seeds",
     "training_dataset",
     "eval_dataset",
+    "evaluation_dataset",
     "official_seed",
     "eval_seed",
+    "evaluation_seed",
     "stress_seed",
     "draw_id",
+    "draw_ids",
     "exam_id",
+    "exam_ids",
     "official_exam_override",
     "block_hash",
     "run_nonce",
     # Gate, Score Pack, and precomputed-result overrides.
     "disable_gates",
+    "gate_override",
     "gate_threshold",
     "score_pack",
     "scoring_weights",
+    "score_override",
     "precomputed_metrics",
     "scores",
     "gates",
@@ -529,7 +637,10 @@ def test_forbidden_capability_keys_are_rejected_recursively(
     "forbidden_key",
     (
         "OfficialSeed",
+        "Official Seed",
         "official-seed",
+        "official__seed",
+        "official - seed",
         "officialseed",
         "evalseed",
         "stressseed",
@@ -538,11 +649,17 @@ def test_forbidden_capability_keys_are_rejected_recursively(
         "blockhash",
         "runnonce",
         "STATE_DICT",
+        "stateDict",
         "statedict",
+        "modelWeights",
         "modelweights",
         "scorePack",
         "scorepack",
+        "shellCommand",
         "shellcommand",
+        "source-code",
+        "entry points",
+        "repository-reference",
         "precomputedmetrics",
         "trainingdataset",
     ),
