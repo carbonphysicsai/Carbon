@@ -2,7 +2,8 @@
 
 **Status:** design-integration guidance; non-runtime and non-scoring.  
 **Primary design:** `Design_Specs/Physical_System_Representation.md`.  
-**First prototype:** `burgers1d_v0.prototype.yaml`.
+**First prototype:** `burgers1d_v0.prototype.yaml`.  
+**SN-1 traceability test:** `BURGERS_TRACEABILITY.md`.
 
 The purpose of this directory is to test structured physical semantics without creating a new scientific authority. A field may appear in a `PhysicalSystemSpec` only when its source/owner is explicit. Source disagreements remain visible until resolved by the appropriate scientific owner.
 
@@ -47,12 +48,13 @@ Do not add a second canonical `content_hash` inside the spec. A3 owns exact regi
 4. **Do not duplicate authority.** The representation links existing owners; it does not replace them.
 5. **Unknown is valid.** Use `HUMAN_INPUT`, `UNRESOLVED`, or a typed missing state rather than fabricating precision.
 6. **When implementation and explanatory metadata disagree, preserve current runtime behavior unless an explicit scientific change is approved.** A representation artifact must not silently expand or narrow a live/implemented envelope.
+7. **A metric name must not overstate its mathematical meaning.** A proxy linked to a governing relation remains a proxy unless the implemented quantity actually matches a qualified mathematical definition.
 
 ## Burgers prototype findings
 
 The current P0 implementation supports useful descriptive semantics including a 1D periodic spatial domain, final-time operator target, four-mode Fourier initial-condition family, role-specific viscosity/amplitude ranges, and an IMEX Fourier reference realization.
 
-### SN-BURGERS-001 — provisional decision
+### SN-BURGERS-001 — provisional stress-bound decision
 
 The current executable config and scientific-justification source disagree on the lower stress-viscosity bound:
 
@@ -70,20 +72,41 @@ Rationale:
 - silently changing the generator to `3e-4` would be a scientific/protocol behavior change and should require deliberate review/versioning;
 - therefore the least-assumptive reconciliation is to preserve current executable behavior and repair the explanatory metadata if the tech/science lead accepts the decision.
 
-This is intentionally marked **provisional pending tech-lead review**. If the intended science is actually `3e-4`, the correct repair is to version/change the executable Challenge semantics and then update the representation, not to let the representation lead runtime behavior.
+### SN-BURGERS-004 — residual-proxy semantic finding
 
-The repository identifies the system as 1D viscous Burgers but, in the reviewed sources, does not yet provide a separately ratified canonical symbolic equation representation for this new semantic object. The prototype therefore leaves that field `HUMAN_INPUT` rather than importing a textbook equation as protocol truth.
+The SN-1 traceability test found that `poc/train/losses.py::residual_diagnostic()` computes
+
+```text
+mean |u*u_x - nu*u_xx|
+```
+
+on the predicted final field. It does **not** include `d_t(u)` and the implementation itself documents that it is not a full spacetime residual.
+
+Therefore the current PoC quantity must not be promoted by `PhysicalSystemSpec`, dossier language, or a future production Score Pack as the full residual of
+
+```text
+d_t(u) + u*d_x(u) - nu*d_xx(u) = 0.
+```
+
+Treat it as a final-state spatial-balance proxy (or retain the old name only with an explicit proxy limitation) until a mathematically complete residual is implemented and qualified.
+
+This finding is important evidence that the semantic layer is useful: it caught an existing terminology-to-mathematics mismatch before that language could harden into protocol authority.
 
 ## First dossier-traceability test
 
-The representation earns its complexity only if it makes an existing scientific chain easier to inspect. For Burgers, use the following initial traceability targets:
+The complete analysis is in `BURGERS_TRACEABILITY.md`. The main chains are:
 
 | Physical semantic fact | Current source | Reference/numerical realization | Dossier evidence needed before authoritative use | Score relationship |
 |---|---|---|---|---|
-| periodic spatial domain `x∈[0,1)` | `challenge_burgers1d.yaml` | Fourier reference solver in `burgers1d.py` | demonstrate reference implementation respects the registered boundary semantics and numerical error is acceptable | may support a future qualified boundary-condition metric; no gate implied by the spec |
-| viscosity role domains; stress lower bound provisionally `5e-4` | executable YAML config | generator samples `nu` from role range | convergence/reference evidence across the registered viscosity envelope, including the lower stress boundary | contributes to stress-case definition; thresholds remain Score-Pack-owned |
-| four-mode Fourier IC family with role-specific amplitude bounds | YAML + `_sample_ics()` | procedural IC sampler | evidence that generated distributions match the declared family and that reference solutions remain credible across amplitude bounds | defines data/stress semantics, not score directly |
-| IMEX Fourier reference realization with 2/3 dealiasing | `burgers1d.py` | `burgers_reference_solve()` | convergence / cross-reference evidence sufficient for the dossier's reference rank | reference source for downstream metric calculation; not itself a score definition |
-| candidate conservation / residual checks | PoC design + future qualified definitions | future metric implementations | explicit scientific definition, numerical method, calibration, and applicability evidence | only after registration in Score Pack may a metric/gate affect `S_combined` |
+| Burgers governing relation | relation IR + reference implementation | explicit advection + implicit viscosity in Fourier solver | convergence/reference evidence establishing numerical credibility over envelope | relation itself never scores |
+| periodic domain / integral conservation implication | Challenge config + governing relation | Fourier periodic realization; discrete mean proxy | conservation floor, grid/precision sensitivity, envelope behavior, calibrated threshold | only an explicit Score-Pack metric may score |
+| viscosity role domains; stress lower bound provisionally `5e-4` | executable YAML config | generator samples `nu` from role range | convergence/reference evidence across registered viscosity envelope | stress semantics only; weights/thresholds Score-Pack-owned |
+| four-mode Fourier IC family | YAML + sampler | procedural IC sampler | distribution/coverage and reference credibility evidence | data/stress semantics, not score directly |
+| IMEX Fourier reference realization with 2/3 dealiasing | `burgers1d.py` | `burgers_reference_solve()` | convergence / cross-reference evidence sufficient for stated reference rank | reference provenance only |
+| current final-state spatial-balance proxy | `losses.py` | spectral derivatives of final prediction | definition/applicability/calibration evidence; do not call full PDE residual | only explicit registered Score-Pack use may score |
 
-This table is deliberately incomplete. Missing dossier evidence should remain missing rather than being inferred from the existence of a symbolic/structured model.
+Missing dossier evidence remains missing. Symbolic structure cannot manufacture it.
+
+## SN-1 disposition
+
+**PASS.** The Burgers traceability exercise has already exposed two real integrity issues: the stress-range source conflict and the residual-proxy naming mismatch. Proceed toward a minimal `PhysicalSystemSpec v0.1` candidate after review, while keeping runtime/scoring unchanged and testing the schema against a structurally different second physics family before calling it general.
