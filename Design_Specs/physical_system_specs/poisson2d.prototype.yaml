@@ -1,0 +1,203 @@
+# Carbon PhysicalSystemSpec prototype — Poisson 2D
+# Status: DESIGN PROTOTYPE / NON-RUNTIME / NON-SCORING
+# Purpose: second-system generality test for PhysicalSystemSpec v0.1.
+# IMPORTANT: current repository sources expose multiple Poisson model variants.
+# This prototype preserves the disagreement rather than pretending they are one canonical Challenge.
+
+physical_system_spec_id: poisson2d_generality_test
+version: "prototype-0.1"
+status: authoring_prototype
+classification: public_challenge_semantics_candidate
+
+challenge_binding:
+  challenge_id: UNRESOLVED_CANONICAL_POISSON_CHALLENGE
+  generator_version: UNRESOLVED
+  registry_artifact_id: physical_system_spec
+  source_implementations:
+    - carbon/challenges/poisson_2d.py
+    - Julia/src/solvers/reference.jl
+
+system:
+  family: poisson
+  system_class: elliptic_pde
+  spatial_dimension: 2
+  description: "Second-system schema stress test using existing repository Poisson implementations; not a ratified LIVE Challenge specification."
+
+variables:
+  independent:
+    - symbol: x
+      role: spatial
+      domain: [0.0, 1.0]
+    - symbol: y
+      role: spatial
+      domain: [0.0, 1.0]
+  state:
+    - symbol: u
+      depends_on: [x, y]
+  coefficient_fields:
+    - symbol: k
+      depends_on: [x, y]
+      status: source_variant_only
+      provenance: Julia/src/solvers/reference.jl
+  observed: []
+
+parameters: []
+
+domains:
+  spatial:
+    geometry: unit_square
+    x: [0.0, 1.0]
+    y: [0.0, 1.0]
+    status: supported_by_both_reviewed_sources
+
+governing_relations:
+  # Variant A: legacy Python Challenge metadata + manufactured data.
+  - relation_id: poisson_constant_coefficient_variant
+    kind: governing_pde_source_variant
+    status: source_variant_not_canonical
+    display_text: "d_xx(u) + d_yy(u) = f"
+    machine_semantics:
+      op: eq
+      lhs:
+        op: add
+        args:
+          - op: partial
+            expr: {op: var, id: u}
+            wrt: x
+            order: 2
+          - op: partial
+            expr: {op: var, id: u}
+            wrt: y
+            order: 2
+      rhs: {op: coefficient_field, id: f}
+    provenance:
+      - carbon/challenges/poisson_2d.py
+    notes:
+      - "Source metadata states ∇²u = f."
+      - "The manufactured case uses u=sin(pi x)sin(pi y) and f=-2*pi^2*u, consistent with this sign convention."
+
+  # Variant B: Julia reference solver documentation/implementation.
+  - relation_id: poisson_variable_coefficient_divergence_variant
+    kind: governing_pde_source_variant
+    status: source_variant_not_canonical
+    display_text: "-d_x(k*d_x(u)) - d_y(k*d_y(u)) = f"
+    machine_semantics:
+      op: eq
+      lhs:
+        op: neg
+        arg:
+          op: add
+          args:
+            - op: partial
+              wrt: x
+              order: 1
+              expr:
+                op: mul
+                args:
+                  - {op: coefficient_field, id: k}
+                  - op: partial
+                    expr: {op: var, id: u}
+                    wrt: x
+                    order: 1
+            - op: partial
+              wrt: y
+              order: 1
+              expr:
+                op: mul
+                args:
+                  - {op: coefficient_field, id: k}
+                  - op: partial
+                    expr: {op: var, id: u}
+                    wrt: y
+                    order: 1
+      rhs: {op: coefficient_field, id: f}
+    provenance:
+      - Julia/src/solvers/reference.jl
+    notes:
+      - "Julia source documents -∇·(k∇u)=f and accepts coefficient_field + source_field."
+      - "This is a broader model class than the legacy constant-coefficient manufactured Python example."
+
+conditions:
+  initial: []
+  boundary:
+    - condition_id: zero_dirichlet_boundary
+      type: dirichlet
+      target: u
+      region: spatial_boundary
+      value: 0.0
+      status: supported_by_reviewed_sources
+      provenance:
+        - carbon/challenges/poisson_2d.py
+        - Julia/src/solvers/reference.jl
+      notes:
+        - "Python manufactured solution vanishes on the unit-square boundary."
+        - "Julia reference implementation explicitly sets u=0 on all four boundaries."
+
+source_fields:
+  - symbol: f
+    depends_on: [x, y]
+    role: forcing/source_field
+    status: required_by_both_relation_variants
+
+manufactured_case:
+  status: source_specific_reference_case_not_general_model
+  provenance: carbon/challenges/poisson_2d.py
+  resolution: [128, 128]
+  u_true: "sin(pi*x)*sin(pi*y)"
+  f: "-2*pi^2*u_true"
+  noise:
+    target: u_noisy
+    distribution: gaussian_additive
+    scale: 0.02
+  warning: "The manufactured solution is one data/reference case and must not be mistaken for the general Poisson physical-system definition."
+
+numerical_realization_refs:
+  - source: carbon/challenges/poisson_2d.py
+    type: manufactured_analytic_field_generator
+    status: legacy_noncanonical_source
+  - source: Julia/src/solvers/reference.jl
+    type: finite_difference_method_of_lines_style_reference
+    method_description: "Variable-coefficient discrete divergence form; zero Dirichlet boundaries; source labels MethodOfLines + KLU."
+    status: legacy_noncanonical_source
+
+assumptions:
+  - "This file is a schema generality test, not a registered Poisson Challenge."
+  - "No time variable is introduced because the reviewed Poisson problem is elliptic/static."
+  - "Source-specific manufactured data are separated from general governing relations."
+  - "The relation variants are intentionally not reconciled without a canonical Challenge owner decision."
+  - "No suggested loss weight, baseline error, symmetry label, or hard-constraint label from the legacy Python object is promoted into protocol semantics."
+
+exclusions:
+  - "No claim that the variable-coefficient and constant-coefficient source variants are the same registered Challenge."
+  - "No score/gate semantics."
+  - "No reference-rank claim."
+  - "No production dossier claim."
+
+reconciliation_issues:
+  - id: SN-POISSON-001
+    severity: model_variant_conflict
+    field: governing_relations
+    source_a: "carbon/challenges/poisson_2d.py -> ∇²u=f"
+    source_b: "Julia/src/solvers/reference.jl -> -∇·(k∇u)=f"
+    disposition: DO_NOT_RECONCILE_SILENTLY
+    recommendation: "When Carbon creates a canonical Poisson Challenge, choose and version the intended model explicitly. Prefer the variable-coefficient divergence form only if that broader model is actually intended and qualified."
+  - id: SN-POISSON-002
+    severity: legacy_authority_boundary
+    field: challenge_binding
+    disposition: NONCANONICAL_SOURCE_TEST_ONLY
+    recommendation: "Do not treat legacy carbon/ or Julia reference code as current normative Challenge authority merely because it exists."
+  - id: SN-POISSON-003
+    severity: representation_requirement
+    field: variables.coefficient_fields
+    disposition: SCHEMA_EXTENSION_JUSTIFIED
+    recommendation: "PhysicalSystemSpec v0.1 should distinguish field-valued coefficients/source fields from scalar parameters."
+
+provenance:
+  primary_sources:
+    - carbon/challenges/poisson_2d.py
+    - Julia/src/solvers/reference.jl
+  authority_note: "Sources are used to stress-test representation generality. They do not independently ratify a new Carbon Poisson Challenge."
+
+publication:
+  intended_class: public_design_prototype
+  protected_material_allowed: false
