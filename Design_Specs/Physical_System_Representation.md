@@ -1,38 +1,42 @@
 # Carbon Physical System Representation
 
 **Status:** DESIGN INTEGRATION DRAFT — non-runtime, non-scoring, pending review/ratification.  
-**Purpose:** Add a representation-agnostic physical semantic layer that can support Challenge authoring, reusable evaluation primitives, Landscape transfer reasoning, and later product qualification without changing P0 scoring or execution semantics.  
+**Purpose:** Add a representation-agnostic physical semantic layer for Challenge authoring, scientific traceability, later Landscape transfer reasoning, and later product qualification without changing P0 scoring or execution semantics.  
 **Does not override:** `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Landscape_Agent.md`, `Specialist_Bank.md`, or `Build_Out.md` sequencing.
 
 ---
 
 ## 1. Design objective
 
-Carbon currently binds scientific meaning through a Challenge, generator, Score Pack, Validation Dossier, strategy schema, and protected evaluation contract. This is sufficient for P0. The long-term physics-intelligence architecture, however, benefits from a machine-readable representation of **what physical system a Challenge claims to represent**.
+Carbon already binds scientific meaning through a Challenge, generator, Score Pack, Validation Dossier, strategy schema, and protected evaluation contract. This is sufficient for P0. Long-term physics intelligence benefits from a machine-readable description of **what physical system a Challenge claims to represent**.
 
-This specification introduces the conceptual object:
+This draft introduces:
 
 ```text
 PhysicalSystemSpec
 ```
 
-A `PhysicalSystemSpec` is descriptive scientific metadata. It is **not** a score, a gate, a proof of scientific validity, or a runtime source of protocol truth.
+A `PhysicalSystemSpec` is descriptive scientific metadata. It is **not** a score, gate, proof of scientific validity, runtime truth oracle, or substitute for a Validation Dossier.
 
-The intended long-term relationship is:
+The intended authority chain is:
 
 ```text
-DOMAIN SCIENCE
-      ↓
+DOMAIN SCIENCE / PARTNER REQUIREMENTS
+        ↓
 PhysicalSystemSpec
-      ↓
+        ↓
+Envelope freeze
+        ↓
 Generator / reference realization
-      ↓
+        ↓
 Validation Dossier
-      ↓
+        ↓
 registered Challenge + Score Pack
-      ↓
+        ↓
 authoritative evaluation
 ```
+
+Existing semantic owners remain authoritative at each downstream step.
 
 ---
 
@@ -44,61 +48,84 @@ authoritative evaluation
 4. **Scientific validity remains owned by the qualified Challenge / dossier / governance path.**
 5. **Symbolic equivalence does not imply numerical, statistical, or operational equivalence.**
 6. **Carbon remains representation-agnostic.** ModelingToolkit, Modelica, SBML, CellML, SymPy, or manual authoring may be adapters; none is the protocol ontology by itself.
-7. **Missing structure is preferable to fabricated structure.** Fields may be absent, unknown, assumption-bound, or not applicable.
+7. **Missing structure is preferable to fabricated structure.** Fields may be absent, unknown, assumption-bound, not applicable, or `HUMAN_INPUT`.
 8. **No new P0 runtime dependency is created by this spec.**
-9. **No physical metadata may leak protected official realizations, hidden seed information, or reconstruction-sensitive exam state.**
-10. **Historical records bind the exact `PhysicalSystemSpec` identity/version when one is present; later versions do not silently reinterpret old evidence.**
+9. **No physical metadata may leak protected official realizations, hidden seed information, master-secret material, or reconstruction-sensitive exam state.**
+10. **Historical evidence binds the exact physical-system artifact bytes when one is present; later semantic versions do not silently reinterpret old evidence.**
+11. **A3 remains the canonical byte-identity authority for registered physical-system artifacts.** Do not create a competing canonical content-hash field inside the artifact.
+12. **A4 seed-domain semantics and A5 ScoreEngine semantics remain independent of this representation.**
 
 ---
 
-## 3. Challenge relationship
+## 3. Challenge relationship and identity
 
-A future-compatible Challenge may reference:
+The completed A3 Challenge Registry already provides a generic content-addressed artifact map. The preferred integration is therefore a conventional optional artifact binding:
 
 ```text
-Challenge
-├── ChallengeSpec
-├── GeneratorPack
-├── ScorePack
-├── ValidationDossier
-└── physical_system_spec_id   # optional initially
+ChallengeRecord.artifacts["physical_system_spec"]
+    → ArtifactBinding(path, sha256:<digest>)
 ```
 
-For P0 this identifier may be absent or used only in non-runtime provenance.
+Do **not** migrate the completed A3 top-level schema merely to add separate physical-system id/version/hash fields.
 
-When present, it should identify an immutable/versioned `PhysicalSystemSpec` by content-addressable identity or another ratified immutable mechanism.
+When present:
+
+- A3 binds and verifies the exact artifact bytes through its existing tagged SHA-256 semantics;
+- the artifact itself may carry a **semantic** `physical_system_spec_id` and `version` for human/machine interpretation;
+- the internal semantic id/version are not a second byte-identity authority;
+- absence remains valid unless a future ratified Challenge class explicitly requires the artifact;
+- once declared, missing or digest-mismatched bytes fail the ordinary A3 artifact-integrity check for that exact Challenge record;
+- no new qualification slot is implied merely by binding the artifact.
+
+### 3.1 Identity rule
+
+Use two distinct concepts:
+
+```text
+semantic identity: physical_system_spec_id + version
+byte identity:     A3 ArtifactBinding.digest
+```
+
+A standalone authoring tool may compute temporary hashes for convenience, but no internal `content_hash` field is canonical unless a future explicit migration changes this rule.
 
 ---
 
 ## 4. Minimum conceptual schema
 
-The exact serialization is not ratified by this draft. The semantic fields below define the intended information classes.
+The exact serialization is not ratified. The semantic information classes are:
 
 ```text
 PhysicalSystemSpec {
-  identity {
-    physical_system_spec_id
-    version
-    content_hash
+  physical_system_spec_id
+  version
+  status
+
+  challenge_binding {
+    challenge_id
+    generator_version
+    optional score_pack / dossier references
   }
 
-  system_class
-    # pde | ode | dae | algebraic | hybrid | other
-
-  variables {
-    independent_variables
-    state_variables
-    observed_variables
+  system {
+    family
+    dimension
+    system_class
   }
+
+  operator_problem
+
+  independent_variables
+  state_variables
+  observed_variables
 
   parameters {
     symbols
     units
-    admissible_domains
+    admissible / role-specific domains
   }
 
   governing_relations
-  initial_conditions
+  initial_condition_family
   boundary_conditions
 
   constraints {
@@ -113,28 +140,48 @@ PhysicalSystemSpec {
     regime_features
   }
 
+  numerical_realization_refs
   assumptions
+  known_reconciliation_issues
   provenance
   references
+  publication
 }
 ```
 
 ### 4.1 Field semantics
 
-- **governing relations:** equations or structural relations used to describe the scientific model; they are not automatically authoritative gates.
-- **units:** scientific metadata where available; dimensional consistency tooling may use them only under qualified rules.
-- **admissible domains:** scientific parameter/state bounds, distinct from hidden official draws.
-- **known invariants/conserved quantities:** candidate scientific structure requiring dossier/Challenge qualification before score-bearing use.
-- **dimensionless groups/regime features:** human-qualified physical features that may support Challenge description, Landscape transfer analysis, and product-envelope semantics.
-- **assumptions:** required because many physical relations and invariants only hold under specific conditions.
+- **governing relations:** equations or structural relations describing the scientific model; never automatic gates.
+- **units:** scientific metadata where available; dimensional tooling may use them only under qualified rules.
+- **domains/envelopes:** descriptive scientific bounds, distinct from hidden realized draws. The authoritative claim boundary remains owned by `Evidence_and_Envelope_Standards.md` and the registered Challenge evidence.
+- **known invariants/conserved quantities:** candidate structure requiring dossier/Challenge qualification before score-bearing use.
+- **dimensionless groups/regime features:** human-qualified features that may support Challenge description, Landscape analysis, and later product-envelope semantics.
+- **assumptions:** mandatory where a relation or feature only holds conditionally.
+- **known reconciliation issues:** explicit place to preserve unresolved source conflicts instead of silently choosing a value.
 
 ---
 
-## 5. Representation adapters
+## 5. Public/private boundary
 
-Carbon should own the semantic contract, not a modeling language.
+Current generator doctrine makes generator code and parameter ranges public while keeping live eval/stress tensors and protected seed material private. A `PhysicalSystemSpec` should therefore be designed as **public Challenge semantics by default** when it contains only already-public scientific structure.
 
-Potential adapters may include:
+It must never contain:
+
+- official realized seeds or draw IDs;
+- master-secret material;
+- hidden eval/stress tensors;
+- reconstruction-sensitive protected exam state;
+- private partner information not separately authorized for publication.
+
+Whether a particular artifact is actually published remains a Challenge/governance decision; the schema itself must be safe for public use.
+
+---
+
+## 6. Representation adapters
+
+Carbon owns the semantic contract, not a modeling language.
+
+Potential adapters:
 
 ```text
 ModelingToolkit ─┐
@@ -144,75 +191,74 @@ SymPy            │
 manual authoring ┘
 ```
 
-An adapter may parse, map, or validate representable structure. It may not invent scientific claims or fill absent scientific metadata as production truth.
+An adapter may parse, map, or validate representable structure. It may not invent scientific claims, gates, thresholds, or missing production metadata.
 
-### 5.1 ModelingToolkit reference adapter
-
-ModelingToolkit is a strong candidate reference adapter because it exposes structured variables, parameters, equations, hierarchical composition, and symbolic-numeric scientific models. Any adapter is an authoring/integration tool only; Carbon must remain usable without Julia or ModelingToolkit at runtime.
+ModelingToolkit is a candidate reference adapter because it exposes structured variables, parameters, equations, hierarchical composition, and symbolic-numeric models. It is an authoring/integration tool only; no Julia or ModelingToolkit dependency is implied for miner/validator runtime.
 
 ---
 
-## 6. Physics Evaluation Primitive Library
+## 7. Physics Evaluation Primitive Library
 
 A later Challenge-authoring layer may consume a `PhysicalSystemSpec` to propose reusable **candidate** evaluation primitives.
 
-Potential primitive families:
+Potential families include:
 
-### 6.1 Governing-relation residual
+- governing-relation residuals;
+- conservation / invariant diagnostics;
+- admissibility diagnostics;
+- initial / boundary consistency diagnostics;
+- dimensional checks;
+- physical regime feature extraction.
 
-For a qualified relation:
-
-```text
-F(u, derivatives(u), parameters) = 0
-```
-
-an evaluator may compute a numerically defined residual. The discretization, normalization, aggregation, tolerance, and gate status remain separately qualified scientific choices.
-
-### 6.2 Conservation / invariant checks
-
-A declared quantity may produce candidate measurements of drift or violation. Whether the quantity is conserved under the registered boundary conditions and regime must be explicitly qualified.
-
-### 6.3 Admissibility checks
-
-Examples may include positivity or bounded-state requirements when scientifically appropriate.
-
-### 6.4 Initial / boundary consistency
-
-Candidate checks may evaluate consistency with registered conditions where meaningful.
-
-### 6.5 Dimensional consistency
-
-Units may support authoring-time or diagnostic checks. Dimensional consistency alone is not evidence of physical validity.
-
-### 6.6 Regime feature extraction
-
-Human-qualified physical features, including appropriate dimensionless groups, may be computed for scientific metadata and Landscape analysis.
+For every primitive, the numerical implementation/discretization, normalization, aggregation, tolerance, applicability assumptions, and gate status remain separately qualified scientific choices.
 
 **Invariant:** no primitive becomes score-bearing merely because it can be derived or computed.
 
 ---
 
-## 7. Validation Dossier linkage
+## 8. Validation Dossier linkage
 
-Where `PhysicalSystemSpec` is used, the Validation Dossier should eventually be able to trace:
+Where the representation is used, the Validation Dossier should eventually trace:
 
 ```text
-physical relation / assumption
-      ↓
-numerical reference implementation
-      ↓
+PhysicalSystemSpec relation / assumption
+        ↓
+reference realization
+        ↓
 convergence / reference evidence
-      ↓
+        ↓
 candidate evaluation primitive
-      ↓
-human-qualified metric / threshold / gate
+        ↓
+human-qualified metric definition
+        ↓
+Score Pack threshold / gate
 ```
 
-This is intended to improve scientific traceability, not automate scientific judgment.
+This is the primary scientific integration point. It improves traceability without automating scientific judgment.
 
 ---
 
-## 8. Landscape integration
+## 9. Wave-A boundaries
+
+### A3 — completed; wrap only
+
+Reuse the generic artifact map. Do not reopen the strict top-level schema.
+
+### A4 — seed/leakage boundary
+
+`PhysicalSystemSpec` does not participate in seed derivation or role-domain separation. Its only A4 obligation is to contain no protected seed/draw/reconstruction material.
+
+### A5 — scoring boundary
+
+The ScoreEngine must not parse `PhysicalSystemSpec` to determine gates, thresholds, weights, or score. Official scoring remains metrics + registered Score Pack under `Scoring.md`.
+
+### A6 — first natural evidence propagation point
+
+When A6 is implemented, internal evidence may preserve the physical-system artifact digest plus semantic id/version for future Landscape joins. Trusted-root paths should not be exposed to miners; miner-facing `EvaluationCard` disclosure remains allow-listed.
+
+---
+
+## 10. Landscape integration
 
 The long-term intervention-outcome record should be capable of conditioning evidence on structured physical context.
 
@@ -228,13 +274,9 @@ Future-compatible extension:
 E = (H, C, Φ, X, Y, P)
 ```
 
-where `Φ` references the applicable `PhysicalSystemSpec` or a qualified derived physical feature representation.
+where `Φ` references the applicable physical-system artifact/semantic identity or a separately qualified derived physical-feature representation.
 
-This enables Landscape to test whether knowledge transfers across scientifically identifiable regimes rather than relying only on Challenge IDs.
-
-### 8.1 Two linked graphs
-
-Prefer linked structures rather than one unbounded ontology initially:
+Prefer two linked structures initially:
 
 ```text
 Experimental graph
@@ -244,73 +286,35 @@ Physical graph
 system family → relations/components → regime features → constraints/invariants
 ```
 
-Evidence may link the two:
-
-```text
-training intervention
-      ↓
-scientific outcome
-      ↓
-under physical regime Φ
-```
-
-### 8.2 Epistemic constraint
-
-Physical similarity does not establish intervention transfer. Transfer remains observed/predictive/causal-candidate/experimentally-supported according to the ratified Landscape type system.
+Physical similarity does not establish transfer or causality. Landscape claims remain typed as observed/predictive/causal-candidate/experimentally-supported under the ratified epistemic contract.
 
 ---
 
-## 9. Product / qualification integration
+## 11. Product / qualification integration
 
-A future Qualification Record may bind the exact physical-system identity/version where scientifically useful:
+A future Product Candidate Model Card / Product Battery Record / Qualification Record may bind the exact physical-system artifact/semantic identity where useful.
 
-```text
-artifact identity
-+ context of use
-+ physical_system_spec_id
-+ Product Battery evidence
-+ qualification policy
-+ provenance
-```
-
-This can improve traceability of the qualified physical regime, especially when raw parameter bounds alone do not fully describe regime membership.
-
-`PhysicalSystemSpec` does not itself expand a qualified envelope or authorize runtime use.
+This can improve traceability when raw parameter bounds do not fully express a regime. The representation does not expand a context of use, authorize runtime use, or inherit qualification across a changed physical-system version.
 
 ---
 
-## 10. Long-term model-class expansion
+## 12. Long-term model-class expansion
 
-Neural operators remain Carbon's initial practical model class. The protocol should not make neural-network architecture a permanent conceptual boundary.
+Neural operators remain Carbon's first practical model class. The trust architecture should not make neural-network architecture a permanent conceptual boundary.
 
-A later generic object may be:
+A later generic concept may be `FastPhysicalModel`: a computational artifact intended to approximate, accelerate, or augment a more expensive physical model within a registered scientific context.
 
-```text
-FastPhysicalModel
-```
+Potential later classes include learned operators, hybrid mechanistic/learned models, learned closures, reduced-order models, and differentiable surrogates. Likewise, selected future Challenges may generalize `TrainingStrategy` into `ModelConstructionStrategy`.
 
-A `FastPhysicalModel` is a computational artifact intended to approximate, accelerate, or augment a more expensive physical model within a registered scientific context.
-
-Potential future subclasses may include:
-
-- learned operator;
-- hybrid mechanistic/learned model;
-- learned closure;
-- reduced-order model;
-- differentiable surrogate;
-- other human-approved fast physical representations.
-
-Likewise, `TrainingStrategy` may later generalize to `ModelConstructionStrategy` for registered Challenge classes that permit hybrid mechanistic/learned designs.
-
-**Do not implement this generalization in P0 merely because this design anticipates it.**
+Do not implement these abstractions in P0 merely because the design anticipates them.
 
 ---
 
-## 11. Explicitly out of scope for initial integration
+## 13. Explicitly out of scope for initial integration
 
 - equation discovery as core P0 behavior;
-- symbolic regression as an official Challenge class;
-- automated scientific-gate generation;
+- symbolic regression as an official initial Challenge class;
+- automated gate generation;
 - automated threshold selection;
 - direct symbolic-expression reasoning as a Landscape truth oracle;
 - mandatory ModelingToolkit/Julia runtime dependency;
@@ -320,47 +324,39 @@ Likewise, `TrainingStrategy` may later generalize to `ModelConstructionStrategy`
 
 ---
 
-## 12. First integration test: Burgers semantic prototype
+## 14. First integration test — Burgers semantic prototype
 
-The first test should be an **authoring-only** `PhysicalSystemSpec` for the existing 1D viscous Burgers Challenge.
+The first authoring-only prototype lives at:
+
+```text
+Design_Specs/physical_system_specs/burgers1d_v0.prototype.yaml
+```
+
+It should use only repository-supported scientific facts and explicitly preserve unresolved conflicts. In particular, the current executable config and scientific-justification source disagree on the lower bound of the Burgers stress-viscosity range; the prototype records the mismatch rather than silently choosing a new scientific value.
 
 Success means:
 
-1. a scientist can inspect one structured object and identify the system variables, parameters, governing relation, conditions, assumptions, and registered physical features;
-2. the object can be linked to the existing generator, dossier, Challenge, and evidence provenance without changing runtime behavior;
-3. no official seed, realized draw, or protected exam state is exposed;
-4. no score/gate changes are implied;
-5. the representation can be produced manually and, separately, through a reference symbolic-numeric adapter without changing its semantic meaning.
-
-Failure of this prototype should cause schema simplification before broader integration.
-
----
-
-## 13. Proposed research hypotheses
-
-These are not current score inputs or established results.
-
-### H16 — Structured physical context improves transfer prediction
-
-Landscape conditioned on qualified physical context predicts intervention transfer across Challenges better than Challenge ID and ordinary metadata alone.
-
-### H17 — Structured scientific authoring improves Challenge construction
-
-Reusable physical-system metadata and evaluation primitives reduce Challenge-authoring time/error without weakening scientific validity.
-
-### H18 — Hybrid model-construction search adds value in appropriate regimes
-
-For selected Challenge classes, searching hybrid mechanistic/learned construction strategies improves qualification outcomes or engineering decision economics relative to black-box surrogate search alone.
-
-### H19 — Physical context improves experiment allocation
-
-Information-value experiment selection conditioned on structured physical features produces more transferable decision value than allocation based only on unstructured experiment history.
-
-These hypotheses belong to future empirical work and must not be asserted as implementation facts.
+1. a scientist can inspect one object and identify the currently implemented physical/generator semantics;
+2. source conflicts and missing scientific authority are visible rather than fabricated away;
+3. the object can later be bound through A3 without changing runtime behavior;
+4. no protected exam realization is exposed;
+5. no score/gate change is implied;
+6. the same semantics can later be produced through a symbolic-numeric adapter without changing Carbon's authority model.
 
 ---
 
-## 14. Integration principle
+## 15. Research hypotheses
+
+These remain future empirical hypotheses, not score inputs or established results.
+
+- **H16:** qualified structured physical context improves cross-Challenge intervention-transfer prediction.
+- **H17:** structured scientific authoring and reusable primitives reduce Challenge-authoring time/error without weakening scientific validity.
+- **H18:** hybrid mechanistic/learned search improves qualification outcomes or engineering decision economics in appropriate regimes.
+- **H19:** physical-context-aware experiment allocation improves transferable decision value relative to ordinary experiment-history baselines.
+
+---
+
+## 16. Integration principle
 
 > **Make Carbon scientifically representation-aware now; defer symbolic runtime machinery until the lean experimental system works.**
 
