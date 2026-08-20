@@ -1,0 +1,162 @@
+# Carbon PhysicalSystemSpec prototype — authoring only
+# Status: DESIGN PROTOTYPE / NON-RUNTIME / NON-SCORING
+# This file does not create gates, thresholds, LIVE eligibility, or qualification claims.
+# Byte identity is intended to be supplied externally by the A3 ChallengeRecord artifact digest
+# if/when this artifact is ever registered. Do not add an internal canonical content_hash.
+
+physical_system_spec_id: burgers1d_v0_physical_system
+version: "prototype-0.1"
+status: authoring_prototype
+
+challenge_binding:
+  challenge_id: burgers1d_v0
+  generator_version: burgers1d_v0.4
+  score_pack: UNRESOLVED_UNTIL_A5
+  registry_artifact_id: physical_system_spec
+
+system:
+  family: viscous_burgers
+  dimension: 1
+  system_class: pde
+  description: "1D viscous Burgers challenge used by the Phase-0 proof of concept."
+
+operator_problem:
+  input: initial_condition
+  output: solution_at_final_time
+  initial_model_class: FNO-1d
+
+independent_variables:
+  - symbol: x
+    role: spatial
+    domain:
+      min: 0.0
+      max: 1.0
+      topology: periodic
+      endpoint_included: false
+  - symbol: t
+    role: temporal
+    domain:
+      initial: 0.0
+      final: 1.0
+
+state_variables:
+  - symbol: u
+    role: scalar_state
+
+parameters:
+  - symbol: nu
+    meaning: viscosity
+    units: UNRESOLVED
+    role_domains:
+      train: [0.001, 0.01]
+      eval: [0.001, 0.01]
+      stress: [0.0005, 0.005]
+    notes:
+      - "Role-specific ranges are copied from poc/configs/challenge_burgers1d.yaml."
+      - "poc/generators/justification.py currently states stress [0.0003, 0.005]; this mismatch is unresolved and must not be silently reconciled here."
+
+initial_condition_family:
+  construction: truncated_fourier_series
+  n_modes: 4
+  coefficient_sampling: uniform_symmetric
+  coefficient_bounds:
+    train: 0.5
+    eval: 0.5
+    stress: 0.8
+  basis:
+    - sin
+    - cos
+  notes:
+    - "Generator samples independent sine/cosine coefficients for modes k=1..4."
+
+boundary_conditions:
+  spatial: periodic
+
+numerical_realization:
+  generator:
+    implementation: poc/generators/burgers1d.py
+    config: poc/configs/challenge_burgers1d.yaml
+    generator_version: burgers1d_v0.4
+  reference_solver:
+    implementation_name: burgers_reference_solve
+    method_description: "IMEX Fourier Burgers: explicit advection + implicit viscosity + 2/3 dealiasing."
+  grid:
+    nx: 128
+  final_time: 1.0
+  fast_mode:
+    status: test_only_override
+    nx: 64
+    final_time: 0.5
+
+role_separation:
+  roles:
+    - train
+    - eval
+    - stress
+  realized_draws_in_spec: false
+  seeds_in_spec: false
+  master_secret_in_spec: false
+
+scientific_features:
+  candidate_checks_from_poc:
+    - finite_output
+    - conservation
+    - residual_ceiling
+    - boundary_condition_check_if_used
+  derived_dimensionless_groups: UNRESOLVED
+  conserved_quantities: UNRESOLVED_SCIENTIFIC_OWNER
+  regime_features:
+    - label: lower_viscosity_stress
+      status: descriptive_only
+    - label: higher_amplitude_ic_stress
+      status: descriptive_only
+
+# The repository sources identify the system as 1D viscous Burgers and implement its
+# numerical evolution, but the current reviewed Carbon design source does not provide
+# a separately ratified canonical symbolic equation string/AST for PhysicalSystemSpec.
+# Do not fill this from general knowledge in a protocol artifact without scientific-owner review.
+governing_relations:
+  canonical_symbolic_form: HUMAN_INPUT
+  source_model_label: "1D viscous Burgers"
+
+assumptions:
+  - "Periodic spatial domain as specified by the executable challenge config."
+  - "The prototype describes public challenge/generator semantics, not protected exam realizations."
+  - "Role-specific parameter ranges are descriptive generator semantics and do not themselves authorize score gates."
+
+known_reconciliation_issues:
+  - id: SN-BURGERS-001
+    severity: scientific_metadata_mismatch
+    field: viscosity.stress.lower_bound
+    executable_config_value: 0.0005
+    justification_value: 0.0003
+    disposition: HUMAN_INPUT
+    rule: "Do not silently choose a new value; scientific owner must reconcile the justification or config."
+  - id: SN-BURGERS-002
+    severity: missing_semantic_authority
+    field: governing_relations.canonical_symbolic_form
+    disposition: HUMAN_INPUT
+    rule: "Canonical symbolic expression/AST requires explicit scientific-owner ratification."
+  - id: SN-BURGERS-003
+    severity: missing_semantic_authority
+    field: scientific_features.conserved_quantities
+    disposition: HUMAN_INPUT
+    rule: "Do not promote generic Burgers properties into Carbon score semantics without dossier/Score-Pack qualification."
+
+provenance:
+  source_files:
+    - Design_Specs/POC_Burgers_FNO.md
+    - poc/configs/challenge_burgers1d.yaml
+    - poc/generators/burgers1d.py
+    - poc/generators/justification.py
+  semantic_owner_chain:
+    physical_description: "domain science / generator authoring"
+    envelope: Design_Specs/Evidence_and_Envelope_Standards.md
+    generator: Design_Specs/Generator_Creation.md
+    validation: Design_Specs/Generator_Validation.md
+    scoring: Design_Specs/Scoring.md
+
+publication:
+  intended_class: public_challenge_semantics
+  protected_material_allowed: false
+  note: "Public status is design intent only until ratified; no official realized draws or secret seed material may ever be embedded."
