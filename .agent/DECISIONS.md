@@ -1,5 +1,101 @@
 # Agent decisions log
 
+## 2026-08-20 — A2 canonical Strategy v1.0 and pure dry validation
+
+**Base, authority, and scope.** A fresh remote read verified both
+`origin/main` and the dedicated `agent/a2-strategy-schema` starting point at
+`e696cc43ace96a963f00bb28394da03d35eb267e`. A1 and its PR #9 cold-start
+registry repair are ancestral and complete, the sequencing hold is closed,
+the supported pre-edit CPU baseline passed 27 tests, and no canonical A2
+implementation had landed. The ratified A2 instruction resolves conflicting
+historical text: `schema_version` supersedes this ticket's old
+`strategy_version` wording; rich top-level training/loss/curriculum/data
+examples were not the A2 contract. The Miner MCP scaffold is reconciled to the
+A2 envelope; the pending Strategy Schema v1.1 proposal remains design input,
+not implementation truth. For OQ-008, the ratified instruction settles only
+the narrow A2 declarative schema/validation boundary; it does not close the
+broader execution threat model or qualify execution isolation.
+
+**Canonical contract (REPLACE).** Strategy v1.0 has exactly four required
+top-level fields: exact `schema_version: "1.0"`, canonical-string
+`challenge_id`, canonical-string `backbone`, and exact-object `parameters`.
+The recognized schema-level backbone set is the immutable
+`deeponet`/`fno`/`physicsnemo_fno`/`uno` set; validation never imports or calls
+the mutable runtime registry. Both identifiers must already match ASCII
+`[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*`. No aliases, defaults, case folding,
+coercion, clamping, semantic dropping, document rewriting, or protocol hash is
+provided. The legacy `carbon/common/strategy_schema.py` remains untouched for
+historical callers but is not canonical A2 behavior.
+
+**Pure hostile-input boundary.** `carbon.schema.dry_validate` returns frozen,
+slotted `ValidationResult` and `ValidationIssue` values with stable codes,
+JSON-Pointer-like paths, deterministic sorting, and generic messages that do
+not echo submitted values or representations. Exact built-in JSON types are
+validated iteratively. Active-ancestor and completed-container identity sets
+reject cycles while bounding traversal work for shared DAGs; non-finite
+numbers, non-string keys, subclasses, bytes, tuples, sets, callables, and
+arbitrary objects fail closed without `repr` or user display methods. A small,
+explicit, versioned reserved-key vocabulary rejects the ratified capability
+and official-control fields; only case/camel-case differences and hyphen,
+ASCII-space, or underscore separators (including compact spellings) are
+matched.
+Arbitrary English meaning and string contents are not interpreted: unknown
+keys and URL/path/code-looking strings remain inert. This denylist is defense
+in depth, not comprehensive executable-intent detection. Later execution must
+use positive parameter handlers, never execute/import/fetch from unknown
+fields, never pass arbitrary parameters blindly into constructors, and never
+silently drop unknown fields.
+
+**Explicitly unresolved.** OQ-008 remains open beyond declarative validation:
+the permitted execution surface, sandbox/process isolation, immutable execution
+environment, parser and runtime resource limits, kill policy, audit controls,
+and production security/operations qualification still require their owning
+later tickets and human approval. A2 uses no fabricated production numbers and
+keeps iterative frames suitable for adding ratified parser limits later.
+Persistent canonicalization and `strategy_hash` remain A7 work. Challenge
+lookup/LIVE qualification, official seeding, scoring, cards, fees/FSM,
+TrainEval/model construction, MCP transport, leaderboard, production
+observability, Bittensor operation, and all other A3+ behavior remain absent.
+
+**Local evidence.** The focused A2 suite passed 181 tests and the full default
+CPU lane passed 208. Ruff and Black passed strictly for all three changed
+Python files. The repository no-new-debt gate passed at Ruff 757/776 and Black
+62/68, unchanged from the A2 base; A2 added no Ruff or Black debt. The 19 Ruff
+and six Black reduction is cumulative from older baseline work, not attributable
+to A2. `git diff --check` passed. A fresh no-dependency wheel imported
+`carbon.schema.strategy` from `site-packages` outside the checkout and returned
+a valid result with every optional scientific/Bittensor and non-schema Carbon
+boundary blocked; attempted and loaded sensitive-module lists were empty. An
+initial local adversarial pass drove shared-DAG and path-ambiguity regressions.
+Independent review on draft PR #12 subsequently identified the broad semantic
+classifier, generic string-value heuristics, non-ASCII public paths,
+specification/status drift, and quality-attribution error addressed by the
+focused correction on the same A2 branch. Independent rereview of the
+correction remains outstanding.
+
+The existing `POC_FAST=1 bash poc/scripts/smoke.sh` completed its oracle and
+three protocol fixture runs, then exited 2 during collection at the unchanged
+inherited `ImportError` for `poc.generators.burgers1d.role_seed`. That defect is
+not widened into A2. A2 is locally **IMPLEMENTED and TESTED** for its narrow
+schema boundary only. It is not scientifically validated, end-to-end
+execution-isolated, LIVE-qualified, production-qualified, or
+Bittensor-integrated. The Wave item remains `in_progress` until external review
+and merge.
+
+**Draft PR #12 review-fix evidence.** The focused A2 suite passes 231 tests and
+the full default CPU lane passes 258 after replacing semantic inference with
+the explicit v1.0 reserved-key vocabulary and making public paths fixed-ASCII.
+Ruff and Black pass strictly for the two correction Python files;
+`git diff --check` passes. The repository quality inventory remains Ruff
+757/776 and Black 62/68 from the exact A2 base, so this correction adds no
+debt; the gate's reported 19 Ruff and six Black removal remains cumulative
+against the older committed baseline. A fresh non-editable, no-dependency
+wheel imported from `site-packages` outside the checkout. With every optional
+scientific/Bittensor and non-schema Carbon boundary blocked, no blocked import
+was attempted or loaded; neutral URL/code-looking strings remained inert, a
+reserved `OfficialSeed` key failed closed, and a Greek key produced the
+fixed-ASCII path `/parameters/~u0003b1`. Independent rereview remains pending.
+
 ## 2026-08-20 — Post-merge A1 cold-start backbone registry correction
 
 **Historical correction and status.** A1 PR #5 was reviewed at

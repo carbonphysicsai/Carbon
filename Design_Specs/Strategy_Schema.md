@@ -5,6 +5,15 @@
 **Status:** Proposal, pending team review
 **Related:** [`Generator_Creation.md`](./Generator_Creation.md), [`Scoring.md`](./Scoring.md), [`Scoring_Formulas.md`](./Scoring_Formulas.md), [`Miner_MCP.md`](./Miner_MCP.md), `Carbon_Logic/common/strategy_schema.py`, `Carbon_Logic/common/model_card.py`
 
+> **Current A2 reconciliation (ratified):** This document remains unratified
+> future knob-space input; it is not the current wire contract. Strategy v1.0
+> has exactly `schema_version`, `challenge_id`, scalar `backbone`, and
+> `parameters` at the top level. The older top-level `loss`, `training`,
+> `curriculum`, `regularization`, and `compute_tier` examples below are
+> historical or proposed catalog shapes, not accepted Strategy v1.0 wire
+> fields. Future ratified catalogs belong under `parameters` or in a later
+> schema version.
+
 ---
 
 ## TL;DR

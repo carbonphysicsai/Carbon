@@ -15,7 +15,7 @@ Current design specs supersede the historical Grok-era framework. This ledger ne
 |---|---|---|---|---|---|
 | Domain-owned spec authority | Yes | N/A | N/A | N/A | Reconciled in specs/Build Out. |
 | One complete P0 vertical | Yes | Partial historical PoC/framework | Partial historical evidence | No | Re-audit PoC against reconciled P0 contract. |
-| Strategy schema | Yes | Partial/legacy | Partial | No | Reconcile schema with P0 allowed search surface. |
+| Strategy schema | Yes | Yes — canonical A2 Strategy v1.0 plus `dry_validate` | Yes — focused/default CPU acceptance tests and CI | No | Remaining: parameter execution semantics; parser/resource limits; strategy hashing/submission identity; challenge registry binding; sandbox/execution qualification; MCP/submit integration. |
 | Independent validator retraining | Yes | Partial/legacy | End-to-end not established | No | Build/repair through Wave C. |
 | Challenge registry + immutable version binding | Yes | Partial/unknown | Not established | No | Audit against Build Out C1. |
 | Shared official exam identity | Yes | Legacy seed primitives exist; reconciled end-to-end flow not established | No current acceptance proof | No | Implement submission-bound official seed flow. |

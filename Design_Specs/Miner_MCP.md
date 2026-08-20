@@ -136,15 +136,18 @@ Worked prior example remains the v2.1 Burgers/FNO shape (steer / bands / avoid /
 | Tool | Role |
 |------|------|
 | `get_prior` | Coarse search information |
-| `get_mock_scaffold` | Versioned, deliberately mediocre/noisy **runnable** strategy JSON |
+| `get_mock_scaffold` | Versioned, deliberately mediocre/noisy strategy JSON; runnable only through later registered mock semantics |
 
 Scaffold is **informed by** the prior era (same challenge, overlapping backbone family) but is **not** a lossless materialization of `structural_steer`.
+A2 validates only the declarative Strategy envelope and its inert `parameters`;
+it does not infer how those parameters execute.
 
 ### 5.2 Scaffold properties
 
 | Property | Requirement |
 |----------|-------------|
-| Runnable | Valid strategy schema; runs under mock contract |
+| Schema-valid | Valid Strategy v1.0 envelope |
+| Runnable | Every parameter used by mock execution is positively registered by a later executor contract |
 | Versioned | `scaffold_id`, `scaffold_version`, `content_hash` |
 | Public | Same object for all miners |
 | Mediocre / noisy | Not frontier; not champion weights |
@@ -163,15 +166,24 @@ Scaffold is **informed by** the prior era (same challenge, overlapping backbone 
   "strategy": {
     "schema_version": "1.0",
     "challenge_id": "burgers1d",
-    "backbone": { "family": "fno1d", "modes": 16, "width": 32, "layers": 4 },
-    "loss": { "data_l2": true, "residual": true, "conservation": true },
-    "training": { "optimizer": "adam", "lr": 1e-3, "epochs": 20 },
-    "curriculum": { "stages": ["smooth_ic"] },
-    "meta": { "role": "mock_scaffold", "quality": "deliberately_baseline" }
+    "backbone": "fno",
+    "parameters": {
+      "backbone_config": { "modes": 16, "width": 32, "layers": 4 },
+      "loss": { "data_l2": true, "residual": true, "conservation": true },
+      "training": { "optimizer": "adam", "lr": 0.001, "epochs": 20 },
+      "curriculum": { "stages": ["smooth_ic"] },
+      "meta": { "role": "mock_scaffold", "quality": "deliberately_baseline" }
+    }
   },
   "not": ["champion_weights", "exact_winner_json"]
 }
 ```
+
+The nested parameter names and values above are illustrative, inert A2
+scaffold content. Later tickets must positively register and implement any
+parameter semantics before execution. This example does not itself make those
+knobs execution-capable, scientifically valid, challenge-compatible,
+LIVE-qualified, emission-capable, or production-qualified.
 
 ---
 
