@@ -1,5 +1,58 @@
 # Agent decisions log
 
+## 2026-08-20 — Post-merge A1 cold-start backbone registry correction
+
+**Historical correction and status.** A1 PR #5 was reviewed at
+`c4d0a9210aaacad077287c2ca14e20b2bb6d396e` and merged as
+`5f810a57379a608119aa9cc9bbd6fc78a48baf13` before a subsequent independent
+review's optional-backend blocker was repaired. At that merged head, a cold
+`carbon.backbones` import had no known adapters, the CPU tests imported adapter
+modules before exercising lookup, and `carbon.backbones.registry` owned a
+second disconnected mapping. This corrects the registry-path implementation
+and test claim in the 2026-08-19 A1 decision below; it does not rewrite the
+original install, CPU CI, quality-ratchet, or PoC evidence.
+
+**Corrective decision (WRAP/REPAIR).** The initial fetch found the expected
+post-PR-#6/PR-#7 `main` at
+`3e29fef703d4b60c97ff4873cb395d2436cdad0a`. Before publication, `main`
+advanced through PR #8, which changed only the scientific-reference canon and
+did not overlap this repair. The branch was fast-forwarded, so its actual repair
+base is `7f499e589b86ed127745831ccacdc1c8e4ffb677`. `carbon.backbones` remains
+the package-facing API and is now the sole registry state owner. An explicit
+map links `physicsnemo_fno`, `fno`, `deeponet`, and `uno` to their local Carbon
+adapter modules. Listing names imports no adapter, and resolving a built-in
+imports only its local adapter. The compatibility API in
+`carbon.backbones.registry` delegates registration, listing, and resolution to
+the package registry while preserving its historical construct-with-keywords
+behavior; it no longer owns a second mapping.
+
+Fresh isolated subprocess tests block `physicsnemo`, `neuralop`, and `torch`,
+prove all four names are cold-discoverable without loading those packages, and
+exercise extra-specific construction failures through the registry for both
+backend families. Separate cold-registry tests prove a transitive
+`ModuleNotFoundError` is re-raised unchanged. Installed-backend API
+compatibility, model behavior, and scientific or production qualification
+remain untested and unclaimed. This correction introduces no A2+ behavior.
+
+**Local corrective evidence.** In a fresh Python 3.11.11 virtual environment,
+the literal `python -m pip install -e ".[dev]"` exited 0 and installed
+`carbon==0.9.0`; `python -m pytest -q` exited 0 with 27 passed and no skipped,
+xfailed, or failed tests. The nine optional-backend tests passed individually,
+including both registry-path missing-extra cases and both transitive-error
+cases. An isolated cold-process diagnostic listed all four built-ins, resolved
+their local wrapper classes, and found no `physicsnemo`, `neuralop`, or `torch`
+module loaded. The quality gate passed at Ruff 757/776 and Black 62/68 with all
+three changed Python files strict-clean. Compared with untouched repair base
+`main` at Ruff 769/776 and Black 64/68, the patch removes 12 Ruff and two Black
+fingerprints and adds none. `git diff --check` exited 0. With the explicit PoC
+extra installed, `POC_FAST=1 bash poc/scripts/smoke.sh` exited 2 at the unchanged
+inherited import failure for absent `poc.generators.burgers1d.role_seed`.
+
+A1 is `in_progress` until the corrective draft PR receives independent rereview
+and is merged. A2 remains `todo` and must not begin before that gate. Local and
+GitHub Actions evidence for the final corrective head is recorded in the
+corrective PR because a commit cannot record its own SHA or subsequent run IDs.
+
 ## 2026-08-19 — A1 truthful CPU CI and pytest baseline
 
 **Base, branch, and scope.** A fresh fetch verified `origin/main` at the

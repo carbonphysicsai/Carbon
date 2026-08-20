@@ -88,3 +88,20 @@ installation/import proofs pass; default pytest and the blocking local quality
 gate are green. The inherited PoC terminal failure is unchanged. Draft PR #5
 run `32250522522` passed both blocking jobs, reached 22 CPU tests, and uploaded
 the full quality inventory. A1 is complete; no A2+ behavior was introduced.
+
+### Post-merge corrective addendum — 2026-08-20
+
+The implementation result immediately above records the conclusion reached for
+PR #5. After that PR merged, independent review showed that the optional-backend
+tests imported adapter modules before registry lookup and concealed an empty
+cold registry; a second mapping in `carbon.backbones.registry` also split the
+state. The narrow corrective plan is to preserve `carbon.backbones` as the
+canonical API, add an explicit built-in-name-to-local-module catalog, delegate
+the compatibility module to that one state, and test the contract in fresh
+isolated subprocesses. Scientific packages stay lazy, and installed-backend API
+or scientific qualification remains deferred.
+
+This correction does not reopen the broader A1 dependency, pytest-lane, PoC, or
+quality-ratchet design, and it introduces no A2+ behavior. A1 returns to
+`in_progress`; A2 remains `todo` until the corrective draft PR is independently
+rereviewed and merged.
