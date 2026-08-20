@@ -1,84 +1,115 @@
 # Symbolic-Numeric Integration Implementation Map
 
-**Status:** planning/context only — does not override `Design_Specs/Build_Out.md` sequencing.  
+**Status:** planning/context only — reconciled against `main` at A3 closeout; does not override `Design_Specs/Build_Out.md` sequencing.  
 **Design draft:** `Design_Specs/Physical_System_Representation.md`.  
-**Design decisions:** `docs/context/SYMBOLIC_NUMERIC_INTEGRATION_DECISIONS.md`.
+**Design decisions:** `docs/context/SYMBOLIC_NUMERIC_INTEGRATION_DECISIONS.md`.  
+**Reconciliation record:** `docs/context/SYMBOLIC_NUMERIC_RECONCILIATION.md`.
 
 ---
 
 ## Goal
 
-Integrate structured physical semantics into Carbon without expanding P0 scope or creating a parallel scientific authority. The implementation is split into **P0-compatible provenance hooks** and **post-P0 authoring / Landscape / model-class extensions**.
+Integrate structured physical semantics into Carbon without expanding P0 scope, reopening completed tickets, or creating a parallel scientific authority. The implementation is split into **bounded compatibility hooks** and **post-P0 authoring / Landscape / model-class extensions**.
 
 ---
 
-# 1. P0-compatible hooks
+# 1. Reconciled current state
 
-These hooks should be folded into existing Wave A/B/C work only when the relevant owner is touched. They do not require a symbolic runtime.
+A1, A2, and A3 are complete on the reviewed base. They remain closed.
 
-## SN-A1 — Reserve physical-system identity on Challenge provenance
+The completed A3 `ChallengeRecord` already provides a generic content-addressed artifact map. Reconciliation therefore rejects a needless A3 top-level schema migration for physical-system identity.
 
-**Natural owner:** A3 Challenge registry / A6 Card store.  
-**Semantic owner:** proposed `Physical_System_Representation.md`; Challenge registry remains governed by existing specs.
-
-Reserve optional support for:
+Preferred attachment convention:
 
 ```text
-physical_system_spec_id
-physical_system_spec_version
-physical_system_spec_hash
+ChallengeRecord.artifacts["physical_system_spec"]
+    → ArtifactBinding(path, sha256:<digest>)
+```
+
+The artifact bytes carry their own semantic identity/version. A3 binds the exact bytes but does not interpret their scientific meaning.
+
+Important A3 behavior:
+
+- absence of `physical_system_spec` remains valid;
+- if present, the artifact is checked like every other declared artifact;
+- missing / invalid / mismatched bytes fail LIVE eligibility for that exact Challenge record;
+- no new qualification slot is required merely to bind the artifact;
+- the binding does not enter `S_combined` or authorize scientific claims.
+
+This is intentional fail-closed provenance, not an automatic physics gate.
+
+---
+
+# 2. Near-term compatibility hooks
+
+The old labels `SN-A1/A2/A3` are retired because they collide semantically with completed Build-Out tickets A1-A3.
+
+## SN-H1 — Challenge physical-system artifact binding
+
+**Owner:** additive convention around completed A3; do not reopen A3.  
+**Implementation need:** potentially zero code if the existing generic artifact map is sufficient.
+
+Reserve canonical artifact id:
+
+```text
+physical_system_spec
 ```
 
 Acceptance direction:
 
-- optional / absent is valid in P0;
-- identity is immutable/versioned when present;
-- no official seed/draw information enters the object;
-- no scoring behavior depends on the field;
-- old Challenges remain readable without it.
+- artifact is optional;
+- exact bytes are content-bound by existing A3 SHA-256 semantics;
+- semantic id/version live inside the artifact and must agree with any later parser;
+- no official seed/draw information enters the artifact;
+- no scoring behavior depends on it;
+- no new LIVE qualification slot is introduced;
+- old Challenge records remain valid unchanged.
 
-## SN-A2 — Preserve physical-system identity on official evidence
+**Reconciliation test still required:** prove with A3 tests that a valid extra artifact does not alter eligibility beyond the ordinary artifact-integrity rule and that absence remains valid.
 
-**Natural owner:** A6 Card store / Model Card provenance.
+## SN-H2 — Evidence provenance propagation
 
-When a Challenge carries a physical-system identity, preserve the same identity on internal scientific evidence so future Landscape ingestion can join experiments to physical context.
+**Natural owner:** A6 Card store / InternalResult provenance.  
+**Status at reviewed base:** A6 not implemented; depends on A5.
+
+When a Challenge binds `physical_system_spec`, preserve a stable internal reference sufficient for future Landscape joins. Prefer artifact id + digest / semantic identity; do not expose trusted-root paths to miners.
 
 Acceptance direction:
 
-- provenance only;
-- disclosure remains allow-listed;
+- internal provenance only by default;
+- `EvaluationCard` disclosure remains allow-listed;
 - no new miner-visible information is implied;
-- no historical backfill is invented without an explicit migration decision.
+- no historical backfill is invented without explicit migration;
+- full internal object remains distinguishable from budgeted miner output.
 
-## SN-A3 — Burgers authoring-only semantic prototype
+## SN-H3 — Burgers authoring-only semantic prototype
 
 **Natural owners:** SciML / generator authoring; no validator dependency.
 
-Create a non-runtime `PhysicalSystemSpec` prototype for the existing Burgers P0 Challenge.
+Create a non-runtime `PhysicalSystemSpec` prototype for the existing 1D viscous Burgers P0 Challenge using only ratified scientific facts.
 
-Prototype should capture, as scientifically approved inputs:
+Current supported facts from `POC_Burgers_FNO.md` include:
 
-- state / independent variables;
-- viscosity parameter;
-- governing relation;
-- initial/boundary-condition semantics;
-- assumptions;
-- current physical-envelope metadata;
-- optional derived regime features.
+- 1D viscous Burgers system;
+- operator map initial condition → solution at final time;
+- initial model class FNO-1d;
+- procedural train/eval/stress data with role-separated seeds;
+- candidate physics checks listed by the PoC.
+
+Current source explicitly delegates the full numeric envelope/schema to in-repo generator and Score Pack artifacts when implemented. Therefore unresolved viscosity ranges, IC distributions, boundary semantics, conservation interpretation, or regime thresholds must remain explicit `HUMAN_INPUT` / unresolved fields unless another semantic owner supplies them.
 
 Acceptance direction:
 
 - manually inspectable;
 - content-addressable/versionable;
-- links to existing Challenge/generator/dossier identities;
+- links to Challenge/generator/dossier identities where those identities exist;
 - produces no score and changes no runtime behavior;
-- does not expose official realized draws.
-
-**Do not:** make P0 depend on ModelingToolkit, Symbolics.jl, Modelica, or any symbolic engine.
+- does not expose official realized draws;
+- does not require ModelingToolkit, Symbolics.jl, Modelica, or another symbolic engine.
 
 ---
 
-# 2. Post-P0 scientific-authoring implementation
+# 3. Post-P0 scientific-authoring implementation
 
 ## SN-S1 — Canonical `PhysicalSystemSpec` schema
 
@@ -89,9 +120,10 @@ Required properties:
 - representation-agnostic;
 - explicit assumptions;
 - explicit missing/unknown/not-applicable semantics;
-- version/content identity;
+- internal semantic identity/version plus content binding;
 - no automatic score/gate semantics;
-- extensible scientific feature namespace.
+- extensible scientific feature namespace;
+- compatibility with A3 content-addressed artifact provenance rather than a second competing hash authority.
 
 ## SN-S2 — Reference ModelingToolkit adapter
 
@@ -102,7 +134,7 @@ Requirements:
 - adapter output is reviewable before registration;
 - unsupported semantics fail explicitly rather than being fabricated;
 - no Julia dependency in miner/validator runtime merely because the adapter exists;
-- round-trip semantic equivalence claims are scoped and tested, not assumed.
+- round-trip semantic-equivalence claims are scoped and tested, not assumed.
 
 Possible later adapters: Modelica, SBML, CellML, SymPy, manual/JSON authoring.
 
@@ -143,7 +175,7 @@ This is provenance and scientific traceability, not automatic qualification.
 
 ---
 
-# 3. Landscape implementation
+# 4. Landscape implementation
 
 ## SN-L1 — Physical-context FeatureStore
 
@@ -175,7 +207,7 @@ Physical:
 system → structure/components → regime features → constraints/invariants
 ```
 
-Link evidence through immutable physical-system identity/version.
+Link evidence through immutable physical-system artifact identity/version.
 
 ## SN-L3 — H16 transfer-prediction test
 
@@ -197,30 +229,23 @@ No production Port A/B/C/D dependency should be created before measurable lift e
 
 ## SN-L4 — Physical-context Port C experiment design
 
-Only after H16-style prospective value is demonstrated, allow physical context to inform information-experiment proposals for:
-
-- transfer tests;
-- regime coverage;
-- competing-mechanism discrimination;
-- underrepresented physical structures.
+Only after H16-style prospective value is demonstrated, allow physical context to inform information-experiment proposals for transfer testing, regime coverage, mechanism discrimination, or underrepresented physical structures.
 
 Port C remains proposal-only until governance registration.
 
 ---
 
-# 4. Product / qualification implementation
+# 5. Product / qualification implementation
 
 ## SN-P1 — Physical-system identity in qualification evidence
 
-When relevant, allow Product Candidate Model Cards / Product Battery Records / Qualification Records to bind the exact `PhysicalSystemSpec` identity/version.
+When relevant, allow Product Candidate Model Cards / Product Battery Records / Qualification Records to bind the exact `PhysicalSystemSpec` artifact/semantic identity.
 
 No physical-system reference expands context of use automatically.
 
 ## SN-P2 — Regime-aware answerability inputs
 
 Where human-qualified, derived physical regime features may become inputs to context-of-use / escalation logic.
-
-Examples may include dimensionless groups or coupled-state conditions that describe regime membership more meaningfully than independent raw parameter ranges.
 
 Required controls:
 
@@ -231,7 +256,7 @@ Required controls:
 
 ---
 
-# 5. Later model-class expansion
+# 6. Later model-class expansion
 
 These items are **not** P0 or immediate post-P0 requirements.
 
@@ -241,16 +266,7 @@ Generalize product/evidence terminology so Carbon can eventually qualify fast ph
 
 ## SN-M2 — `ModelConstructionStrategy`
 
-For designated future Challenges, generalize a training recipe to a construction hypothesis that may specify:
-
-- physical scaffold;
-- learned component location/type;
-- architecture;
-- losses;
-- curriculum;
-- solver coupling;
-- optimization;
-- resource budget.
+For designated future Challenges, generalize a training recipe to a construction hypothesis that may specify physical scaffold, learned component location/type, architecture, losses, curriculum, solver coupling, optimization, and resource budget.
 
 ## SN-M3 — Hybrid mechanistic/learned Challenge class
 
@@ -266,7 +282,7 @@ Treat equation, constitutive-law, or closure discovery as a separate future Chal
 
 ---
 
-# 6. Research hypotheses
+# 7. Research hypotheses
 
 - **H16:** qualified structured physical context improves cross-Challenge intervention-transfer prediction.
 - **H17:** structured physical authoring and reusable evaluation primitives reduce Challenge-authoring time/error without weakening scientific validity.
@@ -277,7 +293,7 @@ These are research hypotheses, not implementation acceptance facts.
 
 ---
 
-# 7. Security / scientific invariants
+# 8. Security / scientific invariants
 
 1. No official seed/draw leakage through physical metadata.
 2. No automatic gate/threshold creation from symbolic structure.
@@ -289,20 +305,22 @@ These are research hypotheses, not implementation acceptance facts.
 8. No mandatory symbolic framework dependency in P0 runtime.
 9. No silent reinterpretation of historical evidence after `PhysicalSystemSpec` revision.
 10. No fabricated scientific metadata when source representations are incomplete.
+11. No reopening completed A1-A3 merely to add symbolic-numeric future-proofing.
+12. No duplicate hash/identity authority when A3 artifact binding already content-addresses the exact spec bytes.
 
 ---
 
-# 8. Suggested sequencing
+# 9. Suggested sequencing
 
-Current `Build_Out.md` remains authoritative.
+Current `Build_Out.md` remains authoritative. A1-A3 are complete; A4 remains the next ordinary Wave-A ticket on the reviewed base.
 
-P0-compatible integration only:
+Near-term symbolic-numeric work:
 
 ```text
-A3 registry       → SN-A1 optional identity hooks
-A6 card store     → SN-A2 evidence provenance hook
-SciML authoring   → SN-A3 Burgers semantic prototype (non-runtime)
-A12 invariants    → verify identity cannot affect score or leak exam state
+completed A3       → SN-H1 convention / tests only if needed; do not reopen A3
+A6 card store      → SN-H2 internal evidence provenance when A6 is reached
+SciML authoring    → SN-H3 Burgers semantic prototype (non-runtime)
+A12 invariants     → verify physical metadata cannot affect score or leak exam state
 ```
 
 Post-P0:
@@ -322,7 +340,7 @@ Later scientific expansion → SN-M1 → SN-M2 → SN-M3/M4
 
 ---
 
-# 9. Stop conditions
+# 10. Stop conditions
 
 Pause or simplify this integration if:
 
