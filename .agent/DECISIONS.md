@@ -1,5 +1,24 @@
 # Agent decisions log
 
+## 2026-08-20 — A2 closure after reviewed merge
+
+**Closure evidence.** The initial A2 implementation received independent
+review, and its findings were corrected at final reviewed head
+`d73f697ebd9df9b8c96b7a46fd4c9986444f0928`. Independent rereview found no
+remaining blockers. PR #12 then merged normally as
+`bfc0b97e1b16625141de3950428bc2fdf69f42ea`; the reviewed head is ancestral to
+current `main`. Post-merge push CI run `32360050671` passed: the default CPU
+suite reported 258 passing tests and the code-quality gate succeeded. A2 is
+therefore `done`. A3 remains `todo` and unstarted.
+
+**Maturity and remaining boundaries.** A2 is **IMPLEMENTED and TESTED** only
+for its Strategy schema/`dry_validate` boundary. This closure does not claim
+production qualification, end-to-end hostile execution isolation, LIVE
+qualification, scientific validation, challenge-registry binding, persistent
+strategy hashing, parameter execution semantics, MCP integration, or
+Bittensor integration. OQ-008 remains broader and unresolved beyond A2's
+declarative validation boundary.
+
 ## 2026-08-20 — A2 canonical Strategy v1.0 and pure dry validation
 
 **Base, authority, and scope.** A fresh remote read verified both
