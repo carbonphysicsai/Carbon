@@ -5,7 +5,7 @@
 # if/when this artifact is ever registered. Do not add an internal canonical content_hash.
 
 physical_system_spec_id: burgers1d_v0_physical_system
-version: "prototype-0.2"
+version: "prototype-0.3"
 status: authoring_prototype
 
 challenge_binding:
@@ -73,6 +73,60 @@ initial_condition_family:
 boundary_conditions:
   spatial: periodic
 
+# Provisional representation-agnostic governing relation.
+# Source: implemented reference evolution in poc/generators/burgers1d.py,
+# which advances explicit -u*u_x advection plus implicit nu*u_xx viscosity.
+# This relation is descriptive scientific structure only. It is not a residual definition,
+# gate, threshold, or scoring rule.
+governing_relations:
+  relation_ir_version: "prototype-0.1"
+  relations:
+    - relation_id: governing_pde
+      relation_type: pde
+      canonical_text: "d_t(u) + u*d_x(u) = nu*d_xx(u)"
+      display_text: "∂u/∂t + u ∂u/∂x = ν ∂²u/∂x²"
+      source_semantics:
+        source: poc/generators/burgers1d.py
+        implementation_name: burgers_reference_solve
+        derivation: "Reference solver implements u_t = -u*u_x + nu*u_xx."
+        review_status: PROVISIONAL_DECISION_PENDING_TECH_SCIENCE_REVIEW
+      expression:
+        op: eq
+        args:
+          - op: add
+            args:
+              - op: partial
+                expr:
+                  op: var
+                  name: u
+                wrt: t
+                order: 1
+              - op: mul
+                args:
+                  - op: var
+                    name: u
+                  - op: partial
+                    expr:
+                      op: var
+                      name: u
+                    wrt: x
+                    order: 1
+          - op: mul
+            args:
+              - op: param
+                name: nu
+              - op: partial
+                expr:
+                  op: var
+                  name: u
+                wrt: x
+                order: 2
+      operational_semantics:
+        automatic_residual: false
+        automatic_gate: false
+        automatic_threshold: false
+        automatic_score_input: false
+
 numerical_realization:
   generator:
     implementation: poc/generators/burgers1d.py
@@ -112,18 +166,11 @@ scientific_features:
     - label: higher_amplitude_ic_stress
       status: descriptive_only
 
-# The repository sources identify the system as 1D viscous Burgers and implement its
-# numerical evolution, but the current reviewed Carbon design source does not provide
-# a separately ratified canonical symbolic equation string/AST for PhysicalSystemSpec.
-# Do not fill this from general knowledge in a protocol artifact without scientific-owner review.
-governing_relations:
-  canonical_symbolic_form: HUMAN_INPUT
-  source_model_label: "1D viscous Burgers"
-
 assumptions:
   - "Periodic spatial domain as specified by the executable challenge config."
   - "The prototype describes public challenge/generator semantics, not protected exam realizations."
   - "Role-specific parameter ranges are descriptive generator semantics and do not themselves authorize score gates."
+  - "The governing relation is reconstructed from current implemented reference-solver semantics and remains provisional until tech/science review."
 
 known_reconciliation_issues:
   - id: SN-BURGERS-001
@@ -136,10 +183,13 @@ known_reconciliation_issues:
     rationale: "The executable challenge config is the value actually consumed by generate_batch; choosing 5e-4 preserves current realized P0 behavior rather than silently expanding the stress envelope."
     modification_rule: "If 3e-4 is preferred, change/version the executable Challenge semantics deliberately; do not alter only this representation."
   - id: SN-BURGERS-002
-    severity: missing_semantic_authority
-    field: governing_relations.canonical_symbolic_form
-    disposition: HUMAN_INPUT
-    rule: "Canonical symbolic expression/AST requires explicit scientific-owner ratification."
+    severity: provisional_semantic_representation
+    field: governing_relations.relations[governing_pde]
+    selected_provisional_value: "d_t(u) + u*d_x(u) = nu*d_xx(u)"
+    implementation_basis: "burgers_reference_solve implements explicit -u*u_x and implicit nu*u_xx."
+    disposition: PROVISIONAL_DECISION_PENDING_TECH_SCIENCE_REVIEW
+    rationale: "The relation is derived from implemented Carbon behavior rather than imported solely from generic textbook knowledge."
+    modification_rule: "Tech/science review may alter notation or IR form; any change to the physical equation itself must reconcile with/version the generator/reference realization."
   - id: SN-BURGERS-003
     severity: missing_semantic_authority
     field: scientific_features.conserved_quantities
@@ -149,6 +199,7 @@ known_reconciliation_issues:
 provenance:
   source_files:
     - Design_Specs/POC_Burgers_FNO.md
+    - Design_Specs/physical_system_specs/RELATION_IR.md
     - poc/configs/challenge_burgers1d.yaml
     - poc/generators/burgers1d.py
     - poc/generators/justification.py
