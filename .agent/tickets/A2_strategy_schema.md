@@ -35,14 +35,17 @@ limits, and production security/operations qualification remain unresolved.
 
 **Tests:** `python -m pytest tests/cpu/test_strategy_schema.py -q`
 
-**Local evidence (2026-08-20):** Exact base
-`e696cc43ace96a963f00bb28394da03d35eb267e`; the review-corrected branch passes
-231 focused tests and 258 default CPU tests. Strict Ruff/Black, no-new-debt
-quality, `git diff --check`, and fresh wheel/import isolation pass. The quality
-inventory remains Ruff 757/776 and Black 62/68 from the A2 base; A2 added no
-debt, and the gate's 19/6 removal is cumulative against its older baseline.
-Draft PR #12 review findings are addressed by a focused same-branch correction
-that remains pending independent rereview. The unchanged PoC `role_seed`
-collection failure remains inherited. A2 is locally IMPLEMENTED/TESTED only
-and remains `in_progress` pending external review and merge; no scientific,
-security, LIVE, execution-isolation, or production qualification is claimed.
+**Final evidence (2026-08-20):** Exact original base
+`e696cc43ace96a963f00bb28394da03d35eb267e`; reviewed final head
+`d73f697ebd9df9b8c96b7a46fd4c9986444f0928`; normal PR #12 merge commit
+`bfc0b97e1b16625141de3950428bc2fdf69f42ea`. The reviewed branch passed 231
+focused tests and 258 default CPU tests. Post-merge main CI run `32360050671`
+also reported 258 default tests passing and the code-quality gate succeeded.
+Strict Ruff/Black, no-new-debt quality, `git diff --check`, and fresh
+wheel/import isolation passed. The inherited PoC `role_seed` failure remains
+unrelated and unfixed.
+
+**Status:** A2 is `done`, **IMPLEMENTED and TESTED** only for its schema and
+`dry_validate` boundary. This status does not claim scientific validation,
+end-to-end hostile execution isolation, LIVE qualification, or production
+qualification. A3 remains `todo` and unstarted.

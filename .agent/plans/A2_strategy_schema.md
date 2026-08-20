@@ -126,8 +126,7 @@ does not normalize input.
 
 ### Implementation result
 
-A2 is locally **IMPLEMENTED** and **TESTED** on
-`agent/a2-strategy-schema`. The public boundary is
+A2 is **IMPLEMENTED** and **TESTED**. The public boundary is
 `carbon.schema.{ValidationIssue,ValidationResult,dry_validate}`; it recognizes
 only the ratified four backbones and returns immutable, deterministic,
 miner-safe issues without returning a normalized document or defining a hash.
@@ -135,8 +134,9 @@ An initial local adversarial pass drove regression fixes for shared DAG
 traversal and path ambiguity. Independent review on draft PR #12 subsequently
 identified the overly broad semantic classifier, generic string-value
 heuristics, non-ASCII public paths, specification/status drift, and quality
-attribution corrected by the focused follow-up on this branch. Independent
-rereview of that correction remains outstanding.
+attribution corrected at final reviewed head
+`d73f697ebd9df9b8c96b7a46fd4c9986444f0928`. Independent rereview found no
+remaining blockers.
 
 Verification from the exact starting commit:
 
@@ -159,8 +159,7 @@ Verification from the exact starting commit:
 
 No A3+ registry qualification, seeding, scoring, cards, hashing, persistence,
 fees/FSM, execution, transport, leaderboard, logging, Bittensor, or scientific
-behavior was added. External review/merge remains outstanding, so the Wave
-board remains `in_progress`; scientific validity, end-to-end isolation, LIVE
+behavior was added. Scientific validity, end-to-end isolation, LIVE
 qualification, and production qualification remain explicitly unclaimed.
 
 Draft PR #12 review correction verification:
@@ -176,4 +175,10 @@ Draft PR #12 review correction verification:
   with optional scientific/Bittensor and every non-schema Carbon boundary
   blocked; no blocked import was attempted or loaded.
 - The reconciled Miner MCP Strategy is covered by a positive acceptance test.
-- Independent rereview and merge remain outstanding.
+- Independent rereview passed with no remaining blockers.
+- PR #12 merged normally as
+  `bfc0b97e1b16625141de3950428bc2fdf69f42ea`, preserving reviewed head
+  `d73f697ebd9df9b8c96b7a46fd4c9986444f0928` in `main` ancestry.
+- Post-merge main CI run `32360050671` passed with 258 default CPU tests and a
+  successful code-quality job.
+- A2 is `done`; A3 remains `todo` and unstarted.
