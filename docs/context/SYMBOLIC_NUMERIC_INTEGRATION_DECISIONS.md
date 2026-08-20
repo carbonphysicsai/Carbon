@@ -1,7 +1,8 @@
 # Symbolic-Numeric Integration Design Decisions
 
-**Status:** DESIGN INTEGRATION — owner-directed exploration initiated 2026-08-20. Exact schema/runtime changes remain reviewable; no P0 scoring or execution change is ratified by this file.  
-**Primary draft spec:** `Design_Specs/Physical_System_Representation.md`.
+**Status:** DESIGN INTEGRATION — owner-directed exploration initiated 2026-08-20; reconciled against `main` after A3 closeout. Exact schema/runtime changes remain reviewable; no P0 scoring or execution change is ratified by this file.  
+**Primary draft spec:** `Design_Specs/Physical_System_Representation.md`.  
+**Reconciliation:** `docs/context/SYMBOLIC_NUMERIC_RECONCILIATION.md`.
 
 ---
 
@@ -24,23 +25,42 @@ A `PhysicalSystemSpec` may record equations, variables, parameters, constraints,
 - Landscape remains evidence-learning, not scientific authority.
 - Product qualification remains owned by the Specialist Bank/product qualification path.
 
-### SN-D4 — P0 should only receive compatibility hooks
+### SN-D4 — Completed A1-A3 remain closed
 
-The Burgers vertical slice should not gain a symbolic runtime dependency. P0-compatible work is limited to reserving physical-system identity/provenance hooks and optionally constructing a non-runtime Burgers semantic prototype.
+Repository reconciliation confirms Build-Out tickets A1, A2, and A3 are complete. Symbolic-numeric future-proofing must not reopen or silently widen them.
 
-### SN-D5 — Reusable evaluation primitives are a Challenge-authoring capability
+The completed A3 registry already exposes a generic content-addressed artifact map. The preferred P0-compatible attachment is therefore a conventional optional artifact binding:
+
+```text
+ChallengeRecord.artifacts["physical_system_spec"]
+```
+
+rather than new top-level A3 fields.
+
+If declared, A3's existing fail-closed artifact integrity checks apply to the exact spec bytes. Absence remains valid. No new qualification slot or scoring input is implied.
+
+### SN-D5 — P0 receives only bounded compatibility hooks
+
+The Burgers vertical slice should not gain a symbolic runtime dependency. Near-term work is limited to:
+
+- the optional A3 artifact-binding convention above;
+- later A6 internal evidence provenance when A6 is implemented;
+- a non-runtime Burgers semantic prototype using only ratified scientific facts;
+- A12 invariants proving no score/disclosure privilege crossing.
+
+### SN-D6 — Reusable evaluation primitives are a Challenge-authoring capability
 
 Structured physical metadata may later support candidate residual, conservation/invariant, admissibility, boundary/initial consistency, dimensional, and regime-feature primitives. Every score-bearing use still requires explicit scientific qualification.
 
-### SN-D6 — Structured physical context is a Landscape transfer substrate
+### SN-D7 — Structured physical context is a Landscape transfer substrate
 
 Long-term Landscape evidence should be able to connect modeling interventions and outcomes to identifiable physical structure/regimes rather than only Challenge IDs. Physical similarity does not itself establish causal transfer.
 
-### SN-D7 — Neural operators are the first model class, not the permanent ontology
+### SN-D8 — Neural operators are the first model class, not the permanent ontology
 
 Carbon should preserve a path from `TrainingStrategy` toward future Challenge-specific `ModelConstructionStrategy` objects and from learned operators toward a broader `FastPhysicalModel` concept. Hybrid mechanistic/learned models are a later model class, not a P0 requirement.
 
-### SN-D8 — Equation discovery is a separate epistemic regime
+### SN-D9 — Equation discovery is a separate epistemic regime
 
 Symbolic regression, closure discovery, and governing-equation discovery may become future Challenge classes, but they are not folded into the initial surrogate-discovery architecture because the object being discovered would overlap with the scientific model used to define evaluation.
 
@@ -57,7 +77,10 @@ This integration does **not** ratify:
 - H16-H19 as true;
 - hybrid strategy classes in P0;
 - equation-discovery Challenges;
-- any change to `S_combined`, emissions, or current Challenge thresholds.
+- any change to `S_combined`, emissions, or current Challenge thresholds;
+- reopening A1-A3;
+- a ninth LIVE qualification slot for `PhysicalSystemSpec`;
+- miner/public disclosure of physical-system artifact paths or digests.
 
 ---
 
@@ -73,12 +96,14 @@ This integration does **not** ratify:
 
 > **Carbon owns the semantic contract, not the modeling language.**
 
+> **Completed implementation boundaries are not reopened when an existing generic provenance hook is sufficient.**
+
 ---
 
 ## KEEP / WRAP / REPAIR / REPLACE disposition
 
-- **KEEP:** all current P0 scoring, generator, hidden-evaluation, strategy, validator, evidence, Landscape-port, and product-separation invariants.
-- **WRAP:** Challenge identity/evidence provenance with optional physical-system identity.
+- **KEEP:** completed A1-A3; all current P0 scoring, generator, hidden-evaluation, strategy, validator, evidence, Landscape-port, and product-separation invariants.
+- **WRAP:** A3 generic artifact binding with optional `physical_system_spec`; later A6 internal evidence provenance with the same immutable identity.
 - **REPAIR/EXTEND:** long-term Challenge semantics, reusable scientific authoring primitives, Landscape physical-context features, qualification physical-context provenance.
 - **REPLACE:** none.
 
