@@ -1,5 +1,35 @@
 # Agent decisions log
 
+## 2026-08-21 — A3 closure after reviewed merge
+
+**Closure evidence.** A3 began from exact base
+`e6fb20b1dc361ded442fcf41d118cea5f2c775cd`. Independent review identified
+the fixture-relabel provenance gap, missing production-backbone requirement,
+and quality-attribution correction; the same A3 branch repaired them, and
+independent rereview approved final head
+`149f9a74351b02a9b615d0015c22b74187ab0f55`. Repaired-head PR CI run
+`32377387086` passed both CPU tests and Code quality. PR #14 then merged
+normally as `69b938d1c4fd0aca58276940d15df50b1b68e5d1`, whose parents are exact A3
+base `e6fb20b1dc361ded442fcf41d118cea5f2c775cd` and reviewed head
+`149f9a74351b02a9b615d0015c22b74187ab0f55`; the reviewed head is ancestral to
+current `main`. Exact-merge push CI run `32379421897` completed successfully on
+`main`: CPU job `96458664242` reported 392 passing tests, and Code quality job
+`96458663684` passed with inventory unchanged from the A3 base at
+`Ruff 757/776; Black 62/68`, no new debt, and all changed Python files clean.
+
+**Maturity and preserved boundaries.** A3 is therefore `done` and may be
+described as **SPECIFIED**, **IMPLEMENTED**, **TESTED**, independently reviewed,
+merged, and post-merge-CI verified for the structural challenge registry/LIVE
+gate only. Canonical identity remains exact `(challenge_id, version)`; the gate
+hashes actual artifact bytes against tagged SHA-256 bindings; fixture-origin
+evidence remains structurally blocked from production; and production LIVE
+requires at least one allowed canonical backbone. `fixture_origin` is
+structural, not authenticated, provenance; signer/authentication mechanisms
+remain future work. No real challenge was made LIVE, and A3 does not establish
+scientific, backend, security, operations, production, or emission
+qualification. No thresholds or approvals were invented. A4 remains `todo`
+and has not started; all A4+ behavior remains outside this closeout.
+
 ## 2026-08-20 — A3 exact-version registry and structural LIVE gate
 
 **Base, authority, and scope.** A3 began on `agent/a3-challenge-registry` from

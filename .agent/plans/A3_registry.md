@@ -3,7 +3,7 @@
 **Ticket:** A3 — Challenge registry + LIVE qualification hash gate
 **Branch:** `agent/a3-challenge-registry`
 **Exact base:** `e6fb20b1dc361ded442fcf41d118cea5f2c775cd`
-**Status:** in progress
+**Status:** done
 
 ## Authority and reconciliation
 
@@ -130,6 +130,16 @@ verify a qualification signer, or make a receipt signed.
 - Inherited PoC smoke: exit 2 after protocol-only NumPy runs because
   `poc.generators.burgers1d.role_seed` is absent during legacy test collection.
 
-A3 remains `in_progress`: the local evidence does not establish independent
-review, merge, post-merge CI, scientific/security/operations qualification, a
-real LIVE challenge, production qualification, or emission capability.
+A3 is `done` for its structural registry/LIVE-gate scope. Independent
+review/rereview approved final head
+`149f9a74351b02a9b615d0015c22b74187ab0f55`; repaired-head PR CI
+`32377387086` passed; PR #14 merged as
+`69b938d1c4fd0aca58276940d15df50b1b68e5d1`; reviewed-head ancestry is
+confirmed; and exact-merge `main` push CI `32379421897` passed 392 CPU tests and
+Code quality at inventory `Ruff 757/776; Black 62/68`, unchanged from the A3
+base with no new debt and changed files clean. This supports **SPECIFIED**,
+**IMPLEMENTED**, **TESTED**, independently reviewed, merged, and
+post-merge-CI-verified maturity only for the structural A3 boundary. It does
+not establish scientific, backend, security/operations, production, or
+emission qualification, and no real challenge is LIVE. A4 remains `todo` and
+has not started.

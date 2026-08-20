@@ -4,9 +4,11 @@
 **Build_Out:** **v1.4** C1 Challenge registry, **§8 LIVE qualification manifest**  
 **Depends on:** A0, A1, A2
 
-**Status:** `in_progress` on exact base
-`e6fb20b1dc361ded442fcf41d118cea5f2c775cd`; local verification is complete,
-while independent rereview/approval, merge, and post-merge CI remain pending.
+**Status:** `done`. A3 began on exact base
+`e6fb20b1dc361ded442fcf41d118cea5f2c775cd`; independently reviewed/rereviewed
+final head `149f9a74351b02a9b615d0015c22b74187ab0f55` merged in PR #14 as
+`69b938d1c4fd0aca58276940d15df50b1b68e5d1`, is ancestral to current `main`,
+and passed exact-merge post-merge CI.
 
 **Goal:** File-backed registry of challenges; **cannot** transition to LIVE without qualification slots filled **and content hashes bound to the exact challenge version**.
 
@@ -55,7 +57,8 @@ while independent rereview/approval, merge, and post-merge CI remain pending.
   replacement
 - [x] Complete local CPU, strict-format/lint, no-new-debt, diff, and fresh-wheel
   outside-tree verification
-- [ ] Complete independent review, merge, and post-merge CI evidence
+- [x] Complete independent review/rereview, merge, reviewed-head ancestry, and
+  post-merge CI evidence
 
 **Reserved-binding boundary:** Exact equality of the ordered backend-profile
 binding or receipt schema identifier binds evidence to a record. It never
@@ -90,7 +93,22 @@ The inherited PoC smoke reached its protocol-only NumPy runs, then exited 2 at
 the pre-existing `poc.generators.burgers1d.role_seed` collection import error;
 A3 does not change that PoC boundary.
 
+**Closure evidence (2026-08-21):** repaired-head PR CI run `32377387086` passed
+both CPU tests and Code quality. PR #14 merged normally as
+`69b938d1c4fd0aca58276940d15df50b1b68e5d1`, with exact base and reviewed head
+as its two parents; reviewed-head ancestry to current `main` is confirmed.
+Post-merge `main` push CI run `32379421897` passed: CPU job `96458664242`
+reported 392 passing tests, and Code quality job `96458663684` succeeded at
+inventory `Ruff 757/776; Black 62/68`, unchanged from the exact A3 base, with
+no new debt and all changed Python files clean. A3 is **SPECIFIED**,
+**IMPLEMENTED**, **TESTED**, independently reviewed, merged, and post-merge-CI
+verified for its structural registry/LIVE-gate boundary only. A4 remains
+`todo` and has not started.
+
 **Implementation boundary:** No default or fixture is production LIVE. No real
 challenge, scientific hash, backend approval, receipt-signature verification,
 Score Pack behavior, official seeding, scoring, execution, MCP transport, or
-Bittensor capability is added by A3.
+Bittensor capability is added by A3. `fixture_origin` is structural rather than
+authenticated provenance; signer/authentication work remains future scope. A3
+does not establish scientific, backend, security/operations, production, or
+emission qualification.
