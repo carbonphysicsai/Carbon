@@ -107,6 +107,15 @@ collection error.
 
 This is a narrow A1 corrective repair. Installed-backend API compatibility and
 scientific correctness remain unqualified, the inherited PoC failure remains
-out of scope, and no A2+ behavior is introduced. A1 is `in_progress`, and A2
-must remain `todo`, until the corrective draft PR is independently rereviewed
-and merged. Final-head and Actions evidence belongs in that PR's audit record.
+out of scope, and no A2+ behavior is introduced. At the corrective branch's
+pre-merge record, A1 was `in_progress` and A2 remained `todo` pending independent
+rereview and merge.
+
+That gate is now closed. Independently rereviewed PR #9 final head
+`a247bb189d44ddf18de504572ef620cf5d501d10` passed CI run `32326384939` with
+27 CPU tests and the code-quality gate, then merged as
+`819da3c163c2fb9476a6881aab8740cc6984066e`. The merge is ancestral to current
+closure base `fb6bbf393f77ae80d76abf3eda0e53a7dfd12f17`. The corrective registry
+contract is therefore on `main`, A1 is `done`, and A2 remains the unstarted
+`todo` next ticket. Scientific backend compatibility and scientific or
+production qualification remain unclaimed.

@@ -102,6 +102,13 @@ isolated subprocesses. Scientific packages stay lazy, and installed-backend API
 or scientific qualification remains deferred.
 
 This correction does not reopen the broader A1 dependency, pytest-lane, PoC, or
-quality-ratchet design, and it introduces no A2+ behavior. A1 returns to
-`in_progress`; A2 remains `todo` until the corrective draft PR is independently
-rereviewed and merged.
+quality-ratchet design, and it introduces no A2+ behavior. At the corrective
+proposal stage, A1 returned to `in_progress`; A2 remained `todo` pending
+independent rereview and merge.
+
+The corrective gate is now complete. Independently rereviewed PR #9 final head
+`a247bb189d44ddf18de504572ef620cf5d501d10` passed CPU and code-quality jobs in
+CI run `32326384939` and merged as
+`819da3c163c2fb9476a6881aab8740cc6984066e`. A1 is `done`. A2 remains `todo` as
+the next Build_Out ticket and has not started. Installed-backend API and
+scientific or production qualification remain deferred and unclaimed.

@@ -48,10 +48,23 @@ fingerprints and adds none. `git diff --check` exited 0. With the explicit PoC
 extra installed, `POC_FAST=1 bash poc/scripts/smoke.sh` exited 2 at the unchanged
 inherited import failure for absent `poc.generators.burgers1d.role_seed`.
 
-A1 is `in_progress` until the corrective draft PR receives independent rereview
-and is merged. A2 remains `todo` and must not begin before that gate. Local and
-GitHub Actions evidence for the final corrective head is recorded in the
-corrective PR because a commit cannot record its own SHA or subsequent run IDs.
+At the corrective branch's pre-merge record, A1 remained `in_progress` until
+the draft PR received independent rereview and was merged. A2 remained `todo`
+behind that temporary sequencing gate. Local and GitHub Actions evidence for
+the final corrective head was recorded in the corrective PR because a commit
+cannot record its own SHA or subsequent run IDs.
+
+**Corrective merge and A1 closure.** The independently rereviewed PR #9 final
+head `a247bb189d44ddf18de504572ef620cf5d501d10` passed final-head CI run
+`32326384939`: the CPU job ran the default suite with 27 passing tests, and the
+code-quality job passed the existing no-new-debt ratchet. PR #9 then merged as
+`819da3c163c2fb9476a6881aab8740cc6984066e`. That merge is ancestral to the
+closure base `fb6bbf393f77ae80d76abf3eda0e53a7dfd12f17`; intervening PR #10 added
+only non-conflicting specification and context documents. The cold-start
+registry gap is therefore repaired on current `main`, and A1 is `done`. A2 is
+the next Build_Out ticket and remains `todo`; no A2 implementation begins in
+this closure. Installed-backend API compatibility, scientific correctness, and
+scientific or production qualification remain untested and unclaimed.
 
 ## 2026-08-19 — A1 truthful CPU CI and pytest baseline
 
