@@ -5,7 +5,7 @@
 # This prototype preserves the disagreement rather than pretending they are one canonical Challenge.
 
 physical_system_spec_id: poisson2d_generality_test
-version: "prototype-0.1"
+version: "prototype-0.2"
 status: authoring_prototype
 classification: public_challenge_semantics_candidate
 
@@ -36,9 +36,14 @@ variables:
       depends_on: [x, y]
   coefficient_fields:
     - symbol: k
+      role: coefficient
       depends_on: [x, y]
       status: source_variant_only
       provenance: Julia/src/solvers/reference.jl
+    - symbol: f
+      role: source
+      depends_on: [x, y]
+      status: required_by_both_relation_variants
   observed: []
 
 parameters: []
@@ -51,9 +56,9 @@ domains:
     status: supported_by_both_reviewed_sources
 
 governing_relations:
-  # Variant A: legacy Python Challenge metadata + manufactured data.
   - relation_id: poisson_constant_coefficient_variant
     kind: governing_pde_source_variant
+    relation_ir_version: "prototype-0.2"
     status: source_variant_not_canonical
     display_text: "d_xx(u) + d_yy(u) = f"
     machine_semantics:
@@ -62,23 +67,23 @@ governing_relations:
         op: add
         args:
           - op: partial
-            expr: {op: var, id: u}
+            expr: {op: var, name: u}
             wrt: x
             order: 2
           - op: partial
-            expr: {op: var, id: u}
+            expr: {op: var, name: u}
             wrt: y
             order: 2
-      rhs: {op: coefficient_field, id: f}
+      rhs: {op: field, name: f, role: source}
     provenance:
       - carbon/challenges/poisson_2d.py
     notes:
       - "Source metadata states ∇²u = f."
       - "The manufactured case uses u=sin(pi x)sin(pi y) and f=-2*pi^2*u, consistent with this sign convention."
 
-  # Variant B: Julia reference solver documentation/implementation.
   - relation_id: poisson_variable_coefficient_divergence_variant
     kind: governing_pde_source_variant
+    relation_ir_version: "prototype-0.2"
     status: source_variant_not_canonical
     display_text: "-d_x(k*d_x(u)) - d_y(k*d_y(u)) = f"
     machine_semantics:
@@ -94,9 +99,9 @@ governing_relations:
               expr:
                 op: mul
                 args:
-                  - {op: coefficient_field, id: k}
+                  - {op: field, name: k, role: coefficient}
                   - op: partial
-                    expr: {op: var, id: u}
+                    expr: {op: var, name: u}
                     wrt: x
                     order: 1
             - op: partial
@@ -105,12 +110,12 @@ governing_relations:
               expr:
                 op: mul
                 args:
-                  - {op: coefficient_field, id: k}
+                  - {op: field, name: k, role: coefficient}
                   - op: partial
-                    expr: {op: var, id: u}
+                    expr: {op: var, name: u}
                     wrt: y
                     order: 1
-      rhs: {op: coefficient_field, id: f}
+      rhs: {op: field, name: f, role: source}
     provenance:
       - Julia/src/solvers/reference.jl
     notes:
@@ -133,12 +138,6 @@ conditions:
         - "Python manufactured solution vanishes on the unit-square boundary."
         - "Julia reference implementation explicitly sets u=0 on all four boundaries."
 
-source_fields:
-  - symbol: f
-    depends_on: [x, y]
-    role: forcing/source_field
-    status: required_by_both_relation_variants
-
 manufactured_case:
   status: source_specific_reference_case_not_general_model
   provenance: carbon/challenges/poisson_2d.py
@@ -156,9 +155,10 @@ numerical_realization_refs:
     type: manufactured_analytic_field_generator
     status: legacy_noncanonical_source
   - source: Julia/src/solvers/reference.jl
-    type: finite_difference_method_of_lines_style_reference
+    type: finite_difference_reference_attempt
     method_description: "Variable-coefficient discrete divergence form; zero Dirichlet boundaries; source labels MethodOfLines + KLU."
     status: legacy_noncanonical_source
+    warning: "Presence of this legacy implementation is not a dossier/reference-rank claim."
 
 assumptions:
   - "This file is a schema generality test, not a registered Poisson Challenge."
@@ -190,7 +190,7 @@ reconciliation_issues:
     severity: representation_requirement
     field: variables.coefficient_fields
     disposition: SCHEMA_EXTENSION_JUSTIFIED
-    recommendation: "PhysicalSystemSpec v0.1 should distinguish field-valued coefficients/source fields from scalar parameters."
+    recommendation: "PhysicalSystemSpec v0.1 should distinguish field-valued coefficients/source fields from scalar parameters. Relation IR prototype-0.2 now supplies generic field(name, role)."
 
 provenance:
   primary_sources:
