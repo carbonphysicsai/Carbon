@@ -72,3 +72,41 @@ lanes retain stale/scientific evidence without making it a false CPU contract.
 default pytest collection, and a no-new-quality-debt CI gate. It does not
 qualify scientific models, scoring, seeds, TrainEval, Julia, Bittensor, network
 operation, emissions, security, or production behavior.
+
+## Post-merge corrective repair — cold-start backbone registry
+
+PR #5 was reviewed at `c4d0a9210aaacad077287c2ca14e20b2bb6d396e` and
+merged as `5f810a57379a608119aa9cc9bbd6fc78a48baf13`. A later independent
+review found that its optional-backend tests primed adapter registration and
+therefore did not establish the claimed cold-registry path. A fresh package
+registry listed no adapters, and `carbon.backbones.registry` maintained a
+second disconnected mapping. The checked DoD and evidence above remain the
+historical record for PR #5's broader install, CPU CI, quality, and PoC work;
+they are not evidence that this cold-start contract passed at the merged head.
+
+The initial repair fetch found expected `main` at
+`3e29fef703d4b60c97ff4873cb395d2436cdad0a`. A pre-publication fetch found
+non-conflicting PR #8 had since advanced `main`; after inspecting its sole
+scientific-reference-canon change, the branch was fast-forwarded to actual
+repair base `7f499e589b86ed127745831ccacdc1c8e4ffb677`. This preserves PR #6,
+PR #7, and PR #8. The repair keeps one canonical package-owned registry, adds
+an explicit catalog for `physicsnemo_fno`, `fno`, `deeponet`, and `uno`, and
+converts the historical registry module into a compatibility delegate. Fresh
+isolated subprocess tests exercise discovery, extra-specific construction
+failure, and preservation of transitive module failures without loading
+optional scientific packages during discovery.
+
+In a fresh Python 3.11.11 environment, the supported editable development
+install exited 0 and installed `carbon==0.9.0`; the default suite passed 27
+tests with no skips, xfails, or failures. All nine focused optional-backend tests
+passed. The no-new-debt gate passed at Ruff 757/776 and Black 62/68 with three
+changed Python files strict-clean, a repair delta of minus 12 Ruff and minus two
+Black fingerprints from untouched current `main`. `git diff --check` exited 0.
+The PoC smoke command exited 2 at the same inherited missing-`role_seed`
+collection error.
+
+This is a narrow A1 corrective repair. Installed-backend API compatibility and
+scientific correctness remain unqualified, the inherited PoC failure remains
+out of scope, and no A2+ behavior is introduced. A1 is `in_progress`, and A2
+must remain `todo`, until the corrective draft PR is independently rereviewed
+and merged. Final-head and Actions evidence belongs in that PR's audit record.

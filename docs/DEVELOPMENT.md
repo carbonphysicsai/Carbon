@@ -42,14 +42,20 @@ Install only the boundary being developed, for example:
 python -m pip install -e ".[dev,physicsnemo]"
 ```
 
-The optional backend wrappers import their libraries only when used and are
-registered even when their extras are absent. If an extra is absent, direct or
-registry-based construction fails with an error naming the required extra.
-Import defects inside an installed backend are re-raised and are not disguised
-as a missing package. A1 verifies that dependency/failure boundary only; it does
-not claim that the retained legacy NeuralOperator model arguments are compatible
-with current upstream APIs. PhysicsNeMo's upstream package itself requires
-Python 3.11 or newer.
+The package-owned registry cold-discovers `physicsnemo_fno`, `fno`, `deeponet`,
+and `uno` through an explicit local-module catalog. Listing those names does not
+import the local adapters; resolving them imports only the corresponding Carbon
+adapter module. Neither operation imports `physicsnemo`, `neuralop`, or `torch`.
+The historical `carbon.backbones.registry` API delegates to this same canonical
+state while preserving its construct-with-keyword-arguments behavior.
+
+The optional backend wrappers import their scientific libraries only when
+constructed. If an extra is absent, direct or registry-based construction fails
+with an error naming the required extra. Import defects inside an installed
+backend are re-raised and are not disguised as a missing package. A1 verifies
+that dependency/failure boundary only; it does not claim that the retained
+legacy NeuralOperator model arguments are compatible with current upstream
+APIs. PhysicsNeMo's upstream package itself requires Python 3.11 or newer.
 
 Dependencies used only by unsupported historical Landscape, symbolic, data,
 or validator modules are not advertised as supported extras. Those modules

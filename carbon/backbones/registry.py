@@ -1,20 +1,25 @@
-"""Simple backbone registry for multi-backend support."""
+"""Compatibility API for constructing backbones from the canonical registry."""
 
-from typing import Callable, Dict, Any
+from __future__ import annotations
 
-_backbones: Dict[str, Callable] = {}
+from typing import Any
 
-
-def register_backbone(name: str, factory: Callable):
-    _backbones[name.lower()] = factory
-
-
-def get_backbone(name: str, **kwargs):
-    name = name.lower()
-    if name not in _backbones:
-        raise ValueError(f"Unknown backbone: {name}. Available: {list(_backbones.keys())}")
-    return _backbones[name](**kwargs)
+from . import BackboneFactory
+from . import get_backbone as _resolve_backbone
+from . import list_backbones as _list_backbones
+from . import register_backbone as _register_backbone
 
 
-def list_available_backbones():
-    return list(_backbones.keys())
+def register_backbone(name: str, factory: BackboneFactory) -> None:
+    """Register a backbone in the package-owned canonical registry."""
+    _register_backbone(name, factory)
+
+
+def get_backbone(name: str, **kwargs: Any) -> Any:
+    """Construct a backbone while preserving this module's historical API."""
+    return _resolve_backbone(name)(**kwargs)
+
+
+def list_available_backbones() -> list[str]:
+    """Return names from the package-owned canonical registry."""
+    return _list_backbones()
