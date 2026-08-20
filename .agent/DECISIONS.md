@@ -1,5 +1,72 @@
 # Agent decisions log
 
+## 2026-08-20 — A2 canonical Strategy v1.0 and pure dry validation
+
+**Base, authority, and scope.** A fresh remote read verified both
+`origin/main` and the dedicated `agent/a2-strategy-schema` starting point at
+`e696cc43ace96a963f00bb28394da03d35eb267e`. A1 and its PR #9 cold-start
+registry repair are ancestral and complete, the sequencing hold is closed,
+the supported pre-edit CPU baseline passed 27 tests, and no canonical A2
+implementation had landed. The ratified A2 instruction resolves conflicting
+historical text: `schema_version` supersedes this ticket's old
+`strategy_version` wording; the rich top-level training/loss/curriculum/data
+examples in SPEC/Miner MCP and the pending Strategy Schema v1.1 proposal are
+not the A2 contract. The same ratified instruction supplies the narrow P0
+declarative-capability decision previously left open by OQ-008.
+
+**Canonical contract (REPLACE).** Strategy v1.0 has exactly four required
+top-level fields: exact `schema_version: "1.0"`, canonical-string
+`challenge_id`, canonical-string `backbone`, and exact-object `parameters`.
+The recognized schema-level backbone set is the immutable
+`deeponet`/`fno`/`physicsnemo_fno`/`uno` set; validation never imports or calls
+the mutable runtime registry. Both identifiers must already match ASCII
+`[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*`. No aliases, defaults, case folding,
+coercion, clamping, semantic dropping, document rewriting, or protocol hash is
+provided. The legacy `carbon/common/strategy_schema.py` remains untouched for
+historical callers but is not canonical A2 behavior.
+
+**Pure hostile-input boundary.** `carbon.schema.dry_validate` returns frozen,
+slotted `ValidationResult` and `ValidationIssue` values with stable codes,
+JSON-Pointer-like paths, deterministic sorting, and generic messages that do
+not echo submitted values or representations. Exact built-in JSON types are
+validated iteratively. Active-ancestor and completed-container identity sets
+reject cycles while bounding traversal work for shared DAGs; non-finite
+numbers, non-string keys, subclasses, bytes, tuples, sets, callables, and
+arbitrary objects fail closed without `repr` or user display methods. Recursive
+key semantics and unambiguous external-reference string forms reject the
+ratified executable, filesystem/network, dependency/environment, serialized
+artifact/model, official-evaluation identity, gate/Score Pack, and precomputed
+result capabilities. Unknown permitted parameter values remain inert; later
+execution must positively recognize and separately authorize semantics.
+
+**Explicitly unresolved.** Exact parser byte, depth, node, string-length, and
+error-count limits remain security/operations decisions. A2 uses no fabricated
+production numbers and keeps iterative frames suitable for adding ratified
+limits later. Persistent canonicalization and `strategy_hash` remain A7 work.
+Challenge lookup/LIVE qualification, official seeding, scoring, cards,
+fees/FSM, TrainEval/model construction, MCP transport, leaderboard, production
+observability, Bittensor operation, and all other A3+ behavior remain absent.
+
+**Local evidence.** The focused A2 suite passed 181 tests and the full default
+CPU lane passed 208. Ruff and Black passed strictly for all three changed
+Python files. The repository no-new-debt gate passed at Ruff 757/776 and Black
+62/68, removing 19 Ruff and six Black entries without adding debt;
+`git diff --check` passed. A fresh no-dependency wheel imported
+`carbon.schema.strategy` from `site-packages` outside the checkout and returned
+a valid result with every optional scientific/Bittensor and non-schema Carbon
+boundary blocked; attempted and loaded sensitive-module lists were empty. An
+independent adversarial review is clean after regression fixes for shared-DAG
+work, URI/path and compact-key bypasses, and injective control/non-BMP paths.
+
+The existing `POC_FAST=1 bash poc/scripts/smoke.sh` completed its oracle and
+three protocol fixture runs, then exited 2 during collection at the unchanged
+inherited `ImportError` for `poc.generators.burgers1d.role_seed`. That defect is
+not widened into A2. A2 is locally **IMPLEMENTED and TESTED** for its narrow
+schema boundary only. It is not scientifically validated, end-to-end
+execution-isolated, LIVE-qualified, production-qualified, or
+Bittensor-integrated. The Wave item remains `in_progress` until external review
+and merge.
+
 ## 2026-08-20 — Post-merge A1 cold-start backbone registry correction
 
 **Historical correction and status.** A1 PR #5 was reviewed at
