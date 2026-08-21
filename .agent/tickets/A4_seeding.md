@@ -5,8 +5,11 @@
 extension's A4 `exam_commitment` boundary
 **Depends on:** A0, A1, and A3's exact `ChallengeKey` and tagged-digest
 identity
-**Status:** `todo`; architecture is ratified, but implementation and tests have
-not begun
+**Status:** `in_progress`; bounded implementation is underway on
+`agent/a4-seeding` from exact base
+`e13baf312b811e2fd6784856c56d851a15f153fd`; branch implementation and CPU
+acceptance evidence are complete, while independent review, merge, reviewed-head
+ancestry verification, and post-merge `main` CI remain pending
 
 **Ratified decision:** `.agent/DECISIONS.md`, “2026-08-21 — A4
 pre-implementation seeding architecture ratification” (A4-R1 through A4-R11).
@@ -62,36 +65,36 @@ and A4 does not duplicate either A3 validation grammar.
 
 ## Definition of Done
 
-- [ ] Define only the six ratified top-level domains and the four distinct
+- [x] Define only the six ratified top-level domains and the four distinct
   canonical context-kind values.
-- [ ] Add non-coercible exact 32-byte entropy types, private derived-value
+- [x] Add non-coercible exact 32-byte entropy types, private derived-value
   types, exact A3 challenge/digest reuse, and immutable typed contexts.
-- [ ] Add a narrow fail-closed `BeaconProvider` protocol and a separately
+- [x] Add a narrow fail-closed `BeaconProvider` protocol and a separately
   typed deterministic fixture provider without selecting production timing,
   chain, finality, reorg, nonce, drand/hybrid, or fallback policy.
-- [ ] Add separate mock, official, qualification, and fixture-official
+- [x] Add separate mock, official, qualification, and fixture-official
   derivation entry points with their exact domain matrix and no shared mode
   switch.
-- [ ] Implement RFC 5869 HKDF-SHA-256 with scheme
+- [x] Implement RFC 5869 HKDF-SHA-256 with scheme
   `carbon.seed.hkdf-sha256.v1`, exact ratified salt, canonical TLV `info`, and
   full 32-byte output retention.
-- [ ] Implement strict versioned TLV encoding/validation, including hostile
+- [x] Implement strict versioned TLV encoding/validation, including hostile
   ordering, duplication, length, ASCII, digest, binding, and draw-index cases,
   using the exact A4-R9 schema tags and A4-R10/A4-R11 validator boundaries.
-- [ ] Bind every official identity input, exclude every forbidden dynamic or
+- [x] Bind every official identity input, exclude every forbidden dynamic or
   miner/validator-controlled input, and prove Strategy mutation, call order,
   retries, and global RNG state cannot alter a context or later result.
-- [ ] Implement the independent 32-byte private exam root, opaque unsigned
+- [x] Implement the independent 32-byte private exam root, opaque unsigned
   `ExamCommitment`, and value-only public projection without implementing an
   EvaluationReceipt or audit/evidence log.
-- [ ] Prove mock cannot request/access/affect official derivation;
+- [x] Prove mock cannot request/access/affect official derivation;
   qualification is restricted to `reference`/`dossier`; and fixture material
   cannot be relabelled as provider-origin official material.
-- [ ] Prove A4 public projections, card/leaderboard/MCP-shaped regression
+- [x] Prove A4 public projections, card/leaderboard/MCP-shaped regression
   fixtures, representations, and errors expose no official entropy, seed,
   draw, or reconstruction-sensitive material. Actual A6/A9/A10 serializers
   retain their own later integration tests.
-- [ ] Prove the installed `carbon.seeding` public API is dependency-free and
+- [x] Prove the installed `carbon.seeding` public API is dependency-free and
   imports no optional scientific, backend, MCP, validator, chain, or Bittensor
   modules.
 
@@ -110,6 +113,43 @@ security/emission claims.
 python -m pytest tests/cpu/test_seeding.py tests/cpu/test_no_leakage.py -q
 ```
 
-Neither test file exists yet; both belong to the later A4 implementation
-change. Every Definition-of-Done checkbox remains open in this ratification
-task.
+## Implementation evidence
+
+- Exact implementation base:
+  `e13baf312b811e2fd6784856c56d851a15f153fd`.
+- Branch and interpreter: `agent/a4-seeding`; CPython `3.11.11`.
+- Implementation: `carbon/seeding/model.py`, `encoding.py`, `derive.py`,
+  `commitment.py`, `provider.py`, and the explicit package exports in
+  `carbon/seeding/__init__.py`.
+- Acceptance tests: `tests/cpu/test_seeding.py` and
+  `tests/cpu/test_no_leakage.py`.
+- Focused command:
+  `python -m pytest tests/cpu/test_seeding.py tests/cpu/test_no_leakage.py -q`
+  — `230 passed in 3.55s`.
+- Complete default CPU command: `python -m pytest -q` —
+  `622 passed in 4.35s` (untouched-base baseline: `392 passed in 0.97s`).
+- Compilation command:
+  `python -m compileall -q carbon/seeding tests/cpu/test_seeding.py tests/cpu/test_no_leakage.py`
+  — passed.
+- Strict changed-file quality: `ruff check carbon/seeding
+  tests/cpu/test_seeding.py tests/cpu/test_no_leakage.py` — all checks passed;
+  `black --check carbon/seeding tests/cpu/test_seeding.py
+  tests/cpu/test_no_leakage.py` — eight files unchanged.
+- Repository quality gate against the exact base — passed with inventory
+  `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt, and
+  every changed Python file clean. Report: `/tmp/carbon-quality-a4.json`.
+- Fresh project wheel: `carbon-0.9.0-py3-none-any.whl`, SHA-256
+  `4bd58cc8b0e503cd127dd5c64f67970899ecabebd1554860121de8086028c511`.
+  A no-dependency install in a fresh venv ran the installed public API from
+  outside the checkout under CPython `3.11.11` with `python -I`: exact golden
+  seed and commitment passed, the provider was observed once, and blocked
+  optional/consumer imports were both attempted `[]` and loaded `[]`.
+- Maturity: A4-R1 through A4-R11 remain **SPECIFIED**; this PR branch is
+  **IMPLEMENTED** and **TESTED** to the stated CPU acceptance scope; merge and
+  current-`main` status are not established; **PRODUCTION-QUALIFIED: NO**.
+
+All branch implementation/test Definition-of-Done items are checked. A4 stays
+`in_progress` until independent review, merge, reviewed-head ancestry
+verification, and successful post-merge `main` CI. This is not closure
+evidence and makes no scientific, LIVE, backend, security, production, or
+emission qualification claim.
