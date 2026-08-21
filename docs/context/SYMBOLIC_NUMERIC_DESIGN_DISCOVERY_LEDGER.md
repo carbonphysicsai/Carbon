@@ -25,6 +25,11 @@
 | D-006 | Manufactured/reference cases must be separated from the general physical-system definition. | Poisson generality | HARDEN | Reference cases live in provenance/numerical realization, not governing model identity. | Supports evidence hierarchy. | Very high |
 | D-007 | Pre-designing all future physics variables would overfit imagined systems; no extension path would create repeated schema migrations. | v0.1 minimization | HARDEN | Small demonstrated core plus namespaced, non-authoritative extensions. Promotion requires repeated real use. | Supports disciplined extensibility; not pitch material. | High |
 | D-008 | Structural machine validation is useful only if explicitly denied scientific authority. | Validator design | KEEP | Validator checks references/shape/forbidden content, never scientific correctness or numerical adequacy. | Reinforces no-layer-certifies-itself doctrine. | Very high |
+| D-009 | Semantic authoring readiness is not binary. | Validator simulation | EXTEND/HARDEN | Distinguish structurally invalid, structurally valid-with-gaps, reviewable, and externally scientifically qualified states. Validator owns only structural boundary. | Useful whitepaper epistemic/maturity detail; probably not litepaper/pitch. | High |
+| D-010 | Coupled systems will likely require scoped symbol namespaces. | Validator simulation | DEFER | Keep global uniqueness in v0.1; revisit during multiphysics crash test. | None yet. | Medium-high |
+| D-011 | Units/dimensional analysis are promising authoring/evaluation primitives but current Carbon sources do not justify core unit semantics. | Validator simulation | DEFER | Keep as extension/research candidate until a real Challenge requires it. | Possible future scientific-method contribution; not yet integrate. | High |
+| D-012 | Structural validity cannot establish mathematical well-posedness. | Validator simulation | HARDEN | Any future model linter is advisory; scientific qualification remains external. | Strengthens bounded-automation doctrine. | Very high |
+| D-013 | Opaque extensions still need global secrecy invariants. | Validator simulation | HARDEN | Scan full artifact for forbidden protected-material classes; do not treat extension validation as public-safety proof. | Internal architecture only. | Very high |
 
 ## Gate template
 
@@ -42,7 +47,7 @@ For each remaining simulated implementation gate, record:
 
 ## Remaining simulated gates
 
-1. Structural validator execution/hardening.
+1. ~~Structural validator execution/hardening.~~ **PASS**
 2. ModelingToolkit adapter.
 3. Physics Evaluation Primitive Library.
 4. Challenge Compiler / dossier authoring integration.
