@@ -39,11 +39,19 @@
 | D-020 | Observed variables can preserve engineering meaning even when numerical transformations eliminate them as states. | MTK adapter simulation | KEEP/HARDEN | Retain observed-variable class and lineage through transformations. | Supports qualification/engineering interpretation. | High |
 | D-021 | A physically meaningful diagnostic may be unobservable from the candidate model's output contract. | Evaluation primitive simulation | EXTEND/HARDEN | Bind each candidate measurement to required observables; do not infer full residuals from insufficient outputs. | Strong scientific-design insight for whitepaper/canon. | Very high |
 | D-022 | Measurement identity includes numerical method, not just symbolic relation. | Evaluation primitive simulation | EXTEND | Define discretization/sampling, normalization, aggregation, precision and implementation version. | Important scientific credibility addition. | Very high |
-| D-023 | Carbon needs a MeasurementContract concept between physical semantics and score authority. | Evaluation primitive simulation | EXTEND | Trace relation/condition -> MeasurementContract -> dossier calibration -> Score Pack. Decide exact artifact placement in Gate 4. | Potential major canon/whitepaper architecture contribution. | High |
+| D-023 | Carbon needs a MeasurementContract concept between physical semantics and score authority. | Evaluation primitive simulation | EXTEND | Trace relation/condition -> MeasurementContract -> dossier calibration -> Score Pack. | Major canon/whitepaper architecture contribution. | High |
 | D-024 | Evidence role must be typed. | Evaluation primitive simulation | HARDEN/EXTEND | Distinguish generator validation, candidate evaluation, product qualification and Landscape descriptive measurements. | Strengthens evidence architecture. | Very high |
 | D-025 | Measurement applicability binds to assumptions + exact physical-system version. | Evaluation primitive simulation | HARDEN | No generic family-level conservation/residual metric without BC/source/regime assumptions. | Whitepaper/canon detail. | Very high |
 | D-026 | Machine-readable/generated diagnostics create a new Goodhart surface. | Evaluation primitive simulation | HARDEN | Preserve protected exams, stress diversity and independent evaluation; generated primitives never become the whole objective by default. | Strong reason Carbon's evaluation-information doctrine remains necessary. | Very high |
 | D-027 | Dimensionless features require characteristic-scale provenance. | Evaluation primitive simulation | DEFER/HARDEN | Do not auto-generate regime groups from names/units alone; qualify characteristic scales. | Future Landscape/canon research note. | High |
+| D-028 | Measurement definition, qualification, and score use are separate authorities. | Challenge Compiler simulation | EXTEND/HARDEN | Prefer standalone versioned MeasurementContract referenced by dossier and Score Pack. | Major architecture clarification for canon/whitepaper. | Very high |
+| D-029 | Challenge Compiler output is an authoring package, not a Challenge/certificate. | Challenge Compiler simulation | HARDEN | Generated plans cannot bypass scientific review, dossier evidence, registry, or scoring authority. | Important positioning guardrail if Challenge Compiler becomes commercial story. | Very high |
+| D-030 | Blocking scientific decisions differ from missing evidence. | Challenge Compiler simulation | EXTEND | Authoring workflow distinguishes unresolved definition choices from evidence work supporting a defined model. | Strong scientific workflow concept; whitepaper candidate. | High |
+| D-031 | EvidenceRequirement is a useful typed pre-evidence object. | Challenge Compiler simulation | EXTEND | Track required experiment/analysis separately from completed evidence; explicit lifecycle states. | Could strengthen evidence-system thesis and partner workflow. | High |
+| D-032 | Measurement qualification binds exact numerical implementation identity. | Challenge Compiler simulation | HARDEN | Material measurement implementation changes trigger recalibration/requalification. | Scientific credibility detail. | Very high |
+| D-033 | Thresholds are not portable by metric name alone. | Challenge Compiler simulation | HARDEN | Bind threshold basis to physical-system version + MeasurementContract + qualified envelope/dossier evidence. | Reinforces physics > arbitrary score framing. | Very high |
+| D-034 | Controlled partner semantics create a transparency compatibility test. | Challenge Compiler simulation | HARDEN/DEFER | Some proprietary problems may require distinct Challenge modes; open competition still needs enough auditable semantics. | Commercial/partner positioning issue worth preserving for final review. | High |
+| D-035 | Generated scientific documentation needs machine-visible evidence states. | Challenge Compiler simulation | HARDEN | Mark planned/unrun/satisfied/failed/waived explicitly so scaffolding cannot masquerade as evidence. | Strengthens transparent-evidence framing. | Very high |
 
 ## Gate template
 
@@ -64,7 +72,7 @@ For each remaining simulated implementation gate, record:
 1. ~~Structural validator execution/hardening.~~ **PASS**
 2. ~~ModelingToolkit adapter.~~ **PASS WITH ARCHITECTURE EXTENSIONS**
 3. ~~Physics Evaluation Primitive Library.~~ **PASS — MEASUREMENT CONTRACT DISCOVERED**
-4. Challenge Compiler / dossier authoring integration.
+4. ~~Challenge Compiler / dossier authoring integration.~~ **PASS — MEASUREMENT IDENTITY + EVIDENCE REQUIREMENT**
 5. Landscape physical-context integration.
 6. Hybrid model-construction search.
 7. Coupled/multiphysics crash test.
