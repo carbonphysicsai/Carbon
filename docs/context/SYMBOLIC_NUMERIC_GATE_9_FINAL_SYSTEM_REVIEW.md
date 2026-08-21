@@ -519,9 +519,3 @@ starting with neural operators
 ```
 
 ### Keep off stage unless asked
-
-- symbolic-numeric modeling;
-- PhysicalSystemSpec;
-- MeasurementContract;
-- Challenge Compiler;
-- Landscape causal
