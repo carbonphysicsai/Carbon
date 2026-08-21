@@ -1,23 +1,22 @@
 # Ticket A5 — Scoring engine + fixture Score Pack (C5)
 
 **Wave:** A
-**Status:** `in_progress` — bounded fixture-only implementation on
-`agent/a5-scoring-engine` from exact main
-`af43d68ec3b9dcfd8818a61ab219759b2c859d78`
+**Status:** `done` — reviewed bounded fixture-only implementation head
+`fc2f27a7150d5ed0e374e7cd79eea40ef7ede556` merged normally through PR #20
+as implementation merge commit `6f813e979ef6edde2b8f1821d1ac26f62938633a`
 **Build_Out:** C5; `Design_Specs/Scoring.md` is the sole scoring authority
 **Depends on:** A0–A4; reuse A3 exact identity/digest validation and preserve
 A4 pin compatibility without accepting seeds or draw identity
 
 ## Maturity gate
 
-This ticket is **SPECIFIED / RATIFIED** and **IMPLEMENTED on the bounded draft
-branch head**. It is **TESTED only for the exact fixture-only CPU scope recorded
-below**, remains **NOT PRODUCTION-QUALIFIED**, and stays `in_progress` pending
-draft-PR review and a separately authorized merge/closeout. Fresh remote/main,
-concurrency, authority, dependency, and repository-scope checks passed before
-branch creation. The clean Python 3.11.11 pre-edit regression baseline reported
-`622 passed in 5.71s`; that baseline remains regression context, not A5
-behavioral evidence.
+This ticket is **SPECIFIED / RATIFIED** and **IMPLEMENTED on current `main`**.
+It is **TESTED only for the exact fixture-only CPU scope recorded below**,
+remains **NOT PRODUCTION-QUALIFIED**, and is `done` only for the bounded Wave A
+scope. Fresh remote/main, concurrency, authority, dependency, and
+repository-scope checks passed before branch creation. The clean Python 3.11.11
+pre-edit regression baseline reported `622 passed in 5.71s`; that baseline
+remains regression context, not A5 behavioral evidence.
 
 ## Goal for this implementation
 
@@ -125,7 +124,7 @@ fixture-origin, structurally non-emission-authoritative `InternalResult`.
 - [x] The implementation and tests use only existing/standard-library
       dependencies; no dependency is added.
 
-## Bounded branch evidence
+## Bounded implementation and closeout evidence
 
 - Python 3.11.11 focused A5 command
   `python -m pytest tests/cpu/test_scoring_engine.py -q` passed
@@ -144,9 +143,26 @@ fixture-origin, structurally non-emission-authoritative `InternalResult`.
   installed wheel, scored the fixture to binary64 `0.8945915647907036`, loaded
   or attempted no prohibited optional/later-owner module, and remained
   false-eligible. No dependency or production/LIVE path was added.
-- Independent review reported no remaining P0/P1/P2 implementation finding.
-  These are bounded draft-branch results, not merged-main, scientific
-  qualification, security/operations qualification, or production evidence.
+- Independent review reported no remaining P0/P1/P2 implementation finding at
+  exact head `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`. PR CI `32474141634`
+  passed that head with `923` CPU tests in `9.57s` and Code quality at
+  `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black 6`, eight changed
+  Python files, no new debt, and all changed Python files clean.
+- PR #20 merged that head normally as
+  `6f813e979ef6edde2b8f1821d1ac26f62938633a`, with tree
+  `54e3472e34731b64d796f8db7d091da70c6afd43` and ordered parents
+  `af43d68ec3b9dcfd8818a61ab219759b2c859d78` then the reviewed head. The head
+  is ancestral to current `main`, and the merge tree is identical, so there
+  was no resolution drift or repair commit.
+- Post-merge push CI `32494936120` passed `923` CPU tests in `10.23s`; Code
+  quality reported `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black
+  6`, eight changed Python files, no new debt, and all changed Python files
+  clean. This is bounded fixture engineering evidence, not scientific,
+  backend/libm, security/operations, LIVE, emission, or production
+  qualification.
+- Every bounded Definition-of-Done item above is satisfied. The fixture remains
+  structurally non-emitting; A6 and all later responsibilities remain separate
+  and unstarted by this closeout.
 
 ## Must not
 

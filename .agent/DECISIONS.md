@@ -1,5 +1,43 @@
 # Agent decisions log
 
+## 2026-08-22 — A5 closure after reviewed merge
+
+**Merge topology and review.** The bounded implementation started from exact
+base `af43d68ec3b9dcfd8818a61ab219759b2c859d78` and was independently reviewed
+at exact head `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`. PR #20 merged normally as
+`6f813e979ef6edde2b8f1821d1ac26f62938633a`, with tree
+`54e3472e34731b64d796f8db7d091da70c6afd43` and ordered parents
+`af43d68ec3b9dcfd8818a61ab219759b2c859d78` then
+`fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`. The reviewed head is ancestral to
+current `main`, and its tree is exactly the merge tree. GitHub contains no
+formally submitted approval object, and this record does not claim one;
+independent reviews and explicit human authorization are the process evidence.
+No amendment or repair commit was made or required.
+
+**Exact-head review evidence.** PR CI run `32474141634` completed successfully
+for reviewed head `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`. Its CPU job passed
+`923` tests in `9.57s`; Code quality reported `Ruff 757/776; Black 62/68`,
+removed debt `Ruff 19, Black 6`, eight changed Python files, no new debt, and
+all changed Python files clean.
+
+**Post-merge evidence.** Push CI run `32494936120` completed successfully for
+the exact merge commit. The CPU job passed `923` tests in `10.23s`. Code quality
+reported `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black 6`, eight
+changed Python files, and no new debt, with every changed Python file clean.
+The sole canonical fixture remains
+`tests/fixtures/score_packs/a5_fixture_v1.json`, exactly 2,126 bytes, with
+external digest
+`sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57`.
+
+**Closure and boundary.** A5 is **SPECIFIED / RATIFIED: YES**,
+**IMPLEMENTED: YES on current `main`**, and **TESTED: YES only to the bounded
+fixture CPU scope**; it remains **PRODUCTION-QUALIFIED: NO**. **WAVE STATUS:
+`done` after this closeout is merged.** The merge and this documentation-only
+closeout added no dependency or lockfile, A6 or later behavior, LIVE or
+production-origin pack, or emission-authoritative path. Passing regression CI
+is evidence for the merged bounded implementation, not LIVE, scientific,
+emission, or production qualification. A5-R1 through A5-R14 remain unchanged.
+
 ## 2026-08-21 — A5 bounded fixture implementation evidence
 
 **Scope and disposition.** The authorized implementation branch

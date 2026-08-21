@@ -6,13 +6,17 @@
 **Implementation branch:** `agent/a5-scoring-engine`
 **Implementation starting main:**
 `af43d68ec3b9dcfd8818a61ab219759b2c859d78`
-**Status:** bounded fixture-only implementation `in_progress`; A6 and later
-work remain out of scope
+**Reviewed implementation head:**
+`fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`
+**Implementation merge:**
+`6f813e979ef6edde2b8f1821d1ac26f62938633a`
+**Status:** bounded fixture-only A5 `done`; A6 and later work remain out of
+scope
 
-This is the bounded plan and evidence record governing the current A5
-implementation. The draft-branch tree now satisfies the bounded implementation
-and CPU acceptance items recorded below; it adds no dependency, does not
-authorize A6 or later work, and establishes no production qualification.
+This is the closed bounded plan and evidence record for A5. The reviewed
+implementation is on current `main` and satisfies the bounded implementation
+and fixture CPU acceptance items recorded below; it adds no dependency, does
+not authorize A6 or later work, and establishes no production qualification.
 
 ## Implementation preflight and baseline
 
@@ -32,7 +36,7 @@ authorize A6 or later work, and establishes no production qualification.
 - The baseline establishes regression state only. It is not A5 behavioral test
   evidence and does not make A5 implemented, tested, or production-qualified.
 
-## Bounded draft-branch implementation evidence
+## Branch-local and merged-main implementation evidence
 
 - The retained/narrowly repaired A3 reader securely opens one regular file,
   reads one bounded byte sequence, checks its required external tagged SHA-256,
@@ -59,10 +63,26 @@ authorize A6 or later work, and establishes no production qualification.
   `carbon.scoring`, loaded and scored the exact fixture at binary64
   `0.8945915647907036`, remained false-eligible, and attempted/loaded no YAML,
   optional scientific backend, legacy scorer, or later-owner module.
-- Independent final review found no remaining P0/P1/P2 issue. This evidence is
-  bounded to the draft implementation tree. It is not merged-main evidence,
-  scientific qualification, backend/libm qualification, security/operations
-  qualification, LIVE authorization, or production qualification.
+- Independent final review found no remaining P0/P1/P2 issue at exact head
+  `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556`. Those branch-local results are
+  the bounded fixture implementation evidence; they are not scientific,
+  backend/libm, security/operations, LIVE, emission, or production
+  qualification.
+- PR CI `32474141634` passed on that exact reviewed head: `923` CPU tests in
+  `9.57s`; Code quality at `Ruff 757/776; Black 62/68`, removed debt `Ruff 19,
+  Black 6`, eight changed Python files, no new debt, and every changed Python
+  file clean.
+- PR #20 merged that exact head normally as implementation merge commit
+  `6f813e979ef6edde2b8f1821d1ac26f62938633a`, with exact tree
+  `54e3472e34731b64d796f8db7d091da70c6afd43` and ordered parents
+  `af43d68ec3b9dcfd8818a61ab219759b2c859d78` then the reviewed head. The head
+  is ancestral to current `main`, and its tree equals the merge tree, proving
+  no merge-resolution drift or repair commit.
+- Post-merge push CI `32494936120` passed `923` CPU tests in `10.23s`. Code
+  quality reported `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black
+  6`, eight changed Python files, no new debt, and all changed Python files
+  clean. This establishes current-main engineering truth only for the bounded
+  fixture CPU scope.
 
 ## Ratification-time repository gate and maturity
 
@@ -74,18 +94,21 @@ authorize A6 or later work, and establishes no production qualification.
 - At ratification, `.agent/WAVE.md` recorded A5 and every later ticket as
   `todo`; that historical state was superseded only by the guarded
   implementation start recorded above.
-- `carbon/scoring/` contains only the A0 package marker. There is no canonical
-  A5 engine, pack loader/model, `ScoreInput`, `InternalResult`, fixture Score
-  Pack JSON, default-CPU A5 test, or prior A5 plan.
+- At that ratification point, `carbon/scoring/` contained only the A0 package
+  marker. There was no canonical A5 engine, pack loader/model, `ScoreInput`,
+  `InternalResult`, fixture Score Pack JSON, default-CPU A5 test, or prior A5
+  plan.
 - Historical scorers under `carbon/common/`, `poc/`, and `neurons/` and tests
   under `tests/legacy/` or `poc/tests/` use superseded or incomplete semantics.
   Their existence is archaeology, not canonical A5 implementation or test
   evidence.
-- Therefore A5's contract is **SPECIFIED / RATIFIED** only. A5 is **NOT
-  IMPLEMENTED**, **NOT TESTED**, and **NOT PRODUCTION-QUALIFIED**.
-- Future implementation may start only after the ratification PR is
-  independently reviewed, human-authorized, merged, and followed by a fresh
-  main/concurrency/authority/status check.
+- Therefore, at ratification, A5's contract was **SPECIFIED / RATIFIED** only;
+  it was **NOT IMPLEMENTED**, **NOT TESTED**, and **NOT
+  PRODUCTION-QUALIFIED**.
+- Implementation could start only after the ratification PR was independently
+  reviewed, human-authorized, merged, and followed by a fresh
+  main/concurrency/authority/status check; that guarded sequence is recorded
+  above.
 
 ## Authoritative source map
 
@@ -162,7 +185,7 @@ identity.
 
 ## Complete pack pin
 
-The future immutable pin has exactly these semantic bindings:
+The immutable pin has exactly these semantic bindings:
 
 | Binding | Contract |
 |---|---|
@@ -191,7 +214,7 @@ latest-version lookup, or fallback is permitted.
 ## Closed schema and scalar operators
 
 `Design_Specs/Scoring.md` §§2.4 and 6 fix the complete logical schema and
-operation order. The future JSON contains exactly the pin fields,
+operation order. The schema-1.0 runtime JSON contains exactly the pin fields,
 `hard_gates`, `physics`, `robustness`, `accuracy`, exact top-level `weights`,
 and `combination = "weighted_geometric_logspace"`.
 
@@ -237,7 +260,7 @@ score, or eligibility.
 
 ## Closed `ScoreInput` boundary
 
-The future `ScoreInput` is an immutable validator-owned value object, not a
+`ScoreInput` is an immutable validator-owned value object, not a
 generic mapping. Its semantic content is limited to:
 
 - the complete exact pack pin;
@@ -391,7 +414,7 @@ qualification remains human/later owned.
 
 ## Private `InternalResult`
 
-The future private result has only the minimum stable scoring contract:
+The private result has only the minimum stable scoring contract:
 
 - status: `SCORED`, `MANDATORY_GATE_FAILED`, or `PACK_NOT_READY`;
 - complete exact pack pin, including fixture origin;
@@ -418,7 +441,7 @@ and result and cannot be defaulted or relabelled. It is structural marking,
 not authenticated provenance.
 
 Even a complete pass with a non-zero combined score is
-`eligible_for_emission = False`. The future fixture file and every synthetic
+`eligible_for_emission = False`. The exact fixture file and every synthetic
 threshold/value must be unmistakably non-LIVE and non-qualified. A
 production-origin loader or emission-authoritative result is outside A5 and
 requires later specification, implementation, scientific/security/operational
@@ -439,7 +462,7 @@ qualification, and human authorization.
 
 ## Implemented bounded files
 
-The smallest anticipated A5 implementation surface is:
+The bounded implemented A5 surface is:
 
 | Path | Responsibility |
 |---|---|
@@ -450,8 +473,9 @@ The smallest anticipated A5 implementation surface is:
 | `tests/fixtures/score_packs/a5_fixture_v1.json` | Exact-byte, visibly synthetic, fixture-origin runtime artifact; no YAML runtime twin or embedded digest. |
 | `tests/cpu/test_scoring_engine.py` | Focused contract, failure, numerical, exclusion, and import-isolation acceptance tests. |
 
-The ratification created none of these runtime/test artifacts; the bounded
-implementation branch now contains exactly this scoring surface.
+The ratification created none of these runtime/test artifacts; the reviewed
+implementation branch added exactly this scoring surface, which is now on
+current `main`.
 
 ## Implemented bounded CPU tests
 
@@ -517,9 +541,8 @@ must not create a cycle with A6/A7/A8 or later packages.
 
 ## Bounded implementation sequence
 
-The reviewed ratification merge and fresh start gate authorize this sequence.
-Steps 1–7 are complete on the draft branch; step 8 remains the current review
-boundary:
+The reviewed ratification merge and fresh start gate authorized this sequence.
+All eight steps are complete:
 
 1. Re-verify exact `main`, A5 `todo`, dependencies, and absence of competing
    A5 work; record exact base before creating a new implementation branch.
@@ -534,16 +557,16 @@ boundary:
    exact `python_binary64_v1` log-space aggregation.
 7. Add the focused tests above, then run the focused/default CPU, import,
    formatting, lint, and no-new-debt gates.
-8. Open a separate implementation PR for independent review. Do not mark A5
-   `done` until exact-head review, acceptance evidence, authorized merge, and
-   post-merge verification are complete.
+8. Open a separate implementation PR for independent review; complete
+   exact-head review, acceptance evidence, authorized merge, and post-merge
+   verification before administrative closeout.
 
-This sequence is the current bounded execution record, not authorization for
+This completed sequence is the bounded execution record, not authorization for
 A6 or later work.
 
-## Completion evidence required before A5 can be `done`
+## Completion evidence satisfied for bounded A5 closeout
 
-A later implementation closeout must identify:
+This closeout records:
 
 - exact main base, implementation head, reviewed head, merge topology, and
   post-merge ancestry;
@@ -556,11 +579,10 @@ A later implementation closeout must identify:
 - an updated maturity ledger distinguishing bounded implementation/testing
   from scientific/security/operations/production qualification.
 
-Bounded branch-head acceptance is complete: A5 is **SPECIFIED / RATIFIED**,
-**IMPLEMENTED on the draft branch head**, and **TESTED only for the recorded
-fixture CPU scope**. It is **NOT PRODUCTION-QUALIFIED** and remains
-`in_progress` until independent draft-PR review, a separately authorized merge,
-and closeout.
+A5 is **SPECIFIED / RATIFIED: YES**, **IMPLEMENTED: YES on current `main`**,
+and **TESTED: YES only for the recorded fixture CPU scope**. It is **NOT
+PRODUCTION-QUALIFIED** and its bounded Wave A status is `done`. This closeout
+does not begin A6 or any later work.
 
 ## Explicit non-goals of this ratification and A5
 

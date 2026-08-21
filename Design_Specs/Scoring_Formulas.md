@@ -10,8 +10,9 @@
 > fail-or-zero language are superseded by `Scoring.md` and must not be
 > implemented.
 >
-> **Maturity:** A5 is contract-ratified but remains `todo`, **NOT
-> IMPLEMENTED**, **NOT TESTED**, and **NOT PRODUCTION-QUALIFIED**.
+> **Maturity:** A5 is contract-ratified, **IMPLEMENTED** on current `main`,
+> **TESTED only for the bounded fixture CPU scope**, and `done`; it remains
+> **NOT PRODUCTION-QUALIFIED**.
 
 ---
 
@@ -112,15 +113,20 @@ members of the closed `ScoreInput`, and trust-boundary presentation rejects.
 
 ## 6. Implementation status
 
-The future A5 implementation/test locations are planned in
-`.agent/plans/A5_scoring_engine.md` and summarized by `Scoring.md` §12. At this
-ratification point:
+The bounded A5 implementation/test locations and evidence are recorded in
+`.agent/plans/A5_scoring_engine.md` and summarized by `Scoring.md` §12. Reviewed
+head `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556` was merged through PR #20 as
+`6f813e979ef6edde2b8f1821d1ac26f62938633a`; post-merge CI `32494936120`
+passed 923 CPU tests and Code quality. At bounded A5 closeout:
 
-- `carbon/scoring/` still contains only its A0 marker;
-- no strict JSON fixture Score Pack exists;
-- no `ScoreEngine`, `ScoreInput`, or `InternalResult` implementation exists;
-- no `tests/cpu/test_scoring_engine.py` exists; and
-- no scoring behavior is tested or production-qualified by this document.
+- `carbon/scoring/` contains the strict loader, closed models, and fixture-only
+  engine;
+- `tests/fixtures/score_packs/a5_fixture_v1.json` is the exact externally
+  digest-pinned runtime fixture;
+- `tests/cpu/test_scoring_engine.py` covers the bounded fixture CPU contract;
+  and
+- this subordinate document neither defines implementation behavior nor
+  provides scientific, LIVE, emission, or production qualification.
 
 The historical PoC/legacy code and tests remain non-authoritative archaeology.
 
