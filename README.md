@@ -2,148 +2,253 @@
 
 # Carbon
 
-**A Bittensor subnet for verifying physics-based AI models**
+**Discovery + evidence for Physics AI**
 
-Carbon pays miners to find better ways to train fast physics models. It only pays when those methods survive an independent exam the miner does not control.
+Carbon pays people and agents to find better ways to build fast physics models, then independently tests what survives.
 
----
-
-## The Problem
-
-High-fidelity simulation is accurate but too slow for large design spaces and real-time control.  
-Pure machine-learning surrogates are fast but often break conservation laws, fail outside their training data, or look good on a leaderboard and fail when you actually try to use them.
-
-Engineering teams will not bet expensive decisions on a model just because someone claimed a low test loss. They need evidence the model still behaves under stress, and a clear path from research competition to something they can actually deploy. Physics breakdowns are expensive and not optional. A chief engineer needs something auditable and reconstructible to defend a model in a design review.
+**P0 starts narrower:** neural-operator training strategies, validator-controlled fresh retraining, and protected physics / robustness / accuracy evaluation. The long-term architecture is broader; the launch implementation is deliberately not.
 
 ---
 
-## What Carbon Does
+## The problem
 
-Carbon runs a competition to find training methods for neural operators (models that learn entire families of physical simulations, not single cases). We build off open tooling (NVIDIA PhysicsNeMo, SciML/Julia Labs, and others). Once trained and verified, the models are cheap and fast for design exploration, real-time control systems, agentic solving, and any use case that needs trustworthy next-state prediction.
+High-fidelity simulation is foundational to engineering, but it is often too expensive for very large design searches, real-time loops, dense uncertainty studies, or increasingly agentic engineering workflows.
 
-1. **Miners** submit a training strategy (and optional model artifacts).  
-2. **Validators** retrain and evaluate on data the miner never saw, with hard physics checks. Fail a check → score zero.  
-3. **Emissions** follow that independent score — not self-reported metrics.  
-4. As the network matures, verified results can feed better starting points for the next round of search and, separately, stronger commercial models that pass harder product tests.
+Fast learned or reduced models can change the economics of repeated physical prediction. But low average error does not establish that a candidate preserves required physics, remains robust in difficult regimes, survives independent reproduction, or is adequate for the engineering job in which it will be used.
 
-Traditional neural operators are dominated by accuracy-driven objectives. They may solve overfitting, but the objective still drives them toward accuracy and learning data, which is why they struggle with real physics in deployment. Carbon changes the optimization target: physics gates, fidelity, and model robustness are weighted more than pure training loss accuracy in the final score. We are driving miners at training strategies that survive a different objective, and learning from them. That is the valuable work Carbon is paying for and that the validators are pressure-testing. It is plausible that the Pareto front of methods under hard physics + stress differs from those under pure accuracy. Bittensor miners are the right tool for finding it.
+Carbon attacks that gap at the level of the research system:
 
-The training data and evaluation criteria are generated in real time, seed-triggered, impossible for the miners to know ahead of time, challenge-specific, fully auditable, and verified against real physics and real simulation tools. Every training run generates a Model Card that captures how it was trained, how accurate it was, and how it scored on the real physics testing. That data is used to return value to miners, improve the evaluation, improve challenge design, and develop industry-deployable models.
-
-Discovery stays cheap. Anything sold as a product has to clear a higher bar than “won a leaderboard row.”
+> **Better optimizers amplify whatever objective you give them. Carbon makes physics-surviving performance economically consequential and keeps the producer separate from the official grade.**
 
 ---
 
-## Why This Design
+## What Carbon is
 
-| Usual failure | Carbon’s answer |
-|---------------|-----------------|
-| Miner grades their own homework | Validators run the exam on hidden, freshly generated data |
-| Good average error, bad physics | Hard gates on conservation and residuals — fail closed |
-| Overfit to a fixed public benchmark | Train, eval, and stress data are separated; stress is procedural |
-| Leaderboard model treated as shippable product | Competition score ≠ commercial qualification |
-| No memory across rounds | Over time, verified outcomes can inform search without giving away the exam |
+At the system level, Carbon is an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.
 
-The scarce layer is not another fast model. It is credible verification as agentic and automated training scales. Physics is well defined and perfectly suited for the Bittensor evaluation and compounding intelligence loop; this is math. Validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. Bittensor is the value creation engine for Carbon. The open source and auditable training and evaluation mechanism is exactly what an engineer needs to defend the deployment of these physics models in high-risk environments.
+The high-level workflow is:
 
----
+```text
+defined physical modeling problem
+        ↓
+registered Challenge
+(task / envelope / scientific evidence contract)
+        ↓
+people + agents compete over how to build the fast model
+        ↓
+independent execution / reconstruction
+        ↓
+protected physics + robustness + accuracy exam
+        ↓
+evidence about what worked and where it failed
+        ↓
+selected candidates enter harder product qualification
+```
 
-## How a Round Works (simple)
+Carbon standardizes the **job and the scientific exam**, not the terminal model ideology.
 
-1. A challenge defines a physics regime and what “good” means (accuracy under stress, physical consistency).  
-2. A miner submits a strategy — how to train (architecture choices, losses, schedules, etc.).  
-3. Validators regenerate evaluation data, train under the submitted strategy where required, and run physics gates + held-out and stress tests.  
-4. A public, challenge-specific scoring rule turns results into a score. Critical failures zero the submission.  
-5. Scores drive on-chain weights / emissions.
+Neural operators are the first model class. Longer term, the architecture is intended to support other admissible construction families — such as hybrid, reduced-order, classical, symbolic/numeric, or composed methods — only when Carbon can compare them fairly under a common registered task/output contract and preserve independent evaluation.
 
-Details of formulas, configs, and phase roadmap live in the technical docs — not required to understand the subnet.
-
----
-
-## Agent Friendly MCP Miner Solving Loop
-
-Competing on training strategy only works if people can try ideas quickly. Carbon’s miner surface is specified in [`Design_Specs/Miner_MCP.md`](./Design_Specs/Miner_MCP.md) (normative).
-
-**Free loop (default — no exam fee):**
-
-1. **`get_prior`** — noisy, lagged steer / avoid / explore (not weights, not the exam).  
-2. **`get_mock_scaffold`** — versioned, deliberately mediocre *runnable* baseline (not an invert of the prior).  
-3. **`estimate`** — doom filter + prior-delta only; **non-binding**; never a predicted lean score.  
-4. **`light_compare` / `light_train`** — practice on **mock** packs only (intentionally incomplete vs the official exam so free signal stays useful but not a leaked surrogate of the validator).  
-
-**Paid loop (rare — only official grade):**
-
-5. **`submit`** — small fee; hidden data; hard gates; Score Pack.  
-6. **`get_submission_result`** — **budgeted** EvaluationCard (overall, coarse components, gate pass/fail, failure tags). Enough to repair the next hypothesis; not enough to reconstruct the hidden exam through repeated queries.
-
-Mining is agentic auto-research on purpose: grind free, submit when the free signal justifies the fee. Validators always grade the same way. Estimate and light_compare never enter emissions. Full tool contract, anti-gaming rules, and invariants: `Miner_MCP.md`. Build order: `Build_Out.md`.
+> **Model class is a hypothesis. Registered external evidence is the judge.**
 
 ---
 
-## Market and Product
+## P0: prove the judge first
 
-"Expensive engineering decisions need auditable, reconstructible truth; fake benchmarks don’t move a chief engineer."
+The current launch path remains intentionally bounded.
 
-**Who pays**  
-Teams that already run simulation and are hitting cost or latency walls: design exploration, real-time or hardware-in-the-loop response, uncertainty screening, and hybrid setups where a fast model sits next to a classical solver. The buyer is not “crypto.” It is a chief engineer or SciML lead who will not accept a fake benchmark. Challenges will progress from simple PDEs to more complex physics regimes targeted at valuable engineering fields and use cases (Aerospace, Auto, Robotics, Propulsion, UAV/Drones). The subnet is designed from day one so competition produces evidence that can later support the development of valuable commercial specialists.
+1. **Miners / agents** submit a neural-operator training strategy.  
+2. **Validators** independently train from scratch on validator-controlled data and evaluate on protected test/stress realizations.  
+3. **Mandatory physics failures are disqualifying.** A required gate failure yields zero authoritative score.  
+4. **Emissions** follow the registered independent score — not self-reported metrics.  
+5. **Evidence** is recorded for the evaluated method and result.  
+6. **Winning the subnet is not product qualification.** Selected methods face a separate, harder product path.
 
-**What we sell**  
-The product is envelope qualified models and evidence:
-
-| Offering | What the customer gets |
-|----------|-------------------------|
-| **Standard specialist** | A model trained for a public regime, with evaluation history and license terms |
-| **Sponsored open challenge** | They fund a physics regime; the network competes; results stay broadly usable |
-| **Sponsored licensed challenge** | Same competition, tighter IP and distribution terms |
-| **Private challenge** | Highest control and cost — only when trust and process exist |
-
-Price and privacy go up together. Early revenue is expected from sponsored challenges and licensed specialists, not from charging miners to play. Carbon will enable industry players to sponsor their own challenge targeted at their specific physics envelope. Custom surrogate development and verification without having to expose proprietary data is a valuable service for major engineering players.
-
-The subnet team builds a knowledge graph of the Model Cards and uses them to retrain, retest, and harden specialist models built for industry deployment. That process is purposely more rigorous than the mining evaluation. We want the mine → validate → feedback loop to stay fast, but we build real thorough due diligence into the models we are selling.
-
-**How we aim development**  
-Build order follows what a skeptical buyer would ask:
-
-1. Make the exam real — one challenge, honest scoring, reproducible cards. No product claims before this.  
-2. Prove the loop — miners can compete; validators can run; scores mean something under stress.  
-3. Only then productize — harder qualification for anything sold; clear separation from competition rank.  
-4. Grow regimes that match demand — fluids, structures, and multiphysics paths that map to CAE and digital-twin budgets, including sponsored regimes when partners show up.  
-5. Stay compatible with the tools people already use — export paths into common ML and simulation stacks; do not try to replace Ansys or the GPU vendor.
-
-We do not prioritize dashboards, multi-challenge sprawl, or “AI agent theater” ahead of a trustworthy first exam. Market fit is earned by models someone can defend in a design review, not by subnet narrative alone.
+Current P0 scoring mathematics, challenge binding, data separation, disclosure, and validator behavior remain governed by the normative specifications, especially [`Scoring.md`](./Design_Specs/Scoring.md), [`Miner_MCP.md`](./Design_Specs/Miner_MCP.md), [`Data_Management.md`](./Design_Specs/Data_Management.md), and [`Trustless_Verification.md`](./Design_Specs/Trustless_Verification.md).
 
 ---
 
-## What the network learns over time
+## Why the producer does not own the exam
 
-- **Search signal** — which training ideas actually survive stress  
-- **Qualified models** — for design exploration, real-time response, uncertainty, or hybrid solver loops  
-- **Sponsored regimes** — organizations fund challenges and receive models under agreed terms  
+| Failure mode | Carbon response |
+|---|---|
+| Producer grades its own work | Independent validators run the official exam |
+| Good average error, bad physics | Challenge-specific hard physical admissibility gates |
+| Repeated adaptation to a public benchmark | Protected realizations + disclosure discipline + Challenge lifecycle |
+| One lucky checkpoint looks strong | Current learned-model path uses fresh independent retraining |
+| Leaderboard winner treated as deployable product | **Rank nominates; evidence qualifies** |
+| Experimental history becomes storytelling | Physics intelligence must earn value through better prospective decisions |
 
-Early phases focus on getting the exam right. Product layers expand only after that foundation holds.
-
----
-
-## Who this is for
-
-| Audience | Why care |
-|----------|----------|
-| **Miners / agents** | Compete on strategy quality; iterate with leader insights and cheap estimates before full submit |
-| **Validators** | Run a defined evaluation pipeline; secure the integrity of scores |
-| **Engineering / SciML teams** | Models with reconstructible evaluation history, not only a chart |
-| **Sponsors** | Fund a physics regime; get specialists under open, licensed, or private terms |
+The exam hides the **realization**, not the science. The physical problem, declared envelope, generator logic, scoring mathematics, versions, and appropriate validation evidence are inspectable; protected official seeds/draws remain unavailable to participants before evaluation.
 
 ---
 
-## Stack position (one sentence)
+## How discovery can deepen
 
-GPU vendors and CAE platforms own engines and tools. Carbon owns decentralized discovery of training methods plus independent verification — with a clear line between competition results and anything offered as a product.
+Carbon's discovery space can expand in levels without changing who controls the grade:
+
+```text
+parameters
+    ↓
+recipes / training strategies
+    ↓
+architectures / model compositions
+    ↓
+model-construction methods
+    ↓
+new construction algorithms
+```
+
+P0 is bounded strategy search. Open-ended construction-algorithm discovery is a long-term research direction, not a live launch capability.
+
+The proposed generalized `ReconstructionProtocol` is currently under tech/science-lead review. **P0 remains fresh validator-controlled neural retraining unless and until that abstraction is explicitly ratified and implemented.**
+
+---
+
+## Agent-friendly miner loop
+
+Carbon's miner surface is specified in [`Design_Specs/Miner_MCP.md`](./Design_Specs/Miner_MCP.md).
+
+**Free / practice loop**
+
+1. `get_prior` — bounded, noisy, lagged guidance.  
+2. `get_mock_scaffold` — versioned runnable practice baseline.  
+3. `estimate` — non-binding screening only.  
+4. `light_compare` / `light_train` — mock/practice execution only.
+
+**Official path**
+
+5. `submit` — protected authoritative evaluation.  
+6. `get_submission_result` — budgeted result disclosure sufficient to guide research without becoming a high-bandwidth answer-key oracle.
+
+Mock/practice metrics never enter emissions.
+
+---
+
+## What compounds
+
+Every authoritative experiment can add structured evidence. That does **not** mean every run automatically makes Carbon smarter.
+
+The intended hierarchy is:
+
+```text
+candidate fast physical models
+        ↓
+verified experimental evidence
+        ↓
+experimental memory
+        ↓
+physics intelligence — only if future decisions improve
+        ↓
+reusable construction methods — only after sufficient reproduction/evidence
+```
+
+Carbon uses **physics intelligence** to mean provenance-bearing knowledge about how model-construction interventions interact with physical structure, regime, measurement, and engineering context, demonstrated by improved prospective scientific or engineering decisions.
+
+A card lake, graph, embedding, or ontology is not automatically physics intelligence merely because it exists.
+
+The scientific canon also has a bounded **Agentic Exploration Zone** role: literature, Challenge semantics, permitted Landscape evidence, and registered methods may inform what agents try.
+
+> **Canon informs hypotheses. Carbon experiments adjudicate them.**
+
+---
+
+## From subnet to engineering product
+
+Discovery and qualification answer different questions.
+
+```text
+DISCOVERY
+Which method survives the registered independent exam?
+
+QUALIFICATION
+Can this exact artifact or system support this exact engineering use?
+```
+
+A selected candidate is freshly constructed/retrained as required, tested more deeply against a job-shaped Product Battery, and bound to a stated context of use, known limitations, and escalation/requalification conditions.
+
+A future qualified product may be one fast model or, where evidence supports it, a portfolio/router that chooses among models and escalates unsupported cases to higher-fidelity simulation, experiment, or engineering review.
+
+Component qualification does not automatically imply system qualification.
+
+---
+
+## Commercial position
+
+Carbon does not aim to replace high-fidelity solvers, CAE platforms, scientific-computing frameworks, or GPU vendors.
+
+```text
+PHYSICS / SIMULATION / MODELING TOOLING
+        ↓
+CARBON — DISCOVERY + EVIDENCE
+        ↓
+FAST PHYSICAL MODELS / QUALIFIED SYSTEMS
+        ↓
+ENGINEERING WORKFLOWS
+```
+
+The first commercial value can be **discovery** rather than a finished product:
+
+> A partner defines a physical modeling problem, target envelope, required inputs/outputs, and truth/evidence path. Carbon runs a competitive discovery program and independently determines which construction approaches survive.
+
+Commercial value can then deepen through independent evidence, bounded qualification, and — only if demonstrated prospectively — physics intelligence and reusable construction-method knowledge.
+
+Typical early commercial forms remain sponsored Challenges and qualified specialists under appropriate open, licensed, or private terms.
+
+---
+
+## Roadmap doctrine
+
+Carbon has three separate expansion axes:
+
+```text
+PHYSICS DEPTH
+simple PDE -> harder regimes -> geometry -> coupled/multiphysics
+
+MODEL FREEDOM
+bounded neural family -> mixed construction families -> open construction research
+
+COMMERCIAL REALISM
+academic problem -> engineering-like problem -> partner Challenge -> qualified product
+```
+
+The roadmap should avoid increasing all three at once because failures become difficult to interpret.
+
+> **First prove the judge. Then deepen the physics. Then widen the search. Bring industry in throughout.**
+
+That means:
+
+1. prove one complete independent exam end to end;  
+2. deepen physics while keeping the construction family bounded;  
+3. on a well-understood Challenge, deliberately test mixed model families through a common task/output contract;  
+4. engage industry throughout and run narrowly scoped partner discovery pilots once lean evidence is credible;  
+5. prove harder context-specific qualification;  
+6. only later expand toward broader compositional and construction-algorithm discovery.
+
+This strategic sequencing does **not** modify current Build-Out Waves or P0 tickets.
+
+See [`Design_Specs/System_Identity_and_Roadmap.md`](./Design_Specs/System_Identity_and_Roadmap.md) for the reconciled architecture/communication version.
+
+---
+
+## Bittensor's role
+
+Bittensor supplies the persistent open market of optimizers. Carbon defines the scientific objective and registered evaluation contract.
+
+```text
+Carbon:     what counts as better?
+Bittensor:  who can find it?
+```
+
+Bittensor consensus does not determine physical truth.
 
 ---
 
 ## Current status
 
-**Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`). We have a full protocol specification, scoring and data design, trustless procedural eval generation, **generator creation + Validation Dossier path**, product path, phased roadmap, and go-to-market structure in the public repo. Phase 0 (academic PDE foundation) is the launch target; we are building that now along with an offline Proof of Concept.
+**Phase 0:** foundations and offline proof-of-concept — strategy → seeded data → train → physics checks → score → evaluation card (`poc/`).
+
+The project has detailed protocol, scoring/data, generator/Validation Dossier, product qualification, Landscape, security, and build sequencing specifications. The current implementation target remains the narrow academic-PDE foundation needed to prove the lean exam before broader search freedom is introduced.
 
 ```bash
 git clone https://github.com/carbonphysicsai/Carbon.git
@@ -152,36 +257,28 @@ python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-The supported default is the Python 3.11 CPU development lane. Scientific and
-chain backends are optional and are not qualified by that test result. See
-[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) for dependency extras, test
-classifications, the quality ratchet, and the separate PoC smoke command.
+The supported default is the Python 3.11 CPU development lane. Scientific and chain backends are optional and are not qualified by that test result. See [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).
 
 ---
 
-## Technical documentation
+## Documentation map
 
-| Document | Contents |
-|----------|----------|
-| [SPEC.md](./SPEC.md) | Full protocol |
-| [Design_Specs/Miner_MCP.md](./Design_Specs/Miner_MCP.md) | **Miner/agent MCP** (free + paid loops) |
-| [Design_Specs/Build_Out.md](./Design_Specs/Build_Out.md) | Build map, Phase 0 waves, agent vs SciML |
-| [Design_Specs/Scoring.md](./Design_Specs/Scoring.md) | Scoring rules |
-| [Design_Specs/Launch_Bar.md](./Design_Specs/Launch_Bar.md) | Readiness checklist before public priors |
-| [Design_Specs/Generator_Creation.md](./Design_Specs/Generator_Creation.md) | How we build generators per phase |
-| [Design_Specs/Generator_Validation.md](./Design_Specs/Generator_Validation.md) | Validation Dossier before LIVE |
-| [Design_Specs/Trustless_Verification.md](./Design_Specs/Trustless_Verification.md) | Seeding / trustless eval |
-| [Design_Specs/Data_Management.md](./Design_Specs/Data_Management.md) | Seeds, train ≠ eval |
-| [Design_Specs/Runtime_Julia_Truth_Oracle.md](./Design_Specs/Runtime_Julia_Truth_Oracle.md) | SciML reference / adjoint oracle |
-| [Design_Specs/Landscape_Agent.md](./Design_Specs/Landscape_Agent.md) | Knowledge / routing architecture |
-| [Design_Specs/Specialist_Bank.md](./Design_Specs/Specialist_Bank.md) | Product qualification path |
-| [Design_Specs/Use_Cases_by_Phase.md](./Design_Specs/Use_Cases_by_Phase.md) | Use cases by maturity |
-| [Design_Specs/POC_Burgers_FNO.md](./Design_Specs/POC_Burgers_FNO.md) | Atomic lean loop PoC (TrainEvalAPI) |
-| [Design_Specs/Compute_Optimization.md](./Design_Specs/Compute_Optimization.md) | Compute strategy |
-| [Design_Specs/JAX_Optimization.md](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
-| [Design_Specs/Implementation.md](./Design_Specs/Implementation.md) | Gates, toolkit, SciML patterns |
-| [Design_Specs/Operations.md](./Design_Specs/Operations.md) | Deploy / ops |
+| Document | Role |
+|---|---|
+| [Design_Specs/System_Identity_and_Roadmap.md](./Design_Specs/System_Identity_and_Roadmap.md) | **System identity, roadmap, and communication reconciliation** |
+| [SPEC.md](./SPEC.md) | Current protocol architecture / P0 system specification |
+| [Design_Specs/Build_Out.md](./Design_Specs/Build_Out.md) | Implementation sequencing and Phase-0 waves |
+| [Design_Specs/Miner_MCP.md](./Design_Specs/Miner_MCP.md) | Miner/agent free + official interfaces |
+| [Design_Specs/Scoring.md](./Design_Specs/Scoring.md) | Normative scoring mathematics |
+| [Design_Specs/Generator_Creation.md](./Design_Specs/Generator_Creation.md) | Challenge generator authoring |
+| [Design_Specs/Generator_Validation.md](./Design_Specs/Generator_Validation.md) | Validation Dossier / generator qualification |
+| [Design_Specs/Physical_System_Representation.md](./Design_Specs/Physical_System_Representation.md) | Proposed descriptive physical-system semantics |
+| [Design_Specs/Landscape_Agent.md](./Design_Specs/Landscape_Agent.md) | Evidence-learning architecture |
+| [Design_Specs/Specialist_Bank.md](./Design_Specs/Specialist_Bank.md) | Separate product qualification path |
+| [docs/context/SCIENTIFIC_REFERENCE_CANON_V3_MASTER.md](./docs/context/SCIENTIFIC_REFERENCE_CANON_V3_MASTER.md) | Scientific evidence / claim-control canon |
+| [docs/context/REVIEW_THESE_PRELIMINARY_DECISIONS_POST_SIMULATION.md](./docs/context/REVIEW_THESE_PRELIMINARY_DECISIONS_POST_SIMULATION.md) | Tech/science-lead S1-S18 review queue |
+| [docs/context/DOCUMENT_COHERENCY_AUDIT_2026-08-21.md](./docs/context/DOCUMENT_COHERENCY_AUDIT_2026-08-21.md) | Cross-document coherency audit |
 
 ---
 
-*Carbon: independent exams for physics-model training strategies — cheap to compete, hard to fake, and strict about what gets called a product.*
+*Carbon: define the job, open the search, keep the producer out of the official grade, and qualify only what the evidence supports.*
