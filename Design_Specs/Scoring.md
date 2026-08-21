@@ -11,10 +11,12 @@
 > aggregation; explicit unresolved states; and fixture-only non-emission
 > origin.
 >
-> **Maturity:** the contract is **SPECIFIED / RATIFIED**; A5 is **IMPLEMENTED on
-> the bounded draft branch head** and **TESTED only for the recorded fixture CPU
-> scope**. It remains `in_progress` and **NOT PRODUCTION-QUALIFIED** pending
-> draft-PR review, an authorized merge, and closeout.
+> **Maturity:** the contract is **SPECIFIED / RATIFIED**. Reviewed head
+> `fc2f27a7150d5ed0e374e7cd79eea40ef7ede556` was merged through PR #20 as
+> `6f813e979ef6edde2b8f1821d1ac26f62938633a`; post-merge CI `32494936120`
+> passed 923 CPU tests and Code quality. The bounded fixture-origin A5 is
+> **IMPLEMENTED** on current `main`, **TESTED only for the recorded fixture CPU
+> scope**, and `done`, but remains **NOT PRODUCTION-QUALIFIED**.
 
 **Carbon Subnet**
 **Version:** 2.1 (August 2026)
@@ -153,10 +155,10 @@ substitution, or implicit active version is permitted.
 
 ### 2.4 Required logical pack content
 
-The closed runtime object has these exact logical top-level members. A future
-implementation may choose a mechanically equivalent nested representation
-only through a reviewed schema-version change; it may not omit, rename, or add
-behavior at implementation time.
+The closed schema-1.0 runtime object has these exact logical top-level members.
+A mechanically equivalent nested representation requires a future reviewed
+schema-version change; the current implementation may not omit, rename, or add
+behavior.
 
 | Member | A5 contract |
 |---|---|
@@ -230,9 +232,12 @@ miner-defined operator, or unknown metric. A new operator or top-level leg
 requires a reviewed schema/scoring version change; it is not an ignored
 extension.
 
-No runtime fixture JSON exists at ratification time. Documentation examples
-and historical YAML files are not substitutes for the future exact-byte A5
-fixture artifact and cannot count as implementation evidence.
+No runtime fixture JSON existed at ratification time. The bounded implementation
+now provides the exact 2,126-byte artifact
+`tests/fixtures/score_packs/a5_fixture_v1.json`, externally pinned as
+`sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57`.
+Documentation examples and historical YAML files remain non-runtime and cannot
+count as implementation evidence.
 
 ---
 
@@ -862,10 +867,10 @@ emission claim.
       behavior.
 - [x] Focused/default CPU and import-isolation acceptance tests pass.
 
-These boxes record bounded draft-branch implementation and CPU evidence. They
-do not make the implementation merged-main, scientifically qualified,
-security/operations qualified, LIVE-authorized, emission-authoritative, or
-production-qualified.
+These boxes record bounded fixture-origin implementation merged on current
+`main` and CPU evidence limited to that fixture scope. They do not make A5
+scientifically qualified, security/operations qualified, LIVE-authorized,
+emission-authoritative, or production-qualified.
 
 ---
 
