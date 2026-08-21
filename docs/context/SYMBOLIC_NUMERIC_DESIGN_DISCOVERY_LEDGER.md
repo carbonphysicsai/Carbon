@@ -37,6 +37,13 @@
 | D-018 | Adapter conversion quality must be explicit and measurable. | MTK adapter simulation | EXTEND | Every conversion returns an AdapterReport with mapped/unsupported/dropped/transformed constructs. | Potential partner-value story: auditable model onboarding. | Very high |
 | D-019 | Representation level is first-class provenance. | MTK adapter simulation | EXTEND/HARDEN | Tag whether evidence describes authored physical model, transformed symbolic model, discretized system, or numerical realization. | Important canon/whitepaper concept. | Very high |
 | D-020 | Observed variables can preserve engineering meaning even when numerical transformations eliminate them as states. | MTK adapter simulation | KEEP/HARDEN | Retain observed-variable class and lineage through transformations. | Supports qualification/engineering interpretation. | High |
+| D-021 | A physically meaningful diagnostic may be unobservable from the candidate model's output contract. | Evaluation primitive simulation | EXTEND/HARDEN | Bind each candidate measurement to required observables; do not infer full residuals from insufficient outputs. | Strong scientific-design insight for whitepaper/canon. | Very high |
+| D-022 | Measurement identity includes numerical method, not just symbolic relation. | Evaluation primitive simulation | EXTEND | Define discretization/sampling, normalization, aggregation, precision and implementation version. | Important scientific credibility addition. | Very high |
+| D-023 | Carbon needs a MeasurementContract concept between physical semantics and score authority. | Evaluation primitive simulation | EXTEND | Trace relation/condition -> MeasurementContract -> dossier calibration -> Score Pack. Decide exact artifact placement in Gate 4. | Potential major canon/whitepaper architecture contribution. | High |
+| D-024 | Evidence role must be typed. | Evaluation primitive simulation | HARDEN/EXTEND | Distinguish generator validation, candidate evaluation, product qualification and Landscape descriptive measurements. | Strengthens evidence architecture. | Very high |
+| D-025 | Measurement applicability binds to assumptions + exact physical-system version. | Evaluation primitive simulation | HARDEN | No generic family-level conservation/residual metric without BC/source/regime assumptions. | Whitepaper/canon detail. | Very high |
+| D-026 | Machine-readable/generated diagnostics create a new Goodhart surface. | Evaluation primitive simulation | HARDEN | Preserve protected exams, stress diversity and independent evaluation; generated primitives never become the whole objective by default. | Strong reason Carbon's evaluation-information doctrine remains necessary. | Very high |
+| D-027 | Dimensionless features require characteristic-scale provenance. | Evaluation primitive simulation | DEFER/HARDEN | Do not auto-generate regime groups from names/units alone; qualify characteristic scales. | Future Landscape/canon research note. | High |
 
 ## Gate template
 
@@ -56,7 +63,7 @@ For each remaining simulated implementation gate, record:
 
 1. ~~Structural validator execution/hardening.~~ **PASS**
 2. ~~ModelingToolkit adapter.~~ **PASS WITH ARCHITECTURE EXTENSIONS**
-3. Physics Evaluation Primitive Library.
+3. ~~Physics Evaluation Primitive Library.~~ **PASS — MEASUREMENT CONTRACT DISCOVERED**
 4. Challenge Compiler / dossier authoring integration.
 5. Landscape physical-context integration.
 6. Hybrid model-construction search.
