@@ -1,5 +1,233 @@
 # Agent decisions log
 
+## 2026-08-21 — A4 pre-implementation seeding architecture ratification
+
+**Status, base, and scope.** On exact `origin/main`
+`c5f2dfbda64e4375e3d3f26f7a463ca98cabd07a`, the maintainer ratifies
+A4-R1 through A4-R11 below as the implementation decision for A4 seeding,
+isolation, and the unsigned public exam-commitment boundary. This is a
+ratified implementation decision, not implementation: no A4 implementation
+source or A4 tests exist beyond the A0 package marker, A4 remains `todo`, and
+no Definition-of-Done item is complete. The decision does not select seed
+timing or a production beacon, does not change A3, and establishes no
+scientific, LIVE, backend, security, operations, production, or emission
+qualification.
+
+**A4-R1 — Entropy and provider boundary.** The former A4 helper sketch based
+on a Carbon-operated long-lived `master_secret` is superseded. A4 accepts
+opaque root material only through the separate exact types `OfficialEntropy`,
+`MockEntropy`, `QualificationEntropy`, and `FixtureOfficialEntropy`.
+Provider-origin official material crosses a narrow `BeaconProvider` boundary
+as exactly 32 opaque bytes. A4 may define that protocol and a deterministic,
+separately typed fixture provider, but it does not implement or select a real
+Bittensor/Subtensor provider, block delay, finality rule, nonce lifecycle,
+reorg policy, production hybrid/drand design, or production fallback. Missing,
+malformed, conflicting, or unavailable official entropy fails closed; it never
+falls back to zero, wall-clock time, process state, mock material, or a local
+default. Those production choices remain protocol-owned under OQ-005 and
+OQ-006.
+
+**A4-R2 — Exact domains and typed entry points.** The complete top-level domain
+set is exactly `mock`, `official_train`, `official_eval`, `official_stress`,
+`reference`, and `dossier`. Initialization, augmentation, shuffle, dropout,
+batch order, generator sampling, and similar functions may later be canonical
+internal role keys beneath one of those domains; they are not peer domains.
+Mock, official, qualification/reference, and fixture-official derivation use
+separate typed contexts and public entry points. A4 must not expose a generic
+`mode="mock" | "official"` switch or `local_mode` Boolean.
+
+**A4-R3 — Official identity binding.** Every official derivation binds the
+exact A3 `ChallengeKey` (`challenge_id` and exact challenge `version`), exact
+`generator_version`, exact tagged `generator_digest`, exact
+`scoring_version`, exact tagged `scoring_digest`, seed-scheme
+identifier/version, an opaque 32-byte `evaluation_binding`, the exact official
+domain, a canonical internal role key, and an explicit draw index. The
+evaluation binding is only an A4 structural slot: A7 or later supplies its
+concrete immutable value. A4 does not define `submission_id`, strategy hashing,
+A7 idempotency, fee identity, or receipt identity. It accepts no raw Strategy
+mapping or miner hyperparameters, so later Strategy mutation cannot alter an
+already-created context.
+
+Validator or miner identity is not scientific entropy. Official derivation
+also excludes miner-controlled seeds, nonces, block hashes, draw IDs, and exam
+IDs; wall-clock time; process ID; environment variables; thread scheduling;
+call order; mutable global RNG state; and retry count. Validator identity must
+not influence the scientific exam.
+
+**A4-R4 — HKDF-SHA-256 contract.** A4 uses RFC 5869 HKDF with SHA-256. The
+seed-scheme identifier is exactly `carbon.seed.hkdf-sha256.v1`; the Extract
+salt is the exact ASCII bytes
+`carbon/a4-seeding/hkdf-sha256/v1`; and the applicable typed 32-byte entropy is
+the input keying material. Expand `info` is the A4-R5 canonical encoding and
+the retained output is exactly 32 bytes. A4 does not reduce the result modulo
+an integer range, truncate it to a 32- or 63-bit seed, centrally convert it to
+a NumPy/JAX/Torch key, or reuse one value across roles. Backend-specific
+conversion belongs behind later A8 TrainEval/backend adapters and must use
+further role separation or a documented adapter conversion. The context-kind
+values `official`, `mock`, `qualification`, and `fixture_official` are distinct
+inputs, so identical root bytes do not collide across context kinds.
+
+**A4-R5 — Canonical seed-info encoding.** A seed `info` document starts with
+the exact ASCII header `carbon.seed.info.v1`. The header is followed by the
+fields below in exactly this order. Each field is one unsigned one-byte tag,
+one unsigned four-byte big-endian payload length, and the exact payload bytes.
+
+| Tag | Field |
+|---|---|
+| `0x01` | context kind |
+| `0x02` | seed-scheme identifier |
+| `0x03` | challenge ID |
+| `0x04` | challenge version |
+| `0x05` | generator version |
+| `0x06` | generator digest |
+| `0x07` | scoring version |
+| `0x08` | scoring digest |
+| `0x09` | evaluation binding |
+| `0x0A` | seed domain |
+| `0x0B` | role key |
+| `0x0C` | draw index |
+
+String fields are exact validated ASCII bytes: implementations do not
+Unicode-normalize, case-fold, alias, trim, or coerce them. Challenge identity
+reuses A3 validation and `ChallengeKey`, not a weaker duplicate parser. Tagged
+digests use A3's exact `sha256:<64 lowercase hexadecimal characters>` form.
+The evaluation-binding payload is exactly 32 raw bytes. The draw-index payload
+is exactly one unsigned 64-bit big-endian integer; Boolean, negative,
+overflowing, and non-integer values reject. Unknown or duplicated fields,
+invalid order, length, or text encoding, and all malformed values reject.
+Delimiter-concatenated strings are not canonical A4 documents.
+
+A4-R10 and A4-R11 below complete the generator/scoring-version and role-key
+validation contracts required by this schema.
+
+**A4-R6 — Private exam root and unsigned public commitment.** A4 derives a
+32-byte private exam root from the same HKDF PRK through an independent Expand
+domain. Its `info` document starts with the exact ASCII header
+`carbon.exam-root.info.v1`, uses the A4-R5 TLV framing, and binds context kind,
+seed-scheme identifier, exact `ChallengeKey`, generator version and digest,
+scoring version and digest, and the 32-byte evaluation binding. It includes no
+train/eval/stress domain, role key, or draw index.
+
+The public value is an opaque, unsigned `ExamCommitment` in exact tagged form:
+`sha256:` plus the lowercase hexadecimal SHA-256 digest of a canonical
+commitment document. That document begins with the exact ASCII header
+`carbon.exam-commitment.v1`, uses the same TLV framing, and binds the same
+context/scheme/challenge/generator/scoring/evaluation fields followed by the
+32-byte private exam root. The public value retains no Python reference to the
+private context, root, entropy, or derived seeds. A public exam projection may
+contain only the commitment, explicitly public challenge/generator/scoring
+pins, and explicit fixture status where applicable. It never contains entropy,
+the private root, raw or derived seeds, draw or sample IDs, a run nonce, hidden
+sample order, a reconstruction-enabling block hash, per-role seed hashes, or
+generated-payload hashes.
+
+A4 does not create an EvaluationReceipt, receipt ID, validator signature,
+timestamp, score commitment, prediction/reference root, Merkle/MMR log, or
+audit record. A4-R9 below completes the exact exam-document tag contract.
+
+**A4-R7 — Bounded security and disclosure claim.** A4 guarantees the interface
+and derivation boundary: official entropy, raw or derived official seed
+material, draw IDs, and reconstruction-sensitive exam identifiers do not cross
+miner/public interfaces or get embedded directly in the public commitment;
+official, mock, qualification, and fixture namespaces are distinct; identical
+official inputs reproduce identical seeds and commitments across validators;
+and validator identity does not affect the scientific exam. This is not an
+unconditional mathematical hiding theorem. Resistance to recovery depends on
+SHA-256 preimage resistance, HKDF-SHA-256 security, sufficient provider
+entropy, and some relevant entropy remaining unavailable to an attacker for
+the protocol-required hiding interval. A4 does not decide between
+pre-submission unpredictability and permanent post-evaluation secrecy;
+operational disclosure and retention remain protocol-owned.
+
+**A4-R8 — Fixture, mock, and qualification isolation.** Fixture entropy is a
+different non-coercible type from provider-origin official entropy.
+Fixture-official derivation uses `context_kind="fixture_official"`; provider
+origin uses `context_kind="official"`. Fixture public projections are
+unmistakably fixtures, and fixture/mock identities must remain mechanically
+non-emission-capable when emission paths exist. A4 itself adds no emission or
+weight writer.
+
+Mock derivation cannot request an official domain, accept official entropy,
+access an official context, alter official counters or state, or affect later
+official output through query count or call order. Qualification derivation is
+limited to `reference` and `dossier`, cannot request mock or official domains,
+and remains separate from the live official miner exam. Fixture material
+cannot be relabelled or coerced into provider-origin material.
+
+**A4-R9 — Exam-document TLV tag contract.** The exact document headers
+`carbon.seed.info.v1`, `carbon.exam-root.info.v1`, and
+`carbon.exam-commitment.v1` establish three separate versioned schemas. TLV
+tags are interpreted within the schema selected by that exact header, not as
+globally unique field identifiers. The `carbon.seed.info.v1` tags and payload
+contracts remain unchanged from A4-R5.
+
+`carbon.exam-root.info.v1` reuses the A4-R5 common identity tags and payload
+contracts exactly:
+
+| Tag | Field |
+|---|---|
+| `0x01` | context kind |
+| `0x02` | seed-scheme identifier |
+| `0x03` | challenge ID |
+| `0x04` | challenge version |
+| `0x05` | generator version |
+| `0x06` | generator digest |
+| `0x07` | scoring version |
+| `0x08` | scoring digest |
+| `0x09` | evaluation binding |
+
+It has no additional fields and ends after `0x09`; it contains no seed domain,
+role key, draw index, or private exam root.
+
+`carbon.exam-commitment.v1` reuses those same `0x01` through `0x09` meanings
+and payload contracts, then adds exactly `0x0A` — private exam root, whose
+payload is exactly 32 raw bytes. Its field order is exactly `0x01` through
+`0x0A`, with no additional fields. Reusing `0x0A` for seed domain in
+`carbon.seed.info.v1` and private exam root in
+`carbon.exam-commitment.v1` is intentional and unambiguous because the header
+selects the schema. Implementations must not assign global meanings to tags,
+introduce a `0x0D` private-root tag, or reserve unused seed-document tags for
+cross-schema uniqueness. Unknown, duplicate, reordered, malformed-length,
+malformed-payload, and trailing unrecognized fields reject.
+
+**A4-R10 — Generator and scoring version validation.** A4 creates no second
+version grammar. Both `generator_version` and `scoring_version` call and reuse
+`carbon.registry.model.validate_version`; implementation must not copy its
+regular expression into `carbon/seeding`. The current contract requires an
+exact built-in Python `str`, returns its exact spelling without normalization,
+trimming, coercion, case folding, or alias resolution, and permits at most 64
+characters under the ASCII grammar
+`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`. Tokens begin and end with an
+alphanumeric character; empty segments and adjacent separators without an
+intervening alphanumeric segment reject. `1.0` and `burgers1d_v0.1` are valid
+examples. If A3's authoritative validator changes before A4 implementation,
+the implementation uses the then-current contract and re-evaluates its golden
+vectors before coding.
+
+**A4-R11 — Canonical role-key validation.** A4 `RoleKey` is a distinct
+semantic type that reuses A3's canonical-identifier grammar. A role key must be
+an exact built-in Python `str`, encode as ASCII, be non-empty and at most 64
+encoded ASCII bytes, preserve exact spelling without normalization, trimming,
+case folding, coercion, or alias resolution, and match
+`[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*`. A4 first enforces its own 64-byte bound,
+then calls
+`carbon.registry.model.validate_canonical_identifier(value, "role_key")`;
+it does not duplicate the regular expression. Valid examples include
+`generator`, `generator_sampling`, `parameter_init`, `batch_shuffle`,
+`dropout`, and `augmentation_1`. Empty, uppercase, leading-digit,
+leading/trailing/repeated-separator, dotted, spaced, slashed, non-ASCII, and
+over-64-byte values reject. Role keys remain subordinate to one of the six
+ratified domains and do not alter any A3 or other identity domain.
+
+**Protocol deferrals and maturity.** OQ-005 and OQ-006 remain unresolved in
+their owning protocol/security domains. In particular, this ratification does
+not select a chain event, delay, finality/reorg rule, nonce lifecycle, real
+provider, hybrid/drand construction, or fallback. Separately, A4-R7 leaves
+operational entropy retention and post-evaluation disclosure policy to their
+protocol owner. A4 remains `todo`; none of the behavior above is
+**IMPLEMENTED**, **TESTED**, or **PRODUCTION-QUALIFIED** by this documentation
+entry.
+
 ## 2026-08-21 — A3 closure after reviewed merge
 
 **Closure evidence.** A3 began from exact base
