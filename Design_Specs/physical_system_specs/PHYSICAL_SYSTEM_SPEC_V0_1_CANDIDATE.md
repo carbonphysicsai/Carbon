@@ -1,7 +1,7 @@
 # PhysicalSystemSpec v0.1 — Minimal Candidate
 
 **Status:** DESIGN CANDIDATE / NON-RUNTIME / NON-SCORING  
-**Purpose:** Freeze the smallest semantic contract justified by the Burgers traceability test before testing generality on a second physics family.  
+**Purpose:** Freeze the smallest semantic contract justified by the Burgers traceability test and Poisson generality test.  
 **Authority:** This document does not override generator, dossier, envelope, scoring, registry, disclosure, or product specifications.
 
 ---
@@ -15,7 +15,35 @@ The v0.1 candidate contains only information needed to answer four questions:
 3. **Which Carbon Challenge/generator/reference artifacts does the description apply to?**
 4. **What assumptions, provenance, and unresolved conflicts constrain interpretation?**
 
-Everything else is an extension until a real Challenge demonstrates need.
+Everything else remains an extension until a real Challenge demonstrates need.
+
+### 1.1 Future-variable policy
+
+**Decision:** do not place anticipated future scientific/model variables in the v0.1 core merely to future-proof the schema.
+
+The core should not yet encode dimensionless-group ontologies, tensor/geometry systems, stochastic-process metadata, DAE index structure, events, learned-component locations, product context-of-use, or other unproven abstractions.
+
+However, v0.1 reserves an optional, namespaced `extensions` container so experimental authoring metadata can be carried without forcing immediate core-schema migration:
+
+```text
+extensions {
+  <namespace> {
+    extension_version
+    payload
+  }
+}
+```
+
+Rules:
+
+- extension namespaces must be explicit and collision-resistant (for example `carbon.regime_features` or `adapter.modelingtoolkit` rather than generic `features`);
+- extension payloads are **non-core** and must not be required to interpret v0.1 core semantics;
+- an extension cannot create score, gate, threshold, LIVE, disclosure, or qualification authority;
+- validators may validate the outer extension envelope while treating unknown payloads as opaque;
+- a concept is promoted into a later core schema only after multiple real Challenges demonstrate stable semantics and clear ownership;
+- historical evidence remains bound to the exact artifact bytes, so later promotion does not reinterpret old artifacts silently.
+
+This gives Carbon extensibility without pretending to know the final ontology of physics.
 
 ---
 
@@ -43,7 +71,7 @@ PhysicalSystemSpec {
   variables {
     independent[]
     state[]
-    coefficient_fields[]?
+    fields[]?
     observed[]?
   }
 
@@ -64,6 +92,8 @@ PhysicalSystemSpec {
   exclusions[]?
   provenance
   reconciliation_issues[]?
+
+  extensions{}?
 }
 ```
 
@@ -88,21 +118,22 @@ This is a semantic shape, not a final YAML/JSON schema.
 ### Optional where scientifically applicable
 
 - ordinary scalar/tensor parameters;
-- coefficient fields / spatially varying material properties;
+- field-valued coefficients, sources, or other declared scientific fields;
 - initial conditions (not applicable to many elliptic problems);
 - boundary conditions;
 - observations;
 - numerical realization references;
 - exclusions;
-- reconciliation issues.
+- reconciliation issues;
+- namespaced extensions.
 
 **Important:** optional means scientifically optional, not permission to omit known required Challenge semantics.
 
 ---
 
-## 4. Variable classes
+## 4. Variable and field classes
 
-The Burgers prototype required scalar parameters such as viscosity. Poisson generality testing demonstrates that v0.1 must also distinguish a **coefficient field** from an ordinary scalar parameter.
+The Burgers prototype required scalar parameters such as viscosity. Poisson generality testing demonstrated that v0.1 must also distinguish a **field-valued scientific quantity** from an ordinary scalar parameter.
 
 Use these conceptual classes:
 
@@ -110,11 +141,11 @@ Use these conceptual classes:
 independent_variable   e.g. x, y, t
 state_variable         e.g. u(x,t), u(x,y)
 parameter              e.g. nu, material scalar
-coefficient_field      e.g. k(x,y)
+field                   e.g. k(x,y), f(x,y)
 observed_variable      optional output/observable distinct from state
 ```
 
-A field-valued coefficient is not silently flattened into `parameters` because its dependence on independent variables is scientifically meaningful.
+A field is not silently flattened into `parameters` because its dependence on independent variables is scientifically meaningful. The field should carry an explicit `role` such as `coefficient`, `source`, `forcing`, or another reviewed semantic role; the role does not create evaluation authority.
 
 ---
 
@@ -199,24 +230,26 @@ Do not promote these into the core contract yet:
 - Score Pack fields;
 - evaluation primitive definitions.
 
-They may appear as extensions after a real Challenge requires them.
+They may appear experimentally under a namespaced `extensions` payload, but they remain non-core and non-authoritative until a future schema revision explicitly promotes them.
 
 ---
 
-## 10. Generality gate
+## 10. Generality result
 
-This candidate is not ratified merely because it fits Burgers. It must survive a structurally different second-system test without requiring a rewrite of the core concepts.
+The candidate survived a structurally different second-system test using Poisson 2D.
 
-**Chosen second system:** Poisson 2D.
-
-The test specifically checks whether v0.1 can represent:
+The test demonstrated that v0.1 can represent:
 
 - no temporal independent variable;
 - elliptic rather than evolutionary PDE semantics;
 - two spatial dimensions;
 - Dirichlet boundaries;
-- optional coefficient fields;
+- field-valued coefficient/source quantities;
 - multiple source variants that disagree on the exact governing relation;
 - a manufactured analytic field/reference case without confusing that case with the general physical model.
 
-If Poisson requires only bounded extensions/optional fields, the v0.1 abstraction passes its first generality test. If it requires changing the meaning of existing core fields, v0.1 fails and must be revised before ratification.
+Poisson required one bounded semantic extension: explicit field-valued quantities. It did not require changing the meaning of the core identity, relation, condition, domain, provenance, or assumption concepts.
+
+**Generality verdict: PASS WITH ONE BOUNDED CORE EXTENSION.**
+
+The next gate is structural validation: prove that a machine can validate the contract's shape and internal references without claiming to validate the physics.
