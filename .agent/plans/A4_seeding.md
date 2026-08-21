@@ -1,16 +1,22 @@
 # A4 seeding and leakage implementation plan
 
 **Ticket:** A4 — Seeding domains + leakage tests
-**Branch:** `agent/a4-seeding-ratification`
-**Exact starting main:** `c5f2dfbda64e4375e3d3f26f7a463ca98cabd07a`
-**Status:** planning only; A4 remains `todo` and implementation has not begun
+**Ratification branch:** `agent/a4-seeding-ratification`
+**Ratification starting main:** `c5f2dfbda64e4375e3d3f26f7a463ca98cabd07a`
+**Implementation branch:** `agent/a4-seeding`
+**Implementation base:** `e13baf312b811e2fd6784856c56d851a15f153fd`
+**Reviewed implementation head:** `b0f79cf96b7cd489a97a7a4dd49285d762c962aa`
+**Merged as:** `120eab02e406bda280d9c361bbbb7d8ef7a08330`
+**Status:** closed after independent review, normal merge, ancestry verification,
+and successful exact-merge `main` CI; A4 is `done`
 
-This plan translates the maintainer-ratified A4-R1 through A4-R11 decision into
-a bounded future implementation. The current ratification change adds no
-Python source and no tests, does not mark A4 `in_progress`, and does not satisfy
-any A4 Definition-of-Done item.
+This file was authored as the bounded pre-implementation plan for the
+maintainer-ratified A4-R1 through A4-R11 decision. Except for updated metadata,
+explicit historical labels, and the final closure record, the planning content
+below is preserved as historical pre-implementation guidance rather than a
+claim about current repository state.
 
-## Pre-implementation gate and maturity
+## Pre-implementation gate and maturity (historical ratification record)
 
 - An independent GitHub fetch and a local `git fetch --prune origin` both
   resolved `main` to exact merge commit
@@ -54,7 +60,7 @@ any A4 Definition-of-Done item.
 | `Design_Specs/Evaluation_Evidence_and_Validator_Audit.md` §§1–2, 4, 10–11 | Owns later receipt/evidence/audit semantics, distinguishes commitment from disclosure, recommends `BeaconProvider`, and requires exact commitment reproducibility without moving receipts into A4. |
 | `docs/context/Decisions.md` D-003–D-007, D-029–D-030, D-039, D-041 | Records shared exam, role separation, commitment/disclosure separation, provider adapters, and constitutional leakage/isolation testing. |
 | `docs/context/Open_Questions.md` OQ-005/OQ-006 | Authoritatively leaves exact seed timing/nonce lifecycle and production beacon/fallback qualification unresolved. Its later delayed-block/hybrid discussion is a proposal, not a ratified policy. |
-| `docs/context/Implemented_vs_Specified` | Confirms A3 is merged/tested while shared seed flow, leakage prevention, and mock isolation lack A4 acceptance proof. Do not update it for a planning-only change. |
+| `docs/context/Implemented_vs_Specified` | At ratification time, confirmed A3 was merged/tested while shared seed flow, leakage prevention, and mock isolation lacked A4 acceptance proof. The closure ledger now records the bounded A4 implementation/tests while preserving later consumer and production gaps. |
 | `docs/context/Architecture_Rationale.md` | Explains shared exams, train/eval/stress separation, commitment without disclosure, incomplete honest mock practice, and adapter boundaries. |
 | `docs/context/Carbon_Context.md` | Restates the public/hidden trust boundary, exact non-floating reproducibility, provider evolution, and maturity vocabulary. |
 | Current `carbon/registry/` and `carbon/schema/` | Code authority for exact A3 `ChallengeKey`, tagged digest validation, and A2's miner-controlled seed/draw rejection. A4 reuses these boundaries and never infers code from a specification. |
@@ -489,7 +495,7 @@ A4-R7 separately leaves entropy retention and post-evaluation disclosure
 policy protocol-owned. This plan does not assign that policy to OQ-005 or
 OQ-006 and does not choose it.
 
-## Bounded implementation sequence
+## Bounded implementation sequence (historical)
 
 1. After this ratification PR is reviewed, merged, and verified on `main`,
    re-check exact base, ticket status, competing changes, authority files, and
@@ -507,7 +513,7 @@ OQ-006 and does not choose it.
 8. Run the complete verification set, review the entire exact-base diff, and
    obtain independent human review before changing A4 status.
 
-## Completion evidence required before A4 can be `done`
+## Completion evidence required before A4 can be `done` (historical gate)
 
 - Implementation and golden vectors use the ratified A4-R9 schema-local tag
   contract and A4-R10/A4-R11 validator boundaries. Any intervening A3
@@ -534,6 +540,51 @@ OQ-006 and does not choose it.
 - Independent review, merge, reviewed-head ancestry, and post-merge CI evidence
   are recorded before `.agent/WAVE.md` or the ticket marks A4 `done`.
 
-Until all of that completion evidence exists, A4 stays `todo`. This
-documentation follow-up begins no implementation and makes no qualification
-claim.
+The historical gates above have now been satisfied for the bounded A4 ticket.
+The following closure record, rather than the pre-implementation status
+statements above, controls A4's current maturity.
+
+## Final completion and closure evidence
+
+- Exact implementation base:
+  `e13baf312b811e2fd6784856c56d851a15f153fd`.
+- Independent review approved exact implementation head
+  `b0f79cf96b7cd489a97a7a4dd49285d762c962aa` for the bounded A4 ticket, with
+  no unresolved blocking finding. GitHub records no formally submitted review
+  object, review thread, or PR comment, so this plan claims independent review
+  disposition rather than a formal GitHub approval.
+- Exact-head pull-request CI run `32440327141` completed successfully: CPU
+  reported `622 passed in 7.80s`; Code quality reported
+  `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt, and all
+  changed Python files clean.
+- PR #17 merged normally as
+  `120eab02e406bda280d9c361bbbb7d8ef7a08330`, whose ordered parents are exact
+  implementation base `e13baf312b811e2fd6784856c56d851a15f153fd` and exact
+  reviewed head `b0f79cf96b7cd489a97a7a4dd49285d762c962aa`. The reviewed
+  head is ancestral to current `main`.
+- Exact-merge push CI run `32444857456` completed successfully on `main`: CPU
+  reported `622 passed in 8.68s`; Code quality again reported
+  `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt, and all
+  changed Python files clean.
+- Focused A4 acceptance reported `230 passed in 3.55s`; the complete local CPU
+  suite reported `622 passed in 4.35s`. Compilation, strict Ruff/Black, and the
+  exact-base quality gate passed. The fresh no-dependency wheel
+  `carbon-0.9.0-py3-none-any.whl` had SHA-256
+  `4bd58cc8b0e503cd127dd5c64f67970899ecabebd1554860121de8086028c511`
+  and passed outside-tree `python -I` golden/provider/import-isolation checks
+  under CPython `3.11.11`, with no blocked optional/consumer import attempted or
+  loaded.
+- The implementation and tests match the expected eight Python files in this
+  historical plan. A4-R1 through A4-R11 are unchanged, every ticket checkbox is
+  evidence-backed, and no A3+ invariant was weakened.
+- A4 is **SPECIFIED**, **IMPLEMENTED** on `main`, and **TESTED** to its bounded
+  CPU/import-isolation scope; it was independently reviewed, normally merged,
+  ancestry-verified, and post-merge-CI verified. A4 is `done` for this ticket.
+  **PRODUCTION-QUALIFIED: NO.**
+
+The non-goals above remain in force. In particular, A4 closes no real-provider,
+provider-authentication, entropy-quality, timing/finality/nonce/reorg/fallback,
+retention/disclosure, A7 binding, A8 backend, A6/A9/A10/A11 consumer,
+scientific, LIVE, security, production, permanent same-process secrecy,
+weight-writing, or emission work. OQ-005 and OQ-006 remain unresolved. A5 and
+all later tickets remain `todo` and unstarted.
