@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import errno
 import hashlib
+import hmac
 import os
 import re
 import stat
@@ -120,6 +121,62 @@ def digest_artifact(artifact_root: Path, relative_path: object) -> str:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                 hasher.update(chunk)
         return f"sha256:{hasher.hexdigest()}"
+    except ArtifactAccessError:
+        raise
+    except OSError as exc:
+        raise ArtifactAccessError(
+            "artifact.unreadable", "Artifact file could not be read."
+        ) from exc
+    finally:
+        os.close(descriptor)
+
+
+def read_verified_artifact_bytes(
+    artifact_root: Path,
+    relative_path: object,
+    expected_digest: object,
+    *,
+    max_bytes: int,
+) -> bytes:
+    """Read one bounded regular file and verify its exact bytes before return."""
+    if not is_sha256_digest(expected_digest):
+        raise ArtifactAccessError(
+            "artifact.digest_invalid",
+            "Expected artifact digest is not canonical tagged SHA-256.",
+        )
+    if type(max_bytes) is not int or max_bytes <= 0:
+        raise ArtifactAccessError(
+            "artifact.limit_invalid",
+            "Artifact byte limit must be a positive built-in integer.",
+        )
+
+    parts = _artifact_parts(relative_path)
+    descriptor = _secure_open(artifact_root, parts)
+
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ArtifactAccessError(
+                "artifact.not_regular_file", "Artifact must be a regular file."
+            )
+        if metadata.st_size > max_bytes:
+            raise ArtifactAccessError(
+                "artifact.too_large", "Artifact exceeds the configured byte limit."
+            )
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            payload = stream.read(max_bytes + 1)
+        if len(payload) > max_bytes:
+            raise ArtifactAccessError(
+                "artifact.too_large", "Artifact exceeds the configured byte limit."
+            )
+
+        actual_digest = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+        if not hmac.compare_digest(actual_digest, expected_digest):
+            raise ArtifactAccessError(
+                "artifact.digest_mismatch",
+                "Actual artifact bytes do not match the expected digest.",
+            )
+        return payload
     except ArtifactAccessError:
         raise
     except OSError as exc:

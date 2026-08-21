@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "challenge_id": "a5_fixture",
+  "challenge_version": "fixture-1.0",
+  "scoring_version": "fixture-1.0",
+  "generator_version_required": "fixture-1.0",
+  "generator_digest_required": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "numerical_profile": "python_binary64_v1",
+  "fixture_origin": true,
+  "hard_gates": [
+    {
+      "operator": "less_than",
+      "id": "synthetic_error_gate",
+      "input_key": "gate_error",
+      "mandatory": true,
+      "threshold": 1.0
+    },
+    {
+      "operator": "boolean_true",
+      "id": "synthetic_finite_gate",
+      "input_key": "finite_ok",
+      "mandatory": true
+    },
+    {
+      "operator": "less_than",
+      "id": "synthetic_optional_diagnostic",
+      "input_key": "diagnostic_error",
+      "mandatory": false,
+      "threshold": 2.0
+    }
+  ],
+  "physics": {
+    "operator": "quadratic_barrier",
+    "components": [
+      {
+        "id": "synthetic_residual",
+        "input_key": "physics_error",
+        "threshold": 2.0,
+        "weight": 1.0
+      }
+    ]
+  },
+  "robustness": {
+    "operator": "tail_logistic",
+    "tail_quantile": 0.9,
+    "blend_weights": {
+      "mean": 0.5,
+      "tail": 0.5
+    },
+    "threshold": 1.0,
+    "sharpness": 4.0,
+    "categories": [
+      {
+        "id": "synthetic_category_a",
+        "mean_input_key": "robust_mean_a",
+        "tail_input_key": "robust_tail_a",
+        "weight": 0.5
+      },
+      {
+        "id": "synthetic_category_b",
+        "mean_input_key": "robust_mean_b",
+        "tail_input_key": "robust_tail_b",
+        "weight": 0.5
+      }
+    ]
+  },
+  "accuracy": {
+    "operator": "reciprocal_error",
+    "components": [
+      {
+        "id": "synthetic_accuracy_a",
+        "input_key": "accuracy_error_a",
+        "threshold": 1.0,
+        "weight": 0.5
+      },
+      {
+        "id": "synthetic_accuracy_b",
+        "input_key": "accuracy_error_b",
+        "threshold": 1.0,
+        "weight": 0.5
+      }
+    ]
+  },
+  "weights": {
+    "physics": 0.5,
+    "robustness": 0.3,
+    "accuracy": 0.2
+  },
+  "combination": "weighted_geometric_logspace"
+}
