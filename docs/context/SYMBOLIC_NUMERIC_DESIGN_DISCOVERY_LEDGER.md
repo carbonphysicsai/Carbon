@@ -61,6 +61,17 @@
 | D-042 | Authored, derived and learned physical features have different epistemic status. | Landscape simulation | EXTEND/HARDEN | Preserve feature provenance type and avoid treating authored ontology labels as truth. | Strengthens epistemic hierarchy. | Very high |
 | D-043 | Physics intelligence is earned through prospective decision lift. | Landscape simulation | KEEP/HARDEN | Require improved future search, experiment allocation, qualification prediction, or decision economics relative to baselines. | Core whitepaper/canon thesis; potentially useful simple investor language later. | Very high |
 | D-044 | Structured intelligence is itself governed evaluation information. | Landscape simulation | HARDEN | Miner/public Landscape outputs remain subject to disclosure policy/Evaluation Information Budget. | Strengthens existing adaptive-evaluation argument. | Very high |
+| D-045 | `TrainingStrategy` is a subtype; `ModelConstructionStrategy` is the long-term abstraction. | Hybrid search simulation | EXTEND | Keep Strategy v1.0 unchanged; future mixed-family Challenges use construction-level strategy identity. | Major canon/whitepaper framing improvement; stage language can simply say 'ways to build fast physics models'. | Very high |
+| D-046 | Candidate computational structure needs an artifact/component graph distinct from physical-system semantics. | Hybrid search simulation | EXTEND | Preserve fixed/trainable components and composition separately from PhysicalSystemSpec. | Important technical architecture; whitepaper detail. | Very high |
+| D-047 | Cross-family comparability anchors on a common CandidateOutputContract. | Hybrid search simulation | EXTEND/HARDEN | Mandatory score-bearing measurements bind to outputs every admitted family must expose. | Major scientific-design insight. | Very high |
+| D-048 | Architecture-specific observability must not create hidden scoring advantage. | Hybrid search simulation | HARDEN | Optional internal diagnostics cannot silently advantage model families in official mixed-family scoring. | Strengthens fairness/measurement argument. | Very high |
+| D-049 | Scientific performance, resource efficiency, and engineering decision utility are distinct values. | Hybrid search simulation | HARDEN/EXTEND | Preserve resource/cost/runtime evidence separately; do not silently fold into `S_combined`. | Important economic/whitepaper distinction. | Very high |
+| D-050 | Mechanistic/symbolic structure receives no automatic score privilege. | Hybrid search simulation | KEEP/HARDEN | Model classes compete on registered external evidence; no interpretability ideology bonus. | Strong credibility point for canon/whitepaper. | Very high |
+| D-051 | Fixed vs trainable/replaceable component identity must be explicit. | Hybrid search simulation | EXTEND/HARDEN | Content-address fixed scientific components and declare modification slots. | Architecture detail. | High |
+| D-052 | End-to-end success does not validate an internal learned physical relation. | Hybrid search simulation | HARDEN | Internal closure/constitutive claims need separate evidence if asserted as physical knowledge. | Strong epistemic/qualification point. | Very high |
+| D-053 | The best fast physical model may be context-dependent; qualification can yield a portfolio rather than one champion. | Hybrid search simulation | EXTEND/HARDEN | Qualify different artifacts for different contexts; routing/escalation may create engineering value. | Potentially important product/commercial thesis. | High |
+| D-054 | Hybrid qualification identity binds the assembled artifact graph, not weights alone. | Hybrid search simulation | HARDEN | Solver/component/composition changes can trigger requalification. | Important product evidence detail. | Very high |
+| D-055 | Search-space freedom needs a versioned ConstructionPolicy. | Hybrid search simulation | EXTEND | Challenge governance defines allowed construction families, fixed components, replaceable slots, resource/security constraints and common output contract. | Whitepaper architecture detail; not stage pitch. | High |
 
 ## Gate template
 
@@ -83,7 +94,7 @@ For each remaining simulated implementation gate, record:
 3. ~~Physics Evaluation Primitive Library.~~ **PASS — MEASUREMENT CONTRACT DISCOVERED**
 4. ~~Challenge Compiler / dossier authoring integration.~~ **PASS — MEASUREMENT IDENTITY + EVIDENCE REQUIREMENT**
 5. ~~Landscape physical-context integration.~~ **PASS AS TESTABLE INTELLIGENCE ARCHITECTURE**
-6. Hybrid model-construction search.
+6. ~~Hybrid model-construction search.~~ **PASS — MODEL-CONSTRUCTION ABSTRACTION EARNED**
 7. Coupled/multiphysics crash test.
 8. Carbon-without-neural-networks test.
 9. Final system-level design review.
