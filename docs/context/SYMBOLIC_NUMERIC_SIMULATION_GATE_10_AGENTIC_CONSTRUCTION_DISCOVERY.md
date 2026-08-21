@@ -112,7 +112,7 @@ ConstructionReceipt {
   dependency resolution identity
   random-seed/randomness provenance
   resource consumption
-  stdout/stderr digest or controlled logs
+  controlled log digests
   produced artifact digests
   termination state
   policy violations
@@ -220,11 +220,11 @@ This preserves Gate-6/7 component identity and qualification semantics.
 
 ## 10. Simulation D — malicious construction program
 
-Program attempts network exfiltration, fork bombs, GPU abuse, filesystem probing, hidden persistence, timing side channels, or output smuggling.
+Program attempts network exfiltration, resource abuse, filesystem probing, hidden persistence, side channels, or output smuggling.
 
 ### Decision
 
-Submitted-program mode requires a hardened execution substrate, not merely ordinary Docker conventions.
+Submitted-program mode requires a hardened execution substrate, not merely ordinary container conventions.
 
 Conceptual controls include:
 
@@ -288,13 +288,7 @@ Program uses stochastic search, random initialization, Monte Carlo basis selecti
 
 Nondeterminism is permitted only under an explicit `RandomnessContract`.
 
-It should define:
-
-- randomness sources;
-- seed ownership;
-- whether repeated reconstruction is required;
-- number of repeats/aggregation where qualified;
-- acceptable reconstruction dispersion if relevant.
+It should define randomness sources, seed ownership, whether repeated reconstruction is required, number of repeats/aggregation where qualified, and acceptable reconstruction dispersion if relevant.
 
 Miner-chosen official randomness must not become a hidden cherry-picking channel.
 
@@ -302,7 +296,7 @@ Miner-chosen official randomness must not become a hidden cherry-picking channel
 
 ## 14. Simulation H — program emits many candidates and selects one
 
-Agent's construction algorithm trains/builds 100 artifacts and internally selects the best using authorized construction data.
+Agent's construction algorithm builds many artifacts and internally selects the best using authorized construction data.
 
 ### Decision
 
@@ -329,14 +323,7 @@ An agent uses the reference solver to choose where to sample/train.
 
 This can be scientifically valuable and should not be prohibited categorically.
 
-But truth access becomes an experimental resource. ConstructionInputPolicy must specify:
-
-- allowed solver/query interface;
-- query budget;
-- fidelity;
-- adaptive/nonadaptive access;
-- cost accounting;
-- disclosure/provenance.
+But truth access becomes an experimental resource. ConstructionInputPolicy must specify allowed solver/query interface, query budget, fidelity, adaptive/nonadaptive access, cost accounting, and provenance.
 
 ### Discovery
 
@@ -430,15 +417,9 @@ loss/objective / fitting method
 resource/truth-access policy
 ```
 
-A future Landscape can ask:
+A future Landscape can ask which construction algorithms transfer across physical contexts, which are sensitive to smoothness/stiffness/geometry/regime, when adaptive truth querying pays for itself, which methods fail to reconstruct reproducibly, and which novel methods should be reproduced or registered.
 
-- which construction algorithms transfer across physical contexts?
-- which algorithms are sensitive to smoothness/stiffness/geometry/regime?
-- when does adaptive truth querying pay for itself?
-- which methods fail to reconstruct reproducibly?
-- which novel methods should be reproduced or registered?
-
-But all Gate-5 causal discipline remains: selection provenance, censoring, measurement identity, and deliberate experiments are required before causal promotion.
+All Gate-5 causal discipline remains: selection provenance, censoring, measurement identity, and deliberate experiments are required before causal promotion.
 
 ---
 
@@ -556,17 +537,7 @@ This design is **not P0 scope**.
 
 Current bounded JSON Strategy submission is materially safer and should remain the launch design.
 
-A submitted ConstructionProgram capability should not ship until Carbon has:
-
-- proven the lean subnet;
-- hardened A4-style secrecy boundaries;
-- a mature isolated execution substrate;
-- content-addressed environment/dependency provenance;
-- ConstructionPolicy and CandidateOutputContract;
-- clear resource accounting;
-- artifact sanitization/egress controls;
-- abuse/security review;
-- evidence that broader search freedom creates enough value to justify the attack surface.
+A submitted ConstructionProgram capability should not ship until Carbon has proven the lean subnet, hardened A4-style secrecy boundaries, a mature isolated execution substrate, content-addressed environment/dependency provenance, ConstructionPolicy and CandidateOutputContract, clear resource accounting, artifact sanitization/egress controls, abuse/security review, and evidence that broader search freedom creates enough value to justify the attack surface.
 
 ---
 
@@ -578,6 +549,8 @@ Gate 10 earns a **bounded long-term agentic-discovery thesis**:
 
 Do not claim arbitrary-program mining exists today.
 
-A stronger research hypothesis can be added:
+Add research hypotheses:
 
-> **H26 — Open construction discovery:** Under matched scientific and resource constraints, does allowing sandboxed
+> **H26 — Open construction discovery:** Under matched scientific and resource constraints, does allowing sandboxed submitted construction algorithms discover stronger or more diverse methods than search restricted to a registered method catalog?
+
+> **H27 — Method-library compounding:** Does an evidence-bearing library of previously discovered construction methods improve future search efficiency, transfer prediction, or
