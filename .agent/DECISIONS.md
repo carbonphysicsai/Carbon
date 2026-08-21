@@ -1,5 +1,194 @@
 # Agent decisions log
 
+## 2026-08-21 — A5 pre-implementation scoring contract ratification
+
+**Status, base, and scope.** An independent GitHub read and a fresh local
+fetch both resolved `origin/main` to exact commit
+`3d80e09549964251833b0d8a70093cfceb51a501`. At that point GitHub reported no
+open pull request and no remote branch matching A5 or scoring work. The
+canonical `carbon/scoring/` package contained only its A0 marker; no A5
+engine, model, loader, runtime Score Pack, default-CPU A5 test, or A5 plan
+existed. On that repository truth, the maintainer ratifies A5-R1 through
+A5-R13 below as the bounded implementation contract for future A5 work.
+
+This entry is documentation, not implementation. A5 remains `todo`, not
+`in_progress`; every A5 Definition-of-Done item remains unchecked. No Python,
+fixture artifact, test, or dependency is added by this ratification. A5 is
+**SPECIFIED / RATIFIED**, but it is **NOT IMPLEMENTED**, **NOT TESTED**, and
+**NOT PRODUCTION-QUALIFIED**. A6 and all later tickets remain out of scope.
+
+**A5-R1 — Canonical runtime artifact.** The canonical runtime Score Pack is
+one strict UTF-8 JSON byte sequence. The runtime loader accepts no YAML and
+adds no YAML dependency. YAML may be used only before publication as an
+authoring or documentation form; a separately reviewed conversion must
+produce the JSON bytes that are actually pinned and loaded. Runtime validation
+rejects a UTF-8 BOM, invalid UTF-8, duplicate object keys, non-JSON numeric
+constants, trailing data, a non-object top level, missing required members,
+unknown members, and type-invalid members. Parsing or reserialization never
+redefines the artifact identity.
+
+**A5-R2 — Exact bytes and external digest.** Pack identity is the exact source
+bytes together with a required external tagged SHA-256 in A3's only accepted
+form, `sha256:<64 lowercase hexadecimal characters>`. The expected digest is
+not read from or trusted to a field inside the bytes. It is checked against
+SHA-256 of the untouched bytes before UTF-8 decoding and JSON parsing.
+Whitespace, line endings, member order, and every other byte therefore affect
+identity. There is no self-reported `content_hash`, content-hash stub,
+path-only identity, hash of parsed/normalized content, fallback pack, or
+missing-digest fallback.
+
+**A5-R3 — Complete exact pin.** One immutable A5 pack pin binds all of:
+
+- exact A3 `ChallengeKey` — challenge ID and exact challenge version;
+- exact scoring version and the A5-R2 external scoring digest;
+- exact required generator version and tagged generator digest;
+- exact Score Pack schema version;
+- exact numerical-profile identifier `python_binary64_v1`; and
+- exact Boolean `fixture_origin`.
+
+Every field is required, exact-match, and non-defaultable. Generator and
+scoring versions reuse A3 `validate_version`; tagged digests reuse A3's exact
+digest contract. A5 adds no separate `gate_version`: hard-gate definitions and
+thresholds are already bound by the exact Score Pack bytes. The loaded pack,
+external registry/loader expectation, and `ScoreInput` pin must agree exactly
+before any scientific gate is evaluated.
+
+**A5-R4 — Closed validator-authorized scalar input.** A5 accepts only an
+immutable, validator-authorized `ScoreInput` whose schema is closed and whose
+payload contains the exact A5-R3 pin plus the complete scalar values required
+by that pack. Expected gate/component keys must match exactly; missing,
+duplicate, extra, aliased, or unknown keys reject. Free-form metric mappings,
+arrays, tensors, predictions, references, raw draws, raw percentiles, and
+miner-supplied values are not `ScoreInput`. Prior similarity,
+`estimate`/`light_*`, exam fee, mock-only metrics, product-battery results, and
+any other forbidden field are rejected rather than ignored. A8 or later
+validator-owned metric operators own model execution, predictions,
+references, relative-error generation, raw percentile computation, and
+construction of an authoritative scalar `ScoreInput`.
+
+**A5-R5 — Binary mandatory hard gates.** Hard-gate decisions are binary.
+Resolved threshold gates pass if and only if the validated binary64 actual is
+strictly less than the validated binary64 threshold; equality fails. A
+validator-authorized Boolean predicate gate passes only on exact `True`.
+Before decision, the mandatory gate set and its actuals must be complete. Any
+actual failure of a mandatory gate atomically requires both
+`combined_score = 0.0` and `eligible_for_emission = False`. A sigmoid may be a
+non-emission diagnostic or a soft-leg transform, but it never determines an
+official hard-gate pass. A zero soft leg is distinguishable from a mandatory
+gate failure even though both can yield a zero combined score.
+
+**A5-R6 — Configuration/input/infra is not scientific failure.** A missing or
+malformed pack, absent/mismatched external digest or pin, malformed or
+incomplete `ScoreInput`, unknown field, and infrastructure/reference failure
+are non-scientific failures. They create no synthetic failed gate and no
+scientific zero. Infra/reference statuses cannot construct authoritative
+`ScoreInput` or enter `ScoreEngine.score`. Those cases return or propagate a
+typed non-scoring error with no combined score and a non-emitting disposition;
+they do not produce `MANDATORY_GATE_FAILED`.
+
+**A5-R7 — Weighted-geometric top level and exact weights.** The only A5
+top-level aggregate is the weighted geometric mean. The pack is the sole
+source of the weight map. Every weight is a strictly positive JSON number;
+the original JSON number values are validated with exact decimal arithmetic
+to sum exactly to decimal `1` before binary64 conversion. The key set must
+match the score-bearing top-level legs exactly. Missing, extra, zero,
+negative, non-finite-after-conversion, or non-unit-sum weights reject. The
+engine never normalizes, renormalizes, clamps, defaults, or substitutes
+weights. The same no-default rule applies to required within-leg weights where
+the pack schema uses a unit-sum weight map. Decimal unit-sum validation uses
+`decimal.Decimal` source lexemes and exact common-base-10 integer coefficient
+addition derived from `Decimal.as_tuple()`; it is independent of ambient
+decimal context and never uses a binary64 tolerance. The 0.45/0.30/0.25 values
+are a pack example/baseline only, never engine constants.
+
+**A5-R8 — Wave A numerical profile.** The exact A5 profile identifier is
+`python_binary64_v1`. It uses the Python standard library and built-in
+binary64 `float` only for scientific gate and score arithmetic; NumPy, JAX,
+Torch, alternate dtypes, and dependency-specific math are outside this
+profile. Pack JSON numbers are first retained as exact standard-library
+decimal values for schema/range/sum validation, then explicitly converted to
+binary64. Conversion must remain finite and must preserve required positivity.
+Runtime numeric `ScoreInput` slots require exact built-in `float` values;
+Boolean, integer, string, subclassed, coerced, NaN, and infinite values reject
+where a number is required. Thresholds are finite and strictly positive; gate
+error actuals are finite and non-negative; authorized component scores are in
+the closed interval `[0.0, 1.0]`. No epsilon floor, clipping, coercion,
+rounding, or silent range repair is permitted.
+
+After all mandatory gates pass, a component score equal to binary64 zero takes
+an exact zero branch and returns `combined_score = 0.0` without evaluating its
+log. Otherwise, in fixed top-level order `(physics, robustness, accuracy)`, the
+engine evaluates each term as binary64
+`weight * math.log(component_score)`, combines that materialized three-term
+tuple with `math.fsum`, and applies `math.exp` exactly once. JSON object source
+order has no arithmetic effect. Within-leg weighted sums use `math.fsum` in
+their declared array order; the exact scalar-transform operation order and
+stable logistic branches are recorded in `Design_Specs/Scoring.md` §§6–7. The
+result is not rounded or clamped. Any non-finite or out-of-range
+intermediate/output is a non-scientific scoring error, not a gate failure.
+Exact cross-runtime/libm reproducibility remains a later backend qualification
+claim; this ratification fixes the Wave A execution behavior but does not
+production-qualify a platform.
+
+**A5-R9 — Explicit unresolved states.** The only explicit unresolved
+scientific-value states are the exact JSON strings `HUMAN_INPUT` and
+`BLOCKED_FOR_LIVE_UNTIL_SET`. They are states, not numeric values, passes,
+zeroes, or defaults. JSON `null`, omission, and malformed values are not
+aliases for either state. If any mandatory threshold or other score-bearing
+required pack value is in either explicit state, the valid pack is
+`PACK_NOT_READY`: no gates are evaluated, `combined_score` is absent/`None`,
+and `eligible_for_emission = False`. That outcome is not a scientific gate
+failure. An unresolved optional, strictly non-score-bearing diagnostic may be
+retained only when exact `mandatory = false` marks it as such. While unresolved
+it is unevaluated, contributes no expected `ScoreInput` key, creates no gate
+result, is omitted from `InternalResult`, and cannot affect readiness, status,
+a score, or eligibility.
+
+**A5-R10 — Fixture-only origin.** A5 implements only a structurally
+non-emission-authoritative fixture origin. Its runtime pack must bind exact
+`fixture_origin = true`; missing or false origin rejects in A5. That field is
+part of the exact pin and result, cannot be defaulted or relabelled by the
+engine, and is structural labeling rather than authenticated provenance.
+Every A5 fixture result has `eligible_for_emission = False`, including a
+resolved pass with a non-zero combined score. An actual mandatory failure
+still additionally enforces the A5-R5 zero-score invariant. Supporting a
+production-origin pack or an emission-authoritative result requires separate
+later implementation, qualification, and human authorization.
+
+**A5-R11 — Private `InternalResult`.** A5's stable private result contains
+only the scoring status, exact A5-R3 pack pin, fixture-origin state, evaluated
+gate decisions/authorized scalar components as applicable, optional combined
+score, and `eligible_for_emission`. It does not copy pack weights into the
+result. It also excludes raw or derived seeds, seed roles, draw/sample/exam
+IDs, evaluation binding, strategy/submission/miner/validator identity, fees,
+block/decay/tie-break fields, public-card or disclosure behavior, receipt or
+signature behavior, persistence, logging, and weight-writing. A6 owns storage
+and public projection; later receipt/evidence, observability, FSM, and
+economic owners consume only explicitly authorized fields.
+
+**A5-R12 — Scoring authority and supersession.** `Design_Specs/Scoring.md`
+remains the sole mathematical and A5 runtime-contract authority.
+`Design_Specs/Scoring_Formulas.md` is subordinate. Its historical
+0.40/0.35/0.25 example, sigmoid-as-official-hard-gate description, arithmetic
+top-level aggregate, fp32/JAX runtime implication, and missing-input
+fail-or-zero language are explicitly superseded and must not be implemented.
+Historical PoC/legacy scorers and tests using linear/arithmetic/defaulted
+semantics are archaeology, not A5 implementation or test evidence. The
+active-looking historical `Design_Specs/Implementation.md` scoring appendix
+and the proposed/unratified tuple in `Design_Specs/Strategy_Schema.md` are
+likewise superseded for A5 artifact, input, gate, math, and result behavior.
+
+**A5-R13 — Ticket repair and implementation gate.** The A5 ticket is repaired
+to require both zero score and false eligibility on actual mandatory failure;
+to require rejection rather than “ignored or rejected”; to require exact
+bytes plus the external tagged digest rather than a content-hash stub; to use
+strict runtime JSON rather than YAML; and to place the future test at the
+current default-CPU path `tests/cpu/test_scoring_engine.py`. The new A5 plan is
+a pre-implementation ratification plan only. Future implementation may begin
+only after this documentation PR is independently reviewed, human-authorized,
+merged, and followed by a fresh main/concurrency/status check. This decision
+does not itself authorize a merge, start A5, or begin A6 or later work.
+
 ## 2026-08-21 — A4 closure after reviewed merge
 
 **Closure topology and review.** A4 implementation began from exact base
