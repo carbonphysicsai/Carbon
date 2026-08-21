@@ -52,6 +52,15 @@
 | D-033 | Thresholds are not portable by metric name alone. | Challenge Compiler simulation | HARDEN | Bind threshold basis to physical-system version + MeasurementContract + qualified envelope/dossier evidence. | Reinforces physics > arbitrary score framing. | Very high |
 | D-034 | Controlled partner semantics create a transparency compatibility test. | Challenge Compiler simulation | HARDEN/DEFER | Some proprietary problems may require distinct Challenge modes; open competition still needs enough auditable semantics. | Commercial/partner positioning issue worth preserving for final review. | High |
 | D-035 | Generated scientific documentation needs machine-visible evidence states. | Challenge Compiler simulation | HARDEN | Mark planned/unrun/satisfied/failed/waived explicitly so scaffolding cannot masquerade as evidence. | Strengthens transparent-evidence framing. | Very high |
+| D-036 | Physical-context features need temporal/causal role typing. | Landscape simulation | EXTEND/HARDEN | Distinguish pre-intervention context, intervention descriptors, post-intervention measurements, and downstream outcomes to prevent leakage. | Strong whitepaper/canon methodological addition. | Very high |
+| D-037 | Selection provenance is required for serious causal interpretation. | Landscape simulation | EXTEND/HARDEN | Preserve whether observations came from performance search, Port C experiment, reproduction, sponsored study, etc. | Major strengthening of Landscape causal discipline. | Very high |
+| D-038 | Censoring/missingness is a first-class evidence state. | Landscape simulation | EXTEND/HARDEN | Distinguish scientific failure, training failure, censored/no-result, and infrastructure failure. | Important evidence-system addition. | Very high |
+| D-039 | Exact MeasurementContract identity belongs in Landscape's experimental variable space. | Landscape simulation | HARDEN | Never compare generic metric labels across versions as unchanged measurements. | Strengthens longitudinal evidence integrity. | Very high |
+| D-040 | Physical similarity must earn value prospectively rather than be declared by ontology. | Landscape simulation | HARDEN | Test equation/regime/feature representations against held-out transfer and decision baselines. | Central scientific case for structured physical intelligence. | Very high |
+| D-041 | Rich physical/regime features should live in a derived ContextFeatureSet, not bloat PhysicalSystemSpec. | Landscape simulation | EXTEND | Add versioned derived feature object with physical-system reference, provenance, applicability and uncertainty. | Important architecture/canon addition. | High |
+| D-042 | Authored, derived and learned physical features have different epistemic status. | Landscape simulation | EXTEND/HARDEN | Preserve feature provenance type and avoid treating authored ontology labels as truth. | Strengthens epistemic hierarchy. | Very high |
+| D-043 | Physics intelligence is earned through prospective decision lift. | Landscape simulation | KEEP/HARDEN | Require improved future search, experiment allocation, qualification prediction, or decision economics relative to baselines. | Core whitepaper/canon thesis; potentially useful simple investor language later. | Very high |
+| D-044 | Structured intelligence is itself governed evaluation information. | Landscape simulation | HARDEN | Miner/public Landscape outputs remain subject to disclosure policy/Evaluation Information Budget. | Strengthens existing adaptive-evaluation argument. | Very high |
 
 ## Gate template
 
@@ -73,7 +82,7 @@ For each remaining simulated implementation gate, record:
 2. ~~ModelingToolkit adapter.~~ **PASS WITH ARCHITECTURE EXTENSIONS**
 3. ~~Physics Evaluation Primitive Library.~~ **PASS — MEASUREMENT CONTRACT DISCOVERED**
 4. ~~Challenge Compiler / dossier authoring integration.~~ **PASS — MEASUREMENT IDENTITY + EVIDENCE REQUIREMENT**
-5. Landscape physical-context integration.
+5. ~~Landscape physical-context integration.~~ **PASS AS TESTABLE INTELLIGENCE ARCHITECTURE**
 6. Hybrid model-construction search.
 7. Coupled/multiphysics crash test.
 8. Carbon-without-neural-networks test.
