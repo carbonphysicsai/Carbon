@@ -1,6 +1,8 @@
 # Carbon — Agent Engineering Instructions
 
-This repository contains the implementation of **Carbon**, a competitive scientific-computing system for discovering, independently evaluating, and qualifying neural-operator training strategies for engineering simulation.
+This repository contains the implementation of **Carbon**, a competitive scientific-computing system for discovering, independently evaluating, and qualifying methods for constructing fast physical models for engineering simulation.
+
+**Current implementation scope:** P0 is intentionally narrower than that durable system identity. It begins with neural-operator training strategies, validator-controlled fresh retraining, and protected scientific evaluation. Coding agents must implement the current normative specifications and must **not** broaden P0 merely because future architecture documents describe additional model families or reconstruction methods.
 
 This file defines the default engineering rules for any coding agent working in this repository.
 
@@ -41,13 +43,16 @@ In general:
 
 Relevant specifications may include:
 
-- `Design_Specs/SPEC.md`
+- `SPEC.md`
+- `Design_Specs/System_Identity_and_Roadmap.md` for architecture/communication context only;
 - `Design_Specs/Miner_MCP.md`
 - `Design_Specs/Scoring.md`
 - generator / science specifications
 - validation / qualification specifications
 - `Design_Specs/Launch_Bar.md`
 - `Design_Specs/Build_Out.md`
+
+**Important:** `System_Identity_and_Roadmap.md`, Gate simulation documents, the Scientific Reference Canon, and preliminary-decision review files may describe future architecture, but they do not override current P0 wire contracts unless their decisions are ratified into the relevant normative domain specification.
 
 Do not rely on memory of a specification when the repository version is available.
 
