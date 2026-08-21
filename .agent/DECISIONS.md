@@ -4,7 +4,7 @@
 
 **Status, base, and scope.** On exact `origin/main`
 `c5f2dfbda64e4375e3d3f26f7a463ca98cabd07a`, the maintainer ratifies
-A4-R1 through A4-R8 below as the implementation decision for A4 seeding,
+A4-R1 through A4-R11 below as the implementation decision for A4 seeding,
 isolation, and the unsigned public exam-commitment boundary. This is a
 ratified implementation decision, not implementation: no A4 implementation
 source or A4 tests exist beyond the A0 package marker, A4 remains `todo`, and
@@ -97,12 +97,8 @@ overflowing, and non-integer values reject. Unknown or duplicated fields,
 invalid order, length, or text encoding, and all malformed values reject.
 Delimiter-concatenated strings are not canonical A4 documents.
 
-A4-R5 requires a canonical internal role key and exact validated ASCII
-generator/scoring versions, but it does not assign their detailed character
-grammar or bounds. Those are byte-contract choices: implementation must reuse
-an explicitly confirmed current validator or obtain maintainer ratification,
-not silently invent a new grammar or assume A3's grammar applies to fields it
-does not own.
+A4-R10 and A4-R11 below complete the generator/scoring-version and role-key
+validation contracts required by this schema.
 
 **A4-R6 — Private exam root and unsigned public commitment.** A4 derives a
 32-byte private exam root from the same HKDF PRK through an independent Expand
@@ -127,12 +123,7 @@ generated-payload hashes.
 
 A4 does not create an EvaluationReceipt, receipt ID, validator signature,
 timestamp, score commitment, prediction/reference root, Merkle/MMR log, or
-audit record. A4-R6 ratifies the listed field meanings and order but does not
-expressly confirm whether the common fields retain A4-R5 tags `0x01` through
-`0x09`, and it does not assign a TLV tag to the final private-exam-root field.
-Those are required byte-level interoperability decisions and must be
-maintainer-ratified before A4 implementation; this record does not silently
-invent them.
+audit record. A4-R9 below completes the exact exam-document tag contract.
 
 **A4-R7 — Bounded security and disclosure claim.** A4 guarantees the interface
 and derivation boundary: official entropy, raw or derived official seed
@@ -162,6 +153,71 @@ official output through query count or call order. Qualification derivation is
 limited to `reference` and `dossier`, cannot request mock or official domains,
 and remains separate from the live official miner exam. Fixture material
 cannot be relabelled or coerced into provider-origin material.
+
+**A4-R9 — Exam-document TLV tag contract.** The exact document headers
+`carbon.seed.info.v1`, `carbon.exam-root.info.v1`, and
+`carbon.exam-commitment.v1` establish three separate versioned schemas. TLV
+tags are interpreted within the schema selected by that exact header, not as
+globally unique field identifiers. The `carbon.seed.info.v1` tags and payload
+contracts remain unchanged from A4-R5.
+
+`carbon.exam-root.info.v1` reuses the A4-R5 common identity tags and payload
+contracts exactly:
+
+| Tag | Field |
+|---|---|
+| `0x01` | context kind |
+| `0x02` | seed-scheme identifier |
+| `0x03` | challenge ID |
+| `0x04` | challenge version |
+| `0x05` | generator version |
+| `0x06` | generator digest |
+| `0x07` | scoring version |
+| `0x08` | scoring digest |
+| `0x09` | evaluation binding |
+
+It has no additional fields and ends after `0x09`; it contains no seed domain,
+role key, draw index, or private exam root.
+
+`carbon.exam-commitment.v1` reuses those same `0x01` through `0x09` meanings
+and payload contracts, then adds exactly `0x0A` — private exam root, whose
+payload is exactly 32 raw bytes. Its field order is exactly `0x01` through
+`0x0A`, with no additional fields. Reusing `0x0A` for seed domain in
+`carbon.seed.info.v1` and private exam root in
+`carbon.exam-commitment.v1` is intentional and unambiguous because the header
+selects the schema. Implementations must not assign global meanings to tags,
+introduce a `0x0D` private-root tag, or reserve unused seed-document tags for
+cross-schema uniqueness. Unknown, duplicate, reordered, malformed-length,
+malformed-payload, and trailing unrecognized fields reject.
+
+**A4-R10 — Generator and scoring version validation.** A4 creates no second
+version grammar. Both `generator_version` and `scoring_version` call and reuse
+`carbon.registry.model.validate_version`; implementation must not copy its
+regular expression into `carbon/seeding`. The current contract requires an
+exact built-in Python `str`, returns its exact spelling without normalization,
+trimming, coercion, case folding, or alias resolution, and permits at most 64
+characters under the ASCII grammar
+`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`. Tokens begin and end with an
+alphanumeric character; empty segments and adjacent separators without an
+intervening alphanumeric segment reject. `1.0` and `burgers1d_v0.1` are valid
+examples. If A3's authoritative validator changes before A4 implementation,
+the implementation uses the then-current contract and re-evaluates its golden
+vectors before coding.
+
+**A4-R11 — Canonical role-key validation.** A4 `RoleKey` is a distinct
+semantic type that reuses A3's canonical-identifier grammar. A role key must be
+an exact built-in Python `str`, encode as ASCII, be non-empty and at most 64
+encoded ASCII bytes, preserve exact spelling without normalization, trimming,
+case folding, coercion, or alias resolution, and match
+`[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*`. A4 first enforces its own 64-byte bound,
+then calls
+`carbon.registry.model.validate_canonical_identifier(value, "role_key")`;
+it does not duplicate the regular expression. Valid examples include
+`generator`, `generator_sampling`, `parameter_init`, `batch_shuffle`,
+`dropout`, and `augmentation_1`. Empty, uppercase, leading-digit,
+leading/trailing/repeated-separator, dotted, spaced, slashed, non-ASCII, and
+over-64-byte values reject. Role keys remain subordinate to one of the six
+ratified domains and do not alter any A3 or other identity domain.
 
 **Protocol deferrals and maturity.** OQ-005 and OQ-006 remain unresolved in
 their owning protocol/security domains. In particular, this ratification does

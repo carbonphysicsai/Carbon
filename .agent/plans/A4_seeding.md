@@ -5,7 +5,7 @@
 **Exact starting main:** `c5f2dfbda64e4375e3d3f26f7a463ca98cabd07a`
 **Status:** planning only; A4 remains `todo` and implementation has not begun
 
-This plan translates the maintainer-ratified A4-R1 through A4-R8 decision into
+This plan translates the maintainer-ratified A4-R1 through A4-R11 decision into
 a bounded future implementation. The current ratification change adds no
 Python source and no tests, does not mark A4 `in_progress`, and does not satisfy
 any A4 Definition-of-Done item.
@@ -23,28 +23,24 @@ any A4 Definition-of-Done item.
 - The supported editable-install baseline at the exact starting commit is
   `392 passed`; `carbon/seeding/` contains only the A0 package marker.
 - Current repository evidence therefore distinguishes the states correctly:
-  A4-R1 through A4-R8 are ratified at the interface/derivation-architecture
-  level, but the complete commitment byte contract is not yet fully
-  **SPECIFIED** until the identified tag and validators are confirmed. A4 is
-  not **IMPLEMENTED**, **TESTED**, or **PRODUCTION-QUALIFIED**.
-- A4-R6 does not expressly confirm that the common exam-document fields reuse
-  A4-R5 tags `0x01` through `0x09`, and it does not assign the TLV tag for the
-  final private-exam-root field in `carbon.exam-commitment.v1`. Byte-for-byte
-  implementation is blocked until the maintainer confirms those tags. A4
-  remains `todo`, not `blocked` or `in_progress`, while this pre-code decision
-  is reviewed.
-- A4-R5 requires a canonical internal role key and exact validated ASCII
-  generator/scoring versions without assigning their detailed grammar or
-  bounds. Those byte-level validators also require explicit confirmation;
-  implementation must not silently reuse a validator from a different
-  identity domain.
+  A4-R1 through A4-R11 now fully **SPECIFY** the interface, derivation, and
+  byte-level contracts needed for bounded A4 implementation. A4 remains
+  `todo` and is not **IMPLEMENTED**, **TESTED**, or
+  **PRODUCTION-QUALIFIED**.
+- A4-R9 ratifies schema-local TLV interpretation, common-field tag reuse, and
+  commitment private-root tag `0x0A`. A4-R10 reuses A3 `validate_version` for
+  generator/scoring tokens. A4-R11 reuses A3 canonical-identifier grammar for
+  `RoleKey` after an A4-owned 64-byte ASCII bound.
+- Future implementation may begin only after this ratification PR is reviewed,
+  merged, and verified on `main`, followed by a fresh authority/status check.
+  This documentation follow-up itself neither starts nor authorizes code.
 
 ## Authoritative source map
 
 | Source | Authority and A4 use |
 |---|---|
 | Root `AGENTS.md` | Governs authority, conflict escalation, no leakage, mock isolation, exact maturity claims, KEEP → WRAP → REPAIR → REPLACE, dependency discipline, and completion evidence. |
-| `.agent/DECISIONS.md` — 2026-08-21 A4 entry | Ratified implementation decision for A4-R1 through A4-R8. It supersedes the ticket's `master_secret` sketch without claiming implementation. |
+| `.agent/DECISIONS.md` — 2026-08-21 A4 entry | Ratified implementation decision for A4-R1 through A4-R11. It supersedes the ticket's `master_secret` sketch and completes the A4 byte contract without claiming implementation. |
 | `.agent/INVARIANTS.md` | Requires no official seed/draw leakage, structural mock isolation, pinned official evaluation, determinism, and no placeholder LIVE/emission material. |
 | `Design_Specs/Build_Out.md` §0, §2, §7 | Sequencing authority; owns the C6 placement, exact six top-level domains, and required role/leakage/mock test families. Its conceptual TrainEval `mode` belongs to later A8 and is not the A4 public API. |
 | `Design_Specs/Build_Out_Protocol_Extension.md` §2 A4 | Assigns A4 the safe `exam_commitment` projection and permits a provider protocol while leaving seed timing to the data/seeding owners. |
@@ -76,7 +72,8 @@ implementation decision.
 | `carbon/seeding/` | **KEEP** the canonical dependency-free namespace; **REPAIR** its A0 marker by adding the ratified modules and explicit exports only when implementation starts. |
 | `carbon.registry.ChallengeKey` | **KEEP and reuse directly**. It is the exact frozen A3 challenge identity; A4 must not accept a weaker tuple or duplicate its parser. |
 | `carbon.registry.digest.is_sha256_digest` | **WRAP/reuse directly** for generator/scoring tagged-digest validation. `ArtifactBinding` alone only type-checks and is not sufficient. |
-| A3 canonical identifier validation | **Candidate WRAP, pending explicit confirmation,** for internal role keys. A4-R5 does not ratify that grammar for role keys, so implementation must neither assume it nor create a second weaker grammar. Challenge version remains owned by `ChallengeKey`. |
+| `carbon.registry.model.validate_version` | **WRAP/reuse directly** for generator/scoring version tokens under A4-R10. Do not copy its regular expression; challenge version remains owned by `ChallengeKey`. |
+| `carbon.registry.model.validate_canonical_identifier` | **WRAP/reuse directly** for A4-R11 role-key grammar after A4 enforces its separate 64-byte ASCII bound. The A3 helper itself has no length bound. |
 | A2 `dry_validate` seed/draw controls | **KEEP** as the miner-input boundary. A4 contexts never accept or retain a Strategy mapping, so post-context Strategy mutation is irrelevant. |
 | `carbon/common/seeds.py` | **REPLACE as canonical A4 semantics; leave untouched as legacy.** It uses delimiter concatenation, 63-bit modulo integers, a common `master_seed`, role aliases, `local_mode`, and public seed bundles that conflict with A4-R1–R5/R8. |
 | PoC seed contexts/generators/cards/tests | **REPLACE/retire as A4 authority; leave untouched.** They expose master/raw seeds, block hash, nonce, integer conversions, and generic local/official switches. Preserve only historical evidence that determinism and role separation were intended. |
@@ -182,9 +179,11 @@ Every derivation context carries and copies the following immutable inputs:
 
 - exact A3 `ChallengeKey`, including both challenge ID and exact challenge
   version;
-- exact non-normalized ASCII generator version and A3-form tagged generator
+- exact generator version validated by
+  `carbon.registry.model.validate_version` and an A3-form tagged generator
   digest;
-- exact non-normalized ASCII scoring version and A3-form tagged scoring
+- exact scoring version validated by
+  `carbon.registry.model.validate_version` and an A3-form tagged scoring
   digest;
 - exact seed-scheme identifier `carbon.seed.hkdf-sha256.v1`;
 - exact 32 raw-byte evaluation binding;
@@ -194,12 +193,22 @@ One seed derivation additionally binds the exact allowed top-level domain,
 canonical role key, and explicit draw index. Draw indices require
 `type(value) is int` and `0 <= value <= 2**64 - 1`; Boolean, negative,
 overflowing, subclassed/coerced, and non-integer values fail before encoding.
-Strings remain exact validated ASCII bytes without trimming, normalization,
-case folding, aliasing, defaulting, or coercion. Beyond exact string type,
-ASCII encoding, and non-normalization, A4-R5 does not yet define the detailed
-role-key grammar or generator/scoring-version bounds and allowed ASCII code
-points. The maintainer must confirm those validators before implementation;
-the code must not borrow an incompatible grammar or invent protocol limits.
+Generator/scoring versions call
+`carbon.registry.model.validate_version` directly: exact built-in `str`, exact
+unchanged spelling, inclusive 64-character bound, and ASCII grammar
+`[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`. The implementation does not trim,
+normalize, coerce, case-fold, resolve aliases, or duplicate the A3 regular
+expression. `1.0` and `burgers1d_v0.1` are valid; empty values and leading,
+trailing, or adjacent separators reject.
+
+`RoleKey` is a distinct A4 type. It requires an exact built-in `str`, strict
+ASCII encoding, no normalization/trimming/case folding/coercion/alias
+resolution, and at most 64 encoded bytes. A4 applies that byte bound, then
+calls `carbon.registry.model.validate_canonical_identifier(value, "role_key")`
+for grammar `[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*`; it does not copy the regular
+expression. The A3 helper provides the grammar, not the A4 length bound. If
+either A3 validator changes before implementation, re-check the authoritative
+contract and regenerate/review all affected golden vectors before coding.
 
 The context constructor accepts no validator/miner identity, Strategy mapping,
 miner hyperparameter, miner seed/nonce/block hash/draw ID/exam ID, clock, PID,
@@ -226,8 +235,7 @@ the independent exam-root domain cannot be confused with seed info. Retain all
 truncate, apply modulo, reuse output across roles, or import a backend RNG.
 
 The test suite must include an RFC 5869 reference vector for the private helper
-and Carbon-specific golden bytes for each ratified document after the final
-commitment tag is ratified.
+and Carbon-specific golden bytes for each fully ratified document.
 
 ## Canonical TLV encoding
 
@@ -240,31 +248,49 @@ exact sequence. Each item is `tag:u8 || length:u32be || payload`.
 | `0x02` | seed-scheme identifier | Exact scheme ASCII |
 | `0x03` | challenge ID | Exact bytes validated by A3 `ChallengeKey` |
 | `0x04` | challenge version | Exact bytes validated by A3 `ChallengeKey` |
-| `0x05` | generator version | Exact validated ASCII; detailed grammar/bounds pending confirmation |
+| `0x05` | generator version | Exact A4-R10/A3 version token |
 | `0x06` | generator digest | Exact A3-form tagged lowercase SHA-256 ASCII |
-| `0x07` | scoring version | Exact validated ASCII; detailed grammar/bounds pending confirmation |
+| `0x07` | scoring version | Exact A4-R10/A3 version token |
 | `0x08` | scoring digest | Exact A3-form tagged lowercase SHA-256 ASCII |
 | `0x09` | evaluation binding | Exactly 32 raw bytes |
 | `0x0A` | seed domain | One exact allowed domain ASCII value |
-| `0x0B` | role key | Exact canonical role-key ASCII; detailed grammar pending confirmation |
+| `0x0B` | role key | Exact A4-R11 canonical role-key ASCII |
 | `0x0C` | draw index | Exactly eight bytes, unsigned big-endian |
 
-The private exam-root `info` begins with
-`carbon.exam-root.info.v1` and binds the first nine field meanings in that
-order; it omits domain, role, and draw. Its distinct header and complete input
-document provide an independent Expand domain from role-seed derivation.
+The exact header selects the versioned schema before any TLV tag is
+interpreted. Tags are schema-local, not global identifiers.
 
-The commitment document begins with `carbon.exam-commitment.v1`, binds those
-same first nine fields, then binds the 32-byte private exam root as its final
-field. A4-R6 says these documents use the same canonical TLV framing, but does
-not expressly confirm whether their common fields retain A4-R5 tags `0x01`
-through `0x09`; it also does not provide the final private-root field tag. No
-encoder, golden vector, or commitment implementation may be written until that
-tag contract is ratified and recorded; meanings and order alone are
-insufficient for interoperable bytes.
+`carbon.exam-root.info.v1` reuses the seed document's common field tags and
+payload contracts exactly:
+
+| Tag | Field |
+|---|---|
+| `0x01` | context kind |
+| `0x02` | seed-scheme identifier |
+| `0x03` | challenge ID |
+| `0x04` | challenge version |
+| `0x05` | generator version |
+| `0x06` | generator digest |
+| `0x07` | scoring version |
+| `0x08` | scoring digest |
+| `0x09` | evaluation binding |
+
+The exam-root document ends after `0x09`, with no domain, role, draw, private
+root, or trailing field. Its distinct header and complete input document
+provide an independent Expand domain from role-seed derivation.
+
+`carbon.exam-commitment.v1` reuses those same `0x01` through `0x09` tags and
+payload contracts, then adds exactly `0x0A` — private exam root, with a payload
+of exactly 32 raw bytes. The order is exactly `0x01` through `0x0A`, with no
+additional or trailing fields. Tag `0x0A` intentionally means seed domain in
+`carbon.seed.info.v1` and private exam root in
+`carbon.exam-commitment.v1`; the distinct headers make that reuse unambiguous.
+Implementations must not use a global tag map, introduce `0x0D` for the private
+root, or reserve unused seed-schema tags for cross-schema uniqueness.
 
 No delimiter concatenation, JSON, Unicode normalization, alternative field
-order, unknown/duplicate field acceptance, or permissive decoding is allowed.
+order, or permissive decoding is allowed. Unknown, duplicate, reordered,
+malformed-length, malformed-payload, and trailing unrecognized fields reject.
 
 ## Private exam root and public commitment boundary
 
@@ -363,7 +389,10 @@ test file is created by this plan.
 - mutation of a Strategy after context creation having no effect because no
   Strategy object is retained;
 - exam-root versus role-seed separation and commitment determinism/change
-  sensitivity after the final root tag is ratified.
+  sensitivity under the exact A4-R9 tag contract;
+- exact A4-R10 version and A4-R11 role-key valid/invalid examples, the
+  role-key 64-byte boundary, and proof that the A3 validators are reused rather
+  than duplicated.
 
 `tests/cpu/test_no_leakage.py` should cover:
 
@@ -410,8 +439,8 @@ on importing the checkout through the working directory.
 
 | Risk | Required treatment |
 |---|---|
-| Incomplete exam-document TLV tag contract | Confirm common-field tag reuse and assign the commitment-root tag before implementation; never choose either implicitly. |
-| Unassigned detailed role/version ASCII validation grammar | Confirm reuse or exact grammar/bounds before code; do not invent aliases, normalization, or limits. |
+| Cross-schema TLV tag confusion | Dispatch on the exact versioned header, interpret each A4-R9 schema independently, test both meanings of `0x0A`, and reject unknown/duplicate/reordered/trailing fields. |
+| Validator drift or duplicated identity grammar | Call the then-current A3 helpers, keep the separate A4 64-byte RoleKey bound explicit, and regenerate/review golden vectors if A3 changes before implementation. |
 | Weak or prematurely disclosed provider entropy | Opaque 32 bytes do not let A4 detect this. Entropy quality/timing and real-provider/fallback qualification remain OQ-005/OQ-006 work; retention/disclosure remains separately protocol-owned under A4-R7. |
 | Missing, malformed, unavailable, or provider-signalled conflicting observation | Fail closed with a generic error and no default. A4 neither resolves multiple observations nor chooses a fallback. |
 | Fixture/mock relabelling | Non-inheriting types, exact runtime checks, distinct context-kind bytes, fixture-marked public projection, and negative crossing tests. |
@@ -462,9 +491,9 @@ OQ-006 and does not choose it.
 
 ## Bounded implementation sequence
 
-1. Obtain and record the complete exam-document TLV tag contract and detailed
-   role/version ASCII validators; re-check exact base, status, competing
-   changes, and the then-current authority files.
+1. After this ratification PR is reviewed, merged, and verified on `main`,
+   re-check exact base, ticket status, competing changes, authority files, and
+   the then-current A3 validator contracts before beginning implementation.
 2. Implement immutable model/root/pin/context/public types with exact A3 reuse
    and non-disclosing representations.
 3. Implement and golden-test strict canonical encoders/validators.
@@ -480,9 +509,9 @@ OQ-006 and does not choose it.
 
 ## Completion evidence required before A4 can be `done`
 
-- The complete exam-document tag contract, detailed role-key grammar,
-  generator/scoring version validators, and any remaining byte-level
-  interoperability detail are explicitly maintainer-ratified and recorded
+- Implementation and golden vectors use the ratified A4-R9 schema-local tag
+  contract and A4-R10/A4-R11 validator boundaries. Any intervening A3
+  validator change is explicitly re-evaluated against the current authority
   before code is written.
 - Every A4 ticket checkbox is supported by named source and acceptance tests;
   no checkbox is completed from documentation alone.
@@ -505,5 +534,6 @@ OQ-006 and does not choose it.
 - Independent review, merge, reviewed-head ancestry, and post-merge CI evidence
   are recorded before `.agent/WAVE.md` or the ticket marks A4 `done`.
 
-Until all of that evidence exists, A4 stays `todo`; this plan authorizes no
-implementation or qualification claim.
+Until all of that completion evidence exists, A4 stays `todo`. This
+documentation follow-up begins no implementation and makes no qualification
+claim.

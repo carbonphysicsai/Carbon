@@ -9,7 +9,7 @@ identity
 not begun
 
 **Ratified decision:** `.agent/DECISIONS.md`, “2026-08-21 — A4
-pre-implementation seeding architecture ratification” (A4-R1 through A4-R8).
+pre-implementation seeding architecture ratification” (A4-R1 through A4-R11).
 
 **Goal:** Implement deterministic, non-colliding typed seed contexts and an
 opaque unsigned public `exam_commitment`, while proving that official material
@@ -51,16 +51,14 @@ reconstruction-sensitive hashes. A4 does not implement a receipt, signature,
 timestamp, score/result root, evidence log, card store, MCP handler, backend,
 or emission writer.
 
-Before implementation, the maintainer must confirm whether the exam-root and
-commitment documents retain A4-R5 tags `0x01` through `0x09` for their common
-fields and assign the missing TLV tag for the private-exam-root field in the
-`carbon.exam-commitment.v1` document. A4-R6 ratifies the field meanings and
-order but not those tag details; implementation must not invent them.
-
-A4-R5 also does not assign the detailed canonical role-key grammar or the
-bounds/allowed ASCII character set for generator and scoring version strings.
-Those byte-contract validators must be explicitly confirmed before code rather
-than inferred from a different identity domain.
+A4-R9 through A4-R11 complete the byte-level contract. Exam-root and
+commitment common fields reuse tags `0x01` through `0x09` under their exact
+schema headers; commitment tag `0x0A` holds the exact 32-byte private exam
+root. Generator/scoring versions reuse
+`carbon.registry.model.validate_version`, while the distinct A4 `RoleKey`
+enforces its 64-byte ASCII bound before reusing
+`carbon.registry.model.validate_canonical_identifier`. Tags are schema-local,
+and A4 does not duplicate either A3 validation grammar.
 
 ## Definition of Done
 
@@ -79,7 +77,7 @@ than inferred from a different identity domain.
   full 32-byte output retention.
 - [ ] Implement strict versioned TLV encoding/validation, including hostile
   ordering, duplication, length, ASCII, digest, binding, and draw-index cases,
-  after the remaining exam-document tag contract is ratified.
+  using the exact A4-R9 schema tags and A4-R10/A4-R11 validator boundaries.
 - [ ] Bind every official identity input, exclude every forbidden dynamic or
   miner/validator-controlled input, and prove Strategy mutation, call order,
   retries, and global RNG state cannot alter a context or later result.
