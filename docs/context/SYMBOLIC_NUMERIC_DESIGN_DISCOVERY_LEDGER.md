@@ -30,6 +30,13 @@
 | D-011 | Units/dimensional analysis are promising authoring/evaluation primitives but current Carbon sources do not justify core unit semantics. | Validator simulation | DEFER | Keep as extension/research candidate until a real Challenge requires it. | Possible future scientific-method contribution; not yet integrate. | High |
 | D-012 | Structural validity cannot establish mathematical well-posedness. | Validator simulation | HARDEN | Any future model linter is advisory; scientific qualification remains external. | Strengthens bounded-automation doctrine. | Very high |
 | D-013 | Opaque extensions still need global secrecy invariants. | Validator simulation | HARDEN | Scan full artifact for forbidden protected-material classes; do not treat extension validation as public-safety proof. | Internal architecture only. | Very high |
+| D-014 | Authored physical semantics, transformed symbolic semantics, and numerical-realization semantics are distinct evidence layers. | MTK adapter simulation | EXTEND/HARDEN | Preserve source/pre-transformation physical model separately from simplification/discretization provenance. | Strong whitepaper/canon addition: scientific identity must survive computational transformation. | Very high |
+| D-015 | Scoped symbol identity is required for compositional scientific models. | MTK adapter simulation | EXTEND (future v0.2) | Add stable subsystem scopes/namespaces when composition is introduced; do not retrofit v0.1. | Supports long-term multiphysics story; not Summit-stage detail. | High |
+| D-016 | Shared/aliased quantities across component scopes require explicit identity semantics, not string flattening. | MTK adapter simulation | DEFER/EXTEND | Define minimum alias/shared-identity contract during coupled-system gate. | None yet. | High |
+| D-017 | Framework defaults are not Carbon scientific envelopes. | MTK adapter simulation | HARDEN | Defaults may be provenance only; never infer ranges, priors, stress domains, or qualification from them. | Reinforces evidence-bounded design. | Very high |
+| D-018 | Adapter conversion quality must be explicit and measurable. | MTK adapter simulation | EXTEND | Every conversion returns an AdapterReport with mapped/unsupported/dropped/transformed constructs. | Potential partner-value story: auditable model onboarding. | Very high |
+| D-019 | Representation level is first-class provenance. | MTK adapter simulation | EXTEND/HARDEN | Tag whether evidence describes authored physical model, transformed symbolic model, discretized system, or numerical realization. | Important canon/whitepaper concept. | Very high |
+| D-020 | Observed variables can preserve engineering meaning even when numerical transformations eliminate them as states. | MTK adapter simulation | KEEP/HARDEN | Retain observed-variable class and lineage through transformations. | Supports qualification/engineering interpretation. | High |
 
 ## Gate template
 
@@ -48,7 +55,7 @@ For each remaining simulated implementation gate, record:
 ## Remaining simulated gates
 
 1. ~~Structural validator execution/hardening.~~ **PASS**
-2. ModelingToolkit adapter.
+2. ~~ModelingToolkit adapter.~~ **PASS WITH ARCHITECTURE EXTENSIONS**
 3. Physics Evaluation Primitive Library.
 4. Challenge Compiler / dossier authoring integration.
 5. Landscape physical-context integration.
