@@ -12,12 +12,14 @@ import subprocess
 import sys
 from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from carbon.registry import (
     REQUIRED_QUALIFICATION_STATES,
+    ArtifactAccessError,
     ArtifactBinding,
     ChallengeKey,
     ChallengeRecord,
@@ -26,14 +28,27 @@ from carbon.registry import (
     QualificationEvidence,
     QualificationManifest,
     RegistryError,
+    is_sha256_digest,
+    read_verified_artifact_bytes,
     serialize_record,
+    validate_canonical_identifier,
+    validate_version,
 )
+from carbon.registry import digest as registry_digest
 
 CHALLENGE_ID = "example_challenge"
 VERSION = "1.0"
 ARTIFACT_ID = "qualification_bundle"
 ARTIFACT_PATH = f"{CHALLENGE_ID}/{VERSION}/qualification/bundle.json"
 ARTIFACT_BYTES = b"synthetic A3 structure-only evidence\n"
+
+
+class _StringSubclass(str):
+    pass
+
+
+class _IntegerSubclass(int):
+    pass
 
 
 def _digest(value: bytes) -> str:
@@ -341,6 +356,13 @@ def test_required_version_forms_are_accepted(version: str) -> None:
     assert ChallengeKey(CHALLENGE_ID, version).version == version
 
 
+def test_public_registry_validation_helpers_preserve_a3_contracts() -> None:
+    digest = _digest(ARTIFACT_BYTES)
+    assert validate_version("v1.0") == "v1.0"
+    assert validate_canonical_identifier("score_input", "input_key") == "score_input"
+    assert is_sha256_digest(digest)
+
+
 def test_embedded_key_must_match_file_location(tmp_path: Path) -> None:
     registry = _registry(tmp_path)
     record = _complete_record(registry, version="1.0.1")
@@ -632,6 +654,200 @@ def test_absent_digest_field_blocks(tmp_path: Path) -> None:
     del payload["artifacts"][ARTIFACT_ID]["digest"]
     _write_raw_record(registry, payload)
     assert "artifact.digest_missing" in _reason_codes(registry)
+
+
+def test_verified_artifact_reader_returns_the_exact_verified_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = _registry(tmp_path)
+    _write_artifact(registry)
+    opened: list[int] = []
+    original_secure_open = registry_digest._secure_open
+
+    def recording_secure_open(root: Path, parts: tuple[str, ...]) -> int:
+        descriptor = original_secure_open(root, parts)
+        opened.append(descriptor)
+        return descriptor
+
+    monkeypatch.setattr(registry_digest, "_secure_open", recording_secure_open)
+
+    payload = read_verified_artifact_bytes(
+        registry.artifact_root,
+        ARTIFACT_PATH,
+        _digest(ARTIFACT_BYTES),
+        max_bytes=len(ARTIFACT_BYTES),
+    )
+
+    assert type(payload) is bytes
+    assert payload == ARTIFACT_BYTES
+    assert len(opened) == 1
+    with pytest.raises(OSError):
+        os.fstat(opened[0])
+
+
+@pytest.mark.parametrize(
+    "expected_digest",
+    (
+        None,
+        "",
+        "sha256:abc",
+        "sha256:" + "A" * 64,
+        b"sha256:" + b"0" * 64,
+        _StringSubclass("sha256:" + "0" * 64),
+    ),
+)
+def test_verified_artifact_reader_rejects_missing_or_malformed_digest(
+    tmp_path: Path, expected_digest: object
+) -> None:
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            tmp_path / "must-not-be-opened",
+            ARTIFACT_PATH,
+            expected_digest,
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.digest_invalid"
+
+
+def test_verified_artifact_reader_rejects_digest_mismatch(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    _write_artifact(registry)
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            ARTIFACT_PATH,
+            _digest(b"different bytes"),
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.digest_mismatch"
+
+
+@pytest.mark.parametrize(
+    "max_bytes",
+    (None, True, False, 0, -1, 1.0, _IntegerSubclass(1)),
+)
+def test_verified_artifact_reader_requires_exact_positive_builtin_int_limit(
+    tmp_path: Path, max_bytes: object
+) -> None:
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            tmp_path / "must-not-be-opened",
+            ARTIFACT_PATH,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=max_bytes,  # type: ignore[arg-type]
+        )
+    assert captured.value.code == "artifact.limit_invalid"
+
+
+def test_verified_artifact_reader_rejects_metadata_size_over_limit(
+    tmp_path: Path,
+) -> None:
+    registry = _registry(tmp_path)
+    _write_artifact(registry)
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            ARTIFACT_PATH,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=len(ARTIFACT_BYTES) - 1,
+        )
+    assert captured.value.code == "artifact.too_large"
+
+
+def test_verified_artifact_reader_enforces_max_plus_one_after_fstat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = _registry(tmp_path)
+    _write_artifact(registry)
+    maximum = len(ARTIFACT_BYTES) - 1
+    original_fstat = registry_digest.os.fstat
+
+    def understated_fstat(descriptor: int) -> SimpleNamespace:
+        metadata = original_fstat(descriptor)
+        return SimpleNamespace(st_mode=metadata.st_mode, st_size=maximum)
+
+    monkeypatch.setattr(registry_digest.os, "fstat", understated_fstat)
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            ARTIFACT_PATH,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=maximum,
+        )
+    assert captured.value.code == "artifact.too_large"
+
+
+def test_verified_artifact_reader_rejects_directory(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    directory_path = "evidence/directory"
+    registry.artifact_root.joinpath(*directory_path.split("/")).mkdir(parents=True)
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            directory_path,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.not_regular_file"
+
+
+def test_verified_artifact_reader_rejects_fifo_without_blocking(tmp_path: Path) -> None:
+    if not hasattr(os, "mkfifo"):
+        pytest.skip("FIFO creation is unavailable")
+    registry = _registry(tmp_path)
+    fifo_path = "evidence/qualification.fifo"
+    target = registry.artifact_root.joinpath(*fifo_path.split("/"))
+    target.parent.mkdir(parents=True)
+    os.mkfifo(target)
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            fifo_path,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.not_regular_file"
+
+
+def test_verified_artifact_reader_rejects_symlink(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    outside = tmp_path / "outside-matching-bytes.json"
+    outside.write_bytes(ARTIFACT_BYTES)
+    link = registry.artifact_root / "escaped.json"
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks are unavailable")
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            "escaped.json",
+            _digest(ARTIFACT_BYTES),
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.path_escape"
+
+
+def test_verified_artifact_reader_fails_closed_without_secure_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = _registry(tmp_path)
+    _write_artifact(registry)
+    monkeypatch.setattr(registry_digest, "_SUPPORTS_DIR_FD_OPEN", False)
+
+    with pytest.raises(ArtifactAccessError) as captured:
+        read_verified_artifact_bytes(
+            registry.artifact_root,
+            ARTIFACT_PATH,
+            _digest(ARTIFACT_BYTES),
+            max_bytes=len(ARTIFACT_BYTES),
+        )
+    assert captured.value.code == "artifact.secure_open_unavailable"
 
 
 @pytest.mark.parametrize(

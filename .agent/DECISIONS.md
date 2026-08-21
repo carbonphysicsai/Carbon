@@ -1,5 +1,40 @@
 # Agent decisions log
 
+## 2026-08-21 — A5 bounded fixture implementation evidence
+
+**Scope and disposition.** The authorized implementation branch
+`agent/a5-scoring-engine` starts from exact main
+`af43d68ec3b9dcfd8818a61ab219759b2c859d78`. It preserves A5-R1 through
+A5-R13 and implements the maintainer-authorized A5-R14 clarification in this
+same branch. The implementation **KEEPS / WRAPS** A3 identity validation and
+descriptor-relative secure artifact access, **REPAIRS** that public boundary
+narrowly to return one bounded digest-verified byte sequence, and **REPLACES**
+legacy scoring only as canonical authority without modifying legacy files.
+No A6+ owner, dependency, production-origin pack, LIVE path, or emission path
+is added.
+
+**Bounded artifact and behavior.** The branch contains the init-closed
+fixture-only pack/input/result models, strict digest-first schema-1.0 JSON
+loader, clarified `ScoreEngine.score(ScoreInput | None, LoadedScorePack)` entry,
+complete declared-order gates, exact scalar transforms, and fixed-order
+`python_binary64_v1` log-space aggregate. The sole runtime fixture is exactly
+2,126 bytes at `tests/fixtures/score_packs/a5_fixture_v1.json`; its required
+external digest is
+`sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57`.
+The digest is absent from the JSON, all values/identities are visibly
+synthetic, and every result is structurally false-eligible.
+
+**Acceptance and maturity.** Python 3.11.11 passed the focused A5 suite at
+`279 passed in 0.45s`, the related registry/package/leakage suite at
+`195 passed in 4.07s`, and the complete default CPU suite at
+`923 passed in 5.04s`. Compilation, eight-file Ruff/Black checks, the repository
+quality ratchet, built-wheel outside-tree import/scoring isolation, and diff
+hygiene passed. Independent final review found no remaining P0/P1/P2 issue.
+Therefore A5 is **SPECIFIED / RATIFIED: YES**, **IMPLEMENTED: YES on the bounded
+draft branch head**, **TESTED: YES only for the recorded fixture CPU scope**,
+and **PRODUCTION-QUALIFIED: NO**. Wave status remains `in_progress`; merge,
+`done`, closeout, A6, and later work require separate authorization.
+
 ## 2026-08-21 — A5 pre-implementation scoring contract ratification
 
 **Status, base, and scope.** An independent GitHub read and a fresh local
@@ -188,6 +223,36 @@ a pre-implementation ratification plan only. Future implementation may begin
 only after this documentation PR is independently reviewed, human-authorized,
 merged, and followed by a fresh main/concurrency/status check. This decision
 does not itself authorize a merge, start A5, or begin A6 or later work.
+
+**A5-R14 — Literal schema and engine-entry completion.** During the authorized
+A5 implementation, the maintainer resolved the remaining literal contract
+gaps without changing A5-R1 through A5-R13. Score Pack schema version is the
+exact required string `"1.0"`; every other schema token rejects. Every hard-gate
+and soft-leg operator record has the exact required discriminator member
+`"operator"`. The only accepted values remain `less_than`, `boolean_true`,
+`quadratic_barrier`, `tail_logistic`, and `reciprocal_error`; `"type"`, `"kind"`,
+omission, aliases, duplicates, and unknown values reject. Schema 1.0 makes
+within-leg `weighted_sum` implicit, so nested `"aggregation"` is forbidden;
+only top-level `"combination": "weighted_geometric_logspace"` is explicit.
+
+The exact engine entry is
+`ScoreEngine.score(score_input: ScoreInput | None, pack: LoadedScorePack)`.
+For a valid `PACK_NOT_READY` pack, exact Python `None` returns a result with
+empty gate and leg vectors, no combined score, and false eligibility; a
+non-`None` input rejects. A ready pack rejects `None` and accepts only the exact
+closed, pin-matched `ScoreInput`. Malformed or mismatched packs remain typed
+configuration errors and produce no `InternalResult`; Python `None` does not
+make JSON `null` valid.
+
+After a ready pack and complete input are fully validated, the engine evaluates
+every resolved gate in declared array order without short-circuiting, retains
+the full ordered vector, includes resolved optional diagnostics, and omits
+unresolved optional diagnostics. Mandatory failure is decided only after the
+vector is complete; it returns the full gate vector, canonical `0.0`, false
+eligibility, and no soft-leg evidence. Optional-only failure does not affect
+scoring. After mandatory pass, an exact zero soft leg remains `SCORED` with
+combined score `0.0`. This clarification belongs to the same implementation PR,
+does not authorize A6+, and does not production-qualify A5.
 
 ## 2026-08-21 — A4 closure after reviewed merge
 

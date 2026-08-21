@@ -11,9 +11,10 @@
 > aggregation; explicit unresolved states; and fixture-only non-emission
 > origin.
 >
-> **Maturity:** the contract is **SPECIFIED / RATIFIED ONLY**. A5 remains
-> `todo`. It is **NOT IMPLEMENTED**, **NOT TESTED**, and **NOT
-> PRODUCTION-QUALIFIED**.
+> **Maturity:** the contract is **SPECIFIED / RATIFIED**; A5 is **IMPLEMENTED on
+> the bounded draft branch head** and **TESTED only for the recorded fixture CPU
+> scope**. It remains `in_progress` and **NOT PRODUCTION-QUALIFIED** pending
+> draft-PR review, an authorized merge, and closeout.
 
 **Carbon Subnet**
 **Version:** 2.1 (August 2026)
@@ -131,7 +132,7 @@ One immutable pin binds all of the following:
 | Challenge identity | A3 `ChallengeKey`: exact `challenge_id` and exact challenge `version`. |
 | Scoring identity | Exact `scoring_version` and the required external scoring digest over the source bytes. |
 | Generator identity | Exact `generator_version_required` and exact tagged `generator_digest_required`. |
-| Schema | Exact Score Pack `schema_version`. |
+| Schema | Exact Score Pack `schema_version = "1.0"`; every other value rejects. |
 | Numerical profile | Exact identifier `python_binary64_v1`. |
 | Origin | Exact Boolean `fixture_origin`. A5 accepts only `true`. |
 
@@ -159,7 +160,7 @@ behavior at implementation time.
 
 | Member | A5 contract |
 |---|---|
-| `schema_version` | Exact version token for this closed JSON schema. |
+| `schema_version` | Exact string `"1.0"`; required and non-defaultable. |
 | `challenge_id`, `challenge_version` | Exact A3 challenge identity. |
 | `scoring_version` | Exact scoring version. The external scoring digest is deliberately not a member. |
 | `generator_version_required`, `generator_digest_required` | One exact required Generator Pack binding; no allow-list. |
@@ -176,13 +177,23 @@ The closed A5 operator set is:
 
 | Context | Exact operator identifier | Required scalar content |
 |---|---|---|
-| Threshold hard gate | `less_than` | `id`, `input_key`, exact `mandatory` Boolean, and `threshold` (positive number or an explicit unresolved state). Exact `mandatory = false` makes the record strictly diagnostic and non-score-bearing. |
-| Boolean hard gate | `boolean_true` | `id`, `input_key`, and exact `mandatory` Boolean; a `threshold` member is forbidden. Exact `mandatory = false` makes the record strictly diagnostic and non-score-bearing. |
-| Physics leg | `quadratic_barrier` | Non-empty ordered `components`; each has `id`, `input_key`, threshold/state, and `weight`/state. When resolved, thresholds and weights are positive and the component weight set sums exactly to decimal one. |
-| Robustness leg | `tail_logistic` | `tail_quantile`/state; `blend_weights` with exactly `mean`/`tail` number-or-state values; threshold/state; `sharpness`/state; and non-empty ordered categories containing `id`, `mean_input_key`, `tail_input_key`, and `weight`/state. When resolved, all required values satisfy the range/positivity rules and each weight set sums exactly to decimal one. |
-| Accuracy leg | `reciprocal_error` | Non-empty ordered `components`; each has `id`, `input_key`, threshold/state, and `weight`/state. When resolved, thresholds and weights are positive and the component weight set sums exactly to decimal one. |
+| Threshold hard gate | `less_than` | Required exact `operator`, `id`, `input_key`, exact `mandatory` Boolean, and `threshold` (positive number or an explicit unresolved state). Exact `mandatory = false` makes the record strictly diagnostic and non-score-bearing. |
+| Boolean hard gate | `boolean_true` | Required exact `operator`, `id`, `input_key`, and exact `mandatory` Boolean; a `threshold` member is forbidden. Exact `mandatory = false` makes the record strictly diagnostic and non-score-bearing. |
+| Physics leg | `quadratic_barrier` | Required exact `operator` and non-empty ordered `components`; each component has exactly `id`, `input_key`, threshold/state, and `weight`/state. When resolved, thresholds and weights are positive and the component weight set sums exactly to decimal one. |
+| Robustness leg | `tail_logistic` | Required exact `operator`; `tail_quantile`/state; `blend_weights` with exactly `mean`/`tail` number-or-state values; threshold/state; `sharpness`/state; and non-empty ordered categories containing exactly `id`, `mean_input_key`, `tail_input_key`, and `weight`/state. When resolved, all required values satisfy the range/positivity rules and each weight set sums exactly to decimal one. |
+| Accuracy leg | `reciprocal_error` | Required exact `operator` and non-empty ordered `components`; each component has exactly `id`, `input_key`, threshold/state, and `weight`/state. When resolved, thresholds and weights are positive and the component weight set sums exactly to decimal one. |
 | Within-leg aggregation | `weighted_sum` | Fixed by the three leg schemas; it is not a dynamic pack callable. |
 | Top-level aggregation | `weighted_geometric_logspace` | Exact top-level weight map and `python_binary64_v1` behavior in §7. |
+
+For schema `"1.0"`, `"operator"` is the only discriminator spelling and is
+required on every hard-gate and soft-leg operator record. `"type"`, `"kind"`,
+omitted/duplicate discriminators, aliases, and unknown values reject. Physics
+and accuracy leg objects contain exactly `operator` and `components`;
+robustness contains exactly `operator`, `tail_quantile`, `blend_weights`,
+`threshold`, `sharpness`, and `categories`. Within-leg `weighted_sum` is
+implicit in these fixed schemas: a nested `"aggregation"` member is unknown and
+rejects. The top-level `"combination": "weighted_geometric_logspace"` member
+remains required and explicit.
 
 Identifiers and input keys use reviewed canonical identifier validation and
 must be unique in their scope. Ordered arrays are the declared within-leg or
@@ -255,6 +266,24 @@ It cannot affect a mandatory gate, component, aggregate, status, combined
 score, or eligibility decision. A resolved optional diagnostic may be
 evaluated and recorded but remains non-score-bearing and
 non-emission-authoritative.
+
+The exact engine entry is:
+
+```text
+ScoreEngine.score(
+    score_input: ScoreInput | None,
+    pack: LoadedScorePack,
+) -> InternalResult
+```
+
+For a valid `PACK_NOT_READY` pack, exact Python `None` returns
+`PACK_NOT_READY` with empty gate and soft-component/leg vectors, no combined
+score, and false eligibility. Supplying a non-`None` `ScoreInput` to that pack
+is a typed input-contract error. A ready pack rejects `None` as missing input
+and accepts only the exact closed pin-matched `ScoreInput`. An invalid,
+malformed, or mismatched pack is a typed pack/configuration error and creates
+no result. Python `None` is only this internal entry sentinel; it does not make
+JSON `null` a valid pack value.
 
 Fixture packs may use visibly synthetic concrete values to exercise structural
 pass/fail paths, but those values remain non-LIVE and scientifically
@@ -330,6 +359,15 @@ both:
 combined_score = 0.0
 eligible_for_emission = False
 ```
+
+After the ready pack and complete input are fully validated, every resolved
+gate is evaluated in declared pack-array order without short-circuiting. The
+result retains that complete ordered vector, including resolved optional
+diagnostics; unresolved optional diagnostics are omitted entirely. Mandatory
+failure is determined only after the vector is complete. On failure the engine
+retains the vector, evaluates no physics/robustness/accuracy soft leg, and
+returns no soft component or leg evidence. An optional diagnostic failure
+alone never changes status or combined score.
 
 A sigmoid may be used for a soft-leg transformation or a non-emission
 diagnostic, but it never determines official hard-gate PASS/FAIL. A zero soft
@@ -600,10 +638,12 @@ The bounded result contains only:
 - optional binary64 `combined_score`; and
 - exact Boolean `eligible_for_emission`.
 
-`PACK_NOT_READY` contains no evaluated scientific gates and no combined score.
-An actual mandatory failure contains `combined_score = 0.0` and false
-eligibility. An A5 `SCORED` result may contain a positive or zero combined
-score but remains false-eligible because A5 is fixture-only.
+`PACK_NOT_READY` contains no evaluated scientific gates or soft evidence and no
+combined score. It is returned only through the exact `None` entry behavior in
+§3. An actual mandatory failure contains the complete evaluated gate vector,
+`combined_score = 0.0`, false eligibility, and no soft evidence. An A5
+`SCORED` result may contain a positive or zero combined score but remains
+false-eligible because A5 is fixture-only.
 
 `InternalResult` does not contain or own:
 
@@ -692,9 +732,9 @@ emissions.
 
 ---
 
-## 12. Future A5 implementation and acceptance layout
+## 12. A5 implementation and acceptance layout
 
-The ratified future implementation is expected to remain small and
+The ratified implementation remains small and
 dependency-free:
 
 ```text
@@ -711,15 +751,14 @@ tests/cpu/
   test_scoring_engine.py
 ```
 
-The future focused command is:
+The focused command is:
 
 ```text
 python -m pytest tests/cpu/test_scoring_engine.py -q
 ```
 
-At ratification time none of these implementation/test/fixture files exists
-except the A0 `carbon/scoring/__init__.py` marker. The layout is a plan, not
-implementation or test evidence.
+The implementation must expose the exact §3 engine signature and schema 1.0
+literal contract. File presence alone is not implementation or test evidence.
 
 Acceptance must cover exact bytes/digest/pin, strict JSON, no YAML/fallback,
 closed input/forbidden fields, infra separation, explicit unresolved states,
@@ -801,30 +840,32 @@ emission claim.
 
 ---
 
-## 15. A5 trustlessness checklist (not yet implementation evidence)
+## 15. A5 bounded implementation checklist
 
-- [ ] Runtime artifact is strict UTF-8 JSON; YAML is authoring-only.
-- [ ] Required external tagged digest matches exact source bytes before parse.
-- [ ] Complete pin matches challenge, scoring, generator, schema, profile, and
+- [x] Runtime artifact is strict UTF-8 JSON; YAML is authoring-only.
+- [x] Required external tagged digest matches exact source bytes before parse.
+- [x] Complete pin matches challenge, scoring, generator, schema, profile, and
       fixture origin exactly.
-- [ ] No pack/hash/default/fallback path exists.
-- [ ] Only a complete validator-authorized scalar `ScoreInput` reaches gates.
-- [ ] Forbidden/unknown/infra input is rejected before scientific scoring.
-- [ ] Unresolved required value produces `PACK_NOT_READY`, not a gate failure.
-- [ ] Mandatory threshold comparison is strict `<`; equality fails.
-- [ ] Actual mandatory failure sets both zero score and false eligibility.
-- [ ] Weight maps are positive and exact-decimal-sum-to-one; no normalization.
-- [ ] Closed scalar transforms and within-leg sums match their exact operation
+- [x] No pack/hash/default/fallback path exists.
+- [x] Only a complete validator-authorized scalar `ScoreInput` reaches gates.
+- [x] Forbidden/unknown/infra input is rejected before scientific scoring.
+- [x] Unresolved required value produces `PACK_NOT_READY`, not a gate failure.
+- [x] Mandatory threshold comparison is strict `<`; equality fails.
+- [x] Actual mandatory failure sets both zero score and false eligibility.
+- [x] Weight maps are positive and exact-decimal-sum-to-one; no normalization.
+- [x] Closed scalar transforms and within-leg sums match their exact operation
       order, branches, boundaries, and completeness rules.
-- [ ] Aggregation follows `python_binary64_v1` zero/log-space behavior.
-- [ ] Every A5 result remains non-emission-authoritative because it is fixture
+- [x] Aggregation follows `python_binary64_v1` zero/log-space behavior.
+- [x] Every A5 result remains non-emission-authoritative because it is fixture
       origin.
-- [ ] Private result excludes weights, hidden identity, and all later-owner
+- [x] Private result excludes weights, hidden identity, and all later-owner
       behavior.
-- [ ] Focused/default CPU and import-isolation acceptance tests pass.
+- [x] Focused/default CPU and import-isolation acceptance tests pass.
 
-Every box remains unchecked at ratification time. Documentation review does
-not make A5 implemented, tested, or production-qualified.
+These boxes record bounded draft-branch implementation and CPU evidence. They
+do not make the implementation merged-main, scientifically qualified,
+security/operations qualified, LIVE-authorized, emission-authoritative, or
+production-qualified.
 
 ---
 

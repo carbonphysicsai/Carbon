@@ -3,23 +3,77 @@
 **Ticket:** A5 — Scoring engine + fixture Score Pack
 **Ratification branch:** `agent/a5-contract-ratification`
 **Ratification starting main:** `3d80e09549964251833b0d8a70093cfceb51a501`
-**Implementation branch:** not created
-**Status:** pre-implementation contract ratified in documentation only; A5
-remains `todo`
+**Implementation branch:** `agent/a5-scoring-engine`
+**Implementation starting main:**
+`af43d68ec3b9dcfd8818a61ab219759b2c859d78`
+**Status:** bounded fixture-only implementation `in_progress`; A6 and later
+work remain out of scope
 
-This is the bounded plan for a future A5 implementation. It does not implement
-scoring, create a runtime Score Pack, add tests, add dependencies, satisfy a
-Definition-of-Done item, or authorize A6 or later work.
+This is the bounded plan and evidence record governing the current A5
+implementation. The draft-branch tree now satisfies the bounded implementation
+and CPU acceptance items recorded below; it adds no dependency, does not
+authorize A6 or later work, and establishes no production qualification.
 
-## Pre-implementation repository gate and maturity
+## Implementation preflight and baseline
 
-- An independent GitHub repository/branch read and a fresh local fetch both
-  resolved current `main` to exact commit
+- Fresh local fetch and independent GitHub inspection resolved `origin/main`
+  to exact merge `af43d68ec3b9dcfd8818a61ab219759b2c859d78`, with ordered
+  parents `3d80e09549964251833b0d8a70093cfceb51a501` and
+  `058cd497a9b4c607bae81f28f8329c407f759678`.
+- PR #19 was merged; GitHub reported zero open PRs and no competing A5 or
+  scoring implementation branch. The only A5-named remote branch was the
+  merged contract-ratification branch.
+- At preflight, A5–A12 were `todo`, `carbon/scoring/` contained only its marker,
+  the A5 ticket and plan were present, and mandatory runtime dependencies were
+  exactly empty. A5 alone moved to `in_progress` after the baseline passed.
+- A clean Python 3.11.11 environment installed the supported `.[dev]` extra;
+  the exact pre-edit command `python -m pytest -q` reported
+  `622 passed in 5.71s`.
+- The baseline establishes regression state only. It is not A5 behavioral test
+  evidence and does not make A5 implemented, tested, or production-qualified.
+
+## Bounded draft-branch implementation evidence
+
+- The retained/narrowly repaired A3 reader securely opens one regular file,
+  reads one bounded byte sequence, checks its required external tagged SHA-256,
+  and returns only those verified bytes. The focused A3 helper selection passed
+  `22 passed`; the combined registry/package/no-leakage command passed
+  `195 passed in 4.07s`.
+- The strict schema-1.0 loader, immutable models, clarified engine entry,
+  complete gate-vector behavior, three scalar transforms, fixed-order
+  log-space aggregate, package exports, and sole fixture are implemented on
+  `agent/a5-scoring-engine`.
+- The exact fixture is 2,126 bytes. Its independently computed external digest
+  is
+  `sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57`;
+  no digest is embedded in the JSON and no YAML twin exists.
+- On Python 3.11.11, the focused A5 command passed
+  `279 passed in 0.45s`; the complete default CPU command passed
+  `923 passed in 5.04s`. The focused file represents every one of the 38
+  authorized acceptance categories.
+- Compilation passed. Ruff reported all eight changed Python files clean;
+  Black reported all eight unchanged. The quality ratchet passed at
+  `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black 6`, eight changed
+  Python files, and no new debt.
+- A built-wheel, outside-tree `python -I` proof imported the installed
+  `carbon.scoring`, loaded and scored the exact fixture at binary64
+  `0.8945915647907036`, remained false-eligible, and attempted/loaded no YAML,
+  optional scientific backend, legacy scorer, or later-owner module.
+- Independent final review found no remaining P0/P1/P2 issue. This evidence is
+  bounded to the draft implementation tree. It is not merged-main evidence,
+  scientific qualification, backend/libm qualification, security/operations
+  qualification, LIVE authorization, or production qualification.
+
+## Ratification-time repository gate and maturity
+
+- During ratification, an independent GitHub repository/branch read and a fresh
+  local fetch both resolved then-current `main` to exact commit
   `3d80e09549964251833b0d8a70093cfceb51a501`, the reviewed A4 closeout merge.
 - GitHub reported no open pull request and no remote branch matching A5 or
   scoring work before the ratification branch was created.
-- `.agent/WAVE.md` records A5 as `todo`; A6 and every later ticket are also
-  `todo`. This plan does not change that board.
+- At ratification, `.agent/WAVE.md` recorded A5 and every later ticket as
+  `todo`; that historical state was superseded only by the guarded
+  implementation start recorded above.
 - `carbon/scoring/` contains only the A0 package marker. There is no canonical
   A5 engine, pack loader/model, `ScoreInput`, `InternalResult`, fixture Score
   Pack JSON, default-CPU A5 test, or prior A5 plan.
@@ -38,7 +92,7 @@ Definition-of-Done item, or authorize A6 or later work.
 | Source | Authority and A5 use |
 |---|---|
 | Root `AGENTS.md` | Governs no invented science, pinned evaluation, infra/science separation, fixture non-emission, maturity claims, dependency discipline, and reviewable scope. |
-| `.agent/DECISIONS.md` A5-R1–A5-R13 | Ratifies the exact artifact, pin, input, gate, failure, aggregate, numerical-profile, readiness, fixture, result, supersession, and ticket contracts. |
+| `.agent/DECISIONS.md` A5-R1–A5-R14 | Ratifies the exact artifact, pin, input, gate, failure, aggregate, numerical-profile, readiness, fixture, result, supersession, ticket, literal schema, and engine-entry contracts. |
 | `.agent/INVARIANTS.md` | Requires pinned official evaluation, forbidden-input exclusion, infra/science separation, no placeholder LIVE values, and private-by-default internal results. |
 | `Design_Specs/Scoring.md` | Sole mathematical and Score Pack/A5 runtime authority. |
 | `Design_Specs/Scoring_Formulas.md` | Subordinate historical detail; named obsolete rules are explicitly superseded and cannot be implementation authority. |
@@ -57,9 +111,9 @@ override it.
 
 ## KEEP / WRAP / REPAIR / REPLACE findings
 
-| Area | Future A5 disposition |
+| Area | A5 implementation disposition |
 |---|---|
-| `carbon/scoring/__init__.py` | **KEEP / REPAIR narrowly.** Retain the canonical package boundary and later add only the explicit A5 public surface. |
+| `carbon/scoring/__init__.py` | **KEEP / REPAIR narrowly.** Retain the canonical package boundary and add only the explicit A5 public surface. |
 | A3 `ChallengeKey` and validators | **KEEP / WRAP directly.** Reuse exact challenge identity, version grammar, and tagged-digest validation; do not duplicate weaker parsers. |
 | A3 actual-byte digest behavior | **KEEP / WRAP.** Score Pack digest identity is exact regular-file bytes, but A5 additionally requires the digest to be supplied externally and checked before parsing. |
 | A4 generator/scoring pin compatibility | **KEEP.** Match the exact public pins while excluding all A4 secret/private exam material from `ScoreInput` and `InternalResult`. |
@@ -73,7 +127,7 @@ compliant by this ratification.
 
 ## Runtime artifact and digest flow
 
-The future loader flow is fixed:
+The implemented loader flow is fixed:
 
 ```text
 trusted relative path + required external scoring digest
@@ -140,6 +194,15 @@ latest-version lookup, or fallback is permitted.
 operation order. The future JSON contains exactly the pin fields,
 `hard_gates`, `physics`, `robustness`, `accuracy`, exact top-level `weights`,
 and `combination = "weighted_geometric_logspace"`.
+
+A5-R14 fixes the literal schema completion: `schema_version` is exact `"1.0"`;
+every hard-gate and soft-leg record requires exact discriminator `"operator"`;
+`"type"`, `"kind"`, aliases, omission, duplicates, and unknown operators
+reject. Physics and accuracy contain only `operator` plus `components`;
+robustness contains only `operator`, `tail_quantile`, `blend_weights`,
+`threshold`, `sharpness`, and `categories`. Within-leg `weighted_sum` is
+implicit, so nested `"aggregation"` rejects. Only top-level `combination` is
+explicit.
 
 The only A5 operators are:
 
@@ -211,6 +274,16 @@ production path.
 
 ## Gate, readiness, and failure taxonomy
 
+The exact entry is
+`ScoreEngine.score(score_input: ScoreInput | None, pack: LoadedScorePack)`.
+`None` returns the empty-evidence `PACK_NOT_READY` result only for a valid
+unready pack. An unready pack rejects non-`None` input; a ready pack rejects
+`None`; an invalid pack creates no result. After full ready-input validation,
+all resolved gates are evaluated in declared order without short-circuiting.
+Mandatory failure is decided after the complete vector, retains that vector,
+and returns no soft component/leg evidence. Optional-only failure does not
+affect scoring.
+
 Mandatory gates are evaluated only after the pack is valid and ready and the
 input is authoritative, complete, and pin-matched.
 
@@ -281,7 +354,7 @@ fixture value is production science.
 
 ## Exact `python_binary64_v1` profile
 
-The future implementation must record and test the following exact behavior:
+The implementation records and tests the following exact behavior:
 
 1. Use only exact built-in binary64 `float` plus the named standard-library
    operations `math.isfinite`, `math.fsum`, `math.log`, and `math.exp` for gate
@@ -364,11 +437,11 @@ qualification, and human authorization.
 | Later receipt/evidence owner | Receipt schema, commitment/signing, transcript/evidence persistence, and audit. |
 | A10/A11/later economic owner | Leaderboard, logging/metrics, decay/tie-breaking, score-to-weight mapping, and Bittensor emission behavior. |
 
-## Expected future files
+## Implemented bounded files
 
 The smallest anticipated A5 implementation surface is:
 
-| Future path | Responsibility |
+| Path | Responsibility |
 |---|---|
 | `carbon/scoring/model.py` | Frozen pack pin, readiness/status, closed scalar input, gate result, and private result value types plus exact validation orchestration. |
 | `carbon/scoring/pack.py` | Secure exact-byte read, mandatory external digest check, strict UTF-8 JSON parse, closed schema/readiness validation, and fixture-only load. |
@@ -377,11 +450,10 @@ The smallest anticipated A5 implementation surface is:
 | `tests/fixtures/score_packs/a5_fixture_v1.json` | Exact-byte, visibly synthetic, fixture-origin runtime artifact; no YAML runtime twin or embedded digest. |
 | `tests/cpu/test_scoring_engine.py` | Focused contract, failure, numerical, exclusion, and import-isolation acceptance tests. |
 
-Exact module names may be tightened during implementation review without
-changing the ratified contract. No file in this table is created by the
-ratification.
+The ratification created none of these runtime/test artifacts; the bounded
+implementation branch now contains exactly this scoring surface.
 
-## Expected future CPU tests
+## Implemented bounded CPU tests
 
 At minimum, the focused test file must cover:
 
@@ -419,19 +491,20 @@ At minimum, the focused test file must cover:
 - import isolation: scoring import must not import YAML, NumPy/JAX/Torch,
   TrainEval, cards, fees/FSM, MCP, Bittensor/chain, logging, or receipts.
 
-Future focused command:
+Focused command:
 
 ```text
 python -m pytest tests/cpu/test_scoring_engine.py -q
 ```
 
-The later implementation must also run the repository's complete default CPU
-suite and exact no-new-debt checks required by CI. Passing documentation checks
-or historical tests is not A5 `TESTED` evidence.
+The implementation also passed the repository's complete default CPU suite and
+exact no-new-debt checks. Passing documentation checks or historical tests is
+not A5 behavioral evidence; only the bounded focused cases above support the
+current `TESTED` claim.
 
 ## Dependency and import boundary
 
-A5 adds no dependency. The expected implementation can use Python
+A5 adds no dependency. The implementation uses Python
 standard-library facilities for dataclasses/enums, JSON, decimal validation,
 SHA-256/digest comparison, finite/log/accurate-sum/exp arithmetic, and paths.
 It must not import a YAML parser, NumPy, JAX, Torch, model/backend/scientific
@@ -442,9 +515,11 @@ The dependency direction remains narrow: A5 may reuse dependency-free A3
 identity validators; it must not make registry or seeding import scoring, and
 must not create a cycle with A6/A7/A8 or later packages.
 
-## Bounded future implementation sequence
+## Bounded implementation sequence
 
-After a reviewed ratification merge and fresh start gate only:
+The reviewed ratification merge and fresh start gate authorize this sequence.
+Steps 1–7 are complete on the draft branch; step 8 remains the current review
+boundary:
 
 1. Re-verify exact `main`, A5 `todo`, dependencies, and absence of competing
    A5 work; record exact base before creating a new implementation branch.
@@ -463,7 +538,8 @@ After a reviewed ratification merge and fresh start gate only:
    `done` until exact-head review, acceptance evidence, authorized merge, and
    post-merge verification are complete.
 
-This sequence is future guidance, not present implementation activity.
+This sequence is the current bounded execution record, not authorization for
+A6 or later work.
 
 ## Completion evidence required before A5 can be `done`
 
@@ -480,8 +556,11 @@ A later implementation closeout must identify:
 - an updated maturity ledger distinguishing bounded implementation/testing
   from scientific/security/operations/production qualification.
 
-Until then, A5 must remain `todo`, **NOT IMPLEMENTED**, **NOT TESTED**, and
-**NOT PRODUCTION-QUALIFIED**.
+Bounded branch-head acceptance is complete: A5 is **SPECIFIED / RATIFIED**,
+**IMPLEMENTED on the draft branch head**, and **TESTED only for the recorded
+fixture CPU scope**. It is **NOT PRODUCTION-QUALIFIED** and remains
+`in_progress` until independent draft-PR review, a separately authorized merge,
+and closeout.
 
 ## Explicit non-goals of this ratification and A5
 
