@@ -19,7 +19,10 @@ These should be incorporated into the existing Wave A/B/C tickets when those tic
 
 ## PI-A1 — Evaluation/disclosure policy provenance
 
-**Natural owners:** A6 Card store + A9 MCP + A11 observability.  
+**Natural owners:** bounded public schema/tier in A6; permanent submission and
+evaluation binding in A7; integrated policy-provenance retention in the later
+evidence store; A9 MCP + A11 observability.
+
 **Specs:** `Miner_MCP.md`, `Trustless_Verification.md`, `Physics_Intelligence_System.md`.
 
 Add schema/provenance support for a versioned evaluation/disclosure policy identifier so official results can be attributed to the information policy under which they were exposed.
@@ -27,7 +30,9 @@ Add schema/provenance support for a versioned evaluation/disclosure policy ident
 Acceptance direction:
 
 - miner/public outputs remain allow-listed;
-- policy version is attributable on internal provenance;
+- bounded A6 publishes exact `schema_version = "1.0"` and
+  `disclosure_tier = "phase0_budgeted"`; richer internal policy provenance
+  remains later-evidence-owned rather than widening A6's four-field record;
 - changing disclosure granularity is explicit/versioned;
 - no seed/draw leakage introduced;
 - mock/official isolation unchanged.
@@ -36,10 +41,17 @@ Acceptance direction:
 
 ## PI-A2 — Failure-retention semantics
 
-**Natural owner:** A6 Card store.  
+**Natural owners:** bounded exact-result retention in A6; permanent submission
+and strategy identity/hash binding in A7; provenance-complete strategy/model
+evidence retention in the later evidence owner.
+
 **Specs:** `Physics_Intelligence_System.md`, `Build_Out.md` infra-vs-science invariant.
 
-Ensure official scientific outcomes are not discarded merely because they fail a gate or rank poorly. Preserve provenance-complete strategy/model failures for later Landscape ingestion.
+Ensure scientific outcomes are not discarded merely because they fail a gate
+or rank poorly. Bounded A6 retains every exact A5 result, including mandatory
+gate failures, without implying reward. A7 supplies its permanent submission
+and strategy identity/hash binding; the later evidence owner retains the
+richer official evidence for later Landscape ingestion.
 
 Acceptance direction:
 
@@ -221,7 +233,7 @@ The current Wave A board remains authoritative. When those tickets are reached:
 
 ```text
 A3 registry       → reserve Challenge-health / policy provenance hooks
-A6 card store     → PI-A1 + PI-A2
+A6 card store     → bounded PI-A1 public schema/tier + exact-A5 PI-A2 retention
 A9 MCP            → enforce versioned disclosure policy surface
 A11 observability → PI-A3
 A12 invariants    → regression coverage for the above

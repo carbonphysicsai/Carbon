@@ -274,12 +274,14 @@ Free loop until justified → `dry_validate` → fee → `SubmitReceipt` → hid
 
 | Field class | Phase 0 | Notes |
 |-------------|---------|--------|
-| `status`, `scoring_pack_hash` | **Emit** | Always |
-| `overall_score` | **Emit** | Low sensitivity |
-| Broad `component_scores` | **Emit** | physics / robustness / accuracy bands or coarse floats |
-| `gate_results` pass/fail | **Emit** | Necessary for repair |
-| Coarse `failure_modes` tags | **Emit** | Shared with avoid-atlas; high agent value |
-| Short `public_diagnostics` | **Emit** | No seed material |
+| `schema_version`, `result_id`, `disclosure_tier` | **Emit** | Exact bounded A6 schema/opaque identifier/tier; `result_id` is not a production `submission_id`. |
+| `status`, `scoring_pack_hash` | **Emit** | Preserve the exact A5 status and externally supplied scoring digest. |
+| `overall_score` | **Emit when present** | Preserve the exact A5 combined score; `PACK_NOT_READY` has none. |
+| Broad `component_scores` | **Emit when present** | Exact top-level A5 physics / robustness / accuracy `LegScore.score` values; never fine components. |
+| `gate_results` pass/fail | **Emit when evaluated** | Necessary for repair; `PACK_NOT_READY` has none. |
+| Stable `failure_tags` | **Emit** | Closed/versioned vocabulary; bounded A6 currently emits only `mandatory_gate_failed`. |
+| `fixture_origin`, `eligible_for_emission` | **Emit** | Derived only from the stored exact A5 result and never caller-overridable. |
+| `public_diagnostics` | **Emit field** | Exact empty sequence in bounded A6; no public diagnostic source is currently authorized. |
 | Fine residual margins / distances-to-gate | **Withhold or coarsen** | Oracle risk |
 | Per-stress / per-regime numeric breakdowns | **Withhold** | Reconstructs draw mix |
 | Eval seeds / draw ids / fields | **Never** | — |
@@ -291,18 +293,36 @@ Disclosure tier is published in `get_challenge_info`. Raising granularity later 
 
 ### 11.3 Card shape (Phase 0)
 
+The immutable bounded A6 card is the pre-A7 projection below. A7 and A9 may
+later return a separate integrated response envelope containing A7-owned
+`submission_id`, `strategy_hash`, `challenge_id`, and completion metadata.
+Those values are not generated, stored, authenticated, or added to the card by
+A6. `result_id` is only the authorized public value of A6's opaque
+`CardRecordKey` and does not claim permanent-submission semantics.
+
 ```text
 EvaluationCard {
-  submission_id, strategy_hash, challenge_id, status, scoring_pack_hash,
+  schema_version: "1.0",
+  result_id,
+  status, scoring_pack_hash,
   overall_score,
-  component_scores: { physics?, robustness?, accuracy? },  # coarse
-  gate_results: [ { gate_id, pass: bool } ],               # no fine margins
-  failure_modes: [ { mode_tag, severity } ],
-  public_diagnostics: string[],
-  disclosure_tier: "phase0_budgeted",
-  completed_at?
+  component_scores: { physics, robustness, accuracy }?,  # top-level scores only
+  gate_results: [ { gate_id, passed: bool } ],           # no mandatory/threshold/margin/input key
+  failure_tags: [ "mandatory_gate_failed" ] | [],
+  fixture_origin,
+  eligible_for_emission,
+  public_diagnostics: [],                                # exact empty Wave-A sequence
+  disclosure_tier: "phase0_budgeted"
 }
 ```
+
+The public status preserves exactly `SCORED`, `MANDATORY_GATE_FAILED`, and
+`PACK_NOT_READY`. `PACK_NOT_READY` is not scientific failure and carries no
+score, components, gate evaluation, or failure tag. Authorization, not-found,
+malformed request, storage conflict, infrastructure, and projection errors are
+transport/operational errors rather than card statuses. The complete source
+mapping and default-private rules are ratified in `.agent/DECISIONS.md`
+A6-R6–A6-R11.
 
 ---
 
@@ -367,7 +387,7 @@ while budget.remaining:
 6. Priors never thin the mandatory gate set.  
 7. One public prior channel — no VIP feed.  
 8. EvaluationCard never returns seeds, draw ids, or other miners’ full cards.  
-9. `failure_modes` share avoid-atlas vocabulary.  
+9. Versioned `failure_tags` share the approved avoid-atlas vocabulary when that vocabulary is expanded; bounded A6 emits only `mandatory_gate_failed`.
 10. No lab-specific MCP forks required.  
 11. Free path is first-class; paid exam is confirmation.  
 12. light_compare uses `get_mock_scaffold`, not an inverted prior.  

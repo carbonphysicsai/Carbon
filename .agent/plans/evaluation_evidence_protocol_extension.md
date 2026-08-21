@@ -23,8 +23,8 @@
 | A3 | Registry reserves receipt schema/backend-profile/evidence qualification bindings. |
 | A4 | Add safe `exam_commitment` interface and leakage tests; do not change ratified seed semantics. |
 | A5 | Stable current-spec score result suitable for receipt commitment; no scoring redesign. |
-| A6 | Separate private transcript, receipt, internal Model Card, miner EvaluationCard. Fixture receipt acceptable. |
-| A8 | Stub result may create fixture receipt but `emission_capable=False` is mechanical. |
+| A6 | Store the exact private A5 result behind its opaque authorization binding and project the miner EvaluationCard. Transcript, receipt, rich Internal Model Card, signing, and evidence persistence remain later-owned. |
+| A8 | Produce a deterministic mechanically non-emitting stub result. A later evidence owner may consume it for a fixture receipt; A8 does not create or own that receipt. |
 | A10 | Public-safe receipt reference only; no extra hidden detail. |
 | A11 | Receipt/evidence lifecycle metrics + redaction; no hidden seeds in logs. |
 | A12 | Constitutional tests for receipt/public projection, infra/science, stub emission and qualification boundaries. |

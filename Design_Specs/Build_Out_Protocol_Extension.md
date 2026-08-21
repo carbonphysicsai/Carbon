@@ -65,7 +65,7 @@ No mathematical change. `Scoring.md` remains sole authority. Add a stable score-
 
 ### A6 — card store / disclosure
 
-Expand storage architecture to distinguish:
+The future evidence architecture continues to distinguish:
 
 ```text
 Private ExecutionTranscript
@@ -74,11 +74,20 @@ Internal Model Card
 Miner EvaluationCard
 ```
 
-A6 may implement fixture/stub receipts. Raw hidden exam material is never copied into EvaluationCard.
+For bounded Wave-A A6, implement only a private record containing the exact A5
+`InternalResult` plus its opaque lookup/authorization binding, and the
+allow-listed miner `EvaluationCard`. Private ExecutionTranscript, signed or
+fixture EvaluationReceipt, rich Internal Model Card, signing/commitment, and
+evidence persistence remain later-owned; A6 does not implement them. Raw
+hidden exam material is never copied into `EvaluationCard`.
 
 ### A8 — TrainEvalAPI stub
 
-The stub should return a structurally valid execution result capable of producing a **non-emission-capable** fixture receipt. Stub receipts must be unmistakably marked fixture/mock/stub and mechanically rejected by LIVE/emission paths.
+The stub should return a structurally valid, mechanically
+**non-emission-capable** execution result. A later receipt/evidence owner may
+consume that result to create an unmistakably fixture/mock/stub receipt; A8
+does not implement or own the receipt. Stub results and any later stub receipt
+must be mechanically rejected by LIVE/emission paths.
 
 ### A10 — leaderboard
 
