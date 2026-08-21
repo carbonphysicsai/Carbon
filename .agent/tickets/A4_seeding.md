@@ -5,11 +5,11 @@
 extension's A4 `exam_commitment` boundary
 **Depends on:** A0, A1, and A3's exact `ChallengeKey` and tagged-digest
 identity
-**Status:** `in_progress`; bounded implementation is underway on
-`agent/a4-seeding` from exact base
-`e13baf312b811e2fd6784856c56d851a15f153fd`; branch implementation and CPU
-acceptance evidence are complete, while independent review, merge, reviewed-head
-ancestry verification, and post-merge `main` CI remain pending
+**Status:** `done`; bounded implementation on `agent/a4-seeding` began from
+exact base `e13baf312b811e2fd6784856c56d851a15f153fd`. Independently reviewed
+head `b0f79cf96b7cd489a97a7a4dd49285d762c962aa` merged normally in PR #17 as
+`120eab02e406bda280d9c361bbbb7d8ef7a08330`, is ancestral to current `main`,
+and passed exact-head and post-merge CI; the bounded A4 ticket is closed
 
 **Ratified decision:** `.agent/DECISIONS.md`, “2026-08-21 — A4
 pre-implementation seeding architecture ratification” (A4-R1 through A4-R11).
@@ -144,12 +144,41 @@ python -m pytest tests/cpu/test_seeding.py tests/cpu/test_no_leakage.py -q
   outside the checkout under CPython `3.11.11` with `python -I`: exact golden
   seed and commitment passed, the provider was observed once, and blocked
   optional/consumer imports were both attempted `[]` and loaded `[]`.
-- Maturity: A4-R1 through A4-R11 remain **SPECIFIED**; this PR branch is
-  **IMPLEMENTED** and **TESTED** to the stated CPU acceptance scope; merge and
-  current-`main` status are not established; **PRODUCTION-QUALIFIED: NO**.
 
-All branch implementation/test Definition-of-Done items are checked. A4 stays
-`in_progress` until independent review, merge, reviewed-head ancestry
-verification, and successful post-merge `main` CI. This is not closure
-evidence and makes no scientific, LIVE, backend, security, production, or
-emission qualification claim.
+## Closure evidence
+
+- Independent review approved exact implementation head
+  `b0f79cf96b7cd489a97a7a4dd49285d762c962aa` for the bounded ticket, with no
+  unresolved blocking finding. GitHub records no formally submitted review
+  object, review thread, or PR comment, and this closeout does not claim one.
+- Exact-head pull-request CI run `32440327141` completed successfully: CPU
+  reported `622 passed in 7.80s`; Code quality reported
+  `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt, and all
+  changed Python files clean.
+- PR #17 merged normally as
+  `120eab02e406bda280d9c361bbbb7d8ef7a08330`, with ordered parents exact base
+  `e13baf312b811e2fd6784856c56d851a15f153fd` and exact reviewed head
+  `b0f79cf96b7cd489a97a7a4dd49285d762c962aa`. The reviewed head is ancestral
+  to current `main`.
+- Exact-merge `main` push CI run `32444857456` completed successfully: CPU
+  reported `622 passed in 8.68s`; Code quality again reported
+  `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt, and all
+  changed Python files clean.
+- The focused `230`-test acceptance suite, complete `622`-test local suite,
+  compilation, strict Ruff/Black, exact-base quality gate, and fresh
+  no-dependency wheel/outside-tree `python -I` proof remain the bounded
+  implementation evidence recorded above.
+- Consumer-shaped leakage fixtures prove the A4 public-value boundary only.
+  They are not acceptance of future A6 card storage, A9 MCP transport, A10
+  leaderboard, or A11 logging integrations, which retain their own tests.
+- A4-R1 through A4-R11 remain **SPECIFIED**; the bounded A4 boundary is now
+  **IMPLEMENTED** on `main`, **TESTED** to the recorded scope, independently
+  reviewed, merged, ancestry-verified, and post-merge-CI verified. A4 is `done`.
+  **PRODUCTION-QUALIFIED: NO.**
+
+This closure adds no real provider, timing/finality/nonce/reorg/fallback or
+provider-authentication policy; no A7 binding semantics; no A8 backend
+conversion; no A6/A9/A10/A11 consumer implementation; and no scientific, LIVE,
+security, production, permanent same-process secrecy, weight-writing, or
+emission claim. OQ-005 and OQ-006 remain unresolved. A5 and later tickets remain
+`todo` and unstarted.

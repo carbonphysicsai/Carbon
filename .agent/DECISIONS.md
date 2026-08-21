@@ -1,5 +1,60 @@
 # Agent decisions log
 
+## 2026-08-21 — A4 closure after reviewed merge
+
+**Closure topology and review.** A4 implementation began from exact base
+`e13baf312b811e2fd6784856c56d851a15f153fd`. Independent review approved exact
+implementation head `b0f79cf96b7cd489a97a7a4dd49285d762c962aa` for the bounded A4
+ticket, with no unresolved blocking finding. GitHub records no formally
+submitted review object, review thread, or PR comment for PR #17, so this entry
+does not claim a formal GitHub approval. Exact-head pull-request CI run
+`32440327141` completed successfully: the CPU job reported `622 passed in
+7.80s`, and Code quality passed at `Ruff 757/776; Black 62/68`, with eight
+changed Python files, no new debt, and every changed Python file clean.
+
+PR #17 then merged normally as
+`120eab02e406bda280d9c361bbbb7d8ef7a08330`. Its ordered parents are exact base
+`e13baf312b811e2fd6784856c56d851a15f153fd` and exact reviewed head
+`b0f79cf96b7cd489a97a7a4dd49285d762c962aa`; the reviewed head is ancestral to
+current `main`. Exact-merge push CI run `32444857456` completed successfully on
+`main`: its CPU job reported `622 passed in 8.68s`, and Code quality again
+reported `Ruff 757/776; Black 62/68`, eight changed Python files, no new debt,
+and every changed Python file clean.
+
+**Bounded acceptance evidence.** The implementation's focused command for
+`tests/cpu/test_seeding.py` and `tests/cpu/test_no_leakage.py` reported `230
+passed in 3.55s`; its complete local CPU command reported `622 passed in
+4.35s`. The standard-library implementation and acceptance tests also passed
+compilation, strict Ruff/Black, and the exact-base no-new-debt gate. A fresh
+no-dependency `carbon-0.9.0-py3-none-any.whl` with SHA-256
+`4bd58cc8b0e503cd127dd5c64f67970899ecabebd1554860121de8086028c511`
+installed into a new environment and exercised the public A4 API from outside
+the checkout under CPython `3.11.11` with `python -I`; golden seed and
+commitment values passed, the official provider was observed exactly once, and
+the blocked optional/consumer import attempted and loaded lists were both
+empty.
+
+**Maturity and preserved boundaries.** A4-R1 through A4-R11 remain
+**SPECIFIED**; their bounded seeding, provider/fixture, commitment, leakage, and
+isolation boundary is now **IMPLEMENTED** on `main` and **TESTED** to the
+recorded CPU, deterministic-derivation, canonical-encoding, leakage,
+public-projection, mock/fixture-isolation, and import-isolation scope. The exact
+head was independently reviewed, merged, ancestry-verified, and post-merge-CI
+verified. A4 is therefore `done` for this bounded ticket. This closeout
+supersedes only the historical maturity language in the pre-implementation
+ratification; it does not alter A4-R1 through A4-R11.
+
+**PRODUCTION-QUALIFIED: NO.** A4 does not implement or qualify a real beacon
+provider, provider authentication, entropy quality, chain timing, finality,
+nonce lifecycle, reorg/replay handling, fallback policy, or retention and
+post-evaluation disclosure policy. It does not define A7's concrete evaluation
+binding, submission, fee, or FSM semantics; later receipt/signing semantics; A8
+backend/TrainEval conversion; A6 Card-store disclosure integration; A9 MCP
+transport; A10 leaderboard; A11 logging; or any scientific, LIVE, security,
+operations, production, permanent same-process secrecy, weight-writing, or
+emission claim. OQ-005 and OQ-006 remain unresolved, and A5 and all later
+tickets remain `todo` and unstarted.
+
 ## 2026-08-21 — A4 pre-implementation seeding architecture ratification
 
 **Status, base, and scope.** On exact `origin/main`
