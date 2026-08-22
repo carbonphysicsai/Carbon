@@ -42,7 +42,7 @@ The A5 boundary is deliberately narrow:
 | A3 registry | Exact challenge identity, version grammar, external artifact bindings/digests, and structural fixture-origin record. |
 | A4 seeding | Compatible challenge/generator/scoring pins and fixture marking; no seed or draw value enters A5. |
 | A5 scoring | Strict fixture pack load, closed scalar input, binary gates, pack-authorized scalar transforms, weighted-geometric aggregate, private fixture result. |
-| A6 | Result persistence, Model Card/EvaluationCard, disclosure allow-list and budget. |
+| A6 | Exact-result persistence and the bounded EvaluationCard disclosure allow-list/budget; the rich Model Card/evidence record remains later-owned. |
 | A7 | Submission/strategy identity, fees, idempotency, FSM, retry/refund, and concrete evaluation binding. |
 | A8 or later metric operators | Model execution, predictions, references, relative-error generation, raw percentile computation, and authoritative `ScoreInput` construction. |
 | Later evidence/operations/economic owners | Receipts/signatures, transcripts, audit, logging, tie-breaking/decay, score-to-weight mapping, Bittensor writes. |

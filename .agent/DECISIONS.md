@@ -1,5 +1,166 @@
 # Agent decisions log
 
+## 2026-08-22 — A6 pre-implementation card-store/disclosure ratification
+
+**Repository truth and maturity.** A fresh fetch and independent remote read
+resolved `origin/main` to exact commit
+`dfd9bcc74434d2ddb5fc1862a9bdfd7ba5c64450`; the initial checkout and local
+`main` matched it. GitHub reported no open pull request, and the fetched remote
+had no competing A6 branch. A6 and A7–A12 were `todo`, `carbon/cards/` contained
+only its A0 marker, and there was no A6 plan, source, test, fixture, or
+dependency. This entry is documentation, not implementation. The resulting
+contract has exactly this maturity:
+
+```text
+A6 SPECIFIED / RATIFIED: YES only after this ratification is merged
+A6 IMPLEMENTED: NO
+A6 TESTED: NO
+A6 PRODUCTION-QUALIFIED: NO
+A6 WAVE STATUS: todo
+```
+
+**A6-R1 — Bounded ownership.** A6 owns only private exact-A5-result storage,
+the requester-authorization binding, storage conflict behavior, the immutable
+miner-facing `EvaluationCard`, and its Phase-0 disclosure projection. A7 owns
+permanent `submission_id`, strategy identity/hash, authenticated
+requester/hotkey integration, fees, FSM, retry/refund, concrete evaluation
+binding, and submission idempotency. A8+ owns execution/backend semantics; A9
+MCP transport; A10 leaderboard; A11 logging/metrics; and A12 invariant-CI
+integration. Receipt, signature, execution transcript/evidence, durable
+evidence ledger, Bittensor, score-to-weight, and emission work remain
+later-owned.
+
+**A6-R2 — Opaque pre-A7 identity seam.** A6 uses two separate frozen nominal
+types, `CardRecordKey` and `RequesterAuthorizationKey`. Each wraps an exact
+built-in string accepted without normalization by A3's bounded 1–64 ASCII
+`validate_version` token contract. Neither type claims to be A7's production
+`submission_id`; the requester type is an opaque binding label, not a
+credential/private key, signature proof, Bittensor address validator, or
+production hotkey-authentication protocol. A7 may later supply its validated
+permanent identifier and authenticated requester through this boundary.
+
+**A6-R3 — Wave-A persistence.** The ratified A6 store is per-instance,
+process-local, in-memory, and insert-only. It makes no production-durability
+claim. Filesystem/SQLite/database storage, retention, migration, restart/crash
+recovery, corruption recovery, interprocess/distributed operation, and
+production concurrency qualification are deferred.
+
+**A6-R4 — Exact private record.** One frozen private record has exactly
+`record_schema_version = "1.0"`, the `CardRecordKey`, the
+`RequesterAuthorizationKey` binding, and the exact recursively valid A5
+`InternalResult`. A6 stores that result rather than duplicating any status,
+pin, score, gate, component, fixture, or eligibility field into another
+scoring schema. It stores no strategy, seed/draw/private-evaluation-binding
+material, prediction/reference, fee/FSM state, receipt/evidence, separate
+backend/internal diagnostic source, timestamp, or later-owner field. The exact
+result's evaluated gate decisions remain intact. A successful first write
+explicitly reconstructs a fresh, recursively independent exact-value graph and
+retains no caller-owned mutable object reference; no private-record/result
+getter exists.
+
+**A6-R5 — Insert and conflict semantics.** The first valid write returns the
+inserted disposition. Repeating the same key with the value-equal exact
+requester binding and exact A5 result is a storage-idempotent no-op. Reusing
+the key with any different requester binding or result raises typed
+`CardConflictError` and leaves the first record unchanged. A6 exposes no
+overwrite, update, delete, rollback, rebind, mutation, or supersession API.
+This post-result duplicate rule neither hashes strategies nor finds/creates a
+submission and is explicitly distinct from A7 submission idempotency.
+
+**A6-R6 — Positive immutable projection.** Authorization succeeds before any
+public projection is constructed. The projection creates frozen, recursively
+immutable public values by naming and copying each approved field directly.
+It must not use generic `dataclasses.asdict`, model/dict/JSON serialization,
+`__dict__`/introspection, private-object dumps followed by deletion, or any
+other deny-after-serialization operation on a private/store object to create
+that projection. Unknown/new private fields default to private until an
+explicit reviewed public-schema change. A9 may later encode an already-public
+card under its separately owned transport contract.
+
+**A6-R7 — Exact Phase-0 public schema.** `EvaluationCard` has exact public
+`schema_version = "1.0"` and exact `disclosure_tier = "phase0_budgeted"`.
+Its remaining allow-list is:
+
+- `result_id`: the successfully authorized `CardRecordKey.value`, the sole
+  allowed storage-identity projection and never named `submission_id`;
+- `status`: the exact stored A5 status value;
+- `scoring_pack_hash`: exact stored
+  `InternalResult.pack_pin.scoring_digest`, the external tagged SHA-256, never
+  a recomputed or generator/internal-pin value;
+- `overall_score`: exact stored `combined_score` when present, else `None`;
+- `component_scores`: only an immutable `physics`/`robustness`/`accuracy`
+  object built from the three top-level `LegScore.score` values for `SCORED`,
+  else `None`; never fine `ScalarScore` components;
+- `gate_results`: the complete evaluated A5 vector in stored order, with only
+  `gate_id` and `passed` per item;
+- `failure_tags`: `("mandatory_gate_failed",)` only for
+  `MANDATORY_GATE_FAILED`, otherwise `()`;
+- `fixture_origin`: exact stored `pack_pin.fixture_origin`;
+- `eligible_for_emission`: exact stored A5 value; and
+- `public_diagnostics`: the exact empty tuple required by A6-R8.
+
+**A6-R8 — Diagnostics and failure tags.** Bounded Wave A has no authorized
+public diagnostic source. `public_diagnostics` is always `()`; exception text,
+backend diagnostics, result representations, and arbitrary strings are never
+promoted. The only currently approved failure tag is the status-derived exact
+literal `mandatory_gate_failed`. There is no severity, free text, per-regime
+tag, or `PACK_NOT_READY` failure tag. Any richer diagnostic/tag source requires
+a separately reviewed, versioned disclosure decision.
+
+**A6-R9 — Scientific statuses versus operational errors.** A6 preserves only
+A5 `SCORED`, `MANDATORY_GATE_FAILED`, and `PACK_NOT_READY` as public card
+statuses. `PACK_NOT_READY` has no score, components, gates, or failure tag and
+is not scientific failure. Malformed/tampered input, not-found, authorization
+denial, store conflict/infrastructure error, and projection error use the
+respective typed `CardRequestError`, `CardNotFoundError`,
+`CardAuthorizationError`, `CardConflictError`, `CardStoreError`, and
+`CardProjectionError`, with safe non-echoing codes/messages. They do not create
+a card, failed gate, scientific zero, or A5 status. A6 does not introduce
+`FAILED_INFRA`; A7/A8 own that FSM/backend disposition.
+
+**A6-R10 — Private retention, forbidden disclosure, and default-private rule.**
+The exact private record necessarily retains its schema/key/requester fields
+and the full nested A5 result, including private pin, gate, and fine component
+metadata; A6 never duplicates those values into parallel fields. The public
+path is a closed positive allow-list. Of the A6 storage/authorization metadata,
+it exposes only authorized `CardRecordKey.value` as `result_id`; of the full
+private A5 pin, it exposes only `scoring_digest` as `scoring_pack_hash` and
+`fixture_origin` as the same-named public field. It does not expose their
+wrappers or surrounding metadata. It never discloses raw/derived seeds,
+entropy, draw/sample/exam IDs, private evaluation binding, raw strategy/model/
+predictions/references, `ScoreInput` values or
+keys, thresholds, margins, fine `ScalarScore` vectors, per-stress/per-regime
+numeric breakdowns, generator digest or other internal pin metadata beyond
+those two approved pin projections, internal/backend diagnostics or
+exceptions, requester/authorization/storage metadata,
+receipt/signature/evidence internals, fees/FSM/retry state, private keys/
+credentials/secrets, or later-owner metadata. Unknown/new private fields stay
+private. Public exceptions and later logs never include hostile keys or
+private result representations.
+
+**A6-R11 — Fixture and emission boundary.** `fixture_origin` and
+`eligible_for_emission` are copied only from the stored exact A5 result. There
+is no caller override, fallback, relabel, or A6 eligibility computation.
+Current A5 accepts only fixture-origin packs and mechanically produces false
+eligibility; A6 therefore cannot describe a current result as production,
+LIVE, authenticated provenance, emission-authoritative, or eligible.
+
+**A6-R12 — Hostile-input, reconciliation, and implementation gate.** Treat
+record keys, requester keys, stored input, and public requests as hostile:
+require exact nominal/canonical types, recursively enforce current A5
+invariants, construct a safe owned candidate before any lookup or comparison,
+compare only owned validated values, retain no caller-mutable aliases,
+authorize before projection, fail closed, and never invoke attacker-controlled
+display hooks in errors. `Build_Out.md` rich Model Card language is future
+shorthand, not the A6 record; `Miner_MCP.md` A7/A9 metadata
+is later response-envelope enrichment; and transcript/receipt/evidence designs
+remain later architecture rather than optional A6 scope. Historical Model
+Card/PoC/result stores are non-authoritative archaeology and cannot be wrapped
+to bypass this contract. A6 implementation may begin only after this
+documentation is independently reviewed, human-authorized, merged, and a
+fresh main/concurrency/status check confirms A6 is still `todo` and unstarted.
+No checkbox or Wave status changes through ratification alone.
+
 ## 2026-08-22 — A5 closure after reviewed merge
 
 **Merge topology and review.** The bounded implementation started from exact
