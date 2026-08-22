@@ -1,26 +1,50 @@
-# Review These Preliminary Decisions — Distribution / Challenge-Instance Architecture
+# Review These Preliminary Decisions — Distribution / Validation-Dossier Architecture
 
 **Branch:** `design/symbolic-numeric-integration`  
 **Status:** owner preliminary decisions; tech/science lead may accept, modify, or reject.  
-**Purpose:** Distill the distribution/generator gauntlet into a compact review queue.  
+**Purpose:** Distill the distribution/generator gauntlet and Validation Dossier synchronization into a compact review queue.  
 **Scope:** Architecture-level decisions only. These do **not** change current P0 generator wire contracts, seeding rules, scoring, LIVE Challenge semantics, or product qualification until ratified into their domain-owning specifications.
 
 ---
 
 # Executive disposition
 
-The distribution gauntlet supports elevating the data/distribution layer to first-class architecture.
+The combined distribution + dossier review supports a stronger scientific chain:
+
+```text
+PhysicalSystemSpec
++ CandidateOutputContract
++ Claim / Envelope
+        ↓
+Target Population
+        ↓
+InstanceDistributionContract
+        ↓
+SamplingPlan
+        ↓
+ChallengeInstanceGenerator
+        ↓
+CanonicalChallengeCase
+        ↓
+Reference / Truth + Measurements
+        ↓
+Validation Dossier
+        ↓
+Score Pack
+        ↓
+Registry LIVE
+```
 
 Master recommendation:
 
-> **Do not treat the generator as the scientific definition of the task. Define the physical-case distribution explicitly, then qualify a generator implementation against it.**
+> **Define the scientific population prospectively; design how finite evidence will be sampled; qualify the generator, truth path, representations and measurements against those definitions; only then allow a Score Pack to use that evidence for ranking.**
 
 Review model:
 
 ```text
 G1  ACCEPT / MODIFY / REJECT
 ...
-G10 ACCEPT / MODIFY / REJECT
+G18 ACCEPT / MODIFY / REJECT
 ```
 
 ---
@@ -29,30 +53,11 @@ G10 ACCEPT / MODIFY / REJECT
 
 ### Preliminary decision: **ACCEPT**
 
-Create a future versioned scientific object that defines the intended physical-case population for a Challenge.
-
-It should be capable of expressing:
-
-- support / envelope relationship;
-- marginal sampling rules;
-- joint/conditional dependencies;
-- correlations and constraints;
-- geometry population;
-- BC/IC/forcing populations;
-- query/observation population;
-- role-specific policies;
-- rare/stress sampling;
-- exclusions;
-- coverage requirements;
-- provenance and limitations.
-
-### Why
-
-Envelope bounds alone do not determine the scientific task. A deterministic generator can still concentrate on the wrong regime or generate unrealistic combinations.
+Use a future versioned scientific object for the intended physical-case population of a Challenge, including support relationship, marginal/joint/conditional structure, geometry/query populations, strata, exclusions, rare-event semantics, provenance, uncertainty and limitations.
 
 ### Guardrail
 
-Exact serialization is deferred. Do not make `InstanceDistributionContract` a score or qualification certificate.
+The object defines population semantics; it is not a score, generator implementation, or certificate.
 
 ### Confidence
 
@@ -60,77 +65,36 @@ Exact serialization is deferred. Do not make `InstanceDistributionContract` a sc
 
 ---
 
-# G2 — Ratify the authority rule: scientific task owns distribution; generator implements it
+# G2 — Scientific task owns target population; generator implements it
 
 ### Preliminary decision: **ACCEPT**
 
-Use the authority chain:
+Generator code/config cannot silently define the scientific task.
 
 ```text
-scientific / engineering intent
-        ↓
-InstanceDistributionContract
-        ↓
-ChallengeInstanceGenerator
-        ↓
-Validation Dossier qualification
-        ↓
-registered LIVE use
+scientific intent
+→ distribution contract
+→ SamplingPlan
+→ generator
+→ Validation Dossier
+→ LIVE
 ```
 
-### Guardrail
-
-Generator code/config cannot silently redefine the intended population.
-
 ### Confidence
 
 **Very high.**
 
 ---
 
-# G3 — Introduce representation-neutral `CanonicalChallengeInstance`
-
-### Preliminary decision: **ACCEPT AS ARCHITECTURE; DEFER RUNTIME SHAPE**
-
-One sampled physical problem should have a canonical identity upstream of model-family representation.
-
-Conceptually it may bind:
-
-- physical inputs;
-- parameters;
-- geometry/topology refs;
-- initial/boundary conditions;
-- forcing/source terms;
-- requested observables;
-- reference/truth request;
-- measurement applicability;
-- provenance.
-
-### Why
-
-Mixed model families must not receive subtly different physical realities merely because they consume different representations.
-
-### Guardrail
-
-No P0 requirement to introduce a heavy runtime object where arrays are sufficient.
-
-### Confidence
-
-**Very high.**
-
----
-
-# G4 — Representation adapters may change encoding, not sampled physical reality
+# G3 — Separate target population `P(x)`, proposal/sampling `Q(x)`, and score weighting `w(x)`
 
 ### Preliminary decision: **ACCEPT**
 
-Allow downstream materialization into grids, meshes, graphs, point sets, reduced-basis snapshots, solver configs, or other family-specific forms.
+Rare/high-consequence regimes may be intentionally oversampled without being represented as ordinary workload frequency.
 
 ### Constitutional rule
 
-> **Representation conversion cannot silently change the physical instance being graded.**
-
-Lossy/approximate conversion must carry provenance and qualification where material.
+> **Sampling prevalence, target-population prevalence, and score importance are separate semantics.**
 
 ### Confidence
 
@@ -138,21 +102,41 @@ Lossy/approximate conversion must carry provenance and qualification where mater
 
 ---
 
-# G5 — Generalize long-term roles from `train/eval/stress` to `construction/evaluation/stress/qualification`
+# G4 — Introduce a separate `SamplingPlan`
 
-### Preliminary decision: **ACCEPT CONCEPTUALLY; DO NOT CHANGE P0 ROLE NAMES YET**
+### Preliminary decision: **ACCEPT AS ARCHITECTURE**
 
-P0 remains:
+Population definition should not absorb finite-evidence design.
+
+A SamplingPlan may govern sample budget, strata allocation, tails, repeats, query allocation, fidelity allocation, stopping rules, duplicate policy and uncertainty/power objectives.
+
+### Guardrail
+
+No universal sample-size/power threshold is implied.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G5 — Generalize `CanonicalChallengeInstance` to `CanonicalChallengeCase`
+
+### Preliminary decision: **ACCEPT AS LONG-TERM ARCHITECTURE; DEFER RUNTIME SHAPE**
+
+The durable object should support:
 
 ```text
-construction == train
+CanonicalChallengeCase
+  ├─ StaticInstance
+  └─ SequentialEpisode / Trajectory
 ```
 
-Long term, construction access may mean training samples, basis snapshots, calibration data, adaptive truth-query budgets, public symbolic semantics, or no sampled data.
+P0 may remain static array-based.
 
 ### Why
 
-Non-learned methods and adaptive construction algorithms do not naturally fit a universal "training data" ontology.
+Control, rollout, digital twins, adaptive experiments and agentic engineering are not naturally IID rows.
 
 ### Confidence
 
@@ -160,24 +144,13 @@ Non-learned methods and adaptive construction algorithms do not naturally fit a 
 
 ---
 
-# G6 — Separate generator qualification into integrity, distribution, reference, and task-relevance evidence
+# G6 — Representation adapters may change encoding, not physical reality
 
 ### Preliminary decision: **ACCEPT**
 
-Future Validation Dossiers should distinguish:
+Mixed-family candidates must consume authorized materializations of the same canonical physical case.
 
-1. implementation integrity;
-2. distribution adequacy;
-3. reference/truth adequacy;
-4. task relevance.
-
-### Why
-
-"Generator valid" currently risks collapsing different scientific claims.
-
-### Examples
-
-A generator can be reproducible but sample the wrong population. A distribution can be appropriate while its numerical reference is weak. A reference can be excellent while requested outputs fail to measure the intended claim.
+Lossy representation conversion requires provenance and, where material, qualification.
 
 ### Confidence
 
@@ -185,15 +158,13 @@ A generator can be reproducible but sample the wrong population. A distribution 
 
 ---
 
-# G7 — Treat nominal/workload and stress/consequence distributions as distinct
+# G7 — Query / observation distribution is first-class task semantics
 
 ### Preliminary decision: **ACCEPT**
 
-Rare high-consequence cases may be intentionally oversampled for stress testing without being represented as deployment frequency.
+Where/when/what is queried can materially change difficulty even for the same physical case.
 
-### Guardrail
-
-Score Pack use of stress evidence must remain explicit and registered.
+Distribution design should therefore support spatial/temporal query populations, observable selection, sensor distributions and episode horizons where relevant.
 
 ### Confidence
 
@@ -201,19 +172,27 @@ Score Pack use of stress evidence must remain explicit and registered.
 
 ---
 
-# G8 — Distribution identity becomes part of authoritative experimental provenance
+# G8 — Generalize long-term roles to `construction/evaluation/stress/qualification`
+
+### Preliminary decision: **ACCEPT CONCEPTUALLY; DO NOT CHANGE P0 ROLE NAMES YET**
+
+P0 remains `construction == train`.
+
+Long-term construction access may include training examples, basis snapshots, calibration data, adaptive truth-query budgets, experiments, symbolic equations, or no sampled data.
+
+### Confidence
+
+**High.**
+
+---
+
+# G9 — Seed separation may require semantic decontamination
 
 ### Preliminary decision: **ACCEPT**
 
-Experiment records / Landscape context should eventually bind the exact distribution identity/version used for construction and evaluation.
+Different seeds are necessary but may not be sufficient for a claimed generalization test.
 
-### Why
-
-"Same PDE" or "same envelope" does not imply the same scientific task if the sampling measures differ.
-
-### Product implication
-
-Search, qualification and deployment populations must remain distinguishable.
+Challenge-specific decontamination may require geometry-family, specimen/entity, time-window, mission, parameter-distance, or source-data separation.
 
 ### Confidence
 
@@ -221,27 +200,140 @@ Search, qualification and deployment populations must remain distinguishable.
 
 ---
 
-# G9 — Material distribution changes are versioned, qualified and prospective
+# G10 — Validation Dossier must qualify distinct evidence classes
 
 ### Preliminary decision: **ACCEPT**
 
-Landscape, sponsors or protocol owners may propose improved distributions/stress categories, but current LIVE exam semantics cannot mutate silently.
+The dossier should separately review, where applicable:
+
+1. physical-system adequacy;
+2. claim/envelope adequacy;
+3. target-population adequacy;
+4. SamplingPlan adequacy;
+5. generator implementation integrity;
+6. generator distribution conformance;
+7. reference/truth adequacy;
+8. representation fidelity;
+9. measurement adequacy/applicability;
+10. statistical sufficiency/estimand clarity;
+11. secrecy/role separation;
+12. residual uncertainty/limitations.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G11 — Generator distribution conformance is separate from reference correctness
+
+### Preliminary decision: **ACCEPT**
+
+A physically correct solver does not prove that the executable sampler implements the registered population.
+
+Conformance testing may include marginals, joints, conditionals, strata, geometry/query coverage, tails, constraints, duplicates/effective sample size, and intended-vs-realized population.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G12 — Reference failure is not candidate failure
+
+### Preliminary decision: **ACCEPT**
+
+Reference/truth realization needs explicit states for available, uncertain, disagreement, numerical failure, infrastructure failure and non-applicability.
+
+Score-bearing eligibility must follow a registered policy rather than silently treating Carbon's truth failure as candidate incompetence.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G13 — Censoring and realized evidence population must remain visible
+
+### Preliminary decision: **ACCEPT**
+
+The final valid-evidence population may differ from intended sampling because of reference failures, infrastructure failures, timeouts, invalid cases or measurement non-applicability.
+
+Hard regimes must not silently disappear from the exam.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G14 — Hierarchical / stratified populations require subgroup evidence where material
+
+### Preliminary decision: **ACCEPT**
+
+Aggregate performance must not hide critical subgroup failure.
+
+Future Challenges may require minimum per-stratum evidence, stratum reporting or stratum-level mandatory gates.
+
+### Confidence
+
+**High.**
+
+---
+
+# G15 — Distribution provenance and uncertainty remain explicit
+
+### Preliminary decision: **ACCEPT**
+
+Telemetry, simulations, expert elicitation, test matrices, requirements and future-use scenarios have different evidentiary status.
+
+The contract/dossier should retain source period, selection, missingness, uncertainty, assumptions and extrapolation where material.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G16 — Search, stress, product qualification and deployment populations are distinct
+
+### Preliminary decision: **ACCEPT**
+
+```text
+search/evaluation population
+!=
+stress population
+!=
+product qualification population
+!=
+deployment population
+```
+
+They may overlap but are never automatically interchangeable evidence.
+
+### Confidence
+
+**Very high.**
+
+---
+
+# G17 — Material population changes are versioned, qualified and prospective
+
+### Preliminary decision: **ACCEPT**
+
+Material changes include density, correlation, geometry-family, strata, stress prevalence, query population, exclusions or product-use population.
 
 Required path:
 
 ```text
-proposed distribution change
-        ↓
-new distribution version
-        ↓
-qualification evidence
-        ↓
-registry binding
-        ↓
-prospective use
+new material semantics
+→ new version
+→ requalification as required
+→ registry binding
+→ prospective use
 ```
 
-Historical experiments remain bound to their original distribution version.
+No silent historical reinterpretation.
 
 ### Confidence
 
@@ -249,25 +341,15 @@ Historical experiments remain bound to their original distribution version.
 
 ---
 
-# G10 — Universalize the generator interface, not the physics implementation
+# G18 — Universalize the examination-instance interface, not the physics implementation
 
 ### Preliminary decision: **ACCEPT**
 
-Carbon should support a universal conceptual interface/invariant set while allowing Challenge-specific generation backends.
+Challenge-specific physical generation backends remain appropriate.
 
-Examples:
+Preferred summary:
 
-- analytic PDE generator;
-- procedural solver configuration;
-- CAD family generator;
-- stochastic physical realization;
-- partner-controlled instance service;
-- experimental campaign sampler;
-- coupled-system generator.
-
-### Preferred summary
-
-> **Carbon should not universalize the physics generator. It should universalize what it means to generate a qualified physical examination instance.**
+> **Carbon should not universalize the physics generator. It should universalize what it means to define, sample, generate, and qualify a physical examination case.**
 
 ### Confidence
 
@@ -277,55 +359,65 @@ Examples:
 
 # Consolidated review table
 
-| ID | Decision | Preliminary verdict | Confidence | Scope |
-|---|---|---|---:|---|
-| G1 | InstanceDistributionContract | ACCEPT | Very high | architecture / future authoring |
-| G2 | task owns distribution | ACCEPT | Very high | constitution |
-| G3 | CanonicalChallengeInstance | ACCEPT ARCH | Very high | future mixed-family runtime |
-| G4 | representation cannot change reality | ACCEPT | Very high | constitution |
-| G5 | construction/eval/stress/qualification roles | ACCEPT CONCEPT | High | future role ontology |
-| G6 | four-part generator qualification | ACCEPT | Very high | future dossier evolution |
-| G7 | nominal vs stress distributions | ACCEPT | Very high | Challenge/scoring design |
-| G8 | distribution in experiment provenance | ACCEPT | Very high | Landscape / qualification |
-| G9 | distribution changes versioned/prospective | ACCEPT | Very high | governance |
-| G10 | universal interface, specific implementation | ACCEPT | Very high | architecture |
+| ID | Decision | Preliminary verdict | Confidence |
+|---|---|---|---:|
+| G1 | InstanceDistributionContract | ACCEPT | Very high |
+| G2 | task owns target population | ACCEPT | Very high |
+| G3 | P/Q/weight separation | ACCEPT | Very high |
+| G4 | SamplingPlan | ACCEPT ARCH | Very high |
+| G5 | CanonicalChallengeCase | ACCEPT ARCH | High |
+| G6 | representation preserves physical reality | ACCEPT | Very high |
+| G7 | query/observation population | ACCEPT | Very high |
+| G8 | generalized role ontology | ACCEPT CONCEPT | High |
+| G9 | semantic decontamination beyond seeds | ACCEPT | Very high |
+| G10 | 12-part dossier qualification | ACCEPT | Very high |
+| G11 | generator conformance separate from truth | ACCEPT | Very high |
+| G12 | reference failure ≠ candidate failure | ACCEPT | Very high |
+| G13 | censoring visibility | ACCEPT | Very high |
+| G14 | hierarchical/stratum evidence | ACCEPT | High |
+| G15 | population provenance/uncertainty | ACCEPT | Very high |
+| G16 | search/stress/product/deployment separation | ACCEPT | Very high |
+| G17 | material-change versioning | ACCEPT | Very high |
+| G18 | universal interface, specific physics backend | ACCEPT | Very high |
 
 ---
 
 # Decisions intentionally deferred
 
-Acceptance of G1–G10 would **not** settle:
+Acceptance of G1–G18 would **not** settle:
 
-- exact serialization/schema;
-- exact distribution DSL;
-- geometry-population representation;
-- universal stochastic-process semantics;
-- exact correlation/conditional syntax;
-- exact coverage metrics by physics family;
-- exact sensitivity tests for distribution adequacy;
-- production role-name migration;
-- exact `CanonicalChallengeInstance` runtime type;
-- exact adapter API;
+- exact serialization / DSL;
+- exact P0 runtime classes;
+- exact probability-model representation;
+- exact geometry/topology population schema;
+- exact statistical tests per distribution family;
+- universal power/sample-size thresholds;
+- exact duplicate/near-duplicate metric;
+- exact sequential-episode runtime API;
+- exact representation-adapter API;
+- exact reference-status enum;
 - private partner distribution transport/storage;
-- whether distribution artifacts become mandatory for all future Challenge classes;
-- any current P0 seed derivation change;
+- exact material-change classifier automation;
+- any P0 seed derivation change;
 - any current Score Pack threshold/weight change.
 
 ---
 
-# Recommended tech/science lead review questions
+# Tech/science lead review questions
 
-1. Is a first-class distribution contract scientifically necessary, or can current generator config remain the authority?
-2. Should canonical physical instances exist as an explicit future object or only as a conceptual invariant?
-3. Is `construction` the right long-term generalization of `train`?
-4. Should distribution adequacy become an explicit Validation Dossier section/status?
-5. What evidence should be required before claiming a partner workload distribution is representative?
-6. Which parts of this architecture are cheap enough to preserve as P0 hooks without introducing runtime complexity?
+1. Is the P/Q/score-weight separation scientifically correct for Carbon's intended exam design?
+2. Should SamplingPlan be a distinct object rather than part of the distribution contract?
+3. Is `CanonicalChallengeCase` the right durable abstraction beyond static PDE instances?
+4. Which distribution-conformance tests are mandatory for the first Burgers/Poisson implementations?
+5. What minimum finite-sample evidence is appropriate for the P0 discrimination claim?
+6. Which semantic decontamination constraints are required for P0 versus later geometry/industry Challenges?
+7. Are the 12 Validation Dossier evidence classes the right decomposition?
+8. Which parts should be preserved as cheap P0 identity/provenance hooks now?
 
 ---
 
 # Owner preliminary conclusion
 
-> **Carbon's scientific credibility depends on qualifying not only the model and not only the generator implementation, but the physical-case distribution the generator is intended to represent.**
+> **Carbon's exam is scientifically defensible only if it can state what physical population is being judged, how finite cases were drawn, whether the generator conformed to that plan, what truth and measurements supported the evidence, and what uncertainty/censoring remains.**
 
-The recommended posture is to ratify the architecture now, preserve inexpensive hooks in P0, and defer heavy runtime/schema generalization until mixed-family or industry Challenge requirements make it necessary.
+If G1–G18 are accepted, the next architecture layer to review is the **Score Pack**: how qualified measurements over a qualified finite sample become hard admissibility decisions, soft ranking components, estimands, aggregation, uncertainty treatment, and emissions without collapsing scientific meaning into one opaque number.
