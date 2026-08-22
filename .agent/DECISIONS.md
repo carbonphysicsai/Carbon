@@ -1,5 +1,82 @@
 # Agent decisions log
 
+## 2026-08-22 — A6 closure after reviewed merge
+
+**Implementation topology and review.** The bounded implementation started from
+exact base `bfb8412d9aae3782d59e9814fc5b3a8c6379f86f` and was independently
+reviewed at exact commit `569d450cce5943089874ad89f62f80ab5182d97a`.
+It was synchronized with current main at exact head
+`20a1d2f74f10b24ddb8922c6b87c7325828299b3`, then PR #23 merged normally as
+`5c7c3a924d305a386ed92d6f054981761d5c74b7`. The merge has ordered parents
+`40c58a1578c6d16ded4ec147561455df66859697` then
+`20a1d2f74f10b24ddb8922c6b87c7325828299b3` and exact tree
+`d302aaf46f211030faf81920deee4dff27eac4a4`. Both reviewed heads are ancestral
+to current `main`; the synchronized-head tree is exactly the merge tree. The
+implementation blobs remained exact through synchronization and merge:
+
+- `.agent/WAVE.md` — `726b0316c0d569277eec6e2afde62a092bf1723b`;
+- `carbon/cards/__init__.py` —
+  `adee9ea56d32327abfc51c5fc9567dff2789d275`;
+- `carbon/cards/model.py` —
+  `82cdd5d790b41cfb4d1824d83a58dbf4ab29d897`;
+- `carbon/cards/store.py` —
+  `f91f84dd3c596fb6de4feee733dc26e9d794f005`; and
+- `tests/cpu/test_card_store.py` —
+  `b9a02f03eb40af35d57304d8e48c3d8721b8167b`.
+
+GitHub contains no formally submitted approval object, and this record does not
+claim one. Independent exact-head audits found no P0, P1, or P2 issue, and the
+human ready-and-merge authorization expressly covered the exact synchronized
+head. No amendment, conflict resolution, repair commit, squash, or rebase was
+made or required.
+
+**Exact implementation scope and bounded behavior.** The implementation delta
+was exactly `.agent/WAVE.md`, `carbon/cards/__init__.py`,
+`carbon/cards/model.py`, `carbon/cards/store.py`, and
+`tests/cpu/test_card_store.py`. It provides the separate opaque A6 record and
+requester-binding types, recursively owned exact-A5 snapshots, one four-field
+process-local insert-only private record, exact duplicate/conflict behavior,
+authorization before projection, typed safe errors, and a frozen positive
+Phase-0 disclosure allow-list for all three A5 statuses. All eleven ticket DoD
+items are materially satisfied. No generic private-object serialization,
+private getter, rich Model Card, receipt/evidence layer, or A7+ implementation
+entered the boundary.
+
+**Validation and CI evidence.** Python 3.11 passed the focused A6 suite at
+`181 passed`, the related scoring/leakage/package boundaries at `499 passed`,
+the complete default CPU suite at `1104 passed`, and the isolated fresh
+no-dependency wheel/outside-tree proof at `1 passed`. Strict Ruff and Black
+checks passed for all four implementation Python files. The quality ratchet
+reported `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black 6`, four
+clean changed Python files, and no new debt. PR CI run `32550337528` completed
+successfully on the synchronized head: CPU passed `1104` tests in `21.97s`,
+and Code quality reported the same inventory and clean/no-new-debt result.
+Post-merge push CI run `32551173696` completed successfully on exact merge
+`5c7c3a924d305a386ed92d6f054981761d5c74b7`: CPU passed `1104` tests in
+`18.65s`, with the same quality inventory, four changed Python files, and no
+new debt.
+
+**Closure and residual boundary.** A6 is done only for the bounded process-local
+Wave-A scope. The store remains in-memory and non-durable, with no restart/crash
+recovery or production concurrency qualification. Same-process Python is not a
+security sandbox; requester equality is not production authentication; and the
+fixture-origin label is not authenticated ScoreEngine provenance. Current
+fixture results remain non-LIVE, non-production, and non-emission-authoritative.
+Permanent submission identity/authentication, fees/FSM/retry/refund, execution,
+receipts/evidence, MCP transport, leaderboard, logging/metrics, Bittensor, and
+emission behavior remain A7–A12 or later work.
+
+```text
+A6 SPECIFIED / RATIFIED: YES
+A6 IMPLEMENTED: YES on current main
+A6 TESTED: YES only to the bounded recorded CPU/security/import scope
+A6 PRODUCTION-QUALIFIED: NO
+A6 WAVE STATUS: done after this closeout is merged
+```
+
+A6-R1 through A6-R12 below remain unchanged; this closure supersedes only their
+pre-implementation maturity snapshot.
+
 ## 2026-08-22 — A6 pre-implementation card-store/disclosure ratification
 
 **Repository truth and maturity.** A fresh fetch and independent remote read
