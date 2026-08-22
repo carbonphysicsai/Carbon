@@ -1,27 +1,31 @@
 # Carbon Challenge Instance Distribution Architecture
 
 **Status:** DESIGN INTEGRATION DRAFT — architecture-level, pending tech/science-lead review.  
-**Purpose:** Define a durable, model-family-neutral architecture for scientifically defensible Challenge instance generation and distribution qualification across Carbon's full vision.  
-**Does not override:** current P0 wire contracts, `Generator_Creation.md`, `Generator_Validation.md`, `Data_Management.md`, `Scoring.md`, `Build_Out.md`, LIVE Challenge semantics, or product qualification rules.  
+**Purpose:** Define a durable, model-family-neutral architecture for scientifically defensible Challenge population definition, finite sampling, instance generation, representation, truth realization, and provenance across Carbon's full vision.  
+**Does not override:** current P0 wire contracts, `Generator_Creation.md`, `Generator_Validation.md`, `Data_Management.md`, `Scoring.md`, `Build_Out.md`, LIVE Challenge semantics, or product qualification rules until ratified into those domain-owning specifications.  
 **Simulation basis:** `docs/context/DISTRIBUTION_GAUNTLET_SIMULATION.md`.
 
 ---
 
 # 1. Design objective
 
-Carbon's current generator architecture is correctly built around fresh seeded draws, train/eval/stress separation, a declared envelope, reference backends, and a Validation Dossier. Those principles survive the broader Carbon architecture.
+Carbon's current generator architecture has the right foundational instincts: fresh seeded draws, train/eval/stress separation, declared envelopes, reference backends, versioning, hidden official realizations, and a Validation Dossier before LIVE.
 
-The missing abstraction is that the **distribution itself is part of the scientific task**.
+The broader architecture requires one critical generalization:
 
-A generator can be deterministic, reproducible, and numerically correct while still sampling the wrong problem population. Carbon therefore needs an explicit contract for what population the generator is intended to implement.
+> **The distribution itself is part of the scientific task.**
 
-The durable rule is:
+A generator can be deterministic, reproducible, numerically correct, and well matched to a reference solver while still sampling the wrong scientific population. Therefore the executable generator must not become the scientific definition of the task by accident.
 
-> **The scientific task owns the distribution. The generator is a qualified implementation of that distribution.**
+The durable authority rule is:
+
+> **The scientific task owns the population. The sampling plan defines how finite evidence is drawn. The generator is a qualified implementation of that plan.**
+
+This document defines that separation.
 
 ---
 
-# 2. Canonical architecture
+# 2. Canonical scientific chain
 
 ```text
 DOMAIN SCIENCE / ENGINEERING INTENT
@@ -30,49 +34,89 @@ DOMAIN SCIENCE / ENGINEERING INTENT
                 +
       CandidateOutputContract
                 +
-      Claim / Operating Envelope
+       Claim / Operating Envelope
+                ↓
+       TARGET POPULATION
                 ↓
    InstanceDistributionContract
                 ↓
+          SamplingPlan
+                ↓
      ChallengeInstanceGenerator
                 ↓
-      CanonicalChallengeInstance
+       Generator Conformance
+                ↓
+       CanonicalChallengeCase
                 ↓
   representation / construction adapters
                 ↓
              Candidate
                 ↓
+      Reference / Truth Realization
+                ↓
+      Measurement Applicability
+                ↓
       protected official evaluation
                 ↓
- MeasurementContracts + reference truth
+          MeasurementContracts
+                ↓
+            Score Pack
                 ↓
           ExperimentRecord
                 ↓
    Landscape / qualification / lifecycle
 ```
 
-This architecture standardizes the **physical task and its sampled population**, not the candidate's internal model family.
+The **Validation Dossier** is the evidence package that qualifies the relevant links in this chain before LIVE. It does not define the chain retroactively.
 
 ---
 
-# 3. `InstanceDistributionContract`
+# 3. Three distributions that must not be collapsed
 
-## 3.1 Purpose
+For any finite scientific exam, Carbon should distinguish:
 
-`InstanceDistributionContract` is the versioned scientific definition of the physical-case population used by a Challenge.
+```text
+TARGET POPULATION      P(x)
+What scientific/engineering population does the claim concern?
+
+SAMPLING / PROPOSAL    Q(x)
+How are cases actually drawn efficiently for finite evaluation?
+
+EVALUATION WEIGHTING   w(x)
+How does evidence from sampled cases contribute to the estimand / score?
+```
+
+These may be identical for a simple P0 Challenge. They are not universally identical.
+
+Example: a rare catastrophic regime may have very low real-world prevalence under `P(x)` but be deliberately oversampled under `Q(x)` so Carbon obtains enough evidence. Raw sample frequency must not then be confused with deployment prevalence.
+
+### Constitutional rule
+
+> **Sampling prevalence, target-population prevalence, and score importance are separate semantics.**
+
+The Score Pack may use stress evidence strongly, but only under explicit registered semantics.
+
+---
+
+# 4. `InstanceDistributionContract`
+
+## 4.1 Purpose
+
+`InstanceDistributionContract` is the versioned scientific definition of the population of admissible physical cases associated with a Challenge.
 
 It is distinct from:
 
-- `PhysicalSystemSpec`, which describes the physical system;
-- the claim/operating envelope, which defines admissible support and exclusions;
-- `ChallengeInstanceGenerator`, which implements the sampling process;
-- `CandidateOutputContract`, which defines what the candidate must accept/return;
-- `MeasurementContract`, which defines how a property is measured;
-- the Score Pack, which defines score-bearing use.
+- `PhysicalSystemSpec` — what physical system is represented;
+- claim/operating envelope — what support and exclusions are claimed;
+- `SamplingPlan` — how finite evidence is drawn from the population;
+- `ChallengeInstanceGenerator` — executable sampler/instance constructor;
+- `CandidateOutputContract` — what a candidate must accept/return;
+- `MeasurementContract` — how a property is numerically measured;
+- Score Pack — how qualified measurements become score-bearing.
 
-## 3.2 Conceptual contents
+## 4.2 Conceptual information classes
 
-The exact serialization is deferred, but the contract should be capable of representing:
+The exact serialization remains deferred. The contract should be able to represent:
 
 ```text
 InstanceDistributionContract {
@@ -84,178 +128,278 @@ InstanceDistributionContract {
   claim_envelope_ref
 
   intended_population_semantics
+  intended_estimand_context
 
   variable_populations[] {
     semantic_ref
     support
-    sampling_rule
-    parameters
+    population_model
     conditional_dependencies
     correlations
     constraints
+    provenance
+    uncertainty
   }
 
   geometry_population
+  topology_population
   boundary_condition_population
   initial_condition_population
   coefficient / material population
   forcing / source population
   query / observation population
+  temporal / episode population
 
-  role_policies {
+  strata[]
+  hierarchical_population
+  exclusions
+  rare_event_semantics
+
+  role_population_refs {
     construction
     evaluation
     stress
     qualification
   }
 
-  stress_taxonomy
-  rare_event_policy
-  exclusions
-  coverage_requirements
-  weighting / consequence semantics
-
   provenance
-  validation_evidence_refs
+  evidence_maturity
   limitations
   disclosure_class
 }
 ```
 
-## 3.3 Scientific meaning
-
-The contract should distinguish at least:
+## 4.3 Envelope is not distribution
 
 ```text
 support / envelope
        !=
-probability or sampling measure
+population measure over support
        !=
-stress/consequence distribution
+stress/consequence sampling
+       !=
+score weighting
 ```
 
-Two Challenges may share the same physical system and envelope while representing materially different scientific tasks because their distributions differ.
+Two Challenges can use the same PDE and same envelope while representing materially different scientific tasks.
 
 ---
 
-# 4. `ChallengeInstanceGenerator`
+# 5. `SamplingPlan`
 
-## 4.1 Universal interface, Challenge-specific implementation
+## 5.1 Why it is separate
 
-Carbon should **not** attempt to create one universal physical generator implementation.
+A scientifically meaningful population does not determine how much finite evidence is needed or how that evidence should be allocated.
 
-The universal contract is conceptual:
+`SamplingPlan` is the prospective finite-evidence design.
+
+Conceptually it should bind:
+
+```text
+SamplingPlan {
+  sampling_plan_id
+  version
+  target_distribution_ref
+
+  proposal_distribution / sampler policy
+  sample_budget
+  strata allocation
+  tail / rare-event allocation
+  replication policy
+  query allocation
+  reference-fidelity allocation
+
+  finite-sample objectives {
+    uncertainty targets
+    tail-resolution targets
+    minimum per-stratum evidence
+    detectable-effect assumptions where appropriate
+  }
+
+  stopping / extension rules
+  duplicate / near-duplicate policy
+  censoring policy
+  provenance
+}
+```
+
+No universal power threshold is implied. Requirements must be Challenge/evidence-type specific and scientifically reviewed.
+
+## 5.2 Statistical sufficiency
+
+A Challenge can be correctly specified and still produce weak evidence if the sample plan is too small or badly allocated. The Validation Dossier must therefore evaluate whether the registered SamplingPlan is sufficient for the claims/estimands the Challenge intends to support.
+
+---
+
+# 6. `ChallengeInstanceGenerator`
+
+## 6.1 Universal interface, Challenge-specific implementation
+
+Carbon should **not** create one universal physics generator.
+
+The universal abstraction is the interface and invariant set:
 
 ```text
 generate(
     seed,
     role,
     distribution_contract_version,
+    sampling_plan_version,
     generator_version,
-) -> CanonicalChallengeInstance
+) -> CanonicalChallengeCase
 ```
 
-Each Challenge may implement generation using the scientifically appropriate mechanism:
+Challenge-specific implementations may use:
 
 - analytic sampling;
-- procedural PDE setup;
+- procedural PDE construction;
 - CAD/geometry synthesis;
 - dataset-backed sampling where justified;
 - experimental campaign selection;
-- coupled-system assembly;
 - stochastic-process realization;
-- partner-controlled generation.
+- coupled-system assembly;
+- partner-controlled generation;
+- high-fidelity simulation services.
 
-## 4.2 Required invariants
+## 6.2 Required invariants
 
 Every official generator must preserve:
 
-1. versioned identity;
-2. role separation;
-3. deterministic replay where the Challenge requires it;
-4. support inside the registered claim semantics;
-5. generator/distribution binding;
+1. versioned identity and content binding;
+2. registered distribution + SamplingPlan binding;
+3. role separation;
+4. deterministic replay where the Challenge requires it;
+5. support/exclusion compliance;
 6. no miner control of official eval/stress realization;
-7. no hidden-seed leakage;
+7. no hidden-realization leakage;
 8. reference provenance separation;
-9. distribution qualification before LIVE;
-10. no silent material distribution change.
+9. generator conformance qualification before LIVE;
+10. no silent material population change;
+11. preservation of intended strata and tail allocation;
+12. explicit failure/censoring semantics.
 
 ---
 
-# 5. `CanonicalChallengeInstance`
+# 7. Generator conformance is its own qualification problem
 
-## 5.1 Purpose
+Reference-solver agreement does **not** prove that the generator samples the registered population.
 
-A `CanonicalChallengeInstance` represents one sampled physical problem independent of how a particular model family consumes it.
+A separate distribution-conformance audit should test, where applicable:
 
-It should be capable of carrying references to:
+- marginal conformance;
+- joint/dependence conformance;
+- physical constraint satisfaction;
+- conditional distribution conformance;
+- geometry-family coverage;
+- stratum frequencies;
+- tail/stress frequencies;
+- query distribution;
+- duplicate / near-duplicate rate;
+- effective sample size;
+- role separation;
+- sampler determinism;
+- intended-vs-realized population after failures/censoring.
+
+Example failure:
 
 ```text
+contract: ν ~ log-uniform
+implementation bug: ν ~ uniform
+```
+
+Every physical solve may be correct while the Challenge is still scientifically wrong.
+
+---
+
+# 8. `CanonicalChallengeCase`
+
+## 8.1 Why `Case`, not permanently `Instance`
+
+A static PDE query is one case type, but Carbon's long-term commercial scope includes rollouts, control, digital twins, agentic optimization, and adaptive experiments.
+
+Therefore the durable concept is:
+
+```text
+CanonicalChallengeCase
+    ├─ StaticInstance
+    └─ SequentialEpisode / Trajectory
+```
+
+P0 may continue using simple arrays and static cases.
+
+## 8.2 Conceptual contents
+
+A canonical case may bind:
+
+```text
+challenge identity
+role
+population/distribution identity
+sampling-plan identity
+generator identity
+
 physical inputs
 parameters
 geometry/topology
 boundary conditions
 initial conditions
 forcing/source terms
-requested outputs / query points
-applicability metadata
+requested outputs
+query locations/times
+sequence/episode semantics if applicable
+
 reference-truth request
 measurement applicability
+representation requirements
 provenance
 ```
 
-It is not required to be a tensor.
-
-## 5.2 Why canonical instances matter
-
-Without a canonical instance layer, mixed-family competitions risk this failure:
-
-```text
-FNO generator -> one physical population
-ROM generator -> another physical population
-GNN generator -> another physical population
-```
-
-That is not a fair model-family comparison.
-
-The required direction is:
-
-```text
-one sampled physical reality
-        ↓
-multiple authorized materializations
-```
+It is not required to be a tensor, mesh, or file.
 
 ---
 
-# 6. Representation and materialization
+# 9. Query / observation population is part of the task
 
-Model families may legitimately need different data structures.
+The same physical state can be easy or hard depending on what is queried.
 
-Examples:
+The distribution architecture must be capable of representing:
+
+- spatial query population;
+- temporal query population;
+- observable selection;
+- resolution/fidelity request;
+- sensor/observation distribution;
+- episode horizon where relevant.
+
+`CandidateOutputContract` defines what queries are admissible. `InstanceDistributionContract` / SamplingPlan define which admissible queries are actually sampled for evidence.
+
+---
+
+# 10. Representation and materialization
+
+Model families may consume different encodings of one canonical physical case:
 
 ```text
-canonical instance
+CanonicalChallengeCase
     ├─> regular grid
     ├─> unstructured mesh
     ├─> graph
     ├─> point/query set
-    ├─> reduced-basis snapshot representation
+    ├─> reduced-basis snapshots
     └─> solver/configuration input
 ```
 
 ### Invariant
 
-> **Representation adapters may change encoding; they must not change the sampled physical case.**
+> **Representation adapters may change encoding; they must not change the sampled physical reality.**
 
-Any lossy or approximate representation conversion must carry provenance and, where material, qualification evidence.
+Adapters must preserve provenance. Lossy transformations or representation-induced measurement limitations require explicit evidence and, where material, qualification.
 
 ---
 
-# 7. Long-term role semantics
+# 11. Role semantics and semantic decontamination
 
-Current P0 uses:
+P0 uses:
 
 ```text
 train
@@ -263,9 +407,7 @@ eval
 stress
 ```
 
-This remains correct for the P0 neural-training implementation.
-
-The more durable conceptual roles are:
+Long-term roles are more generally:
 
 ```text
 construction
@@ -274,177 +416,231 @@ stress
 qualification
 ```
 
-where `construction` may provide:
+where construction access may include training examples, basis snapshots, calibration observations, solver-query budget, experiments, symbolic equations, or no sampled data.
 
-- training examples;
-- basis snapshots;
-- calibration cases;
-- high-fidelity truth-query access;
-- public symbolic/physical semantics;
-- or no sampled data at all.
+### Seed separation is necessary but not always sufficient
 
-Thus:
+Different seeds can still create nearly identical scientific information. Some Challenges may require semantic decontamination constraints such as:
+
+- geometry-family separation;
+- specimen/entity separation;
+- parameter-distance rules;
+- mission/time-window separation;
+- source-data separation;
+- pre/post cutoff separation.
+
+The exact rule is Challenge-dependent and belongs in the registered task/distribution design.
+
+---
+
+# 12. Nominal, evaluation, stress, qualification, deployment
+
+These populations answer different questions:
 
 ```text
-P0: construction == training
+TARGET / WORKLOAD POPULATION
+What population does the scientific or engineering claim concern?
+
+SEARCH / EVALUATION POPULATION
+What finite population best discriminates candidates under the Challenge objective?
+
+STRESS POPULATION
+What difficult / rare / consequence-heavy cases must be probed deliberately?
+
+PRODUCT QUALIFICATION POPULATION
+What job-shaped population supports a bounded commercial claim?
+
+DEPLOYMENT POPULATION
+What actually occurs after deployment?
 ```
 
-but Carbon should not bake "training data" into its terminal ontology.
+They may overlap. They are never automatically equivalent.
+
+> **Rank nominates. Evidence qualifies.**
 
 ---
 
-# 8. Distribution qualification
+# 13. Hierarchical and stratified populations
 
-A Challenge must not go LIVE merely because the generator is executable.
-
-Generator/distribution qualification should separate four evidence classes.
-
-## 8.1 Implementation integrity
-
-Evidence that the implementation behaves as registered:
-
-- deterministic replay where required;
-- version/hash binding;
-- role-domain separation;
-- constraint enforcement;
-- seed handling;
-- no realization leakage;
-- canonical-instance reproducibility.
-
-## 8.2 Distribution adequacy
-
-Evidence that the generated population matches the intended scientific task:
-
-- support and exclusion compliance;
-- marginal coverage;
-- joint/correlated coverage;
-- conditional structure;
-- geometry-family coverage;
-- rare/stress category coverage;
-- degeneracy detection;
-- workload alignment where claimed;
-- sensitivity to reasonable alternate sampling measures.
-
-## 8.3 Reference adequacy
-
-Evidence that truth/reference outputs are defensible:
-
-- analytic derivation where available;
-- numerical convergence;
-- solver-version provenance;
-- cross-code agreement;
-- experimental evidence;
-- uncertainty characterization;
-- disagreement policy;
-- applicability by regime.
-
-## 8.4 Task relevance
-
-Evidence that the distribution and requested outputs actually test the intended claim:
-
-- CandidateOutputContract observability;
-- MeasurementContract applicability;
-- intended engineering use connection;
-- consequence weighting where justified;
-- no unsupported extension from search to product claim.
-
----
-
-# 9. Distribution provenance
-
-The intended distribution may be authored from multiple evidence sources:
+Real engineering populations are often hierarchical:
 
 ```text
-physics constraints
-engineering requirements
-historical operating data
-simulation campaign statistics
-expert elicitation
-test matrices
-regulatory/qualification matrices
-future-use scenarios
+fleet
+  → product / geometry family
+  → mission class
+  → operating regime
+  → condition
 ```
 
-These sources must remain distinguishable.
+Flattened global averages can hide important subgroup failure and create Simpson-type effects.
 
-A historical workload distribution is **observational evidence**, not automatically the desired future evaluation distribution.
+The architecture should therefore support:
+
+- explicit strata/hierarchies;
+- minimum per-stratum evidence;
+- stratum-level reporting;
+- stratum-specific gates where scientifically required;
+- aggregate weighting that cannot erase mandatory subgroup failure.
 
 ---
 
-# 10. Stress distributions
+# 14. Reference / truth realization
 
-Stress testing must remain distinct from nominal workload sampling.
+Reference truth is separate from population definition and generator conformance.
+
+A case may use:
+
+- analytic truth;
+- numerical reference;
+- multi-code consensus;
+- experiment;
+- partner golden;
+- hybrid reference;
+- uncertainty-bearing truth.
+
+Reference status must remain distinguishable from candidate outcome.
+
+Conceptual statuses include:
 
 ```text
-nominal/workload distribution
-        !=
-stress / consequence-weighted distribution
+REFERENCE_AVAILABLE
+REFERENCE_UNCERTAIN
+REFERENCE_DISAGREEMENT
+REFERENCE_NUMERICAL_FAILURE
+REFERENCE_FAILED_INFRA
+REFERENCE_NOT_APPLICABLE
 ```
 
-Stress roles may deliberately oversample:
-
-- rare physical regimes;
-- boundaries/corners;
-- known instability regions;
-- high-consequence conditions;
-- challenge-specific failure modes.
-
-This does not imply those cases occur at the same frequency in deployment.
-
-The Score Pack must define how stress evidence influences admissibility/ranking.
+A candidate must not be punished for Carbon's own failed truth path. Score-bearing eligibility must follow a registered reference-availability policy.
 
 ---
 
-# 11. Extrapolation and OOD
+# 15. Multi-fidelity truth allocation
 
-Avoid using "OOD" as a substitute for precise Challenge semantics.
+Industrial Challenges may allocate different reference fidelities across cases.
 
-Carbon should distinguish:
-
-- construction-population shift;
-- evaluation-population shift;
-- rare/stress samples inside the claim envelope;
-- explicitly registered extrapolation tasks;
-- truly out-of-claim conditions.
-
-Score-bearing instances should remain inside registered claim semantics unless extrapolation competence is explicitly part of the Challenge.
-
----
-
-# 12. Construction information budgets
-
-For future non-neural or agentic construction, information access itself becomes part of the intervention.
-
-Examples:
+The architecture should separate:
 
 ```text
-fixed training dataset
-adaptive solver-query budget
-basis-building snapshots
-experimental observations
-public symbolic system
-licensed partner data
+physical-case population
+       !=
+reference-fidelity allocation policy
 ```
 
-A future `ConstructionInputPolicy` should therefore bind:
+Otherwise costly or difficult regions can be systematically evaluated at weaker fidelity and bias the evidence.
 
-- what instance distribution(s) may be queried;
-- query budget;
+Reference-fidelity allocation belongs in SamplingPlan / ReferencePolicy provenance and must be qualified.
+
+---
+
+# 16. Distribution provenance and uncertainty
+
+The intended population may be inferred or authored from:
+
+- physical constraints;
+- engineering requirements;
+- historical telemetry;
+- simulation campaigns;
+- expert elicitation;
+- test matrices;
+- regulatory/qualification matrices;
+- future-use scenarios.
+
+These are not equivalent evidence sources.
+
+Distribution provenance should preserve, where applicable:
+
+```text
+source type
+observation period
+sample size
+selection mechanism
+known missingness
+uncertainty
+maturity/confidence
+assumptions/extrapolations
+```
+
+A historical workload distribution is observational evidence, not automatically the desired future evaluation population.
+
+---
+
+# 17. Measurement applicability is population-dependent
+
+Some measurements apply only to subsets of the physical population.
+
+Example: a shock-location metric is not meaningful on a case where no shock exists.
+
+Measurement applicability must be independently determined where possible and must not be controllable by the candidate.
+
+Aggregation should record the eligible population for each measurement rather than silently treating non-applicable cases as pass, fail, or missing.
+
+---
+
+# 18. Estimands must be explicit
+
+A score component can only be scientifically interpreted if Carbon knows what it estimates.
+
+Possible estimands include:
+
+- expected error under target operation;
+- physical-failure probability;
+- tail risk;
+- worst-stratum performance;
+- consequence-weighted performance;
+- answerability/coverage conditional on a registered population.
+
+`InstanceDistributionContract` defines the population; `MeasurementContract` defines the measurement; the Score Pack defines the score-bearing estimand/aggregation.
+
+---
+
+# 19. Censoring and realized evidence population
+
+The intended sample population may differ from the final valid-evidence population because of:
+
+- reference solver failure;
+- infrastructure failure;
+- timeout;
+- invalid case generation;
+- measurement non-applicability;
+- corrupted experiment;
+- resource limits.
+
+Carbon must preserve:
+
+```text
+intended sampled population
+       !=
+realized valid-evidence population
+```
+
+Censoring provenance must be recorded. Hard physical cases must not disappear silently because they are expensive or failure-prone to evaluate.
+
+---
+
+# 20. Construction information budgets and external pretraining
+
+For future broad construction search, the information available to the producer is part of the intervention.
+
+A future `ConstructionInputPolicy` should bind:
+
+- accessible construction distributions;
+- dataset / observation rights;
+- high-fidelity query budget;
 - fidelity levels;
 - adaptivity;
 - data retention;
-- disclosure restrictions;
-- cost accounting.
+- external/pretraining allowance;
+- licensed/proprietary sources;
+- resource accounting.
 
-Official evaluation remains isolated from this construction-access domain.
+Fresh official seeds reduce contamination risk but do not make pretraining/data provenance irrelevant for narrow task distributions.
 
 ---
 
-# 13. Randomness domains
+# 21. Randomness domains
 
-Future stochastic Challenges may require explicit separation of randomness roles.
-
-Conceptually:
+Stochastic Challenges may require distinct randomness domains:
 
 ```text
 instance_sampling_randomness
@@ -455,87 +651,133 @@ construction_randomness
 candidate_randomness
 ```
 
-These domains should not be collapsed into one universal seed if doing so obscures provenance or independence.
-
-Exact seed derivation remains owned by current/future security specs.
+These should not be collapsed when independence/provenance matters. Exact seed derivation remains owned by security/data specs.
 
 ---
 
-# 14. Multiphysics and composition
+# 22. Multiphysics and composition
 
-Component distributions do not automatically compose into a valid joint system distribution.
+Component distributions do not automatically compose into a valid joint system population.
 
-Future coupled Challenges may require:
+Coupled Challenges may require:
 
 - joint sampling;
 - conditional subsystem sampling;
 - interface compatibility constraints;
 - correlated uncertain inputs;
-- coupled geometry/topology constraints.
+- coupled geometry/topology rules.
 
-A future `CouplingContract` and `InstanceDistributionContract` should compose explicitly rather than assume independent subsystem draws are valid.
+A future `CouplingContract` and `InstanceDistributionContract` must compose explicitly rather than assume independent subsystem draws are valid.
 
 ---
 
-# 15. Search vs product distributions
+# 23. Privacy and disclosure
 
-The subnet's search distribution and a customer's product-use population answer different questions.
+Scientific authority does not require public disclosure of every distribution parameter.
+
+A private partner population may reveal proprietary operating profiles, mission mix, geometry frequency, process recipes, or failure modes.
+
+Therefore distribution artifacts need disclosure classes. A public surface may expose identity, digest, high-level claim scope, validation status, and limitations while exact densities/conditional rules remain controlled where contractually required.
+
+Hidden official realizations remain protected regardless of whether population semantics are public.
+
+---
+
+# 24. Material-change semantics
+
+Not every generator refactor creates a new scientific population, but material population changes must be explicit.
+
+Candidate material changes include:
+
+- marginal density changes;
+- correlation/conditional changes;
+- geometry family changes;
+- stratum additions/removals;
+- stress prevalence changes;
+- query population changes;
+- exclusion changes;
+- qualification-population changes.
+
+Required path:
 
 ```text
-SEARCH DISTRIBUTION
-scientific discrimination / efficient competition
-
-PRODUCT QUALIFICATION DISTRIBUTION
-job-shaped evidence for a defined context of use
-
-DEPLOYMENT POPULATION
-what actually occurs during operation
+material change
+    → new distribution / SamplingPlan version
+    → requalification as required
+    → new registry binding
+    → prospective use
 ```
 
-These may overlap but are never automatically equivalent.
-
-> **Rank nominates. Evidence qualifies.**
-
-Qualification must bind the exact product distribution/context that supports its claim.
+Historical evidence is never silently reinterpreted.
 
 ---
 
-# 16. Distribution lifecycle
+# 25. Governance separation
 
-A distribution is versioned lifecycle state, not timeless truth.
+The producer of a candidate must not define the official distribution that proves its own success.
 
-Material changes may arise from:
+Recommended authority split:
 
-- new operating regimes;
-- changed customer use;
-- new geometry families;
-- observed drift;
-- newly discovered failure modes;
-- corrected scientific assumptions.
+```text
+DOMAIN / CHALLENGE AUTHOR
+    defines intended task/population
 
-Required response may include:
+GENERATOR IMPLEMENTER
+    implements sampling/generation
 
-- new distribution version;
-- new generator qualification;
-- restricted claim;
-- requalification;
-- retirement.
+SCIENCE / DOSSIER REVIEW
+    qualifies task distribution, SamplingPlan, generator, truth and measurements
 
-Historical experiment records stay bound to the distribution version under which they were produced.
+MINERS / AGENTS
+    optimize construction methods
+
+VALIDATORS
+    execute registered sampling/evaluation
+
+SCORE PACK
+    converts qualified measurements into registered ranking semantics
+```
+
+No layer certifies itself.
 
 ---
 
-# 17. Landscape and physics intelligence
+# 26. Validation Dossier synchronization
 
-Distribution identity is a required context variable for scientifically useful cross-Challenge learning.
+The Validation Dossier should qualify at least the following evidence classes where applicable:
 
-Future experimental memory should preserve at least:
+1. physical-system adequacy;
+2. claim/envelope adequacy;
+3. target-population adequacy;
+4. SamplingPlan / finite-evidence adequacy;
+5. generator implementation integrity;
+6. generator distribution conformance;
+7. reference/truth adequacy;
+8. representation fidelity;
+9. measurement adequacy/applicability;
+10. statistical sufficiency;
+11. secrecy / role-separation integrity;
+12. unresolved limitations and residual uncertainty.
+
+The dossier **does not invent** the population, SamplingPlan, measurement, or score after observing candidate results. It evaluates prospectively registered objects.
+
+---
+
+# 27. Landscape and physics intelligence
+
+Distribution identity is a first-class experimental context variable.
+
+Future experimental memory should preserve, at minimum:
 
 ```text
 physical system identity
-instance distribution identity
+claim/envelope identity
+distribution identity
+SamplingPlan identity
 construction-access policy
 candidate construction intervention
+representation adapter identity
+reference policy / status
 measurement identity
 selection provenance
 outcome / censoring
@@ -543,34 +785,15 @@ reproducibility
 qualification result
 ```
 
-A transfer claim that ignores distribution shape may confuse "same PDE" with "same scientific task."
-
-Physics intelligence must therefore learn over **intervention × physical context × distribution × measurement × outcome**, not only Challenge labels.
+A transfer claim that ignores population shape can confuse "same PDE" with "same scientific task."
 
 ---
 
-# 18. Governance and change control
+# 28. P0 compatibility
 
-The candidate producer must not define the official distribution used to prove its own success.
+This architecture is designed to be backward-compatible with the narrow P0 loop.
 
-Material distribution changes require:
-
-1. explicit version change;
-2. prospective application;
-3. validation evidence;
-4. disclosure review;
-5. registry binding;
-6. no silent historical rescore.
-
-Landscape or agentic systems may propose new distribution/stress versions but may not silently mutate LIVE exam semantics.
-
----
-
-# 19. P0 compatibility
-
-This architecture is designed to be backward-compatible with the current P0 scientific loop.
-
-P0 can continue implementing:
+P0 may continue implementing:
 
 ```text
 (seed, role=train/eval/stress)
@@ -580,53 +803,58 @@ Burgers generator
 arrays + reference solution
 ```
 
-Recommended P0-safe design habits:
+Recommended cheap hooks now:
 
-- keep distribution config versioned;
-- keep generator version separate from Challenge id;
-- keep roles explicit;
-- keep reference provenance separate from candidate inputs;
-- avoid assuming all future instances are tensors;
+- separate distribution identity/version from generator identity/version;
+- explicit role metadata;
+- bind official results to generator/distribution versions;
+- preserve reference provenance separately;
+- avoid assuming future cases are always tensors;
 - avoid assuming all future construction access is training data;
-- preserve a path for representation-neutral instance metadata.
+- record censoring/failure class distinctly;
+- keep generator code unable to silently redefine score semantics.
 
 No generalized runtime object is required before tech/science review and implementation need.
 
 ---
 
-# 20. Commercial framing
+# 29. Commercial framing
 
-The architecture supports a stronger partner proposition:
+A strong partner formulation is:
 
 > **A partner defines the physical job, operating population, outputs that matter, and trusted evidence sources. Carbon turns that into a qualified procedural task distribution, opens controlled competition over how to construct the fast model, and independently tests candidates on fresh cases from that qualified distribution.**
 
-This is not simply "training on customer data."
-
-Carbon's value includes making the **scientific search problem itself explicit, versioned, reproducible, and independently defensible**.
+This is not simply "training on customer data." Carbon helps make the **scientific search problem itself explicit, versioned, reproducible, and independently defensible**.
 
 ---
 
-# 21. Constitutional additions proposed for review
+# 30. Constitutional additions proposed for review
 
-1. **The scientific task owns the distribution; the generator implements it.**
-2. **Envelope and distribution are distinct scientific objects.**
-3. **Instance integrity, distribution adequacy and reference adequacy are separate claims.**
-4. **Canonical physical instances precede model-family materialization.**
-5. **Representation adapters may change encoding, not physical reality.**
-6. **Construction access is broader than training data.**
-7. **Nominal and stress distributions are distinct roles.**
-8. **Distribution identity is part of authoritative experimental provenance.**
-9. **Search, qualification and deployment populations are not automatically equivalent.**
-10. **Material distribution changes are versioned, qualified and prospective.**
-11. **No producer controls the official distribution that grades itself.**
-12. **A universal generator means a universal interface/invariant set, not one universal physics implementation.**
+1. **The scientific task owns the target population; the generator implements it.**
+2. **Target population, sampling/proposal distribution, and score weighting are separate semantics.**
+3. **Envelope and distribution are distinct scientific objects.**
+4. **SamplingPlan is separate from population definition.**
+5. **Generator conformance is distinct from reference correctness.**
+6. **Canonical physical cases precede model-family materialization.**
+7. **Representation adapters may change encoding, not physical reality.**
+8. **Construction access is broader than training data.**
+9. **Seed separation may require additional semantic decontamination.**
+10. **Nominal, stress, search, qualification, and deployment populations are not automatically equivalent.**
+11. **Reference failure is not candidate failure.**
+12. **Distribution uncertainty and provenance must remain visible.**
+13. **Hierarchical/stratified populations require subgroup evidence where scientifically material.**
+14. **Query population is part of the scientific task.**
+15. **Finite-sample/statistical sufficiency is part of Challenge qualification.**
+16. **Censoring must not silently reshape the realized exam.**
+17. **Distribution identity is authoritative experiment provenance.**
+18. **Material population changes are versioned, qualified, and prospective.**
+19. **No candidate producer controls the official population that grades itself.**
+20. **Universal generator means universal interface/invariants, not one universal physics implementation.**
 
 ---
 
-# 22. Final design statement
+# 31. Final design statement
 
-The durable architecture is:
+> **Carbon does not merely generate data. Carbon defines and qualifies a physical task population, designs a finite sampling plan, verifies that a generator conforms to it, and then produces fresh canonical cases for independent scientific evaluation.**
 
-> **Carbon does not merely generate data. Carbon qualifies a physical task distribution and then generates fresh, canonical examination instances from it.**
-
-This makes data generation coherent with Carbon's broader model-construction, evidence, qualification, and physics-intelligence vision while preserving the simplicity of the current neural-operator P0.
+This is the distribution-side foundation required for Carbon's model-construction, evidence, qualification, and physics-intelligence vision.
