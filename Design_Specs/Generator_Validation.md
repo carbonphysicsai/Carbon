@@ -1,594 +1,440 @@
-# Appendix: Generator Validation & Credibility Dossier
+# Carbon Validation Dossier — Challenge Distribution, Generator, Truth, and Measurement Qualification
 
-> **Reconciliation (post-ratification):** Universal-looking numerical criteria are **not** globally normative. Validation requirements are **conditional on physics/evidence type**. **Reference caches are dossier evidence**, not live official exam data.
+**Version:** 2.0  
+**Status:** LOCKED ARCHITECTURE — owner-ratified on 2026-08-21; challenge-specific criteria, exact schemas, and implementation details remain subject to tech/science review.  
+**Purpose:** Define the evidence package required before Carbon may treat a registered Challenge exam as scientifically fit to judge candidates.  
+**Related:** `Challenge_Instance_Distribution.md`, `Generator_Creation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Scoring.md`, `Physical_System_Representation.md`, `Launch_Bar.md`.
 
+> **The distribution architecture defines the exam population. The Validation Dossier earns the right to use that population as an exam.**
 
-**Carbon Subnet**  
-**Version:** 1.0 (July 2026)  
-**Status:** Core Engineering Appendix  
-**Related:** `SPEC.md`, `IMPLEMENTATION.md`, `OPERATIONS.md`, `appendices/Landscape_Agent.md`, `appendices/Specialist_Bank.md`, `appendices/Use_Cases_by_Phase.md`
-
----
-
-## TL;DR
-
-Before any Carbon challenge goes live, the data generator has to prove it produces physically credible training data. That proof is a **Validation Dossier**: mesh and temporal convergence, agreement with a reference solver, conservation checks, and statistically calibrated gate thresholds — all reproducible and public.
-
-Reference solutions are precomputed, hashed, and cached. Validators load them at evaluation time. Miners never see those solutions or the live stress/eval seeds. A challenge only launches after every mandatory check passes, the dossier is published, and the Challenge Registry is updated.
-
-This is Carbon’s credibility layer for challenge data: open methods and thresholds, hidden seeds and reference fields, fail-closed gates, and a clear path back into SPEC.
+Numerical examples are never globally normative unless an exact Challenge explicitly adopts and qualifies them. Reference caches are dossier evidence or qualified runtime infrastructure, not automatically the live answer key. The dossier qualifies prospectively registered scientific objects and implementations; it does not invent them after candidate results are observed.
 
 ---
 
-## 1. Purpose
+# 1. Executive rule
 
-This document defines the **Generator Validation Protocol** — how Carbon shows that its procedural data generators produce physically correct training data before a challenge goes live. This is the **credibility layer** that separates Carbon from unverified ML benchmarks.
+Before a Challenge becomes LIVE, Carbon must establish that **the exam itself deserves to judge candidates**.
 
-**Goal:** Every challenge ships with a **Validation Dossier** — a public, reproducible evidence pack that the generator produces physically correct data across the declared envelope.
+A dossier must keep separate at least these questions:
+
+1. Is the physical system represented correctly enough for the intended Challenge?
+2. Is the claimed envelope defensible?
+3. Is the target population scientifically relevant to the task?
+4. Is the finite SamplingPlan capable of producing meaningful evidence?
+5. Does the executable generator conform to the registered population and plan?
+6. Is the reference/truth path credible enough?
+7. Do representation/materialization adapters preserve the same physical case?
+8. Are registered measurements applicable and scientifically adequate?
+9. Is the finite evidence statistically sufficient for the intended estimands?
+10. Are secrecy, role separation, decontamination, provenance, and censoring controlled well enough for authoritative use?
+
+A single `generator_valid=true` flag is insufficient.
 
 ---
 
-## 2. Validation Philosophy
+# 2. Authority chain
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Trustless verification** | Anyone can re-run validation using public reference solvers |
-| **Procedural transparency** | Generator code and validation code are open source |
-| **Statistical rigor** | Thresholds come from statistical analysis, not guesswork |
-| **Reproducibility** | Fixed seeds, pinned solvers, versioned environments |
-| **Transparency** | Full reports published before challenge launch |
-
----
-
-## 3. Validation Pipeline Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    GENERATOR VALIDATION PIPELINE                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  CHALLENGE SPEC                                                 │
-│     │                                                           │
-│     ▼                                                           │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  GENERATOR VALIDATION ENGINE                                 │
-│  │  ├─ Reference Solver Interface (FEniCS/OpenFOAM/SU2/DPLR)   │
-│  │  ├─ Mesh/Temporal Convergence Runner                        │
-│  │  ├─ Physics Conservation Checker                            │
-│  │  ├─ Statistical Threshold Calibrator                        │
-│  │  └─ Report Generator (PDF/HTML/JSON)                        │
-│  └─────────────────────────────────────────────────────────────┘ │
-│           │                                                      │
-│           ▼                                                      │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  VALIDATION DOSSIER (Public Artifact)                        │
-│  │  ├─ Generator Validation Report                              │
-│  │  ├─ Mesh/Temporal Convergence Study                          │
-│  │  ├─ Physics Conservation Audit                               │
-│  │  ├─ Gate Threshold Calibration                               │
-│  │  ├─ Turbulence/Chemistry UQ Budget (if applicable)          │
-│  │  └─ Reference Solution Cache Manifest                        │
-│  └─────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+```text
+DOMAIN SCIENCE / ENGINEERING INTENT
+                ↓
+        PhysicalSystemSpec
+                +
+      CandidateOutputContract
+                +
+       Claim / Operating Envelope
+                ↓
+       TARGET POPULATION
+                ↓
+   InstanceDistributionContract
+                ↓
+          SamplingPlan
+                ↓
+     ChallengeInstanceGenerator
+                ↓
+       CanonicalChallengeCase
+                ↓
+     Reference / Truth Policy
+                ↓
+        MeasurementContracts
+                ↓
+       VALIDATION DOSSIER
+                ↓
+         Score Pack binding
+                ↓
+        Challenge Registry LIVE
 ```
 
----
-
-## 3. Validation Levels
-
-### Level 1: Generator Correctness (Mandatory — All Phases)
-
-| Test | Method | Pass Criterion |
-|------|--------|----------------|
-| **Mesh Convergence** | 3-level h-refinement (h, h/2, h/4) | L2 change < 1% between finest levels |
-| **Temporal Convergence** | 3-level dt-refinement (dt, dt/2, dt/4) | L2 change < 0.5% between finest levels |
-| **Reference Solver Agreement** | vs FEniCS/OpenFOAM/SU2/DPLR | L2 error < 2% (configurable per PDE) |
-| **Physics Conservation** | Mass, Energy, Momentum | Residual < 1e-6 (mesh-converged) |
-
-### Level 2: Envelope Coverage (Phase 1A+)
-
-| Test | Method | Pass Criterion |
-|------|--------|----------------|
-| **Parameter Sweep Coverage** | Latin Hypercube Sampling | 95% of envelope sampled |
-| **Edge Case Coverage** | Explicit corner cases | 100% of envelope corners tested |
-| **Stress Variant Generation** | Edge/rare-regime sampling **inside declared envelope** | 100% coverage of stress categories |
-
-### Level 3: Uncertainty Quantification (Phase 1A+)
-
-| Test | Method | Pass Criterion |
-|------|--------|----------------|
-| **Turbulence Model UQ** | 3+ turbulence models | Uncertainty budget ≤ gate margin |
-| **Chemistry Model UQ** | 3+ mechanisms | Uncertainty budget ≤ gate margin |
-| **Numerical Scheme UQ** | 2+ discretization schemes | Variance < gate threshold |
+The dossier qualifies this chain. It does **not** define score weights, make an unqualified measurement score-bearing, create official seeds, expand the envelope, certify a product, or rewrite a population after seeing who wins.
 
 ---
 
-## 4. Validation Dossier Template
+# 3. Required evidence classes
 
-Each challenge ships with a **Validation Dossier** (public PDF/HTML/JSON):
+Each evidence class is explicitly one of:
 
-```markdown
-# Carbon Challenge Validation Dossier: {challenge_id}
-
-## 1. Challenge Overview
-- **Challenge ID:** `naca0012_transonic-v1`
-- **Physics Class:** `compressible_ns`
-- **Dimension:** 2D/3D
-- **PDE:** Compressible Navier-Stokes (RANS)
-- **Reference Solver:** SU2 v7.5.0 (Euler, Roe flux, 2nd order)
-- **Generator Version:** `carbon.generators.compressible_ns:v1.3.2`
-
-## 2. Mesh & Temporal Convergence
-| Metric | Coarse | Medium | Fine | Convergence Rate | Pass |
-|--------|--------|--------|------|------------------|------|
-| Mesh (h) | 64×64 | 128×128 | 256×256 | 1.95 | ✅ |
-| L2 Error | 3.1% | 1.5% | 0.8% | 1.97 | ✅ |
-| Temporal (dt) | 1e-3 | 5e-4 | 2.5e-4 | 1.98 | ✅ |
-
-**Reference Solver:** SU2 v7.5.0 | **Validation Cases:** 50 | **Tolerance:** L2 < 2%
-
-## 3. Physics Conservation Audit
-| Law | Metric | Threshold | Result | Pass |
-|-----|--------|-----------|--------|------|
-| Mass Conservation | max ‖∇·(ρu)‖_L2 | 1e-6 | 4.2e-7 | ✅ |
-| Energy Stability | max |dE/dt| | 1e-6 | 8.9e-7 | ✅ |
-| Momentum Conservation | max ‖∂(ρu)/∂t + ∇·(ρu⊗u + pI)‖ | 1e-5 | 3.1e-6 | ✅ |
-
-## 3. Gate Threshold Calibration
-| Gate | Threshold | Basis |
-|------|-----------|-------|
-| Mass Conservation | 1e-6 L2 + 1e-4 Linf | 99.9th percentile + 3σ (10k SU2 runs) |
-| Shock Capture | Δx/shock_thickness < 0.1 | Resolution study (100 SU2 runs) |
-| Energy Stability | 1e-6 | Analytical bound + 3σ numerical |
-
-## 4. Turbulence Model Uncertainty (Phase 1A+)
-| Quantity | Model Spread (SA vs k-ω SST) | Budget Allocated |
-|----------|------------------------------|------------------|
-| Separation Point | 12% chord | 15% gate margin |
-| Skin Friction | 8% | 10% gate margin |
-| Heat Flux | 12% | 15% gate margin |
-
-## 4. Reference Solution Cache
-| Case | Mesh | Solver | L2 Error vs Generator | Stored |
-|------|------|--------|----------------------|--------|
-| NACA0012_M0.8_AoA1.25 | 256×256 | SU2 v7.5.0 | 1.2% | ✅ |
-| NACA0012_M1.2_AoA1.25 | 256×256 | SU2 v7.5.0 | 1.1% | ✅ |
-
-**Cache Location:** `s3://carbon-precomputed/naca0012_transonic-v1/` (versioned, immutable)
-
-## 5. Reproducibility
-- **Generator Version:** `carbon.generators.compressible_ns:v1.3.2`
-- **Reference Solver:** SU2 v7.5.0 (Docker: `ghcr.io/carbon/su2:v7.5.0`)
-- **Validation Seeds:** `hash("naca0012_transonic-v1:validation:{0..49}")`
-- **Docker Image:** `ghcr.io/carbon/validation:su2-v7.5.0`
-- **Git Commit:** `a1b2c3d4...`
+```text
+REQUIRED
+NOT_APPLICABLE_WITH_RATIONALE
+DEFERRED_BLOCKING_LIVE
 ```
 
----
+A missing required class fails closed for LIVE.
 
-## 5. Validation Engine Implementation
+## D1 — Physical-system adequacy
 
-```python
-# carbon/validation/generator_validator.py
-"""
-Generator Validation Engine — produces Validation Dossiers.
-Run during challenge onboarding; results published as Validation Dossier.
-"""
+Evidence that the Challenge's physical semantics correspond to the intended system, including assumptions, exclusions, variable/parameter semantics, BC/IC semantics, dimensional or nondimensional interpretation where material, and source reconciliation.
 
-import hashlib
-import json
-import subprocess
-from dataclasses import dataclass, asdict
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-import numpy as np
-import jax.numpy as jnp
+Structured physics describes the system; it does not certify it.
 
-@dataclass
-class ValidationConfig:
-    challenge_id: str
-    generator: "ProceduralGenerator"
-    reference_solver: "ReferenceSolver"
-    n_validation_cases: int = 50
-    n_convergence_cases: int = 20
-    mesh_levels: int = 3
-    temporal_levels: int = 3
-    spatial_refinement_ratio: float = 2.0
-    temporal_refinement_ratio: float = 2.0
-    spatial_tolerance_pct: float = 1.0
-    temporal_tolerance_pct: float = 0.5
-    reference_tolerance_pct: float = 2.0
+## D2 — Claim / envelope adequacy
 
-@dataclass
-class ValidationReport:
-    challenge_id: str
-    generator_version: str
-    reference_solver: str
-    git_commit: str
-    mesh_convergence: Dict
-    temporal_convergence: Dict
-    reference_agreement: Dict
-    physics_conservation: Dict
-    gate_thresholds: Dict
-    turbulence_uq: Optional[Dict] = None
-    chemistry_uq: Optional[Dict] = None
-    passed: bool
+Evidence supporting parameter ranges, geometry family, BC/IC classes, operating regimes, exclusions, extrapolation semantics, and claim limits.
 
-class GeneratorValidator:
-    def __init__(self, config: ValidationConfig):
-        self.config = config
-        self.generator = config.generator
-        self.ref_solver = config.reference_solver
-    
-    def validate(self) -> ValidationReport:
-        """Run full validation suite."""
-        
-        # 1. Mesh convergence study
-        mesh_conv = self._run_mesh_convergence()
-        
-        # 2. Temporal convergence study
-        temporal_conv = self._run_temporal_convergence()
-        
-        # 3. Reference solver comparison
-        ref_agreement = self._validate_against_reference()
-        
-        # 4. Physics conservation audit
-        phys_conservation = self._audit_physics_conservation()
-        
-        # 5. Gate threshold calibration
-        gate_thresholds = self._calibrate_gate_thresholds()
-        
-        # 6. UQ budgets (if applicable)
-        turb_uq = self._quantify_turbulence_uncertainty() if self._has_turbulence() else None
-        chem_uq = self._quantify_chemistry_uncertainty() if self._has_chemistry() else None
-        
-        # 7. Compile report
-        passed = all([
-            mesh_conv["passed"],
-            temporal_conv["passed"],
-            ref_agreement["passed"],
-            phys_conservation["passed"],
-        ])
-        
-        return ValidationReport(
-            challenge_id=self.config.challenge_id,
-            generator_version=self.generator.config.version,
-            reference_solver=self.config.reference_solver,
-            git_commit=self._get_git_commit(),
-            mesh_convergence=mesh_conv,
-            temporal_convergence=temporal_conv,
-            reference_agreement=ref_agreement,
-            physics_conservation=phys_conservation,
-            gate_thresholds=gate_thresholds,
-            turbulence_uq=turb_uq,
-            chemistry_uq=chem_uq,
-            passed=passed
-        )
-    
-    def _run_mesh_convergence(self) -> Dict:
-        """3-level h-refinement study."""
-        results = []
-        for level in range(self.config.mesh_levels):
-            scale = self.config.spatial_refinement_ratio ** (-level)
-            for case in range(self.config.n_convergence_cases):
-                seed = self._derive_seed(f"mesh_conv:{level}:{case}")
-                data = self.generator.generate_benchmark_data(seed, n_samples=1)
-                # Run reference solver at this resolution
-                ref_solution = self.ref_solver.solve(data["inputs"], scale=scale)
-                error = self._compute_l2_error(data["targets"], ref_solution)
-                results.append({"level": level, "scale": scale, "error": error})
-        
-        # Compute convergence rate
-        errors = [r["error"] for r in results]
-        if len(errors) >= 2:
-            rates = np.log(np.array(errors[:-1]) / np.array(errors[1:])) / np.log(2)
-            conv_rate = float(np.mean(rates))
-        else:
-            conv_rate = 0.0
-        
-        passed = all(e < self.config.spatial_tolerance_pct / 100 for e in errors[-1:])
-        
-        return {
-            "levels": self.config.mesh_levels,
-            "refinement_ratio": self.config.spatial_refinement_ratio,
-            "errors": errors,
-            "convergence_rate": conv_rate,
-            "tolerance_pct": self.config.spatial_tolerance_pct,
-            "passed": passed
-        }
-    
-    def _validate_against_reference(self) -> Dict:
-        """Compare generator outputs against high-fidelity reference solver."""
-        errors = []
-        for i in range(self.config.n_validation_cases):
-            seed = self._derive_seed(f"reference_validation:{i}")
-            test_data = self.generator.generate_benchmark_data(seed, n_samples=1)
-            ref_solution = self.ref_solver.solve(test_data["inputs"])
-            error = self._compute_l2_error(test_data["targets"], ref_solution)
-            errors.append(error)
-        
-        avg_error = float(np.mean(errors))
-        max_error = float(np.max(errors))
-        passed = max_error < self.config.reference_tolerance_pct / 100
-        
-        return {
-            "n_cases": self.config.n_validation_cases,
-            "errors": errors,
-            "avg_error_pct": avg_error * 100,
-            "max_error_pct": max_error * 100,
-            "tolerance_pct": self.config.reference_tolerance_pct,
-            "passed": passed
-        }
-    
-    def _audit_physics_conservation(self) -> Dict:
-        """Verify conservation laws on generated data."""
-        results = {}
-        for law in ["mass", "energy", "momentum"]:
-            residuals = []
-            for i in range(20):  # Sample subset for speed
-                seed = self._derive_seed(f"conservation:{law}:{i}")
-                data = self.generator.generate_training_data(seed, n_samples=1)
-                residual = self._check_conservation_law(data, law)
-                residuals.append(residual)
-            
-            max_res = float(np.max(residuals))
-            threshold = {"mass": 1e-6, "energy": 1e-6, "momentum": 1e-5}[law]
-            results[law] = {
-                "max_residual": max_res,
-                "threshold": threshold,
-                "passed": max_res < threshold
-            }
-        
-        all_passed = all(r["passed"] for r in results.values())
-        return {"laws": results, "passed": all_passed}
-    
-    def _calibrate_gate_thresholds(self) -> Dict:
-        """Calibrate physics gate thresholds from empirical data."""
-        # Run large sample to establish statistical thresholds
-        n_calibration = 10000
-        residuals = {gate: [] for gate in ["mass", "energy", "boundary", "shock", "rollback"]}
-        
-        for i in range(n_calibration):
-            seed = self._derive_seed(f"calibration:{i}")
-            data = self.generator.generate_stress_variants(seed, n_variants=1)
-            # Compute residuals for each gate
-            for gate in residuals:
-                res = self._compute_gate_residual(gate, data)
-                residuals[gate].append(res)
-        
-        thresholds = {}
-        for gate, values in residuals.items():
-            arr = np.array(values)
-            p999 = np.percentile(arr, 99.9)
-            std = np.std(arr)
-            thresholds[gate] = float(p999 + 3 * std)  # 99.9th percentile + 3σ
-        
-        return thresholds
-    
-    def _derive_seed(self, suffix: str) -> int:
-        """Deterministic seed derivation."""
-        seed_str = f"{self.config.challenge_id}:{suffix}"
-        return int(hashlib.sha256(seed_str.encode()).hexdigest()[:16], 16)
-    
-    def _get_git_commit(self) -> str:
-        try:
-            return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
-        except:
-            return "unknown"
-    
-    def to_json(self) -> str:
-        """Export validation report as JSON."""
-        return json.dumps(asdict(self.validate()), indent=2)
-    
-    def to_markdown(self) -> str:
-        """Generate human-readable Markdown report."""
-        report = self.validate()
-        # ... markdown generation logic ...
-        return markdown_report
+If evidence is weaker than the written envelope, **shrink the envelope**.
+
+## D3 — Target-population adequacy
+
+Evidence that `InstanceDistributionContract` represents a scientifically meaningful population for the intended task.
+
+Review may include marginals, joint/conditional structure, physical constraints, geometry/topology population, hierarchy/strata, query/observation population, workload-frequency evidence, rare-event semantics, provenance, uncertainty, and sensitivity to plausible alternate population models.
+
+The dossier must distinguish:
+
+```text
+support / envelope
+!=
+target population P(x)
+!=
+stress / consequence population
 ```
 
----
+## D4 — SamplingPlan / finite-evidence adequacy
 
-## 6. Pre-computed Reference Solution Cache
+Evidence that the finite exam can support its intended comparison.
 
-### 6.1 Cache Structure
+Review may include proposal distribution `Q(x)`, target population `P(x)`, stratum/tail allocation, sample budget, replication, query allocation, minimum subgroup evidence, uncertainty/tail-resolution targets, stopping/extension rules, duplicate policy, censoring policy, and planned importance weighting or separate stress reporting.
 
-```
-s3://carbon-precomputed/{challenge_id}/
-├── manifest.json                    # Manifest with hashes, versions, metadata
-├── solutions/
-│   ├── seed_000000.npz              # {coords, solution, metadata}
-│   ├── seed_000001.npz
-│   └── ...
-├── meshes/
-│   ├── mesh_coarse.npz              # Coordinates, connectivity
-│   ├── mesh_medium.npz
-│   └── mesh_fine.npz
-├── metadata.json                    # Solver version, params, git commit
-└── manifest.sha256                  # SHA256 of manifest.json
-```
+> **Sampling prevalence, target-population prevalence, and score importance are separate semantics.**
 
-### 6.2 Manifest Schema
+The dossier states whether raw sample averages estimate the target population or whether reweighting/separate reporting is required.
 
-```json
-{
-  "challenge_id": "naca0012_transonic-v1",
-  "generator_version": "carbon.generators.compressible_ns:v1.3.2",
-  "reference_solver": "SU2 v7.5.0",
-  "generator_git_commit": "a1b2c3d4...",
-  "reference_solver_git_commit": "su2:v7.5.0",
-  "creation_timestamp": "2026-07-15T14:30:00Z",
-  "n_solutions": 200,
-  "parameter_ranges": {
-    "mach": [0.7, 1.2],
-    "reynolds": [1e6, 10e6],
-    "angle_of_attack": [-2.0, 4.0]
-  },
-  "mesh_levels": ["coarse", "medium", "fine"],
-  "solution_schema": {
-    "coords": "float32[N, D]",
-    "solution": "float32[N, C]",
-    "boundary_mask": "bool[N]"
-  },
-  "sha256": "a1b2c3d4e5f6..."
-}
+## D5 — Generator implementation integrity
+
+Evidence for version/content binding, deterministic replay where required, seed-domain behavior, role separation, support/exclusion enforcement, constraints, canonical-case reproducibility, official-eval independence, hidden-realization secrecy, and failure-state classification.
+
+## D6 — Generator distribution conformance
+
+Evidence that generated cases actually conform to the registered distribution and SamplingPlan.
+
+Tests may include marginal/joint/conditional conformance, constraint satisfaction, geometry-family coverage, stratum/tail frequencies, query-population conformance, duplicate/near-duplicate rates, effective sample size, and intended-versus-realized sample distribution after failures/censoring.
+
+Reference agreement does not prove distribution conformance.
+
+## D7 — Reference / truth adequacy
+
+Evidence supporting the truth source, depending on Challenge type: analytic derivation, mesh/temporal convergence, solver verification, code-to-code comparison, multi-code consensus, experiment, partner goldens, calibration, uncertainty, applicability, and disagreement policy.
+
+Reference status remains distinct from candidate outcome, for example:
+
+```text
+REFERENCE_AVAILABLE
+REFERENCE_UNCERTAIN
+REFERENCE_DISAGREEMENT
+REFERENCE_NUMERICAL_FAILURE
+REFERENCE_FAILED_INFRA
+REFERENCE_NOT_APPLICABLE
 ```
 
-### 6.3 Validator Access Pattern
+Reference/truth failure is **not candidate failure**.
 
-Validators check local cache first, then pull from object storage. Subsampling is deterministic from the seed so two validators requesting the same draw get the same points.
+## D8 — Representation fidelity
 
-```python
-# carbon/generators/cache.py
-class PrecomputedCache:
-    def __init__(self, bucket: str = "carbon-precomputed"):
-        self.bucket = bucket
-        self.local_cache = Path("/cache/precomputed")
-    
-    def get_training_data(self, challenge_id: str, seed: int, n_samples: int) -> Dict:
-        # 1. Check local cache
-        local_path = self.local_cache / challenge_id / f"seed_{seed}.npz"
-        if local_path.exists():
-            return np.load(local_path)
-        
-        # 2. Download from S3
-        s3_path = f"s3://{self.bucket}/{challenge_id}/solutions/seed_{seed:06d}.npz"
-        subprocess.run(["aws", "s3", "cp", s3_path, str(local_path)], check=True)
-        
-        # 3. Load and subsample if needed
-        data = np.load(local_path)
-        if len(data["solution"]) > n_samples:
-            indices = self._deterministic_subsample(seed, len(data["solution"]), n_samples)
-            data = {k: v[indices] for k, v in data.items()}
-        
-        return data
-    
-    def _deterministic_subsample(self, seed: int, total: int, n: int) -> np.ndarray:
-        key = random.PRNGKey(seed)
-        return random.permutation(key, total)[:n]
+Evidence that model-family-specific materializations preserve the same registered physical case: grid/mesh parity, coordinates/frames, geometry identity, BC/IC and parameter preservation, query parity, lossy transformations, and representation-induced measurement limits.
+
+Mixed-family Challenges require especially strong scrutiny here.
+
+## D9 — Measurement adequacy and applicability
+
+Every score-eligible measurement identifies or references its scientific property, required observables, numerical method, discretization/sampling, normalization/aggregation, precision/reference floor, applicability, uncertainty, limitations, implementation version, and validation evidence.
+
+A governing equation does not uniquely determine a residual metric or threshold.
+
+Applicability should be determined independently of the candidate where possible. Non-applicable cases are not silently treated as pass, fail, or missing.
+
+## D10 — Statistical sufficiency and estimand clarity
+
+The dossier states what each scientific quantity means and whether finite evidence is sufficient for that meaning.
+
+Possible estimands include expected target-population error, physical-failure probability, tail risk, worst-stratum behavior, consequence-weighted performance, answerability/coverage, and robustness under a registered stress population.
+
+No universal sample-size formula is assumed.
+
+## D11 — Evaluation secrecy, decontamination, and role separation
+
+Evidence that producers cannot reconstruct or control the official exam. This includes protected official seeds, construction/evaluation/stress separation, disclosure allow-lists, reference-cache separation, and semantic decontamination when different seeds alone do not ensure independent scientific evidence.
+
+## D12 — Censoring, limitations, and residual uncertainty
+
+The dossier records generator/reference/infrastructure failures, timeouts, invalid cases, non-applicable measurements, corrupted observations, weak evidence strata, solver disagreement, distribution uncertainty, representation approximations, unsupported regimes, and unresolved scientific questions.
+
+Hard physical cases must not disappear silently from the realized evidence population because they are expensive or difficult to evaluate.
+
+---
+
+# 4. Dossier status model
+
+Internal sections should not collapse to one opaque boolean.
+
+```text
+EvidenceSectionStatus:
+  PASS
+  FAIL
+  NOT_APPLICABLE
+  BLOCKED
+  PASS_WITH_LIMITATIONS
 ```
 
+`PASS_WITH_LIMITATIONS` is acceptable only when limitations are reflected in the registered claim/envelope and do not violate mandatory evidence requirements. Registry/Launch Bar policy owns the final LIVE decision.
+
 ---
 
-## 7. Publication Workflow
+# 5. Required identity binding
 
-```mermaid
-graph LR
-    A[Challenge Design] --> B[Generator Implementation]
-    B --> C[GeneratorValidator.run]
-    C --> D{All Checks Pass?}
-    D -->|No| B
-    D -->|Yes| E[Generate Validation Dossier]
-    E --> F[Publish to Challenge Page]
-    F --> G[Cache Reference Solutions to S3]
-    G --> H[Register in Challenge Registry]
-    H --> I[Challenge Goes Live]
+The dossier binds the exact identities/digests of all material objects it qualifies, where present:
+
+```text
+challenge_id / challenge_version
+PhysicalSystemSpec semantic identity + artifact digest
+claim / envelope identity
+distribution identity / version + digest
+SamplingPlan identity / version + digest
+generator version + environment digest
+ReferencePolicy / solver / instrument versions
+representation adapter identities
+MeasurementContract identities
+Validation Dossier identity / version / digest
 ```
 
-### Publication Checklist
-
-- [ ] All validation checks pass (`passed: true`)
-- [ ] Dossier PDF/HTML generated
-- [ ] Reference solutions cached to S3/GCS
-- [ ] Manifest.json + SHA256 published
-- [ ] Challenge Registry updated with `generator_version`, `reference_solver`, `validation_report_url`
-- [ ] Announcement posted to Carbon forum / Discord / Twitter
+Historical evidence remains attributable to these exact identities. Score Pack binding happens only after the relevant evidence and measurements are qualified.
 
 ---
 
-## 7. Public Challenge Page Template
+# 6. Prospective authoring
 
-```markdown
-# Challenge: NACA 0012 Transonic Flutter
+Correct process:
 
-**Status:** LIVE | **Phase:** 1A | **Schema:** v1.0
-
-## Quick Links
-- [Validation Dossier (PDF)](/dossiers/naca0012_transonic-v1.pdf)
-- [Validation Dossier (JSON)](/api/v1/challenges/naca0012_transonic-v1/validation)
-- [Reference Solutions (S3)](/api/v1/challenges/naca0012_transonic-v1/solutions)
-- [Generator Code](/carbon/generators/compressible_ns.py)
-
-## Quick Stats
-| Metric | Value |
-|--------|-------|
-| Physics | Compressible Navier-Stokes (RANS) |
-| Dimension | 2D / 3D |
-| Turbulence Models | SA, k-ω SST |
-| Validation Cases | 50 |
-| Reference Solver | SU2 v7.5.0 |
-| Mesh Convergence | 1.95 (theoretical: 2.0) ✅ |
-| Reference Agreement | L2 < 2% ✅ |
-
-## Validation Summary
-| Check | Result | Details |
-|-------|--------|---------|
-| Mesh Convergence | ✅ PASS | Rate 1.95, L2 < 1% finest |
-| Temporal Convergence | ✅ PASS | Rate 1.98, L2 < 0.5% ✅ |
-| Reference Agreement | ✅ PASS | L2 < 2% (SU2 v7.5.0) |
-| Mass Conservation | ✅ PASS | 1e-6 L2 threshold |
-| Energy Stability | ✅ PASS | 1e-6 threshold |
-| Turbulence UQ | ✅ PASS | 15% separation budget |
-
-## Gate Thresholds (Calibrated)
-| Gate | Threshold | Basis |
-|------|-----------|-------|
-| Mass Conservation | 1e-6 L2 + 1e-4 Linf | 99.9th %ile + 3σ (10k runs) |
-| Shock Capture | Δx/shock < 0.1 | Resolution study (100 runs) |
-| Energy Stability | 1e-6 | Analytical + 3σ |
-
-## Reference Solutions
-- **Cache:** `s3://carbon-precomputed/naca0012_transonic-v1/`
-- **Cases:** 200 solutions across Mach [0.7, 1.2], Re [1e6, 10e6], AoA [-2°, 4°]
-- **Formats:** NPZ (NumPy), VTK (ParaView)
-
-## Generator Code
-```python
-# carbon/generators/compressible_ns.py
-class CompressibleNSGenerator(ProceduralGenerator):
-    # ... implementation ...
+```text
+scientific task authored
+        ↓
+population + SamplingPlan authored
+        ↓
+generator + truth + measurements implemented
+        ↓
+validation evidence produced
+        ↓
+dossier reviewed
+        ↓
+Score Pack bound
+        ↓
+LIVE
 ```
 
----
+Forbidden process:
 
-## 8. What Miners See vs. What Validators See
+```text
+run candidates
+→ inspect who wins
+→ change population / measurements / thresholds
+→ call it the same exam
+```
 
-Public transparency stops where gaming would start. Methods and thresholds can be public. Live solutions and seeds stay with validators.
-
-| Artifact | Miners See | Validators Use |
-|----------|------------|----------------|
-| Validation Dossier (PDF/HTML) | ✅ Public | ✅ Reference |
-| Mesh Convergence Plots | ✅ Public | ✅ Reference |
-| Gate Threshold Derivation | ✅ Public | ✅ Internal reference |
-| Reference Solutions (NPZ) | ❌ Hidden | ✅ Downloaded at eval time |
-| Stress Seeds / Eval Seeds | ❌ **Never** | ✅ Generated at eval time |
-| Generator Stress Variant Code | ✅ Public (logic) | ✅ Internal (seeds hidden) |
-| Exact Stress Variant Params | ❌ **Never** | ✅ Generated at eval time |
+Material scientific changes create new prospective versions and, where required, new qualification evidence.
 
 ---
 
-## 9. Anti-Gaming Safeguards in Validation
+# 7. Population / sampling examples
 
-| Threat | Mitigation |
-|--------|------------|
-| Miner trains on validation set | Validation seeds = `hash("validation:" + challenge_id + ":" + i)` — different from training seeds |
-| Miner trains on stress distribution | Stress seeds = `splitmix64(master_seed, 1)` — derived from block hash, unknown until eval |
-| Generator overfits to reference solver | Validation uses a **different** reference solver than the generator (e.g., generator uses JAX-FEM, validation uses FEniCS) |
-| Miner reverse-engineers stress seeds | Stress seeds derived from a **future** block hash — unknowable at submission time |
+A Challenge can fail scientifically even when every physical solve is correct:
 
----
+- same envelope, wrong sampling density;
+- physically meaningful correlations replaced by independent box sampling;
+- rare high-consequence cases omitted or misrepresented as ordinary workload frequency;
+- different seeds that are semantically near-duplicates for a claimed generalization test;
+- generator conformance bugs such as uniform sampling where the registered population is log-uniform.
 
-## 10. Integration with SPEC
-
-This validation protocol implements the **Trustless Verification & Data Generation System** (SPEC §3) and satisfies:
-
-- **Mesh/Temporal Convergence** → SPEC §3 "Mesh & Temporal Convergence Requirements"
-- **Generator Validation** → SPEC §3 "Benchmark data quality is established through strong scientific justification"
-- **Gate Threshold Calibration** → SPEC §8 "Physics Gates" + SPEC §6 "Phase 1A Turbulence UQ"
-- **Reference Solution Cache** → SPEC §9 "Data Generation Architecture" → "Precomputed"
-- **Dual-Regime Compatibility** → Cache accessible via air-gapped validator (Phase 2B+)
+D3/D4/D6/D11 must distinguish these failure modes.
 
 ---
 
-*This document is the canonical reference for generator validation in Carbon. All challenge onboarding must produce a Validation Dossier whose required checks are **conditional on the physics/evidence type** of that challenge; numerical cutoffs in examples are illustrative unless the challenge’s dossier explicitly adopts them.*
+# 8. Reference / truth architecture
+
+A `ReferencePolicy` should make visible, where material:
+
+```text
+reference type
+backend / instrument identity
+version
+numerical / experimental configuration
+applicability
+verification / convergence evidence
+calibration evidence
+uncertainty
+disagreement policy
+failure policy
+disclosure class
+```
+
+For multi-fidelity programs, fidelity allocation is visible and qualified. Difficult regions must not silently receive weaker truth merely because they are expensive.
+
+---
+
+# 9. Reference caches
+
+Precomputed caches may support dossier evidence or efficient runtime evaluation where appropriate. They are not automatically the live official exam set.
+
+A cache manifest should bind challenge, distribution/SamplingPlan, generator, reference policy/backend, qualified case provenance, representation schema, hashes, and creation environment.
+
+Exact hidden official realizations remain protected.
+
+---
+
+# 10. Distribution uncertainty and partner evidence
+
+Industrial population evidence may come from telemetry, simulation campaigns, requirements, expert elicitation, test matrices, future-use scenarios, or regulatory/qualification matrices.
+
+The dossier records provenance, observation period, selection mechanisms, missingness, uncertainty, and extrapolations. A partner's historical workload is not automatically the correct future Challenge population.
+
+---
+
+# 11. Hierarchical populations and subgroup evidence
+
+Where the target population is hierarchical or multi-regime, aggregate metrics must not hide important subgroup failure. The dossier may require minimum evidence per stratum, stratum-level uncertainty, mandatory stratum gates, documented weighting, and checks against Simpson-type interpretation failures.
+
+---
+
+# 12. Realized evidence population and censoring
+
+The dossier compares the intended SamplingPlan with the realized valid-evidence population where censoring is material.
+
+Generator failure, reference failure, infrastructure failure, timeout, invalid case, non-applicable measurement, or corrupted experiment are different states. None may be silently discarded in a way that reshapes the scientific exam.
+
+---
+
+# 13. Evidence depth by Challenge maturity
+
+The same architecture applies at different depths.
+
+**Academic / P0:** clear system semantics, envelope review, explicit distribution config, generator determinism/conformance, analytic/high-confidence truth, simple convergence where applicable, physics checks, role/secrecy tests, and enough finite evidence for the narrow proof goal.
+
+**Engineering-like:** add geometry/population evidence, conditional structure, richer strata/tails, stronger solver verification/cross-code evidence, uncertainty, representation parity, and task-relevant measurement validation.
+
+**Sponsored / industrial:** add partner workload provenance, independent reference evidence, private-distribution disclosure policy, qualification-population separation, lifecycle/drift plan, and stronger statistical review.
+
+**Multiphysics / high-consequence:** add coupled-population compatibility, interface evidence, multi-fidelity truth policy, component/system distinction, assembled-system measurements, and stronger censoring/failure analysis.
+
+---
+
+# 14. Recommended dossier deliverable
+
+```text
+00 Identity and status
+01 Scientific task and authority map
+02 Physical system and assumptions
+03 Claim / envelope
+04 Target population / InstanceDistributionContract
+05 SamplingPlan / finite-evidence design
+06 Generator implementation integrity
+07 Generator distribution conformance
+08 Reference / truth qualification
+09 Representation/materialization qualification
+10 Measurement qualification / applicability
+11 Statistical sufficiency / estimands
+12 Secrecy / role separation / decontamination
+13 Censoring / failure analysis
+14 Residual uncertainty / limitations
+15 Qualification decision + reviewer sign-off
+16 Artifact manifest / hashes / environments
+```
+
+The machine-readable manifest references evidence artifacts rather than embedding the full scientific case in one giant object.
+
+---
+
+# 15. Qualification decision semantics
+
+A valid bounded conclusion is:
+
+> **The registered Challenge distribution, SamplingPlan, generator implementation, reference path, representation pipeline, and measurement set have sufficient evidence for the stated LIVE search use within the exact registered envelope and limitations.**
+
+The dossier does not claim universal physical validity, production qualification, deployment safety, transfer to another distribution/version, or automatic qualification of future generator changes.
+
+---
+
+# 16. Relationship to Score Pack
+
+The Validation Dossier qualifies scientific evidence objects. The Score Pack governs their score-bearing use.
+
+```text
+physical property
+    ↓
+MeasurementContract
+    ↓
+Validation Dossier
+    qualifies implementation / applicability / evidence
+    ↓
+Score Pack
+    selects gate / estimand / aggregation / weighting / ranking semantics
+    ↓
+ScoreEngine
+```
+
+The dossier may provide calibration evidence relevant to threshold selection. It does not autonomously choose production thresholds or weights.
+
+---
+
+# 17. P0 compatibility
+
+P0 does not need every future artifact as a runtime class. Burgers may retain a simple generator/config if the dossier can answer the scientific questions above.
+
+P0-safe hooks include explicit distribution identity/version, explicit generator identity/version, documented intended population and train/eval/stress relationship, simple conformance tests, clear reference status/failure semantics, separation of illustrative from qualified thresholds, and a manifest binding all relevant versions.
+
+---
+
+# 18. Stop-ship conditions
+
+A Challenge does not become LIVE when any material condition holds, including:
+
+- physical-system ambiguity blocks interpretation;
+- envelope exceeds evidence;
+- target population is undefined or unjustified;
+- SamplingPlan is clearly insufficient;
+- generator does not conform to the population/plan;
+- truth is materially unreliable without a bounded uncertainty policy;
+- representation changes the physical task;
+- score-bearing measurement lacks adequate qualification;
+- official realization leaks or is producer-controlled;
+- censoring materially removes difficult regimes without accounted policy;
+- required evidence is `BLOCKED` or `FAIL`.
+
+---
+
+# 19. Locked constitutional invariants
+
+1. **The exam population is defined before the generator is judged.**
+2. **The Validation Dossier qualifies the exam; it does not define it retroactively.**
+3. **Population adequacy, SamplingPlan adequacy, generator conformance, reference adequacy, representation fidelity, and measurement adequacy are separate claims.**
+4. **Sampling prevalence, target prevalence, and score importance are separate.**
+5. **Reference failure is not candidate failure.**
+6. **Finite-sample sufficiency is part of scientific qualification.**
+7. **Seed separation may require semantic decontamination.**
+8. **Censoring remains visible.**
+9. **Material scientific changes require prospective versioning/requalification.**
+10. **No layer certifies itself.**
+
+---
+
+# 20. Final statement
+
+> **Carbon should only let an exam judge models after Carbon can defend what population the exam represents, how finite cases are sampled, whether the generator implements that design, whether the truth path is credible, whether the measurements are adequate, and what uncertainty remains.**
+
+That is the locked role of the Validation Dossier in Carbon's generalized architecture.
