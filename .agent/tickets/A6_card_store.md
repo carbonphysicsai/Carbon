@@ -14,11 +14,11 @@ opaque record/authorization seam and return only an immutable, explicitly
 allow-listed Phase-0 `EvaluationCard` after authorization.
 
 ```text
-A6 SPECIFIED / RATIFIED: YES only after this ratification is merged
-A6 IMPLEMENTED: NO
-A6 TESTED: NO
-A6 PRODUCTION-QUALIFIED: NO
-A6 WAVE STATUS: todo
+SPECIFIED / RATIFIED: YES
+IMPLEMENTED: YES on current main
+TESTED: YES only to the bounded recorded scope
+PRODUCTION-QUALIFIED: NO
+WAVE STATUS: done after this closeout is merged
 ```
 
 ## Bounded ownership
@@ -107,34 +107,82 @@ future private fields remain private until a reviewed public-schema change
 explicitly adds them. Encoding an already-public card is later A9 transport
 work, not A6 projection behavior.
 
-## DoD (future implementation; all remain unchecked)
+## DoD (bounded implementation verified for closeout)
 
-- [ ] Exact nominal/canonical validation and owned-candidate reconstruction for
+- [x] Exact nominal/canonical validation and owned-candidate reconstruction for
       both opaque keys and the exact A5 `InternalResult` occurs before any
       write/read lookup or comparison; malformed/tampered values fail closed
       without echoing their representations.
-- [ ] Per-store, process-local in-memory insert-only record storage with the
+- [x] Per-store, process-local in-memory insert-only record storage with the
       exact four-field private schema above.
-- [ ] Field-by-field owned snapshotting prevents post-write mutation of any
+- [x] Field-by-field owned snapshotting prevents post-write mutation of any
       caller-held key, binding, result, or nested A5 object from changing the
       record, lookup, duplicate comparison, authorization, or projection.
-- [ ] Exact duplicate write returns the idempotent disposition; every
+- [x] Exact duplicate write returns the idempotent disposition; every
       same-key conflict raises the typed conflict without mutation.
-- [ ] Read validates the request, verifies the requester binding, and only
+- [x] Read validates the request, verifies the requester binding, and only
       then constructs the public projection.
-- [ ] Frozen/recursively immutable public value types implement exactly the
+- [x] Frozen/recursively immutable public value types implement exactly the
       field-by-field allow-list and status matrix above.
-- [ ] Tests cover insert, exact duplicate, requester/result conflict,
+- [x] Tests cover insert, exact duplicate, requester/result conflict,
       not-found, authorization denial, malformed/tampered input, and safe
       non-scientific error messages.
-- [ ] Tests prove no private object/generic serializer reaches the public
+- [x] Tests prove no private object/generic serializer reaches the public
       path; unknown private canary fields default private.
-- [ ] Tests prove component/gate reduction, empty diagnostics, approved tag
+- [x] Tests prove component/gate reduction, empty diagnostics, approved tag
       mapping, and every forbidden field/value class remains unreachable.
-- [ ] Tests prove fixture origin and emission eligibility come only from the
+- [x] Tests prove fixture origin and emission eligibility come only from the
       stored result and cannot be caller-overridden or relabelled.
-- [ ] Tests distinguish A6 storage duplicate handling from A7 submission
+- [x] Tests distinguish A6 storage duplicate handling from A7 submission
       idempotency and add no A7+ implementation.
+
+## Final implementation and closure evidence
+
+The bounded implementation started from exact base
+`bfb8412d9aae3782d59e9814fc5b3a8c6379f86f`, was independently reviewed at
+`569d450cce5943089874ad89f62f80ab5182d97a`, and was synchronized without
+implementation-blob change at
+`20a1d2f74f10b24ddb8922c6b87c7325828299b3`. PR #23 merged normally as
+`5c7c3a924d305a386ed92d6f054981761d5c74b7`, with ordered parents
+`40c58a1578c6d16ded4ec147561455df66859697` then
+`20a1d2f74f10b24ddb8922c6b87c7325828299b3` and tree
+`d302aaf46f211030faf81920deee4dff27eac4a4`. The reviewed heads are ancestral,
+the synchronized and merge trees are equal, and all five approved
+implementation blobs are preserved.
+
+Implementation scope was exactly `.agent/WAVE.md`, `carbon/cards/__init__.py`,
+`carbon/cards/model.py`, `carbon/cards/store.py`, and
+`tests/cpu/test_card_store.py`. Independent implementation and closure audits
+found no P0, P1, or P2 issue and mapped source/test evidence to all eleven DoD
+items above. No formal submitted GitHub approval object is claimed; independent
+review and explicit human authorization are the recorded process evidence.
+
+Validation evidence is:
+
+- focused A6 suite: `181 passed`;
+- related scoring/leakage/package boundaries: `499 passed`;
+- full default CPU suite: `1104 passed`;
+- fresh no-dependency wheel/outside-tree proof: `1 passed`;
+- strict Ruff and Black: clean for all four implementation Python files;
+- quality: `Ruff 757/776; Black 62/68`, four changed Python files clean, no new
+  debt;
+- synchronized PR CI `32550337528`: completed/success, `1104 passed in 21.97s`,
+  same quality inventory and no-new-debt result; and
+- post-merge push CI `32551173696`: completed/success on exact merge,
+  `1104 passed in 18.65s`, same quality inventory and no-new-debt result.
+
+A6 is `done` only for this bounded process-local Wave-A scope. Current fixture
+results remain false-eligible and non-emission-authoritative. The store is not
+durable, restart/crash recoverable, distributed, or production-concurrency
+qualified; requester equality is not production authentication; and neither
+fixture origin nor structural validation establishes authenticated ScoreEngine
+provenance, LIVE status, or scientific/security/operations qualification.
+
+A7–A12 remain pending, as do rich Model Card, transcript, receipt, signature,
+evidence, durable persistence, MCP, leaderboard, logging, Bittensor, and
+emission work. No miner-facing path returns the private `InternalResult` or a
+rich Model Card; only the immutable bounded `EvaluationCard` is public at this
+boundary.
 
 ## Explicit deferrals and prohibitions
 
@@ -160,8 +208,8 @@ references; secrets/private keys; or any later-owner field.
 Historical Model Card/result-store code is archaeology and cannot override or
 satisfy this ticket.
 
-**Future focused test:**
-`python -m pytest tests/cpu/test_card_store.py -q`
+**Focused test evidence:**
+`python -m pytest tests/cpu/test_card_store.py -q` — `181 passed`
 
 **Must not:** Return an `InternalResult` or rich Model Card on any miner/public
 path; add durability or receipt/evidence behavior; introduce public free-text

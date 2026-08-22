@@ -1,21 +1,22 @@
-# A6 card store and Phase-0 disclosure ratification plan
+# A6 card store and Phase-0 disclosure — executed historical plan
 
 **Ticket:** A6 — Card store + Phase 0 disclosure (C12)
 
-**Ratification branch:** `agent/a6-contract-ratification`
+**Historical ratification branch:** `agent/a6-contract-ratification`
 
 **Ratification starting main:**
 `dfd9bcc74434d2ddb5fc1862a9bdfd7ba5c64450`
 
-**Status:** documentation-only pre-implementation ratification; A6 remains
-`todo`
+**Status:** executed historical ratification and implementation plan; the
+original pre-implementation guidance is retained below, and the closure record
+at the end governs current maturity after the documentation closeout merges.
 
 ```text
-A6 SPECIFIED / RATIFIED: YES only after this ratification is merged
-A6 IMPLEMENTED: NO
-A6 TESTED: NO
+A6 SPECIFIED / RATIFIED: YES
+A6 IMPLEMENTED: YES on current main
+A6 TESTED: YES only to the bounded recorded CPU/security/import scope
 A6 PRODUCTION-QUALIFIED: NO
-A6 WAVE STATUS: todo
+A6 WAVE STATUS: done after this closeout is merged
 ```
 
 This plan closes the bounded A6 contract without adding source, tests,
@@ -340,3 +341,106 @@ After this ratification is merged, A6 may be described as
 **SPECIFIED / RATIFIED: YES** only. It remains **IMPLEMENTED: NO**,
 **TESTED: NO**, **PRODUCTION-QUALIFIED: NO**, and Wave status `todo` until a
 separately authorized implementation is reviewed, merged, and evidenced.
+
+## Executed-plan and closure evidence
+
+The preceding body is the preserved pre-implementation ratification plan. Its
+"future" and ratification-only statements describe the repository state at
+that stage; the evidence below records execution without rewriting that
+historical guidance or changing A6-R1–A6-R12.
+
+### Ratification and implementation topology
+
+- The A6-R1–A6-R12 ratification merged before implementation began.
+- Implementation started from exact base
+  `bfb8412d9aae3782d59e9814fc5b3a8c6379f86f`.
+- Independent review covered exact implementation commit
+  `569d450cce5943089874ad89f62f80ab5182d97a` with no P0, P1, or P2 finding.
+- Current-main synchronization produced exact head
+  `20a1d2f74f10b24ddb8922c6b87c7325828299b3` without changing any
+  implementation blob.
+- PR #23 merged normally as
+  `5c7c3a924d305a386ed92d6f054981761d5c74b7`, with ordered parents
+  `40c58a1578c6d16ded4ec147561455df66859697` then
+  `20a1d2f74f10b24ddb8922c6b87c7325828299b3` and tree
+  `d302aaf46f211030faf81920deee4dff27eac4a4`.
+- The reviewed and synchronized heads are ancestral to current `main`; the
+  synchronized and merge trees are equal, and the approved five implementation
+  blobs remain exact.
+- No formal submitted GitHub approval object is claimed. Independent review
+  plus explicit human authorization supplied the review/merge process evidence.
+
+### Exact implementation files
+
+The bounded implementation changed exactly:
+
+1. `.agent/WAVE.md`;
+2. `carbon/cards/__init__.py`;
+3. `carbon/cards/model.py`;
+4. `carbon/cards/store.py`; and
+5. `tests/cpu/test_card_store.py`.
+
+No fixture, dependency, lockfile, packaging, CI, quality-baseline,
+specification, or A7+ implementation file changed.
+
+### Implemented API and disclosure boundary
+
+The executed implementation provides the two exact opaque key wrappers, fixed
+typed safe errors, immutable public card values, and one concrete `CardStore`
+with only `write_internal` and `read_budgeted`. Every write reconstructs an
+owned exact A5 graph before lookup or comparison. One unexported frozen record
+contains exactly the private schema version, record key, requester binding, and
+exact `InternalResult`. The first insert is retained; exact duplicates are
+recognized; conflicts never overwrite it. Reads validate, locate, and authorize
+before building a new field-by-field `phase0_budgeted` card.
+
+The public card implements only the ratified schema/status matrix, top-level
+component and gate reductions, closed failure tag, exact fixture/non-emission
+fields, and empty diagnostics. Private A5/store objects, fine vectors,
+mandatory flags, seed/evaluation material, internal pins beyond the approved
+digest/origin projections, requester/storage metadata, and later-owner fields
+remain unreachable. Tests tripwire generic copy, serialization, and
+introspection paths.
+
+### Tests, security, CI, and quality evidence
+
+- Focused A6 suite: `181 passed`.
+- Related A5/scoring, leakage, and package boundaries: `499 passed`.
+- Complete default CPU suite: `1104 passed`.
+- Fresh no-dependency wheel imported and exercised outside the source tree:
+  `1 passed`.
+- Strict Ruff and Black checks passed on all four implementation Python files.
+- Quality inventory: `Ruff 757/776; Black 62/68`; removed debt
+  `Ruff 19, Black 6`; four changed Python files clean; no new debt.
+- PR CI `32550337528` passed on synchronized head `20a1d2f...`: `1104` tests
+  passed in `21.97s`, with the same quality result.
+- Post-merge push CI `32551173696` passed on exact merge `5c7c3a9...`:
+  `1104 passed in 18.65s` plus the same quality result.
+- Independent closure audit mapped current source/tests to every one of the
+  eleven ticket DoD items and found no unresolved P0, P1, or P2 issue.
+
+### Final maturity
+
+```text
+A6 SPECIFIED / RATIFIED: YES
+A6 IMPLEMENTED: YES on current main
+A6 TESTED: YES only to the bounded recorded CPU/security/import scope
+A6 PRODUCTION-QUALIFIED: NO
+A6 WAVE STATUS: done after this closeout is merged
+```
+
+### Residual limitations and non-goals
+
+Closure is limited to the process-local, in-memory, insert-only Wave-A store and
+its allow-listed disclosure boundary. It establishes no durability, retention,
+migration, restart/crash/corruption recovery, distributed operation, or
+production concurrency qualification. Same-process Python is not a sandbox;
+the requester binding is not production authentication; and structural fixture
+origin is not authenticated ScoreEngine provenance. No result is LIVE,
+production, or emission-authoritative.
+
+This plan closes no A7+ work. Permanent submission/strategy identity,
+authenticated requester integration, fees/FSM/retry/refund, TrainEval/backend
+execution, receipts/evidence/signing, MCP transport, leaderboard,
+logging/metrics, invariant-CI integration, Bittensor, score-to-weight, and
+emission behavior all remain pending under their later owners.
