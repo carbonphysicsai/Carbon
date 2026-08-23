@@ -11,26 +11,29 @@ result semantics; A6 private card storage
 
 **Implementation plan:** `.agent/plans/A7_fees_fsm.md`
 
-## Ratification status
+## Current bounded maturity
 
 ```text
-A7 SPECIFIED / RATIFIED: YES only after this ratification is explicitly human-authorized and merged
-A7 IMPLEMENTED: NO
-A7 TESTED: NO
+A7 SPECIFIED / RATIFIED: YES
+A7 IMPLEMENTED: YES on current main for the bounded fixture-capable, process-local scope
+A7 TESTED: YES only for the recorded CPU/security/concurrency/import/wheel/quality scope
 A7 PRODUCTION-QUALIFIED: NO
-A7 WAVE STATUS: todo
+A7 WAVE STATUS: done only after this closeout is reviewed and merged
 ```
 
-Every checkbox in this ticket is future implementation/test work. This
-documentation-only ratification does not satisfy one.
+The former statement that every checkbox was future implementation/test work
+was the historical pre-merge ratification snapshot and is now superseded. The
+twenty unchanged criteria below are checked only for the merged bounded scope
+and recorded evidence; no check confers production qualification.
 
-The human policy amendment selects terminal `FAILED_INFRA -> REFUND`,
-requester-bound cancellation from `RECEIVED`/`VALIDATED`/`QUEUED`, and the
-first atomic `QUEUED -> RUNNING` material-start boundary for the sole exam
-`CHARGE`. Those selections do not authorize implementation or make this
-candidate ratified before review and merge. The hostile-input amendment also
-requires an injected immutable A7 submission-resource policy before full
-Strategy/A3 challenge processing.
+**Historical ratification note.** The human policy amendment selected terminal
+`FAILED_INFRA -> REFUND`, requester-bound cancellation from `RECEIVED`,
+`VALIDATED`, and `QUEUED`, and the first atomic `QUEUED -> RUNNING`
+material-start boundary for the sole exam `CHARGE`. At ratification, those
+selections alone did not authorize implementation or make the candidate
+ratified before review and merge. The hostile-input amendment also required an
+injected immutable A7 submission-resource policy before full Strategy/A3
+challenge processing.
 
 ## Goal and ownership
 
@@ -687,12 +690,12 @@ The untouched A12 ticket must later add completed A7 as a dependency and reuse
 this fee-isolation boundary before claiming fee-versus-score coverage. This
 ticket does not edit or start A12.
 
-## Future implementation definition of done
+## Bounded implementation definition of done — verified for closeout
 
-- [ ] Frozen/slotted nominal identities and closed enums implement A7-R2,
+- [x] Frozen/slotted nominal identities and closed enums implement A7-R2,
       A7-R5, A7-R8, and A7-R10 without aliasing A3/A4/A6 nominal types;
       one injected UUID collision fails before record creation.
-- [ ] Immutable explicit `SubmissionResourceLimits` and bounded topology-
+- [x] Immutable explicit `SubmissionResourceLimits` and bounded topology-
       preserving capture precede A2; exact-at-limit/one-over tests cover nodes,
       cardinality, string/key and complete identity bytes, a huge integer
       rejected before magnitude allocation with admitted golden hashes
@@ -703,80 +706,102 @@ ticket does not edit or start A12.
       method while inert sentinels preserve A2 type-issue code/path. Observed
       capture instability fails boundedly; an undetectable race may instead use
       one authoritative detached candidate that is never reread from the caller.
-- [ ] Low-level mutation of every input/returned wrapper, handle, view, and
+- [x] Low-level mutation of every input/returned wrapper, handle, view, and
       event cannot alter stored identity, indexes, bindings, authorization, or
       fee history; requester/challenge scalars are captured once and the same
       locals drive cap, validation, reconstruction, comparison, and binding.
-- [ ] Exact A4 binding bytes have golden, field-perturbation, and unsigned-32
+- [x] Exact A4 binding bytes have golden, field-perturbation, and unsigned-32
       representability tests, distinguish smaller A7 challenge admissibility,
       and stay identical across retry and distinct admitting resource policies
       when the same UUID is injected.
-- [ ] Process-local guarded store implements the minimum private record,
+- [x] Process-local guarded store implements the minimum private record,
       immutable policy set, exclusively owned A6 store, atomic open-key
       lookup/create, terminal resubmission, finite build/retained capacities,
       and reservation/accounting rollback without per-record counters.
-- [ ] Fixture happy path is exactly
+- [x] Fixture happy path is exactly
       `RECEIVED -> VALIDATED -> QUEUED -> RUNNING -> SCORED -> PUBLISHED`.
-- [ ] An in-test or A7-owned conspicuous non-emission fixture aligns exact
+- [x] An in-test or A7-owned conspicuous non-emission fixture aligns exact
       ChallengeKey, an A2-valid/A3-allowed backbone, Score Pack/result, SeedPin,
       and ExecutionEnvironmentPin; existing incompatible A3/A5 fixtures are not
       silently relabelled or used to change A2–A6 semantics.
-- [ ] Every illegal/terminal transition fails without partial state, attempt,
+- [x] Every illegal/terminal transition fails without partial state, attempt,
       index, or fee mutation.
-- [ ] Separate A3 production/fixture admission operations cover fixture
+- [x] Separate A3 production/fixture admission operations cover fixture
       success, fail-closed false including caught typed A3 failure, escaping
       failure, exact-key backbone allowed/false/`RegistryError`, no fee event
       during either A3 call, crossing/fallback rejection, and current
       production eligible-but-missing-seam no-charge/no-attempt behavior.
-- [ ] Open duplicate concurrency returns one ID—even at new-record capacity—and
+- [x] Open duplicate concurrency returns one ID—even at new-record capacity—and
       never duplicates a charge; last-slot creation commits once, capacity and
       invalid-flood tests remain bounded, and A6 card-write idempotence stays
       separate.
-- [ ] Within-budget invalid Strategy records safe `REJECTED` before queue/start
+- [x] Within-budget invalid Strategy records safe `REJECTED` before queue/start
       charge. Resource limit/capacity errors create no ID, record, partial hash,
       key, attempt, fee, A5/A6/science path, and retain or echo no hostile raw
       value, resource category/value/count/path, or `repr`.
-- [ ] Attempts start at `1`; retry is atomic, increments once, retains all
+- [x] Attempts start at `1`; retry is atomic, increments once, retains all
       scientific identity plus both pins, rejects stale handles for every new
       `RUNNING` callback, permits only exact historical fee-event replay, and
       never revives terminal `FAILED_INFRA`; retry start never charges, and the
       fixture environment pin has exact backend/container golden and mutation
       coverage without an A8 runtime-ownership claim.
-- [ ] Fee amount/type bounds, closed vocabulary, exact replay/conflict,
+- [x] Fee amount/type bounds, closed vocabulary, exact replay/conflict,
       operation-context/admission/source-attempt/historical-handle binding,
       replay-before-state precedence, initial-start comparison of both pins and
       refund configuration, `STARTED` versus no-envelope `ALREADY_STARTED`,
       adjustment linkage/cap, sole start-time charge, retry-no-recharge,
       conditional full-balance refund, publication-infra replay exclusion, and
       charge/`RUNNING` atomicity are proven.
-- [ ] Tests prove fee data cannot enter A5 scoring or later weight/emission
+- [x] Tests prove fee data cannot enter A5 scoring or later weight/emission
       inputs.
-- [ ] Tests distinguish `REJECTED`, `FAILED_STRATEGY`, `FAILED_INFRA`, A5
+- [x] Tests distinguish `REJECTED`, `FAILED_STRATEGY`, `FAILED_INFRA`, A5
       mandatory-gate failure, A5 `PACK_NOT_READY`, resource-limit error,
       resource-capacity error, and missing-policy configuration error without
       scientific-zero or emission-blame conversion.
-- [ ] A6 integration proves exact cross-binding, inserted/already-present
+- [x] A6 integration proves exact cross-binding, inserted/already-present
       one-operation publication, conflict/store failure routing, exclusive
       pre-publication read exclusion, status authorization, and positive
       fixture-only projection after `PUBLISHED`; production completion remains
       unavailable without re-ratified A3/backend-qualification/A4/A5/A6/A8/
       evidence seams.
-- [ ] Private-record and public-surface leakage tests cover every forbidden
+- [x] Private-record and public-surface leakage tests cover every forbidden
       field/category, including resource policy/counters/measurements, A4 hidden
       material, A8 runtime payloads, and bounded errors.
-- [ ] Fixed `REFUND` and requester-only cancellation cover every allowed/denied
+- [x] Fixed `REFUND` and requester-only cancellation cover every allowed/denied
       state, initial- versus retry-queued economics, stale requests, and atomic
       start/cancel/terminalization races; production auth/payment claims remain
       absent.
-- [ ] Full default CPU suite, focused isolation, installed-wheel/outside-tree
+- [x] Full default CPU suite, focused isolation, installed-wheel/outside-tree
       import, Ruff, Black, and repository quality-ratchet checks pass.
-- [ ] Direct A7 resource enforcement works with A9 absent, conspicuous finite
+- [x] Direct A7 resource enforcement works with A9 absent, conspicuous finite
       fixture-only limits are non-production, missing production limits fail
       closed, and no new runtime dependency or A8/A9/A10/A11 implementation
       enters A7.
 
 **Canonical focused tests:**
 `python -m pytest tests/cpu/test_submission_fsm.py -q`
+
+## Administrative-closeout evidence
+
+The twenty dispositions above were independently checked against the merged
+`carbon/fees/` source and canonical
+`tests/cpu/test_submission_fsm.py`. Implementation began at
+`f8cf1a030415778f519d55b85d8e287f09cdeba2`, was reviewed at
+`f5ec1315a5ae501c2726fc0fbd6d0fa85c56b4b9`, and merged normally by PR #26 as
+`5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d`. The reviewed head is ancestral
+to current `main`; reviewed and merge trees are exactly
+`803fcf53ed99399c141e73d050f962847aeb36f8`, with no tree diff.
+
+Reviewed-head evidence recorded focused `319`, related A2–A6 `1077`,
+package/import `18`, fresh-wheel/outside-tree `1`, and full CPU `1423` passing.
+Post-merge push run `32622988239` passed `1423` CPU tests in `26.75s` and the
+unchanged quality inventory `Ruff 757/776; Black 62/68`, with seven changed
+Python files clean and no new debt. These results cover only the recorded CPU,
+security, process-local concurrency, import, wheel, and quality boundary. They
+do not establish durability, distributed or production concurrency,
+authentication, payment settlement, any production policy/value/backend/
+provider/A5/A6 seam, evidence or receipts, chain operation, emissions, or any
+other production qualification. A8–A12 remain unstarted and `todo`.
 
 ## Must not
 
@@ -787,3 +812,5 @@ Bittensor, or A8+ behavior. Do not classify submission-resource rejection as
 FSM rejection, infrastructure/strategy failure, A5 status, or emission blame;
 do not rely on A9 as its sole guard. Do not mark A7 `in_progress` or `done`
 until the separate implementation and closure gates are actually satisfied.
+The implementation gate is satisfied; the proposed `done` status becomes
+repository truth only when this documentation closeout is reviewed and merged.

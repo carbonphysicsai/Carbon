@@ -1,16 +1,27 @@
-# A7 fees, permanent submission identity, and FSM — pre-implementation plan
+# A7 fees, permanent submission identity, and FSM — historical pre-implementation plan (executed)
 
 **Ticket:** A7 — Fees + permanent submission identity + submission FSM (C13)
 
-**Ratification branch:** `agent/a7-contract-ratification`
+**Historical ratification branch:** `agent/a7-contract-ratification`
 
-**Ratification starting main:**
+**Historical ratification starting main:**
 `ba0b2b3dffd114d02fd5f6a71af08052a3e0a1ed`
 
-**Starting tree:**
+**Historical starting tree:**
 `e3718deceef355936cdf427bb04b68fa3d98c760`
 
-**Status:** documentation-only ratification plan; not executed implementation
+**Current status:** historical pre-implementation plan later executed; this
+documentation-only administrative closeout records the merged bounded result.
+
+```text
+A7 SPECIFIED / RATIFIED: YES
+A7 IMPLEMENTED: YES on current main for the bounded fixture-capable, process-local scope
+A7 TESTED: YES only for the recorded CPU/security/concurrency/import/wheel/quality scope
+A7 PRODUCTION-QUALIFIED: NO
+A7 WAVE STATUS: done only after this closeout is reviewed and merged
+```
+
+**Historical ratification snapshot (superseded):**
 
 ```text
 A7 SPECIFIED / RATIFIED: YES only after this ratification is explicitly human-authorized and merged
@@ -19,6 +30,12 @@ A7 TESTED: NO
 A7 PRODUCTION-QUALIFIED: NO
 A7 WAVE STATUS: todo
 ```
+
+The original chronology below is retained as evidence of what was known and
+authorized at ratification time. Its `IMPLEMENTED: NO`, `TESTED: NO`, `todo`,
+“future,” “not executed,” and implementation-start language describes that
+historical pre-merge state, not current repository truth. The executed-plan
+and administrative-closeout section at the end governs current maturity.
 
 This plan changes no Python, test, dependency, package, fixture, A0–A6 closure,
 or A8+ work. A fresh implementation branch may start only after the
@@ -571,7 +588,7 @@ inserted card before A7 publication. There is intentionally no cross-store
 crash/durability claim; future recovery/outbox design requires separate
 specification and qualification.
 
-## Expected future implementation surface
+## Expected future implementation surface (historical)
 
 The authorized implementation should remain under `carbon/fees/`, likely
 separating:
@@ -596,7 +613,7 @@ MCP, logging/metrics, leaderboard, evidence/receipt, or A8+ dependency is
 needed. Use standard-library dataclasses, enums, `hashlib`, `struct`, `uuid`,
 and synchronization.
 
-## Future test matrix
+## Future test matrix (historical)
 
 The canonical focused path is
 `tests/cpu/test_submission_fsm.py`, replacing the stale root-level ticket
@@ -723,7 +740,7 @@ path. Tests will include at least:
 - full default CPU, strict Ruff/Black, repository no-new-debt ratchet, and
   `git diff --check`.
 
-## Ratification-only validation
+## Ratification-only validation (historical)
 
 For this documentation task, validation is limited to:
 
@@ -739,7 +756,7 @@ No Python suite, new test, formatter, dependency operation, implementation
 import, or A7 behavior claim belongs to this ratification. Existing A0–A6
 closure evidence remains unchanged.
 
-## Authorized policy and implementation start gate
+## Authorized policy and implementation start gate (historical)
 
 Human authorization now fixes terminal `FAILED_INFRA` to `REFUND` when a
 charge exists and fixes requester-bound/no-event cancellation from
@@ -778,3 +795,93 @@ after OQ-005/OQ-006; A7 receives neither context nor derived seed, and A8
 A12 must later add completed A7 as a dependency before claiming fee-isolation
 coverage. Do not create either work here. Do not merge or mark a future PR
 ready without explicit authorization.
+
+## Executed-plan and administrative-closeout evidence
+
+### Merge topology and implementation manifest
+
+Implementation began at exact base
+`f8cf1a030415778f519d55b85d8e287f09cdeba2`, reached independently reviewed
+head `f5ec1315a5ae501c2726fc0fbd6d0fa85c56b4b9`, and merged normally in PR #26
+as `5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d`. The ordered merge parents are
+the exact base followed by the reviewed head. The reviewed head is ancestral
+to current `main`, and its tree equals the merge tree exactly:
+`803fcf53ed99399c141e73d050f962847aeb36f8`.
+
+The implementation merge changed `.agent/WAVE.md` plus this exact module/test
+manifest:
+
+```text
+carbon/fees/__init__.py
+carbon/fees/identity.py
+carbon/fees/integration.py
+carbon/fees/model.py
+carbon/fees/service.py
+carbon/fees/store.py
+tests/cpu/test_submission_fsm.py
+```
+
+No dependency, packaging, fixture, CI, quality-baseline, design-specification,
+or A8+ file entered the implementation.
+
+### Completed KEEP / WRAP / REPAIR / REPLACE disposition
+
+- **KEEP / WRAP:** unchanged A2 validation remains the first semantic authority
+  after A7's bounded detached capture; A3 owns challenge qualification; A4 owns
+  seed/context derivation; A5 owns scientific scoring; and A6 owns private card
+  storage and public projection. A7 binds and sequences those seams without
+  duplicating their semantics.
+- **REPAIR:** A7 supplies the previously missing concrete A4
+  `EvaluationBinding` construction and the exclusive, cross-bound A6
+  publication adapter. It also gives the A0 fees package marker its narrowly
+  authorized bounded identity, store, FSM, fee-event, retry/refund, and
+  integration surface.
+- **REPLACE:** marker-only A7 behavior and noncanonical legacy lifecycle paths
+  are not promoted. The canonical `carbon/fees/` modules replace only the
+  absence of A7 implementation; no A8 execution, transport, evidence,
+  observability, leaderboard, chain, or emission behavior is substituted.
+
+### Definition-of-done and validation result
+
+All twenty ticket DoD criteria are satisfied for the bounded contract. Source
+inspection and `tests/cpu/test_submission_fsm.py` establish exact nominals and
+closed enums, eleven-field hostile-input bounds, ownership and mutation
+resistance, independent-golden A4 binding, guarded process-local capacity and
+rollback, exact fixture FSM and A6 publication, fail-closed production
+admission, concurrency/idempotence, typed failure separation, attempt and stale
+handle behavior, closed fee mechanics and fee/science isolation, leakage
+protection, cancellation races, and A9-independent operation with no A8–A11
+implementation/import.
+
+At the reviewed head, focused A7 (`319` in `8.26s`), related A2–A6 (`1077` in
+`14.57s`), package/import (`18` in `0.92s`), fresh-wheel/outside-tree (`1` in
+`8.48s`), and full CPU (`1423` in `20.05s`) passed. PR CI run `32621325895`
+passed `1423` tests in `31.33s`; post-merge push run `32622988239` passed
+`1423` in `26.75s`. Both recorded the unchanged quality inventory
+`Ruff 757/776; Black 62/68`, seven changed Python files clean, and no new debt.
+
+### Current bounded maturity and residual limits
+
+```text
+A7 SPECIFIED / RATIFIED: YES
+A7 IMPLEMENTED: YES on current main for the bounded fixture-capable, process-local scope
+A7 TESTED: YES only for the recorded CPU/security/concurrency/import/wheel/quality scope
+A7 PRODUCTION-QUALIFIED: NO
+A7 WAVE STATUS: done only after this closeout is reviewed and merged
+```
+
+The implementation is not durable or restart-safe and is not qualified for
+interprocess, distributed, or production concurrency. Structural requester
+equality is not authentication. Fee events do not authorize, reserve,
+transfer, or settle payment. Production resource-limit values, fee values,
+retry policy, backend qualification, official-context/provider policy,
+production A5/A6 completion/publication, durable recovery, authentication,
+transcripts, receipts, evidence, signatures, transport, observability,
+leaderboards, chain/Bittensor operation, score-to-weight mapping, emission,
+and all production qualification remain unresolved or later-owned. A8–A12
+remain unstarted and `todo`.
+
+This administrative closeout itself changes only `.agent/DECISIONS.md`,
+`.agent/WAVE.md`, this historical plan, `.agent/tickets/A7_fees_fsm.md`, and
+`docs/context/Implemented_vs_Specified`; it changes no implementation or later
+ticket.

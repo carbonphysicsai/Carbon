@@ -1,5 +1,86 @@
 # Agent decisions log
 
+## 2026-08-23 — A7 implementation and administrative closeout
+
+**Implementation topology and review.** A7 implementation started from exact
+base `f8cf1a030415778f519d55b85d8e287f09cdeba2`, was independently reviewed at
+head `f5ec1315a5ae501c2726fc0fbd6d0fa85c56b4b9`, and merged normally by PR #26
+as `5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d`. The merge's ordered parents are
+the exact base followed by the reviewed head. The reviewed head is ancestral
+to current `main`; its tree and the merge tree are both
+`803fcf53ed99399c141e73d050f962847aeb36f8`, and their diff is empty. GitHub
+reports PR #26 `MERGED`, with the expected head, base, and merge commit and no
+auto-merge configuration. The review evidence is the preserved reviewed head,
+independent source/test audit, and passing CI; no formal submitted GitHub
+approval object is claimed.
+
+The exact implementation delta was:
+
+```text
+.agent/WAVE.md
+carbon/fees/__init__.py
+carbon/fees/identity.py
+carbon/fees/integration.py
+carbon/fees/model.py
+carbon/fees/service.py
+carbon/fees/store.py
+tests/cpu/test_submission_fsm.py
+```
+
+The seven-file runtime/test surface is the six `carbon/fees/` modules and
+`tests/cpu/test_submission_fsm.py`. It implements the bounded fixture-capable,
+process-local A7 contract: permanent nominal submission identity; explicit
+eleven-field resource limits and bounded detached hostile-input capture before
+unchanged A2 authority; exact structural challenge/A4/A5 pin checks,
+current-handle/environment binding, and A6 record/requester-key binding;
+guarded open-submit idempotency and capacity accounting; the closed submission
+FSM; append-only fee-event, retry, refund, and requester-cancellation
+mechanics; and exclusive A6 publication sequencing. Separate fixture and
+production admission paths keep production fail closed. The twenty ticket DoD
+criteria were verified against the merged source and canonical focused tests
+without weakening their text.
+
+**Validation and CI evidence.** At the reviewed implementation head, focused
+A7 (`319` in `8.26s`), related A2–A6 (`1077` in `14.57s`), package/import (`18`
+in `0.92s`), fresh-wheel/outside-tree (`1` in `8.48s`), and full CPU (`1423` in
+`20.05s`) checks passed. PR CI run `32621325895` passed all `1423` CPU tests in
+`31.33s` and the unchanged quality ratchet (`Ruff 757/776; Black 62/68`) with
+seven changed Python files clean and no new debt. Post-merge push run
+`32622988239` on exact merge `5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d`
+completed successfully: `1423 passed in 26.75s`, the same quality inventory,
+seven changed Python files clean, and no new debt.
+
+**Closure and residual boundary.** This administrative closeout modifies only
+`.agent/DECISIONS.md`, `.agent/WAVE.md`, `.agent/plans/A7_fees_fsm.md`,
+`.agent/tickets/A7_fees_fsm.md`, and
+`docs/context/Implemented_vs_Specified`. It adds no code, test, fixture,
+dependency, packaging, CI, quality-baseline, design-specification, or A8+ work.
+A8–A12 remain unstarted and `todo`.
+
+A7 remains explicitly non-production. Its store is in-memory and
+process-local, not durable, restart-safe, interprocess, distributed, or
+production-concurrency-qualified. Requester binding is structural equality,
+not authentication. The ledger is not payment authorization, reservation,
+transfer, or settlement. Production resource-limit values, fee values, retry
+policy, backend qualification, official-context/provider policy, production
+A5/A6 completion/publication seams, authentication, durable recovery,
+transcript, receipt, evidence, signatures, transport, observability,
+leaderboard, chain/Bittensor, score-to-weight mapping, emission authority, and
+every other production gate remain unresolved or later-owned.
+
+```text
+A7 SPECIFIED / RATIFIED: YES
+A7 IMPLEMENTED: YES on current main for the bounded fixture-capable, process-local scope
+A7 TESTED: YES only for the recorded CPU/security/concurrency/import/wheel/quality scope
+A7 PRODUCTION-QUALIFIED: NO
+A7 WAVE STATUS: done only after this closeout is reviewed and merged
+```
+
+A7-R1 through A7-R15 below remain unchanged and continue to govern the bounded
+contract and its later-owned limitations. This closeout supersedes only their
+historical pre-implementation maturity snapshot; it does not rewrite,
+renumber, weaken, or reinterpret any ratified decision.
+
 ## 2026-08-23 — A7 pre-implementation fees, submission-identity, and FSM ratification
 
 **Repository truth, status, and scope.** A fresh fetch resolved `origin/main`
