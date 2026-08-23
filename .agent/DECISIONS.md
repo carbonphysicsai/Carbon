@@ -1,5 +1,512 @@
 # Agent decisions log
 
+## 2026-08-23 — A8 pre-implementation TrainEval fixture-stub contract candidate
+
+**Repository truth, status, and scope.** A fresh fetch resolved `origin/main`
+to exact commit `6a3fe0f8e34602af5a4eaeaa8ae145d967537724`
+and exact tree `b5052df524b43ef07ece953757a74fe0e84da1e8`.
+That commit is the normal PR #27 merge with ordered parents
+`5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d` and
+`2d192a10475568af092df74bb0afff3e9dece6a8`; the reviewed second-parent tree
+equals the merge tree. Post-merge push run `32630014802` completed
+successfully with `1423 passed in 30.36s`, unchanged
+`Ruff 757/776; Black 62/68`, zero changed Python files, and no new debt. A7 is
+`done`, A8--A12 are `todo`, and the A7 ticket retains twenty checked and zero
+unchecked bounded criteria. Remote branch and open/closed PR searches found no
+competing A8/TrainEval implementation, test, plan, or lifecycle.
+
+At the verified base, `carbon/traineval/__init__.py` was the one-line A0 package
+marker and there was no A8 source, canonical test, fixture, dependency, or
+prior plan. This five-file documentation candidate adds the pre-implementation
+plan and repairs the conflicting generic contract in
+`Design_Specs/Build_Out.md` and the stale A8 ticket. It does not implement or
+test A8, modify `.agent/WAVE.md`, start A9+, or authorize its own merge.
+
+```text
+A8 SPECIFIED / RATIFIED: YES only after this documentation candidate is independently reviewed, explicitly human-authorized, and merged
+A8 IMPLEMENTED: NO
+A8 TESTED: NO
+A8 PRODUCTION-QUALIFIED: NO
+A8 WAVE STATUS: todo
+```
+
+**A8-R1 — Bounded ownership and upstream authority.** A8 owns trusted
+execution-profile/runtime configuration, actual backend selection and launch,
+private A4 context acquisition/seed conversion, concrete execution controls,
+backend-output validation, prediction/reference/metric materialization for a
+future real backend, complete pack-authorized scalar-input construction,
+current A5 engine invocation, operational attribution, exception redaction,
+and one minimum private execution outcome. A8 does not own or duplicate A2
+schema validation; A3 challenge/LIVE/backbone admission; A4 context/seed
+semantics; A5 pack, input, gate, transform, aggregate, status, or result
+semantics; A6 storage/projection; or A7 submission identity, accepted Strategy
+snapshot/hash, ChallengeKey/EvaluationBinding, attempts, current-handle
+authority, FSM, retry budget, fee/refund, cancellation state, or publication.
+A9 owns miner-facing transport/disclosure for the later mock/light surface,
+while A8 retains mock execution under a later joint contract; A10 leaderboard; A11
+logging/metrics; A12 invariant aggregation; later evidence and chain owners
+retain transcripts, receipts, signatures, provenance, weights, and emissions.
+
+A2 and A3 are prior admission authorities already consumed by A7. A8 never
+calls `dry_validate`, repeats challenge eligibility, or repeats allowed-
+backbone rejection after queue admission. Runtime failure positively
+attributable to the accepted Strategy is `StrategyFailedRun`, never A2/A3
+`REJECTED`. A7 has no dependency on A8 and later composition must not reverse
+that direction.
+
+**A8-R2 — First entry point and trusted construction.** The first bounded
+implementation is fixture-official only:
+
+```text
+FixtureTrainEvalService.run_fixture(
+    envelope: exact FixtureExecutionEnvelope
+) -> private FixtureRunOutcome
+```
+
+Trusted composition constructs the service with one immutable exact
+`FixtureStubProfile`, exact A4 `DeterministicFixtureProvider`, exact verified
+A5 `LoadedScorePack`, trusted fixture runtime configuration, exact declared
+execution-environment identity, and exact deterministic
+`FixtureStubBackend`. The run call accepts no independent Strategy,
+StrategyHash, batch, generic mode, runtime limit, attempt number, ChallengeKey,
+SeedPin, environment pin, context, seed, Score Pack, or backend identity. No
+generic `run(strategy, batches, mode, limits, pin)` compatibility overload or
+relabel path exists.
+
+The exact frozen/slotted `FixtureRuntimePolicy` is a trusted fixture-only
+composition value with literal policy ID `a8_fixture_stub_policy_v1`, exact
+`backend_profile_id`, exact `container_digest`, and an immutable total tuple
+mapping every exact `InfrastructureCause` once to an exact
+`InfrastructureRetryClass`. It has no generic mode, runtime numeric limit,
+production control/value, fallback, backend selector, or caller-settable
+emission field. The service reconstructs an `ExecutionEnvironmentPin` from the
+policy's two safe environment identifiers and requires equality with both the
+separately declared fixture environment identity and the handle pin. Exact
+`FixtureStubBackend` capability metadata must match the same identifiers and
+has constant false emission capability. The retry table is injected trusted
+fixture test policy, not an infrastructure fact, retry permission, A7 budget,
+or production default.
+
+The service is a trusted private integration object. Its ability to be
+constructed or imported does not confer production, scientific, publication,
+or emission authority. The completed A5 result-bearing surface is not a
+miner-facing API, A9 response, A6 card, leaderboard/log record, generic
+serialization, or broad convenience export.
+
+**A8-R3 — Boundary validation, envelope trust, and immutable science
+identity.** The fixture call first requires the exact built-in
+`FixtureExecutionEnvelope` type, reconstructs exact owned handle and safe
+identity values, requires `AdmissionKind.FIXTURE`, and requires the envelope
+ChallengeKey to equal the handle `SeedPin.challenge_key`. Wrong type,
+subclass, production/mock/cross-kind value, malformed copied handle/pin, or an
+internally contradictory untrusted envelope raises one stable non-echoing A8
+boundary error without A7 mutation based on that object. Errors never echo a
+value, object `repr`, configured value, path, measurement, or exception text.
+
+The fixture stub deliberately ignores both mutable `envelope.strategy` and
+independently presented `envelope.strategy_hash` when deriving synthetic
+material. A4 derivation through the exact handle `SeedPin` already binds A7's
+opaque `EvaluationBinding`, which A7 constructed from its stored SubmissionId,
+canonical StrategyHash, and ChallengeKey/version. Attempt number is excluded
+from this scientific identity and remains in the returned handle. A7's
+current envelopes, handles, frozen values, and exact-type checks are
+process-local correctness boundaries, not authenticated capabilities or a
+sandbox. Equivalent forged values cannot be authenticated in same-process
+Python. A future real backend that must interpret the Strategy requires a
+separately ratified immutable/verifiable A7 snapshot handoff; the Wave-A stub
+does not invent it.
+
+Trusted composition must construct and preflight the exact service and its
+mandatory dependencies before asking A7 to start an attempt. A construction
+failure is therefore a pre-start integration error, not an outcome without a
+handle. After trusted composition supplies the envelope returned directly by
+A7 start and A8 establishes only its structurally exact owned fixture boundary,
+any trusted
+profile/configuration, pack, context/provider, environment, backend,
+materialization, A5-input, or A5-scoring integration failure becomes a closed
+infrastructure outcome carrying that owned handle. It does not fall back to a
+boundary error that could strand a real current A7 attempt in `RUNNING`.
+Only A7 can determine at callback that the handle is authentic and current;
+A8 makes no such claim. If composition violates the required preflight-before-start
+ordering, that layer remains responsible for resolving the original A7
+attempt through an authorized operation.
+
+**A8-R4 — Exact A7 outcome mapping and stale authority.** A8 returns facts and
+trusted policy classifications; it never invokes or imports
+`SubmissionService`, writes an A7 store, creates an attempt, retries,
+terminalizes, refunds, cancels, or publishes. Trusted composition applies:
+
+```text
+CompletedFixtureRun
+  -> SubmissionService.complete_and_publish(handle, internal_result)
+StrategyFailedRun
+  -> SubmissionService.fail_strategy(handle)
+InfrastructureFailedRun(RETRYABLE, ...)
+  -> SubmissionService.retry_infrastructure(handle)
+InfrastructureFailedRun(NON_RETRYABLE, ...)
+  -> SubmissionService.fail_infrastructure(handle)
+malformed untrusted boundary object
+  -> no A7 mutation based on that object
+stale/wrong callback
+  -> A7 rejects the exact handle with no mutation
+```
+
+`RETRYABLE` is a trusted backend/policy classification that another execution
+could be attempted; it is not permission, budget, or a retry operation. A7
+alone applies its immutable retry policy, increments the attempt, preserves
+scientific identity, rejects stale handles, and either requeues or reaches its
+own `FAILED_INFRA`. `NON_RETRYABLE` is likewise an A8 operational
+classification, not an A8 lifecycle state. `FAILED_INFRA` and
+`FAILED_STRATEGY` remain exclusively A7 states.
+
+**A8-R5 — Exact context and data-right separation.** Fixture execution
+acquires only exact `FixtureOfficialContext` through
+`acquire_fixture_official_context(exact DeterministicFixtureProvider, exact
+handle.seed_pin)`, then requires `context.pin == handle.seed_pin` and derives
+only with `derive_fixture_official_seed`. It never accepts `MockContext`,
+provider-origin `OfficialContext`, `QualificationContext`, raw entropy, a
+private root, or a caller-provided derived seed. A7 receives no context,
+entropy, private root, official/master/derived seed, role/domain/draw identity,
+hidden realization, or runtime payload.
+
+A future production adapter is nominally separate, consumes only an exact A7
+`ProductionExecutionEnvelope`, and acquires only provider-origin
+`OfficialContext` after OQ-005/OQ-006 and every A3/backend/A5/A6/evidence/
+security gate is separately resolved and ratified. There is no provider,
+timing, fallback, resource, backend, or production Score Pack default now;
+production remains fail closed.
+
+**A8-R6 — Exact deterministic fixture profile.** The only supported first
+profile is exact `a8_fixture_stub_v1`, conspicuously synthetic and bound to the
+current verified A5 fixture pin:
+
+```text
+ChallengeKey:              (a5_fixture, fixture-1.0)
+scoring_version:           fixture-1.0
+scoring_digest:            sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57
+generator_version_required: fixture-1.0
+generator_digest_required: sha256:1111111111111111111111111111111111111111111111111111111111111111
+schema_version:             1.0
+numerical_profile:          python_binary64_v1
+fixture_origin:             true
+```
+
+The profile accepts no other pin and derives no arbitrary input-key set. Its
+exact profile-private keys are the current pack's numeric
+`gate_error`, `diagnostic_error`, `physics_error`, `robust_mean_a`,
+`robust_tail_a`, `robust_mean_b`, `robust_tail_b`, `accuracy_error_a`, and
+`accuracy_error_b`, plus exact Boolean `finite_ok`. These names are not a
+general TrainEval protocol or scientific metric vocabulary.
+
+The profile derives three independent A4 outputs, all at exact draw index `0`:
+
+```text
+OFFICIAL_TRAIN  + RoleKey("a8_fixture_train")
+OFFICIAL_EVAL   + RoleKey("a8_fixture_eval")
+OFFICIAL_STRESS + RoleKey("a8_fixture_stress")
+```
+
+The exact HMAC phase-label bytes are ASCII `official_train`, `official_eval`,
+and `official_stress`, respectively. `diagnostic_error` uses the train
+derivation; `gate_error`, `physics_error`, and both accuracy inputs use the
+eval derivation; the four
+robustness inputs use the stress derivation. Each numeric key uses HMAC-SHA-256
+with that phase's exact 32 derived bytes as key. The message begins with exact
+ASCII `carbon.a8.fixture-stub.scalar.v1`; each following field is framed as an
+unsigned four-byte big-endian byte length followed by exact ASCII bytes, in
+this order: profile ID, phase label, input key, exact scoring digest, exact
+generator digest, configured backend-profile ID, and configured container
+digest. No generic serializer or platform-native integer encoding is used.
+
+For each HMAC digest, `n = int.from_bytes(digest[0:8], "big") >> 11` and
+`u = n / 2**53` in built-in binary64. For `gate_error`, the conspicuous
+synthetic value is evaluated in exact operation order `0.5 + (1.0 * u)`; for
+every other numeric key it is `0.125 + (0.5 * u)`. `finite_ok` is exact
+`True` and consumes no derived bytes. These values exercise current fixture scoring structure only. They are
+not predictions, references, relative errors, validated metrics, thresholds,
+tolerances, qualification evidence, or production science.
+
+Attempt number, mutable Strategy, independently presented StrategyHash, time,
+Python `hash()`, `random`, filesystem/order, network, environment variables,
+mutable backend registry/global state, and call order are absent. Environment
+identity is bound through the trusted configured values and separately checked
+against the handle pin; the pin is not treated as configuration. Independent
+literal golden vectors and a straight-line oracle must use no implementation
+encoder/helper and must not expose entropy/derived bytes. Perturbation must
+cover every SeedPin field through A4, the opaque EvaluationBinding, configured
+environment fields, profile, phase, and input key. Retry attempt changes must
+change only the returned handle, not synthetic scalar material.
+
+**A8-R7 — A5-exclusive scientific result construction.** A8 validates that
+its exact loaded pack pin agrees with the projection available in the handle
+SeedPin: `ScorePackPin.challenge_key == SeedPin.challenge_key`, scoring version
+and digest equality, and `generator_version_required`/
+`generator_digest_required` equality with the SeedPin generator version/
+digest. A5 has no EvaluationBinding or seed-scheme field, so wholesale pin
+equality is neither possible nor claimed. A8 separately requires the exact
+A8-R6 schema/numerical/fixture profile. A8 builds the
+complete exact ordered scalar input only through
+`LoadedScorePack.fixture_score_input` and invokes current
+`ScoreEngine.score`. A8 never calls the private `ScoreInput` factory directly,
+constructs `InternalResult`, adds a score/status/result model, or selects a
+threshold, gate, transform, weight, tolerance, metric, production pack, or
+eligibility value.
+
+Only exact A5 `SCORED` and `MANDATORY_GATE_FAILED` results may construct
+`CompletedFixtureRun`. `PACK_NOT_READY` is an operational infrastructure
+outcome and never a completion or A6 input. The sole ready A8-R6 profile does
+not normally produce it; the cause is retained defensively for an exact A5
+integration result and future ratified profiles, never as fallback. Pack mismatch, context failure,
+missing/extra/malformed/non-finite/partial execution material, input
+construction error, scoring integration/computation error, backend/reference
+failure, or infrastructure-derived scalar creates no authoritative
+`ScoreInput`, gate, scientific zero, completed `InternalResult`, or card.
+Mandatory-gate failure is a completed A5 fixture scoring result only when A5
+receives complete valid input and constructs that exact status; the synthetic
+stub confers no scientific authority.
+
+**A8-R8 — Closed private errors, outcomes, and causes.** The exact private sum
+is:
+
+```text
+FixtureRunOutcome =
+  CompletedFixtureRun(
+    exact ExecutionAttemptHandle,
+    exact InternalResult
+  )
+| StrategyFailedRun(
+    exact ExecutionAttemptHandle,
+    exact StrategyFailureCause
+  )
+| InfrastructureFailedRun(
+    exact ExecutionAttemptHandle,
+    exact InfrastructureRetryClass,
+    exact InfrastructureCause
+  )
+
+InfrastructureRetryClass = RETRYABLE | NON_RETRYABLE
+
+StrategyFailureCause =
+  STRATEGY_RUNTIME_FAILURE
+| STRATEGY_TRAINING_FAILURE
+| STRATEGY_NUMERICAL_FAILURE
+
+InfrastructureCause =
+  CONFIGURATION_UNAVAILABLE
+| SCORE_PACK_MISMATCH
+| SCORE_PACK_NOT_READY
+| CONTEXT_UNAVAILABLE
+| ENVIRONMENT_MISMATCH
+| BACKEND_UNAVAILABLE
+| BACKEND_STARTUP_FAILURE
+| EXECUTION_TIMEOUT
+| RESOURCE_VIOLATION
+| BACKEND_NUMERICAL_FAILURE
+| REFERENCE_FAILURE
+| INCOMPLETE_EXECUTION_MATERIAL
+| SCORE_INPUT_FAILURE
+| SCORE_COMPUTATION_FAILURE
+```
+
+Boundary errors are exact stable `FixtureRunRequestError` and
+`FixtureRunIdentityError` with closed non-echoing codes for wrong type,
+subclass, cross-kind, malformed reconstructed nominal, and internally
+contradictory untrusted envelope. They carry no handle-based transition
+authority. Cause enums are the only failure diagnostic in an outcome; there
+is no arbitrary message, raw exception, value, path, configured/observed
+limit, measurement, object, stack trace, or backend payload.
+
+`FixtureRunRequestError` has exact code
+`traineval.fixture_request_invalid` and exact message `Fixture execution
+request is invalid.`; wrong envelope type, subclass, and cross-kind request map
+only to it. `FixtureRunIdentityError` has exact code
+`traineval.fixture_identity_invalid` and exact message `Fixture execution
+identity is invalid.`; malformed reconstructed handle/pin/envelope identity
+and internal contradictions map only to it. Constructors copy only those
+literal values, exception chaining is suppressed at the boundary, and neither
+class accepts caller diagnostic arguments.
+
+**A8-R9 — Attribution and operational completeness.** Strategy failure is
+permitted only when the trusted adapter can positively attribute a
+runtime/training/numerical failure to the accepted declarative Strategy under
+a ratified backend contract. An unknown exception type, ambiguous numerical
+failure, backend/reference failure, output-validation failure, hostile
+exception/repr, or uncertain attribution defaults to infrastructure. A8 never
+uses `invalid_strategy` and never converts operational absence/failure into a
+mandatory gate or scientific zero.
+
+The bounded deterministic `FixtureStubBackend` ignores Strategy and executes
+no miner code, so `FixtureTrainEvalService` has no positive-attribution path
+and never emits `StrategyFailedRun`. The variant is retained in the closed
+TrainEval integration contract for a future separately ratified real backend;
+the later implementation task must test its mapping to A7 at the private
+outcome/composition seam, never by fabricating Strategy blame in the fixture
+service.
+
+For the structurally exact envelope supplied directly by trusted composition
+from A7 start, every run-time integration cause in A8-R8 returns
+`InfrastructureFailedRun`; no such path raises a request error and
+leaves the attempt silently running. The immutable trusted fixture policy
+uses the exact total fixture classification table from A8-R2.
+Production cause-to-retry policy, retry count/budget, time/resource values,
+and fallback remain human-owned; no fixture classification is relabelled as
+production policy.
+
+**A8-R10 — Resource, environment, launch, and shutdown separation.** A7
+`SubmissionResourceLimits` govern hostile input capture and retained-record
+capacity. A7's `ExecutionEnvironmentPin` and attempt number are immutable safe
+identity. A8's separately injected runtime policy owns actual CPU/GPU/backend
+selection, memory/time/process/filesystem/network controls, launch, private
+materialization bounds, type/shape/finiteness validation, exception
+conversion, and shutdown. The A8 configuration reconstructs its exact
+`ExecutionEnvironmentPin` from trusted declared values and compares it with
+the handle pin before backend invocation; it never treats caller or handle pin
+values as executable configuration or qualification proof.
+
+The in-process Wave-A stub executes no miner code, performs no network or
+filesystem operation, and imports no heavy/dynamic backend. Its first bounded
+synchronous contract has no cancellation API. Current A7 owns its bounded
+requester cancellation policy; a later real A8 adapter must separately ratify
+transient cooperative and hard shutdown without creating a second lifecycle.
+Hard
+wall-clock/process/GPU/memory/disk/network enforcement, container supervision,
+credential isolation, timeout-evasion resistance, reproducibility tolerances,
+and production shutdown are later backend/security/operations qualification.
+No production value is supplied here.
+
+**A8-R11 — Minimum result, retention, and disclosure.** The private outcome
+contains only an exact owned attempt handle, one exact closed variant,
+one exact cause/retry class where applicable, and the exact completed A5
+`InternalResult` where applicable. Backend/environment identity appears only
+through the handle's existing safe pin; runtime configuration is not copied.
+Values are frozen/slotted, freshly reconstructed without retained caller
+aliases, and refuse generic serialization/copying where it would broaden the
+boundary. These supported-API properties are not tamperproof against arbitrary
+same-process `object.__setattr__`; A7 revalidates the callback handle and
+remains the mutation authority.
+
+Pairing the exact handle with an exact A5 result is process-local trusted
+integration only, not authenticated or substitution-resistant execution
+provenance. That assurance remains later receipt/evidence work.
+
+Context and derived bytes exist only ephemerally inside the service call and
+are not retained after use. Outcomes, errors, post-run retained state, test
+diagnostics, and reachable public graphs exclude context objects;
+entropy/private roots; raw official/
+master/derived seeds; role/domain/draw identity; raw predictions/references; raw
+metric/category/percentile vectors; `ScoreInput`; checkpoints/model weights;
+exception text/stack traces; filesystem paths; environment variables;
+credentials; fee data; A6 cards; public diagnostic text; transcripts,
+receipts, evidence, signatures; emission weights; and eligibility overrides.
+A11 may later observe only separately ratified closed redacted fields. Later
+evidence needs do not expand the Wave-A result.
+
+**A8-R12 — Mechanical non-emission capability.** Exact fixture backend
+capability metadata, exact fixture service capability, and exact fixture
+outcome expose `emission_capable = False` mechanically with no caller argument
+or mutable field. A5 independently enforces `eligible_for_emission = False`
+and A6 copies exact fixture origin/false eligibility through its allow-list.
+The fixture outcome cannot write A6, leaderboard, weights, chain, or emissions.
+
+Negative capability is defense in depth, not positive production provenance.
+A later official leaderboard/weight/chain consumer must require exact positive
+qualified production origin, backend/profile, pack, and required receipt/
+evidence rather than accept an arbitrary Boolean. That refusal integration is
+later-owned and is not implemented by this ticket or documentation.
+
+**A8-R13 — Hostile-input boundary and archaeological disposition.** The
+accepted A2/A7 Strategy remains hostile. The stub interprets none of its
+parameters and executes no supplied code, which meaningfully avoids path
+traversal, arbitrary import, environment/credential access, network/filesystem
+exfiltration, fork bombs, miner-controlled/unbounded runtime allocation, and timeout evasion in the
+bounded synthetic path. It still exact-type checks/reconstructs safe envelope
+identity, validates bounded outputs, never renders hostile exceptions, and
+uses no caller-controlled backend selection. Frozen Python values and private
+attributes are not security isolation.
+
+KEEP the empty `carbon.traineval` seam and A4/A5/A7 exact boundaries. KEEP and
+later WRAP the A1 lazy optional-backend loading idea only behind qualified
+trusted configuration; its mutable registry is not a trust root. Preserve
+PoC NumPy/JAX kernels, generators, and relative-error ideas as archaeology for
+later scientific/backend review. REPAIR/WRAP them only after separate
+qualification. REPLACE or exclude historical `carbon/training`, validator,
+defaulting gate/score, raw-seed/card, direct weight, Julia service, deployment,
+random/time/hash, and mock-fallback behavior for A8. No legacy/PoC/neurons/
+Julia/deployment/emission component is imported by the fixture stub.
+
+Real untrusted execution still requires a separately qualified process/
+container boundary for network/filesystem/credential/PID/memory/disk/time/GPU
+controls, backend reproducibility, hostile outputs, and audited redaction.
+Wave-A tests cannot production-qualify any of those properties.
+
+**A8-R14 — Small module, dependency, and test boundary.** The smallest future
+layout is:
+
+```text
+carbon/traineval/
+  __init__.py
+  model.py
+  service.py
+  stub.py
+```
+
+`model.py` owns immutable fixture profile/policy, private closed outcomes and
+stable errors; it may source-import only standard library and the minimum A5/A7
+identity/result types. `stub.py` owns deterministic dependency-free synthetic
+material and imports only standard library plus private A8 model. `service.py`
+owns envelope/config/pin/context validation, profile execution, A5 validated
+input construction and scoring; it may import exact A4, A5, and A7 model
+types, never A7 service/store. The exact future root `__all__` is limited to
+`FixtureRunIdentityError`, `FixtureRunRequestError`, `FixtureRuntimePolicy`,
+`FixtureStubBackend`, `FixtureStubProfile`, and `FixtureTrainEvalService`.
+Cause/retry enums, backend material, and all result-bearing outcome variants
+remain explicit trusted imports from A8-private modules and are not broad root
+exports; `InternalResult` is never re-exported. No `integration.py` is needed:
+composition stays outside A8.
+
+Forbidden direct source imports/calls are A2 validation, A3 admission calls, `carbon.cards`,
+`carbon.fees.service`/store internals, A9--A12, legacy training/validator/
+emission, PoC, neurons, Julia, network clients, mutable/dynamic backend
+selection, and eager Torch/JAX/PhysicsNeMo/neural-operator imports. No new
+dependency is justified. Canonical future tests live at
+`tests/cpu/test_traineval_stub.py` and cover every unchecked ticket criterion,
+installed-wheel/outside-tree import, the full CPU suite, Ruff/Black, and the
+no-new-debt ratchet. Current `carbon.fees.__init__` transitively initializes
+its existing service/card dependencies when A7 model types are imported; A8
+does not treat `sys.modules` absence as an attainable isolation property or
+add a source dependency/call to those owners. Documentation and proposed tests
+are not current test evidence.
+
+**A8-R15 — Reserved mock lane, production failure closure, and implementation
+gate.** Build Out and A9 still require a mock/light free path under the same
+architectural TrainEval owner, but it is structurally separate rather than a
+mode:
+
+```text
+MockTrainEvalService.run_mock(
+    request: exact future MockExecutionRequest
+) -> MockRunOutcome
+```
+
+The exact mock request/resource/disclosure contract remains deferred to a
+later A8/A9 documentation ratification. A mock outcome is not A5
+`InternalResult`, cannot enter A7's official lifecycle or A6, creates no card,
+and affects no fee, official score, leaderboard rank, weight, or emission. It
+is mechanically non-emission-capable. This candidate neither edits A9 nor
+authorizes estimate/light implementation; A9 must wait for that separate
+contract.
+
+No real neural-operator training, production backend/container/sandbox,
+scientific threshold/tolerance/metric, production runtime/provider/fallback,
+LIVE pack/challenge, authenticated provenance, transcript/receipt/evidence/
+signature, A6 bypass, MCP/mock implementation, leaderboard, logging/metrics,
+A12 invariant work, Bittensor/chain, weights, or emissions is included.
+Future A8 implementation may begin only after this exact documentation is
+independently reviewed, explicitly human-authorized and merged, followed by a
+fresh main/tree/status/concurrency check proving A8 remains `todo` and
+unimplemented. That implementation requires a separate bounded task and must
+leave every production and mock path fail closed.
+
 ## 2026-08-23 — A7 implementation and administrative closeout
 
 **Implementation topology and review.** A7 implementation started from exact
