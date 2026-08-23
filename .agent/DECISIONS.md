@@ -1,5 +1,872 @@
 # Agent decisions log
 
+## 2026-08-23 — A7 pre-implementation fees, submission-identity, and FSM ratification
+
+**Repository truth, status, and scope.** A fresh fetch resolved `origin/main`
+to the expected exact commit
+`ba0b2b3dffd114d02fd5f6a71af08052a3e0a1ed`, with exact tree
+`e3718deceef355936cdf427bb04b68fa3d98c760`. The commit is the normal merge of
+the A6 closeout. At the pre-publication check, GitHub reported no other open
+pull request and the remote contained no competing A7-named branch. A7 is still `todo`;
+`carbon/fees/` contains only
+its A0 package marker, and there is no canonical A7 source, focused test, or
+runtime dependency. This entry proposes documentation-only ratification. It
+does not implement or test A7, start A8+, change A0–A6 closure, or authorize a
+merge.
+
+```text
+A7 SPECIFIED / RATIFIED: YES only after this ratification is explicitly human-authorized and merged
+A7 IMPLEMENTED: NO
+A7 TESTED: NO
+A7 PRODUCTION-QUALIFIED: NO
+A7 WAVE STATUS: todo
+```
+
+The human policy authorization recorded by the 2026-08-23 amendment selects
+`REFUND` as the terminal `FAILED_INFRA` default and requester-bound
+cancellation from `RECEIVED`, `VALIDATED`, and `QUEUED` under A7-R12/A7-R13.
+It also moves the sole exam `CHARGE` to the first atomic
+`QUEUED -> RUNNING` material-start transition. The hostile-input amendment
+also requires an injected immutable A7 submission-resource policy before any
+full Strategy validation/copy/hash work. Those selections do not authorize
+implementation or make this candidate ratified before review and merge.
+
+**A7-R1 — Bounded ownership.** A7 owns permanent submission identity,
+canonical Strategy identity/hash and an owned accepted-Strategy snapshot,
+independent submission-resource admissibility, exact A3 challenge-version
+binding, the concrete A4 evaluation binding, structural requester binding,
+process-local submission persistence, the core submission FSM, open-submit
+idempotency, minimal execution-attempt identity and history, fee-event
+mechanics, infrastructure retry/refund mechanics, requester-bound cancellation
+policy/mechanics, and the A6 publication adapter. A7 does not own
+TrainEval/backend execution or metric construction; MCP transport;
+leaderboard; logging/metrics; invariant aggregation; execution transcripts,
+receipts, evidence, signatures, or durable evidence storage; Bittensor,
+score-to-weight mapping, or emissions. A8–A12 and later owners retain those
+responsibilities. Later validator/C7 work integrates execution with this A7
+FSM rather than defining a competing lifecycle.
+
+**A7-R2 — Permanent `SubmissionId`.** `SubmissionId` is a new frozen, slotted
+nominal A7 type. Carbon alone generates its value as the exact canonical
+lowercase hyphenated string form of an RFC 4122 UUID version 4. The value is
+miner-facing, opaque, non-sequential, and contains no requester/hotkey,
+challenge, time, state, or attempt data. Callers cannot select it. Creation
+generates exactly one candidate and checks it against the A7 store atomically;
+a collision never overwrites or rebinds an existing record and instead raises
+a typed fail-closed store error without record creation or regeneration.
+Reuse, rebinding, normalization, and overwrite are prohibited and no such API
+exists. The Wave-A store enforces collision rejection against its retained
+process-local records;
+across restarts, fresh UUIDv4 generation makes accidental reuse negligible but
+does not provide a durable global collision registry. Retries retain one
+`SubmissionId`; a resource-admissible later submit after a terminal record
+receives a fresh one when new-record capacity remains.
+“Permanent” means immutable protocol identity, not restart durability in the
+Wave-A store.
+
+The store retains an owned reconstruction of the generated nominal value and
+returns a separate fresh `SubmissionId` wrapper, so low-level mutation of a
+caller-held frozen wrapper cannot corrupt stored identity.
+
+**A7-R3 — Resource-bounded, A2-authoritative Strategy identity.** Every
+executable A7 store/service requires one immutable `SubmissionResourceLimits`
+at construction. It is an A7 submission-security/operations input, not
+scientific policy, fee policy, or attacker input. Human protocol/security/
+operations owners supply production values; A7 has no default, fallback,
+environment-derived, or guessed production values. A bounded Wave-A fixture
+must inject conspicuous finite fixture-only values. A9 may later impose
+stricter transport limits, but A7 remains independently bounded and never
+depends on A9 for this protection. The policy is admission-kind-neutral because
+identity processing precedes fixture/production queue admission. A store built
+with fixture-only values is not production-capable and cannot be relabelled;
+human-approved production values require a new store.
+
+The closed minimum policy fields are:
+
+```text
+max_total_value_nodes
+max_object_members
+max_list_items
+max_string_utf8_bytes
+max_object_key_utf8_bytes
+max_strategy_identity_bytes
+max_challenge_id_bytes
+max_concurrent_identity_builds
+max_retained_submission_records
+max_retained_value_nodes
+max_retained_strategy_identity_bytes
+```
+
+Every field is an exact positive built-in integer; Boolean, coercion, absent,
+unbounded/sentinel, mutable, or greater-than-unsigned-64 values reject store
+construction. `max_challenge_id_bytes` is additionally at most unsigned-32.
+These are accounting/format domains, not production values; human owners must
+still choose materially finite explicit limits. A value node is the root or
+any value position in a list/object, including a container; object keys are
+bounded separately. Object/list limits are per container. No separate nesting-
+depth field is exposed: accepted-tree depth cannot exceed total value positions,
+while one-expansion memoization bounds shared/cyclic capture and current A2
+traversal without inventing unfolded depth. String/key limits are exact
+strict-UTF-8 byte counts. The Strategy
+identity-byte limit covers the complete canonical preimage—the fixed domain
+header plus root frame, all child frames, keys, and payloads—and thus bounds
+aggregate accepted Strategy identity bytes, including integer magnitudes.
+For an A3-valid challenge identifier, `max_challenge_id_bytes` counts its exact
+ASCII/TLV payload bytes; the capped scan may reject work before making any A3
+validity claim.
+The final four fields cap simultaneous request-local candidate builds and the
+store's aggregate retained record, accepted-value-node, and accepted-identity-
+byte footprint. No eviction is implied; exact duplicates remain reads of an
+existing record, while a new accepted or permanently rejected submission must
+fit before UUID allocation. None of these numeric values enters scientific
+identity or the minimum submission record.
+
+Before touching an attacker-sized challenge/Strategy value, A7 non-blockingly
+acquires one bounded identity-build permit; exhaustion returns A7-R11's
+constant capacity error rather than waiting or starting partial work. After
+constant-bounded exact-type wrapper-shape checks, it reads each required
+requester/challenge nominal scalar exactly once into request-local primitives.
+The captured challenge-ID value is capped before A3 regex validation or fresh
+`ChallengeKey` reconstruction, and every later validation, comparison, and
+binding step uses those same locals rather than rereading a caller wrapper.
+
+A7 then performs one iterative, non-semantic resource-metered traversal that
+constructs a request-local owned, topology-preserving candidate. A memo maps
+each exact built-in dict/list identity to one fresh exact built-in container,
+so cycles and shared DAG edges survive for A2 while each source container is
+expanded at most once. The root and every enumerated item/member value position
+consume node budget; a repeated edge consumes its position but is not expanded
+again. Container cardinality is checked before enumerating children. Strict-
+UTF-8/identity bytes are scanned incrementally with overflow checks without an
+unbounded encoded duplicate. A bounded exact string/key that cannot encode as
+strict UTF-8 is preserved in the candidate and records a later A7 identity
+failure. Invalid UTF-8 alone does not stop capture; a provable configured
+resource overrun during that scan may.
+An integer `bit_length` precheck rejects when the
+complete tag/length/sign/magnitude frame cannot fit the remaining identity
+budget, before materializing the exact minimal unsigned big-endian magnitude.
+Every counter is checked before the next allocation or expansion, and traversal
+stops at the first exceeded limit.
+
+The capture never hashes, compares, displays, or invokes a method on an
+attacker-controlled non-string dict key or non-JSON leaf. It represents an
+invalid key with a fresh inert A7-owned non-string key plus inert value, and an
+invalid leaf with an inert A7-owned value at the same string-key/list position.
+These request-local sentinels preserve current A2 type-issue code/path behavior
+and can never be accepted, hashed, stored, or exposed. Observed source size,
+iteration, or exact built-in access instability fails closed. Concurrent
+same-cardinality replacement cannot always be detected: if bounded capture
+completes, that detached candidate is authoritative and no later pass rereads
+the caller graph; later caller mutation cannot change it.
+
+This operational gate can reject work but cannot declare a Strategy valid.
+Only after the bounded detached candidate exists does A7 call the current
+`carbon.schema.dry_validate` once on that topology. A2 therefore retains its
+fields, validation, issue ordering, and semantics: a copied cycle reaches its
+existing `json.cycle` result, and a copied shared DAG remains A2-valid. After an
+A2-success result, A7 applies its separately recorded repeated-container and
+strict-UTF-8 identity rules; a bounded lone surrogate therefore reaches A2
+first, and a shared DAG is rejected by A7 rather than A2.
+Only an A2-valid candidate with no repeated container can proceed, so the owned
+candidate is then an alias-free tree and is the sole snapshot candidate without
+another caller read. It is retained only by the later atomic accepted-record
+commit. The copy, frame-size pass, and encoder are iterative; the total-node
+limit bounds even deep work. Request-local counters, sentinels, rejected raw input,
+and rejected candidates are never retained.
+
+After a complete identity is available, the guarded store resolves an exact
+open duplicate before capacity. A new accepted record must fit all three
+retention caps; a within-budget semantic/identity rejection must fit the record
+cap. Capacity checking, one-candidate UUID generation/collision checking,
+record/index insertion, and aggregate-accounting commit are atomic; injected
+failure leaves maps and counters unchanged. The identity-build permit is
+released on every exit. These caps bound A7's own concurrent and retained
+submission memory; later A9 authentication/rate limiting may be stricter but
+is not their substitute.
+
+`StrategyHash` is a separate frozen, slotted nominal type exposing only exact
+`sha256:<64 lowercase hexadecimal characters>`. Its preimage is the exact
+ASCII header `carbon.strategy.identity.v1` followed by one root frame. Every
+frame is one tag octet, one unsigned eight-byte big-endian payload length, and
+the payload. The tags and payloads are closed:
+
+| Tag | Value | Payload |
+|---:|---|---|
+| `0x00` | null | empty |
+| `0x01` | false | empty |
+| `0x02` | true | empty |
+| `0x03` | integer | sign octet (`0x00` non-negative, `0x01` negative) then the minimal unsigned big-endian magnitude; zero is sign `0x00` with no magnitude |
+| `0x04` | float | exactly eight bytes, IEEE-754 binary64, big-endian |
+| `0x05` | string | exact strict UTF-8 bytes, without normalization |
+| `0x06` | list | unsigned eight-byte item count followed by each framed item in list order |
+| `0x07` | object | unsigned eight-byte member count followed by framed string key and framed value pairs, sorted by each key's exact UTF-8 byte sequence |
+
+Dict insertion order therefore cannot change identity; list order remains
+significant. Null, Boolean, integer, float, string, list, and object are
+distinct. `1` and `1.0` differ, and the exact binary64 rule also preserves the
+distinction between positive and negative zero. A2 already rejects non-finite
+floats, cycles, and non-JSON types. An iterative bottom-up pass computes exact
+payload lengths with checked unsigned-64-bit arithmetic, then the encoder
+checks the configured identity-byte budget before emitting, and streams the
+document into one SHA-256 calculation without materializing a second complete
+serialized copy. A `StrategyHash` is constructed only after the complete
+bounded stream succeeds; no partial digest is stored, exposed, or usable as an
+open key. If an otherwise A2-valid Python string cannot be strictly UTF-8
+encoded, A7 rejects it safely at the identity boundary; A7 does not invent
+WTF-8/surrogate-pass semantics or claim A2 changed. A7 hashes neither `repr`,
+generic objects, `json.dumps`, arbitrary serialization, nor transport/raw
+request bytes. Encoding failures expose only bounded stable codes/messages,
+never submitted values. The injected limits decide whether processing may
+finish; for every accepted value they do not change one canonical byte, the
+tagged SHA-256, or A4 binding. A2's separate parser/transport resource-limit
+policy remains unresolved without weakening this independent A7 boundary.
+
+**A7-R4 — Exact challenge and A4 evaluation binding.** A7 accepts the current
+exact `carbon.registry.ChallengeKey` and reconstructs a fresh owned key from
+its validated fields before lookup/storage; it creates no weaker
+challenge/version type and performs no implicit/default/“latest” resolution.
+The validated Strategy's exact `challenge_id` must equal
+`ChallengeKey.challenge_id`. The complete key is immutable after acceptance
+and every downstream result/pin must match it. As A7-R8 specifies, each new
+queue admission through the distinct production or fixture orchestration seam
+must consume current A3 admission eligibility. A7 never copies qualification
+slots, artifacts, or gate logic and is not another LIVE authority.
+
+A7 supplies A4's missing concrete 32-byte `EvaluationBinding`. The sole
+canonical binding-input document starts with exact ASCII
+`carbon.a7.evaluation-binding.v1`, followed in order by four safe identity
+fields: tag `0x01` `SubmissionId.value`, `0x02` StrategyHash tagged value,
+`0x03` challenge ID, and `0x04` exact challenge version. Each field uses A4's
+one-octet tag plus unsigned four-byte big-endian payload length framing and
+exact ASCII payload. This document is not hidden evaluation content and
+contains or derives from no A4 entropy/context/private root, official/master/
+derived seed, domain/role/draw, hidden sample/exam ID, or realization. The
+binding is the 32 raw bytes of SHA-256 over that versioned identity document,
+deliberately adapted into A4 `EvaluationBinding`. It is stable
+across retries and changes for a terminal resubmission. Requester/validator
+identity, attempt number, retry count, fee, state, time, and randomness do not
+enter it. A4 continues to bind generator/scoring pins and future beacon
+material separately; this structural adapter does not settle OQ-005/OQ-006 or
+production randomness policy. A7 retains it only inside its private safe A4
+identity pin; it never stores or exposes a later context, derived seed, draw,
+or evaluation realization.
+
+Before full A3 challenge-ID validation/reconstruction, A7 applies the injected
+`max_challenge_id_bytes` with a capped no-retained-copy scan. Exceeding it is
+A7 resource inadmissibility under A7-R11, not an A3 validity decision. A value
+within that budget must still pass A3's unchanged exact grammar; resource
+admissibility never makes a key valid. The configured maximum itself may not
+exceed `4_294_967_295`, and binding construction still verifies every payload
+is representable by the unsigned-32 field length. Canonical UUID, tagged hash,
+and A3 version remain otherwise bounded. The injected practical cap does not
+alter the accepted `ChallengeKey` or any evaluation-binding byte.
+
+Because `SubmissionId` enters the binding, one logical Carbon intake allocates
+the canonical ID exactly once. Every validator evaluating that submission must
+receive the same immutable ID and derived binding; validator-local instances
+must not independently mint replacement IDs for the same logical submission.
+Wave A proves only the single process-local seam. Replication/distribution of
+that canonical envelope and multi-validator qualification remain later-owned,
+but may not change these bytes.
+
+This reconciles root SPEC's “shared exam identity” with the later Trustless/OQ
+submission-binding addendum: validators share the same pinned exam contract,
+pack/domain, and one submission-specific A7 binding for a given logical
+submission. When combined later with separately governed A4 inputs it
+participates in reproducible derivation, but A7 neither selects, contains,
+constructs, persists, exposes, nor proves the realization. Different
+submissions do not receive an identical realization merely because they share
+challenge/generator/scoring versions. The binding remains submission-specific
+through `SubmissionId` and StrategyHash; provider/timing/finality policy
+remains unresolved under OQ-005/OQ-006.
+
+**A7-R5 — Requester/authentication boundary.** `RequesterIdentity` is a
+separate frozen, slotted nominal type wrapping a validated opaque principal
+label. Wave A reuses A3 `validate_version`: exact built-in string, 1–64 ASCII
+characters under `[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`, with no normalization,
+trimming, coercion, aliasing, or case folding. A7 reconstructs a fresh owned
+wrapper from the validated value before lookup/storage. Equality supplies
+structural binding and idempotency only. It is not production authentication,
+a credential/private key, Bittensor address proof, signature verification,
+metagraph membership, or chain-registration proof. Those remain later-owned.
+This clarification does not rewrite A6's historical pre-A7 language into an
+authentication claim.
+
+**A7-R6 — Process-local store, minimum private record, and atomicity.** The
+bounded Wave-A store is per-instance, process-local, in-memory, and guarded so
+submission creation/open-key lookup, state transition, attempt update, and
+fee-event operations are atomic within the process. It makes no database,
+restart/crash recovery, migration, retention, interprocess/distributed, or
+production-concurrency claim. One private record contains only:
+
+```text
+record_schema_version = "1.0"
+submission_id
+requester_identity
+challenge_key
+strategy_hash?             # absent until/when identity succeeds
+owned_strategy_snapshot?   # accepted submissions only; private, no caller alias
+state
+admission_kind?             # PRODUCTION | FIXTURE; set with first queue admission
+terminal_infra_disposition? # REFUND; fixed at first queue
+terminal_infra_operation_key? # reserved with first RUNNING/CHARGE
+current_attempt_number?
+a4_seed_pin?                 # safe exact A4 SeedPin identity; no seed/context material
+execution_environment_pin?   # safe A7 profile/digest reference; no runtime state
+running_attempt_handle?      # exact private A7 handle with both owned pins
+attempt_history
+fee_events
+```
+
+The record never contains raw or derived official seeds, entropy, draw IDs,
+hidden sample/exam identifiers, hidden evaluation realization, an A4 private root,
+duplicated A5 result or scientific values, `ScoreInput`, predictions/references,
+backend metrics, A8 runtime result/status/error payloads, stack traces, private
+keys/credentials, receipt
+signatures/evidence,
+leaderboard/logging/metrics/emission fields, or unbounded diagnostics. It does
+not expose a public raw-Strategy getter. Stored accepted payloads and private
+error details remain private. Operations may return only bounded stable
+codes/messages; those are not minimum-record fields. Invalid raw input and
+attacker-controlled representations are neither retained nor echoed.
+
+`SubmissionResourceLimits` is immutable store/service configuration, not a
+per-submission record field. The store may maintain only constant-size
+aggregate permit/record/value-node/identity-byte accounting required by that
+policy. Per-request counters, observed sizes, offending category/value, and
+attacker-controlled diagnostics are discarded on success or failure. No
+per-record resource-policy identifier or mutable counter is justified: the
+policy only gates whether identity processing/retention may complete and never
+changes an accepted identity or later lifecycle. Operational audit of the
+human-supplied configuration remains at the bounded service boundary.
+
+Every caller-supplied nominal boundary value—including `SubmissionId` on
+lookup, `RequesterIdentity`, `ChallengeKey`, `FeePolicyKey`, and
+`FeeOperationKey`—is exact-type validated and reconstructed field by field
+before comparison, dict-key use, or retention. Stored wrappers and returned
+wrappers/views/events are separate owned reconstructions. No caller alias can
+mutate a record key, open index, challenge/evaluation binding, requester
+binding, fee history, or result-read authorization, even through low-level
+mutation of a nominally frozen object.
+
+**A7-R7 — Open-submission idempotency.** The exact key is the value tuple
+`(RequesterIdentity, ChallengeKey, StrategyHash)`. Open states are exactly
+`RECEIVED`, `VALIDATED`, `QUEUED`, `RUNNING`, and `SCORED`. A7 applies the
+configured challenge/Strategy resource boundary before A2 validation, owned
+snapshot construction, binding representability, and canonical hashing. Only
+a safe, complete hash may form the normal key. It then atomically looks up the
+open key; an exact open duplicate returns the existing `SubmissionId` and
+creates no record, transition, attempt, charge, or other fee event. Only when
+the key is absent does A7 generate and collision-check a new ID and insert its
+`RECEIVED` record. Within-budget invalid input for which no key can be formed
+takes A7-R11's permanent-rejection path only if record capacity remains. An
+over-budget or over-capacity request has no new complete stored identity and
+neither forms nor occupies an open key, ID, or record. An already-open exact
+duplicate returns its existing ID even when new-record capacity is exhausted.
+Terminal states are exactly `PUBLISHED`, `REJECTED`, `FAILED_INFRA`,
+`FAILED_STRATEGY`, and `CANCELLED`. Terminal records do not block a later
+capacity-permitted submit, which creates a new ID. A6 exact duplicate card
+writes are post-result storage idempotence and remain wholly separate from
+this pre-execution rule.
+
+**A7-R8 — Closed FSM and terminality.** The only structural transitions are:
+
+```text
+create                 -> RECEIVED
+RECEIVED               -> VALIDATED | REJECTED | CANCELLED
+VALIDATED              -> QUEUED | REJECTED | CANCELLED
+QUEUED                 -> RUNNING | FAILED_INFRA | CANCELLED
+RUNNING                -> SCORED | FAILED_STRATEGY | FAILED_INFRA
+RUNNING                -> QUEUED  # explicit infrastructure retry only
+SCORED                 -> PUBLISHED | FAILED_INFRA
+PUBLISHED              -> <none>
+REJECTED               -> <none>
+FAILED_INFRA           -> <none>
+FAILED_STRATEGY        -> <none>
+CANCELLED              -> <none>
+```
+
+`RUNNING -> QUEUED` is legal only as one atomic retry operation that closes
+the old attempt and creates the next attempt number. `FAILED_INFRA -> QUEUED`
+is forbidden: terminal history is never erased. A7-R13 enables all three
+cancellation edges only for the exact stored requester binding and denies
+every other source state. A7 lifecycle `SCORED` is not A5
+`ScoreStatus.SCORED` and means a scientific result is complete. A5 `SCORED` and
+`MANDATORY_GATE_FAILED` may satisfy that completion; A5 `PACK_NOT_READY`, pack
+or input errors, and computation/infrastructure failures may not.
+
+`RECEIVED -> REJECTED` is structural/identity rejection under A7-R11.
+Submission-resource rejection precedes `create`, is not an FSM state or edge,
+and therefore never enters this table.
+`VALIDATED -> REJECTED` is the closed trusted pre-queue denial seam required by
+Build Out. Wave A A7 invokes it only for A3 challenge admission. Later-owned
+authenticated payment/authentication adapters may use that existing edge for
+an exact denial, but they are not implemented here and may not become a generic
+caller-selected reason or transition API. Missing later queue-admission
+fee/retry/pin or production-seam configuration is not proof of nonpayment and
+instead leaves `VALIDATED` unchanged. This does not include the mandatory
+construction-time `SubmissionResourceLimits`. A7 stores
+closed `AdmissionKind.PRODUCTION` or `AdmissionKind.FIXTURE` and both exact
+safe identity pins atomically with successful first queue admission. The
+production operation calls current
+`ChallengeRegistry.is_effectively_live(challenge_id, version)` with the stored
+exact key fields. The structurally separate fixture-only operation calls
+`ChallengeRegistry.assess_live_eligibility(challenge_id, version,
+fixture_mode=True).eligible` and requires visibly fixture-only/non-emission
+fee/retry values and safe-pin policy. There is no generic mode Boolean,
+fallback, or fixture/production relabel path.
+
+A new queue-admission operation first requires exact `VALIDATED`, then checks
+eligibility and calls current
+`ChallengeRegistry.is_backbone_allowed` with the stored exact key and the
+accepted Strategy's exact backbone. A false eligibility or compatibility
+result performs `VALIDATED -> REJECTED` before any
+attempt/charge/A5/A6 artifact and returns only bounded stable code
+`admission.challenge_not_live`, `admission.challenge_not_fixture_eligible`, or
+`admission.backbone_not_allowed`. A false eligibility result deliberately
+includes a typed A3 registry/artifact failure that the current fail-closed A3
+eligibility API catches and converts to false or an ineligible assessment; A7
+neither reclassifies A3 reason codes nor copies its gate/allow-list logic.
+The terminal state is an admission denial at that exact intake, not requester,
+infrastructure-attempt, or scientific blame; a later submit after A3 recovery
+gets a fresh ID when record capacity remains. The minimum private record stores
+only `REJECTED`, not a reason/diagnostic field. A `RegistryError`/exception
+escaping the compatibility call, or any exception escaping eligibility,
+mutates nothing and leaves the record `VALIDATED` and uncharged.
+
+Successful admission atomically stores the kind, both safe identity pins,
+attempt `1`, and `QUEUED`, but appends no fee event. The only initial exam
+charge is coupled to the later first `QUEUED -> RUNNING` material-start
+transaction under A7-R10. Therefore an initial queued cancellation that wins
+the store race is wholly uncharged; if first start commits first, cancellation
+is denied from `RUNNING` and the charge is already recorded.
+
+**A7-R9 — Minimal attempt identity/history.** The initial queue admission
+creates attempt number `1`. `QUEUED -> RUNNING` retains that number. The
+record keeps only ordered, append-only attempt events sufficient to show the
+attempt number and lifecycle event (`QUEUED`, `RUNNING`, `RETRYABLE_INFRA`,
+`SCORED`, `FAILED_STRATEGY`, `FAILED_INFRA`, or `CANCELLED`). An explicit
+retry appends `RETRYABLE_INFRA` for attempt `n` and `QUEUED` for attempt
+`n + 1` atomically; the `SubmissionId`, Strategy hash, ChallengeKey, and A4
+binding do not change. Pre-queue rejection/cancellation has no attempt; an
+authorized requester-bound queued cancellation closes its attempt with
+`CANCELLED`.
+Attempt history contains no seeds, predictions, references, scalar metrics,
+backend diagnostics, A8 raw runtime result/status/error payloads, or stack
+traces. Production retryable
+classes/count/budget remain protocol/operations policy, not an A7 constant.
+
+`ExecutionEnvironmentPin` is a narrow private A7 wrapper/comparison of safe
+identity references, not ownership of an environment or execution
+implementation: a frozen/slotted exact pair of `backend_profile_id` and
+`container_digest`. The profile is an exact built-in 1–128-character ASCII
+token under `[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*`; the digest is exact
+`sha256:<64 lowercase hex>`. A7 neither selects nor launches a backend. A8
+owns concrete backend selection/configuration, execution/runtime resource
+limits, invocation, runtime objects, and raw runtime result/status/error
+semantics. No path, mutable configuration, runtime object, metric, runtime
+resource limit, or A8 payload enters the pin or attempt record. This is
+separate from A7-R3's submission-input resource boundary.
+
+The exact A4 `SeedPin` stored beside it is likewise safe identity metadata,
+not seed material: it contains only the owned ChallengeKey, generator/scoring
+versions and digests, the A7 EvaluationBinding, and fixed scheme identifier.
+It contains no context, entropy, private root, domain/role/draw, derived seed,
+or realization.
+
+`ExecutionAttemptHandle` is a private, frozen/slotted, non-serializable A7
+handoff containing an owned `SubmissionId`, exact positive built-in integer
+attempt number, exact stored `AdmissionKind`, an owned exact A4 `SeedPin`, and
+an owned exact `ExecutionEnvironmentPin`. Before the first fixture
+queue commit, A7 constructs and validates both pins from the stored
+challenge/binding and conspicuous trusted fixture-only generator, Score Pack,
+backend-profile, and exact container-digest identity inputs. The same atomic
+commit stores both pins, `AdmissionKind.FIXTURE`, attempt `1`, and `QUEUED`
+without a fee event. This supplies immutable comparison references without
+implementing execution, selecting a runtime, or claiming provenance.
+
+A production caller/orchestrator may not self-assert either pin. After an A3
+LIVE result but before production queue/attempt, all production seams
+must resolve successfully: an A3-owned adapter binding the exact key to
+qualified generator, Score Pack, and backend-profile identities; a
+human-qualification-owned backend-evidence adapter binding that profile to an
+exact container digest; a separately ratified A5 production-origin/result
+path; an A8 handle-aware adapter declaring the exact profile/container it will
+execute; and a ratified/configured A4 official-context acquisition policy under
+OQ-005/OQ-006. Production completion additionally requires a separately
+ratified production-capable A6 private-store/projection path and a later-owned
+valid submission/pin-bound evidence/receipt adapter; integrating those changes
+requires contract re-ratification. A7 cross-checks the A3, backend-evidence,
+and A8 profile values and the qualified/declared container digests, then
+constructs both pins before the atomic first queue commit. Although A6 and
+receipt checks occur after execution, their ratified configured capability is
+required before queue/start so production cannot be knowingly stranded. A8
+execution configuration alone is not qualification authority. Actual official
+entropy/context is later acquired by the later A8/orchestration adapter through
+A4 and is never selected, received, or stored by A7.
+
+Current A3/backend-qualification/A4-policy/A5/A6/A8/evidence surfaces do not
+provide that complete set, so bounded Wave-A production remains fail-closed in
+`VALIDATED`, uncharged and without an attempt. These prerequisites do not move
+qualification, randomness, scoring, or execution into A7. `QUEUED -> RUNNING`
+reconstructs the current handle from the retained pins. On attempt `1` only,
+the same guarded transaction also appends the sole `CHARGE`, reserves the
+distinct terminal-refund operation key, records `RUNNING`, and returns the
+kind-specific envelope. A failed precommit first start remains `QUEUED` and
+uncharged. A retry start reuses the existing charge and appends no second one.
+Both owned pins are immutable for the submission; every retry reuses them
+exactly.
+
+A7 stores one owned current handle while `RUNNING` and returns a separate
+fresh private, kind-specific `ProductionExecutionEnvelope` or
+`FixtureExecutionEnvelope` containing another handle reconstruction, fresh
+alias-free Strategy tree, StrategyHash, and ChallengeKey. Separate start
+operations reject admission-kind crossing and expose no generic mode switch;
+a retry-start envelope changes only the attempt number and never charges.
+The stored running handle adds no payload beyond the exact state, attempt,
+kind, and safe pins already retained in the record. Retry/terminalization
+clears the running handle but retains both pins; history retains only the
+number/events above. Every `RUNNING` callback—completion, retryable/terminal
+infrastructure failure, or strategy failure—must present the matching current
+handle. A wrong/stale handle is a typed no-mutation rejection and cannot alter
+a later attempt. That rule governs first application. A7-R10 permits exact
+no-mutation replay of a recorded handle-bearing callback only after binding the
+supplied historical handle to the event's source attempt. Its separate initial-
+start replay is generated-handle aware and returns no envelope or relaunch
+authority. The handle proves
+only that the trusted adapter returned the current structural context; because
+bare A5 `InternalResult` has no submission field, authenticated result
+provenance remains later receipt/evidence work.
+The envelope/handle is A7-owned plumbing, not execution or an A8
+implementation, and neither has a public serialization/projection path.
+
+**A7-R10 — Fee events and score isolation.** Production fee amount, asset,
+schedule, and policy version are human/protocol-owned. A7 has no built-in,
+fallback, or environment-derived production fee value. Future Wave-A tests
+may inject visibly fixture-only policies and amounts. Every amount is an
+exact built-in integer number of the supplying policy's minor units; Boolean,
+float, coercion, and negative values reject.
+
+The fee-event vocabulary is closed to `CHARGE`, `REFUND`, and
+`RETRY_CREDIT`. Its coupled operation context is separately closed to
+`INITIAL_RUN_START`, `RETRY`, `TERMINAL_INFRA`, and `PUBLICATION_INFRA`.
+`RETRY_CREDIT` and `RETRY` remain representable for a future separately
+ratified policy; the bounded Wave-A default defined here never selects them as
+the terminal remedy or appends them during retry.
+`FeePolicyKey` and `FeeOperationKey` are separate frozen,
+slotted nominal types using the exact A3 `validate_version` grammar without
+normalization or coercion; A7 reconstructs fresh owned values before event
+lookup or retention. The supplying policy key identifies the
+human-owned denomination/asset, schedule, and version meaning; A7 does not
+invent that meaning. A trusted economic/orchestration adapter—not the raw
+miner submit payload—supplies a stable `FeeOperationKey` for each logical
+economic operation so transport retries can reuse it. Events are append-only
+and monotonically sequenced per submission: the first event has exact built-in
+integer sequence `1`, and each next event increments it by exactly one. The
+minimum event is sequence, operation key, policy key, kind, exact positive
+source-attempt number, exact `AdmissionKind`, exact operation context, integer
+minor-unit amount, and an absent-for-charge/required-for-adjustment
+charge-operation key. Operation idempotency is scoped to
+`(SubmissionId, FeeOperationKey)`: an exact replay of the same
+kind/context/admission-kind/source-attempt/amount/policy/linkage returns the
+existing event, while reuse of the key with a different payload is a typed
+conflict. The `CHARGE` records the existing queued attempt `1`. A submission
+has at most one `CHARGE`, appended atomically only with its first
+`QUEUED -> RUNNING` material-start transition. Queue admission, cancellation,
+and retry start never append a charge. `REFUND` and `RETRY_CREDIT` must
+identify that exact charge and use its policy key; neither may exist without
+it, and their aggregate adjustments may not exceed its charged amount. The
+distinct terminal-infrastructure operation key reserved atomically with the
+first charge cannot be used for any other event/context and is consumed only
+by the fixed `REFUND` under `TERMINAL_INFRA` or internal
+`PUBLICATION_INFRA`. Duplicate open submit and repeat result read never
+charge. A7's process-local ledger event does not prove or imply production
+payment authorization, reservation, transfer, or settlement; those remain
+later-owned. `Miner_MCP.md`'s paid-loop/SubmitReceipt ordering is product and
+transport shorthand for that later settlement path; it neither moves A7's
+ledger `CHARGE` before material start nor turns the fixture ledger into a
+payment receipt. Fee policy/events have no dependency, argument, field, or
+conversion path into A5 `ScoreInput`, `ScoreEngine.score`, `InternalResult`,
+or later score-to-weight/emission calculation. Fee is never score.
+
+For a transaction that appends a fee event, after safe boundary/submission/key
+reconstruction, lookup of an existing `(SubmissionId, FeeOperationKey)` and
+replay/conflict resolution precedes policy/configuration, source state,
+current handle, and every other fallible operation prerequisite. A3 assessment
+belongs to the earlier no-fee queue admission. Only a new operation key reaches
+source-state validation; after the required source state is confirmed,
+operation-specific handle/policy checks run. Exact
+kind/context/admission-kind/source-attempt/amount/policy/linkage replay returns
+the already-completed event and makes no state, index, attempt, or fee mutation
+even if the record has since advanced or terminalized. If the original operation
+required an `ExecutionAttemptHandle`, replay must also supply the exact
+historical handle reconstructed from the event's attempt number and the
+record's immutable submission/admission/scientific/environment-pin fields; a
+different attempt, handle, or payload is a typed conflict without mutation.
+Thus a first application still requires the current handle, while a trusted-
+adapter exact replay may present its now-historical handle only to retrieve the
+prior event.
+
+The initial kind-specific start is the one exception to the
+supplied-historical-handle rule because it generates the handle. Its private
+result is a closed sum: `STARTED(FeeEvent, ExecutionEnvelope)` on first
+application or `ALREADY_STARTED(FeeEvent, SubmissionState)` on exact replay;
+the latter has no envelope. The immutable store policy supplies the exact
+`FeePolicyKey` and integer amount; the trusted
+start adapter supplies a stable charge operation key and a distinct stable
+terminal-refund operation key. First application requires exact `QUEUED`,
+attempt `1`, no existing charge, and both retained safe pins, then atomically
+stores the current handle/refund key, appends `RUNNING` and the
+`INITIAL_RUN_START` `CHARGE`, transitions to `RUNNING`, and returns closed
+`STARTED` with the fee event plus private execution envelope. A failed
+precommit check leaves `QUEUED` unchanged and uncharged.
+
+Exact replay of that start additionally compares the retained refund key,
+A4 `SeedPin`, and `ExecutionEnvironmentPin`. It returns closed
+`ALREADY_STARTED` with only the prior event/current status and never returns an
+execution envelope or authorizes another A8 launch, even if attempt `1` is
+still current. A changed key, pin, policy, amount, kind, context, or attempt is
+a conflict. Retry starts are no-fee lifecycle operations that reuse the
+existing charge and pins. Queue admission and requester cancellation also
+append no fee event and therefore have no fee-operation replay claim. No
+standalone fee-adjustment operation exists. `complete_and_publish` is not a
+fee-operation replay surface even if its single call internally terminalizes
+after A6 failure and consumes the reserved refund; repeated completion remains
+A7-R14's typed terminal-state error, and the atomic internal event uses
+distinct `PUBLICATION_INFRA` context and cannot be retrieved through a
+`TERMINAL_INFRA` callback or duplicated.
+
+**A7-R11 — Invalid Strategy and safe rejection.** Resource policy failure is
+a pre-identity request/configuration boundary, deliberately distinct from the
+permanent FSM rejection below. Missing or invalid mandatory limits fail A7
+store/service construction with typed `SubmissionResourcePolicyError` and
+constant code
+`submission.resource_policy_unavailable`; no production submit path may start
+with a guessed fallback. Exceeding any configured Strategy or challenge limit
+stops immediately with typed `SubmissionResourceError` and constant code
+`submission.resource_limit_exceeded`. Exhausted identity-build or retained
+store capacity returns the same typed error with constant code
+`submission.resource_capacity_exceeded`. Neither error exposes a category,
+limit, observed count/bytes, path, value, or `repr`. A limit overrun allocates
+no `SubmissionId` and creates no retained snapshot, complete or partial
+`StrategyHash`, open-key entry, or record. A capacity failure may occur after a
+bounded complete request-local identity is needed to resolve an open duplicate,
+but stores none of it and allocates no ID. Both create no attempt, fee event,
+queue admission, A5 result, or A6 card. Neither is `FAILED_STRATEGY`,
+`FAILED_INFRA`, A5
+`PACK_NOT_READY`, a mandatory gate, scientific zero, or emission blame.
+
+For a resource-admissible request with a valid structural requester, exact
+`ChallengeKey`, and available record capacity, every non-duplicate new request
+receives a new `SubmissionId` and begins at `RECEIVED`; A7-R7 open duplicates
+instead return their existing ID without a new record. If A2 validation,
+bounded owned-candidate capture, post-A2 repeated-container identity,
+strict-UTF-8 or
+frame/binding-representability identity, or Strategy/ChallengeKey challenge-ID
+comparison fails before an open key can be formed or found, A7 generates and
+collision-checks an ID, atomically inserts `RECEIVED`, and transitions that
+record to terminal `REJECTED`. Hash/snapshot remain absent when no accepted
+identity can be formed, and the record is not placed in the open-idempotency
+index. Rejection occurs before queue admission and before `CHARGE`; it creates
+no A6 record/card, A5 result, failed physics gate, scientific zero, attempt, or
+emission disposition. Only bounded stable issue codes/messages may cross the
+boundary; no raw input, submitted value, `repr`, or unbounded diagnostic is
+retained or echoed. Malformed requester/ChallengeKey wrappers are request-
+boundary errors before a safely bound submission can be created.
+
+**A7-R12 — Infrastructure retry and terminal `REFUND`.** A retryable
+infrastructure fault while `RUNNING` may atomically close the current attempt,
+append `RETRYABLE_INFRA`, increment the attempt, and requeue the same
+submission. Retry never creates a new SubmissionId, changes scientific
+identity, or creates a second exam charge. The bounded Wave-A policy appends
+no retry fee event. `RETRY_CREDIT` remains a supported schema vocabulary item
+only for a future separately ratified policy; it is not the current retry or
+terminal default. Retryable classes/count/budget remain human-owned rather
+than an A7 constant.
+
+If recovery is not performed, is unavailable, or that explicit retry budget
+is exhausted, the submission terminalizes as `FAILED_INFRA`. The ratified
+terminal economic default is **`REFUND`** for exactly the full remaining
+charge balance: original charge minus any prior adjustment authorized by a
+future ratification. A terminal failure from initial `QUEUED` before any
+`RUNNING` start has no charge and therefore appends no refund event. A
+terminal failure from charged retry-`QUEUED`, `RUNNING`, or `SCORED` appends
+the linked `REFUND` atomically with terminalization; A6 publication failure
+uses `PUBLICATION_INFRA`, while the other paths use `TERMINAL_INFRA`.
+
+The A7 store's injected fee/retry policy and fixed terminal default are
+immutable for that store's lifetime; reconfiguration requires a new store.
+First queue admission requires complete fee/retry configuration, both valid
+kind-specific pins, and, for production, every A7-R9 production seam, but it
+remains uncharged. First start validates the supplied stable charge and
+distinct refund operation keys before atomically storing the refund key,
+charging, and entering `RUNNING`; missing configuration/key material leaves
+the record `QUEUED` and uncharged. No charged `RUNNING`/`SCORED` record can be
+stranded by missing terminal economics. The `.agent/WAVE.md` parenthetical
+“FAILED_INFRA refund” now agrees with this selected default but does not imply
+implementation.
+
+No infrastructure path constructs a physics gate, scientific zero, A5
+scientific failure, EvaluationCard, or emission blame. Partial/private
+operational evidence remains with its authorized later owner and is never
+stored as A7 science.
+
+**A7-R13 — Requester-bound, no-event cancellation.** `CANCELLED` is terminal.
+The bounded Wave-A cancel operation exact-type validates and reconstructs the
+supplied `SubmissionId` and `RequesterIdentity`, then under the A7 guard
+requires structural equality with the submitting requester. Only that stored
+requester binding may request cancellation, and only from `RECEIVED`,
+`VALIDATED`, or `QUEUED`. Cancellation from `RUNNING`, `SCORED`, `PUBLISHED`,
+`REJECTED`, `FAILED_INFRA`, `FAILED_STRATEGY`, or `CANCELLED` is denied without
+mutation. No validator/operator cancellation path exists.
+
+Cancellation appends no fee event: it creates neither `CHARGE` nor `REFUND`.
+An initial queued attempt that has never entered `RUNNING` is therefore
+cancelled wholly uncharged. A retry-queued submission already has the sole
+material-start charge; cancellation creates no new fee event and leaves that
+prior charge unchanged. If infrastructure terminalization wins the guard
+instead, A7-R12's `FAILED_INFRA` refund applies. A queued cancellation may
+append only the minimal `CANCELLED` attempt event.
+
+Start, terminalization, and cancellation race atomically under the same store
+guard: whichever legal transition commits first wins. A stale cancellation
+request fails safely and cannot regress state; if initial start wins, its
+charge and `RUNNING` state commit together and cancellation is denied. If
+cancellation wins, start observes terminal `CANCELLED` and creates no charge.
+
+This structural requester comparison is the complete bounded Wave-A policy,
+not production authentication, signature/Bittensor proof, payment
+authorization, reservation, transfer, or settlement. Any later external
+production cancellation surface must first bind an authenticated actor to the
+stored requester under its separately owned adapter; the policy does not make
+structural equality a production credential.
+
+**A7-R14 — A6 publication adapter.** Each A7 store exclusively owns the
+dedicated A6 `CardStore` containing its cards, exposes no direct store
+reference, and performs every A6 read/write under the same A7 guard. A
+production caller cannot inject or retain a side reference; an internal
+failure-test seam must transfer exclusive ownership. This closes the otherwise
+observable interval between A6 insertion and A7 `PUBLISHED`.
+
+`SubmissionId.value` is deliberately reconstructed into a new
+`CardRecordKey`, and `RequesterIdentity.value` into a new
+`RequesterAuthorizationKey`; none of those nominal types is aliased. The sole
+scientific-completion operation is conceptually
+`complete_and_publish(ExecutionAttemptHandle, InternalResult)`. It first
+requires the matching stored current handle; a wrong/stale handle returns a
+typed safe error without state or A6 mutation. With a matching handle, A7
+explicitly reconstructs one fresh, recursively owned exact A5 graph through
+current A5 model constructors and retains it only for this call.
+
+Before lifecycle `SCORED`, A7 verifies all available structural attribution:
+the result `ScorePackPin.challenge_key`, scoring version/digest, and required
+generator version/digest must equal the stored handle's A4 `SeedPin` fields;
+that pin already contains the stored ChallengeKey and A7-derived
+EvaluationBinding. The matching handle must also retain the exact stored
+`ExecutionEnvironmentPin`; no lifecycle score exists without both pins.
+Fixture admission additionally requires the exact A5 fixture-origin result;
+production admission cannot relabel that fixture result as production. A
+matching-handle reconstruction/pin/integration failure is operational while
+`RUNNING` and follows the retryability decision or `RUNNING -> FAILED_INFRA`;
+it never becomes `FAILED_STRATEGY`, a physics gate, or a scientific zero.
+
+Current A5 constructors accept only fixture-origin pins/results. The narrow A7
+environment pin permits a structurally bound fixture happy path with
+conspicuous non-emission inputs, but does not claim that execution occurred or
+authenticate provenance. Current A6 is likewise fixture-only, and authoritative
+production results require a valid later-owned submission/pin-bound receipt.
+Therefore this two-argument `complete_and_publish` is fixture-only. Production
+completion/publication remains unavailable and fail-closed until every A7-R9
+production seam exists and a future contract re-ratifies a receipt-gated,
+production-capable A6 operation. A7 must not fabricate any seam or publish a
+fixture result as production.
+
+Only completed A5 `SCORED` or `MANDATORY_GATE_FAILED` may record
+`RUNNING -> SCORED`. A5 `PACK_NOT_READY` and pack/input/computation errors use
+the same retry/infrastructure path and cannot be published. A7 exposes no
+independent mark-scored operation, later publish method accepting another
+result, or record field containing a duplicate result/digest/token. With the
+same reconstructed completed result and while still holding the guard, A7
+records `SCORED`, clears the running handle, and calls
+`CardStore.write_internal`. `INSERTED` and exact `ALREADY_PRESENT` permit
+`SCORED -> PUBLISHED`; only A6 conflict/store failure after that point follows
+`SCORED -> FAILED_INFRA` and appends the fixed remaining-balance `REFUND` under
+`PUBLICATION_INFRA`. A published result and `FAILED_STRATEGY` retain the sole
+material-start charge; neither receives an infrastructure refund. A repeated
+completion call after any terminal state is a typed no-mutation terminal-state
+error; callers use the status/read seams. The in-memory contract makes no
+cross-store crash-transaction claim.
+
+The bounded status seam is
+`get_status(SubmissionId, RequesterIdentity) -> SubmissionStatusView`. It
+reconstructs both lookup values, verifies structural requester equality, and
+returns fresh owned values containing only `submission_id` and current
+`state`; it exposes no Strategy/hash, attempt/history, fee, rejection reason,
+result, pin, or diagnostic. Terminal records therefore remain safely
+queryable. The bounded card seam is
+`read_published(SubmissionId, RequesterIdentity) -> EvaluationCard`. It
+requires exact `PUBLISHED`, deliberately adapts fresh A6 keys, and delegates
+to `CardStore.read_budgeted`. Both repeat operations are fee-free. A7 never
+bypasses A6 authorization/projection or returns `InternalResult`; A9 later
+owns transport.
+
+**A7-R15 — Reconciliation, dependency boundary, and implementation gate.**
+The stale ticket API is repaired from bare `hotkey`/`challenge_id` to
+`RequesterIdentity` plus exact `ChallengeKey`, and its focused path is
+`tests/cpu/test_submission_fsm.py`. Future A7 core has no dependency on A8,
+A9, A10, A11, Bittensor, an optional scientific backend, or a new runtime
+package. Standard-library dataclasses/enums, `hashlib`, `struct`, `uuid`, and
+process-local synchronization are preferred. Current A2–A6 types are kept and
+wrapped; legacy timestamp IDs, `carbon.protocol.StrategySynapse`,
+`carbon/common/model_card.py` hashing/storage, PoC hashing, and historical
+queue sketches are not promoted as A7 authority.
+
+Existing A3/A5 fixtures cannot form the A7 happy path unchanged: the registry
+fixture's `synthetic_backbone` is outside A2's accepted backbone vocabulary and
+the A5 fixture has a different challenge identity. Future A7 tests must build
+an in-test or A7-owned conspicuous non-emission fixture whose exact
+ChallengeKey, A2-valid backbone, Score Pack pin, both A7 pins, and A5 result
+align. That test data must not change A2–A6 semantics or masquerade as LIVE.
+
+The untouched A8 ticket still proposes a generic `mock|official` mode and raw
+status vocabulary without A7 handles. Before A8 integration, its own
+pre-implementation ratification must reconcile to A7's kind-specific envelopes,
+current-handle callbacks, immutable A7 environment pin, and exact
+mapping into `FAILED_STRATEGY`, retry, or `FAILED_INFRA`. This is a recorded
+future interface dependency, not A8 work in this ratification. In particular,
+A8 `invalid_strategy` may not reclassify schema or exact-key backbone
+compatibility that A7 must deny before queue.
+A later A8 adapter serving `AdmissionKind.FIXTURE` may consume only A4
+`FixtureOfficialContext` through the fixture-official derivation path—never
+MOCK or provider-official context. A later A8 adapter serving
+`AdmissionKind.PRODUCTION` may consume only provider-acquired
+`OfficialContext` through official derivation after OQ-005/OQ-006 resolution.
+A7 receives neither context nor any derived seed/runtime payload.
+
+The untouched A12 invariant ticket also omits its necessary A7 dependency even
+though it promises fee-versus-score coverage. Its own later ratification must
+depend on completed A7 and reuse A7's fee-isolation contract/tests rather than
+inventing another fee path. This records a future ticket repair only; it does
+not start or edit A12.
+
+Implementation may begin only after this documentation is independently
+reviewed, explicitly human-authorized, merged, and a fresh
+main/concurrency/status check confirms A7 remains `todo` and unstarted. A
+production-capable path necessarily requires explicit human-owned
+`SubmissionResourceLimits`, fee amount/denomination/schedule/version, and
+retryable classes/count/budget. Missing resource limits prevent executable
+production store construction rather than falling back. The A7-R12 `REFUND`
+default and A7-R13 requester-bound cancellation policy are now fixed by human
+authorization. The remaining human inputs are not sufficient without the
+complete A3/backend-qualification/
+A4-OQ-005/OQ-006/A5/A6/A8/evidence production seams and required
+re-ratification recorded above. A bounded Wave-A implementation may instead
+use conspicuous injected finite fixture-only submission limits and fee/retry
+values under those fixed terminal/cancellation semantics and keep every
+production path fail-closed. No A7 checkbox, `.agent/WAVE.md` status, Python,
+test, fixture, dependency, package, or A8+ implementation changes through this
+ratification alone.
+
 ## 2026-08-22 — A6 closure after reviewed merge
 
 **Implementation topology and review.** The bounded implementation started from
