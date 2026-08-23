@@ -53,9 +53,11 @@ The stage deck should remain simpler than the papers. It should explain the prob
 
 ---
 
-## Cross-publication reconciliation record
+## Reconciliation, claim, and source records
 
-See [`PUBLICATION_RECONCILIATION_2026-08-23.md`](./PUBLICATION_RECONCILIATION_2026-08-23.md).
+- [`PUBLICATION_RECONCILIATION_2026-08-23.md`](./PUBLICATION_RECONCILIATION_2026-08-23.md) — cross-paper authority and content reconciliation.
+- [`PUBLICATION_CLAIM_AUDIT_V3_1.md`](./PUBLICATION_CLAIM_AUDIT_V3_1.md) — scientific/business/network pre-release claim controls.
+- [`SOURCE_STATUS_V3_1.md`](./SOURCE_STATUS_V3_1.md) — prepared source/PDF hashes, build state, and current source-control caveat.
 
 ---
 
