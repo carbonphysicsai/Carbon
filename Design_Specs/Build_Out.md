@@ -75,7 +75,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C4 | Dossier | **Low** | Script skeleton, artifact layout, registry gate | Pass/fail, reference rank, calibration |
 | C5 | Scoring engine + packs | **High** / **Low** | Engine, YAML schema, fail-closed, forbidden-input guards | Thresholds, weights |
 | C6 | Seeding / roles | **High** | Domain separation + leakage tests | Seed derivation formula confirm |
-| C7 | Validator neuron | **Med** | Queue, FSM, harness, isolation limits, card write | Train backend quality, BT ops |
+| C7 | Validator neuron | **Med** | Composition harness across A7 FSM/pins, A8 execution, and A6 publication | Train backend quality, concrete A8 runtime qualification, BT ops |
 | C8 | Miner neuron | **High** | Optional thin client | — |
 | C9 | Miner MCP | **High** | All tools + policy guards | Bootstrap prior content |
 | C10 | Prior publisher | **Med** | Pipeline + redact tests | Coarsen policy, first prior |
@@ -100,18 +100,18 @@ WAVE A — infrastructure science cannot block
   C13 fees + submission_id + FSM skeleton
   C9 MCP: info, prior, scaffold, dry_validate, estimate, submit, get_submission_result
   C14 leaderboard · C16 logging
-  TrainEvalAPI STUB (deterministic fake metrics; never emission-capable)
+  TrainEvalAPI STUB (deterministic synthetic fixture scalar material; never emission-capable)
 
 WAVE B — science-ready skeletons
   C3 Generator API + Burgers fixture (HUMAN_INPUT ranges)
   C11 mock pack + placeholder scaffold
-  C9 light_compare / light_train → TrainEvalAPI (stub or real)
+  C9 light_compare / light_train → separately ratified nominal mock TrainEval entry point
   C10 prior pipeline + bootstrap prior placeholder
   C4 dossier layout + qualification manifest schema
   C19 reference runner interface
 
 WAVE C — vertical integration
-  Real TrainEvalAPI (or PoC-promoted backend) behind official + mock modes
+  Real TrainEvalAPI behind nominally separate future qualified production and mock entry points
   C7 validator: queue → hidden data → run → score → cards
   MCP e2e: free loop then paid loop
   C15: actual Bittensor testnet path (not stub-only)
@@ -126,66 +126,178 @@ POST-P0 (not required for P0; see §18)
   WAVE G — Customer bounds / sponsors → Customer_Bounds_Specialist.md
 ```
 
-**Stub policy:** Wave A/B may use TrainEvalAPI stubs for CI and MCP plumbing. **Stub metrics must never write emission weights or LIVE leaderboard ranks.** Wave C swaps in real backend before testnet acceptance.
+**Stub policy:** Wave A may use the fixture-official A8 stub for bounded
+lifecycle/contract CI. Wave B may add mock/light plumbing only after its
+separate nominal request/resource/disclosure contract is ratified. **Synthetic
+stub material must never write emission weights or LIVE leaderboard ranks.**
+Wave C requires a separately qualified real backend before testnet acceptance.
 
 ---
 
 ## 5. TrainEvalAPI (critical shared contract)
 
-Used by **validator official path** and **MCP light_compare / light_train**. One harness; mode selects data rights.
-
-### 5.1 Signature (conceptual)
+TrainEval remains the single architectural owner of official-shaped execution
+and the MCP `light_compare` / `light_train` execution family. Data rights are
+not selected by a string mode. Fixture-official, future production, and mock
+execution use nominally separate request/result types and entry points. The
+exact bounded contract is governed by the A8 decision candidate only after
+independent review, explicit human authorization, and merge, together with
+current A4--A7 types; this section records the sequencing-level contract.
 
 ```text
-run(
-  strategy: dict,
-  batches: list[Batch],
-  mode: "mock" | "official",
-  limits: ResourceLimits,
-  pin: EvaluationPin   # challenge_id, generator_version, pack_hash, strategy_hash, env_digest
-) -> RunResult
+A8 SPECIFIED / RATIFIED: YES only after this documentation candidate is independently reviewed, explicitly human-authorized, and merged
+A8 IMPLEMENTED: NO
+A8 TESTED: NO
+A8 PRODUCTION-QUALIFIED: NO
+A8 WAVE STATUS: todo
 ```
 
-### 5.2 ResourceLimits (minimum)
+### 5.1 First bounded implementation: fixture-official only
 
-- max_steps / max_epochs  
-- wall_clock_seconds  
-- max_vram_mb (if applicable)  
-- max_cpu_cores  
-- network: deny by default  
-- filesystem: scratch only  
+```text
+FixtureTrainEvalService.run_fixture(
+  envelope: exact FixtureExecutionEnvelope
+) -> private FixtureRunOutcome
+```
 
-### 5.3 RunResult status classes
+Trusted composition constructs the service with an immutable exact
+`FixtureStubProfile`, an exact A4 `DeterministicFixtureProvider`, an exact
+verified A5 `LoadedScorePack`, trusted fixture runtime configuration, an exact
+declared execution-environment identity, and the deterministic
+`FixtureStubBackend`.
 
-| status | Meaning | Score? |
-|--------|---------|--------|
-| `success` | Finished; metrics populated | Yes — feed ScoreEngine |
-| `invalid_strategy` | Schema/denylist/unsupported backbone | No — REJECTED |
-| `timeout` | Hit wall clock / step cap | No emissions; card may note limit |
-| `resource_violation` | OOM / limit kill | **FAILED_INFRA** path — not physics fail |
-| `numerical_failure` | NaN/Inf during train | Gate/scientific fail path |
-| `train_failure` | Optimizer/crash in user strategy | Scientific / strategy fail |
-| `infra_failure` | Node/queue/storage fault | **FAILED_INFRA** — retry/refund policy |
-| `incomplete_metrics` | Partial metrics; cannot score | Fail closed |
+The fixture runtime policy is an exact immutable fixture-only composition
+value. It carries safe environment-identity fields and a total closed-cause to
+retry-class table for fixture lifecycle tests, but no production/numeric
+runtime values, generic mode, fallback, backend selector, or emission Boolean.
+Its retry table is trusted fixture test policy, not A7 permission/budget or a
+production default.
 
-### 5.4 EvaluationPin (reproducibility)
+A7 supplies the exact fixture envelope and `ExecutionAttemptHandle`. The run
+call accepts no independently caller-selected Strategy, StrategyHash, batch,
+mode, runtime limit, attempt number, ChallengeKey, SeedPin, environment pin,
+context, seed, Score Pack, or backend identity. A8 does not repeat A2 schema
+validation or A3 challenge/backbone admission.
 
-Every official run records: `strategy_hash`, `challenge_id`, `generator_version`, `scoring_pack_hash`, `env_digest` (container/image), `limits` snapshot, seed **roles** (not raw official seeds on miner path).
+The fixture path consumes only an exact `FixtureOfficialContext` acquired
+through `acquire_fixture_official_context` and derives only through
+`derive_fixture_official_seed`. It never accepts `MockContext`, provider-origin
+`OfficialContext`, qualification context, raw entropy, or a caller-provided
+derived seed. Current process-local envelopes and handles are correctness
+values, not authenticated capabilities; exact-type checks are not a sandbox.
 
-### 5.5 Mode rules
+### 5.2 Reserved mock/light lane
 
-| mode | Allowed data | Emissions |
-|------|----------------|-----------|
-| `mock` | `mock_*` packs, miner-chosen seeds only | Never |
-| `official` | Validator generator roles, hidden seeds | Only if scored under LIVE pack |
+Build Out and the A9 intent still require a mock/light free path, but a generic
+`mock | official` mode is forbidden. Its future contract is a separate nominal
+entry point, conceptually:
 
-`mode=mock` **must refuse** non-`mock_` packs and official seeds.
+```text
+MockTrainEvalService.run_mock(
+  request: exact future MockExecutionRequest
+) -> MockRunOutcome
+```
+
+The exact mock request, resource, and disclosure contract requires a later
+A8/A9 documentation ratification before A9 estimate/light implementation.
+Mock execution may use only mock context/data rights. A mock outcome is not an
+A5 `InternalResult`, cannot enter A7's official submission lifecycle or A6,
+cannot create a card, and cannot affect fees, official score, leaderboard
+rank, weights, or emissions. It is mechanically non-emission-capable.
+
+### 5.3 Private fixture outcome and A7 mapping
+
+The closed private fixture outcome is one of:
+
+```text
+CompletedFixtureRun(exact handle, exact A5 InternalResult)
+StrategyFailedRun(exact handle, closed StrategyFailureCause)
+InfrastructureFailedRun(
+  exact handle,
+  closed InfrastructureRetryClass,
+  closed InfrastructureCause
+)
+```
+
+Pairing a handle and result is process-local trusted composition, not
+authenticated execution provenance. A7 revalidates the handle and A4/A5 pin
+projection, but substitution-resistant provenance remains later receipt/
+evidence work.
+
+Only exact A5 `SCORED` and `MANDATORY_GATE_FAILED` results may appear in a
+completion. `PACK_NOT_READY`, missing/non-finite/partial execution material,
+pack/input/computation failure, backend/reference failure, and infrastructure
+failure are operational and cannot become a failed scientific gate or zero.
+A8 never returns `invalid_strategy`; A2/A3 rejection occurred before A7 queue
+admission. Strategy failure is permitted only when positively attributable to
+the Strategy; ambiguity defaults to infrastructure. Because the bounded
+synthetic stub ignores Strategy and executes no miner code, its service cannot
+emit `StrategyFailedRun`; the closed variant is reserved for a separately
+ratified real backend. The later implementation task must test its A7 mapping
+at the private composition seam without making the fixture service fabricate
+Strategy blame.
+
+Trusted later composition, not A8 storage and not an A7 import of A8, maps a
+completion to `complete_and_publish`, a Strategy failure to `fail_strategy`, a
+retry-classified infrastructure failure to `retry_infrastructure`, and a
+non-retryable infrastructure failure to `fail_infrastructure`. A7 alone owns
+current-handle authority, retry budget, terminalization, refund, cancellation,
+and A6 publication. Wrong, subclassed, cross-kind, malformed, or internally
+contradictory untrusted boundary objects produce stable non-echoing typed
+errors and do not authorize an A7 mutation. A stale callback is rejected by
+A7 without mutation.
+
+### 5.4 Runtime resources and execution identity
+
+A7 `SubmissionResourceLimits` govern hostile submission capture and retained
+record capacity. They are not runtime limits. A7's immutable
+`ExecutionEnvironmentPin` is safe attempt-identity metadata, not runtime
+configuration or qualification proof.
+
+A8 owns trusted runtime policy, actual CPU/GPU/backend selection, concrete
+memory/time/process/filesystem/network controls, backend/container launch and
+shutdown, output materialization limits, shape/type/finiteness validation, and
+exception conversion/redaction. The first synchronous fixture stub has no
+cancellation API; a future real adapter must separately ratify transient
+cooperative and hard shutdown. The A8 configuration reconstructs its declared
+environment pin and must match the handle pin exactly before execution.
+Production values and real sandbox/container/backend qualification remain
+human-owned later work.
+
+### 5.5 A5 and disclosure boundary
+
+A8 privately validates complete execution material and constructs the exact
+pack-authorized scalar input only through
+`LoadedScorePack.fixture_score_input`, then invokes current
+`ScoreEngine.score`. A5 remains the sole owner of `ScoreInput`, pack readiness,
+gate semantics, scalar transforms, aggregation, `ScoreStatus`, and
+`InternalResult`. A8 does not construct `InternalResult` directly or invent a
+metric, threshold, gate, weight, transform, tolerance, or production Score
+Pack. A8 never calls A6 or publishes a card.
+
+The fixture backend capability, fixture service, fixture outcome, A5 result,
+and A6 fixture projection are all mechanically non-emission-capable. No caller
+supplies an `emission_capable` Boolean. Beyond the safe `SeedPin` and
+`ExecutionEnvironmentPin` already carried by the exact handle, the private
+outcome carries no context, entropy/private root, raw official/master/derived
+seed, role/domain/draw identity, prediction, reference, raw metric vector,
+`ScoreInput`, checkpoint, model weight, exception text, stack trace, path,
+runtime configuration or environment-variable value, credential, fee, card,
+public diagnostic, transcript, receipt, evidence, signature, emission weight,
+or eligibility override. A later production consumer must require positive
+qualified provenance; a negative Boolean alone is not provenance.
 
 ---
 
 ## 6. Submission lifecycle
 
-Every `submit` returns a permanent **`submission_id`**.
+This section is sequencing shorthand. Current `carbon/fees/` code and
+A7-R1--A7-R15 control exact identity, state, fee, retry, refund, cancellation,
+and publication behavior; this section cannot authorize a second A8 lifecycle
+or revive historical selectable defaults.
+
+Every created submission record has a permanent **`SubmissionId`**. A malformed
+or over-limit request may fail before a safe record/ID exists.
 
 ### 6.1 States
 
@@ -196,22 +308,24 @@ RECEIVED → VALIDATED → QUEUED → RUNNING → SCORED → PUBLISHED
 Exceptional:
 
 ```text
-REJECTED          # schema/denylist/fee/auth
+REJECTED          # A7 records prior A2/schema or identity failure, or trusted A3 denial
 FAILED_STRATEGY   # train/numerical attributable to strategy
 FAILED_INFRA      # Carbon/validator infrastructure
-CANCELLED         # policy-defined
+CANCELLED         # exact requester-bound A7 cancellation edges only
 ```
 
 ### 6.2 Fee & idempotency semantics
 
-| Event | Fee | Notes |
-|-------|-----|-------|
-| REJECTED before queue | Not charged / refund | Invalid strategy, unpaid, non-LIVE challenge |
-| FAILED_INFRA | Refund or retry credit | Never scored as physics zero for emissions blame |
-| FAILED_STRATEGY / SCORED | Charged | Exam was delivered |
-| Duplicate `strategy_hash` + hotkey + challenge version | Policy: reject or no-op with same `submission_id` | Define one; default **idempotent return of existing id** if still open |
+| Event | Current A7 fee/lifecycle behavior | Notes |
+|-------|-----------------------------------|-------|
+| Pre-record request/resource failure | No record, charge, or refund | Typed boundary failure, not an FSM state |
+| `REJECTED` before queue | No charge and no refund | A7-R8/R11; no attempt or A5/A6 artifact |
+| Infrastructure retry from `RUNNING` | No new charge, refund, or `RETRY_CREDIT` | A7-R12 preserves identity and alone applies attempt budget |
+| Terminal `FAILED_INFRA` | No refund if never charged; otherwise fixed full remaining-balance `REFUND` | A7-R10/R12; never a physics zero or gate failure |
+| `FAILED_STRATEGY` or completed score | Initial material-start charge remains | Fee never enters A5 or score/emission calculation |
+| Exact open `(RequesterIdentity, ChallengeKey, StrategyHash)` duplicate | Return the existing `SubmissionId` | A7-R7; no new record, attempt, transition, charge, or fee event |
 | `get_submission_result` | Read-only | Repeatable; no re-charge |
-| Validator crash mid-RUNNING | → FAILED_INFRA or re-QUEUED | Must not emit partial physics scores |
+| Trusted infrastructure callback | Composition maps A8 `RETRYABLE`/`NON_RETRYABLE` to `retry_infrastructure`/`fail_infrastructure` | A7 checks the handle, applies budget/terminalization and prevents stale mutation; no partial science |
 
 Fee amount is human-set; **fee is never a score input**.
 
@@ -262,8 +376,9 @@ Registry transition to `live` **fails** unless all required slots are present an
 
 | Record | Audience | Contents |
 |--------|----------|----------|
-| **Model Card / InternalResult** | Ops, CI, later Landscape | Full gates, margins, pack hash, generator version, seed *roles*, pin, diagnostics |
-| **EvaluationCard** | Submitting miner (MCP) | Budgeted: overall, coarse components, gate pass/fail, failure tags, short diagnostics — **no** seeds, draw ids, fine margins, per-stress breakdowns |
+| **A5 InternalResult** | Trusted private scoring/orchestration only | Exact A5 closed result fields; no context, seed, role/domain/draw identity, raw execution material, or broad diagnostic payload |
+| **Future rich Model Card** | Ops, CI, later Landscape | Later evidence-owned allow-listed record; it is not the bounded A5 `InternalResult` or an A8 outcome |
+| **EvaluationCard** | Submitting miner (MCP) | Current A6 positive allow-list: overall, coarse components, gate pass/fail and failure tags; bounded Wave-A `public_diagnostics` is exactly empty. Richer diagnostics require later ratification — **no** seeds, draw ids, fine margins or per-stress breakdowns |
 
 Landscape (future) compounds **only** from Launch-Bar-grade Model Cards — never from free-path mock metrics.
 
@@ -292,7 +407,7 @@ Challenge #2 should add a pack, not fork the subnet.
 
 ```text
 Miner/agent → MCP free loop → optional submit
-Validator  → hidden data → TrainEvalAPI official → gates → Score Pack → cards
+Validator  → hidden data → future qualified production TrainEval entry point → gates → Score Pack → cards
 Network    → weights from lean scores only (testnet in P0)
 Public     → leaderboard + budgeted EvaluationCard
 Ops        → priors/scaffolds from verified cards (after Launch_Bar)
@@ -303,7 +418,10 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 
 **Out of P0:** Landscape graph, specialist SKUs, automated free-loop non-oracle monitoring, commercial CAE, mainnet.
 
-**PoC handoff:** `POC_Burgers_FNO.md` proves lean loop without MCP. Promote its TrainEvalAPI into Wave C; PoC green is a dependency of P0, not a competing SOW.
+**PoC handoff:** `POC_Burgers_FNO.md` is historical lean-loop evidence without
+MCP. Audit its primitives under KEEP → WRAP → REPAIR → REPLACE before any
+Wave-C reuse. PoC green alone does not promote a TrainEval backend, prove
+isolation, or establish scientific/production qualification.
 
 **Layout:** Prefer mapping `poc/` + `Carbon_Logic/` over forced rename. Interfaces > directory cosmetics.
 
@@ -318,7 +436,7 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 - [ ] MCP tools respond; dry_validate enforces denylist  
 - [ ] submit → `submission_id` + FSM; fee≠score tested  
 - [ ] Card store: budgeted read allow-list tested; unauthorized hotkey denied  
-- [ ] TrainEvalAPI **stub** only; cannot mark emission-ready  
+- [ ] Fixture-official TrainEvalAPI **stub** only; cannot mark emission-ready
 - [ ] Leakage tests for EvaluationCard/leaderboard fields  
 
 ### Wave B done when
@@ -330,7 +448,7 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 
 ### Wave C done when
 
-- [ ] Real TrainEvalAPI (or PoC backend) behind official + mock  
+- [ ] Real TrainEvalAPI behind nominally separate future qualified production and mock entry points
 - [ ] Validator e2e: strategy → score → Model Card + EvaluationCard  
 - [ ] MCP free then paid loop e2e  
 - [ ] Gate fail → non-emitting  
@@ -349,7 +467,10 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 ## 13. Component notes (compact)
 
 **C5 Engine:** Load pack by hash; hard gates fail-closed; forbidden inputs enforced in code. Weights (e.g. 45/30/25) are **Score Pack fields**, not engine constants.  
-**C7:** Implements FSM + isolation limits + pin recording; calls TrainEvalAPI; never invents physics passes on infra failure.  
+**C7:** Integrates the A7-owned FSM/current-handle operations with A8 execution;
+A8 owns concrete runtime isolation limits and launch, while A7 owns safe pin
+identity and lifecycle. Neither invents physics passes on infrastructure
+failure.
 **C9:** Tool surface and disclosure per `Miner_MCP.md`. Free loop default; paid rare.  
 **C13:** Fee ledger with §6 semantics.  
 **C15:** P0 = working testnet path; mainnet = human.  
@@ -369,6 +490,9 @@ Strategy execution must enforce, at minimum:
 - no path for hidden-data exfiltration via metrics/logs to miners  
 
 Detail may live in Operations docs; **absence of isolation is a P0 blocker**, not a post-launch harden item.
+The Wave-A in-process deterministic stub executes no miner code and is useful
+only for bounded contract tests; it does not satisfy or claim these production
+isolation controls.
 
 ---
 
