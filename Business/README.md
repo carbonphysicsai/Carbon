@@ -16,7 +16,10 @@
 6. [`Investor_Positioning_and_Market.md`](./Investor_Positioning_and_Market.md) — category, competitive position, moat, investor narrative, market-model method.
 7. [`Financial_Engine.md`](./Financial_Engine.md) — unit economics, revenue-quality transition, margin architecture, scenario-model rules.
 8. [`Network_and_Alpha_Value.md`](./Network_and_Alpha_Value.md) — OpCo/network separation and explicit paths by which commercial use can create network utility.
-9. [`Design_Questions.md`](./Design_Questions.md) — decisions for the business lead; unresolved business choices do not belong in the locked canon.
+9. [`Design_Questions.md`](./Design_Questions.md) — deeper business-lead working queue and historical question framing.
+10. [`../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md`](../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md) — **canonical cross-domain open-question queue**, including the de-duplicated business questions and current architect recommendations/proof paths.
+
+> **Open-question authority:** `Business/Design_Questions.md` remains useful domain context, but canonical OPEN/ratification status now lives in `docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` so scientific, protocol, business, legal, treasury, network, and publication decisions cannot drift into separate authoritative queues.
 
 ---
 
