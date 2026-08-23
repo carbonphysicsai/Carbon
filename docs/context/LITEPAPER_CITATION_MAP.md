@@ -1,175 +1,213 @@
-# Carbon Litepaper Citation Map v1
+# Carbon Litepaper Citation Map v2
 
-**Status:** Editorial evidence map — team review  
-**Depends on:** `docs/context/SCIENTIFIC_REFERENCE_CANON.md`  
-**Purpose:** Apply the Scientific Reference Canon to the condensed Carbon litepaper without turning the litepaper into an academic review.
+**Status:** editorial evidence map for Academic Litepaper v3.1 review.  
+**Scientific basis:** `docs/context/SCIENTIFIC_REFERENCE_CANON.md` plus later explicitly identified owner-recommended scientific architecture reflected in the v3.x paper generation.  
+**Business basis:** `Business/Business_Canon.md` and the canonical `Business/` documentation.  
+**Publication control:** `docs/publications/PUBLICATION_RECONCILIATION_2026-08-23.md`.  
+**Purpose:** apply evidence and authority discipline to the condensed Carbon litepaper without turning it into an academic review or an investor deck.
 
 ---
 
 ## Editorial rule
 
-The litepaper should use approximately **12–16 external citations**, concentrated where Carbon makes claims about the external world. Carbon-specific architecture should cite or link the normative Carbon specifications rather than external literature.
+External citations belong where Carbon makes claims about the external scientific/engineering world.
+
+Carbon-specific mechanism statements should point to Carbon specifications/design records where useful, while business strategy should point to the business canon rather than external academic literature.
 
 Recommended rhetorical pattern:
 
-> established external evidence -> unresolved problem -> Carbon design response
+> established external evidence → unresolved problem → Carbon design response → explicit maturity boundary
 
-Do not attach academic citations to Carbon's own protocol choices as if the papers validated those choices.
+Do not attach academic citations to Carbon's protocol or business choices as if the cited papers validated Carbon's exact mechanism, pricing, GTM, or network economics.
 
 ---
 
-## Proposed citation sequence
+## Scientific citation sequence
 
 ### [1] Operator-learning opportunity
-**Place after:** statement that neural operators / learned surrogates can make repeated physical-system evaluation dramatically cheaper after training.
 
-**Canon:** A1 + A2.  
-Li et al., FNO; Kovachki et al., Neural Operator.
+Place after the statement that neural operators / learned surrogates can make repeated physical-system evaluation dramatically cheaper after training.
 
-**Claim strength:** "demonstrated in canonical PDE settings," not universal speedup.
+**Canon:** FNO + Neural Operator.
 
----
+**Claim strength:** demonstrated in canonical PDE settings; not universal speedup or deployment fitness.
 
 ### [2] Operator learning as a general paradigm
-**Place after:** explanation that Carbon competes on methods for learning families of PDE solution operators rather than isolated solves.
 
-**Canon:** A2 + optional A3.
+Place after the explanation that Carbon begins with methods for learning families of physical-system mappings rather than isolated solves.
 
----
+**Canon:** Neural Operator + optional DeepONet.
 
 ### [3] Physics-aware learning motivation
-**Place after:** "data fit is not identical to physical generalization" / introduction of physics as a first-class objective.
 
-**Canon:** B1 + B2.
+Place after the statement that data fit is not identical to physical generalization.
 
-**Wording discipline:** These papers show that incorporating governing physics is a serious and useful SciML research direction. They do not prove Carbon's exact hard-gate design.
+**Canon:** physics-informed ML / PINNs / PINO.
 
----
+**Discipline:** these sources support physics-aware learning as a serious research direction; they do not prove Carbon's hard-admissibility architecture.
 
-### [4] Structure/conservation matters
-**Place near:** explanation that low prediction error can coexist with physically undesirable behavior and that some requirements may warrant admissibility semantics.
+### [4] Structure / conservation matters
 
-**Canon:** B3 + B4 (or B5 in the whitepaper only).
+Place near the argument that low predictive error can coexist with physically undesirable behavior.
 
----
+**Canon:** structure-preserving / conservation-aware learning.
 
-### [5] Need for holistic SciML evaluation
-**Place after:** criticism of relying on one held-out field-error number.
+### [5] Need for broader SciML evaluation
 
-**Canon:** C1 PDEBench.
+Place after criticism of relying on one held-out field-error number.
 
-**Preferred litepaper use:** one citation can support the need for broad tasks/metrics and the continuing difficulty of SciML evaluation.
+**Canon:** PDEBench.
 
----
+### [6] Generalization / uncertainty remains open
 
-### [6] Generalization / OOD / uncertainty remains open
-**Place after:** discussion of trustworthiness at hard regimes and distribution shifts.
+Place near robustness, regime shift, uncertainty, or deployment limitations.
 
-**Canon:** C2 + C3.
+**Canon:** SciML UQ sources.
 
-**Important:** Carbon's score-bearing stress stays inside its declared envelope; cite these sources to establish deployment/generalization difficulty, not to justify arbitrary OOD scoring.
-
----
+**Discipline:** Carbon's score-bearing stress semantics are Challenge-specific; external UQ/OOD literature does not justify arbitrary hidden extrapolation.
 
 ### [7] Context of use and bounded credibility
-**Place after:** "a bounded claim about model behavior, tied to independent evidence" and/or Qualification Record explanation.
 
-**Canon:** D1 ASME VVUQ 1 + D2 ASME V&V 40.
+Place after explanation that a model claim is bounded by intended use and evidence.
 
-**Preferred wording:** "Engineering V&V practice treats credibility as evidence- and context-of-use-dependent." Do not claim ASME certification or endorsement.
+**Canon:** ASME VVUQ 1 + ASME V&V 40.
 
----
+Do not claim ASME certification or endorsement.
 
 ### [8] Model/simulation lifecycle credibility
-**Place near:** evidence trail, provenance, limitations, escalation, and requalification discussion.
 
-**Canon:** D3 NASA-STD-7009B + D4 NASA-HDBK-7009B.
+Place near provenance, limitations, change, escalation, and requalification.
 
-**Optional stronger bridge:** D5 specifically discusses application of NASA-STD-7009 concepts to surrogate/statistical models.
+**Canon:** NASA-STD-7009B + NASA-HDBK-7009B; optional surrogate-model application source.
 
----
+### [9] Agentic / closed-loop research
 
-### [9] Agentic / closed-loop scientific research
-**Place after:** MCP miner loop / "competitive automated scientific research."
+Place after discussion of agents participating in scientific search.
 
-**Canon:** E1 A-Lab + E4 AI Scientist.
+**Canon:** autonomous-lab and computational-research-agent sources.
 
-**Reason for pairing:** A-Lab supplies a real closed-loop scientific system; AI Scientist supplies evidence that computational agents can automate meaningful portions of a research loop.
+**Discipline:** supports plausibility of automated scientific loops, not Carbon's performance.
 
----
+### [10] Learning from experiments / active experimental design
 
-### [10] Learning from failed experiments / active experimental design
-**Place after:** Landscape future direction where evidence may guide more informative experiments.
+Place in the future Physics Intelligence / experimental-memory discussion.
 
-**Canon:** E1/F1 + F2 or F3.
-
-**Wording:** Future direction; not current Carbon capability.
-
----
+**Wording:** future research direction; not present commercial capability.
 
 ### [11] Bittensor as incentive substrate
-**Place in:** "Carbon sets the target; Bittensor creates the search pressure."
 
-**Canon:** G1 + G3.
+Place where Carbon distinguishes its scientific objective from Bittensor's economic search substrate.
 
-**Claim:** Bittensor supplies a network in which subnet incentive mechanisms can define a commodity, miners produce it, and validators score it. Carbon's scientific definition of the commodity remains Carbon-specific.
-
----
+**Claim:** Bittensor supports subnet-defined incentive mechanisms and miner/validator competition. Carbon-specific scientific truth and frontier semantics remain Carbon design choices.
 
 ### [12] Surrogate credibility bridge
-**Place in product section, optional:** where Carbon argues that learned surrogates need model-use evidence rather than only benchmark performance.
 
-**Canon:** D5 NASA surrogate-model application.
+Optional where the litepaper connects learned surrogates to engineering model-use evidence.
 
-This is particularly useful in the whitepaper; the litepaper can omit it if the bibliography becomes crowded.
-
----
-
-## Carbon-native references that should appear separately
-
-These are not academic references. The litepaper should point readers to the repository/specification for:
-
-1. Strategy schema and miner submission semantics.
-2. Challenge / Score Pack / Generator Pack versioning.
-3. Hard-gate authoritative-zero semantics.
-4. Current P0 `0.45 / 0.30 / 0.25` baseline.
-5. Hidden evaluation and seed/disclosure boundaries.
-6. EvaluationReceipt / Model Card / EvaluationCard evidence semantics.
-7. Landscape four-port authority boundaries.
-8. Product Battery and Qualification Record semantics.
-9. Current maturity status.
-
-A compact note can state that the protocol specification is normative and the litepaper explanatory.
+Use NASA surrogate/statistical-model credibility material where appropriate.
 
 ---
 
-## Recommended litepaper bibliography (12-source core)
+## Carbon-native scientific references
 
-1. Li et al. — *Fourier Neural Operator for Parametric Partial Differential Equations*.
-2. Kovachki et al. — *Neural Operator: Learning Maps Between Function Spaces*.
-3. Raissi, Perdikaris & Karniadakis — *Physics Informed Deep Learning*.
-4. Li et al. — *Physics-Informed Neural Operator for Learning Partial Differential Equations*.
-5. Takamoto et al. — *PDEBench*.
-6. Mouli et al. — *Using Uncertainty Quantification to Characterize and Improve Out-of-Domain Learning for PDEs*.
-7. ASME VVUQ 1-2022.
-8. ASME V&V 40-2018.
-9. NASA-STD-7009B.
-10. Szymanski et al. — *An autonomous laboratory for the accelerated synthesis of inorganic materials*.
-11. Lu et al. — *The AI Scientist*.
-12. Rao — *Bittensor: A Peer-to-Peer Intelligence Market* / current Bittensor docs.
+These are **not external scientific evidence**. They describe Carbon's mechanism or design state.
 
-Optional 13–16 for a more technical litepaper: DeepONet; Hamiltonian Neural Networks; NASA surrogate-model application; AlphaFlow.
+The litepaper should distinguish current runtime authority from later owner-recommended integrated architecture.
+
+Relevant Carbon-native topics include:
+
+1. P0 strategy schema and miner submission semantics;
+2. hidden evaluation / seed / disclosure boundaries;
+3. current Score Pack and binary hard-gate implementation;
+4. qualified-exam doctrine: task, population, SamplingPlan, generator, truth, measurements, Validation Dossier;
+5. Score Pack as Evidence Use Contract and admissibility-before-ranking doctrine;
+6. Challenge-bound scores / no automatic cross-Challenge comparability;
+7. common frontier-promotion evidence and `FrontierAdvanceEvent` design;
+8. treasury settlement as a separate authority from scientific winner determination;
+9. Product Battery / Qualification Record and lifecycle semantics;
+10. Burgers repair lessons and the distinction between historical PoC behavior and a future authoritative Challenge;
+11. explicit maturity states.
+
+Because some integrated scientific architecture remains ahead of current runtime migration on `main`, the litepaper should not imply that an owner-recommended design object is already implemented merely because it is described in the paper.
 
 ---
 
-## What citations should accomplish in the litepaper
+## Business-native references for v3.1
 
-The citations should let a skeptical reader independently verify five external premises:
+The new commercial section is Carbon-authored business strategy. It should be grounded in the canonical business documents, principally:
 
-1. **The opportunity is real:** fast learned PDE operators exist in demonstrated settings.
-2. **The gap is real:** physical structure and generalization are not reducible to one predictive-loss number.
-3. **The engineering standard is stricter:** credibility is bounded by use, evidence, validation, and limitations.
-4. **The agentic loop is plausible:** closed-loop scientific automation and computational research agents exist.
-5. **The market substrate exists:** Bittensor can economically reward a subnet-defined commodity.
+- `Business/Business_Canon.md`;
+- `Business/Business_Plan.md`;
+- `Business/Product_and_Revenue_Architecture.md`;
+- `Business/Go_To_Market.md`;
+- `Business/Network_and_Alpha_Value.md`;
+- `Business/Commercial_Operating_Model.md`.
 
-Everything after those premises is Carbon's thesis and must ultimately be validated by Carbon's own experiments.
+Do **not** add academic citations to statements such as:
+
+- Evidence Audit is the preferred first SKU;
+- the hybrid services → platform → network → lifecycle model;
+- fiat-first enterprise procurement;
+- OpCo/network separation;
+- the land-and-expand ladder.
+
+Those are Carbon business-design choices, not established scientific results.
+
+Any externally sourced market-size, competitor, funding, revenue, or enterprise-software statistic belongs in a separately dated investor source model, not in the academic litepaper unless it is genuinely necessary to the argument.
+
+---
+
+## Recommended scientific bibliography posture
+
+The litepaper should remain selective rather than attempting to reproduce the full scientific canon. A core set should cover:
+
+1. Fourier Neural Operator;
+2. Neural Operator;
+3. DeepONet or equivalent operator-learning foundation;
+4. physics-informed machine learning / PINNs;
+5. PINO or another operator/physics bridge;
+6. PDEBench;
+7. UQ/generalization literature;
+8. ASME VVUQ terminology / credibility;
+9. ASME V&V 40 where scoped carefully;
+10. NASA model/simulation lifecycle guidance;
+11. autonomous scientific systems / research agents;
+12. Bittensor official mechanism references;
+13. adaptive-data/leaderboard validity where protected evaluation is discussed;
+14. reproducibility / model-card evidence literature where provenance is discussed;
+15. model-reduction / hybrid scientific-modeling sources supporting the broader fast-model category.
+
+The exact numbered bibliography must match the final committed v3.1 source before release.
+
+---
+
+## What citations should establish
+
+A skeptical reader should be able to independently verify these external premises:
+
+1. fast learned physical operators exist in demonstrated settings;
+2. physical structure, robustness, uncertainty, and generalization are not reducible to one loss number;
+3. engineering credibility is evidence- and context-of-use-dependent;
+4. model credibility has a lifecycle and provenance burden;
+5. repeated/adaptive evaluation can compromise naive holdout validity;
+6. automated research loops are plausible;
+7. Bittensor can provide an economic substrate for a subnet-defined commodity.
+
+Everything beyond those premises is Carbon's design or business thesis and must be labeled accordingly.
+
+---
+
+## v3.1 business/traction non-claim
+
+The commercial section must not use citations, wording, or formatting to imply that Carbon has already demonstrated:
+
+- paid customers;
+- repeatable service delivery;
+- recurring revenue;
+- validated pricing;
+- proven gross margins;
+- platform adoption;
+- network commercial leverage;
+- automatic OpCo-to-Alpha value transfer.
+
+Those are separate commercial evidence states under the Business Canon.

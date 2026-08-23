@@ -1,772 +1,512 @@
 # Carbon — Agent Engineering Instructions
 
-This repository contains the implementation of **Carbon**, a competitive scientific-computing system for discovering, independently evaluating, and qualifying neural-operator training strategies for engineering simulation.
+This repository contains the implementation of **Carbon**, an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.
 
-This file defines the default engineering rules for any coding agent working in this repository.
+The first bounded implementation searches neural-operator `TrainingStrategy` objects. That is a P0 subtype of Carbon's broader long-term construction-method architecture; coding agents must not widen execution freedom merely because the long-term ontology is broader.
 
-The goal is not to generate as much code as possible.
+This file defines the default engineering behavior for coding agents and human executors. Repository-wide authority is mapped in [`CONSTITUTION.md`](./CONSTITUTION.md).
 
-The goal is to produce **small, testable, reviewable changes that faithfully implement Carbon's specifications without inventing science or weakening its safety boundaries.**
+The goal is not maximum code volume. The goal is:
 
----
-
-# 1. Mission
-
-Build Carbon incrementally according to the repository's authoritative design specifications and implementation plan.
-
-Agents may implement software, tests, interfaces, infrastructure, mocks, deterministic fixtures, and explicitly specified scientific logic.
-
-Agents must **not independently decide scientific truth, production thresholds, qualification criteria, or launch readiness.**
-
-When a required decision belongs to a human scientist, subnet operator, security reviewer, or protocol owner:
-
-**stop, mark it as blocked, and state exactly what decision is required.**
-
-Do not guess.
+> **small, testable, reviewable changes that faithfully implement Carbon's current specifications, preserve future constitutional boundaries, and never invent science, economics, security guarantees, or commercial traction.**
 
 ---
 
-# 2. Authority of Repository Documents
+# 1. Mandatory authority read
 
-Before implementing a ticket, identify and read the documents relevant to that ticket.
+Before every new ticket or major wave, read:
 
-The repository specifications govern implementation.
+1. `CONSTITUTION.md`;
+2. `.agent/INVARIANTS.md`;
+3. `.agent/WAVE.md`;
+4. the active ticket under `.agent/tickets/`;
+5. ticket-referenced domain specifications;
+6. `Design_Specs/Build_Out.md`;
+7. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
+8. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
 
-In general:
+Scientific constitutional reference:
 
-1. Domain-specific specifications define **semantic behaviour**.
-2. `Design_Specs/Build_Out.md` defines **implementation sequencing, ownership, dependencies, and acceptance gates**.
-3. `.agent/` tickets (or `agent_pack/.agent/tickets/`) translate the Build Out into bounded implementation work.
-4. `AGENTS.md` defines how agents must work inside the repository.
+- `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`.
 
-Relevant specifications may include:
+If work touches customer/product/business semantics, also read the relevant `Business/` authority, beginning with `Business/Business_Canon.md`.
 
-- `Design_Specs/SPEC.md`
-- `Design_Specs/Miner_MCP.md`
-- `Design_Specs/Scoring.md`
-- generator / science specifications
-- validation / qualification specifications
-- `Design_Specs/Launch_Bar.md`
-- `Design_Specs/Build_Out.md`
+If work touches public claims, also read `docs/publications/README.md`.
 
-Do not rely on memory of a specification when the repository version is available.
-
-### If documents conflict
-
-Do not silently choose an interpretation.
-
-Determine whether one document clearly governs the relevant semantic domain.
-
-If the conflict remains material:
-
-1. stop the affected implementation;
-2. record the conflict;
-3. identify the exact files/sections involved;
-4. request a human decision.
-
-Do not resolve scientific, economic, security, or protocol ambiguity by invention.
+Do not rely on memory when the repository version is available.
 
 ---
 
-# 3. Start With Repository Orientation
+# 2. Authority and conflict handling
 
-Before substantial implementation, understand what already exists.
+Authority is domain-owned.
 
-Inspect at minimum:
+- `CONSTITUTION.md` defines repository-wide authority boundaries and durable doctrine.
+- Scientific canon controls scientific constitutional interpretation.
+- Domain specifications define current semantic behavior.
+- `Build_Out.md` defines current detailed sequencing.
+- `Build_Out_Constitutional_Overlay.md` prevents stale sequencing shorthand from violating the integrated constitution.
+- `.agent/` tickets define bounded active work.
+- `Business/` governs commercial strategy outside the scientific judge.
+- Publications explain; they do not define runtime truth.
+
+If documents materially conflict:
+
+1. identify the semantic domain;
+2. determine the domain owner;
+3. check the constitutional overlay;
+4. classify the seam as `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`;
+5. if a material decision remains unresolved, stop and request human/owner input.
+
+Do not silently choose the convenient interpretation.
+
+---
+
+# 3. Mission and human ownership
+
+Agents may implement software, tests, interfaces, infrastructure, deterministic fixtures, mocks, schemas, adapters, and explicitly specified scientific logic.
+
+Agents must not independently decide:
+
+- physical/scientific truth;
+- production thresholds or tolerances;
+- Challenge population/envelope claims;
+- qualification pass/fail;
+- launch readiness;
+- live economic policy;
+- security acceptance;
+- customer rights/IP policy;
+- production deployment authority;
+- investor traction claims.
+
+Humans retain final authority over scientific qualification, security acceptance, live economics, launch, legal/commercial rights, and material company decisions.
+
+When owner input is required: **stop, mark blocked, and state the smallest decision required.**
+
+---
+
+# 4. Orientation and reuse
+
+Before substantial implementation, inspect relevant:
 
 - repository structure;
 - `Design_Specs/`;
-- existing `poc/`;
-- existing `Carbon_Logic/`;
-- existing `neurons/` or Bittensor components;
-- tests;
-- CI configuration;
+- `carbon/` implementation;
+- `poc/` / legacy components;
+- `neurons/` and Bittensor components;
+- tests and CI;
 - `.agent/` / `agent_pack/`;
-- package/dependency configuration;
-- existing schemas, interfaces, and public APIs.
+- schemas, persistence, public APIs;
+- current authority/maturity map.
 
-If `.agent/ORIENTATION.md` exists, read it first and verify that it is still reasonably current.
+If `.agent/ORIENTATION.md` exists, treat it as historical orientation evidence and verify whether it is stale relative to the current constitution.
 
-If orientation has not been completed, perform it before major implementation.
-
-### Existing code is not disposable
-
-Never assume existing AI-generated or prototype code should be replaced merely because a new architecture exists.
-
-Classify relevant existing code using:
+Classify existing code:
 
 **KEEP → WRAP → REPAIR → REPLACE**
 
-Prefer, in order:
-
-1. **KEEP** working compliant code.
-2. **WRAP** working code behind the required interface.
-3. **REPAIR** code that is close to the specification.
-4. **REPLACE** only where the existing implementation materially conflicts with the specification or creates unnecessary risk.
-
-Do not perform large rewrites without a clear technical reason.
-
-Do not force directory renames simply to make the repository resemble a proposed architecture diagram.
+Prefer in that order. Do not perform large rewrites or directory churn just to match an architecture diagram.
 
 ---
 
-# 4. Never Invent Science
-
-This is a hard constraint.
+# 5. Never invent science
 
 Agents must not invent production values for:
 
 - physical thresholds;
-- acceptance envelopes;
 - solver tolerances;
-- scientific pass/fail boundaries;
-- robustness thresholds;
-- challenge distributions;
+- scientific gates;
+- target populations or sampling laws;
+- uncertainty floors;
 - qualification criteria;
-- dataset ranges;
-- scoring coefficients requiring scientific approval;
-- production hyperparameters presented as scientifically validated;
-- any other value requiring domain judgement.
+- challenge distributions;
+- production scoring coefficients requiring science approval;
+- claims of physical validity.
 
-Where a human scientific decision is required, use an explicit placeholder such as:
+Use explicit blocked placeholders such as `HUMAN_INPUT`, `None`, `null`, or equivalent where the schema permits.
 
-- `HUMAN_INPUT`
-- `None`
-- `null`
-- `BLOCKED_FOR_LIVE_UNTIL_SET`
+Synthetic fixture values are allowed only when clearly non-production and structurally unable to enter LIVE scientific/economic authority.
 
-as appropriate to the schema.
+Preserve the distinction:
 
-Mocks and fixtures may use synthetic values **only when clearly labelled as non-production test data and structurally incapable of entering LIVE evaluation.**
+> code that **implements** a scientific decision
 
-The distinction between:
+versus
 
-> code that implements a scientific decision
+> code that **makes** the scientific decision.
 
-and
-
-> code that makes the scientific decision
-
-must always be preserved.
-
-Agents may do the former.
-
-Agents may not autonomously do the latter.
+Agents may do the former, not the latter.
 
 ---
 
-# 5. Core Carbon Invariants
+# 6. Core implementation invariants
 
-The following invariants must never be weakened for convenience.
+These bind all current Wave-A work.
 
-## 5.1 No hidden-evaluation leakage
+1. **No hidden-evaluation leakage.** Official seeds, derived seeds, draw IDs, reversible IDs, protected samples, private metadata, or reconstruction-sensitive hidden state never appear in miner/public surfaces.
+2. **Mock isolation.** Mock/light/estimate/scaffold/free execution never accesses official packs, seeds, protected exam data, or private validator state.
+3. **Pinned official evaluation.** Official results bind immutable material versions/identities required by the active spec.
+4. **Disclosure is allow-listed.** Internal fields remain private unless explicitly authorized for the target audience.
+5. **LIVE requires human qualification.** No agent flips LIVE, signs qualification, or declares production scientific readiness.
+6. **Untrusted execution is hostile.** Production miner-controlled workloads require explicit compute/memory/filesystem/network/process/wall-clock isolation.
+7. **Infrastructure failure is not scientific failure.** Preserve typed `FAILED_INFRA`, retry, refund, and non-scientific semantics.
+8. **Determinism / bounded reproducibility.** Identical registered execution should reproduce within documented tolerances.
+9. **No placeholder LIVE.** Fixture/mock/stub values never become LIVE evidence, production ranking, frontier entitlement, or settlement.
+10. **Historical evidence is versioned.** No silent rescore/reinterpretation under newer scientific contracts.
+11. **Forbidden score inputs.** Prior similarity, estimate/light/mock metrics, exam fee, customer payment, or sponsor size never enter official score unless a future registered scientific contract explicitly gives a metric a legitimate scientific role.
+12. **The free loop cannot become the official exam.** Practice signal stays intentionally incomplete.
+13. **A8 fixture execution is not production authority.** Fixture/stub execution cannot create frontier, treasury, product, or production claims.
+14. **A5 scoring does not own frontier/treasury policy.**
+15. **A7 submission lifecycle does not own frontier/treasury state.**
 
-Official seeds, derived seeds, draw IDs, hidden sample identifiers, reversible identifiers, private evaluation metadata, or other information capable of exposing the hidden exam must never appear in:
-
-- Evaluation Cards;
-- public Model Cards;
-- leaderboards;
-- miner-facing MCP responses;
-- miner-visible logs;
-- error messages;
-- telemetry accessible to miners.
-
-Add regression tests where practical.
-
----
-
-## 5.2 Mock isolation
-
-Mock, light, estimate, scaffold, preview, or free-loop execution must not access:
-
-- official evaluation packs;
-- official seeds;
-- hidden exam datasets;
-- hidden evaluation configuration;
-- private validator state.
-
-Mock/free execution must be structurally separated from official evaluation.
-
-Do not rely solely on naming conventions for this isolation.
+See `.agent/INVARIANTS.md` for the always-on expanded list.
 
 ---
 
-## 5.3 Pinned official evaluation
+# 7. Integrated scientific invariants
 
-Every official scored evaluation must be bound to immutable versions of all material evaluation components defined by the specifications.
+Future work must preserve these even when current types do not yet implement them fully.
 
-This may include:
+## 7.1 Exam qualification first
 
-- challenge version;
-- generator version;
-- scoring version / Score Pack;
-- backend/container digest;
-- model/training environment;
-- other required execution identifiers.
+> **The exam must be qualified before it may qualify candidates.**
 
-Historical results must remain attributable to the exact evaluation configuration under which they were produced.
+Generator determinism, successful execution, or a non-null config is not scientific adequacy.
 
----
+## 7.2 Population semantics
 
-## 5.4 Disclosure is allow-listed
+The scientific task owns the population. `P(x)`, proposal/sampling `Q(x)`, and evidence/score weighting `w(x)` are separate where applicable.
 
-Internal results are private by default.
+Seed separation does not prove semantic decontamination.
 
-Miner-facing or public APIs may return only fields explicitly allowed for the relevant disclosure tier.
+## 7.3 Admissibility before ranking
 
-Never expose an internal field merely because it is convenient for debugging.
+> **Mandatory scientific failure cannot be compensated by soft performance.**
 
----
+## 7.4 Measurement authority
 
-## 5.5 LIVE requires human qualification
+Measurement definition, qualification, applicability, and score use are separate. A governing equation or symbolic representation does not certify a measurement implementation.
 
-No agent may autonomously:
+## 7.5 Reference failure separation
 
-- flip a challenge to LIVE;
-- sign a qualification manifest;
-- declare scientific qualification complete;
-- approve a challenge for emissions.
+Reference/truth/generator failure must not be collapsed into candidate failure.
 
-LIVE status must require the human qualification artefacts specified by the repository and must be bound to the **exact challenge version** being activated.
+## 7.6 Challenge-bound score
 
-Presence of non-null configuration values alone is not sufficient proof of qualification.
+A scalar Challenge score is not automatically comparable across Challenges.
 
----
+## 7.7 Frontier promotion is separate
 
-## 5.6 Untrusted execution must be isolated
+Leaderboard/rank may nominate. A future `FrontierAdvanceEvent` requires its own registered scientific evidence/policy.
 
-Miner-supplied strategies and other untrusted workloads must eventually execute under the limits defined by the relevant specifications.
+> **A new leader is an evidence state, not a floating-point inequality.**
 
-Treat miner-controlled input as hostile.
+## 7.8 Science and settlement are separate
 
-Where applicable enforce:
+Treasury/network transport settles entitlement; it does not create scientific merit.
 
-- compute limits;
-- memory limits;
-- filesystem isolation;
-- network restrictions;
-- wall-clock limits;
-- process limits;
-- explicit input validation.
+## 7.9 Construction and official evaluation are separate security domains
 
-Do not weaken isolation merely to make a test pass.
+Future `ModelConstructionStrategy`, `ConstructionProgram`, reconstruction workers, or arbitrary participant code do not gain evaluator authority.
+
+> **Carbon can widen what participants are allowed to discover without changing who controls the grade.**
+
+## 7.10 Agent autonomy expands hypotheses, not authority
+
+Landscape, priors, construction agents, or Physics Intelligence may propose. Registered contracts and independent experiments decide.
 
 ---
 
-## 5.7 Infrastructure failure is not scientific failure
+# 8. Current maturity boundary
 
-Infrastructure failures must remain distinguishable from scientific/model failures.
+At the 2026-08-23 constitutional reconciliation:
 
-Examples include:
+```text
+A-1 done
+A0–A7 done in recorded bounded scopes
+A8 todo / not implemented
+A9 todo
+A10 todo
+A11 todo
+A12 todo
+```
 
-- node loss;
-- queue loss;
-- infrastructure OOM;
-- container startup failure;
-- orchestration failure;
-- validator-side infrastructure fault.
+Never relabel a ticket because documentation describes its intended design.
 
-Do not score infrastructure failure as model incompetence.
+A component may separately be:
 
-Do not grant scientific success because infrastructure failed.
+```text
+SPECIFIED
+IMPLEMENTED
+TESTED
+SCIENTIFICALLY_QUALIFIED
+SECURITY_QUALIFIED
+NETWORK_QUALIFIED
+COMMERCIALLY_VALIDATED
+PRODUCTION_QUALIFIED
+```
 
-Preserve the required `FAILED_INFRA`, retry, refund, or equivalent semantics defined by the authoritative specification.
-
----
-
-## 5.8 Determinism
-
-Official evaluation should be reproducible under identical:
-
-- inputs;
-- versions;
-- seeds;
-- execution limits;
-- backend configuration;
-
-within documented tolerances.
-
-Sources of nondeterminism should be controlled or documented rather than ignored.
+Do not infer later states from earlier ones.
 
 ---
 
-## 5.9 No placeholder LIVE values
+# 9. Ticket-based development
 
-Fixture, placeholder, development, stub, mock, or guessed values must never flow into:
+Work on one bounded ticket at a time unless explicitly authorized otherwise.
 
-- LIVE challenge configuration;
-- official scientific qualification;
-- emission calculations;
-- production ranking.
+Before editing:
 
----
+1. read current authority/ticket;
+2. inspect existing implementation;
+3. identify dependencies/tests;
+4. run relevant baseline tests;
+5. create a plan for multi-module/security/protocol work.
 
-## 5.10 Historical scoring is immutable
+Implement the smallest coherent change satisfying the ticket DoD.
 
-Do not silently reinterpret historical evaluations under newly released scoring or challenge versions.
+Avoid unrelated refactors, speculative future abstractions, and opportunistic architecture redesign.
 
-A materially new pack/version applies prospectively unless the specification explicitly defines otherwise.
-
----
-
-## 5.11 Forbidden score inputs
-
-Unless an authoritative specification is explicitly changed, inputs such as the following must never enter official scientific score or emission calculation:
-
-- prior similarity;
-- `estimate`;
-- `light_*` results;
-- mock metrics;
-- exam fee/payment amount.
-
-**Fee ≠ score.**
+Future waves in the Agentic Master Plan are compatibility context, not implementation permission.
 
 ---
 
-## 5.12 The free loop must not become the official exam
+# 10. Testing and evidence
 
-The free/miner exploration path may provide useful directional feedback.
+A ticket is not complete because code exists.
 
-It must remain intentionally incomplete relative to the hidden official evaluation.
+Before declaring completion run:
 
-Do not accidentally reproduce the private exam through public tooling.
+1. ticket-specific tests;
+2. relevant subsystem tests;
+3. required baseline/regression suite;
+4. lint/type/static checks required by the repo;
+5. relevant security/leakage/invariant tests.
+
+Prefer tests for:
+
+- public contracts;
+- exact identity/version behavior;
+- state transitions;
+- deterministic execution;
+- failure classification;
+- leakage/disclosure boundaries;
+- mock/official isolation;
+- malformed/untrusted input;
+- idempotency/concurrency where relevant.
+
+Do not delete/weaken a test merely because implementation fails it.
+
+Record completion evidence in `.agent/WAVE.md` only when the ticket's review/merge rules are satisfied.
 
 ---
 
-# 6. Stub and Mock Backends Never Emit
+# 11. Stub and fixture policy
 
-Any stubbed, mocked, synthetic, or incomplete TrainEval backend must be explicitly non-emission-capable.
-
-Where the architecture supports it, enforce this mechanically with something equivalent to:
-
-`emission_capable = False`
-
-Do not rely solely on documentation.
-
-A stub may exercise:
+Stubbed, mocked, synthetic, or incomplete TrainEval/reconstruction backends may exercise:
 
 - lifecycle;
 - schemas;
 - persistence;
 - APIs;
-- deterministic test fixtures;
+- deterministic fixtures;
 - state transitions;
-- disclosure behaviour.
+- disclosure behavior.
 
-A stub must never generate real emission weights or be treated as evidence of scientific qualification.
+They must not create:
 
----
+- LIVE scientific authority;
+- production rankings;
+- frontier events;
+- treasury obligations;
+- product qualification;
+- claims of secure arbitrary-code execution.
 
-# 7. Ticket-Based Development
-
-Work on **one bounded ticket at a time** unless a human explicitly authorizes parallel work.
-
-Before editing:
-
-1. read the ticket;
-2. read its referenced specifications;
-3. inspect the existing implementation;
-4. identify dependencies;
-5. identify existing tests;
-6. run the relevant baseline tests.
-
-Implement the smallest coherent change that satisfies the ticket's Definition of Done.
-
-Avoid unrelated refactors.
-
-Avoid opportunistic architecture redesign.
-
-Avoid formatting entire files unless required.
-
-Keep the diff understandable to the next engineer.
+Prefer structural capability/provenance separation. Do not rely on a caller-supplied `emission_capable` Boolean as scientific authority.
 
 ---
 
-# 8. Plan Before Complex Changes
+# 12. Public interfaces and migration
 
-Straightforward tickets can be implemented directly.
-
-For complex work involving multiple modules, protocol semantics, persistence, security boundaries, validator behaviour, or substantial refactoring, create a short implementation plan before editing.
-
-The plan should identify:
-
-- relevant specifications;
-- existing implementation being reused;
-- files expected to change;
-- interfaces affected;
-- tests to add or update;
-- security/scientific risks;
-- unresolved decisions.
-
-Do not use planning as permission to redesign Carbon.
-
-The specification remains authoritative.
-
-(See also `agent_pack/PLANS.md` template.)
-
----
-
-# 9. Testing Is Part of the Implementation
-
-A ticket is not complete because code was written.
-
-### Before making material changes
-
-Run the relevant existing baseline tests.
-
-Record pre-existing failures rather than attributing them to the new work.
-
-### During implementation
-
-Add or update tests that demonstrate the required behaviour.
-
-Prefer tests for:
-
-- public contracts;
-- invariants;
-- failure behaviour;
-- state transitions;
-- deterministic behaviour;
-- leakage boundaries;
-- disclosure boundaries;
-- mock/official isolation;
-- malformed/untrusted input.
-
-### Before declaring the ticket complete
-
-Run:
-
-1. the ticket-specific tests;
-2. relevant subsystem tests;
-3. the required baseline/regression suite;
-4. lint/type/static checks if the repository requires them.
-
-Do not delete or weaken a test simply because the implementation fails it.
-
-If the specification intentionally changes behaviour, update the test and document why.
-
----
-
-# 10. Definition of Done
-
-A ticket is `done` only when:
-
-- the specified behaviour exists;
-- acceptance criteria are satisfied;
-- required tests pass;
-- existing relevant behaviour has not regressed;
-- no Carbon invariant has been weakened;
-- no unresolved scientific decision was invented;
-- code is scoped to the ticket;
-- relevant documentation/schema changes are included;
-- evidence of completion is recorded.
-
-Where `.agent/WAVE.md` or another tracker is in use, update it with concrete evidence.
-
-Examples:
-
-- test command;
-- test file;
-- implementation path;
-- generated artefact;
-- relevant commit.
-
-Do not mark work complete based only on subjective inspection.
-
----
-
-# 11. Git and Change Hygiene
-
-Use a dedicated branch/worktree for bounded implementation work where the development environment supports it.
-
-Prefer:
-
-**one ticket → one reviewable diff**
-
-Do not directly push unreviewed major changes to production/main branches.
-
-Do not:
-
-- rewrite unrelated history;
-- mass-delete existing implementation;
-- rename large areas of the repository without need;
-- alter public interfaces silently;
-- introduce unnecessary dependencies;
-- commit secrets;
-- commit credentials;
-- commit API keys;
-- commit local environment configuration containing secrets.
-
-Changes should be easy for a human developer to understand and revert.
-
----
-
-# 12. Dependency Discipline
-
-Prefer existing repository dependencies when they are fit for purpose.
-
-Before introducing a new dependency, consider:
-
-- whether the standard library or an existing dependency suffices;
-- maintenance burden;
-- security surface;
-- determinism;
-- licensing;
-- reproducibility;
-- deployment implications.
-
-Do not add large frameworks to solve small problems without justification.
-
-Pin versions where reproducibility/security requirements demand it.
-
----
-
-# 13. Public Interfaces and Schemas
-
-Treat established schemas and public interfaces as contracts.
+Treat established schemas/public interfaces as contracts.
 
 Do not casually change:
 
-- MCP tool names;
+- MCP tools;
 - request/response fields;
-- challenge identifiers;
-- submission identifiers;
-- evaluation card fields;
-- status values;
+- Challenge/submission IDs;
+- public card/leaderboard fields;
+- status enums;
 - scoring fields;
-- public leaderboard fields;
-- validator/miner protocol behaviour.
+- validator/miner protocol behavior.
 
-When the specification requires a contract change:
+When a constitutional migration requires change:
 
-1. implement it explicitly;
-2. update tests;
-3. update documentation;
-4. consider compatibility/migration behaviour.
-
-Do not silently simplify required state-machine semantics.
+1. specify it explicitly;
+2. version/migrate prospectively;
+3. update tests;
+4. update docs;
+5. preserve historical evidence interpretation.
 
 ---
 
-# 14. Submission and Evaluation State
+# 13. Security-sensitive work
 
-Submission/evaluation lifecycle semantics must follow the current authoritative specification exactly.
+High-risk areas include:
 
-Do not collapse distinct states merely because they appear similar.
-
-In particular, preserve explicit handling for states such as:
-
-- cancellation;
-- infrastructure failure;
-- scientific/evaluation failure;
-- successful completion;
-
-where defined by the current Build Out/specifications.
-
-Idempotency must use all identity/version inputs required by the current specification.
-
-Do not create duplicate official exams through retry behaviour.
-
----
-
-# 15. Security-Sensitive Work
-
-Treat the following areas as high-risk:
-
-- validator execution;
-- container isolation;
-- miner-submitted code/configuration;
+- validator/reconstruction execution;
+- container/sandbox isolation;
+- miner-supplied input/code;
 - authentication/hotkeys;
-- payment/fee logic;
-- emission calculation;
-- Bittensor network interactions;
+- fee/payment logic;
+- Bittensor integration;
+- treasury/settlement;
 - secrets;
-- persistence of hidden evaluation information;
-- challenge activation;
-- official evaluation orchestration.
+- hidden evaluation persistence;
+- Challenge activation;
+- official evaluation orchestration;
+- private/customer-hosted truth;
+- customer confidential data.
 
-Agents may implement these systems according to specification.
-
-Agents must **not declare them production-secure solely because tests pass.**
-
-Security-sensitive implementation should be clearly surfaced for dedicated human/dev review before production deployment.
+Tests do not constitute a production security audit. Surface such work for dedicated review.
 
 ---
 
-# 16. Bittensor and Emissions
+# 14. Bittensor, treasury, and economics
 
-Agents may build and test Bittensor integration where specified.
+Agents may implement/test network integration only where specified.
 
 Agents must not autonomously:
 
-- deploy Carbon to production mainnet;
-- activate real emissions;
+- deploy production mainnet infrastructure;
+- activate real economic settlement;
 - alter live economic parameters;
-- register/operate production validator infrastructure;
-- execute irreversible economic actions;
-- infer missing economic policy.
+- infer missing treasury policy;
+- create a direct OpCo-revenue-to-Alpha mechanism;
+- perform irreversible economic actions.
 
-Production subnet/economic actions require explicit human authorization.
+Current/legacy score-to-weight transport must not be mistaken for the long-term constitutional settlement design.
 
-Testnet and mock infrastructure should remain visibly distinguishable from production.
+Target future separation:
 
----
+```text
+ScoreResult
+→ contender nomination
+→ frontier promotion
+→ FrontierAdvanceEvent
+→ SettlementObligation
+→ treasury settlement
+```
 
-# 17. Observability
-
-Important workflows should produce structured, useful observability without leaking private evaluation data.
-
-Where applicable capture:
-
-- lifecycle state;
-- failure category;
-- runtime duration;
-- backend/version identifiers;
-- retry count;
-- infrastructure vs scientific failure;
-- ticket/test execution information.
-
-Never log:
-
-- secrets;
-- private keys;
-- official seeds;
-- hidden exam identifiers;
-- sensitive miner-visible evaluation internals.
-
-Prefer explicit failure tags over unstructured error strings where the architecture supports them.
+Implement only in the authorized future wave.
 
 ---
 
-# 18. Failure and Escalation Rules
+# 15. Business and commercial boundary
 
-Do not burn unlimited retries.
+Business authority lives under `Business/`.
 
-If two materially different implementation attempts fail for the same underlying reason:
+Agents may implement commercial systems when authorized, but business terms never alter scientific truth.
 
-**stop and escalate.**
+Hard rules:
 
-Also stop when:
+- customer payment != score;
+- commercial acceptance != scientific qualification;
+- sponsor reward != scientific merit;
+- OpCo revenue != Alpha value by declaration;
+- customer/private evidence reuse only where rights permit;
+- architecture-specified products are not commercial traction.
 
-- a specification conflict blocks correctness;
-- a required scientific parameter is absent;
-- security behaviour is ambiguous;
+---
+
+# 16. Publications and claim discipline
+
+Papers, README, decks, websites, and investor materials are explanatory layers.
+
+Never convert:
+
+```text
+DESIGN → IMPLEMENTED
+IMPLEMENTED → SCIENTIFICALLY QUALIFIED
+TESTED → PRODUCTION SECURE
+BUSINESS DESIGN → PAID TRACTION
+NETWORK DESIGN → PROVEN NETWORK ADVANTAGE
+```
+
+without evidence.
+
+---
+
+# 17. Failure and escalation
+
+Stop and escalate when:
+
+- specification/constitution conflict blocks correctness;
+- required scientific/economic/security/legal input is absent;
 - implementation would weaken an invariant;
 - required external credentials/infrastructure are unavailable;
-- the ticket requires an architectural decision not already made;
-- the existing implementation materially contradicts the specification and replacement would be substantial.
+- two materially different attempts fail for the same root reason;
+- existing implementation materially contradicts the spec and replacement would be substantial;
+- the ticket requires a later-wave architectural decision not yet authorized.
 
-When blocked, report:
+Report:
 
-1. what you attempted;
+1. what was attempted;
 2. what failed;
 3. relevant files/tests/errors;
-4. what you believe the blocker is;
-5. the smallest human decision/input required to continue.
+4. likely blocker;
+5. smallest owner decision required.
 
 A clean blocker is better than invented progress.
 
 ---
 
-# 19. Decision Logging
+# 18. Git/change hygiene
 
-Record material implementation decisions when they are not obvious consequences of the specification.
+Prefer one ticket → one reviewable branch/diff.
 
-Do not clutter the decision log with routine coding choices.
+Do not:
 
-Record decisions such as:
+- mass-delete or mass-rename unrelated code;
+- rewrite unrelated history;
+- silently alter public interfaces;
+- introduce unnecessary dependencies;
+- commit secrets/credentials;
+- push unreviewed major production changes merely for speed.
 
-- choosing to wrap rather than replace existing code;
-- compatibility approaches;
-- migration decisions;
-- non-obvious architectural mapping;
-- consciously deferred risk;
-- interpretation confirmed by a human.
-
-Where `.agent/DECISIONS.md` exists, use it.
-
-Do not record secrets.
+Changes should be understandable and revertible.
 
 ---
 
-# 20. Code Quality
+# 19. Completion report
 
-Prefer code that is:
-
-- explicit;
-- boring;
-- deterministic;
-- testable;
-- typed where useful;
-- modular without unnecessary abstraction;
-- easy for another engineer to audit.
-
-Avoid:
-
-- speculative abstractions;
-- enormous god objects;
-- cleverness that obscures safety behaviour;
-- duplication of existing functionality;
-- unexplained magic constants;
-- hidden global state;
-- broad exception swallowing;
-- silent failure.
-
-Scientific and protocol-critical behaviour should be particularly easy to trace.
-
----
-
-# 21. Human Ownership Boundaries
-
-Agents may build a very large proportion of Carbon.
-
-Humans retain final authority over:
-
-### Scientific authority
-Physics assumptions, challenge design, scientific thresholds, qualification criteria, and claims of scientific validity.
-
-### Security authority
-Production isolation, adversarial review, validator hardening, and acceptance of residual security risk.
-
-### Economic authority
-Emission behaviour, fees with economic consequence, live subnet parameters, and production deployment.
-
-### Launch authority
-Testnet → production decisions and LIVE qualification.
-
-Code generation does not transfer these responsibilities to the agent.
-
----
-
-# 22. Completion Report
-
-At the end of a ticket, provide a concise report containing:
+At ticket end report:
 
 ### Implemented
 What changed.
 
 ### Reused
-Important existing code that was kept/wrapped/repaired.
+KEEP/WRAP/REPAIR choices.
 
 ### Tests
-Exact relevant commands executed and their results.
+Exact commands/results.
 
 ### Invariants
-Any Carbon invariants directly exercised by the change.
+Relevant constitutional invariants exercised.
+
+### Maturity
+Which states are actually earned: specified / implemented / tested / qualified etc.
 
 ### Risks / Follow-up
-Anything requiring later review.
+Remaining work.
 
 ### Human Input Required
-Only unresolved decisions actually blocking or qualifying future work.
-
-Keep reports factual.
+Only unresolved owner decisions.
 
 Do not describe incomplete work as complete.
 
 ---
 
-# 23. Core Principle
+# 20. Core principle
 
 When choosing between:
 
@@ -774,10 +514,8 @@ When choosing between:
 
 and
 
-**stopping because Carbon's specification or science does not provide the answer**
+**stopping because Carbon's current science, security, economics, business authority, or specification does not provide the answer**
 
 always choose the second.
 
-The target is not autonomous code volume.
-
-The target is a repository that a strong scientific-computing/Bittensor engineer can inherit, audit, understand, and safely continue toward production.
+> **The search surface may widen. The authority boundary may not.**

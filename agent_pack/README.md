@@ -3,7 +3,13 @@
 Protocol docs and optional harness notes. **Live board and tickets live at repo root `.agent/`.**
 
 ```text
-spec → bounded ticket → DoD → tests → review → next ticket
+constitutional authority
+→ bounded ticket
+→ DoD
+→ tests
+→ review
+→ board evidence
+→ next ticket
 ```
 
 ---
@@ -12,28 +18,39 @@ spec → bounded ticket → DoD → tests → review → next ticket
 
 | Path | Role |
 |------|------|
-| **`/AGENTS.md`** | Constitution for every agent/human |
+| **`/CONSTITUTION.md`** | Repository-wide scientific / implementation / business / publication authority map |
+| **`/AGENTS.md`** | Default engineering behavior for every coding agent/human |
 | **`/.agent/`** | WAVE, ORIENTATION, DECISIONS, INVARIANTS, tickets, plans |
-| **`agent_pack/EXECUTION_PROTOCOL.md`** | Ticket loop |
+| **`Design_Specs/Build_Out.md`** | Current detailed build sequencing |
+| **`Design_Specs/Build_Out_Constitutional_Overlay.md`** | Migration guard for A8 onward and stale shorthand |
+| **`Design_Specs/Agentic_Development_Master_Plan.md`** | Long-horizon A0→agentic-construction plan |
+| **`docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`** | Integrated scientific constitution |
+| **`Business/Business_Canon.md`** | Business authority outside scientific judge |
+| **`agent_pack/EXECUTION_PROTOCOL.md`** | Ticket execution loop |
 | **`agent_pack/PLANS.md`** | Plan template for complex tickets |
-| **`agent_pack/executors/`** | Optional Hermes/etc. only |
+| **`agent_pack/executors/`** | Optional harness/vendor notes only |
 
 ---
 
-## Process rules
+## Current process rules
 
-- Build_Out **v1.4**
-- Orientation + KEEP/WRAP/REPAIR/REPLACE
-- Baseline tests before/after each ticket
-- One ticket per branch/worktree
-- v1.4 FSM/LIVE hash semantics
-- Start agents with **A-1 only**, then checkpoint
+- Current board remains **Wave A**.
+- A0–A7 are done in the bounded scopes recorded in `.agent/WAVE.md`.
+- **A8 is the next unimplemented ticket.**
+- Build Out v1.4 remains current detailed sequencing, interpreted through the constitutional overlay.
+- Read `CONSTITUTION.md` and `.agent/INVARIANTS.md` before every new ticket.
+- Orientation + KEEP/WRAP/REPAIR/REPLACE.
+- Baseline tests before/after each ticket.
+- One bounded ticket per branch/worktree by default.
+- Do not infer scientific/security/network/commercial/production qualification from test success.
+- Later Waves H–N in the Agentic Master Plan are planning architecture only until explicitly authorized.
 
 ---
 
-## First experiment
+## Current next move
 
-1. Run **A-1** orientation only  
-2. Human reviews ORIENTATION.md  
-3. If solid → A0→A3 → checkpoint  
-4. Continue Wave A  
+1. refresh orientation if needed against the current `main` authority set;
+2. execute **A8 only**;
+3. independently review and merge;
+4. record exact evidence in `.agent/WAVE.md`;
+5. proceed to A9 only after the A8 gate is genuinely satisfied.
