@@ -7,7 +7,7 @@
 
 
 **Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
-**Version:** 1.5<br>
+**Version:** 1.4<br>
 **Status:** Executable requirements contract  
 **Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`  
 **Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`
@@ -661,4 +661,4 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 
 ---
 
-*Build_Out v1.5 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*
+*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*

@@ -174,19 +174,22 @@ Exact frozen/slotted decoded types are:
 GetChallengeInfoRequest(exact ChallengeKey)
 GetPriorRequest(exact ChallengeKey)
 GetMockScaffoldRequest(exact ChallengeKey, exact str | None)
-DryValidateRequest(fresh owned exact built-in graph)
-EstimateRequest(exact ChallengeKey, fresh owned exact built-in dict)
-SubmitRequest(exact ChallengeKey, fresh owned exact built-in graph)
+DryValidateRequest(fresh owned supported exact-built-in graph)
+EstimateRequest(exact ChallengeKey, fresh owned supported exact-built-in graph)
+SubmitRequest(exact ChallengeKey, fresh owned supported exact-built-in graph)
 GetSubmissionResultRequest(exact SubmissionId)
 ```
 
-After required providers are present and exact challenge visibility succeeds,
-every resource-admissible decoded estimate dict, including semantically
-invalid and aliased/cyclic Strategy graphs, reaches exact A2. Every
-resource-admissible decoded submit graph reaches exact A7 after the receipt
-resource preflight in A9-R10. Dry validation accepts every resource-admissible
-captured root. Transport-inexpressible types fail at A9 rather than being
-relabelled as A2/A7 science or lifecycle behavior.
+Estimate capture accepts the same freshly owned resource-admissible supported
+exact-built-in graph as dry validation and submit; A9 does not independently
+require a dictionary root. After both required providers, exact public
+Challenge visibility, and the exact public prior succeed, every such estimate
+graph reaches exact A2 once. A2-invalid graphs take only the A9-owned R8
+response path; only an exact A2-valid dictionary can reach the estimate
+provider. Every resource-admissible decoded submit graph reaches exact A7 after
+the receipt resource preflight in A9-R10. Dry validation accepts every
+resource-admissible captured root. Transport-inexpressible types fail at A9
+rather than being relabelled as A2/A7 science or lifecycle behavior.
 
 **A9-R4 — Mandatory resource policy and ownership.** Exact frozen/slotted,
 non-defaulted `McpResourceLimits` has these positive finite integer fields:
@@ -284,14 +287,20 @@ effectively_live
 allowed_backbones
 ```
 
-Lookup is exact-key only; A9 never scans/lists records. Exact A3 `draft`,
-`fixture`, and `live` records are visible. Non-live records return
-`effectively_live=False`; live records return exactly A3
-`is_effectively_live(challenge_id, version)`, including visible
-`live/False` when revalidation fails. `fixture_origin` and
-`allowed_backbones` are copied facts, not provenance authentication,
-scientific qualification, runtime support, or admission. Missing, malformed,
-internally inconsistent, or unknown-lifecycle records are unavailable.
+Lookup is exact-key only; A9 never scans/lists records. A loaded `draft` record
+is unavailable and maps to `McpChallengeUnavailableError`. A `fixture` record
+is visible only when the exact loaded record has exact lifecycle status
+`fixture`, `fixture_origin is True`, and exact A3
+`ChallengeRegistry.assess_live_eligibility(challenge_id, version,
+fixture_mode=True).eligible is True`; its `effectively_live` is exact `False`.
+A false fixture assessment is unavailable without exposing its reasons. A
+`live` record is visible and obtains `effectively_live` only from exact A3
+`is_effectively_live(challenge_id, version)`, including visible `live/False`
+when revalidation fails. Successful `lifecycle_status` is therefore exact
+`fixture` or `live`. `fixture_origin` and `allowed_backbones` are copied facts,
+not provenance authentication, scientific qualification, runtime support, or
+admission. Missing, malformed, internally inconsistent (including an
+inconsistent fixture), or unknown-lifecycle records are unavailable.
 
 No artifact path/digest, qualification reference/evidence/reason, backend-
 profile evidence, receipt evidence, fee, Score Pack/generator hash, active mock
@@ -414,21 +423,34 @@ StructuralEstimate(
 Applicable directives are an order-preserving duplicate-free subset of the
 exact public prior and there is no arbitrary text field. The handler first
 checks both provider slots, then resolves the exact Challenge record,
-obtains/validates the public prior, calls A2
-`dry_validate` exactly once on a fresh owned dict, and calls:
+obtains/validates the public prior, and calls public
+`carbon.schema.dry_validate` exactly once on the fresh owned supported graph.
+
+When the exact owned A2 result has `ok=False`, the provider is not called. A9
+returns its own bounded `StructuralEstimate` with the exact ChallengeKey,
+exact public `PriorRef`, exact owned A2 result, exact empty
+`applicable_directives=()`, and exact disclaimer
+`"non_binding_structural_prior_only"`. It performs no execution or additional
+structural interpretation on this path.
+
+If and only if the exact A2 result has `ok=True`, the Strategy is an exact
+A2-valid dictionary and A9 calls the estimate provider exactly once:
 
 ```text
 EstimateProvider.estimate(
     ChallengeKey,
     PublishedPrior,
-    owned Strategy,
-    ValidationResult
+    owned exact A2-valid Strategy dict,
+    exact ValidationResult with ok=True
 ) -> StructuralEstimate
 ```
 
-Semantically invalid resource-admissible dicts still reach A2 and the provider
-with their exact validation result; the response must preserve that result.
-Missing prior or estimate provider is unavailable.
+The provider never receives a non-object, A2-invalid, cyclic, invalid-key, or
+invalid-value Strategy, or a ValidationResult with `ok=False`. Its positive
+output must preserve the exact `ok=True` result, ChallengeKey, PriorRef,
+directive-subset order, disclaimer, response bounds, and every existing
+non-execution/non-oracle rule. Missing prior or estimate provider is
+unavailable before A2.
 
 The provider uses only declarative structure, validation, and public prior. It
 performs no execution; uses no MockContext; calls no A8; uses no fixture-
@@ -567,10 +589,11 @@ quota, stack, or exception object. Unknown/alias/deferred tool and missing
 tool-specific provider map to unavailable; malformed calls map to request;
 invalid boundary challenge/version/scaffold/submission/requester scalar syntax
 also maps to request; and limit/capacity exhaustion maps to resource. A
-syntactically valid missing or malformed Challenge maps to Challenge
-unavailable; A7 not-found/authorization during `get_submission_result` maps to
-submission unavailable; all other trusted integration/output failures map to
-integration failure.
+syntactically valid missing/malformed Challenge, draft record, inconsistent
+fixture, unknown lifecycle, or other internally inconsistent Challenge maps to
+Challenge unavailable; A7 not-found/authorization during
+`get_submission_result` maps to submission unavailable; all other trusted
+integration/output failures map to integration failure.
 
 Only a wrong/subclassed outer call or requester is rejected before concurrency
 admission. Every exact-top-level call acquires a permit before all remaining
@@ -610,12 +633,21 @@ re-exports no A2--A8 owner type.
 The sole canonical focused test is `tests/cpu/test_mcp_skeleton.py`. Its
 future matrix covers exact types/subclass rejection; fields/duplicates/schema;
 resource/capture/concurrency/response bounds; hostile rendering and stable
-errors; A2/A3 delegation; provider absence/malformed output; prior/scaffold
-leakage and deferred execution; structural estimate and light rejection;
-fixture/mock/official crossing; A7 submit/idempotence/no duplicate lifecycle or
-fee; requester-bound polling/all states/query ordering; published-only exact
-A6 card; authorization/not-found collapse; private-data exclusions; retention;
-source/root/import isolation; installed wheel; full CPU; Ruff/Black/no debt.
+errors; exact A2 delegation and positive result reconstruction in standalone
+`DryValidateResponse`; exact A2 delegation inside `StructuralEstimate` for
+resource-admissible supported exact-built-in non-object roots and invalid-
+field/key/value/cyclic estimate graphs; zero estimate-provider calls and empty
+directives for every captured A2-invalid graph; one provider call only for
+exact A2-valid Strategy; A3 draft unavailability,
+fixture visibility only with exact `fixture_origin is True` and exact true A3
+fixture assessment, loadable-but-false fixture-assessment unavailability,
+effective-live true/false, and no enumeration; provider
+absence/malformed output; prior/scaffold leakage and deferred execution;
+structural estimate and light rejection; fixture/mock/official crossing; A7
+submit/idempotence/no duplicate lifecycle or fee; requester-bound polling/all
+states/query ordering; published-only exact A6 card; authorization/not-found
+collapse; private-data exclusions; retention; source/root/import isolation;
+installed wheel; full CPU; Ruff/Black/no debt.
 Documentation and existing regressions are not A9 test evidence.
 
 **A9-R15 — Implementation and maturity gate.** No A9 source/test work may begin

@@ -107,9 +107,12 @@ separately ratified pure structural/prior estimate.
 - Challenge information performs exact-key lookup without listing and exposes
   only exact `challenge_key`, `lifecycle_status`, `fixture_origin`,
   `effectively_live`, and `allowed_backbones`, plus the `"1.0"` response
-  framing version. Exact draft, fixture, and live records are visible; only A3
-  `is_effectively_live` supplies the Boolean and no visibility is an admission
-  or qualification claim.
+  framing version. Draft is unavailable; a fixture is visible only when its
+  exact loaded record has exact fixture status, `fixture_origin is True`, and
+  exact A3 `assess_live_eligibility(..., fixture_mode=True).eligible is True`;
+  its `effectively_live` is false. Live is visible and only A3
+  `is_effectively_live` supplies its Boolean, including false. No visibility
+  is an admission or qualification claim.
 - Priors are coarse, public, versioned, hashed, non-executable, non-binding,
   one-channel, and use only closed `STRUCTURAL_STEER`, `AVOID`, `EXPLORE`, and
   `NOT_INCLUDED` directive kinds. Actual content and closed vocabulary remain
@@ -156,9 +159,15 @@ separately ratified pure structural/prior estimate.
       resource-admissible exact-string alias plus `light_compare`,
       `light_train`, and `list_my_submissions` returns stable tool unavailable
       without downstream calls.
-- [ ] Exact A3 delegation performs exact-key projection for draft, fixture,
-      and live records, calls only A3 for effective-LIVE truth, and exposes only
-      the five allowed Challenge fields.
+- [ ] Exact A3 delegation performs exact-key projection with no scan/list:
+      missing and draft are Challenge-unavailable; only an exact consistent
+      fixture with `fixture_origin is True` and exact A3
+      `assess_live_eligibility(..., fixture_mode=True).eligible is True` is
+      visible with effective-LIVE false; a fixture that loads but has a false
+      assessment is unavailable without reason exposure; live is visible with
+      only exact A3 supplying both effective-LIVE true and false cases;
+      malformed, unknown-lifecycle, and internally inconsistent records are
+      unavailable; responses expose only the five allowed Challenge fields.
 - [ ] Exact prior/scaffold/estimate provider protocols are injected, absence is
       stably unavailable, and provider exceptions or malformed outputs within
       response meters fail closed as integration errors; a first-detected
@@ -173,12 +182,21 @@ separately ratified pure structural/prior estimate.
       returned exact scaffold ID.
 - [ ] `dry_validate` delegates exactly once to current A2 and returns a fresh
       exact public validation result without adding admission or execution.
-- [ ] `estimate` uses exact A2 validation plus provider/public-prior structure
-      only, returns an order-preserving directive subset and fixed non-binding
-      disclaimer, and fails closed without exact providers.
-- [ ] Tests prove estimate performs no execution, MockContext/A8 call,
-      fixture/official context or Score Pack use, ScoreInput/InternalResult
-      construction, or quality/score/rank/card/gate/weight/emission prediction.
+- [ ] `estimate` accepts the same captured graph domain as dry validation,
+      calls exact A2 once after provider/Challenge/prior prerequisites, returns
+      an A9-owned exact-validation/empty-directive result without calling the
+      provider when `ok=False`, calls the provider exactly once only with an
+      exact A2-valid dict and `ok=True`, preserves the exact provider validation
+      and directive subset, uses the fixed disclaimer, and fails closed without
+      exact providers.
+- [ ] Tests prove resource-admissible supported exact-built-in non-dict roots
+      return exact A2 `strategy.type` inside `StructuralEstimate`, invalid
+      fields/keys/values and cyclic graphs preserve the exact A2 result, every
+      captured A2-invalid estimate has empty directives and zero provider
+      calls, a valid Strategy calls the provider once, and estimate performs no
+      execution, MockContext/A8 call, fixture/official context or Score Pack use,
+      ScoreInput/InternalResult construction, or quality/score/rank/card/gate/
+      weight/emission prediction.
 - [ ] `submit` delegates only to exact A7 `submit` then `get_status`, preserves
       exact capacity-permitted `REJECTED`/`RECEIVED` and duplicate-open
       idempotence, preflights the maximum canonical receipt response envelope

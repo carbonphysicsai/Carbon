@@ -25,7 +25,7 @@ Wave A exposes exactly seven in-process service tools:
 | `get_prior` | `GetPriorRequest` | `PublishedPrior` | injected prior provider |
 | `get_mock_scaffold` | `GetMockScaffoldRequest` | `PublishedScaffold` | injected scaffold provider plus A2 validation |
 | `dry_validate` | `DryValidateRequest` | `DryValidateResponse` | A2 `dry_validate` |
-| `estimate` | `EstimateRequest` | `StructuralEstimate` | injected structural-estimate provider plus A2 validation |
+| `estimate` | `EstimateRequest` | `StructuralEstimate` | A2 validation; injected estimate provider only for exact `ok=True` |
 | `submit` | `SubmitRequest` | `SubmitReceipt` | A7 `SubmissionService` |
 | `get_submission_result` | `GetSubmissionResultRequest` | `SubmissionResult` | A7 `SubmissionService` plus query budget gate |
 
@@ -223,10 +223,12 @@ nominal-field, and provider-sequence order; the first condition encountered
 controls. Positive projection detaches provider ownership while preserving
 valid internal graph topology.
 
-`DryValidateRequest` and `SubmitRequest` preserve any resource-admissible
-captured graph as `strategy`, because A2 and A7 own rejection of invalid root
-types. `EstimateRequest.strategy` is an exact built-in `dict`; admissible but
-domain-invalid dictionaries remain for A2 and the provider to assess.
+`DryValidateRequest`, `EstimateRequest`, and `SubmitRequest` preserve the same
+freshly owned resource-admissible supported exact-built-in graph as
+`strategy`, because A2 and A7 own rejection of invalid root types. Transport
+capture may reject out-of-domain or over-limit values, but A9 does not require
+an estimate Strategy dictionary root. Exact A2 validation, not transport,
+controls whether the estimate provider may receive the graph.
 
 ## 4. Challenge information
 
@@ -234,8 +236,7 @@ domain-invalid dictionaries remain for A2 and the provider to assess.
 `ChallengeRegistry.load`. It does not scan or list the registry and adds no
 second challenge-admission policy.
 
-Exact-key records in A3 states `draft`, `fixture`, and `live` are visible. The
-minimal `ChallengeInfo` projection contains only:
+The minimal successful `ChallengeInfo` projection contains only:
 
 - schema version `"1.0"`;
 - exact `challenge_key`;
@@ -244,15 +245,24 @@ minimal `ChallengeInfo` projection contains only:
 - exact `effectively_live`; and
 - exact `allowed_backbones`.
 
-For a live record, `effectively_live` is the exact result of A3
-`is_effectively_live`; it may be false. For draft and fixture records it is
-false. MCP discloses no artifact path or digest, qualification reference,
+An exact loaded `draft` record is unavailable and maps to
+`mcp.challenge_unavailable`. An exact loaded `fixture` record is visible only
+when it has exact lifecycle status `fixture`, `fixture_origin is True`, and
+exact A3 `ChallengeRegistry.assess_live_eligibility(challenge_id, version,
+fixture_mode=True).eligible is True`; its `effectively_live` is exact `False`.
+A false fixture assessment is unavailable without exposing its reasons. An
+exact loaded `live` record is visible and its `effectively_live` is supplied
+only by the exact A3 `is_effectively_live` result; it may be false. Successful
+`lifecycle_status` is therefore `fixture` or `live`. MCP discloses no artifact
+path or digest, qualification reference,
 qualification evidence or private reason, backend-profile evidence, receipt
 evidence, fee value, Score Pack or generator hash, active mock-pack ID, mock
 range, tag or disclosure catalog, seed, context, challenge payload, hidden
 fixture content, leaderboard, or submission history.
 
-Missing keys and canonical A3 load failures map to the fixed
+Missing keys, canonical A3 load failures, malformed or unknown-lifecycle
+records, inconsistent fixtures, and other internally inconsistent records map
+to the fixed
 `mcp.challenge_unavailable` response. Unexpected integration failures map to
 `mcp.integration_failure` without disclosing exception text.
 
@@ -370,10 +380,10 @@ response-meter breach is `mcp.resource_limit_exceeded`.
 exact `ValidationResult` in `DryValidateResponse`. MCP adds no validator,
 rewrites no issue, and makes no execution or admission claim.
 
-`estimate` first checks both provider slots, establishes exact-key challenge
-visibility, obtains and validates the exact public prior, calls canonical A2
-`dry_validate` exactly once, and finally delegates all four exact inputs to the
-injected `EstimateProvider`. Its closed result is:
+`estimate` first checks both provider slots, establishes exact-key public
+Challenge visibility, obtains and validates the exact public prior, and calls
+public `carbon.schema.dry_validate` exactly once on the captured supported
+exact-built-in graph. Its closed result is:
 
 ```python
 StructuralEstimate(
@@ -392,6 +402,20 @@ referenced published prior. The estimate has no numeric quality, probability,
 score, rank, `EvaluationCard`, gate status, cost, weight, or emission estimate.
 It is non-binding and cannot admit, reject, start, execute, or publish a
 submission.
+
+When the exact A2 result has `ok=False`, A9 does not call
+`EstimateProvider`. It returns an A9-owned bounded result with the exact
+ChallengeKey, exact public PriorRef, exact owned A2 validation,
+`applicable_directives=()`, and exact disclaimer
+`"non_binding_structural_prior_only"`. That branch performs no execution or
+additional structural interpretation.
+
+If and only if the exact A2 result has `ok=True`, the Strategy is an exact
+A2-valid dictionary and A9 calls `EstimateProvider` exactly once. The provider
+never receives a non-object, A2-invalid, cyclic, invalid-key, or invalid-value
+Strategy, or a ValidationResult with `ok=False`. Its output must preserve the
+exact `ok=True` validation, Challenge/prior binding, ordered directive-subset,
+disclaimer, response bounds, and all non-execution/non-oracle rules.
 
 The estimate uses no `MockContext`, A8 service, fixture-official context,
 official or fixture Score Pack, `ScoreInput`, or `InternalResult` and performs
@@ -523,7 +547,7 @@ precedence is:
 12. decoded scalar syntax → request;
 13. submit maximum-receipt preflight breach → resource before A7;
 14. unconfigured optional provider → tool unavailable;
-15. missing, malformed, or internally inconsistent challenge → challenge unavailable;
+15. missing/malformed challenge, draft record, inconsistent fixture, unknown lifecycle, or other internal inconsistency → challenge unavailable;
 16. result-poll budget exhaustion or non-exact-`None` gate return → query budget or integration, respectively;
 17. result-poll missing or requester-mismatched submission → submission unavailable;
 18. response-meter or canonical A7 resource/capacity breach → resource;
@@ -549,8 +573,8 @@ class EstimateProvider(Protocol):
         self,
         challenge_key: ChallengeKey,
         prior: PublishedPrior,
-        strategy: dict,
-        validation: ValidationResult,
+        strategy: dict,  # owned exact A2-valid Strategy
+        validation: ValidationResult,  # exact result with ok=True
     ) -> StructuralEstimate: ...
 
 class QueryBudgetGate(Protocol):
@@ -560,6 +584,10 @@ class QueryBudgetGate(Protocol):
 Providers own their data and identity. They do not gain access to the
 submission service through MCP. A9 adds no database, cache, filesystem store,
 mutable history, list endpoint, or background worker.
+
+The estimate-provider protocol is valid-path-only. A9 invokes it once only
+after exact A2 `ok=True`; every captured exact A2-invalid estimate is
+constructed by A9 with empty directives and never reaches the provider.
 
 Source dependencies are limited to the standard library and the minimum
 public A2, A3, A6 model, and A7 APIs. A9 must not source-import A4 context or
@@ -587,10 +615,17 @@ The sole canonical future focused test is
 `tests/cpu/test_mcp_skeleton.py`. Its acceptance matrix is recorded in the A9
 ticket and pre-implementation plan and includes exact types, call fields,
 resource/response bounds, hostile objects, stable errors, upstream delegation,
-provider and leakage failures, mock/light rejection, A7 lifecycle behavior,
-all-state requester-bound polling, published-only cards, dependency/export
-isolation, installed-wheel import, full CPU regression, Ruff, Black, and
-no-new-debt checks. Existing A0–A8 regressions are not A9 test evidence.
+standalone `DryValidateResponse` delegation/reconstruction, resource-admissible
+supported exact-built-in non-dict `strategy.type` inside `StructuralEstimate`,
+invalid field/key/value and cyclic estimate results, empty invalid directives,
+zero invalid provider calls, one valid provider call, provider and leakage
+failures, draft unavailability, fixture visibility only with exact
+`fixture_origin is True` and an exact true A3 fixture assessment, loadable-but-
+false fixture-assessment unavailability, effective-live true/false, no
+enumeration, mock/light rejection, A7 lifecycle behavior, all-state requester-
+bound polling, published-only cards, dependency/export isolation, installed-
+wheel import, full CPU regression, Ruff, Black, and no-new-debt checks.
+Existing A0–A8 regressions are not A9 test evidence.
 
 ## 12. Deferred full-loop and release posture
 
