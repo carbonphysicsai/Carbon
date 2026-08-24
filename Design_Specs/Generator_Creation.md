@@ -1,638 +1,190 @@
-# Generator Creation — Reference-Evidence and Implementation Architecture
+# Generator Creation — Human Guide, Reference Verification, and Implementation Architecture
 
-**Purpose:** Define how Carbon creates a Challenge generator, why the implementation is separated into distinct authorities, the software contracts required to build it safely, and the hard evidence package required to defend the reference used to evaluate it.  
+**Carbon Subnet**  
+**Version:** 4.0  
+**Status:** OWNER-RECOMMENDED architecture; Challenge-specific scientific acceptance remains evidence- and reviewer-owned.  
+**Purpose:** Explain, in plain language and implementation detail, how Carbon creates a Challenge generator, how that generator is checked against a qualified reference, what hard data must be retained, and why the software is separated into distinct scientific authorities.  
 **Related:** [`Generator_Validation.md`](./Generator_Validation.md), [`Challenge_Instance_Distribution.md`](./Challenge_Instance_Distribution.md), [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md), [`Data_Management.md`](./Data_Management.md), [`Scoring.md`](./Scoring.md), [`Physical_System_Representation.md`](./Physical_System_Representation.md), [`Build_Out.md`](./Build_Out.md), `SPEC.md`.
 
 ---
 
-# 0. Executive rule
+# 0. Read this first
 
 Carbon does **not** claim that a Validation Dossier creates absolute physical truth.
 
-Carbon's defensible claim is narrower:
+The claim is narrower and more defensible:
 
-> **For an exact registered physical task and population, Carbon may use a reference process only after the evidence shows that its uncertainty, disagreement, applicability, and failure regions are sufficiently characterized to support the scientific comparison the Challenge intends to make.**
+> **For an exact registered physical task and population, Carbon may use a reference process only after evidence shows that its uncertainty, disagreement, applicability, and failure regions are sufficiently characterized to support the comparison the Challenge intends to make.**
 
-The generator project therefore has four distinct outputs:
+The generator project therefore has four outputs:
 
 ```text
-A. SCIENTIFIC TASK DEFINITION
-   what population and physical mapping the Challenge claims
+1. SCIENTIFIC TASK
+   What physical problem and population are we claiming to test?
 
-B. EXECUTABLE CHALLENGE GENERATOR
-   fresh seeded canonical cases from the registered population/SamplingPlan
+2. EXECUTABLE GENERATOR
+   Can we reproducibly create fresh cases from that registered population?
 
-C. REFERENCE-EVIDENCE PACKAGE
-   hard data showing why the reference path is adequate for those cases
+3. REFERENCE-EVIDENCE PACKAGE
+   Why should we trust the comparison values for those cases, and to what precision?
 
-D. IMPLEMENTATION-EVIDENCE PACKAGE
-   tests proving the software realizes the registered task without silently changing it
+4. IMPLEMENTATION-EVIDENCE PACKAGE
+   Does the software actually implement the registered task without silently changing it?
 ```
 
-The generator is not truth by definition. A solver is not truth by brand name. Agreement between a candidate and the generator is not sufficient evidence of physical correctness.
+The shortest mental model is:
 
-> **Narrowing the physical job makes a defensible reference claim possible; the evidence package determines whether that claim is actually earned.**
+```text
+DEFINE THE JOB
+      ↓
+DEFINE THE POPULATION
+      ↓
+BUILD THE GENERATOR
+      ↓
+QUALIFY THE REFERENCE
+      ↓
+VERIFY GENERATOR AGAINST REFERENCE
+      ↓
+QUALIFY THE MEASUREMENTS
+      ↓
+PROVE THE EXAM CAN RESOLVE REAL DIFFERENCES
+      ↓
+VALIDATION DOSSIER
+      ↓
+LIVE
+```
 
-If the reference evidence cannot support the desired envelope or resolution, Carbon must **shrink the envelope, coarsen the scientific claim, mark the comparison indeterminate, or block LIVE**.
+The key rule is:
+
+> **The generator is not truth by definition. The reference is not truth by brand name. The exam must earn the right to judge candidates.**
 
 ---
 
-# 1. Why the build is intentionally separated
+# 1. What the generator actually does
 
-A single `generate(seed)` function would be simpler to code, but scientifically dangerous because it would silently collapse several different authorities:
-
-```text
-what physics is claimed
-what population is claimed
-how finite evidence is sampled
-how one physical case is represented
-how truth/reference is produced
-how measurements are computed
-how evidence becomes score
-```
-
-Carbon separates these because each can fail independently.
-
-Examples:
-
-- the PDE can be correct while the sampled population is wrong;
-- the population can be correct while the finite exam under-samples a critical stratum;
-- the sampled case can be correct while a tensor adapter changes a boundary condition;
-- the generator can be perfectly deterministic while the reference is numerically biased;
-- the reference can be credible while the measurement is ill-defined;
-- every component can work while the finite evidence is too noisy to resolve a winner.
-
-Therefore the implementation follows the same authority separation as the scientific architecture:
-
-```text
-PhysicalSystemSpec / CandidateOutputContract
-        ↓ defines meaning
-InstanceDistributionContract P(x)
-        ↓ defines population
-SamplingPlan Q(x)
-        ↓ defines finite evidence allocation
-ChallengeInstanceGenerator
-        ↓ realizes canonical physical cases
-CanonicalChallengeCase
-        ↓ representation-neutral handoff
-ReferencePolicy / ReferenceRunner
-        ↓ produces qualified comparison values
-MeasurementContracts
-        ↓ produce qualified evidence
-Validation Dossier
-        ↓ qualifies the exam
-Score Pack
-        ↓ governs evidence use
-ScoreEngine
-```
-
-This is not abstraction for abstraction's sake. It is how Carbon makes it possible to ask **which layer was wrong** when something fails.
-
----
-
-# 2. Core implementation principles
-
-## 2.1 The scientific task owns the population
-
-The executable sampler does not define scientific meaning merely because it exists.
-
-```text
-InstanceDistributionContract
-        !=
-Generator implementation
-```
-
-The contract says what should be sampled. The generator is tested against it.
-
-## 2.2 Sampling and truth are separate
-
-The generator may construct a physical case without itself deciding the authoritative answer.
-
-```text
-case construction
-        !=
-reference realization
-```
-
-This prevents generator bias from becoming truth by construction.
-
-## 2.3 Canonical cases precede model-specific tensors
-
-The generator produces a representation-neutral `CanonicalChallengeCase`. FNO/JAX/mesh/graph/ROM adapters materialize that case later.
-
-This is required for eventual model-family neutrality and to prevent the first model family from defining the scientific task.
-
-## 2.4 Train, eval, and stress are separate roles
-
-Role separation is structural and seed-domain-owned. The generator consumes an already authorized role/context; it does not invent or downgrade role semantics.
-
-## 2.5 Failures are typed and visible
-
-Generator failure, reference failure, measurement non-applicability, infrastructure failure, and invalid scientific case are different states. None may be silently dropped.
-
-## 2.6 No module certifies itself
-
-The generator does not declare its own conformance. The reference does not declare itself authoritative. The measurement does not decide its own score role. Qualification happens through external evidence and review.
-
----
-
-# 3. Recommended software architecture
-
-The first production-capable generator implementation should converge toward this package boundary:
-
-```text
-carbon/generators/
-    __init__.py
-    model.py
-    contracts.py
-    sampling.py
-    service.py
-    evidence.py
-    conformance.py
-    failures.py
-    burgers/
-        __init__.py
-        generator.py
-        population.py
-        canonical_case.py
-        reference_cole_hopf.py
-        reference_witness.py
-        measurements.py
-        evidence_campaign.py
-```
-
-This is a recommended ownership map, not a requirement to create empty modules before they are needed. Build the smallest coherent vertical slice and preserve these boundaries conceptually.
-
-## 3.1 `model.py` — immutable shared values
-
-Owns closed, immutable values such as:
-
-- `GeneratorId` / version / digest references;
-- `DistributionId`;
-- `SamplingPlanId`;
-- `GeneratorRole` closed enum (`TRAIN`, `EVAL`, `STRESS`, plus separately typed future roles if required);
-- case identity metadata;
-- generator status/failure categories;
-- safe provenance values.
-
-**Why:** identity and status semantics should not be recreated differently in each PDE generator.
-
-## 3.2 `contracts.py` — interfaces, not scientific decisions
-
-Defines structural protocols such as:
-
-```text
-ChallengeInstanceGenerator.generate(...) -> CanonicalChallengeCase
-ReferenceRunner.solve(case, ...) -> ReferenceRealization
-DistributionConformanceRunner.run(...) -> ConformanceReport
-ReferenceEvidenceRunner.run(...) -> ReferenceEvidenceBundle
-```
-
-**Why:** Carbon standardizes what must be observable and testable while allowing Burgers, CFD, experiments, geometry generation, or customer-hosted truth to use different implementations.
-
-## 3.3 `sampling.py` — realization of the registered SamplingPlan
-
-Owns finite case-selection logic from the already registered distribution/SamplingPlan.
-
-It may implement:
-
-- iid sampling;
-- stratified sampling;
-- importance/proposal sampling;
-- tail allocation;
-- replication;
-- deterministic case ordering;
-- duplicate policy.
-
-It does **not** own:
-
-- the scientific population definition;
-- Score Pack weights;
-- production seed derivation;
-- reference labels.
-
-**Why:** separating `P(x)` from `Q(x)` allows Carbon to oversample difficult regimes without falsely claiming they are naturally common.
-
-## 3.4 `service.py` — trusted composition boundary
-
-Composes exact version-pinned contracts, seed/context authority, sampler, generator implementation, and evidence hooks.
-
-Its job is to reject identity mismatches before a case is produced.
-
-It should verify, as applicable:
-
-```text
-challenge identity
-PhysicalSystemSpec identity
-DistributionContract identity
-SamplingPlan identity
-generator version/digest
-role/context compatibility
-requested case ordinal / draw identity
-```
-
-**Why:** scientific objects must be bound to the exact implementation being executed. A correct generator with the wrong distribution version is still the wrong exam.
-
-## 3.5 `evidence.py` — machine-readable evidence artifacts
-
-Owns data structures for audit output, never the scientific approval itself.
-
-Examples:
-
-```text
-GeneratorCaseEvidence
-ReferenceCaseEvidence
-ReferenceDisagreementRecord
-GeneratorReferenceComparison
-MeasurementFloorRecord
-AuditRunManifest
-```
-
-**Why:** a Validation Dossier must be reproducible from retained case-level evidence rather than screenshots or prose summaries.
-
-## 3.6 `conformance.py` — generator implementation audit
-
-Runs the generator repeatedly against the registered distribution and SamplingPlan and computes:
-
-- support compliance;
-- marginal/joint/conditional conformance;
-- stratum frequencies;
-- duplicate/near-duplicate rates;
-- deterministic replay;
-- exclusion compliance;
-- realized-vs-intended population after failures/censoring;
-- role isolation tests.
-
-It does not call candidate models or produce a candidate score.
-
-**Why:** numerical correctness of labels cannot detect a population-sampling bug.
-
-## 3.7 PDE-specific modules
-
-A PDE-specific package owns only the scientific implementation that truly differs by Challenge family.
-
-For Burgers:
-
-- construction of periodic smooth initial conditions;
-- canonical Burgers case representation;
-- fixed-viscosity semantics;
-- Cole–Hopf implementation;
-- independent numerical witness wrapper;
-- Burgers-specific physical diagnostic implementations;
-- Burgers evidence campaign configuration.
-
-**Why:** common security/identity/evidence plumbing should not be copied into each PDE, while physics-specific logic should not be hidden inside generic infrastructure.
-
----
-
-# 4. Canonical interfaces
-
-The exact Python signatures may evolve during implementation review, but the semantic contracts should remain.
-
-## 4.1 Generator request
+A Challenge generator creates physical cases. It does **not** decide what the correct answer is.
 
 Conceptually:
 
 ```text
-GeneratorRequest {
-  challenge_key
-  distribution_pin
-  sampling_plan_pin
-  generator_pin
-  authorized_role_context
-  sample_index / draw_identity
-}
+(seed + registered role + registered distribution + SamplingPlan)
+        ↓
+ChallengeInstanceGenerator
+        ↓
+CanonicalChallengeCase
 ```
 
-The request does not contain arbitrary caller-selected physical ranges that can override the registered population for official eval/stress.
+For Burgers, a canonical case might contain:
 
-## 4.2 Generator result
+- the periodic spatial domain;
+- fixed viscosity;
+- the sampled initial condition;
+- requested prediction time;
+- exact case identity and provenance;
+- the stratum or sampling role used internally.
+
+The correct solution for that case is produced separately by a `ReferenceRunner`.
+
+That separation is deliberate:
 
 ```text
-GeneratorResult =
-    GeneratedCase(CanonicalChallengeCase)
-  | GeneratorScientificInvalidCase(...)
-  | GeneratorConstructionFailure(...)
-  | GeneratorInfrastructureFailure(...)
+CASE CONSTRUCTION
+      !=
+REFERENCE / ANSWER CONSTRUCTION
 ```
 
-A hard physical case is not silently retried until an easy one appears.
-
-## 4.3 Canonical challenge case
-
-At minimum, conceptually:
-
-```text
-CanonicalChallengeCase {
-  identity / provenance
-  physical_system_ref
-  physical inputs
-  parameters
-  ICs / BCs
-  forcing if any
-  geometry/topology if any
-  requested output/query semantics
-  stratum metadata safe for internal use
-  representation requirements
-  reference request metadata
-  measurement applicability metadata
-}
-```
-
-It should contain the scientific case, not an FNO tensor or a solver-specific mesh object as the primary identity.
-
-## 4.4 Reference result
-
-```text
-ReferenceRealization {
-  case_identity
-  reference_policy_pin
-  implementation/environment identity
-  status
-  output_artifact_ref
-  coordinates/query representation
-  numerical/experimental diagnostics
-  uncertainty/floor metadata
-}
-```
-
-Reference failures do not become candidate failures.
+If one implementation did both, a bug or numerical bias in the generator could silently become the answer key.
 
 ---
 
-# 5. Dependency direction
+# 2. Why the build is separated into multiple authorities
 
-The generator architecture should preserve one-way ownership:
-
-```text
-scientific contracts
-      ↓
-sampling + case construction
-      ↓
-canonical case
-      ↓
-reference / representation / measurement consumers
-```
-
-Forbidden dependency patterns include:
-
-- generator importing ScoreEngine to decide what cases matter;
-- generator reading leaderboard or frontier state;
-- reference implementation using candidate predictions to decide solver tolerance;
-- sampler adapting official hidden distribution after seeing miner failures without a prospectively versioned protocol;
-- Score Pack rewriting generator population semantics;
-- model-specific adapter mutating canonical case identity.
-
-**Why:** these dependencies would allow downstream economic or candidate information to influence the scientific exam definition.
-
----
-
-# 6. How the generator actually builds a case
-
-A single official case should be produced in a traceable sequence:
+A single `generate(seed)` function would be easier to code but scientifically dangerous. It would collapse several questions that can fail independently:
 
 ```text
-1. RECEIVE exact authorized GeneratorRequest
-2. VERIFY all pins and role/context compatibility
-3. DERIVE/RECEIVE role-separated random material through A4-owned interfaces
-4. SELECT stratum according to SamplingPlan Q(x)
-5. DRAW latent/random variables from registered population conditionals
-6. APPLY physical constraints and exclusions deterministically
-7. CONSTRUCT canonical IC/BC/parameter/geometry values
-8. VALIDATE structural physical-case invariants
-9. ASSIGN immutable case identity/provenance
-10. RETURN CanonicalChallengeCase
-11. RECORD success/failure/censoring evidence
+What physics are we claiming?
+What population are we claiming?
+How are finite cases sampled?
+How is one physical case represented?
+How is the reference answer produced?
+How are physical properties measured?
+How does evidence become score?
 ```
 
-The generator should not call the candidate, ScoreEngine, frontier logic, treasury, or public disclosure path.
+Examples of independent failure:
 
----
+- the PDE can be correct while the sampled population is wrong;
+- the population can be correct while the finite exam misses an important stratum;
+- the case can be correct while a tensor adapter changes a boundary condition;
+- the generator can be deterministic while the reference is biased;
+- the reference can be credible while the measurement is poorly defined;
+- all components can work while the finite exam is too noisy to distinguish two candidates.
 
-# 7. Why validation occurs at multiple layers
-
-The implementation should support at least four independent test layers.
-
-## 7.1 Unit correctness
-
-Does each transformation do what its code contract says?
-
-Examples:
-
-- a bounded amplitude draw remains inside support;
-- periodic IC construction is actually periodic;
-- exclusions reject the intended forbidden cases;
-- the same authorized seed/context reproduces the same case.
-
-## 7.2 Property/invariant testing
-
-Do broad classes of generated cases satisfy structural truths that should always hold?
-
-Examples:
-
-- finite values;
-- dimensional shapes;
-- valid parameter signs;
-- periodic endpoint consistency;
-- canonical serialization stability;
-- no role-crossing.
-
-## 7.3 Distribution conformance
-
-Does a large generated campaign statistically match the registered `P/Q` design?
-
-A unit test cannot prove this. It requires empirical conformance evidence.
-
-## 7.4 Reference adequacy
-
-Are the comparison values good enough to judge candidates at the intended resolution?
-
-This is separate again and feeds the Validation Dossier.
-
-> **Passing software tests does not scientifically qualify the generator; scientific qualification also does not excuse failing software tests.**
-
----
-
-# 8. Test architecture required before LIVE
-
-## 8.1 Determinism and identity
-
-Test:
-
-- same exact request → same canonical case;
-- any material identity/version change → different binding or explicit rejection;
-- no ambient clock, process-global RNG, environment variable, filesystem ordering, or Python `hash()` changes scientific draws;
-- canonical case serialization is deterministic where used for identity.
-
-## 8.2 Role isolation
-
-Test all illegal crossings:
+So Carbon preserves this authority chain:
 
 ```text
-TRAIN context -> EVAL request   reject
-TRAIN context -> STRESS request reject
-MOCK context  -> official role reject
-fixture context -> production role reject
+PhysicalSystemSpec + CandidateOutputContract
+        ↓
+InstanceDistributionContract P(x)
+        ↓
+SamplingPlan Q(x)
+        ↓
+ChallengeInstanceGenerator
+        ↓
+CanonicalChallengeCase
+        ↓
+ReferencePolicy / ReferenceRunner
+        ↓
+MeasurementContracts
+        ↓
+Validation Dossier
+        ↓
+Score Pack
+        ↓
+ScoreEngine
 ```
 
-No generic `mode="official"` string should be trusted as authority.
-
-## 8.3 Boundary and exclusion testing
-
-For every registered support/exclusion:
-
-- values just inside boundary are representable;
-- values outside are rejected/not drawn;
-- edge cases do not overflow or produce malformed physical cases;
-- exclusion logic is versioned and tested.
-
-## 8.4 Distribution golden tests
-
-Use deterministic golden vectors for selected seeds to detect accidental algorithm changes.
-
-These prove implementation stability, **not** distribution adequacy by themselves.
-
-## 8.5 Distribution statistical tests
-
-Run an audit campaign large enough to assess:
-
-- marginals;
-- joint dependencies;
-- conditional distributions;
-- stratum frequencies;
-- support coverage;
-- duplicate rate;
-- effective sample size where relevant;
-- realized distribution after failures.
-
-Tests should compare against prospectively chosen acceptance bands appropriate to the sampling design. Do not blindly rely on a single generic goodness-of-fit p-value.
-
-## 8.6 Censoring tests
-
-Intentionally inject/locate generator and reference failures and verify that:
-
-- each failure is recorded;
-- the case is not silently replaced in a way that changes the exam population;
-- realized population diagnostics expose any distortion;
-- failure policy is deterministic and prospectively specified.
-
-## 8.7 Mutation/aliasing tests
-
-Ensure callers cannot mutate a generated case after identity/evidence binding and thereby create a different physical problem under the same ID.
-
-## 8.8 Representation parity tests
-
-For every supported model-family adapter, round-trip or cross-check that materialization preserves:
-
-- parameters;
-- ICs/BCs;
-- coordinates/frames;
-- geometry identity;
-- query points/times;
-- units/scaling.
+This is not abstraction for abstraction's sake. It lets Carbon identify **which layer failed** and prevents downstream economics from defining upstream science.
 
 ---
 
-# 9. Hard data required for reference claims
+# 3. Generator-to-Reference Verification Procedure
 
-Every Challenge-specific reference-evidence package must retain raw or reconstructible case-level data, not only narrative conclusions or plots.
+This is the explicit procedure for answering:
 
-Required provenance includes:
+> **How do we verify that the generator is accurate enough relative to the strongest reference evidence available?**
+
+It is separate from distribution conformance. A generator must pass **both**.
+
+## 3.1 First qualify the reference itself
+
+Before generator error can mean anything, Carbon must establish that the reference path is credible enough for the intended decision.
+
+For each prospectively selected audit case:
 
 ```text
-challenge_id / challenge_version
-PhysicalSystemSpec identity + digest
-CandidateOutputContract identity
-InstanceDistributionContract identity + digest
-SamplingPlan identity + digest
-generator version + digest
-reference policy identity + version
-reference implementation source/version
-container/environment digest
-compiler/runtime/library versions where material
-hardware profile where material
-precision policy
-reference configuration
-measurement implementation identities
-case IDs / audit-seed commitments
-creation timestamp / run manifest
+CanonicalChallengeCase
+        ↓
+PRIMARY REFERENCE
+        ↓
+INDEPENDENT WITNESS where required
+        ↓
+REFERENCE AGREEMENT / UNCERTAINTY ANALYSIS
 ```
 
-For each audit case retain:
+For Burgers v1 the intended hierarchy is:
 
-- canonical physical input;
-- parameters, ICs, BCs, forcing, geometry/topology where relevant;
-- requested outputs/query locations/times;
-- stratum/category;
-- reference status;
-- reference output artifact or values;
-- numerical/experimental diagnostics;
-- uncertainty estimate;
-- generator-vs-reference and reference-vs-witness discrepancies;
-- measurement values;
-- failure/censoring states.
+```text
+PRIMARY
+periodic Cole–Hopf implementation
+        ↓ cross-check
+SECONDARY
+independently implemented high-resolution conservative numerical solver
+```
 
-Aggregate plots must be reproducible from retained case-level evidence.
+The witness is not automatically truth because it is a different solver. It is evidence about the primary reference and helps expose implementation, discretization, or regime-specific failure.
 
----
-
-# 10. Reference classes and required evidence
-
-## 10.1 Analytic / semi-analytic reference
-
-Required where applicable:
-
-1. equation recovery / defect checks;
-2. IC/BC recovery;
-3. known invariant or monotonicity checks;
-4. limiting/simple cases;
-5. independent implementation or numerical witness;
-6. precision/quadrature/transform/refinement sensitivity;
-7. failure/ill-conditioning map.
-
-Mathematical exactness of a derivation is distinct from numerical error in Carbon's implementation of that derivation.
-
-## 10.2 Qualified numerical reference
-
-Required:
-
-1. independently checkable verification cases;
-2. spatial/time refinement study;
-3. observed convergence data;
-4. solver-tolerance sensitivity;
-5. scheme/configuration sensitivity where material;
-6. conservation/balance evidence;
-7. conditioning/failure map;
-8. independent witness or stronger evidence where warranted;
-9. documented reference uncertainty/floor.
-
-## 10.3 Experimental / partner / telemetry reference
-
-Retain as applicable:
-
-- instrument calibration/identity;
-- measurement uncertainty;
-- resolution/sampling frequency;
-- preprocessing/filtering;
-- synchronization;
-- conditions/environment;
-- missingness/censoring;
-- repeats;
-- drift/recalibration;
-- chain of custody;
-- transformation to Challenge observables;
-- systematic-bias information;
-- applicability limits.
-
-Partner goldens are evidence, not unquestioned truth.
-
----
-
-# 11. Reference disagreement and scientific resolution
-
-Reference disagreement is first-class evidence.
-
-Permitted statuses include:
+Before using a case as authoritative comparison evidence, record one of:
 
 ```text
 AGREE_WITHIN_QUALIFIED_UNCERTAINTY
@@ -644,379 +196,696 @@ REFERENCE_FAILED_INFRA
 REFERENCE_NOT_APPLICABLE
 ```
 
-If credible references disagree beyond qualified uncertainty, Carbon investigates, narrows the envelope, increases uncertainty, weakens the claim, or blocks LIVE. It does not average incompatible references for convenience.
+Cases with unresolved reference disagreement do not silently become candidate failures.
 
-Reference uncertainty constrains scientific resolution:
+## 3.2 Then run the exact same case through the generator/reference path
+
+For every audit case, bind the **same canonical physical problem** to all paths:
+
+```text
+REGISTERED AUDIT CASE
+        ├──────────────→ primary reference
+        ├──────────────→ independent witness
+        └──────────────→ generator / production realization under test
+```
+
+The comparison is case-by-case, not merely an aggregate dashboard.
+
+Retain:
+
+- exact canonical case identity;
+- generator identity/version/environment;
+- primary reference identity/version/environment;
+- witness identity/version/environment;
+- generator output;
+- primary reference output;
+- witness output;
+- coordinates/query representation;
+- generator-vs-primary discrepancy;
+- generator-vs-witness discrepancy;
+- primary-vs-witness discrepancy;
+- physical diagnostics;
+- stratum/regime;
+- failure/censoring status;
+- uncertainty attached to the reference realization.
+
+## 3.3 Compare the quantities Carbon will actually use
+
+Verification must be performed on the observables and measurements that matter for the Challenge, not on a convenient unrelated norm.
+
+For Burgers this should include, where qualified:
+
+- field error against Cole–Hopf;
+- field error against the independent witness;
+- periodic mean/mass conservation;
+- energy evolution / non-increase behavior;
+- maximum-principle consistency where applicable;
+- error as a function of time/query if multiple times are used;
+- error by population stratum;
+- error near the qualified envelope boundaries.
+
+A single global mean error is insufficient because it can hide a systematic failure in the hard part of the envelope.
+
+## 3.4 Repeat across the whole qualified envelope
+
+The audit set is chosen **before** looking at generator performance and must cover:
+
+```text
+interior / ordinary cases
+boundary-near cases
+registered stress strata
+known numerical-risk regions
+simple / limiting cases where useful
+```
+
+Carbon should examine both the central tendency and the tails of generator-reference error.
+
+Questions the audit must answer include:
+
+- Does error increase near an envelope boundary?
+- Are steep-gradient cases systematically worse?
+- Does one stratum have materially higher generator failure?
+- Does reference disagreement cluster in the same hard region?
+- Are hard cases disappearing through timeout or retry?
+- Are there rare but large errors hidden by a small mean?
+
+## 3.5 Derive a generator error budget
+
+The result of the campaign is not merely `generator_valid = true`.
+
+Carbon should characterize a bounded error budget by relevant measurement and stratum, for example conceptually:
+
+```text
+measurement / stratum
+    ↓
+generator-reference discrepancy distribution
+    ↓
+reference uncertainty
+    ↓
+qualified generator contribution to exam uncertainty
+```
+
+No universal formula or tolerance is assumed. The values are derived from the evidence campaign and reviewed scientifically.
+
+The important comparison is:
+
+> **Is generator/reference uncertainty materially smaller than the candidate differences Carbon intends to reward?**
+
+If not, the exam is too coarse to support that economic distinction.
+
+## 3.6 Run the generator-oracle adversarial test
+
+A required stop-ship thought experiment and, where feasible, executable test is:
+
+```text
+Candidate A reproduces generator bias
+Candidate B follows the stronger qualified physical reference
+        ↓
+run both through the proposed measurement + scoring path
+```
+
+If Candidate A can outrank Candidate B because Carbon's scoring path rewards generator bias, the Challenge is not ready.
+
+> **A generator-oracle must not outrank a qualified physical-reference oracle because the exam mistakes generator error for physics.**
+
+This test directly guards against self-referential grading.
+
+## 3.7 Decide the outcome explicitly
+
+The verification campaign may end in only defensible outcomes:
+
+```text
+QUALIFIED
+Generator error is bounded and small enough for the intended comparison.
+
+QUALIFIED_WITH_LIMITATIONS
+Generator is usable only inside a narrower envelope / coarser resolution.
+
+REPAIR_REQUIRED
+Implementation or numerical method must improve before qualification.
+
+REFERENCE_BLOCKED
+Reference itself is too uncertain to judge the generator.
+
+LIVE_BLOCKED
+The combined generator/reference uncertainty is too large or poorly characterized.
+```
+
+The response to weak evidence is never to quietly loosen the meaning of the claim.
+
+---
+
+# 4. Two different generator validation campaigns
+
+It is essential not to collapse these.
+
+## Campaign G — Distribution conformance
+
+**Question:** Does the executable generator sample the physical population and finite SamplingPlan we registered?
+
+Retain:
+
+- marginal distributions;
+- joint and conditional checks;
+- support/exclusion compliance;
+- stratum/tail frequencies;
+- duplicate/near-duplicate rates;
+- invalid-case rates;
+- failure rates by stratum;
+- intended-versus-realized distribution after censoring;
+- deterministic replay results;
+- train/eval/stress isolation results.
+
+A generator can produce numerically accurate cases and still fail Campaign G if it samples the wrong population.
+
+## Campaign R — Reference and generator numerical adequacy
+
+**Question:** Are the comparison values and generator realizations accurate enough for the intended scientific decision?
+
+This campaign contains the procedure in Section 3 and retains:
+
+- primary-reference evidence;
+- witness evidence;
+- refinement/precision studies;
+- reference disagreement;
+- generator-vs-reference discrepancies;
+- physical diagnostics;
+- uncertainty/floors;
+- failure maps;
+- decision-resolution consequences.
+
+A generator must pass both Campaign G and Campaign R before it can support a LIVE exam.
+
+---
+
+# 5. What “reference truth” means in Carbon
+
+Use precise language.
+
+Prefer:
+
+- **reference**;
+- **reference realization**;
+- **qualified reference evidence**;
+- **authoritative reference within a stated uncertainty**.
+
+Reserve “truth” for cases where the underlying mathematics or physical evidence genuinely supports unusually strong language.
+
+Practical classes:
+
+### Class A — analytic / semi-analytic reference
+
+Strongest case when assumptions and implementation are controlled. The mathematical derivation may be exact while Carbon's numerical implementation still has transform, quadrature, truncation, interpolation, or precision error.
+
+### Class B — qualified numerical reference
+
+A numerical solution with convergence, verification, uncertainty, applicability, and failure evidence.
+
+### Class C — engineering evidence reference
+
+Experimental, telemetry, partner-golden, calibrated multi-fidelity, or hybrid evidence with explicit measurement/model uncertainty.
+
+The strength of the public claim must decrease as reference uncertainty and model-form dependence increase.
+
+---
+
+# 6. Hard evidence required for the reference
+
+Every reference campaign retains raw or reconstructible evidence, not just screenshots or plots.
+
+## 6.1 Identity and provenance
+
+At minimum:
+
+```text
+challenge_id / challenge_version
+PhysicalSystemSpec identity + digest
+CandidateOutputContract identity
+InstanceDistributionContract identity + digest
+SamplingPlan identity + digest
+generator version + digest
+reference policy identity + version
+reference implementation source/version
+container/environment digest
+runtime/library/compiler versions where material
+hardware profile where material
+precision policy
+reference configuration
+measurement implementation identities
+case IDs / audit-seed commitments
+run manifest / timestamp
+```
+
+## 6.2 Case-level inputs
+
+Retain enough to reconstruct exactly what physical problem was solved:
+
+- parameters;
+- ICs;
+- BCs;
+- forcing;
+- geometry/topology where relevant;
+- requested output/query times/locations;
+- stratum/category;
+- population/proposal metadata;
+- reference applicability status.
+
+## 6.3 Case-level outputs
+
+Retain:
+
+- field/trajectory values or content-addressed artifact;
+- coordinates/query grid;
+- units/scaling;
+- solver status;
+- convergence/termination information;
+- residual/defect information where scientifically meaningful;
+- invariant/balance diagnostics;
+- interpolation/materialization steps;
+- uncertainty estimate.
+
+## 6.4 Reference-class-specific evidence
+
+For analytic/semi-analytic references, include as applicable:
+
+- governing-equation recovery;
+- IC/BC recovery;
+- invariants/monotonicity;
+- limiting/simple cases;
+- independent implementation check;
+- transform/quadrature/truncation/precision sensitivity;
+- failure/ill-conditioning map.
+
+For numerical references, include as applicable:
+
+- manufactured/analytic/benchmark verification cases;
+- spatial and temporal refinement studies;
+- observed convergence behavior;
+- solver-tolerance sensitivity;
+- scheme/configuration sensitivity where material;
+- conservation/balance evidence;
+- conditioning/failure map;
+- independent witness;
+- reference uncertainty estimate.
+
+For experimental/telemetry references, include as applicable:
+
+- instrument identity/calibration;
+- measurement uncertainty;
+- sampling rate/resolution;
+- preprocessing/filtering;
+- synchronization;
+- test/environment conditions;
+- missingness/censoring;
+- replicates;
+- drift/recalibration history;
+- provenance/chain of custody;
+- transformation from raw measurement to Challenge observable;
+- known systematic bias and applicability limits.
+
+---
+
+# 7. Reference disagreement is evidence
+
+When credible reference paths disagree, retain the disagreement explicitly:
+
+```text
+case identity
+reference A identity/config/output
+reference B identity/config/output
+absolute/relative discrepancy
+spatial/temporal structure of discrepancy
+stratum/regime
+uncertainty of each path
+investigation status
+supported cause, if known
+resolution or unresolved status
+impact on claim/envelope
+```
+
+Permitted responses are to investigate, increase uncertainty, narrow the envelope, weaken the measurement claim, mark the comparison indeterminate, or block LIVE.
+
+Forbidden: silently average incompatible references to create a convenient answer.
+
+---
+
+# 8. Reference uncertainty constrains scientific resolution
+
+Carbon cannot make economic distinctions finer than its scientific evidence can resolve.
+
+Conceptually:
 
 ```text
 reference uncertainty
++ generator/reference error
 + measurement uncertainty
 + reconstruction variance
-+ evaluation-sampling variance
++ finite-evaluation variance
         ↓
-scientific resolution / contested band
+SCIENTIFIC RESOLUTION / CONTESTED BAND
 ```
 
-If candidate differences are smaller than that resolution, Carbon has no authority to claim scientific superiority.
+The exact combination is Challenge-specific and requires statistics/scientific review.
+
+If Candidate A and Candidate B differ by less than the qualified resolution, Carbon has no authority to claim that one is scientifically superior for frontier promotion.
 
 ---
 
-# 12. Generator conformance and reference adequacy are separate campaigns
+# 9. How the generator builds one case
 
-Run two campaigns:
+A single official case should be created in a traceable sequence:
 
 ```text
-CAMPAIGN G — GENERATOR CONFORMANCE
-Does the executable generator implement P/Q/constraints/strata correctly?
-
-CAMPAIGN R — REFERENCE ADEQUACY
-Are the authoritative comparison values reliable enough for the claim?
+1. Receive exact authorized GeneratorRequest
+2. Verify all challenge/distribution/SamplingPlan/generator pins
+3. Verify role/context compatibility
+4. Receive role-separated random material through the A4-owned seed interface
+5. Select the SamplingPlan stratum
+6. Draw latent variables from the registered population conditionals
+7. Apply physical constraints and exclusions deterministically
+8. Construct canonical IC/BC/parameter/geometry values
+9. Validate structural case invariants
+10. Bind immutable case identity/provenance
+11. Return CanonicalChallengeCase
+12. Record success/failure/censoring evidence
 ```
 
-Campaign G retains:
-
-- marginal/joint/conditional conformance;
-- support/exclusion violations;
-- range coverage;
-- stratum/tail frequency;
-- duplicate rates;
-- invalid/failure rates;
-- intended-vs-realized distribution after censoring;
-- deterministic replay;
-- role-separation evidence.
-
-Campaign R retains the reference evidence in §§9–11 over a prospectively defined audit set covering interior, boundaries, hard strata, and known numerical-risk regions.
+The generator does not call the candidate, ScoreEngine, leaderboard, frontier logic, treasury, or commercial path.
 
 ---
 
-# 13. ReferenceAuditPlan
+# 10. Recommended software architecture
 
-Before evidence generation, register:
+The implementation should converge toward:
 
 ```text
-audit objective
-target population / strata references
-case-selection policy
-interior allocation
-boundary allocation
-stress/risk allocation
-replication/refinement plan
-required reference paths
-measurements recorded
-uncertainty objective
-failure/censoring policy
-stopping/extension rule
+carbon/generators/
+    model.py
+    contracts.py
+    sampling.py
+    service.py
+    evidence.py
+    conformance.py
+    failures.py
+    burgers/
+        generator.py
+        population.py
+        canonical_case.py
+        reference_cole_hopf.py
+        reference_witness.py
+        measurements.py
+        evidence_campaign.py
 ```
 
-There is no universal correct audit sample count.
+This is an ownership map, not a requirement to create empty files prematurely.
 
-> **Increase audit depth until the reference/measurement uncertainty and observed disagreement are stable enough to support the intended scientific resolution with margin.**
+### `model.py`
+Owns immutable IDs, versions, roles, case metadata, and status/failure categories.
+
+**Why:** identity semantics must not be reinvented differently by every PDE generator.
+
+### `contracts.py`
+Defines interfaces such as:
+
+```text
+ChallengeInstanceGenerator.generate(...) -> CanonicalChallengeCase
+ReferenceRunner.solve(...) -> ReferenceRealization
+DistributionConformanceRunner.run(...) -> ConformanceReport
+ReferenceEvidenceRunner.run(...) -> ReferenceEvidenceBundle
+```
+
+**Why:** Carbon standardizes what must be observable and testable without forcing every physics family into the same numerical implementation.
+
+### `sampling.py`
+Implements the registered finite SamplingPlan `Q(x)`—iid, stratified, importance, tail allocation, replication, duplicate policy, deterministic ordering.
+
+**Why:** `P(x)` and `Q(x)` are different scientific objects. Carbon can deliberately oversample rare hard cases without pretending they are naturally common.
+
+### `service.py`
+Verifies exact identities and composes authorized seed context, sampler, generator, and evidence hooks.
+
+**Why:** the correct code with the wrong distribution version is still the wrong exam.
+
+### `evidence.py`
+Defines machine-readable case evidence, disagreement records, generator-reference comparisons, measurement floors, and run manifests.
+
+**Why:** the dossier must be reconstructible from case-level data, not prose.
+
+### `conformance.py`
+Audits support, distribution, strata, duplicates, replay, exclusions, censoring, and role isolation.
+
+**Why:** numerical agreement with a reference cannot detect a population-sampling bug.
+
+### PDE-specific package
+Owns only the scientific logic that actually differs by PDE family.
+
+**Why:** shared security/evidence plumbing should not be copied everywhere, while physics-specific assumptions should not be hidden inside generic infrastructure.
 
 ---
 
-# 14. Burgers v1 implementation and evidence blueprint
+# 11. Required test layers before LIVE
 
-For the recommended first authoritative Challenge:
+The implementation supports four distinct layers:
+
+### A. Unit correctness
+
+Examples: support bounds, periodic IC construction, exclusion logic, deterministic replay.
+
+### B. Property / invariant tests
+
+Examples: finite values, valid dimensions/signs, periodic endpoint consistency, serialization stability, no role crossing.
+
+### C. Distribution conformance
+
+Empirically verify marginals, joints, conditionals, strata, support coverage, duplicates, and realized distribution after failures.
+
+### D. Reference adequacy + generator-to-reference verification
+
+Run Section 3 and show the resulting uncertainty is small enough for the intended scientific decision.
+
+> **Passing software tests does not scientifically qualify the generator. Scientific qualification also does not excuse failing software tests.**
+
+Also require explicit tests for:
+
+- train/eval/stress role isolation;
+- identity/version mismatch rejection;
+- boundary and exclusion behavior;
+- censoring/failure visibility;
+- mutation/aliasing after case identity binding;
+- representation parity across supported model-family adapters.
+
+---
+
+# 12. Burgers v1 concrete verification plan
+
+The recommended first authoritative Challenge is fixed-viscosity 1D periodic viscous Burgers:
 
 ```text
 u_t + u u_x = ν u_xx
-periodic 1D
-ν = 5×10⁻³ fixed
-smooth periodic registered IC population
-input: u0
-output: u(T) / registered trajectory queries
+ν = 5×10⁻³
+periodic 1D domain
+registered smooth periodic IC population
 ```
 
-## 14.1 Burgers generator implementation
-
-Recommended vertical slice:
+Reference hierarchy:
 
 ```text
-burgers/population.py
-  deterministic construction of registered smooth periodic IC latent variables
-
-burgers/generator.py
-  latent variables -> canonical u0 / parameters / query definition
-
-burgers/canonical_case.py
-  immutable Burgers physical-case representation
-
-burgers/reference_cole_hopf.py
-  primary periodic Cole–Hopf realization
-
-burgers/reference_witness.py
-  independently implemented conservative high-resolution witness
-
-burgers/measurements.py
-  qualified measurement implementations only
-
-burgers/evidence_campaign.py
-  Campaign G + Campaign R orchestration for dossier evidence
+PRIMARY
+periodic Cole–Hopf implementation
+        ↓
+SECONDARY
+independently implemented high-resolution conservative solver
+        ↓
+GENERATOR UNDER TEST
+production Challenge generator/reference realization
 ```
 
-The fixed viscosity is not randomly drawn in v1; it is challenge identity/configuration. Variable viscosity is a future Challenge only when `ν` is an explicit candidate input.
-
-## 14.2 IC construction rationale
-
-Use a registered smooth periodic family because it gives Carbon controlled spectral complexity and steep-gradient formation while avoiding discontinuous initial data and inviscid-shock ambiguity in the first trust proof.
-
-The IC construction must expose enough latent metadata internally to audit amplitude/spectral complexity/stratum realization, while hidden official draw identities remain protected.
-
-## 14.3 Cole–Hopf evidence
-
-Retain:
+For the Cole–Hopf implementation retain:
 
 - exact code/environment identity;
-- IC recovery near `t=0`;
+- IC recovery at `t=0` or the nearest meaningful limit;
 - periodicity error;
-- mean conservation;
-- energy evolution consistent with unforced viscous dissipation;
+- spatial-mean conservation;
+- dissipative energy behavior;
 - maximum-principle consistency where applicable;
-- equation-defect diagnostics only through a separately qualified differentiation method;
+- separately qualified equation-defect diagnostics if used;
 - transform/quadrature/truncation/resolution sensitivity;
-- precision sensitivity if material;
-- failure/ill-conditioning map;
+- precision sensitivity where material;
+- explicit ill-conditioning/failure cases;
 - content-addressed outputs for audit cases.
 
-## 14.4 Independent witness evidence
+For the numerical witness retain:
 
-For the same audit cases retain:
-
-- solver/version/environment;
-- discretization/scheme;
+- code/version/environment;
+- numerical scheme;
 - grid/time-step refinement sequence;
 - solver tolerances;
 - outputs at each refinement;
-- convergence data for the quantities Carbon measures;
-- conservation/balance diagnostics;
-- failures;
-- final witness-vs-Cole–Hopf discrepancy by stratum.
+- observed differences/convergence;
+- conservation diagnostics;
+- failures/status;
+- witness-vs-Cole–Hopf discrepancy by case and stratum.
 
-## 14.5 Generator-under-test evidence
+For the generator-under-test retain:
 
-Retain:
-
-- canonical case identity;
-- generator realization;
+- exact case identity;
+- generator output;
 - generator-vs-Cole–Hopf discrepancy;
 - generator-vs-witness discrepancy;
-- error by time/query;
 - physical diagnostics;
 - stratum;
 - failure/censoring state;
-- concentration of error near boundaries/risk regions.
+- error concentration near boundaries/hard regimes.
 
-## 14.6 Burgers stop-ships
+Burgers v1 is STOP-SHIP if material evidence shows any of the following:
 
-Do not go LIVE if:
-
-- generator/reference error is comparable to candidate differences Carbon intends to reward;
-- a generator-oracle can outrank a qualified physical-reference oracle because of generator bias;
-- Cole–Hopf and witness disagree materially without bounded explanation;
-- hard strata coincide systematically with reference failure/censoring;
-- thresholds sit below qualified numerical/reference floors;
-- the old final-state spatial-balance proxy is represented as a full PDE residual despite missing `u_t`;
-- reconstruction/evaluation noise materially flips decisions without an indeterminate policy.
+- generator/reference error is comparable to the candidate differences Carbon intends to reward;
+- a generator-oracle can beat a qualified physical-reference oracle because scoring rewards generator bias;
+- Cole–Hopf and the numerical witness disagree materially without bounded explanation;
+- hard strata coincide with systematic reference failure/censoring;
+- score thresholds sit below the qualified numerical/reference floor;
+- the historical final-state spatial-balance proxy is represented as a full PDE residual despite missing `u_t`;
+- reconstruction/evaluation variation flips decisions materially without an indeterminate policy.
 
 ---
 
-# 15. Measurement qualification interface
+# 13. Measurement qualification consumes the same hard data
 
-Each score-eligible measurement should expose a versioned implementation and an evidence record containing:
+Every score-eligible `MeasurementContract` should have a qualification table containing:
 
 ```text
 measurement_id / version
-scientific property
+scientific property claimed
 required observables
-reference path
+reference path used
 numerical operator/discretization
 normalization/aggregation
 reference/numerical floor
 applicability rule
 known failure modes
-uncertainty
+uncertainty summary
 role: mandatory / soft / diagnostic
-threshold/scale derivation method
+threshold or scale derivation method
 ```
 
-For Burgers v1 the current recommended measurement set includes:
+A governing equation does not by itself justify a residual metric, and a conservation law does not justify a universal tolerance.
 
-- finite output;
-- periodic mean/mass conservation;
-- energy non-increase;
-- maximum-principle consistency where applicable;
-- field error against Cole–Hopf;
-- stress-stratum field error.
-
-The ScoreEngine consumes already-authorized scalar evidence. It does not discover scientific measurements or thresholds.
+Score Pack thresholds must be traceable to these data and the scientific relevance of the property. The ScoreEngine executes the registered decision; it does not invent the scientific threshold.
 
 ---
 
-# 16. Evidence artifacts required by the Validation Dossier
+# 14. Evidence tables required in the Validation Dossier
 
-At minimum retain machine-readable forms of:
+At minimum the dossier contains or references machine-readable forms of:
 
-```text
-R0 Reference identity
-R1 Audit coverage
-R2 Analytic/reference implementation checks
-R3 Numerical convergence / witness data
-R4 Reference disagreement
-R5 Generator-vs-reference
-R6 Measurement floors
-R7 Decision-resolution study
-R8 Limitations / unresolved regions
-R9 Generator conformance statistics
-R10 Censoring / realized-population report
-R11 Representation parity report
-R12 Software implementation test manifest
-```
+| Table | Contents |
+|---|---|
+| **R0 — Identity** | Exact software, environment, configuration, artifacts, hashes |
+| **R1 — Audit coverage** | Cases by stratum, boundary/risk region, reference path, status |
+| **R2 — Reference implementation checks** | IC/BC, invariants, precision/refinement, limiting cases |
+| **R3 — Numerical convergence / witness** | Per-refinement outputs, convergence, tolerance sensitivity, failures |
+| **R4 — Reference disagreement** | Primary-vs-witness discrepancy, uncertainty, disposition, envelope impact |
+| **R5 — Generator-vs-reference** | Case/stratum discrepancies, failures, boundary concentration |
+| **R6 — Measurement floors** | Qualified floor/uncertainty for every score-eligible measurement |
+| **R7 — Decision resolution** | repeated reconstruction/evaluation, gate/rank flips, contested band |
+| **R8 — Limitations** | every weakened or blocked region/quantity/measurement |
 
-`R12` should identify exact test suites, implementation commit/tree, environment, and pass/fail outcome. Scientific reviewers should be able to distinguish **software correctness evidence** from **scientific qualification evidence**.
+A few summary plots are not sufficient for an authoritative LIVE decision.
 
 ---
 
-# 17. Build sequence and why this order matters
+# 15. Human review questions
+
+A skeptical reviewer should be able to answer these from the dossier and retained evidence:
+
+1. What exact physical task does this Challenge claim?
+2. What population does the exam represent?
+3. How does the generator sample that population?
+4. Can one case be exactly reproduced from its identity?
+5. What is the primary reference and why is it credible?
+6. What independently checks the primary reference?
+7. Where does the reference become uncertain or fail?
+8. On the same cases, how far is the generator from the reference?
+9. Does that error grow in hard or boundary regimes?
+10. Could generator bias make the wrong candidate win?
+11. What measurement floor follows from reference/generator uncertainty?
+12. What candidate difference can the exam actually resolve?
+13. What happens when a case/reference fails?
+14. Can difficult cases disappear through censoring or retry?
+15. What exact limitation would force Carbon to shrink the envelope or block LIVE?
+
+If those questions cannot be answered from retained data, the generator is not ready to carry economic consequences.
+
+---
+
+# 16. Creation sequence
 
 ```text
 1. DEFINE PHYSICAL JOB
-   WHY: without fixed semantics there is no stable claim to validate.
-
 2. DEFINE TARGET POPULATION P(x)
-   WHY: an envelope alone does not define what an average or failure rate means.
-
 3. DEFINE SAMPLING PLAN Q(x)
-   WHY: finite evidence needs deliberate allocation and sufficient hard-regime coverage.
-
-4. WRITE REFERENCE CLAIM / POLICY
-   WHY: evidence must test a prospective claim, not justify a solver after the fact.
-
-5. DEFINE CANONICAL CASE CONTRACT
-   WHY: prevents FNO/JAX/mesh representation from becoming the scientific identity.
-
-6. IMPLEMENT SAMPLER + GENERATOR
-   WHY: turns the registered task into reproducible cases without owning truth.
-
-7. IMPLEMENT PRIMARY REFERENCE
-   WHY: establishes candidate-comparison values independently of candidate behavior.
-
-8. IMPLEMENT INDEPENDENT WITNESS WHERE REQUIRED
-   WHY: catches implementation/numerical bias in the primary reference.
-
-9. RUN SOFTWARE / IDENTITY / ROLE TESTS
-   WHY: scientific evidence is meaningless if the implementation can silently change cases.
-
-10. RUN CAMPAIGN G — CONFORMANCE
-    WHY: proves the executable generator really realizes P/Q.
-
-11. RUN CAMPAIGN R — REFERENCE ADEQUACY
-    WHY: establishes uncertainty, disagreement, and failure regions.
-
-12. QUALIFY MEASUREMENTS
-    WHY: a trustworthy reference does not automatically make every metric meaningful.
-
-13. RUN SCIENTIFIC-RESOLUTION STUDY
-    WHY: economic ranking cannot be finer than the exam can actually resolve.
-
-14. ASSEMBLE VALIDATION DOSSIER
-    WHY: independent review needs one bound evidence chain.
-
-15. BIND SCORE PACK
-    WHY: only qualified evidence should become incentive-bearing.
-
-16. LAUNCH BAR + HUMAN SIGN-OFF
-
-17. REGISTRY LIVE
+4. WRITE REFERENCE CLAIM + FAILURE POLICY
+5. IMPLEMENT GENERATOR
+6. IMPLEMENT PRIMARY REFERENCE
+7. IMPLEMENT INDEPENDENT WITNESS WHERE REQUIRED
+8. RUN DISTRIBUTION-CONFORMANCE CAMPAIGN
+9. RUN REFERENCE-QUALIFICATION CAMPAIGN
+10. RUN GENERATOR-TO-REFERENCE VERIFICATION
+11. QUALIFY MEASUREMENTS
+12. RUN SCIENTIFIC-RESOLUTION STUDY
+13. ASSEMBLE VALIDATION DOSSIER + R0–R8
+14. BIND SCORE PACK
+15. HUMAN LAUNCH-BAR SIGN-OFF
+16. REGISTRY LIVE
 ```
 
-The order deliberately prevents candidate results, scoring economics, or implementation convenience from deciding what the scientific task means.
+Candidate leaderboard outcomes do not participate in choosing the population, reference policy, or scientific thresholds except through a separately versioned prospective redesign.
 
 ---
 
-# 18. Implementation Definition of Done
+# 17. Definition of Done
 
-The generator implementation is ready for dossier evidence generation only when:
+## Implementation-ready for scientific review
 
-- [ ] exact scientific contract and population pins are consumed, not recreated internally;
-- [ ] role/context authority comes from the seeding layer and cannot be caller-forged by a string flag;
-- [ ] generated outputs are `CanonicalChallengeCase` values rather than model-specific tensors as primary identity;
-- [ ] deterministic replay is proven for exact requests;
-- [ ] support/exclusion and boundary behavior is tested;
-- [ ] no ambient RNG/time/filesystem/environment ordering affects scientific draws;
-- [ ] generator failures are typed and retained;
-- [ ] no silent replacement/censoring reshapes the exam population;
-- [ ] distribution conformance campaign code exists and produces machine-readable evidence;
-- [ ] reference runners are independently versioned from generator implementation;
-- [ ] reference failures remain separate from candidate/generator failure;
-- [ ] case/reference/evidence artifacts are content-addressed or otherwise exactly bound;
-- [ ] representation parity can be tested downstream;
-- [ ] no dependency on ScoreEngine, leaderboard, frontier, treasury, or customer pricing exists in scientific generation logic;
-- [ ] unit/property/integration/security tests pass;
-- [ ] exact implementation/test environment is recorded.
+- exact challenge/distribution/SamplingPlan/generator identities are content-bound;
+- deterministic replay works;
+- train/eval/stress isolation is tested;
+- canonical cases are representation-neutral;
+- support/exclusion/boundary tests pass;
+- failures/censoring are typed and retained;
+- distribution conformance data exist;
+- primary reference and witness are independently pinned;
+- generator-to-reference evidence exists at case level;
+- evidence artifacts are machine-readable and content-addressed.
 
-Passing this checklist means **implementation-ready for scientific qualification**, not LIVE.
+## Scientifically ready for LIVE consideration
 
----
+- target population is justified;
+- reference uncertainty/failure regions are characterized;
+- reference disagreement is resolved or bounded;
+- generator error is bounded relative to intended candidate resolution;
+- no systematic hard-stratum censoring exists;
+- measurement floors are derived from evidence;
+- generator-oracle adversarial test does not expose self-referential grading;
+- finite exam resolution is quantified;
+- all limitations are explicit;
+- no claim is wider or sharper than the evidence;
+- Validation Dossier sections can be populated without relying on leaderboard outcomes.
 
-# 19. Scientific Definition of Done
-
-A generator/reference package is ready for Validation Dossier review only when:
-
-- [ ] physical task, output contract, envelope, and exclusions are explicit;
-- [ ] target population `P(x)` is explicit and justified;
-- [ ] SamplingPlan/audit plan is prospective;
-- [ ] generator conformance hard data exist;
-- [ ] primary reference policy is written and pinned;
-- [ ] analytic/numerical/experimental verification data exist as applicable;
-- [ ] independent witness exists where the claim requires it;
-- [ ] case-level reference outputs and comparison data are retained;
-- [ ] uncertainty/floors are reported by measurement and stratum;
-- [ ] disagreement/failure/censoring is visible;
-- [ ] measurement qualification tables exist;
-- [ ] scientific-resolution/rank-stability study supports the intended comparison;
-- [ ] limitations and blocked regions are explicit;
-- [ ] evidence artifacts are hashed/versioned;
-- [ ] no score threshold is sharper than qualified reference/measurement resolution;
-- [ ] no claim is wider or sharper than the evidence;
-- [ ] dossier sections can be completed without using leaderboard outcomes to retroactively redesign the exam.
+This means **ready for human scientific review**, not automatically LIVE.
 
 ---
 
-# 20. Review questions an external technical reviewer should be able to answer
+# 18. Final principle
 
-After reading the implementation and evidence, a reviewer should be able to answer:
+Carbon's first scientific challenge is not simply:
 
-1. What exact physical population does this Challenge claim?
-2. Where is that population defined independently of code?
-3. How does the finite SamplingPlan differ from population prevalence?
-4. Can I reproduce one case from its exact identity and authorized seed context?
-5. Can the generator silently change the distribution?
-6. Can hard cases disappear through retry/censoring?
-7. Is the canonical case independent of model architecture?
-8. What is the primary reference and why is it credible?
-9. What independent evidence checks the primary reference?
-10. Where does the reference fail or become uncertain?
-11. How large are generator-reference discrepancies by regime?
-12. What numerical floor applies to each score-bearing measurement?
-13. What candidate difference can the exam actually resolve?
-14. Could generator bias make a less-physical candidate win?
-15. What exact code/config/environment produced the evidence?
-16. What change would force a new generator/dossier version?
+> “Can we generate PDE data?”
 
-If these questions cannot be answered from retained artifacts, the generator is not ready to carry authoritative economic consequences.
+It is:
 
----
+> **Can we demonstrate, with retained case-level evidence, that the generator samples the intended physical population and that its reference/measurement process is accurate, stable, applicable, and resolved enough to support the exact comparison for which Carbon intends to create economic consequences?**
 
-# 21. Final principles
-
-> **The scientific task defines the population; the generator implements it.**
-
-> **The generator constructs cases; it does not become truth by construction.**
-
-> **Canonical physical cases come before model-family representations.**
-
-> **Software correctness and scientific qualification are separate obligations.**
-
-> **Reference uncertainty sets a floor on what Carbon may claim to distinguish.**
+Only after that question is answered should the generator participate in an authoritative exam.
 
 > **The exam must earn the right to judge the model.**
