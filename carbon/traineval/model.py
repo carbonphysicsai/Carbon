@@ -9,10 +9,7 @@ from typing import ClassVar
 from carbon.fees.model import ExecutionAttemptHandle, ExecutionEnvironmentPin
 from carbon.registry import ChallengeKey
 from carbon.scoring.model import (
-    GateDecision,
     InternalResult,
-    LegScore,
-    ScalarScore,
     ScorePackPin,
     ScoreStatus,
 )
@@ -199,53 +196,16 @@ def _validated_environment_identity(
 
 
 def _owned_internal_result(value: object) -> InternalResult:
-    """Reconstruct an A5 result for ownership without changing its semantics."""
+    """Delegate recursive result ownership and validation to A5."""
     if type(value) is not InternalResult:
         raise FixtureRunRequestError()
     try:
-        if value.status is ScoreStatus.SCORED:
-            status = ScoreStatus.SCORED
-        elif value.status is ScoreStatus.MANDATORY_GATE_FAILED:
-            status = ScoreStatus.MANDATORY_GATE_FAILED
-        elif value.status is ScoreStatus.PACK_NOT_READY:
-            status = ScoreStatus.PACK_NOT_READY
-        else:
-            raise FixtureRunRequestError()
-
-        pack_pin = _owned_score_pack_pin(value.pack_pin)
-        if type(value.gate_decisions) is not tuple:
-            raise FixtureRunRequestError()
-        decisions: list[GateDecision] = []
-        for item in value.gate_decisions:
-            if type(item) is not GateDecision:
-                raise FixtureRunRequestError()
-            decisions.append(GateDecision(item.gate_id, item.passed, item.mandatory))
-
-        if type(value.leg_scores) is not tuple:
-            raise FixtureRunRequestError()
-        legs: list[LegScore] = []
-        for item in value.leg_scores:
-            if type(item) is not LegScore or type(item.components) is not tuple:
-                raise FixtureRunRequestError()
-            components: list[ScalarScore] = []
-            for component in item.components:
-                if type(component) is not ScalarScore:
-                    raise FixtureRunRequestError()
-                components.append(ScalarScore(component.identifier, component.score))
-            legs.append(LegScore(item.leg, tuple(components), item.score))
-
-        return InternalResult(
-            status=status,
-            pack_pin=pack_pin,
-            gate_decisions=tuple(decisions),
-            leg_scores=tuple(legs),
-            combined_score=value.combined_score,
-            eligible_for_emission=value.eligible_for_emission,
-        )
-    except (FixtureRunIdentityError, FixtureRunRequestError):
-        raise FixtureRunRequestError() from None
+        owned = value._copy()
     except Exception:  # noqa: BLE001 - never render a hostile result graph.
         raise FixtureRunRequestError() from None
+    if type(owned) is not InternalResult or owned is value:
+        raise FixtureRunRequestError()
+    return owned
 
 
 @dataclass(frozen=True, slots=True, repr=False, init=False)

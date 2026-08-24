@@ -276,6 +276,47 @@ def _scored_result(*, combined_score: float = 1.0) -> InternalResult:
     )
 
 
+def _result_for_status(status: ScoreStatus) -> InternalResult:
+    if status is ScoreStatus.SCORED:
+        return _scored_result(combined_score=0.75)
+    if status is ScoreStatus.MANDATORY_GATE_FAILED:
+        return InternalResult(
+            status=status,
+            pack_pin=_pin(),
+            gate_decisions=_gate_decisions(mandatory_passed=False),
+            leg_scores=(),
+            combined_score=0.0,
+            eligible_for_emission=False,
+        )
+    assert status is ScoreStatus.PACK_NOT_READY
+    return InternalResult(
+        status=status,
+        pack_pin=_pin(),
+        gate_decisions=(),
+        leg_scores=(),
+        combined_score=None,
+        eligible_for_emission=False,
+    )
+
+
+def _unsafe_copy_exact(value: object, **overrides: object) -> Any:
+    copied = object.__new__(type(value))
+    for item in fields(value):
+        object.__setattr__(
+            copied,
+            item.name,
+            overrides.get(item.name, getattr(value, item.name)),
+        )
+    return copied
+
+
+def _forged_score_status(member: ScoreStatus) -> ScoreStatus:
+    forged = str.__new__(ScoreStatus, member.value)
+    object.__setattr__(forged, "_name_", "FORGED_" + member.name)
+    object.__setattr__(forged, "_value_", member.value)
+    return forged
+
+
 def test_canonical_fixture_bytes_have_the_independent_golden_digest() -> None:
     payload = _fixture_bytes()
     assert len(payload) == 2126
@@ -569,6 +610,187 @@ def test_private_result_has_only_the_allowed_frozen_field_contract() -> None:
     result = _scored_result()
     with pytest.raises(FrozenInstanceError):
         result.combined_score = 0.5  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "status",
+    (
+        ScoreStatus.SCORED,
+        ScoreStatus.MANDATORY_GATE_FAILED,
+        ScoreStatus.PACK_NOT_READY,
+    ),
+)
+def test_internal_result_private_copy_preserves_each_exact_status(
+    status: ScoreStatus,
+) -> None:
+    source = _result_for_status(status)
+
+    copied = source._copy()
+
+    assert type(copied) is InternalResult
+    assert copied is not source
+    assert copied == source
+    assert copied.status is status
+    assert copied.combined_score == source.combined_score
+    if copied.combined_score == 0.0:
+        assert math.copysign(1.0, copied.combined_score) == 1.0
+    assert copied.eligible_for_emission is False
+
+
+def test_internal_result_private_copy_recursively_owns_the_entire_graph() -> None:
+    source = _scored_result(combined_score=0.75)
+
+    copied = source._copy()
+
+    assert copied.pack_pin is not source.pack_pin
+    assert copied.pack_pin.challenge_key is not source.pack_pin.challenge_key
+    assert copied.gate_decisions is not source.gate_decisions
+    assert copied.leg_scores is not source.leg_scores
+    assert all(
+        copied_gate is not source_gate
+        for copied_gate, source_gate in zip(
+            copied.gate_decisions,
+            source.gate_decisions,
+            strict=True,
+        )
+    )
+    assert all(
+        copied_leg is not source_leg
+        and copied_leg.components is not source_leg.components
+        and all(
+            copied_component is not source_component
+            for copied_component, source_component in zip(
+                copied_leg.components,
+                source_leg.components,
+                strict=True,
+            )
+        )
+        for copied_leg, source_leg in zip(
+            copied.leg_scores,
+            source.leg_scores,
+            strict=True,
+        )
+    )
+
+    object.__setattr__(source.pack_pin, "scoring_version", "fixture-9.0")
+    object.__setattr__(source.gate_decisions[0], "passed", False)
+    object.__setattr__(source.leg_scores[0].components[0], "score", 0.0)
+    object.__setattr__(source, "combined_score", 0.0)
+
+    assert copied.pack_pin.challenge_key.challenge_id == "a5_fixture"
+    assert copied.pack_pin.scoring_version == "fixture-1.0"
+    assert copied.gate_decisions[0].passed is True
+    assert copied.leg_scores[0].components[0].score == 0.75
+    assert copied.combined_score == 0.75
+
+
+def test_internal_result_private_copy_rejects_subclasses_and_arguments() -> None:
+    class InternalResultSubclass(InternalResult):
+        pass
+
+    source = _scored_result()
+    subclass = InternalResultSubclass(
+        source.status,
+        source.pack_pin,
+        source.gate_decisions,
+        source.leg_scores,
+        source.combined_score,
+        source.eligible_for_emission,
+    )
+
+    with pytest.raises(TypeError):
+        subclass._copy()
+    with pytest.raises(TypeError):
+        source._copy("caller field")  # type: ignore[call-arg]
+
+
+def test_internal_result_private_copy_revalidates_hostile_source_graph() -> None:
+    class ChallengeKeySubclass(ChallengeKey):
+        pass
+
+    class GateDecisionSubclass(GateDecision):
+        pass
+
+    class LegScoreSubclass(LegScore):
+        pass
+
+    class ScalarScoreSubclass(ScalarScore):
+        pass
+
+    valid = _scored_result(combined_score=0.75)
+    malformed_pin = _unsafe_copy_exact(valid.pack_pin, scoring_version="bad version")
+    subclass_key = ChallengeKeySubclass("a5_fixture", "fixture-1.0")
+    subclass_pin = _unsafe_copy_exact(valid.pack_pin, challenge_key=subclass_key)
+    malformed_gate = _unsafe_copy_exact(valid.gate_decisions[0], passed=1)
+    malformed_component = _unsafe_copy_exact(
+        valid.leg_scores[0].components[0],
+        score=float("nan"),
+    )
+    malformed_leg = _unsafe_copy_exact(
+        valid.leg_scores[0],
+        components=(malformed_component,),
+    )
+    gate_subclass = GateDecisionSubclass("synthetic_error_gate", True, True)
+    component_subclass = ScalarScoreSubclass("physics_component", 0.75)
+    component_subclass_leg = _unsafe_copy_exact(
+        valid.leg_scores[0],
+        components=(component_subclass,),
+    )
+    leg_subclass = LegScoreSubclass(
+        "physics",
+        (ScalarScore("physics_component", 0.75),),
+        0.75,
+    )
+    mandatory_failed = _result_for_status(ScoreStatus.MANDATORY_GATE_FAILED)
+    pack_not_ready = _result_for_status(ScoreStatus.PACK_NOT_READY)
+
+    malformed_results = (
+        _unsafe_copy_exact(valid, status=_forged_score_status(ScoreStatus.SCORED)),
+        _unsafe_copy_exact(valid, pack_pin=object()),
+        _unsafe_copy_exact(valid, pack_pin=malformed_pin),
+        _unsafe_copy_exact(valid, pack_pin=subclass_pin),
+        _unsafe_copy_exact(valid, gate_decisions=list(valid.gate_decisions)),
+        _unsafe_copy_exact(
+            valid,
+            gate_decisions=(gate_subclass, *valid.gate_decisions[1:]),
+        ),
+        _unsafe_copy_exact(
+            valid,
+            gate_decisions=(malformed_gate, *valid.gate_decisions[1:]),
+        ),
+        _unsafe_copy_exact(valid, leg_scores=list(valid.leg_scores)),
+        _unsafe_copy_exact(
+            valid,
+            leg_scores=(leg_subclass, *valid.leg_scores[1:]),
+        ),
+        _unsafe_copy_exact(
+            valid,
+            leg_scores=(component_subclass_leg, *valid.leg_scores[1:]),
+        ),
+        _unsafe_copy_exact(
+            valid,
+            leg_scores=(malformed_leg, *valid.leg_scores[1:]),
+        ),
+        _unsafe_copy_exact(valid, combined_score=float("inf")),
+        _unsafe_copy_exact(valid, eligible_for_emission=True),
+        _unsafe_copy_exact(
+            mandatory_failed,
+            gate_decisions=_gate_decisions(mandatory_passed=True),
+        ),
+        _unsafe_copy_exact(mandatory_failed, combined_score=-0.0),
+        _unsafe_copy_exact(
+            pack_not_ready,
+            gate_decisions=_gate_decisions(),
+        ),
+        _unsafe_copy_exact(
+            valid,
+            leg_scores=tuple(reversed(valid.leg_scores)),
+        ),
+    )
+
+    for malformed in malformed_results:
+        with pytest.raises((TypeError, ValueError, AttributeError)):
+            malformed._copy()
 
 
 def test_pack_not_ready_result_has_no_scientific_evidence_and_never_emits() -> None:

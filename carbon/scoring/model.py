@@ -368,6 +368,89 @@ class InternalResult:
         ):
             raise ValueError("SCORED requires canonical positive 0.0")
 
+    def _copy(self) -> InternalResult:
+        """Return an A5-owned, recursively validated copy of this result."""
+        if type(self) is not InternalResult:
+            raise TypeError("InternalResult copy requires an exact InternalResult")
+
+        if self.status is ScoreStatus.SCORED:
+            status = ScoreStatus.SCORED
+        elif self.status is ScoreStatus.MANDATORY_GATE_FAILED:
+            status = ScoreStatus.MANDATORY_GATE_FAILED
+        elif self.status is ScoreStatus.PACK_NOT_READY:
+            status = ScoreStatus.PACK_NOT_READY
+        else:
+            raise TypeError("status must be a canonical ScoreStatus")
+
+        source_pin = self.pack_pin
+        if type(source_pin) is not ScorePackPin:
+            raise TypeError("pack_pin must be an exact ScorePackPin")
+        source_key = source_pin.challenge_key
+        if type(source_key) is not ChallengeKey:
+            raise TypeError("challenge_key must be an exact ChallengeKey")
+        pack_pin = ScorePackPin(
+            challenge_key=ChallengeKey(
+                source_key.challenge_id,
+                source_key.version,
+            ),
+            scoring_version=source_pin.scoring_version,
+            scoring_digest=source_pin.scoring_digest,
+            generator_version_required=source_pin.generator_version_required,
+            generator_digest_required=source_pin.generator_digest_required,
+            schema_version=source_pin.schema_version,
+            numerical_profile=source_pin.numerical_profile,
+            fixture_origin=source_pin.fixture_origin,
+        )
+
+        if type(self.gate_decisions) is not tuple:
+            raise TypeError("gate_decisions must be an exact tuple")
+        gates: list[GateDecision] = []
+        for source_gate in self.gate_decisions:
+            if type(source_gate) is not GateDecision:
+                raise TypeError("gate_decisions contains an invalid entry")
+            gates.append(
+                GateDecision(
+                    source_gate.gate_id,
+                    source_gate.passed,
+                    source_gate.mandatory,
+                )
+            )
+
+        if type(self.leg_scores) is not tuple:
+            raise TypeError("leg_scores must be an exact tuple")
+        legs: list[LegScore] = []
+        for source_leg in self.leg_scores:
+            if type(source_leg) is not LegScore:
+                raise TypeError("leg_scores contains an invalid entry")
+            if type(source_leg.components) is not tuple:
+                raise TypeError("components must be an exact tuple")
+            components: list[ScalarScore] = []
+            for source_component in source_leg.components:
+                if type(source_component) is not ScalarScore:
+                    raise TypeError("components contains an invalid entry")
+                components.append(
+                    ScalarScore(
+                        source_component.identifier,
+                        source_component.score,
+                    )
+                )
+            legs.append(
+                LegScore(
+                    source_leg.leg,
+                    tuple(components),
+                    source_leg.score,
+                )
+            )
+
+        return InternalResult(
+            status=status,
+            pack_pin=pack_pin,
+            gate_decisions=tuple(gates),
+            leg_scores=tuple(legs),
+            combined_score=self.combined_score,
+            eligible_for_emission=self.eligible_for_emission,
+        )
+
 
 __all__ = (
     "BooleanInput",
