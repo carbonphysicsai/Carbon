@@ -1,7 +1,7 @@
 # Carbon’s Independent Physics Exam
 ## Why the generator/reference design is appropriate for the incentive mechanism
 
-Nasir,
+Paul,
 
 I thought more about the question you raised around using solver data as the “truth” source.
 
