@@ -140,9 +140,12 @@ TrainEval remains the single architectural owner of official-shaped execution
 and the MCP `light_compare` / `light_train` execution family. Data rights are
 not selected by a string mode. Fixture-official, future production, and mock
 execution use nominally separate request/result types and entry points. The
-exact bounded contract is governed by the A8 decision candidate only after
-independent review, explicit human authorization, and merge, together with
-current A4--A7 types; this section records the sequencing-level contract.
+exact bounded contract is governed by ratified decisions A8-R1--A8-R15 in
+`.agent/DECISIONS.md`, together with current A4--A7 types; this section records
+the sequencing-level contract.
+
+Historical ratification-era snapshot (retained as process evidence, not
+current live maturity):
 
 ```text
 A8 SPECIFIED / RATIFIED: YES only after this documentation candidate is independently reviewed, explicitly human-authorized, and merged
@@ -150,6 +153,30 @@ A8 IMPLEMENTED: NO
 A8 TESTED: NO
 A8 PRODUCTION-QUALIFIED: NO
 A8 WAVE STATUS: todo
+```
+
+Current bounded maturity and closeout condition:
+
+```text
+A8 SPECIFIED / RATIFIED: YES
+
+A8 IMPLEMENTED:
+YES on current main for the bounded fixture-official,
+deterministic, process-local stub scope, including the reviewed conformance
+repair
+
+A8 TESTED:
+YES only for the exact recorded CPU/security/import/wheel/quality scope
+
+A8 SCIENTIFICALLY_QUALIFIED: NO
+A8 SECURITY_QUALIFIED: NO
+A8 NETWORK_QUALIFIED: NO
+A8 COMMERCIALLY_VALIDATED: NO
+A8 PRODUCTION_QUALIFIED: NO
+
+A8 WAVE STATUS:
+done only after this documentation-only closeout is independently reviewed,
+explicitly human-authorized, and merged
 ```
 
 ### 5.1 First bounded implementation: fixture-official only

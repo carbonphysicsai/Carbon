@@ -1,5 +1,129 @@
 # Agent decisions log
 
+## 2026-08-24 — A8 implementation, conformance repair, and administrative closeout candidate
+
+**Ratified contract.** PR #28, `docs: ratify bounded A8 TrainEval stub
+contract`, preserved the five-file documentation candidate at reviewed head
+`b354c4df4f559b90df2d53f28c06bed3ec0df87f` and merged normally as
+`872be272fe80df19c28611388fc4e1ebcd7b4900`. The merge has ordered parents
+`6a3fe0f8e34602af5a4eaeaa8ae145d967537724` and
+`b354c4df4f559b90df2d53f28c06bed3ec0df87f`; the reviewed-head and merge tree
+are both `925191f711daaafb3fa33d58c0bd8c53efc74141`, with an empty diff. That
+human-authorized merge ratified A8-R1 through A8-R15 below; this closeout does
+not renumber, weaken, or reinterpret them.
+
+**Implementation topology.** The bounded implementation began from the exact
+ratification merge. Original implementation commit
+`e16677b54e6523b1203d09c7807a736909041ac9`, tree
+`e29e4874c72fc0bcbee101e2063773f244dd640b`, has sole parent
+`872be272fe80df19c28611388fc4e1ebcd7b4900`. Synchronization commit
+`872736cdee0b4149856a68229b34c69e2b2f0490` has ordered parents
+`e16677b54e6523b1203d09c7807a736909041ac9` and
+`f8c211602191a10c9a59f1e6f68fb60918f70882`, and tree
+`9d7f5ee3e78edbc72dc75391fafb87373ae3019d`. PR #29 merged that synchronized
+head normally as `d0011e959622b65f6ae737db7477062104bafa33`, with ordered
+parents `f8c211602191a10c9a59f1e6f68fb60918f70882` and
+`872736cdee0b4149856a68229b34c69e2b2f0490`; its merge tree is the same
+`9d7f5ee3e78edbc72dc75391fafb87373ae3019d` and the synchronized-head-to-merge
+diff is empty.
+
+The exact PR #29 implementation manifest was:
+
+```text
+.agent/WAVE.md
+carbon/traineval/__init__.py
+carbon/traineval/model.py
+carbon/traineval/service.py
+carbon/traineval/stub.py
+tests/cpu/test_traineval_stub.py
+```
+
+Post-implementation push run `32676389502` was `completed / success` on exact
+merge head `d0011e959622b65f6ae737db7477062104bafa33`: `1562 passed in
+41.34s`; quality remained `Ruff 757/776; Black 62/68`, removed debt
+`Ruff 19, Black 6`, five changed Python files clean, and no new debt.
+
+**Independent closeout audit and corrective repair.** Administrative closeout
+stopped when independent review found two `IMPLEMENTATION_LAG` defects. A8
+directly reconstructed A5 `InternalResult` despite A8-R7, and a low-level
+mutated exact `SeedPin.seed_scheme` was silently normalized during ownership
+copying while the A8 identity matrix omitted that seventh field. The same
+review found the A5-construction source guard covered only `service.py`.
+
+Corrective head `eb1af294edc35b25ea36a699968092470e5d2afa`, parent
+`d0011e959622b65f6ae737db7477062104bafa33`, has tree
+`db94ca592af2ee808976c615b97065dbcbeb7f24`. PR #30 merged it normally as
+`b30c3f5fc2a53df0611d5e8b80120fbf4b64531c`, with ordered parents
+`d0011e959622b65f6ae737db7477062104bafa33` and
+`eb1af294edc35b25ea36a699968092470e5d2afa`. The corrective-head and merge
+tree are both `db94ca592af2ee808976c615b97065dbcbeb7f24`, the
+head-to-merge diff is empty, and the reviewed head is the second parent.
+
+The exact PR #30 corrective manifest was:
+
+```text
+.agent/WAVE.md
+carbon/scoring/model.py
+carbon/seeding/model.py
+carbon/traineval/model.py
+tests/cpu/test_scoring_engine.py
+tests/cpu/test_seeding.py
+tests/cpu/test_traineval_stub.py
+```
+
+A5 now owns recursive validated `InternalResult` copying, A4 rejects malformed
+current `SeedPin.seed_scheme` identity without rendering it, A8 delegates the
+copy, and the scientific-construction source guard covers every A8 Python
+module plus direct, qualified, import-alias, and assignment-alias forms. PR
+#30 added owner regression tests at the A4/A5 seam but weakened no existing
+A0--A7 behavior or test expectation and changed no fixture, dependency,
+packaging, CI, or quality baseline.
+
+Post-corrective push run `32686140393` was `completed / success` on exact
+current-main head `b30c3f5fc2a53df0611d5e8b80120fbf4b64531c`: `1584 passed in
+42.19s`; quality remained `Ruff 757/776; Black 62/68`, removed debt
+`Ruff 19, Black 6`, six changed Python files clean, and no new debt. Recorded
+candidate evidence also includes focused `649 passed in 7.08s`, related `1197
+passed in 29.66s`, full `1584 passed in 34.33s`, and the unchanged independent
+oracle/golden/identity/retry/concurrency selection `17 passed in 0.16s`. All
+nine literal synthetic scalars, literal leg scores, and exact combined score
+`0.8947523571654831` remain unchanged. A fresh Python 3.11.11 wheel installed
+with `--no-deps` and imported under `-I` outside the repository with the exact
+six A8 root exports, zero blocked optional-heavy/later modules, and SHA-256
+`a37f4d0f1545582ae42a2a4de0a1d56276de4c64fbd5b9bc547fd63cfb408f25`.
+
+**Bounded acceptance and proposed administrative closeout.** Every one of the
+existing twenty-five implementation criteria maps to current code and
+canonical tests. This documentation-only closeout checks those criteria and
+proposes A8 `done`; that status becomes authoritative only after independent
+review, explicit human authorization, and merge of this closeout. The
+closeout changes exactly the current A8 decisions, tracker, plan, ticket,
+Build Out status block, agent-pack status, and three maturity ledgers. It
+changes no Python, test, fixture, dependency, packaging, CI, quality baseline,
+scientific/business canon, historical reconciliation snapshot, or A9+ file.
+
+```text
+A8 SPECIFIED / RATIFIED: YES
+A8 IMPLEMENTED: YES on current main for the bounded fixture-official,
+deterministic, process-local stub scope, including the reviewed conformance repair
+A8 TESTED: YES only for the exact recorded CPU/security/import/wheel/quality scope
+A8 SCIENTIFICALLY_QUALIFIED: NO
+A8 SECURITY_QUALIFIED: NO
+A8 NETWORK_QUALIFIED: NO
+A8 COMMERCIALLY_VALIDATED: NO
+A8 PRODUCTION_QUALIFIED: NO
+A8 WAVE STATUS: done only after this documentation-only closeout is independently reviewed, explicitly human-authorized, and merged
+```
+
+No mock/light adapter, production adapter/context/resource policy, real
+training or miner-code execution, sandbox/container qualification,
+authenticated provenance, scientific/reference/backend qualification, LIVE
+Challenge or Score Pack, evidence/receipt/signature, A6 bypass, leaderboard,
+frontier, Product Qualification, treasury/settlement, commercial validation,
+Bittensor/chain, weight, or emission authority is conferred. A9--A12 remain
+unstarted and `todo`; A9 requires its own orientation and contract
+reconciliation after this closeout is reviewed and merged.
+
 ## 2026-08-23 — A8 pre-implementation TrainEval fixture-stub contract candidate
 
 **Repository truth, status, and scope.** A fresh fetch resolved `origin/main`

@@ -10,8 +10,9 @@
 **Ratification starting tree:**
 `b5052df524b43ef07ece953757a74fe0e84da1e8`
 
-**Status:** documentation-only contract candidate; no implementation, test,
-fixture, dependency, packaging, CI, quality-baseline, tracker, or A9+ change.
+**Historical status at ratification:** documentation-only contract candidate;
+no implementation, test, fixture, dependency, packaging, CI,
+quality-baseline, tracker, or A9+ change.
 
 ```text
 A8 SPECIFIED / RATIFIED: YES only after this documentation candidate is independently reviewed, explicitly human-authorized, and merged
@@ -24,6 +25,31 @@ A8 WAVE STATUS: todo
 This plan is not executable authority before merge. A separate human-reviewed
 task must re-fetch the ratification merge, verify A8 remains `todo` and
 unimplemented, and explicitly authorize the bounded implementation.
+
+The preceding status and the future-tense plan below are preserved as the
+chronology that governed ratification and implementation. They are
+superseded for current maturity only by the executed-plan record later in this
+file and the current `.agent/WAVE.md`/ticket evidence.
+
+## Current administrative-closeout candidate
+
+```text
+A8 SPECIFIED / RATIFIED: YES
+A8 IMPLEMENTED: YES on current main for the bounded fixture-official,
+deterministic, process-local stub scope, including the reviewed conformance repair
+A8 TESTED: YES only for the exact recorded CPU/security/import/wheel/quality scope
+A8 SCIENTIFICALLY_QUALIFIED: NO
+A8 SECURITY_QUALIFIED: NO
+A8 NETWORK_QUALIFIED: NO
+A8 COMMERCIALLY_VALIDATED: NO
+A8 PRODUCTION_QUALIFIED: NO
+A8 WAVE STATUS: done only after this documentation-only closeout is independently reviewed, explicitly human-authorized, and merged
+```
+
+This closeout is documentation only. It checks the existing twenty-five
+bounded implementation criteria after mapping each one to current code/tests;
+it does not begin A9 or confer any scientific, security, network, commercial,
+or production qualification.
 
 ## Repository gate at ratification
 
@@ -538,6 +564,86 @@ Implementation remains forbidden until all of these occur in a separate task:
 
 Only then may A8 be marked `in_progress`. Merge of documentation alone never
 marks it implemented, tested, production-qualified, or done.
+
+## Executed plan and bounded closeout evidence
+
+The historical gates above were executed in separate, human-authorized
+lifecycles:
+
+1. **Ratification.** PR #28 preserved reviewed head
+   `b354c4df4f559b90df2d53f28c06bed3ec0df87f` and merged normally as
+   `872be272fe80df19c28611388fc4e1ebcd7b4900`, tree
+   `925191f711daaafb3fa33d58c0bd8c53efc74141`. That merge ratified A8-R1
+   through A8-R15 without implementing A8.
+2. **Bounded implementation.** Original commit
+   `e16677b54e6523b1203d09c7807a736909041ac9`, parent the ratification merge,
+   implemented the four-module fixture seam and canonical CPU test.
+3. **Synchronization.** Reviewed synchronization commit
+   `872736cdee0b4149856a68229b34c69e2b2f0490` has ordered parents
+   `e16677b54e6523b1203d09c7807a736909041ac9` and
+   `f8c211602191a10c9a59f1e6f68fb60918f70882`, and tree
+   `9d7f5ee3e78edbc72dc75391fafb87373ae3019d`.
+4. **Implementation merge.** PR #29 merged the synchronized head normally as
+   `d0011e959622b65f6ae737db7477062104bafa33`, with the synchronized head as
+   parent two and the same tree. Post-merge push run `32676389502` passed
+   `1562` tests in `41.34s` and the unchanged quality ratchet.
+5. **Independent closeout audit.** Review stopped closeout on two
+   `IMPLEMENTATION_LAG` defects: A8 reconstructed A5 `InternalResult`
+   directly, and malformed `SeedPin.seed_scheme` identity was silently
+   normalized while its perturbation was omitted. The source guard also
+   covered only `service.py`.
+6. **Corrective repair.** Head
+   `eb1af294edc35b25ea36a699968092470e5d2afa`, parent the PR #29 merge,
+   moved recursive result copying to A5, rejected malformed scheme identity at
+   A4, delegated from A8, added the seventh identity case, and expanded the
+   guard across every A8 module. PR #30 merged it normally as
+   `b30c3f5fc2a53df0611d5e8b80120fbf4b64531c`; ordered parents are
+   `d0011e959622b65f6ae737db7477062104bafa33` and the corrective head, and the
+   corrective-head/merge tree is exactly
+   `db94ca592af2ee808976c615b97065dbcbeb7f24`.
+7. **Final current-main evidence.** Push run `32686140393` passed `1584` CPU
+   tests in `42.19s`; quality remained `Ruff 757/776; Black 62/68`, removed
+   debt `Ruff 19, Black 6`, six changed Python files clean, and no new debt.
+   Recorded focused/related/full results are `649`/`1197`/`1584`; the
+   independent golden selection passed `17`, retaining all nine literal
+   scalars, literal leg scores, and combined score `0.8947523571654831`.
+   Fresh Python 3.11.11 wheel/outside-tree `-I` import retained the exact six
+   exports with no blocked optional-heavy/later module and wheel SHA-256
+   `a37f4d0f1545582ae42a2a4de0a1d56276de4c64fbd5b9bc547fd63cfb408f25`.
+
+The implemented surface is exactly:
+
+```text
+carbon/traineval/__init__.py
+carbon/traineval/model.py
+carbon/traineval/service.py
+carbon/traineval/stub.py
+tests/cpu/test_traineval_stub.py
+```
+
+The corrective repair additionally changed only the A5/A4/A8 owner models and
+their three canonical CPU test files, plus tracker evidence. Those owner-test
+additions weakened no existing A0--A7 behavior or expectation and changed no
+fixture, dependency, packaging, CI, or quality baseline.
+
+The executed reuse result followed the planned order:
+
+- **KEEP:** the package seam, A4 provider/context/derivation, A5 pack/engine/
+  result authority, A7 envelope/handle/FSM authority, and dependency-light
+  standard-library path.
+- **WRAP:** exact A4/A5/A7 values behind the nominal fixture-only A8 service
+  and private outcome boundary.
+- **REPAIR:** the stale Build Out/ticket contract before implementation, then
+  the two independently found conformance defects and incomplete source guard.
+- **REPLACE/EXCLUDE:** legacy/PoC/neurons/Julia/training/validator/backend/
+  emission behavior remained outside A8; no broad rewrite was performed.
+
+All `25/25` existing bounded criteria have current code/test evidence and are
+checked in the ticket by this documentation-only closeout candidate. The
+proposed `done` status becomes authoritative only after independent review,
+explicit human authorization, and merge. A9--A12 remain unstarted and `todo`.
+The exact mock request/resource/disclosure contract still requires separate
+A8/A9 documentation ratification before any A9 estimate/light implementation.
 
 ## Explicit non-goals
 
