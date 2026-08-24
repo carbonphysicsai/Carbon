@@ -1408,34 +1408,119 @@ def test_dry_validate_delegates_once_and_reconstructs(
 
 
 @pytest.mark.parametrize(
-    "strategy",
+    ("strategy", "expected_code"),
     (
-        [],
-        {},
-        {1: None},
-        {"schema_version": "1.0", "challenge_id": CHALLENGE_ID},
+        pytest.param(None, "strategy.type", id="none-root"),
+        pytest.param(False, "strategy.type", id="bool-root"),
+        pytest.param(0, "strategy.type", id="int-root"),
+        pytest.param(1.25, "strategy.type", id="finite-float-root"),
+        pytest.param("not-a-strategy", "strategy.type", id="string-root"),
+        pytest.param([], "strategy.type", id="list-root"),
+        pytest.param({}, "field.required", id="missing-fields"),
+        pytest.param({1: None}, "json.key_type", id="invalid-key"),
+        pytest.param(
+            {
+                "schema_version": "1.0",
+                "challenge_id": CHALLENGE_ID,
+            },
+            "field.required",
+            id="partial-missing-fields",
+        ),
+        pytest.param(
+            _strategy(backbone=1),
+            "field.type",
+            id="invalid-field-value",
+        ),
     ),
 )
 def test_invalid_estimate_preserves_a2_result_and_skips_provider(
-    tmp_path: Path, strategy: object
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    strategy: object,
+    expected_code: str,
 ) -> None:
+    canonical = dry_validate
+    expected = canonical(strategy)
+    calls: list[tuple[object, ValidationResult]] = []
+
+    def recording(value: object) -> ValidationResult:
+        result = canonical(value)
+        calls.append((value, result))
+        return result
+
+    monkeypatch.setattr(service_module, "dry_validate", recording)
     service, _, _, _, _, _, provider = _service(tmp_path)
     response = _call(service, "estimate", *_submission_fields(strategy))
-    assert response.validation == dry_validate(strategy)
+
+    assert len(calls) == 1
+    service_result = calls[0][1]
+    assert service_result == expected
+    assert response.validation == expected
+    assert response.validation is not service_result
+    assert response.validation.errors is not service_result.errors
+    assert all(
+        copied is not original
+        for copied, original in zip(
+            response.validation.errors,
+            service_result.errors,
+            strict=True,
+        )
+    )
+    assert response.validation.ok is False
+    assert any(issue.code == expected_code for issue in response.validation.errors)
+    if type(strategy) is not dict:
+        assert expected == ValidationResult(
+            False,
+            (
+                ValidationIssue(
+                    "strategy.type",
+                    "",
+                    "Strategy must be a JSON object.",
+                ),
+            ),
+        )
+    assert response.applicable_directives == ()
+    assert response.disclaimer == "non_binding_structural_prior_only"
+    assert len(provider.calls) == 0
+
+
+def test_cyclic_estimate_reaches_a2_and_skips_provider(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cycle: dict[str, object] = {}
+    cycle["self"] = cycle
+    canonical = dry_validate
+    expected = canonical(cycle)
+    calls: list[tuple[object, ValidationResult]] = []
+
+    def recording(value: object) -> ValidationResult:
+        result = canonical(value)
+        calls.append((value, result))
+        return result
+
+    monkeypatch.setattr(service_module, "dry_validate", recording)
+    service, _, _, _, _, _, provider = _service(tmp_path)
+    response = _call(service, "estimate", *_submission_fields(cycle))
+
+    assert len(calls) == 1
+    service_result = calls[0][1]
+    assert service_result == expected
+    assert response.validation == expected
+    assert response.validation is not service_result
+    assert response.validation.errors is not service_result.errors
+    assert all(
+        copied is not original
+        for copied, original in zip(
+            response.validation.errors,
+            service_result.errors,
+            strict=True,
+        )
+    )
     assert response.validation.ok is False
     assert response.applicable_directives == ()
     assert response.disclaimer == "non_binding_structural_prior_only"
-    assert not provider.calls
-
-
-def test_cyclic_estimate_reaches_a2_and_skips_provider(tmp_path: Path) -> None:
-    cycle: dict[str, object] = {}
-    cycle["self"] = cycle
-    service, _, _, _, _, _, provider = _service(tmp_path)
-    response = _call(service, "estimate", *_submission_fields(cycle))
-    assert response.validation == dry_validate(cycle)
-    assert response.applicable_directives == ()
-    assert not provider.calls
+    assert len(provider.calls) == 0
 
 
 def test_invalid_estimate_meters_a2_errors_before_copy(
@@ -2191,18 +2276,296 @@ def test_poll_maps_canonical_owner_boundary_failures(
 
 
 def test_source_dependency_and_owner_call_guards() -> None:
-    files = tuple((REPOSITORY_ROOT / "carbon" / "mcp").glob("*.py"))
-    imports: set[str] = set()
+    mcp_root = REPOSITORY_ROOT / "carbon" / "mcp"
+    files = tuple(sorted(mcp_root.rglob("*.py")))
+    assert tuple(path.relative_to(mcp_root).as_posix() for path in files) == (
+        "__init__.py",
+        "model.py",
+        "providers.py",
+        "service.py",
+    )
+
+    ImportRecord = tuple[str, str, int, str | None, str, str | None]
+
+    def expected_from(
+        filename: str,
+        level: int,
+        module: str,
+        names: tuple[str, ...],
+    ) -> tuple[ImportRecord, ...]:
+        return tuple((filename, "from", level, module, name, None) for name in names)
+
+    model_names = (
+        "ChallengeInfo",
+        "DryValidateRequest",
+        "DryValidateResponse",
+        "EstimateRequest",
+        "GetChallengeInfoRequest",
+        "GetMockScaffoldRequest",
+        "GetPriorRequest",
+        "GetSubmissionResultRequest",
+        "McpCall",
+        "McpChallengeUnavailableError",
+        "McpField",
+        "McpIntegrationError",
+        "McpQueryBudgetError",
+        "McpRequestError",
+        "McpResourceError",
+        "McpResourceLimits",
+        "McpSubmissionUnavailableError",
+        "McpTool",
+        "McpToolUnavailableError",
+        "PriorDirective",
+        "PriorDirectiveKind",
+        "PriorRef",
+        "PublishedPrior",
+        "PublishedScaffold",
+        "ScaffoldRef",
+        "StructuralEstimate",
+        "SubmissionResult",
+        "SubmitReceipt",
+        "SubmitRequest",
+    )
+    provider_names = (
+        "EstimateProvider",
+        "PriorProvider",
+        "QueryBudgetGate",
+        "ScaffoldProvider",
+    )
+    owner_symbol_allowlists = {
+        "carbon.cards.model": frozenset(
+            {
+                "EvaluationCard",
+                "EvaluationComponentScores",
+                "EvaluationGateResult",
+            }
+        ),
+        "carbon.fees": frozenset(
+            {
+                "RequesterIdentity",
+                "SubmissionAuthorizationError",
+                "SubmissionId",
+                "SubmissionNotFoundError",
+                "SubmissionRequestError",
+                "SubmissionResourceError",
+                "SubmissionService",
+                "SubmissionState",
+                "SubmissionStatusView",
+            }
+        ),
+        "carbon.registry": frozenset(
+            {
+                "ChallengeKey",
+                "ChallengeRecord",
+                "ChallengeRegistry",
+                "LiveEligibility",
+                "RegistryError",
+                "is_sha256_digest",
+                "validate_canonical_identifier",
+                "validate_version",
+            }
+        ),
+        "carbon.schema": frozenset(
+            {
+                "ValidationIssue",
+                "ValidationResult",
+                "dry_validate",
+            }
+        ),
+    }
+    standard_library_allowlist = frozenset(
+        {
+            ("from", 0, "__future__", "annotations"),
+            ("from", 0, "dataclasses", "dataclass"),
+            ("from", 0, "enum", "Enum"),
+            ("import", 0, None, "math"),
+            ("import", 0, None, "threading"),
+            ("from", 0, "typing", "Protocol"),
+        }
+    )
+    expected_imports = (
+        *expected_from("__init__.py", 1, "model", model_names),
+        *expected_from("__init__.py", 1, "providers", provider_names),
+        *expected_from("__init__.py", 1, "service", ("McpService",)),
+        *expected_from("model.py", 0, "__future__", ("annotations",)),
+        *expected_from("model.py", 0, "dataclasses", ("dataclass",)),
+        *expected_from("model.py", 0, "enum", ("Enum",)),
+        *expected_from(
+            "model.py",
+            0,
+            "carbon.cards.model",
+            ("EvaluationCard",),
+        ),
+        *expected_from(
+            "model.py",
+            0,
+            "carbon.fees",
+            (
+                "SubmissionId",
+                "SubmissionRequestError",
+                "SubmissionState",
+                "SubmissionStatusView",
+            ),
+        ),
+        *expected_from(
+            "model.py",
+            0,
+            "carbon.registry",
+            (
+                "ChallengeKey",
+                "is_sha256_digest",
+                "validate_canonical_identifier",
+                "validate_version",
+            ),
+        ),
+        *expected_from(
+            "model.py",
+            0,
+            "carbon.schema",
+            ("ValidationIssue", "ValidationResult"),
+        ),
+        *expected_from("providers.py", 0, "__future__", ("annotations",)),
+        *expected_from("providers.py", 0, "typing", ("Protocol",)),
+        *expected_from(
+            "providers.py",
+            0,
+            "carbon.fees",
+            ("RequesterIdentity",),
+        ),
+        *expected_from(
+            "providers.py",
+            0,
+            "carbon.registry",
+            ("ChallengeKey",),
+        ),
+        *expected_from(
+            "providers.py",
+            0,
+            "carbon.schema",
+            ("ValidationResult",),
+        ),
+        *expected_from(
+            "providers.py",
+            1,
+            "model",
+            (
+                "McpTool",
+                "PublishedPrior",
+                "PublishedScaffold",
+                "StructuralEstimate",
+            ),
+        ),
+        *expected_from("service.py", 0, "__future__", ("annotations",)),
+        ("service.py", "import", 0, None, "math", None),
+        ("service.py", "import", 0, None, "threading", None),
+        *expected_from(
+            "service.py",
+            0,
+            "carbon.cards.model",
+            (
+                "EvaluationCard",
+                "EvaluationComponentScores",
+                "EvaluationGateResult",
+            ),
+        ),
+        *expected_from(
+            "service.py",
+            0,
+            "carbon.fees",
+            (
+                "RequesterIdentity",
+                "SubmissionAuthorizationError",
+                "SubmissionId",
+                "SubmissionNotFoundError",
+                "SubmissionRequestError",
+                "SubmissionResourceError",
+                "SubmissionService",
+                "SubmissionState",
+                "SubmissionStatusView",
+            ),
+        ),
+        *expected_from(
+            "service.py",
+            0,
+            "carbon.registry",
+            (
+                "ChallengeKey",
+                "ChallengeRecord",
+                "ChallengeRegistry",
+                "LiveEligibility",
+                "RegistryError",
+                "is_sha256_digest",
+                "validate_canonical_identifier",
+                "validate_version",
+            ),
+        ),
+        *expected_from(
+            "service.py",
+            0,
+            "carbon.schema",
+            ("ValidationIssue", "ValidationResult", "dry_validate"),
+        ),
+        *expected_from("service.py", 1, "model", model_names),
+        *expected_from("service.py", 1, "providers", provider_names),
+    )
+
+    imports: list[ImportRecord] = []
+    absolute_modules: set[tuple[str, str]] = set()
     attributes: set[str] = set()
+    dynamic_import_bindings: list[tuple[str, int]] = []
     for path in files:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
-                imports.update(alias.name for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module is not None:
-                imports.add(node.module)
+                for alias in node.names:
+                    imports.append(
+                        (path.name, "import", 0, None, alias.name, alias.asname)
+                    )
+                    absolute_modules.add((path.name, alias.name))
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    imports.append(
+                        (
+                            path.name,
+                            "from",
+                            node.level,
+                            node.module,
+                            alias.name,
+                            alias.asname,
+                        )
+                    )
+                    if node.level == 0 and node.module is not None:
+                        absolute_modules.add((path.name, node.module))
             elif isinstance(node, ast.Attribute):
                 attributes.add(node.attr)
+
+            if (
+                (
+                    isinstance(node, ast.Name)
+                    and node.id in {"__import__", "import_module"}
+                )
+                or (
+                    isinstance(node, ast.Attribute)
+                    and node.attr in {"__import__", "import_module"}
+                )
+                or (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "getattr"
+                    and any(
+                        isinstance(argument, ast.Constant)
+                        and argument.value in {"__import__", "import_module"}
+                        for argument in node.args
+                    )
+                )
+                or (
+                    isinstance(node, ast.Subscript)
+                    and isinstance(node.slice, ast.Constant)
+                    and node.slice.value in {"__import__", "import_module"}
+                )
+            ):
+                dynamic_import_bindings.append((path.name, node.lineno))
+
     forbidden_prefixes = (
         "carbon.seeding",
         "carbon.scoring",
@@ -2210,6 +2573,18 @@ def test_source_dependency_and_owner_call_guards() -> None:
         "carbon.cards.store",
         "carbon.fees.store",
         "carbon.registry.store",
+        "carbon.leaderboard",
+        "carbon.logging_utils",
+        "carbon.chain",
+        "carbon.audit",
+        "carbon.landscape",
+        "carbon.miner",
+        "carbon.training",
+        "carbon.backbones",
+        "carbon.emission",
+        "legacy",
+        "poc",
+        "neurons",
         "bittensor",
         "torch",
         "jax",
@@ -2219,11 +2594,30 @@ def test_source_dependency_and_owner_call_guards() -> None:
         "flask",
         "mcp",
     )
-    assert not any(
-        imported == prefix or imported.startswith(f"{prefix}.")
-        for imported in imports
+    forbidden_imports = tuple(
+        (filename, imported)
+        for filename, imported in sorted(absolute_modules)
         for prefix in forbidden_prefixes
+        if imported == prefix or imported.startswith(f"{prefix}.")
     )
+    assert not forbidden_imports
+    assert tuple(imports) == expected_imports
+    assert all(name != "*" and asname is None for *_, name, asname in imports)
+    assert not dynamic_import_bindings
+
+    allowed_relative_modules = frozenset({"model", "providers", "service"})
+    for _, kind, level, module, name, _ in imports:
+        if level:
+            assert kind == "from"
+            assert level == 1
+            assert module in allowed_relative_modules
+        elif module is not None and module.startswith("carbon."):
+            assert kind == "from"
+            assert module in owner_symbol_allowlists
+            assert name in owner_symbol_allowlists[module]
+        else:
+            assert (kind, level, module, name) in standard_library_allowlist
+
     assert (
         not {
             "scan",
