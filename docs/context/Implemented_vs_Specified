@@ -49,6 +49,28 @@ A8 PRODUCTION_QUALIFIED: NO
 A8 WAVE STATUS: done only after the documentation-only closeout is independently reviewed, explicitly human-authorized, and merged
 ```
 
+A9 contract-ratification candidate maturity:
+
+```text
+A9 SPECIFIED / RATIFIED: NO at candidate publication; YES only after independent review, explicit human authorization, and merge
+A9 IMPLEMENTED: NO
+A9 TESTED: NO
+A9 SCIENTIFICALLY_QUALIFIED: NO
+A9 SECURITY_QUALIFIED: NO
+A9 NETWORK_QUALIFIED: NO
+A9 COMMERCIALLY_VALIDATED: NO
+A9 PRODUCTION_QUALIFIED: NO
+A9 WAVE STATUS: todo
+```
+
+The A9 candidate specifies only seven bounded Wave-A control/disclosure tools:
+`get_challenge_info`, `get_prior`, `get_mock_scaffold`, `dry_validate`,
+`estimate`, `submit`, and `get_submission_result`. It is documentation only.
+It adds no code or test evidence and does not implement a transport, execute a
+mock, compare or train strategies, or claim execution evidence under A8-R15.
+Mock execution and the broader light research loop remain separately typed
+Wave-B work.
+
 ## P0 trust path
 
 | Capability | Specified | Implemented | Tested | Production-qualified | v1 assessment / next action |
@@ -76,6 +98,7 @@ A8 WAVE STATUS: done only after the documentation-only closeout is independently
 | Model Card internal record | Yes | Partial/legacy | Not established | No | The future rich Model Card remains later-owned and references evidence; it is not the bounded A6 exact-A5-result record. |
 | Budgeted EvaluationCard | Yes — A6-R1–A6-R12 ratify the bounded card schema and A7-R14 ratifies its exclusive publication adapter | **Yes on current `main`** — A6 provides the bounded process-local private store and positive projection; bounded A7 adds permanent submission identity, structural requester binding, exact cross-binding, exclusive A6 ownership/publication sequencing, and published-only reads | **Yes only for the recorded bounded CPU/security/concurrency/import/wheel scope** — A6 closure evidence plus A7 publication, conflict, authorization, leakage, mutation, concurrency, and installed-wheel tests establish the engineering boundary | **No** | A6 and its A7 adapter are done only for bounded fixture/process-local use. Persistence is non-durable; requester equality is not authentication; production A5/A6 publication, provenance, concurrency, A9 transport, A10 leaderboard, A11 logging, transcripts/receipts/evidence, rich Model Cards, chain, and emissions remain later-owned. |
 | Submission FSM/idempotency | **Yes** — A7-R1–A7-R15 define permanent identity, bounded detached Strategy capture before A2, exact identity/pin binding, open-key idempotency, the closed FSM, attempts, fee/refund/cancellation mechanics, guarded process-local capacity, typed outcomes, and A6 publication sequencing | **Yes for bounded fixture-capable, process-local A7 on current `main`** — PR #26 merged reviewed head `f5ec1315a5ae501c2726fc0fbd6d0fa85c56b4b9` as `5b7b38a4db3b0a7bbf2d97ae872a28a3d885d77d`; `carbon/fees/` contains the canonical implementation | **Yes only for the recorded CPU/security/concurrency/import/wheel scope** — canonical focused `319`, full `1423`, installed-wheel, merge-tree equality, and successful post-merge run `32622988239` establish the bounded engineering contract | **No** | Explicit finite injected limits, pre-ID/no-record resource rejection, fixed remaining-balance `REFUND`, requester-only cancellation, concurrency/idempotence, and fail-closed production admission are implemented. The store is not durable, restart-safe, interprocess, distributed, authenticated, payment-settling, or production-qualified; production values/policies, backend qualification, and production A4/A5/A6/A8/evidence seams remain human- or later-owned. |
+| Miner MCP bounded Wave-A control plane | **Candidate only** — becomes specified/ratified after independent review, explicit human authorization, and merge; exact scope is seven tools with closed schemas, errors, resource bounds, provider seams, and upstream A2/A3/A6/A7/A8 ownership | **No** — no canonical A9 service, model, provider, transport, cache, store, or tool implementation exists | **No** — this documentation candidate creates no A9 test evidence | **No** | Wave A is control/disclosure only: challenge info, structural prior, static validated scaffold, exact A2 dry validation, non-binding structural estimate, exact A7 submission, and budgeted A7 result read. Mock execution, `MockExecutionRequest`, `MockRunOutcome`, `MockTrainEvalService.run_mock`, `light_compare`, `light_train`, adaptive-loop evidence, transport/authentication, and Launch Bar claims remain Wave B or later. |
 | Fee ≠ score | **Yes** — A7-R10 defines integer-minor-unit, append-only, idempotent `CHARGE`/`REFUND` mechanics, reserves `RETRY_CREDIT` for later policy, and forbids any path into A5 or weight/emission calculation | **Yes for bounded A7 mechanics on current `main`** — the sole charge occurs atomically at first `QUEUED -> RUNNING`, retry never recharges, adjustments are linked/capped, and charged terminal `FAILED_INFRA` receives the fixed full remaining-balance `REFUND` | **Yes only for the recorded bounded CPU/security/concurrency scope** — replay/conflict, amount/type, atomicity, retry/refund, race, mutation, and fee-exclusion tests pass | **No** | Fee mechanics are isolated from A5 and later weight/emission inputs. Real payment authorization/reservation/transfer/settlement, production amounts/denomination/schedule, and retry-credit/classes/count/budget policy remain human- or later-owned. |
 | Infra failure ≠ scientific failure | Yes — infra/reference/partial input cannot construct authoritative `ScoreInput` and cannot become `MANDATORY_GATE_FAILED` or a scientific zero; A7 additionally specifies typed FSM/retry/refund separation | **Yes at the bounded A5, A7, and fixture A8 boundaries on current `main`** — A5 rejects non-scientific inputs, A7 distinguishes lifecycle outcomes, and A8 keeps incomplete/malformed/non-finite, pack-not-ready, backend/reference and integration failures operational rather than constructing science | **Yes only for the recorded bounded fixture CPU/security/concurrency/import scope** — typed outcome, malformed material, no-partial-mutation, replay, publication-failure, retry/refund, fee/science-isolation, redaction and source-boundary tests pass | **No** | Real backend/reference attribution and failure mapping, production retry policy, evidence, observability, security qualification, scientific qualification, and production qualification remain pending. |
 | Typed Julia/reference failure boundary | Yes | Not established | No | No | Wrap SciML/reference exceptions as explicit infra/reference statuses in Wave B. |

@@ -1,413 +1,627 @@
-# Miner MCP Specification
+# Miner MCP Specification — bounded Wave-A contract and deferred full loop
 
-> **Reconciliation (post-ratification):** Two-loop architecture and feedback budget retained. Replace literal non-oracle requirement doctrine with the **non-oracle requirement**: free-loop signals must not be sufficient to reconstruct or reliably rank-substitute the hidden official exam. **Mock incompleteness is computational/evaluative** (coverage, budget, rotation, non-binding metrics) — **not** intentionally false physics.
+Status: **A9 ratification candidate; documentation only**<br>
+Version: **2.3**<br>
+Authority: `CONSTITUTION.md`, `.agent/INVARIANTS.md`, `.agent/DECISIONS.md`, and the governing A2, A3, A6, A7, and A8 contracts<br>
+Implementation maturity: **not implemented, not tested, not qualified**
 
+This specification replaces the earlier aspirational MCP sketch with a bounded
+Wave-A contract. It does not add runtime code, transports, authentication,
+mock execution, training, comparison, ranking, or scientific-quality claims.
+The contract becomes ratified only after independent review, explicit human
+authorization, and merge.
 
-**Carbon — steer · free iterate · submit · independent exam · structured feedback**
+## 1. Scope and wave boundary
 
----
+Miner MCP is split into two deliberately separate lanes.
 
-## TLDR
+### Wave A — control and disclosure
 
-Carbon’s Miner MCP is the **agent-native control surface** for competitive scientific search on physics training strategies.
+Wave A exposes exactly seven in-process service tools:
 
-**Two loops:**
+| Tool | Request | Successful result | Canonical authority |
+|---|---|---|---|
+| `get_challenge_info` | `GetChallengeInfoRequest` | `ChallengeInfo` | A3 registry |
+| `get_prior` | `GetPriorRequest` | `PublishedPrior` | injected prior provider |
+| `get_mock_scaffold` | `GetMockScaffoldRequest` | `PublishedScaffold` | injected scaffold provider plus A2 validation |
+| `dry_validate` | `DryValidateRequest` | `DryValidateResponse` | A2 `dry_validate` |
+| `estimate` | `EstimateRequest` | `StructuralEstimate` | injected structural-estimate provider plus A2 validation |
+| `submit` | `SubmitRequest` | `SubmitReceipt` | A7 `SubmissionService` |
+| `get_submission_result` | `GetSubmissionResultRequest` | `SubmissionResult` | A7 `SubmissionService` plus query budget gate |
 
-```text
-FREE LOOP (default — no exam fee)
-  get_prior / get_mock_scaffold / get_challenge_info
-        → mutate → estimate → light_compare → light_train? → repeat
+There are no aliases. In particular, `light_compare`, `light_train`, and
+`list_my_submissions` are unavailable. Unknown tool names fail closed as
+`mcp.tool_unavailable`.
 
-PAID LOOP (rare — only official grade)
-  submit → get_submission_result → feed failure tags into free loop
+Wave A is an application/service boundary, not a network protocol. Transport,
+serialization, process hosting, discovery, and authentication are outside this
+contract.
+
+### Wave B — explicitly deferred
+
+Wave B may define `MockExecutionRequest`, `MockRunOutcome`,
+`MockTrainEvalService.run_mock`, mock packs and resources, execution disclosure,
+adaptive-loop evidence, and any light comparison or light training surface.
+None of those names or behaviors exists in Wave A.
+
+A8-R15 remains binding for every execution-dependent claim. Wave A's
+`estimate` tool is a pure structural prior operation; it does not execute a
+strategy, call A4/A5/A8, produce an `EvaluationCard`, or predict scientific
+quality. That separation is a **NO_CONFLICT** with A8-R15, not a waiver of it.
+
+## 2. Future module and service surface
+
+The implementation, when separately authorized, is confined to:
+
+- `carbon/mcp/__init__.py`
+- `carbon/mcp/model.py`
+- `carbon/mcp/providers.py`
+- `carbon/mcp/service.py`
+- `tests/cpu/test_mcp_skeleton.py`
+
+The service contract is:
+
+```python
+McpService(
+    registry: ChallengeRegistry,
+    submission_service: SubmissionService,
+    resource_limits: McpResourceLimits,
+    query_budget_gate: QueryBudgetGate,
+    prior_provider: PriorProvider | None,
+    scaffold_provider: ScaffoldProvider | None,
+    estimate_provider: EstimateProvider | None,
+)
+
+McpService.call(
+    call: McpCall,
+    requester_identity: RequesterIdentity,
+) -> (
+    ChallengeInfo | PublishedPrior | PublishedScaffold |
+    DryValidateResponse | StructuralEstimate | SubmitReceipt |
+    SubmissionResult
+)
 ```
 
-**Hardening (v2.2):**
+`ChallengeRegistry`, `SubmissionService`, and `RequesterIdentity` are the exact
+canonical types already owned by their source layers. MCP does not shadow or
+wrap them. `RequesterIdentity` is supplied out of band and never appears in a
+caller-controlled request payload.
 
-1. Free surface is **directionally informative but intentionally imperfect**  
-   free-loop signal may correlate above random with official outcomes, but must remain a **non-oracle** (insufficient to reconstruct or rank-substitute the hidden exam)  
-2. Evaluation feedback is a **budget** — enough to repair, not enough to reconstruct the hidden exam  
-3. **`get_mock_scaffold`** supplies a versioned runnable baseline; priors stay coarse and non-executable  
+Trusted composition must supply the same exact `ChallengeRegistry` instance
+used to construct the injected `SubmissionService`. MCP cannot inspect A7's
+private registry or repair a mismatched composition. A successful call returns
+only the closed union above; a failed call raises exactly one fixed public A9
+error.
 
-**Position:** Bring your scientist. Carbon brings problems, free practice, incentives, and an independent exam.
+`McpCall` has schema version `"1.0"`, a raw exact-string `tool` field, and an
+ordered tuple of `McpField` entries. Every successful top-level result has
+schema version `"1.0"`; failures use one of the closed typed errors below.
+Duplicate, unknown, or missing request fields are invalid, and inputs are not
+coerced. Retaining field order makes duplicates observable before any unique
+field mapping is constructed.
 
----
+Every data-bearing A9 nominal model, request, response, and reference named in
+this specification is exact, frozen, and slotted; both enum domains are exact
+and closed. Each error is an exact nominal, slot-declared exception with a
+frozen public contract payload: zero-argument construction, literal-backed
+read-only `code` and fixed message/arguments, and no supported diagnostic
+fields. This does not claim that Python removes inherited `BaseException`
+runtime metadata such as traceback, context, cause, or its implementation
+dictionary. Public boundaries require the exact type and reject subclasses.
+Outputs are fresh bounded positive projections; MCP never releases a caller or
+provider alias.
 
-## 1. Purpose and thesis
+`McpField` and `McpCall` are deliberately storage-only raw-envelope nominals.
+Their constructors freeze and retain the supplied references without eager
+type, schema, field-name, duplicate, resource, or semantic validation. This is
+what lets an exact top-level `McpCall` containing malformed framing reach
+`McpService.call`, acquire its permit, and follow the single ordering below;
+callers need no object-forging path. `McpService.call` alone exact-type checks
+the outer classes and owns every framing/capture check.
 
-### 1.1 Interface job
+The tool-to-result mapping is closed and exhaustive:
 
-Humans and autonomous agents (Hermes, Mira-class, AutoScience-class, lab bots, Bittensor miners) run continuous search:
+| Exact tool | Exact request fields | Exact result |
+|---|---|---|
+| `get_challenge_info` | `challenge_id`, `challenge_version` | `ChallengeInfo` |
+| `get_prior` | `challenge_id`, `challenge_version` | `PublishedPrior` |
+| `get_mock_scaffold` | `challenge_id`, `challenge_version`, optional `scaffold_id` | `PublishedScaffold` |
+| `dry_validate` | `strategy` | `DryValidateResponse` |
+| `estimate` | `challenge_id`, `challenge_version`, `strategy` | `StructuralEstimate` |
+| `submit` | `challenge_id`, `challenge_version`, `strategy` | `SubmitReceipt` |
+| `get_submission_result` | `submission_id` | `SubmissionResult` |
 
-1. Orient (`get_prior`)  
-2. Obtain a fair mock baseline (`get_mock_scaffold`)  
-3. **Iterate for free** (estimate → light_compare → optional light_train)  
-4. **Submit rarely** for the only official lean grade  
-5. Read a **budgeted** evaluation card and return to the free loop  
+An optional `scaffold_id` is either absent or a canonical token; an explicit
+null is not an alias for absence.
 
-**Requirement:** Long free loops without submitting. Paid exams confirm claims; they are not the default learning channel.
+## 3. Capture and resource limits
 
-### 1.2 Referee framing
+Wave A accepts only an already-decoded, bounded value graph. Capture recognizes
+the exact built-ins `None`, `bool`, `int`, finite `float`, `str`, `list`, and
+`dict`. It rejects subclasses, tuples, sets, custom mappings, custom iterables,
+non-finite floats, and other host objects without calling their `repr`, `str`,
+iteration, equality, hashing, descriptors, or user code.
 
-```text
-More researchers → more free experiments → selective paid exams
-  → verified outcomes → better priors / avoid-atlas / scaffolds
-  → smarter search → better strategies → harder commercial challenges
-```
+Dictionary keys may be only exact scalar built-ins during capture. Their
+domain-specific validity remains owned by A2/A7; MCP must not silently convert
+non-string strategy keys. Capture creates a fresh detached graph while
+preserving list/dict topology, including shared aliases and cycles. A visited
+identity table and iterative accounting make cyclic and aliased graphs bounded
+and deterministic.
 
-Carbon need not build the best AI scientist. It is where AI scientists **compete** under a trustworthy referee.
+`McpResourceLimits` contains exactly these required positive unsigned-64-bit
+integer fields, with no contract defaults:
 
-### 1.3 Free-surface doctrine (normative)
+1. `max_call_fields`
+2. `max_total_request_value_nodes`
+3. `max_request_object_members`
+4. `max_request_list_items`
+5. `max_request_string_utf8_bytes`
+6. `max_request_object_key_utf8_bytes`
+7. `max_request_integer_bits`
+8. `max_total_request_utf8_bytes`
+9. `max_total_response_value_nodes`
+10. `max_response_sequence_items`
+11. `max_response_string_utf8_bytes`
+12. `max_response_integer_bits`
+13. `max_total_response_utf8_bytes`
+14. `max_concurrent_calls`
 
-```text
-light_compare may be informative for repair, but must remain a non-oracle for the official lean exam
-```
+Request bounds are checked before any domain service or provider is invoked.
+Response bounds are checked before a result is released. Concurrent admission
+is fail-closed. Any breached resource bound maps to the fixed
+`mcp.resource_limit_exceeded` error.
 
-The free surface must **not** become a public surrogate of the private exam. Mock packs are rotated, coverage-limited, and versioned so dominating `light_compare` is not equivalent to dominating the validator. Incompleteness is computational/evaluative — mock physics remains honest within its declared mock envelope.
+After exact top-level `McpCall` and requester type checks, every call acquires
+one concurrency permit before any other framing, tool, field, value, provider,
+or owner work; this includes malformed and unknown-tool calls. The permit is
+held through response projection or error translation and released in
+`finally`.
 
-### 1.4 Feedback doctrine (normative)
+Inside the permit, structural framing first validates the schema/tool types and
+the exact fields-tuple type. It then checks `len(fields)` against
+`max_call_fields` before scanning any entry. Schema/tool framing strings are
+metered before use, and only then is the schema value required to equal exact
+`"1.0"`. Each now-bounded entry is checked in tuple order: exact `McpField`
+type, exact string name, that name's framing UTF-8 meters, then duplicate
+detection. This bounds every scan and every string hash/equality operation. An
+exact-string unknown/deferred tool is then unavailable without a semantic
+field schema or value capture. Only known tools are checked for missing/unknown
+semantic fields before their values are captured.
 
-> Evaluation feedback must be sufficient for scientific repair, but insufficient for reconstructing the hidden exam through repeated querying.
+Each call-field value root is one request node. On first expansion of a
+distinct list/dict, every list item or dict member value adds one node. Alias
+and cycle edges are charged by container cardinality, while a seen container's
+children are not expanded twice; dict keys are not nodes. Object/list limits
+apply per first-seen container. Exact `int.bit_length` meters every exact int
+occurrence, including scalar keys and excluding bool.
 
-Granularity is a security parameter. Seeds are necessary but not sufficient protection once agents can query the grader hundreds of times.
+Request per-string width covers schema version, tool, field names, graph
+strings, and string dict keys; the key width also applies to every string dict
+key; total request UTF-8 is their logical-occurrence sum. A strict code-point
+scan charges a surrogate one byte solely to stay bounded and marks the request
+invalid. A resource breach encountered first remains a resource error.
 
----
+Response accounting starts with one top-level node, then one for every nominal
+field, sequence item, and dict member value on first container expansion.
+Only exact closed A9/owner nominals/enums and exact permitted
+`None`/bool/int/finite-float/string/tuple/list/dict field values are
+traversable; another type/subclass is integration failure. Sequence limits
+apply per tuple/list. Response string and total UTF-8 meters
+cover string values and dict keys; response integer width is exact
+`int.bit_length` for every exact int value or scalar dict key, excluding bool.
+An exact string enum is one value node and its exact `.value` is charged as a
+response string. The same bounded one-byte surrogate handling marks response
+text invalid. Response dict cardinality must fit the remaining total-node
+meter before copy.
 
-## 2. Goals and non-goals
+Valid-shape response-meter breach is `mcp.resource_limit_exceeded`. Within
+those meters, malformed, subclassed, unstable, invalid-UTF-8, or cross-bound
+provider output is `mcp.integration_failure`. Traversal uses exact
+call-field-tuple, list/tuple-index, built-in-dict-insertion, declared
+nominal-field, and provider-sequence order; the first condition encountered
+controls. Positive projection detaches provider ownership while preserving
+valid internal graph topology.
 
-### Goals
+`DryValidateRequest` and `SubmitRequest` preserve any resource-admissible
+captured graph as `strategy`, because A2 and A7 own rejection of invalid root
+types. `EstimateRequest.strategy` is an exact built-in `dict`; admissible but
+domain-invalid dictionaries remain for A2 and the provider to assess.
 
-- Dense free iteration without exam fee  
-- Closed paid loop with budgeted feedback  
-- Agent-stable JSON tools  
-- steer ≠ triage ≠ mock-relative ≠ grade ≠ sell  
-- Non-oracle separation of mock vs official exam (computational/evaluative incompleteness — not false physics)  
+## 4. Challenge information
 
-### Non-goals
+`get_challenge_info` performs an exact `ChallengeKey` lookup through
+`ChallengeRegistry.load`. It does not scan or list the registry and adds no
+second challenge-admission policy.
 
-- Official exam replay  
-- Champion weights / exact recipes  
-- Free path as Yuma substitute or predicted lean score  
-- Stable immortal mock distribution that tracks the validator  
-- Fine residual margins that map the hidden draw mix  
-- Per-lab MCP adapters  
+Exact-key records in A3 states `draft`, `fixture`, and `live` are visible. The
+minimal `ChallengeInfo` projection contains only:
 
----
+- schema version `"1.0"`;
+- exact `challenge_key`;
+- exact `lifecycle_status`;
+- exact `fixture_origin`;
+- exact `effectively_live`; and
+- exact `allowed_backbones`.
 
-## 3. Trust boundary
+For a live record, `effectively_live` is the exact result of A3
+`is_effectively_live`; it may be false. For draft and fixture records it is
+false. MCP discloses no artifact path or digest, qualification reference,
+qualification evidence or private reason, backend-profile evidence, receipt
+evidence, fee value, Score Pack or generator hash, active mock-pack ID, mock
+range, tag or disclosure catalog, seed, context, challenge payload, hidden
+fixture content, leaderboard, or submission history.
 
-| Asset | Via MCP? | Rule |
-|-------|----------|------|
-| Noisy prior (coarse) | Yes | Non-executable search info |
-| Mock scaffold (runnable) | Yes | Versioned, mediocre/noisy, public |
-| Estimate / light_compare | Yes | Non-binding; mock only |
-| EvaluationCard | Yes | Own submits; **budgeted** fields |
-| Official seeds / stress draws | **Never** | Validator-only |
-| Champion weights | **Never** | Dual egress elsewhere |
-| Prior similarity in score | **Forbidden** | Scoring.md |
+Missing keys and canonical A3 load failures map to the fixed
+`mcp.challenge_unavailable` response. Unexpected integration failures map to
+`mcp.integration_failure` without disclosing exception text.
 
-**Doctrine:** *Steering before the exam. Free practice is incomplete by computational/evaluative design (not false physics). Independent exam when you pay. Budgeted feedback after. No answer key. Non-oracle free surface.*
+## 5. Prior publication
 
----
+`get_prior` first checks that the injected `PriorProvider` is configured, then
+establishes exact-key public Challenge visibility and calls that provider
+exactly once. If no provider is configured, the tool is unavailable.
 
-## 4. Priors (coarse search information)
+The closed prior types are:
 
-**Producer:** subnet prior publisher. **Consumers:** all miners — one channel.
+```python
+PriorRef(
+    challenge_key: ChallengeKey,
+    prior_id: str,       # exact bounded canonical token
+    prior_version: str,  # exact version token
+    content_hash: str,   # exact tagged lowercase SHA-256
+)
 
-```text
-Lean cards → window → eligibility → k-aggregate → lag → coarsen → noise → redact
-  → structural_steer | avoid_atlas | explore_mask → publish
-```
-
-Priors are **not** runnable strategies. Missing hyperparameters are intentional. Do not “invert” the prior into a champion recipe inside `light_compare`.
-
-Worked prior example remains the v2.1 Burgers/FNO shape (steer / bands / avoid / explore / not_included).
-
----
-
-## 5. Mock scaffold (runnable baseline)
-
-### 5.1 Why a separate object
-
-`structural_steer` is coarsened on purpose. Turning it into a trainable JSON requires filling defaults. If that fill is implicit and canonical, it becomes hidden public IP. If each miner fills differently, relative compare is incomparable.
-
-**Split:**
-
-| Tool | Role |
-|------|------|
-| `get_prior` | Coarse search information |
-| `get_mock_scaffold` | Versioned, deliberately mediocre/noisy strategy JSON; runnable only through later registered mock semantics |
-
-Scaffold is **informed by** the prior era (same challenge, overlapping backbone family) but is **not** a lossless materialization of `structural_steer`.
-A2 validates only the declarative Strategy envelope and its inert `parameters`;
-it does not infer how those parameters execute.
-
-### 5.2 Scaffold properties
-
-| Property | Requirement |
-|----------|-------------|
-| Schema-valid | Valid Strategy v1.0 envelope |
-| Runnable | Every parameter used by mock execution is positively registered by a later executor contract |
-| Versioned | `scaffold_id`, `scaffold_version`, `content_hash` |
-| Public | Same object for all miners |
-| Mediocre / noisy | Not frontier; not champion weights |
-| Bound | Optional `informed_by_prior_version` (metadata only) |
-| Rotatable | Can change on a slower cadence than every prior, or with mock packs |
-
-### 5.3 Example
-
-```json
-{
-  "scaffold_id": "burgers1d-fno-mock-scaffold-2026-08-12",
-  "scaffold_version": "1.0.2",
-  "content_hash": "sha256:…",
-  "challenge_id": "burgers1d",
-  "informed_by_prior_version": "burgers1d-fno-2026-08-03-a",
-  "strategy": {
-    "schema_version": "1.0",
-    "challenge_id": "burgers1d",
-    "backbone": "fno",
-    "parameters": {
-      "backbone_config": { "modes": 16, "width": 32, "layers": 4 },
-      "loss": { "data_l2": true, "residual": true, "conservation": true },
-      "training": { "optimizer": "adam", "lr": 0.001, "epochs": 20 },
-      "curriculum": { "stages": ["smooth_ic"] },
-      "meta": { "role": "mock_scaffold", "quality": "deliberately_baseline" }
-    }
-  },
-  "not": ["champion_weights", "exact_winner_json"]
+PriorDirectiveKind = {
+    STRUCTURAL_STEER: "structural_steer",
+    AVOID: "avoid",
+    EXPLORE: "explore",
+    NOT_INCLUDED: "not_included",
 }
+
+PriorDirective(
+    kind: PriorDirectiveKind,
+    subject: str,              # exact bounded canonical token
+    tokens: tuple[str, ...],   # exact bounded canonical tokens
+)
+
+PublishedPrior(
+    schema_version: Literal["1.0"],
+    prior_ref: PriorRef,
+    directives: tuple[PriorDirective, ...],
+)
 ```
 
-The nested parameter names and values above are illustrative, inert A2
-scaffold content. Later tickets must positively register and implement any
-parameter semantics before execution. This example does not itself make those
-knobs execution-capable, scientifically valid, challenge-compatible,
-LIVE-qualified, emission-capable, or production-qualified.
+Directives retain provider order and are duplicate-free. MCP validates the
+closed syntax, exact challenge binding, canonical identifiers, and tagged
+SHA-256 form. The content hash is provider-owned prior identity; Wave A does
+not invent canonical prior bytes or a second prior store.
 
----
+Every `canonical token` is an exact built-in `str` accepted without
+normalization by public A3
+`validate_canonical_identifier(value, field_name)`; MCP string and aggregate
+UTF-8 limits supply its size bound. Every `version token` is an exact built-in
+`str` accepted without normalization by A3 `validate_version`.
 
-## 6. Core objects (summary)
+The directive vocabulary is structural and non-numeric. A prior contains no
+Strategy, free text, numeric weight vector, hyperparameter recipe, champion
+identity, champion weights, official score, rank, fee, seed, pack identity, or
+emission field. It also carries no hidden outcome, `EvaluationCard` field,
+gate decision, training label, or execution claim. `not_included` is an
+explicit disclosure statement, not an implicit zero score.
 
-- **Strategy** — schema-versioned miner JSON (denylist: seeds, gate disables)  
-- **Estimate** — non-binding; includes `prior_delta`; never `predicted_lean_score`  
-- **LightCompareResult** — mock-only deltas vs `scaffold_id`  
-- **SubmitReceipt** — queue ack only  
-- **EvaluationCard** — budgeted miner-visible result (§12)  
+Provider presence is checked before Challenge lookup. Absence is
+`mcp.tool_unavailable`; malformed, subclassed, unstable, or cross-bound
+provider output within response meters and provider exceptions are
+`mcp.integration_failure`; a response-meter breach is
+`mcp.resource_limit_exceeded`.
 
----
+## 6. Mock scaffold publication
 
-## 7. MCP tools
+The name `get_mock_scaffold` publishes a static starter strategy; it does not
+run a mock. It checks provider presence, establishes exact-key public Challenge
+visibility, then calls the injected scaffold provider exactly once.
 
-| Tool | Cost | Role |
-|------|------|------|
-| `get_challenge_info` | Free | Rules, fees, pack hashes, **active mock_pack_ids**, tag catalog, disclosure tier |
-| `get_prior` | Free | Coarse prior |
-| `get_mock_scaffold` | Free | Runnable baseline (`challenge_id`, optional `scaffold_id`) |
-| `dry_validate` | Free | Schema / denylist |
-| `estimate` | Free | Doom filter + prior-delta |
-| `light_compare` | Miner CPU | Candidate vs **scaffold_id** on active mock pack(s) |
-| `light_train` | Miner CPU | Local mock practice |
-| `submit` | Exam fee | Official exam |
-| `get_submission_result` | Free | Budgeted EvaluationCard |
-| `list_my_submissions` | Free | Optional |
+```python
+ScaffoldRef(
+    challenge_key: ChallengeKey,
+    scaffold_id: str,       # exact bounded canonical token
+    scaffold_version: str,  # exact version token
+    content_hash: str,      # exact tagged lowercase SHA-256
+)
 
----
-
-## 8. Estimation (unchanged intent, v2.1 prior_delta)
-
-Avoid-atlas first → structured prior-delta → coarse band inheritance → UX clone warning.  
-Always `disclaimer: "non_binding"`. No official score fields.
-
----
-
-## 9. Free local practice — mock packs and light_compare
-
-### 9.1 Intentional imperfection
-
-| Mechanism | Purpose |
-|-----------|---------|
-| **MOCK_RANGES ⊂ VALIDATOR envelope** | Incomplete coverage |
-| **Missing stress categories** | Official path has categories mock lacks |
-| **Mock pack rotation / versioning** | No single immortal practice distribution |
-| **Optional multiple mock families** | Reduce single-surface Goodhart |
-| **Published `mock_pack_id` list** | Clients pin versions; old packs may retire |
-
-Ops may measure empirical rank correlation offline. High correlation is **not** itself a failure if miners have genuinely improved physics. Act only if free-loop signals become a **reliable rank substitute** for the hidden exam or enable exam reconstruction: then rotate coverage, reduce feedback budget, or refresh mock packs — do **not** tighten the official exam to match mock.
-
-### 9.2 light_compare contract
-
-```text
-light_compare(candidate, scaffold_id, challenge_id, miner_seed, mock_pack_id, n_batches):
-  require mock_pack_id in ACTIVE_MOCK_PACKS[challenge_id]
-  scaffold = load_scaffold(scaffold_id)  # from get_mock_scaffold registry
-  draws = shared mock draws from miner_seed + mock_pack_id
-  cand_m = run_local(candidate, draws)
-  scaf_m = run_local(scaffold.strategy, draws)
-  return LightCompareResult(
-    scaffold_id=scaffold_id,
-    mock_pack_id=mock_pack_id,
-    candidate_metrics=cand_m,
-    scaffold_metrics=scaf_m,
-    delta=cand_m - scaf_m,
-    disclaimer="non_binding_mock_only"
-  )
+PublishedScaffold(
+    schema_version: Literal["1.0"],
+    scaffold_ref: ScaffoldRef,
+    strategy: dict,
+    informed_by_prior: PriorRef | None,
+    execution_deferred: Literal[True],
+)
 ```
 
-Default `scaffold_id` = current published scaffold for that challenge (not miner-invented fill of the prior).
+The strategy is a fresh detached exact built-in dictionary, passes canonical
+A2 `dry_validate`, and binds to the requested challenge ID. MCP verifies this
+by calling canonical `carbon.schema.dry_validate` exactly once on the detached
+returned Strategy and requiring exact `ok=True`; it never trusts a provider
+claim or recreates validation, and non-`ok` is provider integration failure.
+If present, the prior reference binds to the same challenge key. Provider
+output order and identity are preserved; caller-supplied or provider aliases
+never escape.
 
-### 9.3 light_train
+When the request supplies `scaffold_id`, the returned
+`scaffold_ref.scaffold_id` must equal it exactly. When the selector is absent,
+the provider owns selection of the returned canonical ID.
 
-Same mock sampling rules; single-strategy local optimization. Still never Yuma.
+The scaffold is not executed. It carries no claim that it is scientific,
+representative, mediocre, competitive, safe, or a non-champion. Its hash is
+provider-owned identity, not an MCP-defined byte encoding.
 
----
+MCP does not fill a prior omission, derive the scaffold from a prior, make an
+inert A2 parameter executable, or call A8. The optional prior reference is
+metadata only.
 
-## 10. Submit path
+Provider absence is `mcp.tool_unavailable`; invalid provider output within
+response meters and provider exceptions are `mcp.integration_failure`; a
+response-meter breach is `mcp.resource_limit_exceeded`.
 
-Free loop until justified → `dry_validate` → fee → `SubmitReceipt` → hidden exam → card via `get_submission_result`.
+## 7. Dry validation and structural estimate
 
----
+`dry_validate` calls canonical A2 `dry_validate` exactly once and returns its
+exact `ValidationResult` in `DryValidateResponse`. MCP adds no validator,
+rewrites no issue, and makes no execution or admission claim.
 
-## 11. EvaluationCard — feedback budget
+`estimate` first checks both provider slots, establishes exact-key challenge
+visibility, obtains and validates the exact public prior, calls canonical A2
+`dry_validate` exactly once, and finally delegates all four exact inputs to the
+injected `EstimateProvider`. Its closed result is:
 
-### 11.1 Sensitivity tiers (Phase 0 default)
-
-| Field class | Phase 0 | Notes |
-|-------------|---------|--------|
-| `schema_version`, `result_id`, `disclosure_tier` | **Emit** | Exact bounded A6 schema/opaque identifier/tier; `result_id` is not a production `submission_id`. |
-| `status`, `scoring_pack_hash` | **Emit** | Preserve the exact A5 status and externally supplied scoring digest. |
-| `overall_score` | **Emit when present** | Preserve the exact A5 combined score; `PACK_NOT_READY` has none. |
-| Broad `component_scores` | **Emit when present** | Exact top-level A5 physics / robustness / accuracy `LegScore.score` values; never fine components. |
-| `gate_results` pass/fail | **Emit when evaluated** | Necessary for repair; `PACK_NOT_READY` has none. |
-| Stable `failure_tags` | **Emit** | Closed/versioned vocabulary; bounded A6 currently emits only `mandatory_gate_failed`. |
-| `fixture_origin`, `eligible_for_emission` | **Emit** | Derived only from the stored exact A5 result and never caller-overridable. |
-| `public_diagnostics` | **Emit field** | Exact empty sequence in bounded A6; no public diagnostic source is currently authorized. |
-| Fine residual margins / distances-to-gate | **Withhold or coarsen** | Oracle risk |
-| Per-stress / per-regime numeric breakdowns | **Withhold** | Reconstructs draw mix |
-| Eval seeds / draw ids / fields | **Never** | — |
-
-### 11.2 Principle
-
-Sufficient for scientific repair; insufficient for reconstructing the hidden exam via repeated queries.  
-Disclosure tier is published in `get_challenge_info`. Raising granularity later is a versioned policy change, not a silent field dump.
-
-### 11.3 Card shape (Phase 0)
-
-The immutable bounded A6 card is the pre-A7 projection below. A7 and A9 may
-later return a separate integrated response envelope containing A7-owned
-`submission_id`, `strategy_hash`, `challenge_id`, and completion metadata.
-Those values are not generated, stored, authenticated, or added to the card by
-A6. `result_id` is only the authorized public value of A6's opaque
-`CardRecordKey` and does not claim permanent-submission semantics.
-
-```text
-EvaluationCard {
-  schema_version: "1.0",
-  result_id,
-  status, scoring_pack_hash,
-  overall_score,
-  component_scores: { physics, robustness, accuracy }?,  # top-level scores only
-  gate_results: [ { gate_id, passed: bool } ],           # no mandatory/threshold/margin/input key
-  failure_tags: [ "mandatory_gate_failed" ] | [],
-  fixture_origin,
-  eligible_for_emission,
-  public_diagnostics: [],                                # exact empty Wave-A sequence
-  disclosure_tier: "phase0_budgeted"
-}
+```python
+StructuralEstimate(
+    schema_version: Literal["1.0"],
+    challenge_key: ChallengeKey,
+    prior_ref: PriorRef,
+    validation: ValidationResult,
+    applicable_directives: tuple[PriorDirective, ...],
+    disclaimer: Literal["non_binding_structural_prior_only"],
+)
 ```
 
-The public status preserves exactly `SCORED`, `MANDATORY_GATE_FAILED`, and
-`PACK_NOT_READY`. `PACK_NOT_READY` is not scientific failure and carries no
-score, components, gate evaluation, or failure tag. Authorization, not-found,
-malformed request, storage conflict, infrastructure, and projection errors are
-transport/operational errors rather than card statuses. The complete source
-mapping and default-private rules are ratified in `.agent/DECISIONS.md`
-A6-R6–A6-R11.
+The returned validation object is the exact A2 result owned by this call.
+Applicable directives are an order-preserving, duplicate-free subset of the
+referenced published prior. The estimate has no numeric quality, probability,
+score, rank, `EvaluationCard`, gate status, cost, weight, or emission estimate.
+It is non-binding and cannot admit, reject, start, execute, or publish a
+submission.
 
----
+The estimate uses no `MockContext`, A8 service, fixture-official context,
+official or fixture Score Pack, `ScoreInput`, or `InternalResult` and performs
+no execution. It returns no predicted official score, predicted card status,
+or predicted gate result.
 
-## 12. Reference agent loop (free-first)
+Absence of either required provider is `mcp.tool_unavailable`; malformed,
+cross-bound, or validation-substituting output within response meters and
+provider exceptions are `mcp.integration_failure`; a response-meter breach is
+`mcp.resource_limit_exceeded`.
 
-```text
-info     = get_challenge_info(challenge_id)
-prior    = get_prior(challenge_id)
-scaffold = get_mock_scaffold(challenge_id)
-budget   = { compute, max_submits, max_fees }
-local_best, last_card = None, None
+## 8. Submission
 
-while budget.remaining:
-  strategy = mutate(prior, last_card, local_best)
-  if not dry_validate(strategy).ok: continue
+Before any A7 call, `submit` preflights the maximum valid canonical
+`SubmitReceipt` against the injected response limits. That finite envelope is
+computed only from the closed nominal topology, schema literal `"1.0"`, the
+fixed 36-byte UUIDv4 `SubmissionId`, and the longest closed
+`SubmissionState.value`; it does not mint an ID, inspect A7 state, or call a
+provider/owner. Unless every canonical receipt fits every applicable response
+meter, the call fails as resource and A7 is untouched.
 
-  est = estimate(strategy, prior)
-  if hard_zero_risk(est): continue
+After that preflight, `submit` delegates the captured graph directly to
+canonical A7 `SubmissionService.submit`, then calls `get_status` for the
+returned ID. MCP does not prevalidate the Strategy, reserve an ID, mutate the
+strategy, or add an admission state. The preflight guarantees a well-formed
+canonical status cannot create a post-submit response-meter failure.
 
-  if budget.compute:
-    cmp = light_compare(
-      strategy,
-      scaffold_id=scaffold.scaffold_id,
-      mock_pack_id=info.active_mock_packs[0],
-      miner_seed=fresh_seed(),
-      n_batches=info.compare_batches_default
-    )
-    if improves(cmp): local_best = strategy
-    else: light_train(strategy)  # optional
+`SubmitReceipt` contains only schema version `"1.0"` and the exact A7
+`SubmissionStatusView`; that status already carries the canonical submission
+ID. It is only an A7 lifecycle acknowledgement, not proof of queueing,
+acceptance, payment, provenance, execution, official score, scientific
+validity, rank, weight, or emission.
 
-  if worth_exam(est, cmp, budget):
-    receipt = submit(strategy)
-    last_card = poll get_submission_result(receipt.submission_id)
-    prior = get_prior(challenge_id)
-    scaffold = get_mock_scaffold(challenge_id)  # if rotated
+MCP never calls A7 `mark_validated`, either admission method, fee-start,
+retry, cancellation, execution, completion, or publication, and never calls an
+A6 storage method.
+
+This preserves A7 behavior:
+
+- invalid submissions may receive an ID and be `REJECTED`;
+- accepted submissions begin `RECEIVED`, not queued or running;
+- an open accepted duplicate may return the existing submission ID; and
+- a terminal or rejected resubmission may receive a fresh ID.
+
+A malformed status or other integration failure in post-submit status read or
+projection—including not-found or authorization for the just-returned internal
+ID/requester pair—is `mcp.integration_failure`; MCP does not retry or compensate
+after A7 has created or reused the submission. That fail-closed trusted-
+integration case is distinct from response capacity, which was rejected before
+mutation. Submission-unavailable collapse applies only to the caller-supplied
+ID of `get_submission_result`.
+
+## 9. Submission result and query budget
+
+`get_submission_result` is the only Wave-A result-polling tool. Every
+resource-valid call invokes `QueryBudgetGate.consume` with the exact owned
+requester and `McpTool.GET_SUBMISSION_RESULT` before any A7 lookup. The service
+captures the return and requires it to be exact `None`; any other return is an
+integration failure and no A7 lookup occurs. An exact gate-raised
+`McpQueryBudgetError` is translated without chaining to a fresh fixed
+`McpQueryBudgetError`; every other gate failure is
+`mcp.integration_failure`. There is no budget refund after a successful
+consume for any later outcome, including a missing, unauthorized, nonterminal,
+failed, or rejected submission or a response-meter/projection/integration
+failure.
+
+After budget consumption, MCP calls A7 `get_status`. It calls
+`read_published` only when the exact state is `PUBLISHED`. The closed result
+contains schema version `"1.0"`, the exact A7 status, and:
+
+- the exact canonical A6 `EvaluationCard` when published; or
+- `None` in every other state.
+
+MCP has no result cache, polling history, card store, submission mirror, or
+second lifecycle. It never constructs, repairs, enriches, redacts, or
+reinterprets an `EvaluationCard`.
+
+The result exposes no `StrategyHash`, private stored `ChallengeKey`, attempt
+history, fee record, retry count, execution handle, `SeedPin`, environment pin,
+private failure cause, `InternalResult`, private A6/A7 record, fine score
+detail, margin, stress breakdown, private/free-form diagnostic content, or
+timestamp not supplied by an owner API. The exact A6 `public_diagnostics`
+field remains present and canonically empty.
+
+Canonical not-found and requester-mismatch outcomes collapse to the same fixed
+`mcp.submission_unavailable` response. Requester equality is a structural
+binding check inherited from A7, not an authentication guarantee.
+
+## 10. Closed errors
+
+Every public failure is one of these exact code/message pairs:
+
+| Error type | Code | Fixed public message |
+|---|---|---|
+| `McpRequestError` | `mcp.request.invalid` | `MCP request is invalid.` |
+| `McpResourceError` | `mcp.resource_limit_exceeded` | `MCP resource limit was exceeded.` |
+| `McpToolUnavailableError` | `mcp.tool_unavailable` | `MCP tool is unavailable.` |
+| `McpChallengeUnavailableError` | `mcp.challenge_unavailable` | `Challenge is unavailable.` |
+| `McpSubmissionUnavailableError` | `mcp.submission_unavailable` | `Submission is unavailable.` |
+| `McpQueryBudgetError` | `mcp.query_budget_exceeded` | `MCP query budget was exceeded.` |
+| `McpIntegrationError` | `mcp.integration_failure` | `MCP integration failed.` |
+
+These seven rows are seven distinct exact nominal, slot-declared exception
+types. Their supported public code/message/argument payload is fixed at
+zero-argument construction and exposes no diagnostic field; public translation
+constructs only the exact listed type, never a subclass. Interpreter-maintained
+exception runtime state is not part of the A9 payload or immutability claim.
+
+No raw exception, representation, traceback, provider detail, hidden
+identifier, authorization distinction, or value-derived dynamic text crosses
+the boundary. Public translation suppresses exception chaining, and no public
+error accepts caller-supplied diagnostics.
+
+After exact top-level call/requester type checks, concurrency admission
+precedes all remaining conditions. Within an admitted call, deterministic
+precedence is:
+
+1. concurrency exhaustion → resource;
+2. malformed schema/tool type or fields-tuple type → request;
+3. `max_call_fields` breach → resource;
+4. schema/tool framing limit breach, or otherwise invalid framing text → resource or request, respectively;
+5. schema-version value other than exact `"1.0"` → request;
+6. malformed bounded field entry/name type → request;
+7. field-name framing limit breach, or otherwise invalid framing text → resource or request, respectively;
+8. duplicate field name → request;
+9. exact-string deferred/unknown tool → tool unavailable;
+10. known-tool missing/unknown semantic field → request;
+11. request-capture resource breach → resource;
+12. decoded scalar syntax → request;
+13. submit maximum-receipt preflight breach → resource before A7;
+14. unconfigured optional provider → tool unavailable;
+15. missing, malformed, or internally inconsistent challenge → challenge unavailable;
+16. result-poll budget exhaustion or non-exact-`None` gate return → query budget or integration, respectively;
+17. result-poll missing or requester-mismatched submission → submission unavailable;
+18. response-meter or canonical A7 resource/capacity breach → resource;
+19. malformed canonical/provider output or unexpected dependency failure → integration.
+
+## 11. Provider interfaces and state ownership
+
+The three optional providers have these exact responsibilities:
+
+```python
+class PriorProvider(Protocol):
+    def get_prior(self, challenge_key: ChallengeKey) -> PublishedPrior: ...
+
+class ScaffoldProvider(Protocol):
+    def get_scaffold(
+        self,
+        challenge_key: ChallengeKey,
+        scaffold_id: str | None,
+    ) -> PublishedScaffold: ...
+
+class EstimateProvider(Protocol):
+    def estimate(
+        self,
+        challenge_key: ChallengeKey,
+        prior: PublishedPrior,
+        strategy: dict,
+        validation: ValidationResult,
+    ) -> StructuralEstimate: ...
+
+class QueryBudgetGate(Protocol):
+    def consume(self, requester: RequesterIdentity, tool: McpTool) -> None: ...
 ```
 
----
+Providers own their data and identity. They do not gain access to the
+submission service through MCP. A9 adds no database, cache, filesystem store,
+mutable history, list endpoint, or background worker.
 
-## 13. Gaming matrix (v2.2 highlights)
+Source dependencies are limited to the standard library and the minimum
+public A2, A3, A6 model, and A7 APIs. A9 must not source-import A4 context or
+secret types, A5 scoring models or engine, A6 stores, A7 stores, A8, A10–A12,
+legacy miner or Landscape code, PoC or neurons, an MCP SDK, HTTP framework,
+Bittensor, Torch, JAX, NumPy, chain/weight/emission code, or another
+optional-heavy dependency. No network server belongs to Wave A.
 
-| Vector | Mitigation |
-|--------|------------|
-| Goodhart light_compare | Rotating incomplete mocks; **non-oracle** requirement (prevent reliable rank substitution / exam reconstruction) |
-| Immortal mock ≈ exam | Pack versioning + retirement |
-| Estimate as official score | No lean_score field |
-| Scaffold = champion | Mediocre versioned baseline only |
-| Implicit prior materialization | Separated `get_mock_scaffold` |
-| Card as query oracle | Feedback budget; withhold fine margins |
-| Seed leak | Never on MCP |
-| Prior similarity score | Banned in Score Pack |
+The eventual root `carbon.mcp` export surface is exactly:
 
----
+`ChallengeInfo`, `DryValidateRequest`, `DryValidateResponse`,
+`EstimateProvider`, `EstimateRequest`, `GetChallengeInfoRequest`,
+`GetMockScaffoldRequest`, `GetPriorRequest`, `GetSubmissionResultRequest`,
+`McpCall`, `McpChallengeUnavailableError`, `McpField`, `McpIntegrationError`,
+`McpQueryBudgetError`, `McpRequestError`, `McpResourceError`,
+`McpResourceLimits`, `McpService`, `McpSubmissionUnavailableError`, `McpTool`,
+`McpToolUnavailableError`, `PriorDirective`, `PriorDirectiveKind`,
+`PriorProvider`, `PriorRef`, `PublishedPrior`, `PublishedScaffold`,
+`QueryBudgetGate`, `ScaffoldProvider`, `ScaffoldRef`, `StructuralEstimate`,
+`SubmissionResult`, `SubmitReceipt`, and `SubmitRequest`.
 
-## 14. Invariants (normative)
+No export or behavior is implemented by this document.
 
-1. Priors never include weights or official eval seeds.  
-2. Priors never appear as a lean score term.  
-3. Estimation never authorizes emissions or predicts official lean score.  
-4. light_compare / light_train never see validator packs or VALIDATOR_RANGES.  
-5. Submit always re-runs the hidden exam; fee ≠ score.  
-6. Priors never thin the mandatory gate set.  
-7. One public prior channel — no VIP feed.  
-8. EvaluationCard never returns seeds, draw ids, or other miners’ full cards.  
-9. Versioned `failure_tags` share the approved avoid-atlas vocabulary when that vocabulary is expanded; bounded A6 emits only `mandatory_gate_failed`.
-10. No lab-specific MCP forks required.  
-11. Free path is first-class; paid exam is confirmation.  
-12. light_compare uses `get_mock_scaffold`, not an inverted prior.  
-13. **Free signal must remain intentionally imperfect vs the official exam.**  
-14. **Evaluation feedback is budgeted against exam-reconstruction attacks.**  
+The sole canonical future focused test is
+`tests/cpu/test_mcp_skeleton.py`. Its acceptance matrix is recorded in the A9
+ticket and pre-implementation plan and includes exact types, call fields,
+resource/response bounds, hostile objects, stable errors, upstream delegation,
+provider and leakage failures, mock/light rejection, A7 lifecycle behavior,
+all-state requester-bound polling, published-only cards, dependency/export
+isolation, installed-wheel import, full CPU regression, Ruff, Black, and
+no-new-debt checks. Existing A0–A8 regressions are not A9 test evidence.
 
----
+## 12. Deferred full-loop and release posture
 
-## 15. Related documents
+The broader discover → prior → scaffold → mock → compare → train → submit →
+inspect loop remains design intent, not Wave-A scope. Before any Wave-B work,
+the owners must separately ratify:
 
-`SPEC.md`, `Scoring.md`, `Launch_Bar.md`, `Data_Management.md`, `Landscape_Agent.md`, `Generator_Creation.md`, `Evidence_and_Envelope_Standards.md`.
+- mock evaluator semantics and resources;
+- deterministic execution and evidence disclosure;
+- comparison and training request/result schemas;
+- adaptive-budget and leakage controls;
+- authentication and transport boundaries;
+- Launch Bar metrics, including real-user success and quality thresholds; and
+- the A8-R15 execution-dependent resource path.
 
----
+This candidate records no owner decision on those deferred matters and does not
+satisfy a Launch Bar checkbox.
 
-## 16. Doctrine
+## 13. Ratification and maturity
 
-Agents **grind for free** on an intentionally imperfect mock surface against a public mediocre scaffold. **Submit is rare.** The referee returns budgeted feedback—enough to repair, not enough to reverse-engineer the hidden exam. Priors steer; they do not execute. Scaffolds run; they are not champions.
+At candidate publication:
 
-Carbon supplies the problems, the practice range, the incentives, and the independent exam. Any scientist can plug in.
+- exact Wave-A contract: **documentation candidate; not specified/ratified until independent review, explicit human authorization, and merge**;
+- implementation: **NO**;
+- tests: **NO**;
+- qualification or scientific evidence: **NO**;
+- A9 wave ticket: **todo**;
+- A10, A11, and A12: **todo**.
 
----
-
-*Miner MCP v2.2 — mock rotation, feedback budget, get_mock_scaffold. Preserve all §14 invariants.*
+The candidate becomes the ratified A9 contract only after independent review,
+explicit human authorization, and merge. Any later implementation requires a
+separate authorized change, must preserve the upstream A2/A3/A6/A7/A8
+contracts, and must produce its own CPU evidence. This documentation change is
+not implementation evidence.

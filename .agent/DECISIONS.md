@@ -1,5 +1,639 @@
 # Agent decisions log
 
+## 2026-08-24 — A9 bounded Miner MCP Wave-A control-plane contract candidate
+
+**Repository truth, status, and scope.** A fresh fetch/prune resolved
+`origin/main` to exact commit
+`adcf0578052bba2c0cf9aa24e7a07ebfe87ca46d`, tree
+`c41119356ce811b2186a19dd2906e29e443fecf2`, and subject `Merge pull request
+#31 from carbonphysicsai/agent/a8-closeout`. Its ordered parents are
+`b30c3f5fc2a53df0611d5e8b80120fbf4b64531c` and exact PR head
+`7ab627f027675960622c2e147095ce92822f15c2`. The second-parent and merge trees
+are exactly equal and their diff is empty. Exact push run `32690165406` is
+`completed / success` on that head; both CPU and quality jobs succeeded, with
+`1584 passed in 40.72s`, `Ruff 757/776; Black 62/68`, removed debt `Ruff 19,
+Black 6`, zero changed Python files, and no new debt.
+
+GitHub exposes no formal PR #31 review objects, review comments, issue
+comments, or non-empty review decision. The exact PR-head/second-parent/tree
+relationship is verified; this record does not fabricate a formal GitHub
+review event that the API does not report.
+
+A8 is `done` with twenty-five checked and zero unchecked bounded criteria.
+A9--A12 remain `todo`. All pull requests, remote refs/unmerged commits, and
+current source were searched for A9/MCP/prior/scaffold/estimate/light/mock and
+submission-transport work. No competing A9 branch, PR, implementation, test,
+plan, or ratification candidate exists. The starting worktree was clean;
+`carbon/mcp/__init__.py` was only the A0 marker. Legacy miner/client/HTTP and
+prior/Landscape material is archaeology, not an existing A9 implementation.
+
+This seven-path documentation candidate adds the A9 plan and reconciles the
+decision log, ticket, Miner MCP domain spec, Build Out sequencing, and both
+current maturity ledgers. It changes no `.agent/WAVE.md`, Python, test,
+fixture, dependency, lockfile, packaging, CI, quality baseline, A0--A8 code or
+test, A10+ ticket/implementation, business, or publication file. It implements
+and tests nothing.
+
+```text
+A9 EXACT BOUNDED CONTRACT: specified and ratified only after independent
+review, explicit human authorization, and merge of this candidate
+A9 IMPLEMENTED: NO
+A9 TESTED: NO
+A9 SCIENTIFICALLY_QUALIFIED: NO
+A9 SECURITY_QUALIFIED: NO
+A9 NETWORK_QUALIFIED: NO
+A9 COMMERCIALLY_VALIDATED: NO
+A9 PRODUCTION_QUALIFIED: NO
+A9 WAVE STATUS: todo
+A10--A12: todo
+```
+
+**Conflict classification.** Current A2--A8 owner APIs, the constitution,
+invariants, constitutional overlay, and A8-R15 are `NO_CONFLICT`. The flat ten-tool
+Miner MCP table, stale A9 aliases/dependencies/test path, rich Challenge-info
+fields, executable-scaffold language, queue/fee receipt shorthand, and coupled
+`estimate/light` wording in Build Out/A9 prose are `DOCUMENTATION_LAG`.
+A8-R15 remains semantically binding: it blocks execution-dependent
+estimate/light work until a separate mock contract exists. It does not block
+the distinct, non-executing structural estimate below. Legacy miner,
+agent-tools, client, neuron, HTTP, prior-publisher,
+Landscape, and old Strategy-schema code is `REPLACE/EXCLUDE` as A9 authority.
+Actual publications, policies, authentication, mock execution, and security
+evidence remain owner inputs; fail-closed absence means no unresolved owner
+decision blocks this bounded contract.
+
+**A9-R1 — Bounded ownership and Wave split.** Wave-A A9 owns only an in-process
+control/disclosure boundary: exact Challenge information, public prior/scaffold
+provider seams, exact A2 dry validation, a pure structural/prior estimate,
+exact A7 submission intake/status/publication delegation, result-poll query
+budget, stable errors, resource capture, and positive public projections.
+
+Wave A registers exactly, in order:
+
+```text
+get_challenge_info
+get_prior
+get_mock_scaffold
+dry_validate
+estimate
+submit
+get_submission_result
+```
+
+No `info`, `prior`, `scaffold`, `validate_strategy`, `submit_strategy`, or
+other alias is registered. `light_compare`, `light_train`, and
+`list_my_submissions` are unavailable and excluded from Wave A.
+
+The exact future `MockExecutionRequest`, `MockRunOutcome`,
+`MockTrainEvalService.run_mock`, mock pack identity, mock resource/isolation
+policy, mock execution/disclosure, `light_compare`, `light_train`, and
+adaptive-query security evidence remain one deferred Wave-B A8/A9 contract.
+That mock outcome is not A5 `InternalResult`, cannot enter A7/A6, creates no
+card, and affects no fee, official score, rank, weight, or emission.
+
+**A9-R2 — Exact service and owner delegation.** The only future public service
+is:
+
+```text
+McpService(
+    registry: exact ChallengeRegistry,
+    submission_service: exact SubmissionService,
+    resource_limits: exact McpResourceLimits,
+    query_budget_gate: QueryBudgetGate,
+    prior_provider: PriorProvider | None,
+    scaffold_provider: ScaffoldProvider | None,
+    estimate_provider: EstimateProvider | None
+)
+
+McpService.call(
+    call: exact McpCall,
+    requester_identity: exact out-of-band RequesterIdentity
+) -> (
+    ChallengeInfo | PublishedPrior | PublishedScaffold |
+    DryValidateResponse | StructuralEstimate | SubmitReceipt |
+    SubmissionResult
+)
+```
+
+Every constructor slot is explicit and required. `None` in any provider slot
+selects stable fail-closed unavailability; there is no default/global provider,
+registry, A7 service, query gate, resource policy, or server. The exact
+tool-to-response mapping is `ChallengeInfo`, `PublishedPrior`,
+`PublishedScaffold`, `DryValidateResponse`, `StructuralEstimate`,
+`SubmitReceipt`, and `SubmissionResult`, respectively. No raw mapping,
+iterator, stream, or network response is returned.
+
+Trusted composition must supply the same exact `ChallengeRegistry` instance
+used to construct the injected `SubmissionService`. A9 does not inspect A7's
+private registry and cannot repair a mismatched composition. Successful calls
+return only the closed union above; failures raise exactly one of the seven
+fixed public A9 errors.
+
+A9 may use only current public A2, A3, A6 model, and A7 APIs. A9 does not own
+or repeat A2 schema logic; A3 record/admission truth; A6 storage/projection;
+A7 identity, lifecycle, fee/retry/cancel/execution/publication; A8 context,
+backend, execution or scoring; or A10+ behavior.
+
+**A9-R3 — Exact call schema, ordered fields, and requests.** `McpTool` is the
+exact closed string enum corresponding to the seven R1 names. The first
+untrusted boundary is never a raw dictionary:
+
+```text
+McpField(name: exact built-in str, value: object)
+McpCall(
+    schema_version: exact built-in str,
+    tool: exact built-in str,
+    fields: exact tuple[McpField, ...]
+)
+```
+
+`McpField` and `McpCall` are storage-only raw-envelope nominals. Construction
+freezes the supplied references but intentionally performs no eager type,
+schema, field-name, duplicate, resource, or semantic validation. An exact
+outer call can therefore carry malformed internal framing into
+`McpService.call` without object forging; the service alone owns exact outer
+checks, concurrency admission, framing, and capture order.
+
+The raw tool stays an exact string so unknown, alias, and deferred names can
+map to stable tool-unavailable. Ordered fields remain intact through
+structural/name/duplicate/resource validation and exact tool dispatch; only a
+known tool then receives missing/unknown semantic-field validation. A unique
+field map may be constructed only after those checks. Exact call and every
+top-level response schema version is `"1.0"`; no default, alias, normalization,
+or negotiation exists.
+
+Wire fields are exact: Challenge info/prior require `challenge_id` and
+`challenge_version`; scaffold adds optional `scaffold_id`; dry validation
+requires `strategy`; estimate and submit require `challenge_id`,
+`challenge_version`, and `strategy`; result retrieval requires
+`submission_id`. No call may contain RequesterIdentity.
+
+Exact frozen/slotted decoded types are:
+
+```text
+GetChallengeInfoRequest(exact ChallengeKey)
+GetPriorRequest(exact ChallengeKey)
+GetMockScaffoldRequest(exact ChallengeKey, exact str | None)
+DryValidateRequest(fresh owned exact built-in graph)
+EstimateRequest(exact ChallengeKey, fresh owned exact built-in dict)
+SubmitRequest(exact ChallengeKey, fresh owned exact built-in graph)
+GetSubmissionResultRequest(exact SubmissionId)
+```
+
+After required providers are present and exact challenge visibility succeeds,
+every resource-admissible decoded estimate dict, including semantically
+invalid and aliased/cyclic Strategy graphs, reaches exact A2. Every
+resource-admissible decoded submit graph reaches exact A7 after the receipt
+resource preflight in A9-R10. Dry validation accepts every resource-admissible
+captured root. Transport-inexpressible types fail at A9 rather than being
+relabelled as A2/A7 science or lifecycle behavior.
+
+**A9-R4 — Mandatory resource policy and ownership.** Exact frozen/slotted,
+non-defaulted `McpResourceLimits` has these positive finite integer fields:
+
+```text
+max_call_fields
+max_total_request_value_nodes
+max_request_object_members
+max_request_list_items
+max_request_string_utf8_bytes
+max_request_object_key_utf8_bytes
+max_request_integer_bits
+max_total_request_utf8_bytes
+max_total_response_value_nodes
+max_response_sequence_items
+max_response_string_utf8_bytes
+max_response_integer_bits
+max_total_response_utf8_bytes
+max_concurrent_calls
+```
+
+Every field is an exact built-in positive unsigned-64-bit-representable int.
+No numeric value is ratified. No query count, fee, quota, rolling window, rate,
+retry delay, or retry-after is hidden in this model.
+
+Capture is iterative/non-recursive and accepts only exact built-in `None`,
+`bool`, `int`, finite `float`, `str`, `list`, and `dict`. Dict keys may be
+exact built-in scalars so A2/A7 retain non-string-key rejection authority;
+MCP field names remain exact strings. Capture rejects subclasses, tuple/set
+containers, arbitrary mappings/iterables, unstable containers, non-finite
+numbers, and hostile objects without rendering them. It creates a detached
+built-in graph while preserving shared references and cycles so owner
+semantics are not normalized. Visited-node accounting remains bounded.
+
+Responses are fresh bounded positive projections. Frozen/slotted wrappers do
+not pretend nested Python dict/list graphs are deeply immutable or authenticated.
+A9 retains no external caller or provider alias while preserving valid
+internal graph topology in the detached projection.
+
+Resource accounting is exact. Only exact top-level `McpCall` and requester
+type checks precede concurrency admission; wrong/subclassed outer values are
+request errors without attribute access. Every exact-top-level call then
+acquires one permit before framing/tool/field/value/provider/owner work,
+including internally malformed and unknown-tool calls, and holds it through
+response projection/error translation with `finally` release. Inside the
+permit, exact schema/tool types and the fields-tuple type are checked first;
+`len(fields)` is then bounded by `max_call_fields` before any entry scan.
+Schema/tool strings are metered before use, after which the schema value must
+equal exact `"1.0"`. Each bounded tuple entry is checked in order for exact
+`McpField` type, exact string name, name UTF-8 meters, and only then duplicate
+identity, so no unbounded scan or overlong-string hash/equality occurs. An
+exact-string unknown/deferred tool is then unavailable without a semantic
+field schema, value capture, or a downstream call.
+Missing/unknown semantic field names are checked only for a known tool before
+its values are captured.
+
+Each call-field value root is one request node. On first expansion of each
+distinct exact list/dict, each list item or dict member value adds one node;
+alias/cycle edges are charged by their containing cardinality, but a seen
+container's children are not expanded twice. Dict keys are not nodes.
+Object/list limits apply per first-seen container. Exact
+`int.bit_length(value)` applies to every exact int occurrence, including scalar
+keys and excluding bool. Per-string request width covers schema/tool/field
+names, graph strings, and string keys; the key limit additionally covers each
+string dict key; the total UTF-8 meter sums logical occurrences. A strict
+code-point scan charges a surrogate one byte solely to stay bounded and marks
+the request invalid; a resource breach encountered first remains resource.
+
+Response accounting starts with one top-level node and adds one for every
+nominal field, sequence item, and dict member value on first container
+expansion; dict keys are not nodes. Only exact closed A9/owner nominals/enums
+and exact permitted `None`/bool/int/finite-float/string/tuple/list/dict field
+values are traversable; any other type/subclass is integration failure. The
+sequence limit applies per exact tuple/list, response string width covers
+string values and dict keys, response
+integer width is exact `int.bit_length` for every exact int value or scalar
+dict key, excluding bool, and total response UTF-8 is the logical-occurrence
+sum. Each exact string enum is one value node and its exact `.value` is charged
+as a response string. The same bounded one-byte surrogate handling marks
+response text invalid. A response dict must fit the remaining node meter
+before copy. Response-meter breach is resource; within the meters,
+malformed/subclassed/unstable/invalid-UTF-8/cross-bound provider output is
+integration. Traversal uses exact call-field-tuple, list/tuple-index, built-in
+dict-insertion, declared nominal-field, and provider-sequence order; the first
+condition encountered controls.
+
+**A9-R5 — Exact Challenge projection and visibility.** `ChallengeInfo` has
+response framing `schema_version="1.0"` and exactly five Challenge fields:
+
+```text
+challenge_key
+lifecycle_status
+fixture_origin
+effectively_live
+allowed_backbones
+```
+
+Lookup is exact-key only; A9 never scans/lists records. Exact A3 `draft`,
+`fixture`, and `live` records are visible. Non-live records return
+`effectively_live=False`; live records return exactly A3
+`is_effectively_live(challenge_id, version)`, including visible
+`live/False` when revalidation fails. `fixture_origin` and
+`allowed_backbones` are copied facts, not provenance authentication,
+scientific qualification, runtime support, or admission. Missing, malformed,
+internally inconsistent, or unknown-lifecycle records are unavailable.
+
+No artifact path/digest, qualification reference/evidence/reason, backend-
+profile evidence, receipt evidence, fee, Score Pack/generator hash, active mock
+pack, mock range, tag/disclosure catalog, seed, or context is exposed.
+
+**A9-R6 — Exact prior model and provider.** Exact frozen/slotted identity and
+directive values are:
+
+```text
+PriorRef(
+    challenge_key: exact ChallengeKey,
+    prior_id: exact canonical token,
+    prior_version: exact version token,
+    content_hash: exact tagged lowercase SHA-256
+)
+
+PriorDirectiveKind =
+    STRUCTURAL_STEER="structural_steer" |
+    AVOID="avoid" |
+    EXPLORE="explore" |
+    NOT_INCLUDED="not_included"
+
+PriorDirective(
+    kind: exact PriorDirectiveKind,
+    subject: exact bounded canonical token,
+    tokens: exact tuple[bounded canonical token, ...]
+)
+
+PublishedPrior(
+    schema_version="1.0",
+    prior_ref: exact PriorRef,
+    directives: exact provider-ordered duplicate-free
+                tuple[PriorDirective, ...]
+)
+```
+
+Every `canonical token` is an exact built-in `str` accepted without
+normalization by public A3
+`validate_canonical_identifier(value, field_name)`; the applicable MCP string
+and aggregate UTF-8 limits bound it. Every `version token` is an exact built-in
+`str` accepted without normalization by public A3 `validate_version`.
+
+Subject/tokens are closed publication-vocabulary identifiers, never free
+text, numbers, weights, parameter values, or executable instructions. Actual
+vocabulary/content remains an owner input. The hash is provider-owned
+publication identity; A9 validates exact digest syntax/cross-binding but does
+not invent canonical publisher bytes or a store.
+
+A prior is coarse, public, versioned, hashed, non-executable, non-binding,
+one-channel, and closed-directive-only. It has no Strategy, free text, numeric
+weight vector, hyperparameter recipe, champion identity/weights, official
+score, rank, fee, seed, pack identity, or emission field.
+
+```text
+PriorProvider.get_prior(ChallengeKey) -> PublishedPrior
+```
+
+The provider receives no requester. The service checks provider presence
+before A3 visibility and provider invocation. Absence is stable
+tool-unavailable. Exceptions or malformed, subclassed, unstable, or
+cross-bound output within response meters are stable integration failure;
+response-meter breach is stable resource failure. A9 adds no production
+provider or prior publication.
+
+**A9-R7 — Exact declarative scaffold.** Exact frozen/slotted values are:
+
+```text
+ScaffoldRef(
+    challenge_key: exact ChallengeKey,
+    scaffold_id: exact canonical token,
+    scaffold_version: exact version token,
+    content_hash: exact tagged lowercase SHA-256
+)
+
+PublishedScaffold(
+    schema_version="1.0",
+    scaffold_ref: exact ScaffoldRef,
+    strategy: fresh owned exact built-in A2-valid Strategy,
+    informed_by_prior: exact PriorRef | None,
+    execution_deferred: exact True
+)
+
+ScaffoldProvider.get_scaffold(
+    ChallengeKey,
+    scaffold_id: exact canonical str | None
+) -> PublishedScaffold
+```
+
+The Strategy `challenge_id` must equal the exact ChallengeKey challenge ID.
+Optional prior metadata must bind the same ChallengeKey. A9 validates/copies
+but never supplies a body, calls the prior provider, fills a prior omission,
+derives from a prior, interprets inert A2 parameters, calls A8, or claims the
+scaffold scientifically valid, Challenge-compatible, mediocre, or non-champion
+from type checks. Execution is deferred throughout Wave A.
+
+The service checks scaffold-provider presence before A3 visibility and calls
+the provider once. It then calls canonical `carbon.schema.dry_validate`
+exactly once on the detached returned Strategy and requires exact `ok=True`;
+non-`ok` is malformed provider output and maps to integration failure. If the
+request supplies `scaffold_id`, exact equality with
+`PublishedScaffold.scaffold_ref.scaffold_id` is mandatory; without a selector,
+the provider owns selection of the returned canonical ID. Positive
+reconstruction detaches provider ownership while preserving valid internal
+graph topology.
+
+**A9-R8 — Exact pure structural estimate and A8-R15 reconciliation.** Exact
+frozen/slotted output is:
+
+```text
+StructuralEstimate(
+    schema_version="1.0",
+    challenge_key: exact ChallengeKey,
+    prior_ref: exact PriorRef,
+    validation: exact owned A2 ValidationResult,
+    applicable_directives: exact tuple[PriorDirective, ...],
+    disclaimer="non_binding_structural_prior_only"
+)
+```
+
+Applicable directives are an order-preserving duplicate-free subset of the
+exact public prior and there is no arbitrary text field. The handler first
+checks both provider slots, then resolves the exact Challenge record,
+obtains/validates the public prior, calls A2
+`dry_validate` exactly once on a fresh owned dict, and calls:
+
+```text
+EstimateProvider.estimate(
+    ChallengeKey,
+    PublishedPrior,
+    owned Strategy,
+    ValidationResult
+) -> StructuralEstimate
+```
+
+Semantically invalid resource-admissible dicts still reach A2 and the provider
+with their exact validation result; the response must preserve that result.
+Missing prior or estimate provider is unavailable.
+
+The provider uses only declarative structure, validation, and public prior. It
+performs no execution; uses no MockContext; calls no A8; uses no fixture-
+official context, official or fixture Score Pack; constructs no ScoreInput or
+InternalResult; and returns no float quality score, predicted official score,
+rank, predicted card status, predicted gate result, weight, or emission value.
+A8-R15 therefore continues to block all execution-dependent estimate/light
+work while permitting only this separately ratified structural estimate.
+
+**A9-R9 — Exact A2 dry validation.** `DryValidateResponse` contains only
+`schema_version="1.0"` and a fresh exact A2 `ValidationResult`. A9 calls public
+`carbon.schema.dry_validate` exactly once on the captured graph and preserves
+exact `ok`, ordered issues, codes, paths, and fixed messages. It adds no
+normalization, challenge lookup, provider, admission, execution, score, or
+status. An A2-invalid value is a successful validation response, not an MCP
+error, when it passed A9 transport/resource capture.
+
+**A9-R10 — Exact A7 submit intake and acknowledgement.** Trusted composition
+supplies exact RequesterIdentity out of band. After its non-mutating resource
+preflight, submit's only owner calls are:
+
+```text
+submission_id = SubmissionService.submit(
+    exact RequesterIdentity,
+    exact ChallengeKey,
+    fresh owned request Strategy value
+)
+status = SubmissionService.get_status(
+    exact SubmissionId,
+    exact RequesterIdentity
+)
+SubmitReceipt(schema_version="1.0", status=exact SubmissionStatusView)
+```
+
+The receipt is an A7 lifecycle acknowledgement, never proof of queueing,
+acceptance, payment, provenance, execution, official score, scientific
+validity, rank, weight, or emission. A9 performs no preliminary A2/A3
+admission and never calls `mark_validated`, admission, fee-start, retry,
+cancellation, execution, completion, publication, or A6 storage methods.
+
+Before any A7 method, A9 preflights the maximum valid canonical receipt against
+all response meters. The finite envelope is derived only from its closed
+nominal topology, `"1.0"`, the fixed 36-byte UUIDv4 SubmissionId, and the
+longest closed SubmissionState value. It mints no ID and reads no owner state.
+If every canonical receipt cannot fit, A9 raises resource before mutation; a
+well-formed post-submit canonical status therefore cannot fail a response
+meter.
+
+Resource-admissible invalid input reaches A7 and preserves exact `REJECTED`
+when A7 retained-record capacity permits; valid accepted intake begins exact
+`RECEIVED` when that capacity permits. Accepted open duplicates retain A7's
+exact same-SubmissionId/no-new-record/transition/fee semantics. Terminal and
+rejected resubmission behavior remains A7-owned. A failure in the status read
+or projection after submit—including not-found/authorization for the internally
+returned ID/requester pair—is a stable integration error; A9 performs no retry
+or compensation. That trusted-integration case is distinct from response
+capacity, which the preflight rejects before mutation. Submission-unavailable
+collapse is reserved for the caller-supplied ID in result polling.
+
+**A9-R11 — Exact result polling and A7-mediated A6 card.** Exact output is:
+
+```text
+SubmissionResult(
+    schema_version="1.0",
+    status: exact SubmissionStatusView,
+    card: exact EvaluationCard | None
+)
+```
+
+Every structurally valid poll first calls
+`QueryBudgetGate.consume(exact RequesterIdentity,
+McpTool.GET_SUBMISSION_RESULT)` after request/resource validation and before
+any A7 lookup. Then it calls `SubmissionService.get_status` first. Only exact
+`SubmissionState.PUBLISHED` permits `SubmissionService.read_published`; every
+other current A7 state returns exact status with no card. A9 never reaches A6
+directly. Not-found and wrong-requester A7 errors collapse to the same public
+submission-unavailable error.
+
+The response contains no StrategyHash, private stored ChallengeKey, attempt
+history, fee record, retry count, execution handle, SeedPin, environment pin,
+private failure cause, InternalResult, A6/A7 record, fine score detail, margin,
+stress breakdown, private/free-form diagnostic content, or timestamp not
+supplied by an owner API. The exact A6 `public_diagnostics` field remains
+present and canonically empty. There is no retry-after, queue position, or
+completion-time estimate.
+
+**A9-R12 — Requester/authentication and query gate.** RequesterIdentity is not
+an MCP field. The service exact-type checks and reconstructs it before passing
+it to the query gate/A7. Current A7 RequesterIdentity supplies structural
+equality and requester binding only; it is not authentication, hotkey proof,
+signature verification, session authority, or a network capability. A future
+network adapter must authenticate before trusted composition supplies it.
+
+```text
+QueryBudgetGate.consume(RequesterIdentity, McpTool) -> None
+```
+
+Wave A mandates this gate for every result poll. It sets no query budget,
+quota, rate, window, or retry policy. An exact gate-raised
+`McpQueryBudgetError` is translated without chaining to a fresh public
+`McpQueryBudgetError` containing only the fixed literals; any other gate
+failure is an integration failure. The service captures the protocol return,
+requires it to be exact `None`, and treats any other value as an integration
+failure before any A7 lookup. Once exact consume succeeds, no later outcome is
+refunded, including unavailable/nonterminal status or a response-meter,
+projection, or integration failure.
+
+**A9-R13 — Stable errors, retention, and replay.** Every error is a distinct
+exact nominal, slot-declared exception type with a frozen public contract
+payload: zero-argument construction, literal-backed read-only
+code/message/argument values, and no supported diagnostic fields. Public
+translation constructs no subclass and suppresses chaining. The immutability
+claim excludes interpreter-owned `BaseException` runtime traceback, context,
+cause, and inherited implementation-dictionary state:
+
+```text
+McpRequestError
+  mcp.request.invalid / MCP request is invalid.
+McpResourceError
+  mcp.resource_limit_exceeded / MCP resource limit was exceeded.
+McpToolUnavailableError
+  mcp.tool_unavailable / MCP tool is unavailable.
+McpChallengeUnavailableError
+  mcp.challenge_unavailable / Challenge is unavailable.
+McpSubmissionUnavailableError
+  mcp.submission_unavailable / Submission is unavailable.
+McpQueryBudgetError
+  mcp.query_budget_exceeded / MCP query budget was exceeded.
+McpIntegrationError
+  mcp.integration_failure / MCP integration failed.
+```
+
+No error renders an untrusted value, object, provider/owner exception, path,
+secret, seed, context, pack, private state, configured limit, observed size,
+quota, stack, or exception object. Unknown/alias/deferred tool and missing
+tool-specific provider map to unavailable; malformed calls map to request;
+invalid boundary challenge/version/scaffold/submission/requester scalar syntax
+also maps to request; and limit/capacity exhaustion maps to resource. A
+syntactically valid missing or malformed Challenge maps to Challenge
+unavailable; A7 not-found/authorization during `get_submission_result` maps to
+submission unavailable; all other trusted integration/output failures map to
+integration failure.
+
+Only a wrong/subclassed outer call or requester is rejected before concurrency
+admission. Every exact-top-level call acquires a permit before all remaining
+validation; concurrency exhaustion is therefore resource before an internal
+framing/tool/field condition. Within an admitted call, request and response
+meter breaches are resource, including valid-shaped provider output that
+exceeds response bounds.
+
+A9 retains zero request, response, provider, result, or polling history/cache
+and creates no second submission store. Provider publications remain
+versioned/provider-owned. A7 alone retains its current process-local state and
+idempotence. Transient concurrency accounting and mandatory query consume are
+not a history store.
+
+**A9-R14 — Exact modules, exports, and future tests.** The only future A9
+layout is:
+
+```text
+carbon/mcp/
+    __init__.py
+    model.py
+    providers.py
+    service.py
+```
+
+A9 may source-import standard library plus minimum public A2, A3, A6 model,
+and A7 APIs. It must not source-import A4 context/secret types, A5 models or
+engine, A6 stores, A7 stores, A8, A10--A12, legacy miner/Landscape, PoC,
+neurons, MCP SDKs, HTTP frameworks, Bittensor, Torch, JAX, NumPy, or optional-
+heavy dependencies. No network server exists.
+
+Future `carbon.mcp.__all__` is exactly the ordered surface recorded in
+`.agent/plans/A9_mcp_skeleton.md`: all ratified A9 nominal types and errors,
+the four provider/gate protocols, and `McpService`; it contains no alias and
+re-exports no A2--A8 owner type.
+
+The sole canonical focused test is `tests/cpu/test_mcp_skeleton.py`. Its
+future matrix covers exact types/subclass rejection; fields/duplicates/schema;
+resource/capture/concurrency/response bounds; hostile rendering and stable
+errors; A2/A3 delegation; provider absence/malformed output; prior/scaffold
+leakage and deferred execution; structural estimate and light rejection;
+fixture/mock/official crossing; A7 submit/idempotence/no duplicate lifecycle or
+fee; requester-bound polling/all states/query ordering; published-only exact
+A6 card; authorization/not-found collapse; private-data exclusions; retention;
+source/root/import isolation; installed wheel; full CPU; Ruff/Black/no debt.
+Documentation and existing regressions are not A9 test evidence.
+
+**A9-R15 — Implementation and maturity gate.** No A9 source/test work may begin
+until this exact candidate is independently reviewed, explicitly human-
+authorized, and merged. A separate task must re-fetch the merge, verify exact
+main/tree/status/CI and no competing A9 work, and only then mark A9
+`in_progress`. This candidate leaves every A9 implementation criterion
+unchecked and A9/A10/A11/A12 `todo`.
+
+No provider publication, prior content/vocabulary, scaffold body, resource
+value, query/fee/quota/concurrency/rate value, authentication, network server,
+mock pack, mock/light execution, real training, production context/backend,
+LIVE science/Score Pack, adaptive-query qualification, evidence/receipt/
+signature, leaderboard/logging/invariant implementation, frontier, Product
+Qualification, treasury/settlement, Bittensor/chain, weight, emission,
+scientific qualification, security qualification, network qualification,
+commercial validation, or production qualification is included.
+
 ## 2026-08-24 — A8 implementation, conformance repair, and administrative closeout candidate
 
 **Ratified contract.** PR #28, `docs: ratify bounded A8 TrainEval stub

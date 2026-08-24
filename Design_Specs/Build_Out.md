@@ -7,7 +7,7 @@
 
 
 **Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
-**Version:** 1.4  
+**Version:** 1.5<br>
 **Status:** Executable requirements contract  
 **Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`  
 **Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`
@@ -77,7 +77,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C6 | Seeding / roles | **High** | Domain separation + leakage tests | Seed derivation formula confirm |
 | C7 | Validator neuron | **Med** | Composition harness across A7 FSM/pins, A8 execution, and A6 publication | Train backend quality, concrete A8 runtime qualification, BT ops |
 | C8 | Miner neuron | **High** | Optional thin client | — |
-| C9 | Miner MCP | **High** | All tools + policy guards | Bootstrap prior content |
+| C9 | Miner MCP | **High** | Bounded control/disclosure tools + policy guards; later separately ratified mock/light adapter | Prior directive vocabulary/publication, scaffold body, production resource/query/authentication policy |
 | C10 | Prior publisher | **Med** | Pipeline + redact tests | Coarsen policy, first prior |
 | C11 | Mock packs / scaffolds | **Med** | Format, registry, mock_ guards | MOCK_RANGES, scaffold body |
 | C12 | Card store | **High** | Internal + budgeted paths | Disclosure tier confirm |
@@ -98,7 +98,8 @@ WAVE A — infrastructure science cannot block
   C5 scoring ENGINE + fixture pack schema (HUMAN_INPUT thresholds OK)
   C12 card store + Phase 0 disclosure filter
   C13 fees + submission_id + FSM skeleton
-  C9 MCP: info, prior, scaffold, dry_validate, estimate, submit, get_submission_result
+  C9 MCP: get_challenge_info, get_prior, get_mock_scaffold, dry_validate,
+          structural-only estimate, submit, get_submission_result
   C14 leaderboard · C16 logging
   TrainEvalAPI STUB (deterministic synthetic fixture scalar material; never emission-capable)
 
@@ -131,6 +132,22 @@ lifecycle/contract CI. Wave B may add mock/light plumbing only after its
 separate nominal request/resource/disclosure contract is ratified. **Synthetic
 stub material must never write emission weights or LIVE leaderboard ranks.**
 Wave C requires a separately qualified real backend before testnet acceptance.
+
+### 4.1 Bounded A9 Wave-A split
+
+A9 Wave A is an in-process control/disclosure boundary, not an execution
+surface. It registers exactly the seven names above under schema `"1.0"`, with
+no aliases and no network server. `light_compare`, `light_train`, and
+`list_my_submissions` are unavailable. The first two remain Wave-B mock work;
+the third has no Wave-A implementation authority.
+
+The Wave-A `estimate` is a provider-derived structural/prior projection only.
+It performs no execution, imports/calls no A4/A5/A8 path, uses no mock,
+fixture-official, or official context/pack, and returns no quality score,
+official-score prediction, rank, card/gate prediction, weight, or emission
+value. Missing prior/scaffold/estimate providers fail closed; Wave A adds no
+production provider, prior content, scaffold body, or default limit/query
+policy. See `Miner_MCP.md` and A9-R1--A9-R15 for the exact contract.
 
 ---
 
@@ -226,7 +243,10 @@ MockTrainEvalService.run_mock(
 ```
 
 The exact mock request, resource, and disclosure contract requires a later
-A8/A9 documentation ratification before A9 estimate/light implementation.
+A8/A9 documentation ratification before any execution-dependent estimate or
+light implementation. A9's separately ratified Wave-A `StructuralEstimate`
+does not cross this gate because it performs no execution and uses no A8/A4/A5
+surface.
 Mock execution may use only mock context/data rights. A mock outcome is not an
 A5 `InternalResult`, cannot enter A7's official submission lifecycle or A6,
 cannot create a card, and cannot affect fees, official score, leaderboard
@@ -351,7 +371,7 @@ CANCELLED         # exact requester-bound A7 cancellation edges only
 | Terminal `FAILED_INFRA` | No refund if never charged; otherwise fixed full remaining-balance `REFUND` | A7-R10/R12; never a physics zero or gate failure |
 | `FAILED_STRATEGY` or completed score | Initial material-start charge remains | Fee never enters A5 or score/emission calculation |
 | Exact open `(RequesterIdentity, ChallengeKey, StrategyHash)` duplicate | Return the existing `SubmissionId` | A7-R7; no new record, attempt, transition, charge, or fee event |
-| `get_submission_result` | Read-only | Repeatable; no re-charge |
+| A7 read used by A9 `get_submission_result` | A7 read-only; A9 consumes its injected query budget before lookup | Repeatable; no re-charge, queue/time estimate, or retry-after invention |
 | Trusted infrastructure callback | Composition maps A8 `RETRYABLE`/`NON_RETRYABLE` to `retry_infrastructure`/`fail_infrastructure` | A7 checks the handle, applies budget/terminalization and prevents stale mutation; no partial science |
 
 Fee amount is human-set; **fee is never a score input**.
@@ -460,8 +480,10 @@ isolation, or establish scientific/production qualification.
 
 - [ ] CI green on schema, seed/mock guards, scoring engine unit tests  
 - [ ] Registry blocks LIVE without qualification manifest  
-- [ ] MCP tools respond; dry_validate enforces denylist  
-- [ ] submit → `submission_id` + FSM; fee≠score tested  
+- [ ] Exact seven A9 tools respond; aliases and deferred light/list tools reject
+- [ ] A9 `dry_validate` delegates to A2 and estimate remains non-executing/structural only
+- [ ] A9 `submit` returns exact A7 lifecycle status; fee≠score and duplicate-open idempotence tested
+- [ ] Result polling consumes query budget before A7 lookup and returns an exact A6 card only for `PUBLISHED`
 - [ ] Card store: budgeted read allow-list tested; unauthorized hotkey denied  
 - [ ] Fixture-official TrainEvalAPI **stub** only; cannot mark emission-ready
 - [ ] Leakage tests for EvaluationCard/leaderboard fields  
@@ -498,7 +520,9 @@ isolation, or establish scientific/production qualification.
 A8 owns concrete runtime isolation limits and launch, while A7 owns safe pin
 identity and lifecycle. Neither invents physics passes on infrastructure
 failure.
-**C9:** Tool surface and disclosure per `Miner_MCP.md`. Free loop default; paid rare.  
+**C9:** Exact bounded Wave-A control/disclosure per `Miner_MCP.md` and
+A9-R1--A9-R15. Seven tools only; structural estimate never executes;
+mock/light remains Wave B; submit/result remain exact A7/A6 delegation.
 **C13:** Fee ledger with §6 semantics.  
 **C15:** P0 = working testnet path; mainnet = human.  
 **C17–C18:** Out of **Phase 0** SOW; preserve Model Card hooks in P0. Sequenced as Post-P0 Waves E–F (§18).  
@@ -560,7 +584,7 @@ Items noticed in review that improve P0/P1 without changing architecture:
 | Opportunity | Why | Phase |
 |-------------|-----|-------|
 | Free-path rate limits on `light_compare` | Stop compute DoS of mock runner | P0 soft / P1 |
-| Cost estimate field on light/estimate responses | Miner UX; optional | P1 |
+| Future cost estimate on execution-bearing light responses | Miner UX; requires a later schema/policy decision and never enters A9 `StructuralEstimate` | P1 |
 | Explicit `corr` monitor offline job | Mock rotation trigger when free≈official | P1 |
 | CI matrix: CPU-only unit vs GPU integration tags | Agents/CI without GPU | P0 |
 | Hotkey↔submission binding tests | Fee and card authz | P0 |
@@ -637,4 +661,4 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 
 ---
 
-*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*
+*Build_Out v1.5 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*
