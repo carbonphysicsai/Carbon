@@ -47,7 +47,7 @@
 | Surface | Status | Next proof |
 |---|---|---|
 | A0–A7 bounded foundation | IMPLEMENTED | Preserve regression evidence |
-| A8 fixture TrainEval | DESIGN | Implement/review/merge A8 |
+| A8 fixture TrainEval | IMPLEMENTED bounded | Real backend, execution-isolation/security, scientific/reference/backend qualification, and later integration |
 | Real TrainEval backend | UNDER_DEFINED | Wave C implementation/qualification |
 | Miner MCP end-to-end | DESIGN | A9 + integration |
 | Public leaderboard disclosure | DESIGN | A10 + leakage tests |

@@ -51,7 +51,7 @@ No state implies a later state.
 | A5 | Yes | Yes | Yes | No | Fixture-capable ScoreEngine + synthetic Score Pack only |
 | A6 | Yes | Yes | Yes | No | Bounded internal store + allow-listed public projection |
 | A7 | Yes | Yes | Yes | No | Bounded process-local submission/FSM/fee mechanics |
-| A8 | Yes/documented | **No** | **No** | No | Next implementation ticket; fixture TrainEval seam |
+| A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
 | A9 | Yes | No | No | No | MCP integration pending |
 | A10 | Yes | No | No | No | public leaderboard pending |
 | A11 | Yes | No | No | No | observability/redaction pending |
@@ -134,7 +134,9 @@ The public narrative is reconciled to the integrated constitution and Business C
 
 No paper/deck may imply:
 
-- A8–A12 are implemented;
+- A9–A12 are implemented;
+- A8 is a real miner-code, mock/light, LIVE, production, scientifically qualified, or security-qualified backend;
+- an A8 fixture result creates frontier, Product Qualification, treasury/settlement, leaderboard, weight, chain, or emission authority;
 - a qualified LIVE Burgers exam exists;
 - frontier/treasury production settlement exists;
 - generalized ConstructionProgram execution is production-ready;
@@ -145,4 +147,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0–A7 software foundation. A8–A12 and the qualified scientific, frontier, treasury, generalized-agentic, and commercial-validation layers remain explicit future work.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0–A8 software foundation. A9–A12 and the real/qualified scientific backend, security, frontier, treasury, generalized-agentic, network, and commercial-validation layers remain explicit future work.**
