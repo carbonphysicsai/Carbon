@@ -1,8 +1,5 @@
 # Generator Creation — Reference-Evidence and Implementation Architecture
 
-**Carbon Subnet**  
-**Version:** 3.0  
-**Status:** OWNER-RECOMMENDED generator/reference creation and implementation architecture; Challenge-specific scientific acceptance remains evidence- and reviewer-owned.  
 **Purpose:** Define how Carbon creates a Challenge generator, why the implementation is separated into distinct authorities, the software contracts required to build it safely, and the hard evidence package required to defend the reference used to evaluate it.  
 **Related:** [`Generator_Validation.md`](./Generator_Validation.md), [`Challenge_Instance_Distribution.md`](./Challenge_Instance_Distribution.md), [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md), [`Data_Management.md`](./Data_Management.md), [`Scoring.md`](./Scoring.md), [`Physical_System_Representation.md`](./Physical_System_Representation.md), [`Build_Out.md`](./Build_Out.md), `SPEC.md`.
 
