@@ -117,6 +117,57 @@ PUBLIC_EXPORTS = (
     "SubmitReceipt",
     "SubmitRequest",
 )
+_DYNAMIC_IMPORT_NAMES = frozenset({"__import__", "import_module"})
+_PROHIBITED_RUNTIME_NAMES = frozenset(
+    {
+        *_DYNAMIC_IMPORT_NAMES,
+        "__builtins__",
+        "compile",
+        "eval",
+        "exec",
+        "getattr",
+        "globals",
+        "locals",
+        "vars",
+    }
+)
+
+
+def _static_source_string(node: ast.AST) -> str | None:
+    if type(node) is ast.Constant:
+        value = node.value
+        return value if type(value) is str else None
+    if type(node) is ast.BinOp and type(node.op) is ast.Add:
+        left = _static_source_string(node.left)
+        right = _static_source_string(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
+
+
+def _source_runtime_escape_violations(
+    tree: ast.AST,
+) -> tuple[tuple[int, str], ...]:
+    violations: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if type(node) is ast.Name and node.id in _PROHIBITED_RUNTIME_NAMES:
+            violations.append((node.lineno, f"name:{node.id}"))
+        elif type(node) is ast.Attribute and node.attr in _DYNAMIC_IMPORT_NAMES:
+            violations.append((node.lineno, f"attribute:{node.attr}"))
+        elif (
+            type(node) is ast.Call
+            and type(node.func) is ast.Name
+            and node.func.id == "getattr"
+            and len(node.args) >= 2
+        ):
+            attribute_name = _static_source_string(node.args[1])
+            if attribute_name in _DYNAMIC_IMPORT_NAMES:
+                violations.append((node.lineno, f"getattr:{attribute_name}"))
+        elif type(node) is ast.Subscript:
+            key = _static_source_string(node.slice)
+            if key in _DYNAMIC_IMPORT_NAMES:
+                violations.append((node.lineno, f"subscript:{key}"))
+    return tuple(violations)
 
 
 class _StringSubclass(str):
@@ -2275,6 +2326,116 @@ def test_poll_maps_canonical_owner_boundary_failures(
     assert raised.value.__cause__ is None
 
 
+def test_static_source_string_accepts_only_bounded_exact_forms() -> None:
+    literal = ast.parse('"literal"', mode="eval").body
+    recursive = ast.parse('"__" + ("im" + "port__")', mode="eval").body
+    multiplied = ast.parse('"im" * 2', mode="eval").body
+    called = ast.parse('str("import__")', mode="eval").body
+
+    assert _static_source_string(literal) == "literal"
+    assert _static_source_string(recursive) == "__import__"
+    assert _static_source_string(ast.Constant(value=_StringSubclass("literal"))) is None
+    assert _static_source_string(ast.Constant(value=1)) is None
+    assert _static_source_string(multiplied) is None
+    assert _static_source_string(called) is None
+
+
+@pytest.mark.parametrize(
+    ("source", "expected_violation"),
+    (
+        pytest.param(
+            'globals()["__" + "import__"]',
+            "subscript:__import__",
+            id="computed-import-subscript",
+        ),
+        pytest.param(
+            'globals()["import_" + "module"]',
+            "subscript:import_module",
+            id="computed-import-module-subscript",
+        ),
+        pytest.param(
+            'loader = globals()["__" + "import__"]',
+            "subscript:__import__",
+            id="assignment-binding",
+        ),
+        pytest.param(
+            'getattr(__builtins__, "__" + "import__")',
+            "getattr:__import__",
+            id="computed-import-getattr",
+        ),
+        pytest.param(
+            'getattr(__builtins__, "import_" + "module")',
+            "getattr:import_module",
+            id="computed-import-module-getattr",
+        ),
+        pytest.param(
+            'vars(__builtins__)["__" + "import__"]',
+            "subscript:__import__",
+            id="vars-builtins-subscript",
+        ),
+        pytest.param(
+            "eval(\"__import__('forbidden')\")",
+            "name:eval",
+            id="eval",
+        ),
+        pytest.param(
+            'exec("import forbidden")',
+            "name:exec",
+            id="exec",
+        ),
+        pytest.param(
+            'compile("import forbidden", "<string>", "exec")',
+            "name:compile",
+            id="compile",
+        ),
+        pytest.param(
+            '__import__("forbidden")',
+            "name:__import__",
+            id="direct-import-name",
+        ),
+        pytest.param(
+            'import_module("forbidden")',
+            "name:import_module",
+            id="direct-import-module-name",
+        ),
+        pytest.param(
+            'builtins.__import__("forbidden")',
+            "attribute:__import__",
+            id="import-attribute",
+        ),
+        pytest.param(
+            'importlib.import_module("forbidden")',
+            "attribute:import_module",
+            id="import-module-attribute",
+        ),
+        pytest.param("locals()", "name:locals", id="locals"),
+    ),
+)
+def test_source_runtime_escape_policy_rejects_prohibited_syntax(
+    source: str,
+    expected_violation: str,
+) -> None:
+    violations = _source_runtime_escape_violations(ast.parse(source))
+    assert expected_violation in {violation for _, violation in violations}
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        pytest.param(
+            'mapping["ordinary_" + "key"]',
+            id="ordinary-computed-key",
+        ),
+        pytest.param(
+            'object.__getattribute__(value, "field")',
+            id="intentional-object-getattribute",
+        ),
+    ),
+)
+def test_source_runtime_escape_policy_allows_safe_controls(source: str) -> None:
+    assert _source_runtime_escape_violations(ast.parse(source)) == ()
+
+
 def test_source_dependency_and_owner_call_guards() -> None:
     mcp_root = REPOSITORY_ROOT / "carbon" / "mcp"
     files = tuple(sorted(mcp_root.rglob("*.py")))
@@ -2512,9 +2673,13 @@ def test_source_dependency_and_owner_call_guards() -> None:
     imports: list[ImportRecord] = []
     absolute_modules: set[tuple[str, str]] = set()
     attributes: set[str] = set()
-    dynamic_import_bindings: list[tuple[str, int]] = []
+    runtime_escape_violations: list[tuple[str, int, str]] = []
     for path in files:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        runtime_escape_violations.extend(
+            (path.name, line, violation)
+            for line, violation in _source_runtime_escape_violations(tree)
+        )
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:
@@ -2538,33 +2703,6 @@ def test_source_dependency_and_owner_call_guards() -> None:
                         absolute_modules.add((path.name, node.module))
             elif isinstance(node, ast.Attribute):
                 attributes.add(node.attr)
-
-            if (
-                (
-                    isinstance(node, ast.Name)
-                    and node.id in {"__import__", "import_module"}
-                )
-                or (
-                    isinstance(node, ast.Attribute)
-                    and node.attr in {"__import__", "import_module"}
-                )
-                or (
-                    isinstance(node, ast.Call)
-                    and isinstance(node.func, ast.Name)
-                    and node.func.id == "getattr"
-                    and any(
-                        isinstance(argument, ast.Constant)
-                        and argument.value in {"__import__", "import_module"}
-                        for argument in node.args
-                    )
-                )
-                or (
-                    isinstance(node, ast.Subscript)
-                    and isinstance(node.slice, ast.Constant)
-                    and node.slice.value in {"__import__", "import_module"}
-                )
-            ):
-                dynamic_import_bindings.append((path.name, node.lineno))
 
     forbidden_prefixes = (
         "carbon.seeding",
@@ -2603,7 +2741,7 @@ def test_source_dependency_and_owner_call_guards() -> None:
     assert not forbidden_imports
     assert tuple(imports) == expected_imports
     assert all(name != "*" and asname is None for *_, name, asname in imports)
-    assert not dynamic_import_bindings
+    assert not runtime_escape_violations
 
     allowed_relative_modules = frozenset({"model", "providers", "service"})
     for _, kind, level, module, name, _ in imports:
