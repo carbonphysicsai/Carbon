@@ -30,7 +30,7 @@ from typing import Any
 import pytest
 
 from carbon import traineval
-from carbon.cards import EvaluationCard
+from carbon.cards import CardStore, EvaluationCard
 from carbon.fees import (
     AdmissionKind,
     ExecutionAttemptHandle,
@@ -69,6 +69,7 @@ from carbon.scoring import (
 )
 from carbon.scoring.model import InternalResult, ScoreStatus
 from carbon.seeding import (
+    SEED_SCHEME_ID,
     DerivedSeed,
     DeterministicFixtureProvider,
     EvaluationBinding,
@@ -83,6 +84,7 @@ from carbon.seeding import (
     RoleKey,
     SeedDomain,
     SeedPin,
+    SeedValidationError,
     acquire_fixture_official_context,
     acquire_official_context,
     derive_fixture_official_seed,
@@ -185,6 +187,16 @@ _PHASE_REQUESTS = (
             "robust_tail_b",
         ),
     ),
+)
+
+_SEED_PIN_IDENTITY_FIELDS = (
+    "challenge_key",
+    "generator_version",
+    "generator_digest",
+    "scoring_version",
+    "scoring_digest",
+    "evaluation_binding",
+    "seed_scheme",
 )
 
 
@@ -1674,21 +1686,35 @@ def test_independent_oracle_and_literal_golden_vectors() -> None:
 
 @pytest.mark.parametrize(
     "field_name",
-    (
-        "challenge_key",
-        "generator_version",
-        "generator_digest",
-        "scoring_version",
-        "scoring_digest",
-        "evaluation_binding",
-    ),
+    _SEED_PIN_IDENTITY_FIELDS,
 )
-def test_every_seed_pin_identity_perturbation_changes_a4_material_and_fails_closed(
+def test_every_seed_pin_identity_field_changes_material_or_rejects_fixed_scheme(
     field_name: str,
 ) -> None:
+    assert tuple(item.name for item in fields(SeedPin)) == _SEED_PIN_IDENTITY_FIELDS
     provider = _provider()
     environment = _environment()
     baseline_pin = _seed_pin()
+    if field_name == "seed_scheme":
+        changed_pin = _seed_pin()
+        object.__setattr__(
+            changed_pin,
+            "seed_scheme",
+            "carbon.seed.hkdf-sha256.v2",
+        )
+        with pytest.raises(SeedValidationError):
+            acquire_fixture_official_context(provider, changed_pin)
+
+        malformed = _envelope()
+        object.__setattr__(
+            malformed.handle.seed_pin,
+            "seed_scheme",
+            "carbon.seed.hkdf-sha256.v2",
+        )
+        with pytest.raises(FixtureRunIdentityError):
+            _service(provider=provider).run_fixture(malformed)
+        return
+
     overrides: dict[str, object] = {}
     if field_name == "challenge_key":
         overrides[field_name] = ChallengeKey("a5_fixture_other", "fixture-1.0")
@@ -1741,6 +1767,87 @@ def test_every_seed_pin_identity_perturbation_changes_a4_material_and_fails_clos
         assert outcome.internal_result != baseline.internal_result
     else:
         _assert_infrastructure(outcome, InfrastructureCause.SCORE_PACK_MISMATCH)
+
+
+def test_mutated_seed_scheme_is_rejected_before_any_execution_or_lifecycle_effect(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    a7 = _a7_service(tmp_path / "mutated-seed-scheme")
+    submission_id, envelope = _start_a7(a7)
+    before = _a7_snapshot(a7, submission_id)
+    service = _service()
+    effects: list[str] = []
+
+    def forbidden_effect(name: str) -> Callable[..., object]:
+        def fail(*args: object, **kwargs: object) -> object:
+            del args, kwargs
+            effects.append(name)
+            raise AssertionError(f"unexpected effect: {name}")
+
+        return fail
+
+    monkeypatch.setattr(
+        service_module,
+        "acquire_fixture_official_context",
+        forbidden_effect("context acquisition"),
+    )
+    monkeypatch.setattr(
+        service_module,
+        "derive_fixture_official_seed",
+        forbidden_effect("seed derivation"),
+    )
+    monkeypatch.setattr(
+        FixtureStubBackend,
+        "_execute_fixture",
+        forbidden_effect("backend execution"),
+    )
+    monkeypatch.setattr(
+        LoadedScorePack,
+        "fixture_score_input",
+        forbidden_effect("ScoreInput construction"),
+    )
+    monkeypatch.setattr(
+        ScoreEngine,
+        "score",
+        staticmethod(forbidden_effect("ScoreEngine result")),
+    )
+    for operation in (
+        "complete_and_publish",
+        "fail_strategy",
+        "retry_infrastructure",
+        "fail_infrastructure",
+    ):
+        monkeypatch.setattr(
+            SubmissionService,
+            operation,
+            forbidden_effect(f"A7 {operation}"),
+        )
+    monkeypatch.setattr(
+        CardStore,
+        "write_internal",
+        forbidden_effect("A6 write"),
+    )
+
+    assert envelope.handle.seed_pin.seed_scheme == SEED_SCHEME_ID
+    malformed_scheme = "carbon.seed.hkdf-sha256.v2"
+    object.__setattr__(
+        envelope.handle.seed_pin,
+        "seed_scheme",
+        malformed_scheme,
+    )
+
+    with pytest.raises(FixtureRunIdentityError) as captured:
+        service.run_fixture(envelope)
+
+    assert captured.value.code == "traineval.fixture_identity_invalid"
+    assert str(captured.value) == "Fixture execution identity is invalid."
+    assert malformed_scheme not in str(captured.value)
+    assert malformed_scheme not in repr(captured.value)
+    assert captured.value.__cause__ is None
+    assert captured.value.__suppress_context__ is True
+    assert effects == []
+    assert _a7_snapshot(a7, submission_id) == before
 
 
 @pytest.mark.parametrize(
@@ -2839,6 +2946,82 @@ def _direct_imports(path: Path) -> set[str]:
     return imported
 
 
+_PROHIBITED_A8_SCIENCE_CALLS = {
+    "InternalResult",
+    "ScoreInput",
+    "_from_validated_fixture",
+}
+
+
+def _dotted_name(value: ast.expr) -> str | None:
+    if isinstance(value, ast.Name):
+        return value.id
+    if isinstance(value, ast.Attribute):
+        prefix = _dotted_name(value.value)
+        if prefix is not None:
+            return f"{prefix}.{value.attr}"
+    return None
+
+
+def _a8_science_call_violations(source: str) -> tuple[tuple[int, str], ...]:
+    tree = ast.parse(source)
+    aliases: dict[str, set[str]] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            for imported in node.names:
+                if imported.name in _PROHIBITED_A8_SCIENCE_CALLS:
+                    aliases.setdefault(imported.asname or imported.name, set()).add(
+                        imported.name
+                    )
+
+    assignments = tuple(
+        node for node in ast.walk(tree) if isinstance(node, (ast.Assign, ast.AnnAssign))
+    )
+    changed = True
+    while changed:
+        changed = False
+        for assignment in assignments:
+            targets = (
+                assignment.targets
+                if isinstance(assignment, ast.Assign)
+                else (assignment.target,)
+            )
+            value = assignment.value
+            if value is None:
+                continue
+            canonical: set[str] = set()
+            if isinstance(value, ast.Name):
+                canonical.update(aliases.get(value.id, set()))
+                if value.id in _PROHIBITED_A8_SCIENCE_CALLS:
+                    canonical.add(value.id)
+            elif isinstance(value, ast.Attribute):
+                if value.attr in _PROHIBITED_A8_SCIENCE_CALLS:
+                    canonical.add(value.attr)
+            if not canonical:
+                continue
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    target_aliases = aliases.setdefault(target.id, set())
+                    prior_count = len(target_aliases)
+                    target_aliases.update(canonical)
+                    changed = changed or len(target_aliases) != prior_count
+
+    violations: list[tuple[int, str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        canonical: set[str] = set()
+        if isinstance(node.func, ast.Name):
+            canonical.update(aliases.get(node.func.id, set()))
+            if node.func.id in _PROHIBITED_A8_SCIENCE_CALLS:
+                canonical.add(node.func.id)
+        elif isinstance(node.func, ast.Attribute):
+            if node.func.attr in _PROHIBITED_A8_SCIENCE_CALLS:
+                canonical.add(node.func.attr)
+        violations.extend((node.lineno, item) for item in sorted(canonical))
+    return tuple(sorted(violations))
+
+
 def test_source_import_graph_and_calls_exclude_forbidden_owners() -> None:
     expected_imports = {
         "__init__.py": {"model", "service", "stub"},
@@ -2940,25 +3123,65 @@ def test_source_import_graph_and_calls_exclude_forbidden_owners() -> None:
         ), path
 
 
-def test_service_source_uses_only_a5_input_factory_and_engine_for_science() -> None:
-    path = REPOSITORY_ROOT / "carbon/traineval/service.py"
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    direct_constructor_calls = {
-        node.func.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+def test_every_a8_module_delegates_scientific_construction_to_a5() -> None:
+    paths = sorted((REPOSITORY_ROOT / "carbon/traineval").rglob("*.py"))
+    violations = {
+        path.relative_to(REPOSITORY_ROOT).as_posix(): observed
+        for path in paths
+        if (observed := _a8_science_call_violations(path.read_text(encoding="utf-8")))
     }
-    attribute_calls = {
-        node.func.attr
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    assert violations == {}
+
+    service_path = REPOSITORY_ROOT / "carbon/traineval/service.py"
+    service_tree = ast.parse(
+        service_path.read_text(encoding="utf-8"),
+        filename=str(service_path),
+    )
+    service_calls = {
+        dotted
+        for node in ast.walk(service_tree)
+        if isinstance(node, ast.Call)
+        if (dotted := _dotted_name(node.func)) is not None
     }
-    assert "InternalResult" not in direct_constructor_calls
-    assert "ScoreInput" not in direct_constructor_calls
-    assert "_from_validated_fixture" not in attribute_calls
-    assert "fixture_entropy" not in attribute_calls
-    assert "fixture_score_input" in attribute_calls
-    assert "score" in attribute_calls
+    assert "self.__score_pack.fixture_score_input" in service_calls
+    assert "ScoreEngine.score" in service_calls
+    assert not any(call.endswith(".fixture_entropy") for call in service_calls)
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "InternalResult()",
+        "module.InternalResult()",
+        "from x import InternalResult as Alias\nAlias()",
+        "ScoreInput()",
+        "module.ScoreInput()",
+        "from x import ScoreInput as Alias\nAlias()",
+        "ScoreInput._from_validated_fixture()",
+        "from x import ScoreInput as Alias\nAlias._from_validated_fixture()",
+        "Alias = module.InternalResult\nAlias()",
+        "Alias = InternalResult\nAlias = ScoreInput\nAlias()",
+    ),
+)
+def test_a8_science_source_guard_detects_direct_alias_and_attribute_calls(
+    source: str,
+) -> None:
+    assert _a8_science_call_violations(source)
+
+
+def test_a8_science_source_guard_allows_the_ratified_a5_delegation() -> None:
+    source = textwrap.dedent("""
+        from carbon.scoring.model import InternalResult
+
+        def allowed(value, pack, score_input):
+            assert type(value) is InternalResult
+            owned = value._copy()
+            completed = CompletedFixtureRun(internal_result=owned)
+            validated = pack.fixture_score_input(numeric_inputs=(), boolean_inputs=())
+            result = ScoreEngine.score(score_input, pack)
+            return completed, validated, result
+        """)
+    assert _a8_science_call_violations(source) == ()
 
 
 def test_import_isolated_from_optional_heavy_and_later_modules(tmp_path: Path) -> None:

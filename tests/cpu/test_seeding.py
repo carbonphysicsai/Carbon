@@ -559,6 +559,60 @@ def test_seed_pin_reuses_exact_a3_challenge_version_and_digest_validators(
     assert SCORING_DIGEST in digest_calls
 
 
+def test_seed_pin_private_copy_is_equal_distinct_and_recursively_owned() -> None:
+    source = _pin()
+
+    copied = source._copy()
+
+    assert type(copied) is SeedPin
+    assert copied == source
+    assert copied is not source
+    assert copied.challenge_key is not source.challenge_key
+    assert copied.evaluation_binding is not source.evaluation_binding
+    assert copied.seed_scheme == SEED_SCHEME_ID
+
+
+def test_seed_pin_private_copy_rejects_subclasses_and_missing_scheme() -> None:
+    class SeedPinSubclass(SeedPin):
+        pass
+
+    for malformed in (object.__new__(SeedPinSubclass), object.__new__(SeedPin)):
+        with pytest.raises(SeedValidationError) as captured:
+            malformed._copy()
+        assert type(captured.value) is SeedValidationError
+        assert str(captured.value) == "invalid SeedPin"
+
+
+def test_seed_pin_private_copy_rejects_noncanonical_scheme_without_rendering() -> None:
+    class HostileScheme:
+        def __repr__(self) -> str:
+            raise AssertionError("hostile scheme repr was invoked")
+
+        def __str__(self) -> str:
+            raise AssertionError("hostile scheme str was invoked")
+
+        def __eq__(self, other: object) -> bool:
+            del other
+            raise AssertionError("hostile scheme equality was invoked")
+
+    invalid_schemes: tuple[object, ...] = (
+        "carbon.seed.hkdf-sha256.v2",
+        _StringSubclass(SEED_SCHEME_ID),
+        SEED_SCHEME_ID.encode("ascii"),
+        HostileScheme(),
+    )
+    for invalid_scheme in invalid_schemes:
+        malformed = _pin()
+        object.__setattr__(malformed, "seed_scheme", invalid_scheme)
+
+        with pytest.raises(SeedValidationError) as captured:
+            malformed._copy()
+
+        assert type(captured.value) is SeedValidationError
+        assert str(captured.value) == "invalid SeedPin"
+        assert captured.value.__cause__ is None
+
+
 @pytest.mark.parametrize(
     "overrides",
     [

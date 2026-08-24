@@ -462,6 +462,14 @@ class SeedPin:
     __reduce_ex__ = _reject_reduce
 
     def _copy(self) -> SeedPin:
+        if type(self) is not SeedPin:
+            raise SeedValidationError("invalid SeedPin")
+        try:
+            seed_scheme = self.seed_scheme
+        except AttributeError:
+            raise SeedValidationError("invalid SeedPin") from None
+        if type(seed_scheme) is not str or seed_scheme != SEED_SCHEME_ID:
+            raise SeedValidationError("invalid SeedPin")
         return SeedPin(
             self.challenge_key,
             self.generator_version,
