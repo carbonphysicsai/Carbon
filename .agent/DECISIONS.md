@@ -28,7 +28,7 @@ CI, quality baseline, A0--A9 ticket/plan/behavior/maturity, or A11/A12 file. It
 implements and tests nothing.
 
 ~~~text
-A10 SPECIFIED / RATIFIED: pending merge of this documentation PR
+A10 SPECIFIED / RATIFIED: pending merge of PR #36
 A10 IMPLEMENTED: NO
 A10 TESTED: NO
 A10 SCIENTIFICALLY_QUALIFIED: NO
@@ -37,8 +37,8 @@ A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
 A10 WAVE STATUS: todo
-A11 WAVE STATUS: todo
-A12 WAVE STATUS: todo
+A11: todo
+A12: todo
 ~~~
 
 **Conflict classification.** The current A3 ChallengeKey, A5 ScoreStatus and
@@ -89,31 +89,96 @@ FixtureLeaderboardService.list_entries(
 ) -> FixtureLeaderboardPage
 ~~~
 
-The request binds one exact A3 ChallengeKey, one exact positive built-in
-page_size, and an opaque LeaderboardCursor or None. It has no requester,
+Construction is exactly:
+
+~~~text
+FixtureLeaderboardService(
+    provider: FixtureLeaderboardProvider,
+    resource_limits: FixtureLeaderboardResourceLimits,
+)
+~~~
+
+Both arguments are mandatory. There is no default or None substitute and no
+global, registry, environment, singleton, network, or server lookup. The exact
+A10 resource-limits value is copied and validated during construction.
+
+The nominal value fields are exact:
+
+~~~text
+PublicationSequence(value: exact built-in int in 0..2**64-1)
+LeaderboardSnapshotSequence(value: exact built-in int in 0..2**64-1)
+LeaderboardCursor(value: exact built-in ASCII str)
+ListFixtureLeaderboardRequest(
+    challenge_key: exact ChallengeKey,
+    page_size: exact built-in int in 1..2**64-1,
+    cursor: exact LeaderboardCursor | None,
+)
+~~~
+
+The cursor string is opaque and resource bounded. The request has no requester,
 identity, mode, search, or filter field.
+
+The exact ordered carbon.leaderboard.__all__ tuple is:
+
+~~~python
+(
+    "PublicationSequence",
+    "LeaderboardSnapshotSequence",
+    "LeaderboardCursor",
+    "ListFixtureLeaderboardRequest",
+    "FixtureLeaderboardCandidate",
+    "FixtureLeaderboardCandidateSnapshot",
+    "FixtureLeaderboardRow",
+    "FixtureLeaderboardPage",
+    "FixtureLeaderboardResourceLimits",
+    "FixtureLeaderboardProvider",
+    "FixtureLeaderboardService",
+    "LeaderboardError",
+    "LeaderboardRequestError",
+    "LeaderboardResourceError",
+    "LeaderboardUnavailableError",
+    "LeaderboardIntegrationError",
+)
+~~~
+
+No alias, generic service/provider type, official type, store, serializer, or
+extra error is exported.
 
 A10 does not ratify get(submission_id), global listing, cross-Challenge
 listing, identity filtering, hotkey lookup, participant lookup,
 score-threshold search, timestamp search, total-count lookup, or any alias for
 those operations.
 
-**A10-R3 — Injected publication-provider seam.** Trusted composition injects
-one exact A10 FixtureLeaderboardProvider protocol. The recommended future
-operation is:
+**A10-R3 — Injected publication-provider seam.** FixtureLeaderboardProvider is
+a standard-library typing.Protocol supplied only by trusted composition. A
+concrete provider satisfies it structurally and need not subclass it. The
+service must not require type(provider) to be the Protocol, use
+runtime_checkable or isinstance-style protocol introspection, or expose the
+provider as caller-controlled public input. The exact future seam is:
 
-~~~text
-get_snapshot(
+~~~python
+FixtureLeaderboardProvider.get_snapshot(
     challenge_key: ChallengeKey,
     snapshot_sequence: LeaderboardSnapshotSequence | None,
-) -> FixtureLeaderboardCandidateSnapshot
+) -> FixtureLeaderboardCandidateSnapshot | None
 ~~~
 
 The provider receives the request's exact ChallengeKey and either no snapshot
 sequence for the first page or the exact cursor-bound snapshot sequence for a
-continuation. It supplies an exact, separately ratified fixture publication
-projection. A10 validates and copies that projection; it does not discover,
-construct, repair, or publish candidate records.
+continuation. Exact None is the sole normal unavailable result: on a first-page
+call it means there is no current retained fixture snapshot, while on a
+continuation it means the exact cursor-bound snapshot is absent or stale. Both
+map to the fixed LeaderboardUnavailableError. A returned exact snapshot,
+including one whose candidates tuple is empty, is available.
+
+Any missing/call-incompatible method, hostile descriptor, provider call
+failure, exception of any class, or non-None malformed/wrong return maps to one
+fixed LeaderboardIntegrationError. A provider must not raise a public A10
+error through this boundary; even such an exception is collapsed to the
+integration error, without value echo, diagnostic payload, cause, or context.
+No partial response is salvaged. For a valid snapshot, A10 validates and copies
+the entire projection; it does not discover, construct, repair, or publish
+candidate records.
 
 The provider, not A10, owns selecting published candidates; excluding
 unpublished, cancelled, withdrawn, superseded, and stale records; consulting
@@ -126,8 +191,8 @@ records, A7 private store or private records, A8 private execution outcomes,
 or any A9 priors, estimates, scaffolds, mock outputs, or result feedback. It
 does not modify A6 or A7. A future official provider/feed is unratified.
 
-**A10-R4 — Closed provider-candidate projection.** The recommended exact
-provider-only candidate fields are:
+**A10-R4 — Closed provider-candidate projection.** The exact provider-only
+candidate fields are:
 
 ~~~text
 submission_id: exact A7 SubmissionId
@@ -139,8 +204,23 @@ overall_score: exact finite built-in float
 mandatory_gates_passed: exact built-in bool
 fixture_origin: exact built-in bool
 eligible_for_emission: exact built-in bool
-publication_sequence: exact nominal non-negative integer
+publication_sequence: exact PublicationSequence
 ~~~
+
+The exact snapshot fields are:
+
+~~~text
+challenge_key: exact ChallengeKey
+scoring_pack_hash: exact canonical tagged SHA-256
+snapshot_sequence: exact LeaderboardSnapshotSequence
+candidates: exact tuple of FixtureLeaderboardCandidate values, possibly empty
+~~~
+
+Integration validation reuses the owners' public primitives: construct
+ChallengeKey and SubmissionId values through their public nominal constructors,
+validate result_id with validate_version, validate scoring_pack_hash with
+is_sha256_digest, and require exact ScoreStatus. A10 does not duplicate any
+version-token, digest, Challenge-key, UUID, or score-status grammar.
 
 SubmissionId and result_id exist only to validate provider integration and
 snapshot uniqueness. Neither may appear in any public row, page, cursor,
@@ -168,7 +248,7 @@ The row's ChallengeKey is the exact A3 value bound to the request and snapshot.
 Its mandatory_gates_passed is always True, fixture_origin is always True, and
 eligible_for_emission is always False.
 
-The page contains only a schema version, exact ChallengeKey, exact
+The page contains only schema_version exactly "1.0", exact ChallengeKey, exact
 scoring_pack_hash, exact LeaderboardSnapshotSequence, immutable tuple of the
 allow-listed rows, next opaque cursor or None, fixture_origin=True, and
 eligible_for_emission=False. It exposes no total row count.
@@ -191,11 +271,12 @@ published submission, not one row per requester, identity, wallet, or hotkey.
 
 **A10-R7 — Provider-owned sequence, no time.** Wave A exposes no timestamp and
 must not access current time. PublicationSequence and
-LeaderboardSnapshotSequence are distinct nominal provider-owned non-negative
-integer sequences. Each is monotonic only within one exact fixture Challenge
-publication stream. Neither has wall-clock, chain-height, finality, A7
-lifecycle, settlement, rank-improvement, or duration meaning. A10 never
-generates either sequence.
+LeaderboardSnapshotSequence are distinct nominal provider-owned values. Each
+contains one exact built-in int in 0..2**64-1; bool and int subclasses are
+rejected. Each is monotonic only within one exact fixture Challenge publication
+stream. Neither has wall-clock, chain-height, finality, A7 lifecycle,
+settlement, rank-improvement, or duration meaning. A10 never generates either
+sequence.
 
 **A10-R8 — Eligibility is closed and fail-closed.** A provider candidate may
 rank only when all of the following hold:
@@ -204,6 +285,7 @@ rank only when all of the following hold:
 - mandatory_gates_passed is exact True;
 - overall_score is an exact finite built-in float;
 - overall_score is in the closed interval 0.0 through 1.0;
+- if overall_score == 0.0, math.copysign(1.0, overall_score) == 1.0;
 - fixture_origin is exact True;
 - eligible_for_emission is exact False;
 - ChallengeKey exactly equals the request and snapshot ChallengeKey;
@@ -222,6 +304,9 @@ return. If malformed provider output nevertheless contains any candidate that
 violates this closed contract, A10 rejects the whole snapshot as an integration
 failure. It must not silently filter malformed provider output into an
 apparently authoritative partial page.
+
+Negative zero is non-canonical malformed provider output. A10 rejects -0.0 as
+an integration failure and never normalizes it to +0.0.
 
 **A10-R9 — A5 remains sole score and gate authority.** A10 consumes the exact
 provider-projected overall_score and scoring_pack_hash. It must not recompute,
@@ -242,43 +327,49 @@ tie without changing the shared rank.
 
 A duplicate SubmissionId, result_id, or PublicationSequence fails the entire
 snapshot. Mixed ChallengeKey or scoring_pack_hash values also fail the entire
-snapshot. No partial page survives malformed provider output.
+snapshot. The complete bounded snapshot is validated, duplicate-checked,
+sorted, and competition-ranked before any page is sliced. Ranks are therefore
+stable across pages and page-size changes. No partial page survives malformed
+provider output.
 
 A10 performs no best-per-requester, best-per-hotkey, participant aggregation,
 decay, win-rate, submission-count, rank-delta, improvement-history, or
 fee-based ordering. The provider owns retry, republication, withdrawal, and
 supersession selection.
 
-**A10-R11 — Bounded snapshot pagination.** ListFixtureLeaderboardRequest binds
-the exact ChallengeKey, an exact positive built-in page_size, and an opaque
-LeaderboardCursor or None. Construction injects exact resource limits for:
-
-- maximum page size;
-- maximum snapshot rows;
-- maximum cursor bytes;
-- maximum string bytes;
-- maximum response bytes; and
-- maximum concurrent calls.
-
-Every configured numeric limit is an exact positive built-in integer, with
-bool and subclasses rejected. This contract ratifies no production numeric
-value, default, environment lookup, or adaptive rate policy.
-
-The cursor binds only public-safe values:
+**A10-R11 — Bounded snapshot pagination.** The exact request fields and bounds
+are defined in A10-R2. FixtureLeaderboardResourceLimits has exactly these six
+required, non-defaulted fields:
 
 ~~~text
-cursor schema
-fixture-board discriminator fixed by the service type
-exact ChallengeKey
-exact scoring_pack_hash
-exact LeaderboardSnapshotSequence
-next offset
+max_page_size
+max_snapshot_rows
+max_cursor_utf8_bytes
+max_string_utf8_bytes
+max_response_utf8_bytes
+max_concurrent_calls
+~~~
+
+Every field is an exact built-in int in 1..2**64-1; bool and subclasses are
+rejected. No default, None value, production numeric value, global, registry,
+environment lookup, or adaptive rate policy is ratified.
+
+LeaderboardCursor contains one exact built-in ASCII str and remains opaque and
+bounded to callers. Its private logical payload has exactly:
+
+~~~text
+schema_version: "1.0"
+board_kind: "fixture_leaderboard"
+challenge_key: exact ChallengeKey
+scoring_pack_hash: exact canonical tagged SHA-256
+snapshot_sequence: exact LeaderboardSnapshotSequence
+next_offset: exact built-in int in 0..2**64-1
 ~~~
 
 It contains no SubmissionId, result_id, requester, identity, seed, draw, role,
 domain, context, entropy, hidden pack material, timestamp, path, provider
-metadata, provider reference, or provider object. Its encoding is opaque to
-callers; A10 must not expose a generic decoded mapping or hostile values in
+metadata, provider reference, or provider object. The public cursor exposes no
+decoded mapping or generic mode/official discriminator and no hostile value in
 its representation.
 
 The service owns no durable cache, database, filesystem store, scheduler,
@@ -286,30 +377,42 @@ background refresh, or wall-clock expiry. The provider owns bounded in-process
 fixture snapshot retention. A missing or stale cursor snapshot maps to the
 same fixed unavailable error. Continuations must bind the exact immutable
 snapshot, ChallengeKey, score-pack hash, and next offset; they cannot drift to
-a later snapshot or another Challenge.
+a later snapshot or another Challenge. The offset is absolute. A continuation
+may use any otherwise valid page_size because page_size is not cursor-bound;
+changing it cannot change the snapshot, order, tie relation, or rank. A cursor
+is emitted only when next_offset is strictly before the snapshot end, never at
+or beyond it.
+
+An available empty snapshot produces a successful page with rows=(),
+next_cursor=None, and the exact snapshot ChallengeKey, scoring_pack_hash, and
+snapshot sequence. Provider None is unavailable and is never conflated with
+that empty success. No page exposes a total count.
 
 **A10-R12 — Fixed public error hierarchy.** The only future public hierarchy,
 codes, and messages are:
 
 ~~~text
-LeaderboardError
+LeaderboardError(Exception)
 
-LeaderboardRequestError
+LeaderboardRequestError(LeaderboardError)
     code: leaderboard.request.invalid
     message: Leaderboard request is invalid.
 
-LeaderboardResourceError
+LeaderboardResourceError(LeaderboardError)
     code: leaderboard.resource.exhausted
     message: Leaderboard resource limit was exceeded.
 
-LeaderboardUnavailableError
+LeaderboardUnavailableError(LeaderboardError)
     code: leaderboard.fixture.unavailable
     message: Fixture leaderboard is unavailable.
 
-LeaderboardIntegrationError
+LeaderboardIntegrationError(LeaderboardError)
     code: leaderboard.integration.failed
     message: Leaderboard provider response is invalid.
 ~~~
+
+Each of the four concrete public errors is a direct LeaderboardError subclass;
+there is no intermediate error class.
 
 Every instance uses its exact fixed code and message. Errors never echo user
 or provider values, invoke hostile repr or str, or expose a cause/context
@@ -321,13 +424,18 @@ malformed and fails the whole operation as the fixed integration class; A10
 never silently filters it. A resource-meter breach remains the fixed resource
 class.
 
-**A10-R13 — Hostile input, provider output, and mutation isolation.** All
-untrusted public types, built-in fields, provider types, snapshot members, and
-sequence members require exact-type validation; subclasses are rejected.
-Provider output is hostile or malformed until the entire bounded snapshot has
-been validated.
+**A10-R13 — Hostile input, provider output, and mutation isolation.** Exact-type
+and subclass rejection applies to ChallengeKey, both sequences, request,
+cursor, snapshot, candidate, row, page, resource limits, and every nested
+field/built-in value. It does not require the trusted concrete provider object
+to subclass or be the Protocol, and A10 performs no runtime-checkable protocol
+introspection. Missing methods, hostile descriptors, call failures, and
+malformed returns are provider integration failures. Provider output is
+hostile or malformed until the entire bounded snapshot has been validated.
 
-The service makes immutable positive copies of the exact allow-listed values.
+The constructor captures an immutable validated copy of the exact resource
+limits. The service makes immutable positive copies of the exact allow-listed
+values.
 Caller/provider mutation before, during, or after a call must not alter a
 validated returned page or retained cursor binding. No generic serializer may
 traverse A5, A6, A7, or provider objects.
@@ -348,12 +456,21 @@ carbon/leaderboard/
     service.py
 ~~~
 
-Allowed imports are only the Python standard library,
-carbon.registry.ChallengeKey, carbon.scoring.ScoreStatus, and
-carbon.fees.SubmissionId.
+Allowed imports are exactly the Python standard library plus:
 
-Forbidden imports include A5 InternalResult or ScoreEngine; A6 CardStore or
-private records; A7 private store, private records, or enumeration; A8
+~~~python
+from carbon.registry import (
+    ChallengeKey,
+    is_sha256_digest,
+    validate_version,
+)
+from carbon.scoring import ScoreStatus
+from carbon.fees import SubmissionId
+~~~
+
+Forbidden imports include A5 InternalResult or ScoreEngine; A6 EvaluationCard
+as an input, CardStore, or private records; A7 private store, private records,
+or enumeration; A8
 execution objects; A9 service, providers, estimates, priors, scaffolds, mock
 outputs, or result models; Landscape; emission or chain packages; Bittensor;
 optional scientific dependencies; web or HTML frameworks; and filesystem,
@@ -368,12 +485,18 @@ canonical future focused test path is tests/cpu/test_leaderboard.py. This
 documentation candidate creates or changes no test and runs no implementation
 test as evidence.
 
-The future implementation must prove exact public types/exports, hostile-input
-and subclass rejection, stable error codes/messages/chains, exact Challenge
-and score-pack isolation, closed eligibility, fixture/official separation,
-deterministic descending order, competition ties, duplicate rejection,
-bounded pagination and cursor binding, snapshot mutation isolation, no
-existence oracle, complete leakage exclusions, and no private A5--A9 access.
+The future implementation must prove the exact ordered root exports, exact
+constructor and resource-limit fields, exact nominal fields/u64 bounds, exact
+schema literals, Protocol/concrete-provider distinction, provider None
+unavailability, provider-exception integration collapse, and empty-snapshot
+success. It must prove public-validator/constructor reuse, canonical-zero
+rejection, whole-snapshot validation/ranking before slicing, continuation
+page_size variation, no end cursor, hostile-input and subclass rejection,
+stable error inheritance/codes/messages/chains, exact Challenge and score-pack
+isolation, closed eligibility, fixture/official separation, deterministic
+descending order, competition ties, duplicate rejection, bounded pagination
+and cursor binding, snapshot mutation isolation, no existence oracle, complete
+leakage exclusions, and no private A5--A9 access.
 
 It must also prove no optional-heavy, web, HTML, filesystem, current-time,
 Landscape, neuron, Bittensor, chain, weight, or emission dependency; installed
@@ -395,14 +518,15 @@ weight input, or emission authority. Without separately ratified and qualified
 production components, production remains unavailable and fail closed.
 
 **A10-R17 — Ratification and sequencing gate.** These decisions become current
-repository authority only after this documentation PR receives independent
+repository authority only after PR #36 receives independent
 review, fresh explicit human authorization, and normal merge. Draft
 publication is not ratification, implementation, testing, readiness, or merge
 authorization.
 
 A10 remains todo in .agent/WAVE.md and no implementation box is checked.
-A11/A12 remain todo and untouched. A later A10 implementation must begin in a
-separate bounded task/branch after merge and fresh orientation; it may not
+A11 remains todo. A12 remains todo. Both are untouched. A later A10
+implementation must begin in a separate bounded task/branch after merge and
+fresh orientation; it may not
 infer any deferred official, identity, security, frontier, commercial,
 network, chain, weight, or emission policy from this fixture-only contract.
 

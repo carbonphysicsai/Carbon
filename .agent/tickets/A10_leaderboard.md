@@ -27,11 +27,15 @@ page_size, and an opaque LeaderboardCursor or None.
 
 ## Required contract
 
-- The service, provider, candidate, row, page, sequences, cursor, request,
-  resource limits, and errors are nominal A10 types. There is no caller-supplied
-  mode string and no official service/provider type in Wave A.
-- An injected FixtureLeaderboardProvider supplies an exact provider-approved
-  fixture publication snapshot. A10 never enumerates private A5–A9 state.
+- The service, candidate, snapshot, row, page, sequences, cursor, request,
+  resource limits, and errors are exact nominal A10 values. The provider is a
+  standard-library Protocol satisfied structurally by trusted composition, not
+  an exact-type or runtime-introspection gate. There is no caller-supplied mode
+  string and no official service/provider type in Wave A.
+- An injected FixtureLeaderboardProvider returns an exact provider-approved
+  fixture publication snapshot or exact None as the sole normal unavailability
+  signal. An available snapshot may be empty. A10 never enumerates private
+  A5–A9 state.
 - Only exact ScoreStatus.SCORED candidates with every eligibility predicate
   satisfied may rank. Mandatory-gate failure is exclusion, never an ordinary
   score of zero.
@@ -59,39 +63,50 @@ not satisfy any item.
 
 - [ ] Add only the smallest package layout: carbon/leaderboard/__init__.py,
   model.py, providers.py, and service.py.
-- [ ] Export the exact reviewed nominal fixture-only service, provider,
-  candidate, request, row, page, cursor, sequence, resource-limit, and error
-  types, with no aliases or generic mode switch.
-- [ ] Reject subclasses and coercible substitutes wherever the contract
-  requires exact built-in or exact nominal types.
+- [ ] Export the exact ordered sixteen-name carbon.leaderboard.__all__ tuple
+  ratified in A10-R2, with no alias, generic/official type, store, serializer,
+  or extra error.
+- [ ] Implement FixtureLeaderboardProvider as typing.Protocol, permit trusted
+  concrete structural implementations without subclassing or runtime-checkable
+  introspection, and reject subclasses/coercible substitutes for every exact
+  nominal value and nested field instead of exact-typing the provider object.
 - [ ] Expose exactly FixtureLeaderboardService.list_entries(request) and no
   get-by-submission, global list, cross-Challenge list, identity filter,
   hotkey/participant lookup, score-threshold search, or timestamp search.
-- [ ] Require ListFixtureLeaderboardRequest to contain one exact ChallengeKey,
-  one exact positive built-in page_size, and LeaderboardCursor or None.
-- [ ] Capture construction-injected positive resource limits for maximum page
-  size, snapshot rows, cursor bytes, string bytes, response bytes, and
-  concurrent calls without inventing production numeric values.
+- [ ] Require ListFixtureLeaderboardRequest to contain exactly challenge_key as
+  exact ChallengeKey, page_size as exact built-in int in 1..2**64-1, and cursor
+  as exact LeaderboardCursor or None.
+- [ ] Implement exactly FixtureLeaderboardService(provider,
+  resource_limits), with both typed arguments mandatory; copy/validate the
+  exact six non-defaulted u64-positive limit fields at construction and use no
+  None/default/global/registry/environment/singleton/network/server policy.
 
 ### Provider boundary and candidate projection
 
-- [ ] Define the injected FixtureLeaderboardProvider.get_snapshot exact seam
-  over ChallengeKey and LeaderboardSnapshotSequence or None, returning one
-  FixtureLeaderboardCandidateSnapshot.
+- [ ] Define the exact FixtureLeaderboardProvider.get_snapshot(challenge_key,
+  snapshot_sequence) seam returning FixtureLeaderboardCandidateSnapshot or
+  None; treat first-page None as no current snapshot, continuation None as the
+  exact snapshot absent/stale, an exact empty snapshot as available, and every
+  provider exception/wrong return as one integration failure with no salvage.
 - [ ] Keep provider ownership of published-candidate selection, exclusion of
   unpublished/cancelled/withdrawn/superseded/stale records, A3 fixture
   eligibility, authorized A5/A6/A7 field copying, both sequences, and retained
   snapshots required by active cursors.
-- [ ] Accept only the reviewed provider candidate fields:
+- [ ] Accept only the reviewed provider candidate fields and exact snapshot
+  fields (ChallengeKey, canonical tagged SHA-256 hash,
+  LeaderboardSnapshotSequence, exact possibly-empty candidate tuple):
   submission_id as exact A7 SubmissionId; result_id as the exact bounded A6
   public result-identifier string; challenge_key as exact ChallengeKey;
   scoring_pack_hash; exact ScoreStatus; exact finite overall_score;
   mandatory_gates_passed; fixture_origin; eligible_for_emission; and exact
-  PublicationSequence.
+  PublicationSequence; reuse ChallengeKey/SubmissionId constructors,
+  validate_version, is_sha256_digest, and exact ScoreStatus without copying
+  owner grammars.
 - [ ] Prove the candidate projection creates no second SubmissionId,
   submission lifecycle, scoring engine, card schema, or publication store.
 - [ ] Prove A10 neither imports nor inspects A5 InternalResult/ScoreEngine, A6
-  CardStore/private records, A7 private store/records/enumeration, A8 private
+  EvaluationCard as input, CardStore/private records, A7 private
+  store/records/enumeration, A8 private
   outcomes, or A9 priors/estimates/scaffolds/mock outputs/result feedback.
 - [ ] Copy and revalidate each authorized provider field into A10-owned
   immutable values before sorting, ranking, cursor construction, or response
@@ -100,8 +115,9 @@ not satisfy any item.
 ### Eligibility and score authority
 
 - [ ] Rank only exact ScoreStatus.SCORED, mandatory_gates_passed=True, exact
-  finite built-in float scores within [0.0, 1.0], fixture_origin=True, and
-  eligible_for_emission=False candidates.
+  finite built-in float scores within [0.0, 1.0] whose zero has positive sign
+  by math.copysign, fixture_origin=True, and eligible_for_emission=False;
+  reject -0.0 as malformed without normalizing it.
 - [ ] Require every candidate ChallengeKey to equal the requested and snapshot
   ChallengeKey and every scoring_pack_hash to equal the snapshot hash.
 - [ ] Reject the whole snapshot on duplicate SubmissionId, duplicate result_id,
@@ -120,10 +136,12 @@ not satisfy any item.
 
 ### Ordering, ties, and selection
 
-- [ ] Sort by overall_score descending with exact built-in float equality as
-  the only Wave-A score tie rule.
-- [ ] Assign competition ranks 1, 1, 3 and order tied rows by
-  publication_sequence ascending without changing their shared rank.
+- [ ] Validate and duplicate-check the complete bounded snapshot, then sort it
+  by overall_score descending before any page slice; exact built-in float
+  equality is the only Wave-A score tie rule.
+- [ ] Competition-rank the complete sorted snapshot as 1, 1, 3, order tied rows
+  by publication_sequence ascending, and keep rank/tie/order stable across
+  pages and valid continuation page_size changes.
 - [ ] Emit one row per provider-approved published submission and implement no
   best-per-requester/hotkey aggregation, decay, win rate, submission count,
   improvement history, or fee-based ordering.
@@ -135,9 +153,10 @@ not satisfy any item.
 - [ ] Emit row fields only for rank, challenge_key as exact ChallengeKey,
   scoring_pack_hash, overall_score, mandatory_gates_passed,
   publication_sequence, fixture_origin, and eligible_for_emission.
-- [ ] Emit page fields only for schema version, exact ChallengeKey, exact
-  scoring_pack_hash, exact snapshot sequence, immutable row tuple, next cursor
-  or None, fixture_origin=True, and eligible_for_emission=False.
+- [ ] Emit page fields only for schema_version exactly "1.0", exact
+  ChallengeKey, exact scoring_pack_hash, exact snapshot sequence, immutable row
+  tuple (including rows=() for an available empty snapshot), next cursor or
+  None, fixture_origin=True, and eligible_for_emission=False.
 - [ ] Prove submission_id and result_id never appear in a row, page, cursor,
   error, representation, or other public/reachable response graph.
 - [ ] Omit requester, hotkey, wallet, public/anonymized participant ID,
@@ -150,35 +169,42 @@ not satisfy any item.
   correlation.
 - [ ] Expose no timestamp and perform no current-time access.
 - [ ] Use provider-owned nominal PublicationSequence and
-  LeaderboardSnapshotSequence values that are monotonic only within one exact
-  fixture Challenge publication stream and carry no wall-clock, chain-height,
-  finality, A7 lifecycle, or settlement meaning.
+  LeaderboardSnapshotSequence, each with exactly one exact built-in int value in
+  0..2**64-1, monotonic only within one exact fixture Challenge publication
+  stream and carrying no wall-clock, chain-height, finality, A7 lifecycle, or
+  settlement meaning.
 - [ ] Prove A10 never generates either provider-owned sequence.
 
 ### Pagination, snapshots, and resource bounds
 
-- [ ] Bind each opaque cursor only to its cursor schema, fixture-board
-  discriminator fixed by service type, exact ChallengeKey, scoring_pack_hash,
-  LeaderboardSnapshotSequence, and next offset.
+- [ ] Give LeaderboardCursor exactly one bounded exact built-in ASCII str and
+  bind its private logical payload to exactly schema_version="1.0",
+  board_kind="fixture_leaderboard", exact ChallengeKey, canonical tagged
+  SHA-256 hash, exact LeaderboardSnapshotSequence, and absolute u64 next_offset.
 - [ ] Prove cursors contain no submission/result/requester/identity value,
   seed, draw, context, private pack material, timestamp, path, or provider
   object.
-- [ ] Return no total row count.
-- [ ] Map missing and stale retained cursor snapshots to the same
-  LeaderboardUnavailableError.
+- [ ] Return no total row count; allow a continuation to vary valid page_size
+  without binding it into the cursor, and never emit a cursor at or beyond the
+  snapshot end.
+- [ ] Map exact provider None for a missing first-page snapshot and a missing or
+  stale retained continuation snapshot to the same LeaderboardUnavailableError,
+  distinct from successful exact empty-snapshot pagination.
 - [ ] Keep the service free of durable cache, database, filesystem store,
   scheduler, background refresh, wall-clock expiry, and current-time behavior.
 - [ ] Keep bounded in-process fixture snapshot retention with the provider and
-  test stable pagination across retained immutable snapshots.
-- [ ] Enforce page-size, snapshot-row, cursor-byte, string-byte,
-  response-byte, and concurrent-call limits before an oversized or partial
-  response escapes.
+  test stable pagination/ranks across retained immutable snapshots, empty
+  snapshots, and continuation page_size changes.
+- [ ] Enforce exact required max_page_size, max_snapshot_rows,
+  max_cursor_utf8_bytes, max_string_utf8_bytes, max_response_utf8_bytes, and
+  max_concurrent_calls fields, each exact int in 1..2**64-1, before an
+  oversized or partial response escapes.
 
 ### Stable errors and hostile boundaries
 
-- [ ] Implement only LeaderboardError, LeaderboardRequestError,
-  LeaderboardResourceError, LeaderboardUnavailableError, and
-  LeaderboardIntegrationError with the exact ratified inheritance.
+- [ ] Implement LeaderboardError(Exception) and only four direct subclasses:
+  LeaderboardRequestError, LeaderboardResourceError,
+  LeaderboardUnavailableError, and LeaderboardIntegrationError.
 - [ ] Use exact fixed code/message pairs:
   leaderboard.request.invalid / Leaderboard request is invalid.;
   leaderboard.resource.exhausted / Leaderboard resource limit was exceeded.;
@@ -187,13 +213,15 @@ not satisfy any item.
 - [ ] Ensure errors never echo requester/provider values, invoke hostile repr
   or str, expose a cause/context chain, attach private context, or distinguish
   NotFound.
-- [ ] Collapse absent, stale, unpublished, and ineligible fixture-provider
-  state reported without a snapshot to unavailable without an existence
-  oracle; classify any returned candidate in such a state as malformed
-  provider output and one integration failure for the whole operation.
+- [ ] Collapse only exact provider None for absent/stale/unavailable state to
+  unavailable without an existence oracle; collapse provider exceptions
+  (including attempted public A10 errors), wrong returns, and any returned
+  ineligible candidate to one integration failure with no passthrough or
+  partial response.
 - [ ] Treat request, cursor, nominal values, provider return values, nested
   fields, tuples, and mutable/reentrant objects as hostile or malformed, with
-  exact-type/subclass rejection and bounded access.
+  exact-type/subclass rejection and bounded access; treat the trusted concrete
+  provider structurally, without exact-type or runtime Protocol inspection.
 - [ ] Demonstrate immutable copying, mutation isolation, reentrancy safety, and
   no provider-owned alias reachable from rows, pages, cursors, errors, caches,
   or representations.
@@ -203,10 +231,11 @@ not satisfy any item.
 
 ### Dependency and installed-artifact boundary
 
-- [ ] Restrict future imports to the Python standard library,
-  carbon.registry.ChallengeKey, carbon.scoring.ScoreStatus, and
-  carbon.fees.SubmissionId.
-- [ ] Import no InternalResult, ScoreEngine, CardStore/private A6 record,
+- [ ] Restrict future imports to the Python standard library plus exactly
+  carbon.registry ChallengeKey/is_sha256_digest/validate_version,
+  carbon.scoring ScoreStatus, and carbon.fees SubmissionId.
+- [ ] Import no InternalResult, ScoreEngine, EvaluationCard input,
+  CardStore/private A6 record,
   private A7 store/record/enumerator, A8 object, A9 service/provider/result,
   Landscape, emission/chain package, Bittensor, optional scientific package,
   web/HTML framework, filesystem/environment module, or current-time module.
@@ -220,19 +249,23 @@ not satisfy any item.
 
 - [ ] Add the sole canonical focused suite at
   tests/cpu/test_leaderboard.py; do not create a second leaderboard test path.
-- [ ] Cover exact types/exports, subclass/coercion rejection, hostile input,
-  stable errors, fixed messages, no cause/context, resource capture, response
-  bounds, and concurrent-call limits.
-- [ ] Cover Challenge/scoring-pack isolation, all eligibility predicates,
-  fixture/official separation, exact score preservation, deterministic order,
+- [ ] Cover the exact ordered exports, Protocol/concrete-provider distinction,
+  constructor, fields, six resource limits, schema literals, direct error
+  inheritance, u64/ASCII bounds, subclass/coercion rejection, hostile input,
+  fixed messages/chains, response bounds, and concurrent-call limits.
+- [ ] Cover owner-validator/constructor reuse, Challenge/hash isolation, all
+  eligibility predicates including negative zero, fixture/official separation,
+  exact score preservation, whole-snapshot ordering/ranking before slicing,
   competition ties, duplicate rejection, and no partial page.
-- [ ] Cover pagination/cursor binding, stale/missing snapshot collapse,
-  immutable retained snapshots, provider mutation isolation, and no existence
-  oracle.
+- [ ] Cover exact provider None unavailability, provider exception-to-
+  integration mapping, exact empty-snapshot success, private cursor binding,
+  absolute offsets, no end cursor, continuation page_size variation, immutable
+  retained snapshots, provider mutation isolation, and no existence oracle.
 - [ ] Cover the positive row/page allow-lists and every prohibited identifier,
   identity, seed, diagnostic, score-detail, time, path, fee, provider, and
   representation leakage route.
-- [ ] Prove no private A5–A9 access and no optional-heavy, web, HTML,
+- [ ] Prove public validate_version/is_sha256_digest reuse, no EvaluationCard
+  input or private A5–A9 access, and no optional-heavy, web, HTML,
   filesystem, time, Landscape, neuron, Bittensor, chain, weight, or emission
   dependency/import.
 - [ ] Pass the complete default CPU regression suite without weakening existing
@@ -252,15 +285,17 @@ must not be treated as current A10 test evidence.
 ## Maturity after this documentation candidate
 
 ~~~text
-SPECIFIED / RATIFIED: pending merge of this documentation PR
-IMPLEMENTED: NO
-TESTED: NO
-SCIENTIFICALLY_QUALIFIED: NO
-SECURITY_QUALIFIED: NO
-NETWORK_QUALIFIED: NO
-COMMERCIALLY_VALIDATED: NO
-PRODUCTION_QUALIFIED: NO
-WAVE STATUS: todo
+A10 SPECIFIED / RATIFIED: pending merge of PR #36
+A10 IMPLEMENTED: NO
+A10 TESTED: NO
+A10 SCIENTIFICALLY_QUALIFIED: NO
+A10 SECURITY_QUALIFIED: NO
+A10 NETWORK_QUALIFIED: NO
+A10 COMMERCIALLY_VALIDATED: NO
+A10 PRODUCTION_QUALIFIED: NO
+A10 WAVE STATUS: todo
+A11: todo
+A12: todo
 ~~~
 
 No implementation checkbox above may be checked by documentation work.
