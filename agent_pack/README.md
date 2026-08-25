@@ -35,12 +35,13 @@ constitutional authority
 ## Current process rules
 
 - Current board remains **Wave A**.
-- A0–A7 are done in the bounded scopes recorded in `.agent/WAVE.md`; A8 becomes
-  `done` in its bounded scope only after this documentation-only closeout is
-  independently reviewed, explicitly human-authorized, and merged.
-- **A9 is the next unimplemented ticket**, but it requires a separate
-  orientation and contract-reconciliation task before any implementation.
-- A8 is not scientifically qualified, security qualified, network qualified,
+- A0–A8 are done in the bounded scopes recorded in `.agent/WAVE.md`.
+- A9 becomes `done` only after its closeout is independently reviewed,
+  explicitly human-authorized, and merged.
+- **A10 is the next unimplemented ticket after that merge.** It requires a
+  separate orientation and contract reconciliation; no A10 implementation is
+  authorized here.
+- A9 is not scientifically qualified, security qualified, network qualified,
   commercially validated, or production qualified.
 - Build Out v1.4 remains current detailed sequencing, interpreted through the constitutional overlay.
 - Read `CONSTITUTION.md` and `.agent/INVARIANTS.md` before every new ticket.
@@ -54,11 +55,8 @@ constitutional authority
 
 ## Current next move
 
-1. independently review, explicitly human-authorize, and merge the A8
-   documentation-only closeout;
-2. after that merge, refresh orientation and reconcile the A9 contract against
-   then-current `main`;
-3. begin no A9 implementation without a separate explicitly authorized bounded
-   task;
-4. preserve the ticket loop of baseline, implementation, testing, independent
-   review, merge, and exact board evidence.
+1. independently review, explicitly human-authorize, and merge the A9 closeout;
+2. verify A9 closure on `main`;
+3. begin A10 orientation only under a separate task, preserving the ticket loop
+   of baseline, implementation, testing, independent review, merge, and exact
+   board evidence.

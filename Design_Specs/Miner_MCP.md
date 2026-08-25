@@ -1,15 +1,16 @@
 # Miner MCP Specification — bounded Wave-A contract and deferred full loop
 
-Status: **A9 ratification candidate; documentation only**<br>
+Status: **A9 bounded Wave-A contract ratified; exact in-process implementation merged on current `main`**<br>
 Version: **2.3**<br>
 Authority: `CONSTITUTION.md`, `.agent/INVARIANTS.md`, `.agent/DECISIONS.md`, and the governing A2, A3, A6, A7, and A8 contracts<br>
-Implementation maturity: **not implemented, not tested, not qualified**
+Implementation maturity: **implemented and tested only for the recorded bounded engineering scope; not scientifically qualified, security qualified, network qualified, commercially validated, or production qualified**
 
-This specification replaces the earlier aspirational MCP sketch with a bounded
-Wave-A contract. It does not add runtime code, transports, authentication,
-mock execution, training, comparison, ranking, or scientific-quality claims.
-The contract becomes ratified only after independent review, explicit human
-authorization, and merge.
+This specification replaced the earlier aspirational MCP sketch with the
+ratified bounded Wave-A contract. The exact seven-tool in-process implementation
+is merged on current `main`. Full transport, authentication, production
+providers and policy, mock/light execution, adaptive-query qualification, and
+the end-to-end research loop remain deferred. The merged implementation adds no
+network protocol, ranking, or scientific-quality claim.
 
 ## 1. Scope and wave boundary
 
@@ -49,9 +50,9 @@ A8-R15 remains binding for every execution-dependent claim. Wave A's
 strategy, call A4/A5/A8, produce an `EvaluationCard`, or predict scientific
 quality. That separation is a **NO_CONFLICT** with A8-R15, not a waiver of it.
 
-## 2. Future module and service surface
+## 2. Module and service surface
 
-The implementation, when separately authorized, is confined to:
+The merged bounded Wave-A implementation is confined to:
 
 - `carbon/mcp/__init__.py`
 - `carbon/mcp/model.py`
@@ -596,7 +597,7 @@ legacy miner or Landscape code, PoC or neurons, an MCP SDK, HTTP framework,
 Bittensor, Torch, JAX, NumPy, chain/weight/emission code, or another
 optional-heavy dependency. No network server belongs to Wave A.
 
-The eventual root `carbon.mcp` export surface is exactly:
+The root `carbon.mcp` export surface is exactly:
 
 `ChallengeInfo`, `DryValidateRequest`, `DryValidateResponse`,
 `EstimateProvider`, `EstimateRequest`, `GetChallengeInfoRequest`,
@@ -609,11 +610,12 @@ The eventual root `carbon.mcp` export surface is exactly:
 `QueryBudgetGate`, `ScaffoldProvider`, `ScaffoldRef`, `StructuralEstimate`,
 `SubmissionResult`, `SubmitReceipt`, and `SubmitRequest`.
 
-No export or behavior is implemented by this document.
+The merged implementation preserves this exact export surface; this document
+does not create or broaden it.
 
-The sole canonical future focused test is
+The sole canonical focused test is
 `tests/cpu/test_mcp_skeleton.py`. Its acceptance matrix is recorded in the A9
-ticket and pre-implementation plan and includes exact types, call fields,
+ticket and plan and covers exact types, call fields,
 resource/response bounds, hostile objects, stable errors, upstream delegation,
 standalone `DryValidateResponse` delegation/reconstruction, resource-admissible
 supported exact-built-in non-dict `strategy.type` inside `StructuralEstimate`,
@@ -641,12 +643,12 @@ the owners must separately ratify:
 - Launch Bar metrics, including real-user success and quality thresholds; and
 - the A8-R15 execution-dependent resource path.
 
-This candidate records no owner decision on those deferred matters and does not
-satisfy a Launch Bar checkbox.
+The bounded Wave-A implementation records no owner decision on those deferred
+matters and does not satisfy a Launch Bar checkbox.
 
 ## 13. Ratification and maturity
 
-At candidate publication:
+At candidate publication (historical):
 
 - exact Wave-A contract: **documentation candidate; not specified/ratified until independent review, explicit human authorization, and merge**;
 - implementation: **NO**;
@@ -655,8 +657,24 @@ At candidate publication:
 - A9 wave ticket: **todo**;
 - A10, A11, and A12: **todo**.
 
-The candidate becomes the ratified A9 contract only after independent review,
-explicit human authorization, and merge. Any later implementation requires a
-separate authorized change, must preserve the upstream A2/A3/A6/A7/A8
-contracts, and must produce its own CPU evidence. This documentation change is
-not implementation evidence.
+That candidate was independently reviewed, explicitly human-authorized, and
+merged, making the exact bounded Wave-A contract ratified. The separately
+authorized in-process implementation and its reviewed test-proof repairs are
+also merged on current `main`.
+
+Current bounded maturity:
+
+- exact Wave-A contract: **specified and ratified**;
+- exact seven-tool in-process control/disclosure implementation: **YES**;
+- tests: **YES only for the recorded CPU, hostile-input, resource,
+  concurrency, disclosure, dependency, import, wheel, and quality engineering
+  scope**;
+- scientific, security, network, commercial, or production qualification:
+  **NO**;
+- A9 wave ticket: **done only after its closeout is independently reviewed,
+  explicitly human-authorized, and merged**;
+- A10, A11, and A12: **todo**.
+
+Transport, authentication, production providers and policy, mock/light
+execution, adaptive-query qualification, and end-to-end loop integration remain
+separately authorized future work.

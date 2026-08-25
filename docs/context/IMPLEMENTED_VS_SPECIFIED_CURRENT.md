@@ -52,18 +52,19 @@ No state implies a later state.
 | A6 | Yes | Yes | Yes | No | Bounded internal store + allow-listed public projection |
 | A7 | Yes | Yes | Yes | No | Bounded process-local submission/FSM/fee mechanics |
 | A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
-| A9 | Candidate | No | No | No | Exact bounded seven-tool Wave-A MCP control-plane contract becomes specified/ratified only after independent review, explicit human authorization, and merge; mock execution and all light-loop behavior remain Wave B |
+| A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | No | No | No | public leaderboard pending |
 | A11 | Yes | No | No | No | observability/redaction pending |
 | A12 | Yes | No | No | No | Wave-A invariant closeout pending |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
 
-The A9 candidate is documentation only. It defines the exact tools
-`get_challenge_info`, `get_prior`, `get_mock_scaffold`, `dry_validate`,
-`estimate`, `submit`, and `get_submission_result`; it provides no transport,
-runtime implementation, test evidence, mock execution, light comparison,
-light training, scientific qualification, or production authority.
+The bounded A9 implementation provides exactly `get_challenge_info`,
+`get_prior`, `get_mock_scaffold`, `dry_validate`, `estimate`, `submit`, and
+`get_submission_result` as an in-process Wave-A control/disclosure skeleton.
+It provides no transport, authentication, production providers, production
+policy, mock/light execution, adaptive loop, end-to-end integration,
+qualification, or production authority.
 
 ---
 
@@ -104,7 +105,7 @@ light training, scientific qualification, or production authority.
 | Capability | Specified | Implemented | Qualified | Current status |
 |---|---:|---:|---:|---|
 | bounded `TrainingStrategy` search | Yes | A2 schema; real search runtime incomplete | No | P0 foundation |
-| miner MCP research loop | Candidate bounded Wave-A control plane; broader loop remains design | No canonical A9 implementation | No | Seven disclosure/control tools are a ratification candidate; mock execution and the adaptive light loop remain deferred Wave B work |
+| miner MCP research loop | Yes — bounded Wave-A control plane; broader loop remains design | Yes — exact seven-tool bounded in-process control/disclosure skeleton | No | Bounded control plane implemented and tested; transport, authentication, production providers, mock/light execution, adaptive loop, and end-to-end integration remain unimplemented and unqualified |
 | Landscape evidence memory | Yes | no canonical production system | No | Wave E |
 | model-family-neutral reconstruction | Yes direction | No | No | Wave J |
 | `ModelConstructionStrategy` | Yes ontology | No | No | future Wave K |
@@ -140,7 +141,8 @@ The public narrative is reconciled to the integrated constitution and Business C
 
 No paper/deck may imply:
 
-- A9–A12 are implemented;
+- the full Miner MCP or A10–A12 are implemented;
+- A9 has network or production qualification;
 - A8 is a real miner-code, mock/light, LIVE, production, scientifically qualified, or security-qualified backend;
 - an A8 fixture result creates frontier, Product Qualification, treasury/settlement, leaderboard, weight, chain, or emission authority;
 - a qualified LIVE Burgers exam exists;
@@ -153,4 +155,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0–A8 software foundation. An exact bounded A9 Wave-A MCP control-plane contract is a documentation-only ratification candidate; A9 implementation, A10–A12, mock/light execution, and the real/qualified scientific backend, security, frontier, treasury, generalized-agentic, network, and commercial-validation layers remain explicit future work.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0–A9 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton; transport, authentication, production providers and policy, mock/light execution, adaptive-loop and end-to-end integration, A10–A12, and the real/qualified scientific backend, security, frontier, treasury, generalized-agentic, network, and commercial-validation layers remain explicit future work.**
