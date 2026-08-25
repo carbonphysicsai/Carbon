@@ -1,5 +1,12 @@
 # A9 Miner MCP bounded Wave-A control plane — pre-implementation plan
 
+> **Historical ratification-stage chronology.** The original plan from this
+> title through `Ratification validation boundary` is preserved as the record
+> of what was proposed and required before implementation. Its
+> `candidate`/`future`/`must` language describes that earlier point in time and
+> is not a current maturity statement. The executed chronology and current
+> conditional closeout state follow in `Executed plan and closeout record`.
+
 **Ticket:** A9 — bounded Miner MCP control/disclosure skeleton
 
 **Ratification branch:** `agent/a9-contract-ratification`
@@ -984,3 +991,195 @@ This documentation candidate may validate only its seven-file manifest,
 unchecked implementation criteria, formatting, internal consistency, and
 absence of forbidden changes. It does not provide A9 implementation or test
 evidence and must not change `.agent/WAVE.md`.
+
+## Executed plan and closeout record
+
+This section records execution after the historical ratification-stage plan.
+It supersedes that plan only for chronology and current maturity; it does not
+alter A9-R1--A9-R15, the seven-tool contract, owner boundaries, or technical
+meaning.
+
+### Ratification and implementation chronology
+
+1. **Contract ratification.** PR #32 began with documentation candidate
+   `9d80d33dbe6fa4b07d303d50b6b9d16b18f29a3e`, corrected its bounded contract
+   record without implementing A9, preserved corrected head
+   `6be14bf2400985f805906a74d987deadf321be54`, and merged normally as
+   `47a62b2397b4125bb608eb69bf0e3dc6360c519d`. The merge has ordered parents
+   exact base `adcf0578052bba2c0cf9aa24e7a07ebfe87ca46d` and reviewed head
+   `6be14bf2400985f805906a74d987deadf321be54`; the head and merge tree are both
+   `4f55d28d06ef6f06cf521fd8f04bbf3881e58379`, and their diff is empty.
+   Post-merge push run `32713700257` succeeded with 1,584 CPU tests. That
+   human-authorized merge ratified A9-R1--A9-R15; it did not implement A9.
+2. **Environment-bootstrap correction.** The first implementation attempt
+   stopped before branching because its active Python environment did not
+   contain an installed Carbon distribution. This was an environment
+   precondition failure, not a repository failure. A fresh external Python
+   3.11 environment was created, exact current checkout installed with
+   `python -m pip install -e ".[dev]"`, isolated import checks passed, and the
+   untouched pre-implementation baseline returned exactly 1,584 passing tests
+   before implementation began. No repository file was changed to repair the
+   environment.
+3. **Bounded implementation.** Exact implementation commit
+   `c9c324d1192c9c52009b15970e371d076a0b3e89`, tree
+   `46e8a2d96e15f8bec58e3fb7b9fd28f0684f00b6`, has sole parent the exact
+   ratification merge `47a62b2397b4125bb608eb69bf0e3dc6360c519d` and subject
+   `feat: implement bounded A9 MCP control plane`. Its exact manifest was:
+
+   ```text
+   .agent/WAVE.md
+   carbon/mcp/__init__.py
+   carbon/mcp/model.py
+   carbon/mcp/providers.py
+   carbon/mcp/service.py
+   tests/cpu/test_mcp_skeleton.py
+   ```
+
+   No ticket, plan, decision, specification, dependency, packaging, CI,
+   quality-baseline, fixture, business, publication, or A10+ file was part of
+   the implementation commit.
+4. **Independent implementation review and PR CI.** Independent topology,
+   contract, hostile-input, public-owner-boundary, disclosure, dependency,
+   package, and test review found no remaining source or test correction on
+   exact head `c9c324d...`. Pull-request run `32729542876` completed
+   successfully: CPU job `97438416160` reported `1697 passed in 45.60s`, and
+   Code quality job `97438416372` reported Ruff `757/776`, Black `62/68`,
+   removed Ruff/Black debt `19/6`, five changed Python files, no new debt, and
+   every changed Python file clean.
+5. **Implementation merge.** PR #33 merged normally as
+   `97d835f495cb7e3f194364cb4e674e2416531936` with ordered parents exact
+   ratification merge `47a62b2397b4125bb608eb69bf0e3dc6360c519d` and exact
+   implementation head `c9c324d1192c9c52009b15970e371d076a0b3e89`. The
+   reviewed-head and merge tree are both
+   `46e8a2d96e15f8bec58e3fb7b9fd28f0684f00b6`, and their diff is empty.
+   Post-merge push run `32733665726` succeeded with 1,697 CPU tests. A9 was
+   implemented and tested for the bounded engineering scope but deliberately
+   remained `in_progress` pending acceptance-proof audit and administrative
+   closeout.
+
+### First closeout audit and test-proof repair
+
+The first criterion-by-criterion closeout audit stopped at **27 PASS / 2
+FAIL**. The source implementation was not changed. The two missing direct
+acceptance proofs were:
+
+1. complete `estimate` A2-invalid-input evidence, including non-dict roots,
+   missing/partial/invalid/cyclic graphs, exact A2 result preservation, empty
+   directives, and zero provider calls on every invalid path; and
+2. a positive exact source/import/owner-call manifest, rather than only broad
+   negative dependency exclusions.
+
+PR #34 supplied only canonical A9 test evidence and then repaired two bounded
+static-detector findings raised during review:
+
+| Stage | Exact topology and disposition |
+|---|---|
+| Original test proof | Commit `aea3f5db86dde5851f5ea02994e5f91866f477d1`, tree `c252f2808238fafddfc6d0128d12363e567b99fd`, subject `test: complete A9 closure evidence`, sole parent implementation merge `97d835f495cb7e3f194364cb4e674e2416531936`. |
+| First current-main synchronization | Merge commit `1f921c1223f94cad87b9e52a0773c1299d2980a5`, tree `55f5a5edab62dd82c42d8d02a46cd64d74635aa9`, ordered parents original proof `aea3f5db...` and then-current main `a5ddf7912818c55e9d89a0343e8d9570bdf6af9e`. |
+| Computed-key Greptile finding | Review thread `PRRT_kwDOTTqcu86b4g2Y` identified the gap for dynamically recovered import names built from literal concatenation. Commit `0830f479ec765905a016e86ea6a366bbc136e873`, tree `92b7c8d7af9a0721a1714a8b6b0f2b01ab9f5b67`, subject `test: close computed dynamic-import guard gap`, sole parent `1f921c...`, added bounded literal/recursive-add computed subscript/getattr coverage. |
+| Variable-binding Greptile finding | Review thread `PRRT_kwDOTTqcu86b46yh` identified exact import-key strings routed through simple variable bindings. Commit `ddca0d3c7c71361b80aacb5489c56e7f36e0783e`, tree `222ca383b38a486d43ed1c74824fcbf2cdb75582`, subject `test: cover variable-bound dynamic-import keys`, sole parent `0830f47...`, added bounded simple/chained/self-rebound/name/getattr resolution and terminating cycle controls. |
+| Final current-main synchronization | Merge commit `dc88336f5edb544af5d4f4a82661f3f031de7603`, tree `f934ea4f3c4f63b26e890a26f4c941f73519b73b`, subject `chore: resynchronize A9 test proof repair with current main`, ordered parents repaired head `ddca0d3...` and then-current main `3d193eeec7d2d8ae3a4beea31ac2de06a2bc5329`. |
+| Final normal merge | PR #34 merged as current main `0099a198bf19845390a0a12825eac0eeef06ffd2`, tree `f934ea4f3c4f63b26e890a26f4c941f73519b73b`, ordered parents `3d193eeec7d2d8ae3a4beea31ac2de06a2bc5329` and exact reviewed repair head `dc88336f5edb544af5d4f4a82661f3f031de7603`. Head/merge trees are equal and their diff is empty. |
+
+The complete PR #34 parent-one delta is only
+`tests/cpu/test_mcp_skeleton.py`, with 652 insertions and 20 deletions. Its
+final blob is `f2f5d35dafa88b56f3beb50f24cc565c32bddec1`.
+
+Greptile's final exact-head check and updated summary targeted `dc88336f...`,
+reported confidence **5/5**, and reported no blocking failure. Both named
+substantive threads above are resolved and the unresolved count is zero. The
+formal GitHub review submissions are four `COMMENTED` objects, not
+`APPROVED`; this record does not invent a formal approval object.
+
+### Current-main integrity and closeout evidence
+
+Current main is exact merge `0099a198bf19845390a0a12825eac0eeef06ffd2`,
+tree `f934ea4f3c4f63b26e890a26f4c941f73519b73b`. The ratification,
+implementation, and final repair heads are each parent two of their normal
+merge, ancestral to current main, tree-equal to the corresponding merge, and
+empty-diff against it. The four production blobs remain:
+
+```text
+carbon/mcp/__init__.py   66d52c20fbcdfea6e8d3b28bab681ff111ef0dc5
+carbon/mcp/model.py      f14160662bf61e22a98256ee183279d0424a3d83
+carbon/mcp/providers.py  0234e25978662bc0ccf04ef0e5f875c2d32e26fa
+carbon/mcp/service.py    9491b8fef03320c19581a12ce43a67c80dc3ab4f
+```
+
+The package has exactly those four files, registers the exact seven ratified
+tools, and exports the exact ordered 34-name `carbon.mcp.__all__`. Aliases,
+`light_compare`, `light_train`, and `list_my_submissions` remain unavailable.
+
+Exact post-repair push run `32809955531` is a successful `push` run on branch
+`main` at exact head `0099a198...`. CPU job `97687282709` reported `1727
+passed in 49.19s`. Code quality job `97687282932` reported Ruff `757/776`,
+Black `62/68`, removed Ruff/Black debt `19/6`, one changed Python test file,
+no new debt, and all changed Python files clean. The Actions runtime warning
+was nonblocking.
+
+A fresh closeout environment outside the repository used CPython `3.11.11`
+with installed `carbon 0.9.0`, pytest `9.1.1`, Ruff `0.16.3`, and Black
+`26.5.1`. Against the untouched current tree it produced:
+
+```text
+focused tests/cpu/test_mcp_skeleton.py       143 passed in 4.08s
+seven related owner/isolation files          935 passed in 17.45s
+combined exact eight-file suite             1078 passed in 20.98s
+full default CPU suite                      1727 passed in 28.58s
+```
+
+The fresh outside-repository wheel
+`carbon-0.9.0-py3-none-any.whl` was 172,808 bytes with SHA-256
+`0f33d38334e9de15b7a28188e856180c55934129b9c92d473330326285359263`.
+It installed with `--no-deps --no-index` into a second fresh Python 3.11.11
+environment. From outside the checkout under `python -I`, `carbon.mcp`
+resolved from wheel `site-packages`, exposed the exact 34 exports, constructed
+representative public models, and loaded none of the forbidden optional-heavy,
+A8, A10+, legacy, network, chain, weight, or emission modules. This is separate
+from the historical implementation-wheel SHA-256
+`71cb3706e4bad091b5a5290210a666fccb07d296d83274548288a29a422d18fd`.
+Neither wheel is production-security evidence.
+
+The current audit maps every unchanged ticket criterion to controlling
+decisions/owner boundaries, exact source symbols, canonical A9 assertions, and
+supporting owner tests in `.agent/tickets/A9_mcp_skeleton.md`. Its exact result
+is **29 PASS / 0 FAIL; 29 checked / 0 unchecked**. The two formerly failed
+criteria now pass from the merged repair evidence; no source or test repair is
+part of this administrative closeout.
+
+### Executed KEEP / WRAP / REPAIR / REPLACE dispositions
+
+| Historical disposition | Executed result |
+|---|---|
+| Keep/repair `carbon.mcp` namespace | **KEPT / REPAIRED.** The marker became exactly `__init__.py`, `model.py`, `providers.py`, and `service.py`; no server or extra module was added. |
+| Keep/wrap public A2 | **KEPT / WRAPPED.** Exact `carbon.schema.dry_validate` remains the sole schema validator for dry validation, scaffolds, and estimates. |
+| Keep/wrap public A3 | **KEPT / WRAPPED.** Exact-key load, fixture assessment, and effective-LIVE APIs supply only the positive five-field Challenge projection; A9 does not scan or own registry truth. |
+| Keep public A6 model | **KEPT.** Only exact public `EvaluationCard` is projected after A7 publication; `CardStore` and private records remain excluded. |
+| Keep/wrap public A7 | **KEPT / WRAPPED.** Exact submit/status/published-read APIs retain identity, lifecycle, fee, requester binding, storage, and publication authority. |
+| Repair Miner MCP contract | **REPAIRED by ratification.** Wave-A control/disclosure is separated from deferred Wave-B mock/light execution; exact tool names, fields, limits, providers, errors, and exclusions remain unchanged. |
+| Replace/exclude legacy/client/HTTP surfaces | **EXCLUDED.** No compatibility alias, legacy migration, MCP SDK, HTTP framework, or optional-heavy dependency entered A9. |
+| Keep A8 separate | **KEPT SEPARATE.** No A8 context, backend, materialization, execution, scoring, or result path is called. |
+
+### Preserved exclusions and conditional closeout gate
+
+Completion is bounded engineering completion only. A9 still supplies no
+production MCP transport/server, network hosting, authenticated or
+cryptographic requester identity, production authorization, production query/
+rate/concurrency values, production fees, provider publications, scaffold
+body, prior vocabulary, mock pack, mock/light execution, real miner-code
+execution, workload containment, adaptive-query security qualification,
+official-exam replay resistance for an integrated deployment, or end-to-end
+free/paid research/economic loop. It establishes no scientific, security,
+network, commercial, or production qualification and no leaderboard,
+frontier, treasury, settlement, chain, weight, or emission claim. The bounded
+AST dependency detector is source-policy evidence, not a sandbox, arbitrary
+Python control-flow proof, malicious-code containment proof, or security
+qualification.
+
+This documentation-only closeout proposes A9 `done`; that status becomes
+authoritative only after this closeout is independently reviewed, explicitly
+human-authorized, and merged. Until that merge, this section records a
+conditional candidate rather than self-ratification. A10 is the next
+unimplemented ticket only after the closeout merge and requires a separate
+orientation/contract-reconciliation task. A10--A12 remain `todo`; this work
+does not begin or authorize any of them.

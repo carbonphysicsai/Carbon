@@ -49,11 +49,16 @@
 | A0–A7 bounded foundation | IMPLEMENTED | Preserve regression evidence |
 | A8 fixture TrainEval | IMPLEMENTED bounded | Real backend, execution-isolation/security, scientific/reference/backend qualification, and later integration |
 | Real TrainEval backend | UNDER_DEFINED | Wave C implementation/qualification |
-| Miner MCP end-to-end | DESIGN | A9 + integration |
+| Bounded A9 in-process MCP Wave-A control/disclosure plane | IMPLEMENTED bounded | Preserve the exact seven-tool CPU, hostile-input, resource, concurrency, disclosure, dependency, import, wheel, and quality evidence |
+| Miner MCP end-to-end | DESIGN | Transport; authentication; production requester authorization; production providers; production limits, rates, and fees; mock/light execution; adaptive-query security evidence; full free/paid-loop integration |
 | Public leaderboard disclosure | DESIGN | A10 + leakage tests |
 | Logging/metrics secrecy | DESIGN | A11 + red-team review |
 | Constitutional invariant CI | DESIGN | A12 |
 | Real validator execution security | SECURITY | Sandbox/runtime qualification |
+
+Bounded A9 does not establish authenticated identity, end-to-end seed secrecy,
+adaptive non-oracle security, workload containment, network readiness, or
+production readiness.
 
 ## Security and secrecy
 
