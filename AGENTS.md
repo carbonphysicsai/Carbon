@@ -217,7 +217,18 @@ Landscape, priors, construction agents, or Physics Intelligence may propose. Reg
 
 ---
 
-# 8. Current maturity boundary
+# 8. Maturity discipline and historical snapshot
+
+The block below records the repository state at the 2026-08-23 constitutional
+reconciliation. It is historical evidence, not the live ticket board, and must
+not be used to select the next ticket.
+
+For current ticket status and sequencing, read `.agent/WAVE.md` at the exact
+current commit. If a WAVE status is explicitly conditional on independent
+review, human authorization, or merge, treat the prior merged status as
+authoritative until that gate is satisfied. Use the active ticket and
+`docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md` to interpret the bounded
+scope of any status.
 
 At the 2026-08-23 constitutional reconciliation:
 
@@ -231,7 +242,9 @@ A11 todo
 A12 todo
 ```
 
-Never relabel a ticket because documentation describes its intended design.
+Never relabel a ticket merely because documentation describes its intended
+design. A status changes only when the applicable ticket evidence and WAVE
+review, authorization, and merge gate are satisfied.
 
 A component may separately be:
 
