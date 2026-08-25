@@ -183,7 +183,12 @@ not satisfy any item.
 - [ ] Give LeaderboardCursor exactly one bounded exact built-in ASCII str and
   bind its private logical payload to exactly schema_version="1.0",
   board_kind="fixture_leaderboard", exact ChallengeKey, canonical tagged
-  SHA-256 hash, exact LeaderboardSnapshotSequence, and absolute u64 next_offset.
+  SHA-256 hash, exact LeaderboardSnapshotSequence, and absolute u64 next_offset;
+  require an emitted next_cursor.value to satisfy both max_cursor_utf8_bytes and
+  max_string_utf8_bytes, charge it exactly once in response_utf8_bytes(page),
+  exclude an incoming cursor from that response total while retaining its
+  existing request/cursor limits, and never double-count its decoded private
+  payload fields.
 - [ ] Prove cursors contain no submission/result/requester/identity value,
   seed, draw, context, private pack material, timestamp, path, or provider
   object.
@@ -200,10 +205,18 @@ not satisfy any item.
   snapshots, and continuation page_size changes.
 - [ ] Enforce exact required max_page_size, max_snapshot_rows,
   max_cursor_utf8_bytes, max_string_utf8_bytes, max_response_utf8_bytes, and
-  max_concurrent_calls fields, each exact int in 1..2**64-1, before an
-  oversized or partial response escapes; release each acquired concurrency
-  permit in finally after success, public failure, translated Exception, and
-  propagated non-Exception BaseException.
+  max_concurrent_calls fields, each exact int in 1..2**64-1; define
+  response_utf8_bytes(page) as the exact occurrence sum of page schema_version,
+  page Challenge ID/version, page scoring-pack hash, each row Challenge
+  ID/version and scoring-pack hash in final tuple order, and optional emitted
+  next_cursor.value exactly once, where utf8(value) is
+  len(value.encode("utf-8")); apply max_string_utf8_bytes per occurrence, permit
+  totals at the response limit, and raise the fixed resource error one byte over
+  before any partial response escapes; exclude fixed errors and all non-formula
+  material from this success-page meter without recursively metering a resource
+  error; release each acquired concurrency permit in finally after success,
+  public failure, translated Exception, and propagated non-Exception
+  BaseException.
 
 ### Stable errors and hostile boundaries
 
@@ -263,9 +276,12 @@ not satisfy any item.
 - [ ] Cover the exact ordered exports, Protocol/concrete-provider distinction,
   constructor, fields, six resource limits, schema literals, direct error
   inheritance, u64/ASCII bounds, subclass/coercion rejection, hostile input,
-  fixed messages/chains, response bounds, concurrent-call limits, source guards
-  against `except BaseException`, and finally-based permit release on every
-  translated or propagating path.
+  fixed messages/chains, the exact response_utf8_bytes(page) formula and
+  chargeable/uncharged source manifest, declared page/row traversal order,
+  per-occurrence charging of repeated equal and identity-shared strings,
+  per-string and dual cursor bounds, concurrent-call limits, source guards
+  against reflection/generic serialization and `except BaseException`, and
+  finally-based permit release on every translated or propagating path.
 - [ ] Cover owner-validator/constructor reuse, Challenge/hash isolation, all
   eligibility predicates including negative zero, fixture/official separation,
   exact score preservation, whole-snapshot ordering/ranking before slicing,
@@ -275,13 +291,17 @@ not satisfy any item.
   leakage, unchanged KeyboardInterrupt/SystemExit propagation and unchanged
   GeneratorExit propagation where practical, capacity recovery after
   translated Exception and propagated non-Exception BaseException, exact
-  empty-snapshot success, private cursor binding, absolute offsets, no end
-  cursor, continuation page_size variation,
-  immutable retained snapshots, provider mutation isolation, and no existence
-  oracle.
+  empty-page response accounting, exact-at-limit success, one-byte-over resource
+  failure with no partial page, fixed-error exclusion, private cursor binding,
+  absolute offsets, no end cursor, exactly-once emitted-cursor charging without
+  private-payload duplication, continuation page_size variation, immutable
+  retained snapshots, provider mutation isolation, no existence oracle, and no
+  repr, dataclass, JSON, HTTP, REST, wire-format, or network dependency.
 - [ ] Cover the positive row/page allow-lists and every prohibited identifier,
   identity, seed, diagnostic, score-detail, time, path, fee, provider, and
-  representation leakage route.
+  representation leakage route; lock the explicit response-accounting field
+  manifest and require a separately ratified formula update before any future
+  public string field can count, without reflection or default-public behavior.
 - [ ] Prove public validate_version/is_sha256_digest reuse, no EvaluationCard
   input or private A5–A9 access, and no optional-heavy, web, HTML,
   filesystem, time, Landscape, neuron, Bittensor, chain, weight, or emission

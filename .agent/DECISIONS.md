@@ -55,6 +55,12 @@ The former overbroad provider-failure wording is also DOCUMENTATION_LAG. It
 does not authorize catching or translating a non-Exception BaseException and
 changes no A10 architecture, public API, maturity, or owner boundary.
 
+The undefined `max_response_utf8_bytes` accounting procedure identified by the
+stopped ready-review gate is likewise DOCUMENTATION_LAG. The limit is an exact
+logical successful-page UTF-8 occurrence budget, not a wire-format contract.
+Defining it changes no A10 field, architecture, public API, maturity, or owner
+boundary.
+
 The historical scripts/generate_leaderboard.py, validator/neuron code,
 Landscape material, direct score-to-emission language, and generic public
 leaderboard prose are archaeology or superseded whenever they conflict with
@@ -412,6 +418,79 @@ next_cursor=None, and the exact snapshot ChallengeKey, scoring_pack_hash, and
 snapshot sequence. Provider None is unavailable and is never conflated with
 that empty success. No page exposes a total count.
 
+`max_response_utf8_bytes` is the exact logical public-response UTF-8 occurrence
+budget for a candidate successful FixtureLeaderboardPage. It is evaluated only
+after complete validation, ordering, competition ranking, pagination, and
+optional cursor construction, but before any page, row tuple, or cursor is
+released. It is not Python heap size, object size, repr length, JSON size,
+field-name size, serialized wire size, HTTP response size, transport framing,
+or a future network protocol. The exact formula is:
+
+~~~text
+response_utf8_bytes(page) =
+    utf8(page.schema_version)
+  + utf8(page.challenge_key.challenge_id)
+  + utf8(page.challenge_key.version)
+  + utf8(page.scoring_pack_hash)
+  + sum(
+        utf8(row.challenge_key.challenge_id)
+      + utf8(row.challenge_key.version)
+      + utf8(row.scoring_pack_hash)
+      for row in page.rows
+    )
+  + (
+        utf8(page.next_cursor.value)
+        if page.next_cursor is not None
+        else 0
+    )
+
+utf8(value) = len(value.encode("utf-8"))
+~~~
+
+The meter charges exactly those public string occurrences. It traverses the
+candidate page in exact declared page-field order, page.rows in final tuple
+order, and each row in exact declared row-field order. Equal strings are
+charged once per public field occurrence; shared object identity and string
+interning never deduplicate the charge. Every chargeable value is already
+required to be an exact built-in ASCII str. After exact ASCII validation, the
+implementation may use len(value) because each ASCII code point is one UTF-8
+byte.
+
+Every chargeable string occurrence other than the optional cursor separately
+satisfies max_string_utf8_bytes before entering the total. When next_cursor is
+present, its exact emitted ASCII value must separately satisfy both
+max_cursor_utf8_bytes and max_string_utf8_bytes and is then charged exactly
+once. An incoming request cursor is not a response occurrence. The decoded
+private logical cursor fields are not charged again. The incoming cursor
+remains subject to the existing request and cursor validation and limits.
+
+The meter does not charge field names; nominal class/type names; tuple or
+container structure; hypothetical serialization delimiters or punctuation;
+rank, snapshot-sequence, publication-sequence, or cursor-offset integers except
+as an offset is already encoded in next_cursor.value; overall_score floats;
+Boolean fields; None; Python object overhead; repr or str output; provider-only
+SubmissionId or result_id; private candidate fields; private cursor payload
+fields separately; private provider objects; or hidden/forbidden values. A
+syntactically malformed, subclassed, or non-ASCII provider-derived value is an
+integration failure under A10-R3/A10-R13 and is never normalized for metering.
+
+A candidate page is permitted when response_utf8_bytes(page) is less than or
+equal to max_response_utf8_bytes. A total greater than the limit raises the
+exact fixed LeaderboardResourceError before any success value escapes; no
+partial page survives. Fixed public error codes and messages are constants,
+not candidate successful pages, and are excluded from this meter. An available
+empty page still charges schema_version, the page Challenge ID/version, and the
+page scoring-pack hash, but no row string or cursor. Exact-at-limit succeeds;
+one-byte-over fails. A resource failure never recursively constructs another
+metered success response.
+
+If a separately ratified future schema adds a public string field, that
+ratification must explicitly update this formula before implementation. No
+field enters the meter through reflection, generic serialization, dataclass
+conversion, object introspection, or default-public behavior. This closed
+occurrence-sum rule follows the bounded A9 logical-response-meter principle
+without copying A9's larger graph/node model or adding an A9 dependency.
+
 **A10-R12 — Fixed public error hierarchy.** The only future public hierarchy,
 codes, and messages are:
 
@@ -445,8 +524,10 @@ unpublished, and ineligible fixture-provider state reported without a returned
 snapshot collapse to the same unavailable class. If a provider instead
 returns a purported snapshot containing any such candidate, that snapshot is
 malformed and fails the whole operation as the fixed integration class; A10
-never silently filters it. A resource-meter breach remains the fixed resource
-class.
+never silently filters it. A response_utf8_bytes(page) total greater than
+max_response_utf8_bytes remains the fixed resource class and fails before any
+page escapes. Fixed public error objects are excluded from successful-page
+metering.
 
 **A10-R13 — Hostile input, provider output, and mutation isolation.** Exact-type
 and subclass rejection applies to ChallengeKey, both sequences, request,
@@ -535,6 +616,17 @@ isolation, closed eligibility, fixture/official separation, deterministic
 descending order, competition ties, duplicate rejection, bounded pagination
 and cursor binding, snapshot mutation isolation, no existence oracle, complete
 leakage exclusions, and no private A5--A9 access.
+
+It must prove the exact response_utf8_bytes(page) formula and explicit
+chargeable/uncharged field manifests; declared page-field, final row-tuple, and
+declared row-field traversal order; per-occurrence charging for equal or
+identity-shared strings; per-string and dual cursor limits; exactly-once emitted
+cursor charging without private-payload duplication; incoming-cursor exclusion;
+empty-page accounting; exact-at-limit success; one-byte-over resource failure;
+fixed-error exclusion; and no partial response. Source tests must lock the
+explicit field manifest and forbid repr, generic serialization, dataclass
+conversion, JSON, HTTP, REST, GraphQL, wire-format, or network dependencies in
+the accounting path.
 
 It must also prove no optional-heavy, web, HTML, filesystem, current-time,
 Landscape, neuron, Bittensor, chain, weight, or emission dependency; installed
