@@ -86,8 +86,11 @@ not satisfy any item.
 - [ ] Define the exact FixtureLeaderboardProvider.get_snapshot(challenge_key,
   snapshot_sequence) seam returning FixtureLeaderboardCandidateSnapshot or
   None; treat first-page None as no current snapshot, continuation None as the
-  exact snapshot absent/stale, an exact empty snapshot as available, and every
-  provider exception/wrong return as one integration failure with no salvage.
+  exact snapshot absent/stale, and an exact empty snapshot as available; map
+  every ordinary error raised by provider-controlled behavior and satisfying
+  isinstance(error, Exception), plus every non-None wrong return, to a new fixed
+  integration error with no salvage, while a non-Exception BaseException
+  propagates unchanged.
 - [ ] Keep provider ownership of published-candidate selection, exclusion of
   unpublished/cancelled/withdrawn/superseded/stale records, A3 fixture
   eligibility, authorized A5/A6/A7 field copying, both sequences, and retained
@@ -198,7 +201,9 @@ not satisfy any item.
 - [ ] Enforce exact required max_page_size, max_snapshot_rows,
   max_cursor_utf8_bytes, max_string_utf8_bytes, max_response_utf8_bytes, and
   max_concurrent_calls fields, each exact int in 1..2**64-1, before an
-  oversized or partial response escapes.
+  oversized or partial response escapes; release each acquired concurrency
+  permit in finally after success, public failure, translated Exception, and
+  propagated non-Exception BaseException.
 
 ### Stable errors and hostile boundaries
 
@@ -211,17 +216,23 @@ not satisfy any item.
   leaderboard.fixture.unavailable / Fixture leaderboard is unavailable.; and
   leaderboard.integration.failed / Leaderboard provider response is invalid.
 - [ ] Ensure errors never echo requester/provider values, invoke hostile repr
-  or str, expose a cause/context chain, attach private context, or distinguish
-  NotFound.
+  or str, expose provider exception text/value/payload or a cause/context chain,
+  attach private context, or distinguish NotFound.
 - [ ] Collapse only exact provider None for absent/stale/unavailable state to
-  unavailable without an existence oracle; collapse provider exceptions
-  (including attempted public A10 errors), wrong returns, and any returned
-  ineligible candidate to one integration failure with no passthrough or
-  partial response.
+  unavailable without an existence oracle; translate each ordinary provider
+  Exception, including provider-raised LeaderboardRequestError,
+  LeaderboardResourceError, LeaderboardUnavailableError, and
+  LeaderboardIntegrationError, to one new fixed integration error without
+  passthrough/chaining; propagate every non-Exception BaseException unchanged
+  and forbid `except BaseException` at every provider/public translation seam;
+  preserve the exact mappings of all A10-created public failures.
 - [ ] Treat request, cursor, nominal values, provider return values, nested
   fields, tuples, and mutable/reentrant objects as hostile or malformed, with
   exact-type/subclass rejection and bounded access; treat the trusted concrete
-  provider structurally, without exact-type or runtime Protocol inspection.
+  provider structurally, without exact-type or runtime Protocol inspection;
+  map missing/call-incompatible methods and ordinary-Exception descriptor/hook/
+  call failures to integration, but propagate KeyboardInterrupt, SystemExit,
+  GeneratorExit, and other non-Exception BaseException values unchanged.
 - [ ] Demonstrate immutable copying, mutation isolation, reentrancy safety, and
   no provider-owned alias reachable from rows, pages, cursors, errors, caches,
   or representations.
@@ -252,15 +263,22 @@ not satisfy any item.
 - [ ] Cover the exact ordered exports, Protocol/concrete-provider distinction,
   constructor, fields, six resource limits, schema literals, direct error
   inheritance, u64/ASCII bounds, subclass/coercion rejection, hostile input,
-  fixed messages/chains, response bounds, and concurrent-call limits.
+  fixed messages/chains, response bounds, concurrent-call limits, source guards
+  against `except BaseException`, and finally-based permit release on every
+  translated or propagating path.
 - [ ] Cover owner-validator/constructor reuse, Challenge/hash isolation, all
   eligibility predicates including negative zero, fixture/official separation,
   exact score preservation, whole-snapshot ordering/ranking before slicing,
   competition ties, duplicate rejection, and no partial page.
-- [ ] Cover exact provider None unavailability, provider exception-to-
-  integration mapping, exact empty-snapshot success, private cursor binding,
-  absolute offsets, no end cursor, continuation page_size variation, immutable
-  retained snapshots, provider mutation isolation, and no existence oracle.
+- [ ] Cover exact provider None unavailability, RuntimeError-to-integration and
+  provider-public-error-to-new-integration mapping without message/cause/context
+  leakage, unchanged KeyboardInterrupt/SystemExit propagation and unchanged
+  GeneratorExit propagation where practical, capacity recovery after
+  translated Exception and propagated non-Exception BaseException, exact
+  empty-snapshot success, private cursor binding, absolute offsets, no end
+  cursor, continuation page_size variation,
+  immutable retained snapshots, provider mutation isolation, and no existence
+  oracle.
 - [ ] Cover the positive row/page allow-lists and every prohibited identifier,
   identity, seed, diagnostic, score-detail, time, path, fee, provider, and
   representation leakage route.

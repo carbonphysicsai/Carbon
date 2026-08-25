@@ -51,6 +51,10 @@ DOCUMENTATION_LAG and are replaced only for A10 by A10-R1--A10-R17 below. The
 absent A10 implementation and tests are IMPLEMENTATION_LAG, not evidence that
 the legacy script implements A10.
 
+The former overbroad provider-failure wording is also DOCUMENTATION_LAG. It
+does not authorize catching or translating a non-Exception BaseException and
+changes no A10 architecture, public API, maturity, or owner boundary.
+
 The historical scripts/generate_leaderboard.py, validator/neuron code,
 Landscape material, direct score-to-emission language, and generic public
 leaderboard prose are archaeology or superseded whenever they conflict with
@@ -171,14 +175,34 @@ continuation it means the exact cursor-bound snapshot is absent or stale. Both
 map to the fixed LeaderboardUnavailableError. A returned exact snapshot,
 including one whose candidates tuple is empty, is available.
 
-Any missing/call-incompatible method, hostile descriptor, provider call
-failure, exception of any class, or non-None malformed/wrong return maps to one
-fixed LeaderboardIntegrationError. A provider must not raise a public A10
-error through this boundary; even such an exception is collapsed to the
-integration error, without value echo, diagnostic payload, cause, or context.
-No partial response is salvaged. For a valid snapshot, A10 validates and copies
-the entire projection; it does not discover, construct, repair, or publish
-candidate records.
+A missing or call-incompatible method and any non-None malformed or wrong
+return map to one fixed LeaderboardIntegrationError. Every ordinary exception
+`error` raised by provider-controlled behavior for which
+`isinstance(error, Exception)` is true, whether encountered during method
+lookup, a descriptor or hook, invocation, or access to provider-controlled
+values during result validation, maps to one new fixed
+LeaderboardIntegrationError.
+
+A provider must not pass a public A10 error through this boundary. Because
+LeaderboardRequestError, LeaderboardResourceError,
+LeaderboardUnavailableError, and LeaderboardIntegrationError inherit from
+Exception, a provider-raised instance of any of them is translated into one new
+fixed LeaderboardIntegrationError without passthrough or chaining. Translation
+uses only the exact integration code and message; no provider text, value,
+payload, cause, or context and no partial response escapes.
+A10-created public failures retain their exact A10-R12 mappings; this
+provider-origin rule does not reclassify them.
+
+A BaseException value that is not an Exception instance propagates unchanged.
+A10 never catches or translates KeyboardInterrupt, SystemExit, or
+GeneratorExit and must not use `except BaseException` around provider method
+lookup, invocation, result validation, or the top-level public-error translation
+boundary. A hostile provider descriptor or hook raising such a value also
+propagates unchanged. Once acquired, the bounded concurrency permit is released
+in `finally` after success, public failure, translated ordinary Exception, and
+propagated non-Exception BaseException alike. For a valid snapshot, A10
+validates and copies the entire projection; it does not discover, construct,
+repair, or publish candidate records.
 
 The provider, not A10, owns selecting published candidates; excluding
 unpublished, cancelled, withdrawn, superseded, and stale records; consulting
@@ -429,9 +453,11 @@ and subclass rejection applies to ChallengeKey, both sequences, request,
 cursor, snapshot, candidate, row, page, resource limits, and every nested
 field/built-in value. It does not require the trusted concrete provider object
 to subclass or be the Protocol, and A10 performs no runtime-checkable protocol
-introspection. Missing methods, hostile descriptors, call failures, and
-malformed returns are provider integration failures. Provider output is
-hostile or malformed until the entire bounded snapshot has been validated.
+introspection. Missing/call-incompatible methods and malformed returns are
+provider integration failures. Hostile descriptors, hooks, and call failures
+map to integration only when they raise an ordinary Exception; a non-Exception
+BaseException propagates unchanged under A10-R3. Provider output is hostile or
+malformed until the entire bounded snapshot has been validated.
 
 The constructor captures an immutable validated copy of the exact resource
 limits. The service makes immutable positive copies of the exact allow-listed
@@ -439,6 +465,10 @@ values.
 Caller/provider mutation before, during, or after a call must not alter a
 validated returned page or retained cursor binding. No generic serializer may
 traverse A5, A6, A7, or provider objects.
+
+Bounded concurrent-call accounting releases its acquired permit in `finally`
+on every service exit, including success, an A10-created public error, ordinary
+Exception translation, and propagation of a non-Exception BaseException.
 
 Seeds, draws, roles, domains, contexts, entropy, hidden pack material, margins,
 stress values, diagnostics, fees, paths, private timestamps, hidden identity,
@@ -488,8 +518,16 @@ test as evidence.
 The future implementation must prove the exact ordered root exports, exact
 constructor and resource-limit fields, exact nominal fields/u64 bounds, exact
 schema literals, Protocol/concrete-provider distinction, provider None
-unavailability, provider-exception integration collapse, and empty-snapshot
-success. It must prove public-validator/constructor reuse, canonical-zero
+unavailability, ordinary-Exception integration collapse, non-Exception
+BaseException propagation, and empty-snapshot success. It must prove
+RuntimeError translation, provider-raised public A10 error translation into a
+new exact integration error, preservation of A10-created public-error mappings,
+no exception text/value/payload/cause/context leakage, unchanged
+KeyboardInterrupt/SystemExit propagation, unchanged
+GeneratorExit propagation where practical, no `except BaseException` in A10
+source, and concurrency-capacity release after translated Exception and
+propagated non-Exception BaseException. It must also prove
+public-validator/constructor reuse, canonical-zero
 rejection, whole-snapshot validation/ranking before slicing, continuation
 page_size variation, no end cursor, hostile-input and subclass rejection,
 stable error inheritance/codes/messages/chains, exact Challenge and score-pack

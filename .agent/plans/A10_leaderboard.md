@@ -73,6 +73,10 @@ This candidate narrows that shorthand prospectively. It does not rewrite
 unrelated history or claim that the exact contract was previously implemented
 or tested.
 
+The former overbroad provider-failure wording is also DOCUMENTATION_LAG. It
+does not authorize catching or translating a non-Exception BaseException and
+changes no A10 architecture, public API, maturity, or owner boundary.
+
 ### IMPLEMENTATION_LAG
 
 The canonical carbon.leaderboard package is only a reserved marker. No A10
@@ -283,12 +287,29 @@ unratified.
 
 An unavailable provider state, including an absent or stale requested fixture
 snapshot, is expressed only by None and maps to LeaderboardUnavailableError.
-Missing/call-incompatible methods, hostile descriptors, call failures,
-exceptions of every class, and non-None malformed/wrong returns map to
-LeaderboardIntegrationError. A provider may not pass a public A10 error
-through the seam; even such an exception collapses to the fixed integration
-error with no echo, payload, cause, or context. A10 never salvages a partial
-provider response.
+Missing/call-incompatible methods and non-None malformed/wrong returns map to
+LeaderboardIntegrationError. Every ordinary exception `error` raised by
+provider-controlled behavior for which `isinstance(error, Exception)` is true,
+including one encountered during a hostile descriptor or hook, method
+invocation, or access to provider-controlled values during result validation,
+maps to one new fixed LeaderboardIntegrationError.
+
+A provider may not pass a public A10 error through the seam. Because
+LeaderboardRequestError, LeaderboardResourceError,
+LeaderboardUnavailableError, and LeaderboardIntegrationError inherit from
+Exception, a provider-raised instance of any of them is translated into a new
+fixed LeaderboardIntegrationError without passthrough or chaining. No provider
+text, value, payload, cause, context, or partial response escapes.
+A10-created public failures retain their exact A10-R12 mappings; this
+provider-origin rule does not reclassify them.
+
+A BaseException value that is not an Exception instance propagates unchanged.
+A10 does not catch or translate KeyboardInterrupt, SystemExit, or GeneratorExit
+and must not use `except BaseException` around provider lookup, invocation,
+result validation, or the public translation boundary. A descriptor or hook
+raising such a value also propagates unchanged. Once acquired, the concurrency
+permit is released in `finally` after success, public failure, translated
+ordinary Exception, and propagated non-Exception BaseException.
 
 ### A10-R4 — Provider-only candidate projection
 
@@ -635,10 +656,13 @@ Request shape/type/cursor-binding failures map to LeaderboardRequestError.
 Configured resource-limit failures map to LeaderboardResourceError. Only exact
 provider None is the normal unavailable signal and maps all first-page absent
 and continuation absent/stale cases to LeaderboardUnavailableError. Provider
-exceptions, including attempted public A10 errors, and a returned purported
-snapshot with invalid shape, types, values, duplicates, mixed keys/hashes, or
-ineligible candidates map to LeaderboardIntegrationError and fail the whole
-operation.
+ordinary exceptions for which `isinstance(error, Exception)` is true, including
+provider-raised public A10 errors, map to a new fixed
+LeaderboardIntegrationError without passthrough or chaining. A returned
+purported snapshot with invalid shape, types, values, duplicates, mixed
+keys/hashes, or ineligible candidates also maps to LeaderboardIntegrationError
+and fails the whole operation. A non-Exception BaseException instead propagates
+unchanged after permit release.
 
 ### A10-R13 — Hostile input, copying, mutation, and leakage
 
@@ -648,13 +672,18 @@ request, cursor, snapshot, candidate, resource limits, row, page, and their
 nested fields. It does not apply to the trusted concrete provider object: that
 object structurally implements the Protocol without required inheritance or
 runtime-checkable introspection. Missing methods, hostile descriptors, call
-failures, and malformed returns are integration failures. The implementation
-requires:
+failures, and malformed returns are integration failures only as specified in
+A10-R3: an ordinary Exception raised by provider-controlled behavior is
+translated, while a non-Exception BaseException from a descriptor, hook, call,
+or provider-controlled value accessed during validation propagates unchanged.
+The implementation requires:
 
 - exact-type and subclass rejection;
 - bounded field access and bounded container traversal;
 - no duck-typing or generic coercion;
 - no hostile value interpolation into exceptions/logs/reprs;
+- no `except BaseException` around provider lookup, invocation, result
+  validation, or public error translation;
 - full snapshot validation before sorting or slicing;
 - fresh reconstruction of nominal values;
 - immutable tuples for snapshot and page membership;
@@ -662,7 +691,9 @@ requires:
 - resistance to mutation between observations;
 - safe behavior under reentrant objects and provider callbacks;
 - construction-time validation and immutable copying of resource policy;
-- bounded concurrent-call accounting with release on every outcome;
+- bounded concurrent-call accounting with `finally` release after success,
+  public failure, translated Exception, and propagated non-Exception
+  BaseException;
 - one whole-operation failure with no partial page.
 
 Generic serialization of A5, A6, A7, provider, legacy, or store objects is
@@ -756,8 +787,13 @@ The later implementation suite must cover at least:
   without subclass or runtime-introspection requirements;
 - exact None first-page/continuation unavailability and exact empty snapshot
   success;
-- provider exception/public-error collapse, malformed return type, hostile
-  descriptor, missing method, and nested field failures;
+- RuntimeError and other ordinary provider Exception translation into the exact
+  integration error, and each provider-raised public A10 error translated into
+  a new exact integration error without message/cause/context leakage;
+- unchanged KeyboardInterrupt and SystemExit propagation, unchanged
+  GeneratorExit propagation where practical;
+- hostile descriptor/hook Exception translation, non-Exception BaseException
+  propagation, malformed return type, missing method, and nested-field failures;
 - exact A3 ChallengeKey and scoring-pack isolation;
 - validate_version/is_sha256_digest and owner-constructor reuse without grammar
   duplication;
@@ -805,7 +841,8 @@ The later implementation suite must cover at least:
 - no cursor at or beyond snapshot end and exact empty-page behavior;
 - maximum snapshot rows and response bytes;
 - maximum concurrent calls, rejection at capacity, and capacity release after
-  success and every failure;
+  success, public failure, translated Exception, and propagated non-Exception
+  BaseException;
 - no total row count.
 
 #### Errors and no existence oracle
@@ -817,6 +854,10 @@ The later implementation suite must cover at least:
 - no NotFound distinction;
 - absent/stale/unpublished/ineligible provider-state collapse;
 - malformed provider output integration collapse;
+- no provider text, value, payload, cause, or context leakage;
+- unchanged mappings for A10-created public failures;
+- non-Exception BaseException and process-control signal propagation;
+- source guard proving A10 contains no `except BaseException`;
 - indistinguishable protected existence cases.
 
 #### Mutation, reentrancy, and leakage

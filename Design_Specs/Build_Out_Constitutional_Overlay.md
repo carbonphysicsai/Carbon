@@ -298,10 +298,31 @@ Exact `None` is the sole normal unavailable return. For a first-page call it
 means there is no current retained fixture snapshot; for a continuation it
 means the exact cursor-bound snapshot is absent or stale. Both map to the fixed
 unavailable error. An exact snapshot, including one with zero candidates, is
-available. A missing/call-incompatible method, hostile descriptor, call
-failure, exception of any class (including an attempted public A10 error), or
-non-`None` malformed/wrong return maps to the fixed integration error without
-value echo, payload, cause, context, passthrough, or partial-response salvage.
+available. A missing/call-incompatible method and a non-`None` malformed/wrong
+return map to the fixed integration error. Every ordinary exception `error`
+raised by provider-controlled behavior for which
+`isinstance(error, Exception)` is true, including one encountered during a
+hostile descriptor/hook, invocation, or access to provider-controlled values
+during result validation, maps to one new fixed integration error.
+
+A provider must not pass a public A10 error through the service boundary.
+Because `LeaderboardRequestError`, `LeaderboardResourceError`,
+`LeaderboardUnavailableError`, and `LeaderboardIntegrationError` inherit from
+`Exception`, a provider-raised instance of any of them is translated into one
+new fixed `LeaderboardIntegrationError` without passthrough or chaining. The
+translation exposes no provider text, value, payload, cause, context, or partial
+response.
+A10-created public failures retain their exact existing mappings; this
+provider-origin rule does not reclassify them.
+
+A `BaseException` value that is not an `Exception` instance propagates
+unchanged. A10 never catches or translates `KeyboardInterrupt`, `SystemExit`,
+or `GeneratorExit` and must not use `except BaseException` around provider
+method lookup, invocation, result validation, or the top-level public error
+translation boundary. A hostile descriptor or hook raising such a value also
+propagates unchanged. Once acquired, the concurrency permit is released in
+`finally` after success, public failure, translated ordinary `Exception`, and
+propagated non-`Exception` `BaseException`.
 
 The provider, not A10, selects published candidates; excludes unpublished,
 cancelled, withdrawn, superseded, stale, and infrastructure-incomplete
@@ -487,10 +508,12 @@ Exact-type and subclass rejection applies to ChallengeKey, sequences, request,
 cursor, snapshot, candidate, row, page, resource limits, and nested fields; it
 does not require the trusted concrete provider to subclass or be the Protocol.
 A10 performs no runtime-checkable provider introspection. Missing methods,
-hostile descriptors, provider call failures, and malformed returns are
-integration failures. Provider output is hostile until validated, and all
-accepted values are copied into immutable A10-owned projections with mutation
-isolation. Generic
+call-incompatible methods, and malformed returns are integration failures.
+Hostile descriptors/hooks and provider calls map to integration when they raise
+an ordinary `Exception`; a non-`Exception` `BaseException` propagates unchanged
+after `finally` releases the permit. Provider output is hostile until validated,
+and all accepted values are copied into immutable A10-owned projections with
+mutation isolation. Generic
 serialization of A5, A6, A7, or provider objects is forbidden. Rows, pages,
 cursors, errors, caches, and representations must not leak seeds, draws,
 roles, domains, contexts, entropy, hidden pack material, margins, stress,
@@ -527,11 +550,16 @@ mandatory package dependencies and support installed-wheel, outside-tree
 imports. Canonical future focused tests live only at
 `tests/cpu/test_leaderboard.py`; this documentation candidate creates no test
 evidence and checks no implementation criterion. The future suite must cover
-the exact Provider `None`/exception/empty-snapshot distinctions, Protocol versus
-concrete implementation, constructor, resource fields, schema literals,
-ordered exports, public validator reuse, u64 bounds, canonical zero,
-whole-snapshot ranking before slicing, and continuation page-size variation in
-addition to the existing fail-closed matrix.
+the exact Provider `None`/empty-snapshot distinction; RuntimeError and
+provider-raised public-A10-error translation to a new exact integration error
+without message/cause/context leakage; unchanged A10-created public-error
+mappings; unchanged KeyboardInterrupt/SystemExit propagation and unchanged
+GeneratorExit propagation where practical; capacity release after translated
+`Exception` and propagated non-`Exception` `BaseException`; a source guard
+forbidding `except BaseException`; Protocol versus concrete implementation;
+constructor, resource fields, schema literals, ordered exports, public validator
+reuse, u64 bounds, canonical zero, whole-snapshot ranking before slicing, and
+continuation page-size variation in addition to the existing fail-closed matrix.
 
 ## 5.7 Maturity ceiling and deferrals
 
