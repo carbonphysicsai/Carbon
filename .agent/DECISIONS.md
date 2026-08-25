@@ -1,5 +1,411 @@
 # Agent decisions log
 
+## 2026-08-25 — A10 bounded fixture-leaderboard contract candidate
+
+**Repository truth, status, and scope.** A fresh fetch/prune resolved
+origin/main to exact commit
+f308281e69580216d5ebf5ec94a9d6c069cf1a56, tree
+a2875c0b12caf7d4c07316626c218c55f3eb77ea, and subject
+“Merge pull request #35 from carbonphysicsai/agent/a9-closeout”. Its ordered
+parents are 0099a198bf19845390a0a12825eac0eeef06ffd2 and exact A9 closeout
+head 3ed12f1c3f993da29955a6b2db7a2b38ee9e2575. The second parent matches
+origin/agent/a9-closeout. The starting worktree was clean.
+
+All GitHub pull requests, fetched branches, commits outside current main,
+plans, tickets, and current source were searched for A10, leaderboard,
+orientation, ratification, implementation, and repair work. No open pull
+request, A10 branch, A10 plan, A10 test, A10 implementation, or other active
+A10 candidate exists. The sole fetched branch not merged into origin/main is
+unrelated symbolic-numeric design work. The current carbon/leaderboard package
+contains only its one-line A0 deferred marker. A10, A11, and A12 are todo, and
+all five legacy A10 ticket boxes were unchecked before this candidate.
+
+This eight-path documentation candidate adds the A10 plan and reconciles only
+the decision log, A10 ticket, constitutional overlay, agent-pack guidance,
+current and historical maturity ledgers, and defensibility register. It
+changes no WAVE board, Python, test, fixture, dependency, packaging, workflow,
+CI, quality baseline, A0--A9 ticket/plan/behavior/maturity, or A11/A12 file. It
+implements and tests nothing.
+
+~~~text
+A10 SPECIFIED / RATIFIED: pending merge of this documentation PR
+A10 IMPLEMENTED: NO
+A10 TESTED: NO
+A10 SCIENTIFICALLY_QUALIFIED: NO
+A10 SECURITY_QUALIFIED: NO
+A10 NETWORK_QUALIFIED: NO
+A10 COMMERCIALLY_VALIDATED: NO
+A10 PRODUCTION_QUALIFIED: NO
+A10 WAVE STATUS: todo
+A11 WAVE STATUS: todo
+A12 WAVE STATUS: todo
+~~~
+
+**Conflict classification.** The current A3 ChallengeKey, A5 ScoreStatus and
+sole-score-authority boundary, A6 disclosure boundary, A7 SubmissionId,
+constitutional invariants, and fixture/non-emission maturity ceiling are
+NO_CONFLICT. The pre-ratification A10 ticket's alternative list/get operation,
+hotkey-or-anonymized identity, timestamp, old test path, and ambiguous
+fixture-or-official mode, together with the absent detailed A10 plan, are
+DOCUMENTATION_LAG and are replaced only for A10 by A10-R1--A10-R17 below. The
+absent A10 implementation and tests are IMPLEMENTATION_LAG, not evidence that
+the legacy script implements A10.
+
+The historical scripts/generate_leaderboard.py, validator/neuron code,
+Landscape material, direct score-to-emission language, and generic public
+leaderboard prose are archaeology or superseded whenever they conflict with
+this contract. They are neither imported nor repaired here. A production
+publication source, official identity/disclosure policy, official score
+precision/cadence, adaptive-query policy, and every frontier, Product
+Qualification, settlement, chain, weight, and emission decision are
+NEW_OWNER_DECISION_REQUIRED for later separately authorized work. No migration
+is required for this documentation-only candidate because no A10
+implementation exists. Production remains fail closed.
+
+**A10-R1 — Bounded fixture-only scope and maturity ceiling.** Wave-A A10 is
+only a bounded, in-process projection over an injected fixture publication
+snapshot. It provides no HTTP, REST, GraphQL, web UI, HTML, filesystem
+publication, network server, chain access, Bittensor access, persistence,
+scheduler, background refresh, or current-time behavior.
+
+A10 publishes no official or LIVE leaderboard. An absent official publication
+feed means that an official board is unavailable; it must never be represented
+as an empty authoritative board. A future official publication feed, provider,
+service, request, row, page, cursor, identity policy, precision policy, and
+cadence require a separate owner-ratified contract and nominal types.
+
+**A10-R2 — Nominal types and single service operation.** The future
+implementation uses nominal A10 fixture-only request, service, provider,
+candidate, snapshot, row, page, sequence, cursor, resource, and error types.
+It must not accept a caller-controlled mode string such as
+mode="fixture|official" and must not make fixture/official selection a field,
+flag, enum branch, or alias.
+
+The only operation is:
+
+~~~text
+FixtureLeaderboardService.list_entries(
+    request: ListFixtureLeaderboardRequest,
+) -> FixtureLeaderboardPage
+~~~
+
+The request binds one exact A3 ChallengeKey, one exact positive built-in
+page_size, and an opaque LeaderboardCursor or None. It has no requester,
+identity, mode, search, or filter field.
+
+A10 does not ratify get(submission_id), global listing, cross-Challenge
+listing, identity filtering, hotkey lookup, participant lookup,
+score-threshold search, timestamp search, total-count lookup, or any alias for
+those operations.
+
+**A10-R3 — Injected publication-provider seam.** Trusted composition injects
+one exact A10 FixtureLeaderboardProvider protocol. The recommended future
+operation is:
+
+~~~text
+get_snapshot(
+    challenge_key: ChallengeKey,
+    snapshot_sequence: LeaderboardSnapshotSequence | None,
+) -> FixtureLeaderboardCandidateSnapshot
+~~~
+
+The provider receives the request's exact ChallengeKey and either no snapshot
+sequence for the first page or the exact cursor-bound snapshot sequence for a
+continuation. It supplies an exact, separately ratified fixture publication
+projection. A10 validates and copies that projection; it does not discover,
+construct, repair, or publish candidate records.
+
+The provider, not A10, owns selecting published candidates; excluding
+unpublished, cancelled, withdrawn, superseded, and stale records; consulting
+A3 fixture eligibility; copying only separately authorized A5/A6/A7 fields;
+assigning fixture publication and snapshot sequences; and retaining the exact
+bounded snapshots required by active cursors.
+
+A10 must not inspect or enumerate A5 InternalResult, A6 CardStore or private
+records, A7 private store or private records, A8 private execution outcomes,
+or any A9 priors, estimates, scaffolds, mock outputs, or result feedback. It
+does not modify A6 or A7. A future official provider/feed is unratified.
+
+**A10-R4 — Closed provider-candidate projection.** The recommended exact
+provider-only candidate fields are:
+
+~~~text
+submission_id: exact A7 SubmissionId
+result_id: exact bounded A6 result identifier
+challenge_key: exact A3 ChallengeKey
+scoring_pack_hash: exact A6 public score-pack hash
+score_status: exact A5 ScoreStatus
+overall_score: exact finite built-in float
+mandatory_gates_passed: exact built-in bool
+fixture_origin: exact built-in bool
+eligible_for_emission: exact built-in bool
+publication_sequence: exact nominal non-negative integer
+~~~
+
+SubmissionId and result_id exist only to validate provider integration and
+snapshot uniqueness. Neither may appear in any public row, page, cursor,
+error, representation, or other observable A10 object.
+
+This candidate projection is not a second SubmissionId type, lifecycle, score
+engine, card schema, result store, or publication store. A10 gives it no write
+authority and persists none of it.
+
+**A10-R5 — Exact public row and page allow-lists.** A future fixture row
+contains exactly these public values and no others:
+
+~~~text
+rank
+challenge_key: exact ChallengeKey
+scoring_pack_hash
+overall_score
+mandatory_gates_passed
+publication_sequence
+fixture_origin
+eligible_for_emission
+~~~
+
+The row's ChallengeKey is the exact A3 value bound to the request and snapshot.
+Its mandatory_gates_passed is always True, fixture_origin is always True, and
+eligible_for_emission is always False.
+
+The page contains only a schema version, exact ChallengeKey, exact
+scoring_pack_hash, exact LeaderboardSnapshotSequence, immutable tuple of the
+allow-listed rows, next opaque cursor or None, fixture_origin=True, and
+eligible_for_emission=False. It exposes no total row count.
+
+Rows, pages, cursors, errors, and representations omit requester, hotkey,
+wallet, public participant ID, anonymized ID, SubmissionId, result_id,
+timestamp, component scores, gate IDs, gate counts, failure tags, private
+diagnostics, margins, stress values, fee/payment fields, rank delta,
+improvement history, submission count, win rate, data-source labels, and
+provider metadata.
+
+**A10-R6 — Identity boundary.** Where surrounding trusted composition already
+uses RequesterIdentity, it remains only a structural requester binding, not
+authentication proof and not a public hotkey. A10 neither imports it nor puts
+it in the list request. Wave A publishes no participant field and performs no
+anonymization. It invents no anonymization key, stability period, rotation
+policy, or cross-Challenge correlation policy. Identity creates no
+lookup/filter/grouping semantics. There is one row per provider-approved
+published submission, not one row per requester, identity, wallet, or hotkey.
+
+**A10-R7 — Provider-owned sequence, no time.** Wave A exposes no timestamp and
+must not access current time. PublicationSequence and
+LeaderboardSnapshotSequence are distinct nominal provider-owned non-negative
+integer sequences. Each is monotonic only within one exact fixture Challenge
+publication stream. Neither has wall-clock, chain-height, finality, A7
+lifecycle, settlement, rank-improvement, or duration meaning. A10 never
+generates either sequence.
+
+**A10-R8 — Eligibility is closed and fail-closed.** A provider candidate may
+rank only when all of the following hold:
+
+- score_status is exactly ScoreStatus.SCORED;
+- mandatory_gates_passed is exact True;
+- overall_score is an exact finite built-in float;
+- overall_score is in the closed interval 0.0 through 1.0;
+- fixture_origin is exact True;
+- eligible_for_emission is exact False;
+- ChallengeKey exactly equals the request and snapshot ChallengeKey;
+- scoring_pack_hash exactly equals the snapshot score-pack hash; and
+- submission_id, result_id, and publication_sequence are each unique within
+  the whole snapshot.
+
+MANDATORY_GATE_FAILED, PACK_NOT_READY, unpublished, cancelled, withdrawn,
+superseded, infrastructure-incomplete, mock, prior, estimate, and scaffold
+values are excluded. Fees, payments, sponsor values, and customer values are
+never eligibility or rank inputs. A mandatory-gate failure must never become
+an ordinary ranked zero. No current result is eligible for an official board.
+
+The provider normally excludes non-published/ineligible lifecycle state before
+return. If malformed provider output nevertheless contains any candidate that
+violates this closed contract, A10 rejects the whole snapshot as an integration
+failure. It must not silently filter malformed provider output into an
+apparently authoritative partial page.
+
+**A10-R9 — A5 remains sole score and gate authority.** A10 consumes the exact
+provider-projected overall_score and scoring_pack_hash. It must not recompute,
+normalize, aggregate, rescale, round, quantize, predict, estimate, or otherwise
+transform a score.
+
+The only public gate summary is mandatory_gates_passed=True. Gate IDs,
+optional-gate outcomes, failed-gate counts, margins, stress values, component
+scores, failure tags, and diagnostics remain private and absent. Fixture
+scores retain their exact finite built-in-float precision. Official score
+precision, publication cadence, and adaptive-query controls are deferred.
+
+**A10-R10 — Deterministic order, ties, ranks, and duplicates.** Whole-snapshot
+order is overall_score descending. Exact built-in-float equality creates a
+tie. Tied rows share competition rank, so ranks follow 1, 1, 3.
+PublicationSequence ascending provides deterministic order within an exact
+tie without changing the shared rank.
+
+A duplicate SubmissionId, result_id, or PublicationSequence fails the entire
+snapshot. Mixed ChallengeKey or scoring_pack_hash values also fail the entire
+snapshot. No partial page survives malformed provider output.
+
+A10 performs no best-per-requester, best-per-hotkey, participant aggregation,
+decay, win-rate, submission-count, rank-delta, improvement-history, or
+fee-based ordering. The provider owns retry, republication, withdrawal, and
+supersession selection.
+
+**A10-R11 — Bounded snapshot pagination.** ListFixtureLeaderboardRequest binds
+the exact ChallengeKey, an exact positive built-in page_size, and an opaque
+LeaderboardCursor or None. Construction injects exact resource limits for:
+
+- maximum page size;
+- maximum snapshot rows;
+- maximum cursor bytes;
+- maximum string bytes;
+- maximum response bytes; and
+- maximum concurrent calls.
+
+Every configured numeric limit is an exact positive built-in integer, with
+bool and subclasses rejected. This contract ratifies no production numeric
+value, default, environment lookup, or adaptive rate policy.
+
+The cursor binds only public-safe values:
+
+~~~text
+cursor schema
+fixture-board discriminator fixed by the service type
+exact ChallengeKey
+exact scoring_pack_hash
+exact LeaderboardSnapshotSequence
+next offset
+~~~
+
+It contains no SubmissionId, result_id, requester, identity, seed, draw, role,
+domain, context, entropy, hidden pack material, timestamp, path, provider
+metadata, provider reference, or provider object. Its encoding is opaque to
+callers; A10 must not expose a generic decoded mapping or hostile values in
+its representation.
+
+The service owns no durable cache, database, filesystem store, scheduler,
+background refresh, or wall-clock expiry. The provider owns bounded in-process
+fixture snapshot retention. A missing or stale cursor snapshot maps to the
+same fixed unavailable error. Continuations must bind the exact immutable
+snapshot, ChallengeKey, score-pack hash, and next offset; they cannot drift to
+a later snapshot or another Challenge.
+
+**A10-R12 — Fixed public error hierarchy.** The only future public hierarchy,
+codes, and messages are:
+
+~~~text
+LeaderboardError
+
+LeaderboardRequestError
+    code: leaderboard.request.invalid
+    message: Leaderboard request is invalid.
+
+LeaderboardResourceError
+    code: leaderboard.resource.exhausted
+    message: Leaderboard resource limit was exceeded.
+
+LeaderboardUnavailableError
+    code: leaderboard.fixture.unavailable
+    message: Fixture leaderboard is unavailable.
+
+LeaderboardIntegrationError
+    code: leaderboard.integration.failed
+    message: Leaderboard provider response is invalid.
+~~~
+
+Every instance uses its exact fixed code and message. Errors never echo user
+or provider values, invoke hostile repr or str, or expose a cause/context
+chain. A10 exposes no NotFound distinction or existence oracle. Absent, stale,
+unpublished, and ineligible fixture-provider state reported without a returned
+snapshot collapse to the same unavailable class. If a provider instead
+returns a purported snapshot containing any such candidate, that snapshot is
+malformed and fails the whole operation as the fixed integration class; A10
+never silently filters it. A resource-meter breach remains the fixed resource
+class.
+
+**A10-R13 — Hostile input, provider output, and mutation isolation.** All
+untrusted public types, built-in fields, provider types, snapshot members, and
+sequence members require exact-type validation; subclasses are rejected.
+Provider output is hostile or malformed until the entire bounded snapshot has
+been validated.
+
+The service makes immutable positive copies of the exact allow-listed values.
+Caller/provider mutation before, during, or after a call must not alter a
+validated returned page or retained cursor binding. No generic serializer may
+traverse A5, A6, A7, or provider objects.
+
+Seeds, draws, roles, domains, contexts, entropy, hidden pack material, margins,
+stress values, diagnostics, fees, paths, private timestamps, hidden identity,
+and every other non-allow-listed field are forbidden through rows, pages,
+cursors, errors, caches, debug output, and representations.
+
+**A10-R14 — Minimal dependency boundary.** The smallest recommended future
+layout is:
+
+~~~text
+carbon/leaderboard/
+    __init__.py
+    model.py
+    providers.py
+    service.py
+~~~
+
+Allowed imports are only the Python standard library,
+carbon.registry.ChallengeKey, carbon.scoring.ScoreStatus, and
+carbon.fees.SubmissionId.
+
+Forbidden imports include A5 InternalResult or ScoreEngine; A6 CardStore or
+private records; A7 private store, private records, or enumeration; A8
+execution objects; A9 service, providers, estimates, priors, scaffolds, mock
+outputs, or result models; Landscape; emission or chain packages; Bittensor;
+optional scientific dependencies; web or HTML frameworks; and filesystem,
+environment, or current-time modules.
+
+A10 preserves zero mandatory package dependencies and must import from an
+installed wheel outside the checkout. The provider-integration identifiers do
+not authorize private-store access from A10.
+
+**A10-R15 — Future test and acceptance contract, not current evidence.** The
+canonical future focused test path is tests/cpu/test_leaderboard.py. This
+documentation candidate creates or changes no test and runs no implementation
+test as evidence.
+
+The future implementation must prove exact public types/exports, hostile-input
+and subclass rejection, stable error codes/messages/chains, exact Challenge
+and score-pack isolation, closed eligibility, fixture/official separation,
+deterministic descending order, competition ties, duplicate rejection,
+bounded pagination and cursor binding, snapshot mutation isolation, no
+existence oracle, complete leakage exclusions, and no private A5--A9 access.
+
+It must also prove no optional-heavy, web, HTML, filesystem, current-time,
+Landscape, neuron, Bittensor, chain, weight, or emission dependency; installed
+wheel import; full CPU regression; Ruff; Black; and no new quality debt. Every
+implementation DoD box remains unchecked until separate implementation,
+tests, independent review, explicit human authorization, and merge produce
+actual evidence.
+
+**A10-R16 — Explicit deferrals and fail-closed production boundary.** This
+contract does not ratify or implement a production publication feed, official
+or LIVE leaderboard, public identity, anonymization, timestamps, official
+score precision/cadence, frontier nomination or promotion, FrontierRecord,
+FrontierAdvanceEvent, Product Qualification, commercial rank, settlement,
+chain, weights, emissions, A11 logging/metrics, or A12 aggregate invariants.
+
+No fixture row or page is official, LIVE, emission-eligible, frontier evidence,
+Product Qualification, commercial ranking, settlement authority, chain input,
+weight input, or emission authority. Without separately ratified and qualified
+production components, production remains unavailable and fail closed.
+
+**A10-R17 — Ratification and sequencing gate.** These decisions become current
+repository authority only after this documentation PR receives independent
+review, fresh explicit human authorization, and normal merge. Draft
+publication is not ratification, implementation, testing, readiness, or merge
+authorization.
+
+A10 remains todo in .agent/WAVE.md and no implementation box is checked.
+A11/A12 remain todo and untouched. A later A10 implementation must begin in a
+separate bounded task/branch after merge and fresh orientation; it may not
+infer any deferred official, identity, security, frontier, commercial,
+network, chain, weight, or emission policy from this fixture-only contract.
+
 ## 2026-08-24 — A9 bounded Miner MCP Wave-A control-plane contract candidate
 
 **Repository truth, status, and scope.** A fresh fetch/prune resolved

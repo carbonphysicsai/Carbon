@@ -206,21 +206,260 @@ Future Landscape outputs may inform priors/hypotheses but remain leakage-governe
 
 # 5. A10 constitutional contract
 
-Leaderboard is a public projection of Challenge-specific results.
+A10 remains `todo` and unimplemented. Its exact bounded contract becomes
+specified/ratified only after the documentation-only candidate is independently
+reviewed, explicitly human-authorized, and merged. Documentation is not A10
+implementation or test evidence.
+
+## 5.1 Bounded Wave-A surface
+
+A10 Wave A is only an in-process fixture leaderboard projection. It provides
+no HTTP, REST, GraphQL, web UI, HTML, filesystem publication, network server,
+chain or Bittensor access, persistence, scheduler, background refresh, or
+current-time behavior. It is neither an official nor a LIVE leaderboard. An
+absent official publication feed means that an official board is unavailable;
+it must never be represented as an empty authoritative board.
+
+The future service, provider, candidate, row, and page are distinct nominal
+fixture-only types. A caller-supplied string cannot relabel any of them as an
+official publication type.
+
+The sole future operation is:
+
+```text
+FixtureLeaderboardService.list_entries(
+    request: ListFixtureLeaderboardRequest,
+) -> FixtureLeaderboardPage
+```
+
+The request binds one exact A3 `ChallengeKey`, one exact positive built-in
+`page_size`, and an opaque `LeaderboardCursor` or `None`. There is no generic
+caller-selected `mode="fixture|official"`, `get(submission_id)`, global or
+cross-Challenge listing, identity/hotkey/participant lookup, score-threshold
+search, or timestamp search. A future official publication service requires a
+separate contract, nominal types, provider/feed, and qualification path.
+
+## 5.2 Provider-owned publication projection
+
+Trusted composition injects an exact A10 `FixtureLeaderboardProvider` with the
+future seam:
+
+```text
+get_snapshot(
+    challenge_key: ChallengeKey,
+    snapshot_sequence: LeaderboardSnapshotSequence | None,
+) -> FixtureLeaderboardCandidateSnapshot
+```
+
+The provider, not A10, selects published candidates; excludes unpublished,
+cancelled, withdrawn, superseded, stale, and infrastructure-incomplete
+records; consults A3 fixture eligibility; copies only authorized A5/A6/A7
+facts; assigns fixture publication and snapshot sequences; and retains the
+exact bounded snapshots required by active cursors. A10 must not inspect or
+enumerate A5 `InternalResult`, A6 `CardStore` or private records, A7 private
+store or records, A8 private execution outcomes, or A9 priors, estimates,
+scaffolds, mock outputs, or result feedback.
+
+The provider-only candidate projection contains exactly:
+
+- the exact A7 `SubmissionId`;
+- the exact bounded A6 `result_id` value;
+- the exact A3 `ChallengeKey`;
+- the exact A6 public `scoring_pack_hash`;
+- the exact A5 `ScoreStatus`;
+- the exact finite A5/A6 `overall_score`;
+- exact `mandatory_gates_passed`, `fixture_origin`, and
+  `eligible_for_emission` Booleans; and
+- the provider-owned nominal non-negative `PublicationSequence`.
+
+`submission_id` and `result_id` are integration-only values. They never cross
+into a row, page, cursor, error, representation, or other public projection.
+The candidate is not a second submission identity/lifecycle, scoring engine,
+card schema, or publication store.
+
+## 5.3 Eligibility, score, and ordering
+
+A candidate may rank only when its status is exactly `ScoreStatus.SCORED`, all
+mandatory gates passed, its score is an exact finite built-in float in
+`[0.0, 1.0]`, `fixture_origin is True`, `eligible_for_emission is False`, and
+its Challenge and scoring-pack bindings exactly match the requested snapshot.
+Within the snapshot, `SubmissionId`, `result_id`, and `PublicationSequence`
+must each be unique. Any duplicate, mixed Challenge, mixed scoring-pack hash,
+or otherwise malformed provider output fails the whole snapshot; no partial
+page survives.
+
+`MANDATORY_GATE_FAILED`, `PACK_NOT_READY`, unpublished, cancelled, withdrawn,
+superseded, stale, infrastructure-incomplete, mock, prior, estimate, or
+scaffold values are excluded. A mandatory-gate failure must not become an
+ordinary ranked score of zero. Fees, payments, sponsor value, and customer
+value are never eligibility or ordering inputs. No current result is eligible
+for an official board.
+
+A5 remains the sole scoring authority. A10 consumes the exact provider-copied
+score and scoring-pack hash and never recomputes, normalizes, aggregates,
+rescales, rounds, quantizes, predicts, or estimates a score. Fixture scores may
+retain exact precision; official precision, cadence, and adaptive-query
+controls remain deferred.
+
+Rows order by `overall_score` descending. Exact float equality creates a tie;
+tied rows share competition rank (`1, 1, 3`) and are ordered by
+`PublicationSequence` ascending without changing rank. There is one row per
+provider-approved published submission. No best-per-requester/hotkey,
+participant aggregation, decay, win rate, submission count, rank delta,
+improvement history, or fee-based ordering exists. Retry, republication,
+withdrawal, and supersession selection remain provider-owned.
+
+## 5.4 Positive public allow-list
+
+The future immutable row allow-list is exactly:
+
+```text
+rank
+challenge_key: exact ChallengeKey
+scoring_pack_hash
+overall_score
+mandatory_gates_passed
+publication_sequence
+fixture_origin
+eligible_for_emission
+```
+
+The future page contains only its schema version, exact `ChallengeKey`, exact
+scoring-pack hash, exact `LeaderboardSnapshotSequence`, immutable row tuple,
+next cursor or `None`, `fixture_origin=True`, and
+`eligible_for_emission=False`. It exposes no total row count.
+
+Rows and pages omit requester, hotkey, wallet, public/anonymized participant
+identity, `SubmissionId`, `result_id`, timestamp, component scores, gate IDs or
+counts, optional-gate outcomes, failure tags, private diagnostics, margins,
+stress values, fee/payment data, rank delta, improvement history, submission
+count, win rate, data-source labels, and provider metadata.
+`RequesterIdentity` remains an upstream structural requester binding, not
+authentication proof or a public hotkey. Wave A exposes no participant field
+and performs no anonymization; no anonymization key, stability/rotation period,
+or cross-Challenge correlation policy is invented.
+
+## 5.5 Time, cursors, snapshots, and resources
+
+Provider-owned `PublicationSequence` and `LeaderboardSnapshotSequence` are
+nominal non-negative integers, monotonic only within one exact fixture
+Challenge publication stream. They carry no wall-clock, chain-height,
+finality, A7-lifecycle, or settlement meaning, and A10 never generates them.
+A10 exposes no timestamp and accesses no current time.
+
+An opaque cursor binds only its schema, the fixture-board discriminator fixed
+by the service type, exact `ChallengeKey`, scoring-pack hash, snapshot
+sequence, and next offset. It contains no IDs, requester/identity, seed, draw,
+context, private pack material, timestamp, path, or provider object. The
+provider retains bounded in-process fixture snapshots; the service owns no
+durable cache, database, filesystem store, expiry clock, or refresh loop. A
+missing and a stale cursor snapshot map to the same unavailable result.
+
+Construction injects exact positive built-in integer resource limits for
+maximum page size, snapshot rows, cursor bytes, string bytes, response bytes,
+and concurrent calls; bool values and subclasses are rejected. This contract
+ratifies no production numeric value.
+
+## 5.6 Fail-closed boundary
+
+The future fixed public hierarchy is:
+
+```text
+LeaderboardError
+
+LeaderboardRequestError
+    leaderboard.request.invalid
+    Leaderboard request is invalid.
+
+LeaderboardResourceError
+    leaderboard.resource.exhausted
+    Leaderboard resource limit was exceeded.
+
+LeaderboardUnavailableError
+    leaderboard.fixture.unavailable
+    Fixture leaderboard is unavailable.
+
+LeaderboardIntegrationError
+    leaderboard.integration.failed
+    Leaderboard provider response is invalid.
+```
+
+Errors use only those fixed codes/messages, accept no diagnostic payload, echo
+no caller/provider value, never invoke hostile `repr`/`str`, suppress cause and
+context chaining, and expose no not-found or other existence oracle. Absent,
+stale, unpublished, and ineligible fixture-provider state reported without a
+snapshot collapses to the same unavailable error. If a provider returns a
+purported candidate in any such state, the snapshot is malformed and fails the
+complete operation as an integration error; A10 never silently filters it.
+
+All public/provider boundaries require exact types and reject subclasses.
+Provider output is hostile until validated, and all accepted values are copied
+into immutable A10-owned projections with mutation isolation. Generic
+serialization of A5, A6, A7, or provider objects is forbidden. Rows, pages,
+cursors, errors, caches, and representations must not leak seeds, draws,
+roles, domains, contexts, entropy, hidden pack material, margins, stress,
+diagnostics, fees, paths, private timestamps, or hidden identities.
+
+The smallest future implementation remains:
+
+```text
+carbon/leaderboard/
+    __init__.py
+    model.py
+    providers.py
+    service.py
+```
+
+It may use only the standard library and the minimum public `ChallengeKey`,
+`ScoreStatus`, and `SubmissionId` types. It must not import A5
+`InternalResult`/`ScoreEngine`, A6/A7 private stores or records, A8/A9 result
+or service models, Landscape, neurons, emissions, weights, chain, Bittensor,
+optional scientific dependencies, web/HTML frameworks, filesystem,
+environment, or current-time modules. The implementation must preserve zero
+mandatory package dependencies and support installed-wheel, outside-tree
+imports. Canonical future focused tests live only at
+`tests/cpu/test_leaderboard.py`; this documentation candidate creates no test
+evidence and checks no implementation criterion.
+
+## 5.7 Maturity ceiling and deferrals
+
+```text
+A10 SPECIFIED / RATIFIED: pending merge of this documentation PR
+A10 IMPLEMENTED: NO
+A10 TESTED: NO
+A10 SCIENTIFICALLY_QUALIFIED: NO
+A10 SECURITY_QUALIFIED: NO
+A10 NETWORK_QUALIFIED: NO
+A10 COMMERCIALLY_VALIDATED: NO
+A10 PRODUCTION_QUALIFIED: NO
+A10 WAVE STATUS: todo
+A11--A12: todo
+```
+
+Production publication feed, official/LIVE leaderboard, public identity,
+anonymization, timestamps, official score precision/cadence/adaptive-query
+policy, frontier nomination or promotion, `FrontierRecord`,
+`FrontierAdvanceEvent`, Product Qualification, commercial rank, settlement,
+chain, weights, emissions, A11 logging/metrics, and A12 aggregate invariants
+remain explicitly deferred. Production remains fail closed.
 
 Do not conflate:
 
 ```text
-leaderboard rank
+fixture leaderboard rank
 with
-FrontierRecord
+official publication
+with
+FrontierRecord or FrontierAdvanceEvent
 with
 Product Qualification
 with
-commercial ranking
+commercial ranking or economic entitlement
 ```
 
-A later frontier-promotion layer may use ordinary scores as nomination evidence, but the leaderboard itself cannot create a `FrontierAdvanceEvent`.
+A later frontier-promotion layer may use separately qualified ordinary scores
+as nomination evidence, but this fixture projection creates no frontier,
+product, commercial, network, settlement, weight, or emission authority.
 
 ---
 
