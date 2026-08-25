@@ -1,18 +1,30 @@
 # Carbon’s Independent Physics Exam
-## Why the generator/reference design is appropriate for the incentive mechanism
+## Burgers v1: how Carbon creates a fresh, independently gradeable physics exam
 
-Paul,
+**Status:** Pre-LIVE scientific design note  
+**Purpose:** Explain, as clearly as possible, how Carbon can evaluate model-construction strategies against reference data that is demonstrably close enough to the physical solution to support economic ranking.  
+**Important:** This document defines the proposed scientific method. **The Burgers-v1 Validation Dossier is the artifact that must supply the measured evidence before LIVE.**
 
-I thought more about the question you raised around using solver data as the “truth” source.
+---
 
-I think the cleanest way to explain Carbon is to separate two jobs that I blurred together on the call:
+## Executive summary
 
-> **The generator creates the questions.  
-> The reference process creates the answer key.**
+Carbon does **not** treat any numerical solver as truth by definition.
 
-That distinction is the core of the design.
+For each Challenge, Carbon freezes a physical problem, a population of cases, a procedural case generator, a qualified reference path, a measurement suite, and a validator resource contract **before competition begins**. The reference must earn its authority through independent verification and uncertainty characterization. Only differences that are demonstrably larger than the combined numerical and statistical resolution of the exam are allowed to create a scientific winner or economic consequence.
 
-For the official exam, all of this happens on the validator side through pinned code rather than through manual case selection:
+Burgers v1 is the first concrete proof of this design because the reference is unusually strong: Carbon can procedurally generate fresh periodic Burgers initial conditions, use the periodic **Cole–Hopf solution** as the routine primary reference, and qualify that implementation against a methodologically independent, refined conservative solver.
+
+The central separation is:
+
+> **The case generator creates the questions.**  
+> **The reference process creates the answer key.**
+
+The generator is qualified by asking whether it samples the **registered problem distribution** correctly. The reference is qualified by asking whether its answers are accurate enough, across that distribution, for the scientific distinctions Carbon intends to reward.
+
+---
+
+# 1. The full validator-side exam flow
 
 ```text
 MINER
@@ -20,6 +32,7 @@ submits a model-construction / training strategy
         ↓
 VALIDATOR
 independently reconstructs / trains the candidate
+under the registered resource contract
         ↓
 validator derives protected EVAL / STRESS seed material
         ↓
@@ -34,13 +47,11 @@ seed → fresh canonical Burgers initial condition u0(x)
                                                      ↑
                                    independent refined solver qualified this path
         ↓
-VALIDATOR MEASUREMENTS
-compare û(x,T), uref(x,T), and u0(x)
+VALIDATOR-OWNED MEASUREMENTS
         ↓
 mandatory physics gates
-+ soft physics fidelity
-+ robustness across hard strata
-+ reference-field accuracy
+        ↓ pass
+soft physics + robustness + accuracy
         ↓
 ScoreInput
         ↓
@@ -49,300 +60,140 @@ registered Score Pack / ScoreEngine
 scientific evaluation result
 ```
 
-The miner therefore does **not** submit a self-graded model and does **not** control the official exam realization. The validator reconstructs the candidate, generates the hidden physical cases, computes the qualified reference for those same cases, and performs the registered measurements.
+The independent witness is primarily a **qualification instrument**. It does not need to run in the hot path for every miner evaluation once the exact pinned Cole–Hopf implementation has passed the Validation Dossier for the registered envelope.
+
+The authoritative LIVE path is therefore intended to be computationally simple:
+
+```text
+hidden seed
+   ↓
+fresh physical case
+   ↓
+qualified Cole–Hopf reference + reconstructed candidate
+   ↓
+validator measurements
+   ↓
+registered scoring rules
+```
 
 ---
 
-## 1. What Carbon is actually trying to prove
+# 2. What Carbon is actually claiming
 
-Carbon does **not** need to prove universal physical truth.
+Carbon does not need universal or metaphysical physical truth.
 
-For each Challenge, it needs to establish something narrower:
+The relevant claim is narrower:
 
-> **For this exact physical problem, this exact population of cases, and this exact measurement process, the reference is accurate enough that Carbon can fairly distinguish candidate methods at the resolution being rewarded.**
+> **For this exact physical problem, this exact population of cases, this exact reference implementation, and this exact measurement process, the uncertainty is small enough that Carbon can distinguish candidate methods at the resolution being rewarded.**
 
-If Carbon cannot show that, then the exam should not create an economic winner.
+That claim is falsifiable.
 
-That is the standard I think the incentive mechanism needs.
+If the qualification campaign cannot demonstrate it, then the Challenge must remain pre-LIVE, narrow its envelope, coarsen its resolution, or return an indeterminate comparison.
+
+This is the key connection between the science and the incentive mechanism:
+
+> **Scientific resolution caps economic resolution.**
+
+Carbon must not pay for a distinction the exam cannot resolve.
 
 ---
 
-## 2. Why one solver should not automatically be “truth”
+# 3. What the incentive mechanism is not allowed to reward
 
-Your suggestion of using solver data directly as the grading reference makes sense operationally, especially for harder CFD or FEA problems.
+The official exam must not reward:
 
-But I do not think Carbon should treat one solver as truth **by definition**.
+- reproduction of one privileged numerical solver’s idiosyncratic error;
+- memorization or leakage of a fixed static benchmark;
+- a miner-controlled test distribution or answer key;
+- a physical-score advantage that sits below the numerical measurement floor;
+- a rank difference smaller than the demonstrated reconstruction + evaluation uncertainty;
+- performance gains produced by silently censoring hard cases or failed reference cases;
+- differences that disappear under fresh common evidence.
 
-A numerical solver still contains approximation choices:
+If any of these can determine an economic winner, the Challenge is not scientifically ready for LIVE use.
+
+---
+
+# 4. Why one solver should not automatically be “truth”
+
+Using high-fidelity solver data as the grading reference is often operationally sensible and will likely be necessary for future CFD, FEA, and multiphysics Challenges.
+
+But a numerical solver still contains approximation choices:
 
 - spatial discretization;
-- timestep;
+- timestep / temporal integration;
 - nonlinear and iterative tolerances;
-- numerical scheme;
-- mesh or grid;
+- numerical flux or scheme;
+- mesh / grid;
+- stabilization choices;
 - implementation details;
 - sometimes model-form assumptions.
 
-If Carbon simply says:
+If Carbon simply declares:
 
 ```text
 Solver X output = truth
 ```
 
-then the incentive mechanism is really rewarding:
+then the incentive mechanism is formally rewarding:
 
 ```text
 Who best reproduces Solver X?
 ```
 
-That may be close to the physical solution, but Carbon should demonstrate that rather than assume it.
+That may be an excellent proxy for the physical solution—but Carbon should **demonstrate the approximation quality**, not assume it.
 
-So the stronger architecture is:
+The stronger rule is:
 
-```text
-fresh physical case
-        ↓
-primary reference
-        ↓
-independent numerical / analytic check
-        ↓
-characterized uncertainty
-        ↓
-candidate grading
-```
+> **A solver may become the operational reference only after its uncertainty and failure regions are characterized tightly enough for the intended ranking decision.**
 
-For future industrial Challenges, the primary reference may absolutely be a high-fidelity solver.
-
-The difference is that the solver **earns authority** through verification and uncertainty characterization instead of receiving authority because of its name.
+For Burgers, Carbon can do better than relying on one solver because Cole–Hopf provides an analytic/semi-analytic route.
 
 ---
 
-# 3. Why Burgers is a good first proof
+# 5. Why Burgers is a good first proof
 
-For the first Challenge, Carbon can choose a problem where the reference is unusually strong.
-
-The proposed v1 problem is:
+The proposed first Challenge is
 
 \[
 u_t + u\,u_x = \nu u_{xx}
 \]
 
-with:
+on a 1D periodic domain, with:
 
-- a 1D periodic domain;
 - fixed viscosity \(\nu = 5\times10^{-3}\);
 - smooth periodic initial conditions;
-- a fixed prediction time \(T\).
+- a fixed prediction horizon \(T\);
+- a registered target population and stress strata;
+- a fixed candidate output contract.
 
-I would also recommend that the first version use **zero-mean initial conditions**.
+For v1, Carbon should use **zero-mean initial conditions**:
 
-That removes a mostly trivial advective offset and makes the periodic Cole–Hopf construction cleaner.
+\[
+\langle u_0 \rangle = 0.
+\]
 
-The physical exam for one hidden case is:
+This should be a v1 requirement rather than an informal preference. The spatial mean is exactly conserved, while a non-zero mean mainly induces a Galilean translation. Zero mean therefore removes a largely trivial degree of freedom and makes the periodic Cole–Hopf construction cleaner and easier to qualify.
+
+The exam is then:
 
 ```text
-hidden eval seed
+hidden seed
     ↓
 fresh initial condition u0(x)
     ↓
     ├── candidate predicts û(x,T)
     │
-    ├── Cole–Hopf produces uref(x,T)
+    ├── qualified Cole–Hopf produces uref(x,T)
     │
-    └── independent high-resolution solver has qualified / cross-checked the reference path
+    └── independent solver has already challenged / qualified that reference path
 ```
-
-This is important:
-
-> **The case generator is not being “checked against truth.”**
-
-The case generator is checked against the **registered problem distribution**.
-
-The reference process is what is checked for numerical / analytic accuracy.
-
-Those are two different validation problems.
 
 ---
 
-# 4. The full submission and evaluation process
+# 6. The case generator: how the questions are created
 
-This is the complete logical flow Carbon is aiming for in Burgers v1.
-
-## Step 1 — Carbon freezes the scientific Challenge before competition
-
-Before miners compete, Carbon registers the things that define the exam:
-
-- the Burgers equation and fixed viscosity;
-- domain, boundary conditions, and output contract;
-- the target initial-condition population \(P(x)\);
-- the finite SamplingPlan \(Q(x)\), including ordinary and stress strata;
-- the exact case-generator version;
-- the qualified Cole–Hopf reference implementation;
-- the measurement definitions;
-- mandatory-gate thresholds;
-- soft-score transforms and weights;
-- the evaluation/reconstruction resource budget.
-
-These are versioned prospectively. They are not changed after seeing which miner performs best.
-
-## Step 2 — The miner submits a construction strategy, not an official answer key
-
-In the first bounded implementation, the miner submits a declarative training / construction strategy describing how to build the candidate within the allowed search space.
-
-The miner does **not** supply:
-
-- official evaluation cases;
-- official evaluation seeds;
-- official reference solutions;
-- official physics measurements;
-- self-reported scores.
-
-This keeps the producer separate from the judge.
-
-## Step 3 — The validator independently reconstructs the candidate
-
-The validator takes the submitted strategy and independently executes the registered training/reconstruction process under the Challenge resource contract.
-
-Conceptually:
-
-```text
-miner strategy
-     ↓
-validator-controlled fresh training realization
-     ↓
-independently reconstructed candidate
-```
-
-The candidate that is graded is therefore the result of the validator’s reconstruction of the submitted method, not an opaque artifact whose training history is controlled only by the miner.
-
-## Step 4 — The validator creates the hidden official exam
-
-For the official evaluation, the validator obtains protected role-separated random material and invokes the pinned case-generator code.
-
-Conceptually:
-
-```text
-protected EVAL / STRESS seed
-        ↓
-registered SamplingPlan chooses stratum
-        ↓
-registered Fourier coefficient distribution is sampled
-        ↓
-physical constraints / exclusions are applied
-        ↓
-canonical initial condition u0(x)
-```
-
-This happens in code. The validator is not manually choosing cases.
-
-The same exact seed/context and version pins reproduce the same canonical case afterward, while the miner cannot know the hidden realization before evaluation.
-
-## Step 5 — The validator computes the answer for that exact case
-
-The canonical case is then passed independently to the qualified reference implementation:
-
-```text
-u0(x)
-   ↓
-qualified periodic Cole–Hopf implementation
-   ↓
-uref(x,T)
-```
-
-For Burgers v1, the independent high-resolution numerical solver is primarily a **qualification witness**, not something that needs to run in the hot path for every miner evaluation.
-
-Before LIVE, Carbon uses the witness across a registered audit campaign to establish where the exact pinned Cole–Hopf implementation agrees, where it becomes numerically sensitive, and what uncertainty floor should be carried into evaluation.
-
-Once qualified, Cole–Hopf can be the routine validator-side reference for fresh hidden cases.
-
-## Step 6 — The same hidden case is given to the reconstructed candidate
-
-The validator materializes the same canonical physical case into the candidate’s required representation and obtains:
-
-\[
-\hat u(x,T)
-\]
-
-The reference and candidate therefore solve the **same physical problem**, even if their internal numerical/model representations are completely different.
-
-## Step 7 — Validator-owned measurement code computes the scientific evidence
-
-The validator now has:
-
-```text
-initial condition     u0(x)
-candidate prediction  û(x,T)
-qualified reference   uref(x,T)
-```
-
-From these, registered measurement code computes the evidence needed by the Challenge, for example:
-
-- finite-output status;
-- mean-conservation defect;
-- energy non-increase status;
-- maximum-principle consistency;
-- field error versus the reference;
-- field-error statistics inside each registered stress stratum.
-
-The ScoreEngine does **not** receive raw fields and invent scientific measurements. The measurement layer converts the physical evidence into the authorized scalar inputs defined by the Score Pack.
-
-## Step 8 — Mandatory admissibility is applied before ranking
-
-If the candidate violates a registered mandatory scientific gate, the candidate is inadmissible for that evaluation.
-
-Conceptually:
-
-```text
-mandatory physics failure
-        ↓
-combined score = 0
-not eligible for the scientific reward path
-```
-
-High average field accuracy cannot compensate for a mandatory physical failure.
-
-## Step 9 — Admissible candidates receive physics, robustness, and accuracy scores
-
-For candidates that pass the mandatory gates, the validator constructs the authorized `ScoreInput` and the registered Score Pack produces:
-
-```text
-S_physics
-S_robustness
-S_accuracy
-        ↓
-weighted geometric combination
-        ↓
-combined scientific score
-```
-
-This is the ordinary Challenge evaluation result.
-
-## Step 10 — Ordinary ranking nominates; it does not automatically prove a frontier advance
-
-A high ordinary score identifies promising contenders.
-
-For a later frontier-replacement decision, the incumbent and shortlisted challenger should be reconstructed/evaluated on the **same fresh common promotion evidence**. A new frontier leader should only be declared when the registered superiority rule can distinguish the challenger beyond the qualified scientific-resolution band.
-
-So the intended chain is:
-
-```text
-ordinary hidden exam
-        ↓
-contender nomination
-        ↓
-common fresh promotion exam
-incumbent vs contender
-        ↓
-SUPERIOR / NOT_SUPERIOR / INDETERMINATE
-```
-
-A floating-point lead alone should not create a scientific frontier event.
-
----
-
-# 5. How the case generator itself is validated
-
-For Burgers, the generator can create the initial condition using a bounded periodic Fourier representation:
+For Burgers, the procedural generator can define the initial condition using a bounded periodic Fourier representation:
 
 \[
 u_0(x)
@@ -352,259 +203,381 @@ u_0(x)
 a_k\cos\left(\frac{2\pi kx}{L}\right)
 +
 b_k\sin\left(\frac{2\pi kx}{L}\right)
-\right]
+\right].
 \]
 
-The Challenge specification defines:
+The **Challenge specification**, not the generator code, defines:
 
-- the allowed modes \(K\);
-- the coefficient distributions;
+- allowed modes \(K\);
+- coefficient distributions;
+- correlations / conditional structure;
 - amplitude limits;
 - gradient limits;
 - spectral-complexity limits;
-- correlations;
-- excluded regimes;
-- ordinary and stress strata.
+- exclusions;
+- ordinary and stress strata;
+- target distribution \(P(x)\);
+- finite SamplingPlan \(Q(x)\).
 
-The generator then samples from that specification.
+At runtime the validator-side generator:
 
-We can directly test whether it does so correctly.
+1. receives protected role-separated seed material;
+2. selects the registered stratum according to \(Q(x)\);
+3. samples the Fourier coefficients from the registered conditional distribution;
+4. applies deterministic envelope / exclusion rules;
+5. constructs \(u_0(x)\);
+6. verifies zero mean, periodicity, finiteness, support, and structural invariants;
+7. binds the coefficients, physical case, versions, role, and provenance into an immutable case identity.
 
-For example:
+The generator returns the **physical question**. It does not decide the answer.
+
+---
+
+# 7. How the case generator is validated
+
+The case generator is not validated against physical truth, because it is not claiming to solve the PDE.
+
+It is validated against the **registered population and SamplingPlan**.
+
+Carbon should retain empirical evidence for:
 
 ```text
 registered coefficient distribution
             vs
-empirical generated coefficient distribution
+realized coefficient distribution
 ```
 
 and:
 
 ```text
-registered stress allocation
+registered stratum / stress allocation
             vs
-realized stress allocation
+realized allocation
 ```
 
-along with:
+plus:
 
 - deterministic replay;
+- marginal, joint, and conditional distribution conformance;
 - support / exclusion compliance;
-- duplicate rate;
 - boundary coverage;
-- train / eval / stress seed isolation;
-- failure and censoring rates.
+- duplicate / near-duplicate rate;
+- train / eval / stress isolation;
+- generator failure rate by stratum;
+- intended vs realized distribution after failures / censoring.
 
-So the generator’s correctness is not subjective.
-
-It is a statistical and software-conformance question.
+A generator can produce perfectly valid Burgers functions and still fail qualification if it samples the wrong scientific population.
 
 ---
 
-# 6. How the reference is validated
+# 8. The Burgers reference hierarchy
 
-For Burgers v1, the strongest hierarchy is:
+For v1:
 
 ```text
-PRIMARY REFERENCE
-periodic Cole–Hopf solution
+PRIMARY OPERATIONAL REFERENCE
+periodic Cole–Hopf implementation
 
-        ↓ cross-check
+        ↓ qualification challenge
 
-INDEPENDENT WITNESS
-high-resolution conservative numerical solver
+METHODOLOGICALLY INDEPENDENT WITNESS
+refined conservative numerical solver
 ```
 
-The independent solver should use a genuinely different numerical route so that it does not simply reproduce the same error mechanism.
+The witness exists to test the primary reference—not to vote on truth.
 
-For the audit cases, Carbon compares:
-
-- Cole–Hopf vs the independent solver;
-- both across spatial / temporal refinement;
-- conservation behavior;
-- numerical sensitivity;
-- failure regions;
-- hard-regime disagreement.
-
-If the two disagree materially in some regime, Carbon does **not** hide that disagreement.
-
-It has to:
-
-- investigate;
-- narrow the envelope;
-- weaken the claim;
-- increase the uncertainty;
-- or block that region from LIVE use.
-
-The important test is:
-
-> **Is the uncertainty of the reference much smaller than the performance difference Carbon wants to reward?**
-
-If not, the incentive mechanism is trying to resolve more than the science can support.
+The discrepancy statistics between primary and witness become part of the Validation Dossier.
 
 ---
 
-# 7. Why this design fits Carbon’s incentive mechanism
+# 9. Cole–Hopf is mathematically strong, but its implementation still needs qualification
 
-Carbon needs an exam that is both:
+For zero-mean periodic \(u_0\), let a periodic potential \(F\) satisfy
 
-1. **fresh**, so miners cannot simply memorize the answer key; and  
-2. **objectively gradeable**, so the validator is not making subjective scientific decisions.
+\[
+F_x = u_0,
+\]
 
-A static benchmark gives you objective grading, but it becomes increasingly vulnerable to overfitting and leakage under repeated economic optimization.
+and define
 
-A fresh generator solves the freshness problem.
+\[
+\phi_0(x)=\exp\left[-\frac{F(x)}{2\nu}\right].
+\]
 
-The independently qualified reference solves the grading problem.
+Then \(\phi\) satisfies the heat equation
 
-Together:
+\[
+\phi_t = \nu \phi_{xx},
+\]
 
-```text
-fresh hidden case
-+
-independent answer key
+and Burgers can be recovered through
+
+\[
+u_{\text{ref}}(x,t)=-2\nu\frac{\phi_x}{\phi}.
+\]
+
+This gives Carbon an unusually strong reference path—but **the numerical implementation is not automatically exact**.
+
+At small \(\nu\), the exponential transform can become strongly conditioned: \(\phi\) may span a very large dynamic range or approach machine zero in difficult cases. The qualification campaign must therefore explicitly map this sensitivity.
+
+The Cole–Hopf implementation must demonstrate, across the registered envelope:
+
+- stable recovery of \(u_0\) at \(t=0\) to the representation floor;
+- periodicity;
+- mean conservation;
+- invariance to harmless rescaling of \(\phi\);
+- Fourier / quadrature / truncation convergence;
+- precision sensitivity;
+- back-transform conditioning;
+- failure / unreliable regions.
+
+Where required, the implementation should use numerically stable rescaling, log-domain techniques, or higher precision. Regions that remain ill-conditioned must be excluded, assigned elevated uncertainty, or block LIVE use.
+
+---
+
+# 10. What “independent witness” must mean
+
+The witness must be **methodologically independent**, not merely a second file calling similar numerical machinery.
+
+The qualification plan should prefer:
+
+- a different spatial discretization family;
+- a different time integrator;
+- a distinct code path / codebase;
+- preferably a separate implementation owner or review path;
+- no shared use of the same dominant approximation mechanism where avoidable.
+
+For example, if the Cole–Hopf implementation uses FFT / spectral operations to evolve the heat equation, a conservative finite-volume or high-order finite-difference Burgers solver is a stronger witness than another pseudo-spectral Burgers implementation.
+
+For the same prospectively chosen audit cases, the witness campaign should record:
+
+- spatial-refinement sequence;
+- timestep-refinement sequence;
+- solver-tolerance sensitivity;
+- observed convergence behavior;
+- conservation / balance diagnostics;
+- primary-vs-witness field discrepancies;
+- discrepancies by stress stratum;
+- all failures / conditioning events.
+
+The witness disagreement distribution is itself evidence. It is not averaged away.
+
+---
+
+# 11. Uncertainty floor and minimum resolvable improvement
+
+This is the quantitative answer to “how close to truth is close enough?”
+
+The Burgers qualification campaign must produce an explicit uncertainty / resolution budget.
+
+At minimum it must characterize:
+
+### A. Reference uncertainty
+
+For each audit case or scientifically relevant stratum, estimate the discrepancy between the qualified Cole–Hopf implementation and the refined independent witness on the quantities Carbon actually uses.
+
+For example:
+
+\[
+\delta_{\text{ref},i}
 =
-repeatable scientific exam
+\frac{
+\|u_{\text{CH},i}(T)-u_{\text{wit},i}(T)\|_2
+}{
+\max(\|u_{\text{CH},i}(T)\|_2,\epsilon_A)
+}.
+\]
+
+The dossier must report its distribution, tails, and regime dependence—not just one mean.
+
+### B. Measurement floor
+
+For every physics / accuracy measurement, determine the numerical floor produced by reference resolution, interpolation, quadrature, finite precision, and the measurement implementation itself.
+
+A mandatory gate or soft-score scale must not claim meaningful discrimination below this floor.
+
+### C. Reconstruction uncertainty
+
+If training is stochastic, reconstruct the same representative strategy under multiple authorized reconstruction seeds and measure the spread in the final estimands / scores.
+
+### D. Finite-exam uncertainty
+
+Repeat evaluation on fresh hidden case sets drawn under the registered SamplingPlan and measure how much scores / ranks vary because the exam is finite.
+
+### E. Minimum resolvable improvement
+
+The Challenge must prospectively define a **minimum resolvable improvement** or contested band based on the combined evidence above.
+
+Conceptually:
+
+```text
+reference uncertainty
++ measurement uncertainty
++ reconstruction variability
++ finite-exam variability
+        ↓
+minimum scientifically resolvable difference
 ```
 
-That gives Carbon:
+Carbon does not need one universal formula for combining these terms. The method must be statistically justified for the Challenge.
 
-- hidden official cases;
-- exact replay after evaluation;
-- no miner control over the exam;
-- no miner control over the reference;
-- the same physical contract for all candidates;
-- a measurable scientific resolution;
-- the ability to say **indeterminate** when the evidence cannot separate two methods.
+The operational rule is simpler:
 
-That last point matters for the economics:
+> **A candidate difference smaller than the demonstrated resolution cannot create a scientific frontier advance or sharper economic reward.**
 
-> **Scientific resolution should cap economic resolution.**
-
-If two methods differ by less than the uncertainty of the exam, Carbon should not manufacture a winner from a floating-point difference.
+A reviewer should be able to inspect the Burgers Validation Dossier and see actual numbers for this floor.
 
 ---
 
-# 8. How physics should enter the Burgers score
+# 12. Resource contract and determinism
 
-I think Carbon should separate **hard physical admissibility** from **soft physics fidelity**.
+The validator must reconstruct each strategy under a registered resource contract so the comparison is not confounded by unequal compute.
 
-Some physical properties are bad candidates for a continuous reward because “more” does not mean “more correct.”
+The contract should bind, as applicable:
 
-### Recommended hard / diagnostic checks
+- training data / generation budget;
+- optimizer-step / epoch budget;
+- wall-clock / accelerator budget where relevant;
+- permitted model / training interfaces;
+- reconstruction seed policy;
+- software / hardware profile.
 
-**Finite output**
+If reconstruction contains nondeterminism, Carbon should not pretend it does not exist. It becomes a measured source of experimental variance and contributes to the minimum resolvable improvement.
 
-A candidate containing NaN or Inf has no valid scientific result.
+The right standard is therefore not necessarily bit-for-bit identical learned weights. It is **decision reproducibility**: outside the registered contested band, the admissibility / ranking decision should remain stable under the qualified reconstruction process.
 
-**Energy non-increase**
+---
 
-For unforced viscous Burgers:
+# 13. Adversarial reference-bias test
+
+Hidden cases protect against memorizing exact answers, but they do not by themselves prevent a sophisticated miner from learning the **class of bias** of a known operational reference.
+
+Carbon should therefore make the reference-bias falsification test operational.
+
+Before LIVE, construct at least two controlled candidate families:
+
+```text
+Candidate G
+trained / designed to imitate a weaker or deliberately biased production-style solver
+
+Candidate R
+trained / designed to track the stronger qualified Cole–Hopf reference
+```
+
+Evaluate both through the proposed hidden exam and scoring path.
+
+Required result:
+
+> **A candidate that exploits known weaker-solver bias must not systematically outrank a candidate that follows the stronger qualified reference.**
+
+If it does, the measurement / scoring path is rewarding reference artifacts rather than the intended physical objective and must be repaired before LIVE.
+
+This adversarial campaign should include more than one plausible bias mode where practical—for example excess numerical diffusion or phase / gradient error in steepening regimes.
+
+---
+
+# 14. How physics enters the Burgers score
+
+Carbon should separate:
+
+1. **mandatory physical admissibility**, and
+2. **soft physics fidelity among candidates that are already admissible**.
+
+Some physical properties are poor continuous reward targets because “more” does not mean “more correct.”
+
+## Recommended v1 hard / diagnostic checks
+
+### Finite output
+
+NaN / Inf means there is no valid scientific prediction.
+
+### Energy non-increase
+
+For unforced viscous Burgers,
 
 \[
 E(u)=\frac12\langle u^2\rangle
 \]
 
-and physically we expect:
+and
 
 \[
-E(T) \le E(0)
+E(T)\le E(0).
 \]
 
-But a model should not earn extra credit simply for dissipating more energy.
+But excess dissipation is not greater fidelity. An over-diffusive model may satisfy this inequality strongly while being wrong. Therefore energy non-increase is best used as a **mandatory gate / diagnostic**, not a “more is better” soft reward.
 
-An over-diffusive model may satisfy this very strongly while being inaccurate.
+### Maximum-principle consistency
 
-So this is better treated as a **mandatory gate / diagnostic**.
+The viscous solution should not create unphysical extrema outside the qualified initial range. Again, being deeper inside that range is not automatically better, so this is best treated as a **gate / diagnostic**.
 
-**Maximum-principle consistency**
+### Mean conservation
 
-The viscous solution should not create unphysical new extrema outside the qualified initial range.
+For periodic Burgers,
 
-Again, being further inside the allowed range does not mean the model is more correct.
+\[
+\langle u(T)\rangle=\langle u_0\rangle.
+\]
 
-So this is also better treated as a **gate / diagnostic**.
+Mean conservation is suitable for both a hard admissibility threshold and a continuous defect measure.
 
 ---
 
-# 9. Soft physics fidelity for Burgers
+# 15. Soft physics fidelity
 
-The clearest final-state soft physics quantity is the defect in mean conservation.
-
-For periodic Burgers:
-
-\[
-\langle u(T)\rangle = \langle u_0\rangle
-\]
-
-Define:
+Using a fixed Challenge-level velocity scale \(U_*\), define the mean-conservation defect
 
 \[
 \epsilon_M
 =
 \frac{
-\left|
-\langle \hat u(T)\rangle-\langle u_0\rangle
-\right|
-}{
-U_*
-}
+|\langle \hat u(T)\rangle-\langle u_0\rangle|
+}{U_*}.
 \]
 
-where \(U_*\) is a fixed Challenge-level velocity scale.
-
-For any qualified soft physics defect \(\epsilon_j\), Carbon’s current scoring transform is:
+For each qualified soft physics defect \(\epsilon_j\), Carbon’s current ScoreEngine transform is
 
 \[
 m_j
 =
 \begin{cases}
-1-(\epsilon_j/\tau_j)^2, & \epsilon_j < \tau_j \\
-0, & \epsilon_j \ge \tau_j
+1-(\epsilon_j/\tau_j)^2, & \epsilon_j<\tau_j,\\
+0, & \epsilon_j\ge\tau_j.
 \end{cases}
 \]
 
-Then:
+and
 
 \[
 S_{\text{physics}}
 =
-\sum_j \alpha_j m_j
+\sum_j \alpha_j m_j,
+\qquad
+\alpha_j>0,
+\qquad
+\sum_j\alpha_j=1.
 \]
 
-with:
+The \(\tau_j\) values are not guessed. They are Challenge-specific Score Pack values that must be supported by the Validation Dossier and sit above the qualified numerical / measurement floor.
 
-\[
-\sum_j \alpha_j = 1
-\]
+For a final-state-only Burgers v1, Carbon should keep this soft physics leg deliberately narrow rather than claim that weak proxies are rich physics measurements.
 
-The important point is that \(\tau_j\) is **not guessed**.
-
-It comes from the Validation Dossier and must be above the numerical / reference floor.
-
-For a final-state-only v1, I would keep this soft physics leg deliberately narrow rather than pretend weak proxies are rich physics.
-
-If Carbon later requires time slices or full trajectories, then much stronger physics quantities become available, such as the energy balance:
+If a later Challenge requires time slices or full trajectories, stronger physics measurements become available, including the viscous Burgers energy identity:
 
 \[
 E(T)-E(0)
 +
-\nu
-\int_0^T
-\int
-u_x^2
-\,dx\,dt
-=
-0
+\nu\int_0^T\int |u_x|^2\,dx\,dt
+=0.
 \]
 
-A normalized defect in this identity would be a much stronger soft-physics measurement than simple energy monotonicity.
+A normalized defect in this identity—or a separately qualified weak / PDE residual—would provide a substantially stronger continuous physics-fidelity signal than one-sided energy monotonicity.
 
 ---
 
-# 10. Accuracy
+# 16. Accuracy
 
-For each hidden case \(i\), use a qualified reference-field error:
+For hidden case \(i\), a natural qualified reference-field error is
 
 \[
 e_i
@@ -612,28 +585,27 @@ e_i
 \frac{
 \|\hat u_i(T)-u_{\text{ref},i}(T)\|_2
 }{
-\max\left(
-\|u_{\text{ref},i}(T)\|_2,
-\epsilon_A
-\right)
-}
+\max(\|u_{\text{ref},i}(T)\|_2,\epsilon_A)
+}.
 \]
 
-This answers the basic question:
+For zero-mean v1 cases this is relatively clean. The floor \(\epsilon_A\) must be fixed prospectively to avoid pathological normalization for very small reference norms.
 
-> **How close is the model to the qualified physical reference?**
+This is the primary answer to:
+
+> **How close is the candidate to the qualified reference field?**
 
 ---
 
-# 11. Robustness
+# 17. Robustness: difficult but still valid physics
 
-Robustness should answer a different question:
+Robustness asks:
 
-> **Does the model remain accurate when the physical problem becomes difficult?**
+> **Does the candidate remain accurate when the physical case becomes difficult inside the registered envelope?**
 
-For Burgers, stress strata should be defined from the actual steepening / diffusion physics rather than arbitrary “hard case” labels.
+The stress strata should therefore be derived from Burgers steepening / diffusion physics rather than arbitrary labels.
 
-Useful descriptors include:
+Useful prospective descriptors include:
 
 ### Spectral scale
 
@@ -642,19 +614,17 @@ k_{\mathrm{rms}}
 =
 \left(
 \frac{
-\sum_k k^2 |c_k|^2
+\sum_k k^2|c_k|^2
 }{
-\sum_k |c_k|^2
+\sum_k|c_k|^2
 }
-\right)^{1/2}
+\right)^{1/2}.
 \]
 
 ### Velocity scale
 
 \[
-U_{\mathrm{rms}}
-=
-\sqrt{\langle u_0^2\rangle}
+U_{\mathrm{rms}}=\sqrt{\langle u_0^2\rangle}.
 \]
 
 ### Effective nonlinear-to-diffusive severity
@@ -662,11 +632,7 @@ U_{\mathrm{rms}}
 \[
 Re_{\mathrm{eff}}
 \sim
-\frac{
-U_{\mathrm{rms}}
-}{
-\nu k_{\mathrm{rms}}
-}
+\frac{U_{\mathrm{rms}}}{\nu k_{\mathrm{rms}}}.
 \]
 
 ### Steepening index
@@ -674,27 +640,24 @@ U_{\mathrm{rms}}
 \[
 s
 =
-\max\left(
-0,
--T\min_x u_0'(x)
-\right)
+\max\left(0,-T\min_x u_0'(x)\right).
 \]
 
-These can define prospectively registered strata such as:
+These can prospectively define categories such as:
 
 - ordinary;
 - high spectral complexity;
 - steep-gradient formation;
 - combined edge-of-envelope cases.
 
-For each stress category \(c\), calculate field errors \(e_i\) and summarize both average and tail behavior:
+For category \(c\), calculate the field errors \(e_i\) and summarize both mean and tail behavior:
 
 \[
-\mu_c = \mathrm{mean}(e_i \mid c)
+\mu_c=\mathrm{mean}(e_i\mid c),
 \]
 
 \[
-q_c = Q_q(e_i \mid c)
+q_c=Q_q(e_i\mid c).
 \]
 
 Blend them:
@@ -703,135 +666,172 @@ Blend them:
 r_c
 =
 b_{\mathrm{mean}}\mu_c
-+
-b_{\mathrm{tail}}q_c
++b_{\mathrm{tail}}q_c,
+\qquad
+b_{\mathrm{mean}}+b_{\mathrm{tail}}=1.
 \]
 
-Then Carbon’s current robustness transform is:
+Carbon’s current robustness transform is
 
 \[
 t_c
 =
-\frac{
-1
-}{
-1+
-\exp
-\left[
-\kappa
-(r_c-\tau_R)/\tau_R
-\right]
-}
+\frac{1}{1+
+\exp\left[
+\kappa(r_c-\tau_R)/\tau_R
+\right]},
 \]
 
-and:
+and
 
 \[
 S_{\text{robustness}}
 =
-\sum_c
-\gamma_c t_c
+\sum_c\gamma_ct_c,
+\qquad
+\gamma_c>0,
+\qquad
+\sum_c\gamma_c=1.
 \]
 
-with:
+The tail statistic is useful because an average can hide brittle failure.
 
-\[
-\sum_c \gamma_c = 1
-\]
+But an empirical tail quantile is noisy when a category contains too few cases. The Validation Dossier must therefore specify a minimum effective sample size / uncertainty requirement for every score-bearing stress category.
 
-The tail statistic matters because an average can hide brittle behavior.
-
-But it is only scientifically useful if each stress stratum has enough hidden samples to estimate the tail with acceptable uncertainty.
-
-If not, the right outcome is **insufficient evidence**, not silent renormalization.
+If a category has insufficient evidence, Carbon should return **incomplete / indeterminate evidence**, not silently drop that category or renormalize the remaining weights.
 
 ---
 
-# 12. Final incentive score
+# 18. Final score and current weight status
 
-After all mandatory physics gates pass, Carbon combines:
-
-- physics fidelity;
-- robustness;
-- accuracy.
-
-The current top-level form is:
+After all mandatory gates pass, the current top-level scoring form is
 
 \[
 S
 =
 S_{\text{physics}}^{w_P}
 S_{\text{robustness}}^{w_R}
-S_{\text{accuracy}}^{w_A}
+S_{\text{accuracy}}^{w_A},
 \]
 
-with:
+with
 
 \[
-w_P+w_R+w_A=1
+w_P+w_R+w_A=1.
 \]
 
-The geometric form is useful because a very weak leg cannot be completely washed out by a strong one.
+The weighted geometric form is appropriate because a near-zero leg cannot be completely washed out by a strong score elsewhere.
 
-But I would **not** present the current 45 / 30 / 25 split as scientifically established.
+However:
 
-Those weights should come after:
+> **The current 45 / 30 / 25 physics / robustness / accuracy split is a P0 design prior, not a scientifically established Burgers result.**
 
-- measurement qualification;
-- sensitivity testing;
-- rank-stability analysis;
-- and the first Burgers evidence campaign.
+Production weights should only be frozen after measurement qualification, score-sensitivity analysis, and rank-stability studies.
+
+If the Burgers-v1 soft physics leg remains intentionally narrow, the evidence campaign should specifically test whether giving it a large top-level exponent produces the intended scientific ranking rather than overweighting one proxy.
 
 ---
 
-# 13. The actual falsification standard
+# 19. How the same architecture generalizes beyond Burgers
 
-Before Burgers should ever become LIVE, I would want Carbon to demonstrate all of the following:
+Burgers is special because Carbon has a strong analytic/semi-analytic primary reference. Future engineering Challenges may not.
 
-1. The case generator statistically matches the registered initial-condition population.
-2. The Cole–Hopf implementation is stable throughout the qualified envelope.
-3. A genuinely independent refined solver agrees with Cole–Hopf within a characterized uncertainty.
-4. The physics thresholds sit above the numerical / reference floor.
-5. The hidden stress strata contain enough samples for meaningful tail estimation.
-6. Repeated reconstruction and fresh exams produce a measured minimum resolvable improvement.
-7. A model that imitates production-solver bias cannot beat a model that follows the stronger qualified reference.
+The architecture still applies:
 
-If those hold, the exam is doing what Carbon needs it to do:
+```text
+PRIMARY HIGH-FIDELITY SOLVER
+candidate operational reference
+        ↓
+REFERENCE QUALIFICATION
+code / solution verification
+manufactured or analytic cases where available
+grid / timestep convergence
+solver-tolerance studies
+conservation / balance checks
+cross-code comparison where feasible
+experimental / partner evidence where available
+        ↓
+CHARACTERIZED UNCERTAINTY + FAILURE ENVELOPE
+        ↓
+QUALIFIED OPERATIONAL REFERENCE
+        ↓
+hidden fresh exam
+```
 
-> **reward performance on fresh physical problems against an independently qualified answer key.**
+The strength of Carbon’s scientific claim must track the strength of this evidence.
 
-Not:
+A high-fidelity CFD solver can therefore become the primary operational answer source—but only for the envelope and resolution its evidence supports.
 
-> reward memorization of a static benchmark or imitation of a privileged solver.
+This is consistent with the logic of established verification / validation / uncertainty-quantification practice: numerical authority is earned by verification evidence and bounded uncertainty, not by solver reputation alone.
+
+---
+
+# 20. The pre-LIVE falsification standard
+
+Before Burgers v1 is allowed to create an economic winner, Carbon must attach measured evidence to all of the following:
+
+1. **Generator distribution:** the case generator statistically matches the registered initial-condition population and SamplingPlan.
+2. **Cole–Hopf qualification:** the implementation remains numerically stable across the registered envelope, including mapped back-transform / conditioning limits.
+3. **Witness agreement:** the methodologically independent refined solver agrees with Cole–Hopf within a characterized discrepancy distribution.
+4. **Measurement floors:** mandatory thresholds and soft-score scales sit above their qualified numerical / reference floors.
+5. **Stress evidence:** every score-bearing stress stratum has enough hidden evidence to support its mean / tail estimands.
+6. **Reconstruction variability:** repeated independent reconstruction measures any stochastic training variability under the registered resource contract.
+7. **Finite-exam variability:** fresh repeated exams quantify sampling-driven score / rank uncertainty.
+8. **Minimum resolvable improvement:** Carbon derives and registers a scientific contested band / improvement threshold from the above evidence.
+9. **Reference-bias adversary:** a candidate designed to reproduce weaker-solver bias cannot systematically outrank one that follows the stronger qualified reference.
+10. **No silent censoring:** hard cases, reference failures, and infrastructure failures remain visible and cannot reshape the realized exam population unnoticed.
+
+If these tests do not pass, the Challenge remains pre-LIVE.
+
+---
+
+# 21. The Validation Dossier is the gate to LIVE
+
+This document is an architecture and scientific-method statement. It is **not evidence that Burgers v1 has already achieved the required resolution**.
+
+The next concrete scientific deliverable is the Burgers-v1 Validation Dossier.
+
+It must report actual measured values for at least:
+
+- generator distribution diagnostics;
+- Cole–Hopf implementation convergence / conditioning;
+- independent-witness discrepancy statistics;
+- uncertainty / numerical floors by measurement and stratum;
+- stress-category sample sufficiency;
+- reconstruction variance;
+- finite-evaluation variance;
+- score / rank stability;
+- adversarial reference-bias tests;
+- minimum resolvable improvement / contested band;
+- explicit limitations and blocked regions.
+
+The Challenge should remain **PRE-LIVE** until those numbers exist, pass review, and are bound to the exact Challenge / generator / reference / measurement / Score Pack identities.
+
+That is not a caveat around Carbon’s trust claim. It is the trust mechanism:
+
+> **Carbon refuses to create an economic winner until the exam itself has earned the right to judge one.**
 
 ---
 
 ## Bottom line
 
-I think the most defensible way to describe Carbon is:
+> **The generator creates fresh valid questions from a registered physical distribution.**  
+> **The reference process independently establishes the best qualified answer for each question.**  
+> **The reference must have measured uncertainty smaller than the distinctions Carbon rewards.**  
+> **Physics gates reject scientifically unacceptable behavior.**  
+> **Soft physics, robustness, and accuracy differentiate the candidates that survive.**  
+> **And if the evidence cannot distinguish two methods, the incentive mechanism is not allowed to manufacture a winner.**
 
-> **The miner proposes the method.  
-> The validator independently reconstructs it.  
-> The generator creates fresh valid questions from a registered physical distribution.  
-> The reference process independently establishes the best available answer for each question.  
-> Validator-owned measurements turn those results into qualified scientific evidence.  
-> Physics gates reject scientifically unacceptable behavior.  
-> Soft physics and robustness distinguish quality among the candidates that survive.  
-> And the incentive mechanism only rewards differences larger than the demonstrated resolution of the exam.**
-
-That is the argument I wish I had given on the call.
-
-I would genuinely value your criticism of the reference hierarchy and the hard/soft Burgers split.
-
-Best,  
-Carbon Physics AI
+That is the scientific basis for Carbon’s independent exam.
 
 ---
 
-### Technical basis
+## Technical basis
+
+Carbon’s reference-qualification method is intended to follow the logic of established verification, validation, and uncertainty-quantification practice, including:
 
 - C. J. Roy, *Review of code and solution verification procedures for computational simulation*, Journal of Computational Physics 205 (2005), 131–156.
-- C. J. Roy and W. L. Oberkampf, *A comprehensive framework for verification, validation, and uncertainty quantification in scientific computing*, CMAME 200 (2011), 2131–2144.
+- C. J. Roy and W. L. Oberkampf, *A comprehensive framework for verification, validation, and uncertainty quantification in scientific computing*, Computer Methods in Applied Mechanics and Engineering 200 (2011), 2131–2144.
 - ASME V&V 20, *Verification and Validation in Computational Fluid Dynamics and Heat Transfer*.
 - Standard Cole–Hopf theory for viscous Burgers.
 - Carbon internal specifications: `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, and `Challenge_Instance_Distribution.md`.
