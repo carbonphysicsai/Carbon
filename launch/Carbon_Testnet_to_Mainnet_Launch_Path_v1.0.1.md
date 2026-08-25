@@ -4,11 +4,11 @@
 
 **Status:** Working control document; not launch approval
 
-**Version:** 1.0
+**Version:** 1.0.1
 
-**Date:** 25 August 2026
+**Date:** 26 August 2026
 
-**Repository baseline:** main @ f308281e69580216d5ebf5ec94a9d6c069cf1a56
+**Repository baseline:** main @ c664449f447c33809491ec9c1420bc71241d0aaf
 
 **Planning assumption:** Recent Codex implementation pace, one independent review lane, timely human decisions
 
@@ -97,7 +97,7 @@ The same word cannot safely describe a process-local test, a testnet deployment,
 
 # 3. Repository baseline and Wave analysis
 
-The audited baseline is Carbon main at f308281e69580216d5ebf5ec94a9d6c069cf1a56. The repository records 1,727 CPU tests at A9 closeout. This audit did not independently re-run that suite because the review runtime did not include pytest; the status below relies on the recorded CI evidence in .agent/WAVE.md.
+The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf. The repository records 1,727 CPU tests at A9 closeout; this v1.0.1 correction independently re-ran the full CPU suite and quality gate without changing implementation code.
 
 | **Ticket** | **State** | **Bounded maturity**                                      |
 |------------|-----------|-----------------------------------------------------------|
@@ -112,7 +112,7 @@ The audited baseline is Carbon main at f308281e69580216d5ebf5ec94a9d6c069cf1a56.
 | **A7**     | DONE-E    | Process-local submission/FSM/fee/retry/refund             |
 | **A8**     | DONE-E    | Deterministic fixture-only TrainEval stub; non-emitting   |
 | **A9**     | DONE-E    | Seven-tool in-process MCP control/disclosure skeleton     |
-| **A10**    | IN REVIEW | Contract candidate on origin/pr36; no implementation      |
+| **A10**    | IN REVIEW | Contract ratified on main by merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; the bounded implementation candidate is open as draft PR #37 at exact head `d69b5ec77e630914fce4068abe2dc5303876cd12`. Implementation/test evidence remains branch-only and confers no scientific, network or production qualification. |
 | **A11**    | TODO      | Observability, metrics, redaction, failure tags           |
 | **A12**    | TODO      | Invariant CI and Wave-A closeout                          |
 
@@ -271,8 +271,8 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **CTRL-03** | P0      | BLOCKED-H  | Authorize H/I after D while E-G run parallel. Exit: Master Plan sequencing amendment.                                                       | PL / LAUNCH           | S          | MQ-053           | S0         |
 | **CTRL-04** | P0      | READY      | Reconcile stale status, seed, truth, mock-fallback, operations and legacy-emission language. Exit: conflict ledger classified and accepted. | CDX / PL              | M          | CTRL-01          | S0         |
 | **CTRL-05** | P0      | TODO       | Create canonical B/C/D/H/I boards and bounded tickets. Exit: dependencies, DoD, owners and maturity states reviewed.                        | CDX / TL              | M          | CTRL-01-04       | S0         |
-| **A10-R**   | P0      | IN REVIEW  | Review and merge or supersede origin/pr36 contract candidate. Exit: exact contract ratified on main.                                        | PL / TL               | S          | A3,A5-A7         | S0         |
-| **A10-I**   | P0      | TODO       | Implement bounded fixture leaderboard. Exit: focused/leakage/regression tests + independent review.                                         | CDX / TL              | M          | A10-R            | S0         |
+| **A10-R**   | P0      | DONE       | A10 contract ratification merged in PR #36 as `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`. Exit evidence: exact contract ratified on main; no implementation or test authority implied. | PL / TL               | S          | A3,A5-A7         | S0         |
+| **A10-I**   | P0      | IN REVIEW  | Review the bounded fixture leaderboard implementation candidate in draft PR #37 at exact head `d69b5ec77e630914fce4068abe2dc5303876cd12`. Exit: focused/leakage/regression tests, independent review, explicit human authorization and normal merge. | CDX / TL              | M          | A10-R            | S0         |
 | **A11-R**   | P0      | TODO       | Ratify redaction, metrics and failure taxonomy across A5-A10. Exit: reviewed contract and dependencies.                                     | PL+SEC / TL           | S          | A5-A10           | S0         |
 | **A11-I**   | P0      | TODO       | Implement structured logs/metrics/redaction. Exit: no-seed tests and typed failure telemetry.                                               | CDX+SRE / TL          | M          | A11-R            | S0         |
 | **A12-R**   | P0      | TODO       | Repair invariant manifest dependencies, including A7 and A11. Exit: exact manifest ratified.                                                | PL+SEC / TL           | S          | A4-A11           | S0         |
@@ -290,8 +290,9 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **B-06**   | P0      | TODO       | D1-D12 Validation Dossier and qualification-manifest machinery. Exit: fail-closed workflow and signoff slots.                                       | CDX / SCI+IR          | M          | B-02-05,MQ-003     | S1         |
 | **B-07**   | P0      | TODO       | Nominal mock/light lane, scaffold and prior pipeline. Exit: mock isolation and non-oracle tests.                                                    | CDX / PL+SEC          | M          | A9,B-02            | S1         |
 | **B-E1**   | P0      | TODO       | R0/R1/R2 reproducibility harness. Exit: repeated-run matrix and typed contested outcome plumbing.                                                   | CDX+SCI / SCI+STAT    | M          | B-02-05,MQ-007/008 | S1         |
-| **B-E2**   | P0      | TODO       | Credibility crosswalk and evidence manifest. Exit: machine-readable mapping without standards-compliance claim.                                     | CDX+SCI / IR          | S          | B-06               | S1         |
-| **B-GATE** | P0      | TODO       | Wave-B fixture integration. Exit: authoring manifest, no placeholder LIVE path, full invariants green.                                              | CDX / TL+SCI          | M          | B-01-08            | S1         |
+| **B-E2**   | P0      | TODO       | Julia/reference failure contract. Exit: Julia/SciML service failures return typed reference or infrastructure statuses rather than synthetic candidate gate failures.          | CDX+SCI / SCI         | M          | B-04               | S1         |
+| **B-E3**   | P0      | TODO       | Credibility crosswalk and evidence manifest. Exit: machine-readable mapping without standards-compliance claim.                                     | CDX+SCI / IR          | S          | B-06               | S1         |
+| **B-GATE** | P0      | TODO       | Wave-B fixture integration. Exit: authoring manifest, no placeholder LIVE path, full invariants green.                                              | CDX / TL+SCI          | M          | B-01 through B-07; B-E1 through B-E3 | S1         |
 
 ## 6.3 Bittensor v11 foundation and Wave C real vertical
 
@@ -305,7 +306,7 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **NET-5**  | P0      | TODO       | Reproducible localnet CI harness. Exit: subnet/neurons/auth/commitment/test weights/readback transcript and fault campaign.                                              | CDX+NET / TL          | L          | NET-1-4          | S1         |
 | **NET-6**  | P0      | TODO       | Pinned images, node, K8s, TLS/secrets, health, backup/restore and observability. Exit: release images scan/sign; restore/rotation drill.                                 | SRE+CDX / SEC         | L          | NET-1/2,A11      | S1/S2      |
 | **C-01**   | P0      | TODO       | Durable submission/card/transcript state, queue, crash recovery and idempotency. Exit: restart/replay/concurrency tests.                                                 | CDX+SRE / TL          | L          | A7,B-GATE        | S2         |
-| **C-02**   | P0      | TODO       | Real declarative JAX reconstruction backend and backend profile. Exit: repeated reconstruction under pinned resources.                                                   | CDX+VE+SCI / SCI      | L          | B-02/03,E1       | S2         |
+| **C-02**   | P0      | TODO       | Real declarative JAX reconstruction backend and backend profile. Exit: repeated reconstruction under pinned resources.                                                   | CDX+VE+SCI / SCI      | L          | B-02/03,B-E1     | S2         |
 | **C-03**   | P0      | TODO       | Isolated worker: deny network; scratch-only FS; CPU/GPU/RAM/VRAM/time/process/output limits. Exit: threat model and abuse/kill/retry tests.                              | CDX+SRE / SEC         | L          | C-02,MQ-015      | S2         |
 | **C-04**   | P0      | TODO       | Protected primary reference/TruthAsset runtime and cache. Exit: exact case/pin/access rules; reference failures never score candidate.                                   | CDX+SCI / SCI         | L          | B-03/04          | S2         |
 | **C-05**   | P0      | TODO       | Measurement operators, uncertainty-bearing result and production A5 boundary. Exit: invalid/incomplete/indeterminate paths tested.                                       | CDX+SCI / SCI+STAT    | L          | B-05,C-04        | S2         |
@@ -474,9 +475,9 @@ When this plan moves into the repository, each task row should carry: Work ID; g
 
 Repository sources reviewed at the baseline commit:
 
-- CONSTITUTION.md; AGENTS.md; .agent/INVARIANTS.md; .agent/WAVE.md; .agent tickets/plans and origin/pr36
+- CONSTITUTION.md; AGENTS.md; .agent/INVARIANTS.md; .agent/WAVE.md; .agent tickets/plans; A10 ratification merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; draft PR #37 head `d69b5ec77e630914fce4068abe2dc5303876cd12`
 
-- Design_Specs/Build_Out.md; Build_Out_Constitutional_Overlay.md; Agentic_Development_Master_Plan.md
+- Design_Specs/Build_Out.md; Design_Specs/Build_Out_Protocol_Extension.md; Design_Specs/Build_Out_Constitutional_Overlay.md; Design_Specs/Agentic_Development_Master_Plan.md
 
 - Design_Specs/Launch_Bar.md; Operations.md; Trustless_Verification.md; Evaluation_Evidence_and_Validator_Audit.md
 
