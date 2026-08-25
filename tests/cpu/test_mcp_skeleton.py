@@ -145,9 +145,59 @@ def _static_source_string(node: ast.AST) -> str | None:
     return None
 
 
+def _source_string_bindings(tree: ast.AST) -> dict[str, tuple[ast.AST, ...]]:
+    # Each exact simple assignment is a possible binding in this bounded source
+    # policy; the helper never executes source or models arbitrary Python flow.
+    bindings: dict[str, list[ast.AST]] = {}
+    for node in ast.walk(tree):
+        if type(node) is ast.Assign:
+            targets = node.targets
+            value = node.value
+        elif type(node) is ast.AnnAssign or type(node) is ast.NamedExpr:
+            targets = (node.target,)
+            value = node.value
+        else:
+            continue
+        if value is None:
+            continue
+        for target in targets:
+            if type(target) is ast.Name:
+                bindings.setdefault(target.id, []).append(value)
+    return {name: tuple(values) for name, values in bindings.items()}
+
+
+def _static_bound_source_strings(
+    node: ast.AST,
+    bindings: dict[str, tuple[ast.AST, ...]],
+    resolving_bindings: frozenset[int] = frozenset(),
+) -> frozenset[str]:
+    direct = _static_source_string(node)
+    if direct is not None:
+        return frozenset({direct})
+    if type(node) is ast.Name:
+        return frozenset(
+            value
+            for bound_node in bindings.get(node.id, ())
+            if id(bound_node) not in resolving_bindings
+            for value in _static_bound_source_strings(
+                bound_node,
+                bindings,
+                resolving_bindings | {id(bound_node)},
+            )
+        )
+    if type(node) is ast.BinOp and type(node.op) is ast.Add:
+        left = _static_bound_source_strings(node.left, bindings, resolving_bindings)
+        right = _static_bound_source_strings(node.right, bindings, resolving_bindings)
+        return frozenset(
+            left_value + right_value for left_value in left for right_value in right
+        )
+    return frozenset()
+
+
 def _source_runtime_escape_violations(
     tree: ast.AST,
 ) -> tuple[tuple[int, str], ...]:
+    bindings = _source_string_bindings(tree)
     violations: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if type(node) is ast.Name and node.id in _PROHIBITED_RUNTIME_NAMES:
@@ -160,12 +210,12 @@ def _source_runtime_escape_violations(
             and node.func.id == "getattr"
             and len(node.args) >= 2
         ):
-            attribute_name = _static_source_string(node.args[1])
-            if attribute_name in _DYNAMIC_IMPORT_NAMES:
+            attribute_names = _static_bound_source_strings(node.args[1], bindings)
+            for attribute_name in sorted(attribute_names & _DYNAMIC_IMPORT_NAMES):
                 violations.append((node.lineno, f"getattr:{attribute_name}"))
         elif type(node) is ast.Subscript:
-            key = _static_source_string(node.slice)
-            if key in _DYNAMIC_IMPORT_NAMES:
+            keys = _static_bound_source_strings(node.slice, bindings)
+            for key in sorted(keys & _DYNAMIC_IMPORT_NAMES):
                 violations.append((node.lineno, f"subscript:{key}"))
     return tuple(violations)
 
@@ -2340,6 +2390,19 @@ def test_static_source_string_accepts_only_bounded_exact_forms() -> None:
     assert _static_source_string(called) is None
 
 
+def test_static_bound_source_strings_resolve_bounded_name_bindings() -> None:
+    tree = ast.parse(
+        'prefix = "__"\nsuffix = "import__"\nkey = prefix + suffix\nmapping[key]'
+    )
+    subscript = tree.body[-1].value
+    assert type(subscript) is ast.Subscript
+
+    bindings = _source_string_bindings(tree)
+    assert _static_bound_source_strings(subscript.slice, bindings) == frozenset(
+        {"__import__"}
+    )
+
+
 @pytest.mark.parametrize(
     ("source", "expected_violation"),
     (
@@ -2357,6 +2420,35 @@ def test_static_source_string_accepts_only_bounded_exact_forms() -> None:
             'loader = globals()["__" + "import__"]',
             "subscript:__import__",
             id="assignment-binding",
+        ),
+        pytest.param(
+            (
+                'key = "__" + "import__"\n'
+                'namespace = (lambda: None).__globals__["__builtins__"]\n'
+                "loader = namespace[key]"
+            ),
+            "subscript:__import__",
+            id="variable-bound-import-key",
+        ),
+        pytest.param(
+            (
+                'prefix = "import_"\n'
+                'suffix = "module"\n'
+                "key = prefix + suffix\n"
+                "loader = namespace[key]"
+            ),
+            "subscript:import_module",
+            id="chained-variable-bound-import-key",
+        ),
+        pytest.param(
+            'key = "__"\nkey = key + "import__"\nloader = namespace[key]',
+            "subscript:__import__",
+            id="self-rebound-import-key",
+        ),
+        pytest.param(
+            'attribute = "__" + "import__"\nloader = getattr(namespace, attribute)',
+            "getattr:__import__",
+            id="variable-bound-import-getattr",
         ),
         pytest.param(
             'getattr(__builtins__, "__" + "import__")',
@@ -2429,6 +2521,14 @@ def test_source_runtime_escape_policy_rejects_prohibited_syntax(
         pytest.param(
             'object.__getattribute__(value, "field")',
             id="intentional-object-getattribute",
+        ),
+        pytest.param(
+            'key = "ordinary_" + "key"\nmapping[key]',
+            id="ordinary-variable-bound-key",
+        ),
+        pytest.param(
+            "first = second\nsecond = first\nmapping[first]",
+            id="cyclic-variable-bindings",
         ),
     ),
 )
