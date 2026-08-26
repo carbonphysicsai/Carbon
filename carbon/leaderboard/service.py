@@ -118,16 +118,16 @@ def _copy_request_challenge(
     version = _request_field(value, "version")
     if type(challenge_id) is not str or type(version) is not str:
         raise LeaderboardRequestError()
+    _require_string_capacity(challenge_id, limits)
+    _require_string_capacity(version, limits)
+    if not challenge_id.isascii() or not version.isascii():
+        raise LeaderboardRequestError()
     failed = False
     try:
         owned = ChallengeKey(challenge_id, version)
     except Exception:  # noqa: BLE001 - normalize invalid owner nominal state
         failed = True
     else:
-        if not challenge_id.isascii() or not version.isascii():
-            raise LeaderboardRequestError()
-        _require_string_capacity(challenge_id, limits)
-        _require_string_capacity(version, limits)
         return owned
     if failed:
         raise LeaderboardRequestError()
@@ -143,16 +143,16 @@ def _copy_provider_challenge(
     version = _provider_field(value, "version")
     if type(challenge_id) is not str or type(version) is not str:
         raise LeaderboardIntegrationError()
+    _require_string_capacity(challenge_id, limits)
+    _require_string_capacity(version, limits)
+    if not challenge_id.isascii() or not version.isascii():
+        raise LeaderboardIntegrationError()
     failed = False
     try:
         owned = ChallengeKey(challenge_id, version)
     except Exception:  # noqa: BLE001 - provider graph invalidity collapses
         failed = True
     else:
-        if not challenge_id.isascii() or not version.isascii():
-            raise LeaderboardIntegrationError()
-        _require_string_capacity(challenge_id, limits)
-        _require_string_capacity(version, limits)
         return owned
     if failed:
         raise LeaderboardIntegrationError()

@@ -1420,6 +1420,222 @@ def test_page_size_and_snapshot_row_bounds_are_exact() -> None:
     assert len(over_provider.calls) == 1
 
 
+def test_oversized_request_challenge_id_is_bounded_before_provider_call() -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized_id = "a" * (string_limit + 1)
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=oversized_id,
+        version=CHALLENGE_KEY.version,
+    )
+    forged_request = _forge(
+        ListFixtureLeaderboardRequest,
+        challenge_key=forged_key,
+        page_size=1,
+        cursor=None,
+    )
+    provider = _Provider(_snapshot())
+    service = _service(
+        provider,
+        limits=_limits(
+            max_string_utf8_bytes=string_limit,
+            max_concurrent_calls=1,
+        ),
+    )
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(forged_request)
+    assert type(raised.value) is LeaderboardResourceError
+    assert provider.calls == []
+    assert oversized_id not in str(raised.value)
+    assert oversized_id not in repr(raised.value)
+    assert oversized_id not in raised.value.args
+    assert oversized_id not in raised.value.__dict__.values()
+
+    assert service.list_entries(_request()).rows == ()
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "oversized_version",
+    (
+        "v" * (len(SCORING_PACK_HASH) + 1),
+        "é" * (len(SCORING_PACK_HASH) + 1),
+    ),
+)
+def test_oversized_request_challenge_version_has_resource_precedence(
+    oversized_version: str,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=CHALLENGE_KEY.challenge_id,
+        version=oversized_version,
+    )
+    forged_request = _forge(
+        ListFixtureLeaderboardRequest,
+        challenge_key=forged_key,
+        page_size=1,
+        cursor=None,
+    )
+    provider = _Provider(_snapshot())
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(forged_request)
+    assert type(raised.value) is LeaderboardResourceError
+    assert provider.calls == []
+
+
+def test_oversized_snapshot_challenge_precedes_candidate_access() -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id="a" * (string_limit + 1),
+        version=CHALLENGE_KEY.version,
+    )
+    unreadable_candidate = _forge(FixtureLeaderboardCandidate)
+    snapshot = _forged_snapshot(
+        _snapshot(),
+        challenge_key=forged_key,
+        candidates=(unreadable_candidate,),
+    )
+    provider = _Provider(snapshot)
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    assert type(raised.value) is LeaderboardResourceError
+    assert len(provider.calls) == 1
+
+
+def test_oversized_candidate_challenge_rejects_the_whole_snapshot() -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id="a" * (string_limit + 1),
+        version=CHALLENGE_KEY.version,
+    )
+    invalid = _forged_candidate(_candidate(2), challenge_key=forged_key)
+    snapshot = _forged_snapshot(
+        _snapshot(),
+        candidates=(_candidate(1), invalid),
+    )
+    provider = _Provider(snapshot)
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    assert type(raised.value) is LeaderboardResourceError
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("boundary", ("request", "snapshot", "candidate"))
+def test_oversized_challenge_never_reaches_owner_reconstruction(
+    boundary: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized_id = "a" * (string_limit + 1)
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=oversized_id,
+        version=CHALLENGE_KEY.version,
+    )
+    request = _request()
+    if boundary == "request":
+        request = _forge(
+            ListFixtureLeaderboardRequest,
+            challenge_key=forged_key,
+            page_size=1,
+            cursor=None,
+        )
+        provider = _Provider(_snapshot())
+    elif boundary == "snapshot":
+        provider = _Provider(
+            _forged_snapshot(
+                _snapshot(),
+                challenge_key=forged_key,
+                candidates=(_forge(FixtureLeaderboardCandidate),),
+            )
+        )
+    else:
+        invalid = _forged_candidate(_candidate(), challenge_key=forged_key)
+        provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    service = _service(
+        provider,
+        limits=_limits(max_string_utf8_bytes=string_limit),
+    )
+    original_post_init = ChallengeKey.__post_init__
+    oversized_owner_calls: list[tuple[str, str]] = []
+
+    def guarded_post_init(value: ChallengeKey) -> None:
+        challenge_id = object.__getattribute__(value, "challenge_id")
+        version = object.__getattribute__(value, "version")
+        if challenge_id == oversized_id:
+            oversized_owner_calls.append((challenge_id, version))
+            raise AssertionError("oversized Challenge reached owner validation")
+        original_post_init(value)
+
+    monkeypatch.setattr(ChallengeKey, "__post_init__", guarded_post_init)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(request)
+    assert type(raised.value) is LeaderboardResourceError
+    assert oversized_owner_calls == []
+    assert len(provider.calls) == (0 if boundary == "request" else 1)
+
+
+@pytest.mark.parametrize(
+    ("challenge_id", "version"),
+    (
+        ("bad value", CHALLENGE_KEY.version),
+        ("aé", CHALLENGE_KEY.version),
+        (CHALLENGE_KEY.challenge_id, "bad version"),
+        (CHALLENGE_KEY.challenge_id, "fixture-é"),
+    ),
+)
+@pytest.mark.parametrize(
+    ("boundary", "expected_error", "expected_calls"),
+    (
+        ("request", LeaderboardRequestError, 0),
+        ("provider", LeaderboardIntegrationError, 1),
+    ),
+)
+def test_bounded_malformed_challenge_keeps_boundary_error_mapping(
+    challenge_id: str,
+    version: str,
+    boundary: str,
+    expected_error: type[LeaderboardError],
+    expected_calls: int,
+) -> None:
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=challenge_id,
+        version=version,
+    )
+    request = _request()
+    if boundary == "request":
+        request = _forge(
+            ListFixtureLeaderboardRequest,
+            challenge_key=forged_key,
+            page_size=1,
+            cursor=None,
+        )
+        provider = _Provider(_snapshot())
+    else:
+        provider = _Provider(_forged_snapshot(_snapshot(), challenge_key=forged_key))
+
+    with pytest.raises(expected_error) as raised:
+        _service(provider).list_entries(request)
+    assert type(raised.value) is expected_error
+    assert len(provider.calls) == expected_calls
+
+
 def test_string_limit_is_per_occurrence_and_exact_at_boundary() -> None:
     provider = _Provider(_snapshot((_candidate(),)))
     exact = _service(
