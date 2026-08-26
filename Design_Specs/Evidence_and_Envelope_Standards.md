@@ -1,6 +1,6 @@
 # Evidence & Envelope Standards
 
-> **Reconciliation (post-ratification):** All **score-bearing stress** stays inside the **declared exam envelope**. Evidence ranks are **provenance descriptors**, not scalar vote weights in `S_combined`.
+> **Reconciliation (post-ratification):** All **score-bearing stress** stays inside the **declared exam envelope**. Reference evidence is role-based and Challenge-specific, not a universal scalar rank or a vote weight in `S_combined`.
 
 
 **Carbon Subnet**  
@@ -14,7 +14,7 @@
 
 These rules apply wherever Carbon claims physical credibility:
 
-1. **Reference strength is ranked** — state which level you used; never imply a stronger level than the evidence.
+1. **Reference authority is qualified by role** — state what each source tests, its independence, applicability, uncertainty, and limits.
 2. **Envelope = maximum claim** — exclusions are first-class; no certification wider than the tested domain.
 3. **Coverage is measured** — dossier must show the generator actually exercises the claimed envelope.
 4. **Thresholds are calibrated** — gate limits come from reference uncertainty and engineering relevance, not vibes.
@@ -22,24 +22,34 @@ These rules apply wherever Carbon claims physical credibility:
 
 ---
 
-## 1. Reference evidence hierarchy
+## 1. Reference evidence roles
 
-Treat "truth" as **reference evidence with a stated strength**, not a single oracle.
+Treat "truth" as a qualified, uncertainty-bearing reference process, not a
+single oracle or a universal ladder. Different sources answer different V&V
+questions and may be combined only through a prospectively registered
+`ReferencePolicy`.
 
-| Rank | Evidence type | Typical use |
-|------|---------------|-------------|
-| **R5** | Analytic / manufactured solution | Phase 0 packs where available |
-| **R4** | Mesh/time-converged numerical reference (pinned FOSS or SciML) | Default dossier bar |
-| **R3** | Multi-code agreement (two independent solvers) | Disputed regimes; higher claims |
-| **R2** | Trusted industrial golden (partner / lab) | Qualification support only |
-| **R1** | Single-code unconverged or weak approximate | Insufficient for LIVE alone |
+| Evidence role | What it can support | Principal limitation to examine |
+|---|---|---|
+| Analytic or manufactured solution | Code verification and exact/controlled subdomains | May not represent the full target physics or operating envelope |
+| Mesh/time/tolerance-converged numerical study | Numerical verification and uncertainty characterization | Discretization and model-form error remain |
+| Methodologically independent cross-code witness | Correlated-error detection and corroboration | Shared equations, libraries, data, or personnel can preserve common bias |
+| Experimental or industrial observation | Validation against the physical system and model-form adequacy | Measurement uncertainty, sparse coverage, provenance, and representativeness |
+| Qualified accelerator/surrogate reference | Routine operational answer-key generation | Inherits a bounded envelope and must remain anchored and audited against stronger evidence |
+| Unconverged or otherwise unqualified output | Exploratory diagnostics only | Insufficient by itself for a LIVE decision |
 
 **Rules**
 
-- Every Validation Dossier states the **highest rank actually achieved** and on how many audit seeds.
-- R2 goldens **qualify generators**; they are not the live miner exam set.
-- R1 cannot carry a LIVE decision by itself.
-- When ranks disagree: document both; prefer principle checks (conservation, stability); tighten envelope before weakening gates.
+- Every `ReferencePolicy` states which source is primary, which sources are
+  witnesses or anchors, what question each addresses, and the exact
+  applicability, independence, uncertainty, disagreement, and failure rules.
+- No source qualifies a generator, reference, or Challenge merely by category.
+  Each contributes evidence to the registered Dossier acceptance argument.
+- Multi-code agreement is not independence by definition. Shared methods,
+  libraries, calibration data, assumptions, and personnel must be disclosed.
+- When sources disagree, preserve the disagreement and apply the registered
+  indeterminate/failure policy. Do not average incompatible evidence into
+  truth or weaken gates to force a decision.
 
 ---
 
@@ -55,7 +65,7 @@ Must be written before LIVE (generators) or before commercial ship (specialists)
 | Geometry / BC class | Yes |
 | **Excluded regimes** (shocks, cavitation, turbulence class, ...) | Yes |
 | Stress categories that must be hit | Yes (generator) |
-| Reference rank used inside the envelope | Yes |
+| Reference evidence roles and policies used inside the envelope | Yes |
 
 **Rule:** No claim wider than dossier (lean) or product-battery (commercial) evidence.
 
@@ -99,7 +109,7 @@ Stress exists to **hunt failure modes** inside the envelope (conservation breaks
 |-------|--------|
 | **Lean exam** | Fixed category taxonomy per Score Pack; hidden seeds |
 | **Product battery** | Deeper adversarial / inverse / plant suites (`Specialist_Bank`) |
-| **Adaptive stress (later)** | Optional Port B evolution from failure atlas — **out of scope for Phase 0 Creation** |
+| **Adaptive stress proposals (later)** | Failure-atlas evidence may propose a prospective Generator/Score Pack version. The new fixed sampling law must be qualified and activated for all eligible candidates under a new identity; no live candidate-specific adaptation. |
 
 ---
 

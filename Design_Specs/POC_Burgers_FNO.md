@@ -8,7 +8,7 @@
 
 **Path class:** **Lean eval only.** Product battery is out of scope — see `Specialist_Bank.md`.
 
-**Handoff to full Phase 0:** This PoC is a **dependency** of `Build_Out.md` Phase 0, not a competing SOW. MCP, fees, testnet, and noisy priors are **out of this PoC** and **in** Build_Out Waves A–C once `TrainEvalAPI.run(strategy, batches, mode, limits)` exists. Do not treat “no MCP here” as “MCP is not part of Carbon.”
+**Handoff to full Phase 0:** This PoC is a **dependency** of `Build_Out.md` Phase 0, not a competing SOW. MCP, fees, testnet, and evidence-labeled PriorPacks are **out of this PoC** and **in** later Build Out waves under their ratified contracts. Do not treat “no MCP here” as “MCP is not part of Carbon.”
 
 **Why it matters:** Proves the mechanism (strategy in, not weights; train ≠ eval seeds; gates can zero score; card out) before scaling the agent surface.
 
@@ -21,7 +21,7 @@
 ---
 
 **Carbon Subnet**  
-**Version:** 1.2 (August 2026)  
+**Version:** 1.3 (August 2026)
 **Status:** Phase-0 proof-of-concept build specification  
 **Related:** `SPEC.md`, `Build_Out.md`, `Miner_MCP.md`, `Data_Management.md`, `Scoring.md`
 
@@ -41,7 +41,11 @@ strategy.json → schema check → seeded train/eval/stress data
 
 If this PoC passes its acceptance tests, Carbon’s atomic unit is real: miners submit **strategies**, validators **retrain**, eval data is **seed-generated**, gates can **zero** a run, and every run emits a **Model Card**.
 
-Export the train/eval entrypoint as **`TrainEvalAPI`** so `Build_Out` validator + MCP `light_*` paths share one harness (`mode=official` vs `mode=mock`).
+Export the official PoC entrypoint as **`TrainEvalAPI`** with an
+`OfficialTrainEvalRequest` and an official-data handle. A later practice runner
+may reuse internal numerical kernels, but it must use a nominally distinct
+request, result, data handle, and service path. A caller-controlled mode string
+must never select official versus practice data rights.
 
 ---
 
@@ -65,8 +69,8 @@ Export the train/eval entrypoint as **`TrainEvalAPI`** so `Build_Out` validator 
 ### Out of scope (explicit non-goals for *this PoC*)
 
 - Bittensor neuron / Yuma / emissions (**→ Build_Out C15**)  
-- Miner MCP, estimate, light_compare, light_train, get_submission_result (**→ `Miner_MCP.md` / Build_Out C9** — after TrainEvalAPI)  
-- Landscape Agent, specialists, noisy prior *service* (**→ later phases**)  
+- Miner MCP, Wave B research operations, practice tasks, and the official submission/result lifecycle (**→ `Miner_MCP.md`, the Wave B research contract, and Build Out C9**, after TrainEvalAPI)
+- Landscape Agent, specialists, immutable coarsened PriorPack *service* (**→ later phases**)
 - **Product battery** (PB-INV, deep PB-ROLL, PB-ADV, PB-LAT, PB-ART)  
 - Multi-challenge, multi-backbone, multi-physics  
 - TPU, multi-GPU, full ONNX commercial pipeline  
@@ -92,9 +96,9 @@ T1 schema reject · T2 seed separation · T3 full loop · T4 gate fail zeros sco
 
 ## 5. Handoff checklist (before Build_Out MCP wave)
 
-- [ ] `TrainEvalAPI.run(strategy, batches, mode, limits) -> metrics` exists  
-- [ ] `mode=official` uses validator roles/seeds  
-- [ ] `mode=mock` can be wired later to mock packs without code fork  
+- [ ] `TrainEvalAPI.run(OfficialTrainEvalRequest, OfficialDataHandle, limits) -> InternalResult` exists
+- [ ] The official request and data handle require validator-owned role/seed provenance
+- [ ] Reusable internal kernels accept no public authority selector; a later practice wrapper must provide nominally separate request/result/data-handle types
 - [ ] Model Card written with pack hash + gate vectors  
 - [ ] T1–T7 green  
 
@@ -102,4 +106,4 @@ Then proceed to `Build_Out.md` Waves A–C (MCP, fees, cards, testnet).
 
 ---
 
-*POC_Burgers_FNO v1.2 — atomic lean loop + explicit TrainEvalAPI handoff to full Phase 0.*
+*POC_Burgers_FNO v1.3 — atomic lean loop, nominal practice separation, and explicit TrainEvalAPI handoff to full Phase 0.*

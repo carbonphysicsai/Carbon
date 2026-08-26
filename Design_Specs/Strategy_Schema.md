@@ -14,6 +14,20 @@
 > fields. Future ratified catalogs belong under `parameters` or in a later
 > schema version.
 
+> **Wave B candidate direction:**
+> `Miner_MCP_Wave_B_Research_Contract.md` keeps the four-field Strategy v1
+> envelope and moves executable knob semantics into a Challenge-bound public
+> `ParameterCatalog`, `CandidateAssemblyContract`, and deterministic compiler.
+> A catalog may expose only registered, Challenge-bounded training sampling,
+> curriculum, and augmentation levers. These resolve to one canonical
+> `ResolvedTrainingSamplingPolicy`, denoted `R_strategy`, plus its
+> content-addressed `TrainingSamplingPolicyRef`; the validator derives train
+> seeds and draws.
+> Wave B accepts no raw/custom dataset, data path or URI, miner seed, or official
+> evaluation control.
+> The examples below are input to that future catalog review, not an executable
+> catalog and not permission to implement their values.
+
 ---
 
 ## TL;DR

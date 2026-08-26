@@ -144,9 +144,14 @@ Do not insert frontier or treasury policy into the A7 submission FSM merely to r
 
 # 3. A8 constitutional contract
 
-A8 remains **not implemented** until code/test/review/merge evidence exists.
+A8 is implemented, tested, reviewed, and merged only for the bounded
+deterministic process-local fixture-official stub recorded in `.agent/WAVE.md`
+and `.agent/DECISIONS.md`. It is not scientifically, security, network,
+commercially, or production qualified and grants no LIVE, frontier, weight,
+emission, or settlement authority.
 
-The currently specified fixture path is constitutionally acceptable only if it preserves:
+The current bounded fixture path remains constitutionally acceptable only while
+it preserves:
 
 1. exact trusted composition;
 2. fixture-official context only;
@@ -670,7 +675,9 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done for the bounded fixture scope after the reviewed
+documentation closeout merged normally in PR #38 as
+404c039596b487cf2649bb1d73b80e9b49baaced
 A11: todo
 A12: todo
 ```
@@ -749,6 +756,7 @@ When Waves B–D begin, `Build_Out.md` should be revised or supplemented to make
 ```text
 PhysicalSystemSpec
 CandidateOutputContract
+CandidateAssemblyContract
 InstanceDistributionContract
 SamplingPlan
 CanonicalChallengeCase
@@ -756,10 +764,28 @@ ReferencePolicy
 MeasurementContract
 Validation Dossier
 Score Pack / Evidence Use Contract
+ParameterCatalog
+ResolvedConstructionPlan
+ChallengeInteractionManifest
+ResearchTask
 ExperimentRecord
+ResearchReceipt
+PriorPack
+PriorPolicyBundle
+PriorIndexSnapshot
+PriorPublicationReceipt
+PriorDisclosureLedger
+PublicEstimand
 ```
 
 The scientific job owns the population. The generator does not define the population merely by what it happens to sample.
+
+The miner research surface must also distinguish public contract facts,
+evidence-labeled priors, candidate-specific practice measurements, and official
+evidence. Strategy parameters receive executable meaning only through a
+Challenge-bound catalog and deterministic compiler. Practice and official
+execution remain nominally separate. Prior, practice, scaffold, forecast, and
+information-value artifacts never acquire score authority.
 
 ---
 

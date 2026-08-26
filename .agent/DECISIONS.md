@@ -1,5 +1,66 @@
 # Agent decisions log
 
+## 2026-08-26 — Wave B miner-research architecture and execution-board candidate
+
+**Candidate only; no activation.** The proposed governing artifacts are
+`.agent/WAVE_B.md` version 0.2 and
+`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` version 0.2, together
+with `.agent/WAVE_B_CODEX_HANDOFF.md`, the B-01 through B-GATE ticket
+decomposition, and the per-ticket `.agent/evidence/wave_b/` convention. They
+are documentation and planning candidates until independently reviewed,
+explicitly authorized by the human protocol, science, security, rights, and
+technical owners, and normally merged. Merge of this candidate does not itself
+activate Wave B.
+
+**Prospective activation rule.** Wave A remains authoritative. Wave B ticket
+execution may begin only after A11 and A12 are merged/closed,
+`.agent/WAVE_A_REPORT.md` exists, the Wave B planning package is independently
+reviewed, and one prospective activation change is independently reviewed and
+human-authorized. That change records named owner-role approval with the exact
+reviewed commit and SHA-256 hashes over the unchanged repository bytes of the
+board, contract, and handoff, then makes `.agent/WAVE.md` name Wave B and that
+exact board as its controlling register. It does not mutate the board,
+contract, or handoff. Before B-01, a separate independently reviewed post-merge
+activation closeout must record the activation merge commit/tree, prove exact
+reviewed-head and merged-tree equality, record post-merge CI, and record named
+human owner acceptance without changing the three hashed artifacts. B-07R and
+B-07S then ratify behavior and the exact service protocol before dependent
+implementation. B-07A implements the ratified shared v2 nominal primitives;
+B-07G later composes the completed domain implementations into the exact local
+twelve-operation service.
+Launch v1.0.2 records the conditional rebaseline; the former v1.0.1 umbrella
+B-02/B-07 IDs are retired aliases and `.agent/WAVE_B.md` owns the proposed
+ticket decomposition.
+
+**Fixed candidate architecture.** Strategy v1 stays declarative. A public
+Challenge-bound `ParameterCatalog`, `CandidateAssemblyContract`, and
+deterministic compiler produce one exact `ResolvedConstructionPlan` or fail
+closed. A closed catalog may expose Challenge-bounded training sampling,
+curriculum, and augmentation levers that resolve to `R_strategy`; validators
+derive the actual train seeds and draws. Raw/custom data and all official
+evaluation controls remain outside Wave B. Practice is nominally separate and
+non-authoritative. The local miner topology pairs the separately namespaced v2
+research service with the unchanged v1 official service; v2 neither exposes
+nor delegates v1 operations and does not duplicate its lifecycle or store.
+PriorPack is immutable, estimand-bearing, evidence-labeled, equal-by-reference,
+statically served, lagged, and governed by persistent cumulative disclosure.
+`TEST_ONLY` cannot enter external activation, and no v2-backed projection can
+enter the public v1 provider.
+
+**Authority ceiling.** This candidate can become `SPECIFIED / RATIFIED` only.
+It implements nothing and creates no scientific, security, network, commercial,
+production, LIVE, frontier, weight, emission, or settlement authority.
+
+**Unresolved human/evidence inputs.** The real physical population and
+SamplingPlan; primary/witness reference adequacy; measurements and decision
+resolution; executable catalog/backbones/training-support/resource rails; practice scope;
+resource calibration; prior estimands, cohort, lag, cadence, bands,
+search-diversity policy, utility/leakage thresholds, content and approvers;
+evidence/IP rights; signer/key custody; live identity linkage; and remote
+quotas/fees remain fail-closed owner decisions mapped to the Master Open Design
+Questions and the Wave B board. Named implementation-lane staffing and the
+testnet/mainnet calendar rebaseline are also unresolved launch-owner inputs.
+
 ## 2026-08-26 — A10 bounded fixture-leaderboard implementation and conditional closeout
 
 **Decision and authority boundary.** The A10-R1 through A10-R17 contract was

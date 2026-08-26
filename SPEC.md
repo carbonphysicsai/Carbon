@@ -1,6 +1,6 @@
 # Carbon — Protocol Specification
 
-**A Bittensor subnet for trustless verification of physics-informed neural operator training strategies**
+**A Bittensor subnet for trust-minimized, auditable verification of physics-informed neural operator training strategies**
 
 **Status:** Phase 0 foundations + offline PoC. Landscape and commercial layers are **build-ordered** — not assumed live at launch.
 
@@ -13,6 +13,14 @@
 > **Public physics / hidden realizations.** Declared envelope + dossier are public; official draws/seeds stay hidden.
 >
 > **Port B.** Every scored nonzero submission completes the **same mandatory lean pack**; progressive depth is scheduling/prefilter/supplemental, not variable grading.
+>
+> **Wave B miner-research migration.** The implemented Wave A v1 MCP remains
+> unchanged. The proposed Wave B research service uses a separate local v2
+> identity, immutable evidence-labeled PriorPacks, deterministic Strategy
+> compilation, and nominal practice paths. It provides no official-score or
+> rank prediction. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` and the
+> Wave B tickets control that migration after their activation and ratification
+> gates.
 
 
 **Canonical companions**
@@ -30,6 +38,7 @@
 | [`Design_Specs/Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md) | Compute strategy |
 | [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
 | [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
+| [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | Proposed Wave B research architecture; inactive until the Wave B gates close |
 
 ---
 
@@ -37,11 +46,29 @@
 
 Carbon coordinates miners and agents to discover training strategies for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators retrain and evaluate those strategies on hidden, procedurally generated data under hard physics gates. Emissions follow that independent score — not self-reported metrics.
 
-**Core loop:** Miners submit training strategies (loss configurations, curricula, architectures, data-generation parameters). Validators execute deterministic training from scratch on hidden procedural data, evaluate against hard physics gates and challenge-bound Score Packs, and emit Model Cards. Verified cards later feed a knowledge layer that compounds insight under strict publish rules and, only after a verification gauntlet, commercial specialists.
+**Target qualified loop:** Miners submit declarative training strategies
+containing a registered backbone and Challenge-bound parameter choices.
+Validators independently reconstruct and train from scratch under pinned
+contracts, environments, and resources; residual reconstruction variance is
+measured and carried into the decision interval. They evaluate qualified runs
+against mandatory physics gates and Challenge-bound Score Packs. Eligible
+private evidence and bounded card projections may later feed a knowledge layer
+under strict evidence, rights, and publication rules and, only after separate
+verification, commercial specialists.
 
 Traditional neural operators are dominated by accuracy-driven objectives. They may solve overfitting, but the objective still drives them toward accuracy and learning data, which is why they struggle with real physics in deployment. Carbon changes the optimization target because physics gates, fidelity, and model robustness are weighted more than pure training loss accuracy in the final score. We are driving miners at training strategies that survive a different objective, and learning from them. That is the valuable work Carbon is paying for and that the validators are pressure-testing. It is plausible that the Pareto front of methods under hard physics + stress differs from those under pure accuracy, and Bittensor miners are the right tool for finding it.
 
-The training data and evaluation criteria are generated in real time, seed-triggered, impossible for the miners to know ahead of time, challenge-specific, fully auditable, and verified against real physics and real simulation tools. Every training run generates a Model Card that has every valuable piece of data from how it was trained, how accurate it was, and how it scored on the real physics testing. The data is used to return value to miners, improve the evaluation, improve challenge design, and develop industry deployable models.
+Challenge contracts and evaluation criteria are frozen prospectively and made
+public. After a Strategy is committed, typed role-separated entropy derives
+protected fresh case realizations; under the registered threat assumptions,
+miners do not receive those draws before evaluation. Qualified official runs
+produce private evidence and bounded card projections, while practice produces
+non-authoritative research records and receipts. Version pins, commitments,
+retained evidence, and independent review make the result auditable within the
+stated scientific and execution qualifications; they are not a full
+cryptographic proof of correct private execution. Eligible evidence may later
+improve priors, prospective Challenge design, and separately qualified product
+work under explicit rights and publication policies.
 
 **What the network optimizes for**  
 Training methods that survive stress and physical constraints — not low loss on a fixed public set.
@@ -58,12 +85,14 @@ Envelope-qualified solution maps (problem setup → physical fields) for jobs en
 
 Leaderboard rank ≠ shelf product. No commercial full specialist ships without the product battery. No pay-to-compete.
 
-**Lead capability (raise / pre-launch):** trustless verification + dual threshold + sponsored path.  
+**Lead capability (raise / pre-launch):** trust-minimized, auditable verification + dual threshold + sponsored path.
 **Knowledge layer (Landscape):** designed four-port compounding architecture — **build-ordered**, not a pre-launch live brain. Public L0 priors only after [`Launch_Bar.md`](./Design_Specs/Launch_Bar.md) is green.
 
-**Epistemic line:** Hard gates (when Launch Bar is green) are protocol truth. Causal bands are observational estimates — never spoken with gate-level certainty.
+**Epistemic line:** Hard gates (when Launch Bar is green) are protocol decisions. Association and effect-candidate bands are decision support. Causal language requires a registered identification design and epistemic promotion.
 
-**Port D export law:** *Ground truth in. Verified knowledge out.* No teacher-checkpoint distillation; recipes from stable effects; re-execute; grounding gate or no ship.
+**Port D export law:** *Qualified evidence in. Independently re-tested
+capability out.* No teacher-checkpoint distillation; recipes from stable
+effects; re-execute; grounding gate or no ship.
 
 ---
 
@@ -85,7 +114,7 @@ END USERS           Aero / auto / energy / defense — digital twins, HIL,
                       design optimization, hybrid truth loops
 ```
 
-Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts. Bittensor works because the Carbon objective is mathematical and fail-closed, validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. It enables an intelligence flywheel by re-feeding miners winning strategy clues. The Bittensor mechanism allows Carbon to provide trustless verification for surrogate models that must be trusted in high-risk environments where physics breakdowns are very expensive and not optional. The open source and auditable training and evaluation mechanism is exactly what a chief engineer needs to defend the deployment of Carbon’s physics models.
+Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts. Bittensor works because the Carbon objective is mathematical and fail-closed, validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. It enables an intelligence flywheel by publishing qualified, lagged aggregate evidence about registered interventions, with uncertainty, caveats, and falsification aids. The Bittensor mechanism allows Carbon to provide trust-minimized, committed, and auditable verification for surrogate models intended for settings where physics breakdowns are expensive. This design does not yet claim cryptographic proof of the full computation. The open verification standard and independently reviewable evidence are what an engineer can use to defend a deployment decision.
 
 ---
 
@@ -93,33 +122,33 @@ Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of tra
 
 ```
 MINERS / AGENTS
-  ├─ Optional local loop: noisy leader insight → estimate → light train → submit
+  ├─ Optional research loop: manifest → exact PriorPack → compile → paired practice → submit
   ├─ Strategy JSON (schema-versioned)
   └─ Toolkit: Docker + SDK + cost hints
 
 VALIDATORS
   ├─ Procedural data (seeded; train ≠ eval ≠ stress)
-  ├─ Multi-fidelity path: fast stress filter → full hidden exam + physics gates
+  ├─ Registered mandatory exam pack + physics gates for every nonzero result
   ├─ Short rollout stability (lean plant signal)
   ├─ Challenge-bound Score Pack
   └─ Model Card (provenance → later Landscape ingest)
 
-GROUND TRUTH ORACLE (as needed)
+REFERENCE / QUALIFICATION SERVICES (as registered)
   ├─ DifferentialEquations.jl / SciMLSensitivity.jl
   ├─ ModelingToolkit.jl (structured losses)
-  └─ Mesh-converged references (FEniCS, OpenFOAM, SU2, …) for generator validation
+  └─ Analytic, mesh-converged, cross-code, or experimental anchors as registered
 
 LANDSCAPE AGENT (after Launch Bar)
   ├─ Private graph: cards, effects, failures, promotion / product-battery outcomes
-  ├─ Port A Search: noisy priors, masks, diagnostics → miners
-  ├─ Port B Eval: progressive depth, adaptive stress → validators (private; floor rules)
+  ├─ Port A Search: immutable evidence-labeled PriorPacks + falsification aids → miners
+  ├─ Port B Eval: scheduling, prefetch, and capacity advice only; never candidate-specific grading depth
   ├─ Port C Economy: challenge-weight / bounty *proposals* only
   └─ Port D Product: opportunity rank → Specialist Bank gauntlet
 
 SPECIALIST BANK (Port D execution)
   ├─ Candidate recipes (winning strategy allowed as candidate; rank/checkpoint ≠ qualification)
   ├─ Controlled retrain + product battery
-  └─ Dual egress: noisy miner derivatives | closed commercial SKU
+  └─ Dual egress: coarsened public evidence | closed commercial SKU
 
 INCENTIVES
   ├─ Lean scores only → weights / emissions (winner-heavy decay)
@@ -130,22 +159,23 @@ INCENTIVES
 
 | Path | Who | What they get |
 |------|-----|---------------|
-| **Public / miner** | Miners, agents | Noisy, lagged prior / warm-start **derivatives only** — never full weights or exact bank recipe |
+| **Public / miner** | Miners, agents | Immutable, lagged, evidence-labeled PriorPacks with registered interventions, uncertainty, caveats, and falsification aids; never full weights or an exact bank recipe |
 | **Commercial** | Buyers | Closed SKU = ONNX (or approved) + exact recipe + Model Card + **product-battery certs** + license + updates (+ optional air-gap) |
 
 Competition scoring **never** depends on purchasing the commercial path.
 
 ### 3.2 Flywheel loop (why Landscape is real)
 
-1. **Ingest** lean-verified Model Cards (and later promotion / product-battery outcomes).  
-2. **Fit** symbolic (e.g. PySR → ModelingToolkit) and causal (Double ML) structure offline / batch.  
+1. **Ingest** eligible, qualified official Model Card evidence (and later promotion / product-battery outcomes).
+2. **Fit** symbolic structure and effect candidates offline or in batch, including Double ML only where its assumptions and identification design are registered.
 3. **Route**  
-   - A: orient agent search without leaking the moat  
+   - A: orient agent search with versioned, evidence-labeled hypotheses while protecting realized exam information
    - B: spend validator GPU where it matters (under Port B floor rules)  
    - C: aim emissions at unsaturated high-upside regimes  
-   - D: queue regimes with dense causal support for **gauntlet productization**  
+   - D: queue regimes with dense replicated effect-candidate or experimentally
+     supported evidence for **gauntlet productization**
 4. **Bank** only what re-trains and passes job-shaped tests.  
-5. **Feed back** banked regimes into noisier priors and better challenge design — search quality rises without opening eval outcomes for sale.
+5. **Feed back** qualified aggregate evidence into later immutable PriorPacks and prospective challenge design under rights, lag, and cumulative-disclosure controls.
 
 Success metrics: post-gate progress, product-battery pass rates, commercial conversion — **not** guidance-API engagement. Landscape never overrides gates. **L0 public publish only after Launch Bar green.**
 
@@ -153,26 +183,29 @@ The subnet team builds a knowledge graph of these Model Cards and uses them to r
 
 ---
 
-## 4. Trustless verification and data generation
+## 4. Trust-minimized verification and data generation
 
 ### Core principles
 
 - **Procedural generation at runtime:** Primary evaluation and stress data are generated at runtime with open-source generators.
-- **Public unpredictable seeding:** Phase 0 uses `hash(challenge_id + block_hash + run_nonce)`; Phase 1B+ moves toward commit-reveal + drand-class randomness where useful.
-- **Auditable by anyone:** Generator code is open; anyone can reproduce a draw given the seed.
+- **Typed unpredictable entropy:** Official evaluation consumes an exact 32-byte `OfficialEntropy` from a registered `BeaconProvider`. Role seeds are derived with RFC 5869 HKDF-SHA-256 domain separation. The production provider, observation timing, finality rule, and outage policy remain unresolved owner decisions and cannot be invented by an implementation.
+- **Auditable after disclosure:** Generator code and derivation rules are open. An authorized audit can reproduce a draw once its committed entropy and protected realization material are disclosed under policy.
 - **Scientific credibility:** Parameter ranges need documented physical justification; generators validated against high-fidelity references (FEniCS, OpenFOAM, SU2, DPLR, US3D, **DifferentialEquations.jl**, and peers).
 - **No fixed public benchmark as the live exam:** Fixed datasets may validate generators; they are not the miner-facing answer key.
-- **Train ≠ eval ≠ stress:** Distributions and seeds are separated; miner local loops must not see validator eval seeds.
+- **Train/eval/stress role separation:** Randomness roles and realized samples
+  are separated; the Challenge declares their physical-distribution
+  relationship. Miner local loops must not see validator evaluation entropy or
+  realized draws.
 
-### Ground truth oracle
+### Qualified reference path
 
-Julia/SciML (DifferentialEquations.jl, SciMLSensitivity.jl, ModelingToolkit.jl, NeuralPDE / MethodOfLines as needed) supplies reference solutions, adjoints, and structured loss hooks — for generator validation and optional structured losses, not as a substitute for the adversarial exam.
+Each Challenge registers a primary reference used to produce the operational answer key for its realized exam conditions. That reference earns bounded authority through analytic, refined-solver, cross-code, manufactured-solution, experimental, or other independent evidence recorded in its Validation Dossier. Julia/SciML may implement one reference or witness capability, but it is not a universal oracle. If a required reference is unavailable or its uncertainty cannot resolve the decision, Carbon returns a typed infrastructure or indeterminate outcome rather than scoring through the failure.
 
 Full design including proprietary-data handling: [`Trustless_Verification.md`](./Design_Specs/Trustless_Verification.md).
 
 ### Data generation invariants
 
-- `stress_seed` unknown to miners until evaluation.
+- Official entropy and its role-derived seeds remain unavailable to miners before commitment and evaluation.
 - Validator generator config ignores miner-supplied eval params.
 - Score Pack robustness category IDs must align with Generator Pack categories ([`Scoring.md`](./Design_Specs/Scoring.md) + [`Data_Management.md`](./Design_Specs/Data_Management.md)).
 - Stress category coverage targets remain as specified in Data Management (≥95% where defined).
@@ -186,16 +219,24 @@ Full design including proprietary-data handling: [`Trustless_Verification.md`](.
 - **Validator authority:** Every emissions path is a full lean exam on hidden data with hard gates.
 - **Miner autonomy:** Local iteration is encouraged, never required.
 - **Zero-friction submit:** Strategy JSON can be submitted with **no** local training.
-- **Moat:** Public leader insight is **noisy and lagged** — not full champion weights, exact bank recipes, raw causal graphs, DML dumps, or product-battery seeds.
+- **Information boundary:** Publish the registered physics target, strategy
+  surfaces, practice scope, evidence-use policy, and approved scientific memory.
+  Protect realized official cases, seeds, stress composition, references, exact
+  margins, private records, and champion recipes.
 
-Mining is agentic auto research encouraged to lower the barrier to entry, raise the quality of submissions, and leverage network effects on the discovery end. An agent friendly front end (MCP) receives noisy feedback from the current challenge winner’s strategy (no full recipe or weights) to start with and provides estimated scoring impacts of the miner/agent’s local changes, allowing for AI solving at scale. Optional light training if miners want to pay to get an edge.
+Mining supports agentic research. The research service gives each miner the same
+exact approved PriorPack, public executable strategy surfaces, deterministic
+compilation, bounded resource information, and an optional declared-incomplete
+practice path. A miner chooses hypotheses, runs experiments, and keeps its
+private research state. Carbon does not predict the miner's official score,
+rank, gate margins, or winner status.
 
 ### Three tiers (local → official)
 
 | Tier | Compute | Anchored to | Purpose | Emissions? |
 |------|---------|-------------|---------|------------|
-| **Estimation** | Near zero (CPU-class) | Noisy prior / last verified insight | Rapid screening (humans or agents) | No (may log at lower Landscape weight) |
-| **Light training** | Low (optional GPU-hrs) | Same *kinds* of checks on **local** data | Main improve loop | No (may log at lower Landscape weight) |
+| **Static research** | Near zero | Public manifest, exact PriorPack, compiler, and resource models | Check validity, prior alignment, and resource feasibility without executing or predicting score | No |
+| **Practice research** | Bounded optional compute | Fresh public practice cases under a declared incomplete PracticeMeasurementPack | Test one or more hypotheses with paired common-case evidence | No |
 | **Full submission** | Network-paid eval | Full hidden validator data | Official score | **Yes — only path** |
 
 **Key rule:** A miner can submit at any time with zero local training. Paid or heavy local train is optional enhancement, not a gate to compete.
@@ -204,12 +245,17 @@ Mining is agentic auto research encouraged to lower the barrier to entry, raise 
 
 | Aspect | Miner local loops | Validator official evaluation |
 |--------|-------------------|-------------------------------|
-| **Data** | Procedural + optional custom; different seeds | Procedural (validator config only); hidden seeds |
-| **Stress tests** | Reduced, non-hidden variants | Full hidden stress variant set |
-| **Physics gates** | Optional learning signal | Mandatory; hard fail → score 0 |
+| **Data** | Fresh practice cases from the declared practice scope; no official assets | Procedural official cases from validator-controlled realized draws |
+| **Stress tests** | Published, declared-incomplete practice strata | Registered official stress sampling with protected realized composition |
+| **Physics checks** | PracticeMeasurementPack only; no official thresholds or winner claim | Registered mandatory gates; hard fail → score 0 |
 | **Data visibility** | Miner controls | **Never exposed to miners** |
 
-Miners optimize against training distribution; validators grade on a hidden, procedural distribution with hard physics gates. Estimation never replaces the exam.
+Carbon wants improvements on the declared physics distribution to transfer from
+practice to official evaluation. Security analysis therefore measures the
+incremental ability to infer protected realized cases, mixtures, or margins
+after controlling for performance on evaluator-held shadow cases. Low
+practice-to-official correlation is not a safety objective. Practice evidence
+never replaces, prequalifies, schedules, or scores the official exam.
 
 Implementation patterns: `IMPLEMENTATION.md` / [`Design_Specs/Implementation.md`](./Design_Specs/Implementation.md).
 
@@ -313,16 +359,30 @@ Physics additions remain as previously specified (NACA/CRM, HIFiRE, Turek/Hron s
 
 ## 8. Strategy schema evolution
 
-| Schema | Phase | Key fields | Backward compatible |
-|--------|-------|------------|---------------------|
-| **v1.0** | Phase 0–1B | `backbone`, `training`, `loss` (enabled booleans), `curriculum`, `data` | Base |
-| **v1.1** | Phase 2A–2B | + `lora`, `custom_dataset`, `structured_losses`, `data_generation` | Optional fields |
-| **v2.0** | Phase 3 | `composite`, `sub_strategies`, `coupling`, `coupling_gates` | New major |
-| **v2.0+** | Phase 4 | + turbulence / 3D curriculum fields | Additive |
+| State | Wire envelope | Executable meaning | Authority |
+|---|---|---|---|
+| **Implemented Wave A Strategy v1.0** | Exactly `schema_version`, `challenge_id`, scalar `backbone`, and `parameters` | `parameters` remains bounded inert JSON; the schema rejects executable material, dependencies, paths, datasets, seeds, official controls, and unsupported backbones | `carbon/schema/strategy.py`, A2 decisions/tests, and `Miner_MCP.md` |
+| **Wave B candidate** | Keeps the same four-field v1.0 envelope | A public Challenge-bound `ParameterCatalog`, `CandidateAssemblyContract`, and deterministic `StrategyCompiler` produce one canonical `ResolvedConstructionPlan` or a typed rejection | B-02B after B-07R; B-07S owns wire-visible v2 behavior |
+| **Later construction expansion** | New version required | Broader model composition or participant code requires a new threat model, isolation contract, reconstruction protocol, and owner ratification | Future authorized wave only |
 
-**Entropy floor** on miner `generator_params` remains mandatory (anti-degenerate data gaming).
+Wave B rejects unknown, unused, incompatible, coerced, silently defaulted,
+silently clamped, and unsupported parameters. A registered hybrid backbone may
+expose a learned slot only inside Carbon-owned assembly. Strategy v1 does not
+permit participant-defined graphs or code.
 
-Full JSON field lists and training-image acceptance contracts live with implementation schema files / `IMPLEMENTATION.md`.
+The Challenge owns the target population `P`, official proposal and SamplingPlan
+`Q`, evidence weights `w`, generators, official entropy, realized evaluation
+draws, Score Packs, and gates. It also owns the allowed training support and a
+closed family of training policies. A miner may select only catalog-registered,
+Challenge-bounded training sampling, curriculum, or augmentation levers. Those
+choices compile into one canonical `ResolvedTrainingSamplingPolicy`, denoted
+`R_strategy`, and its content-addressed `TrainingSamplingPolicyRef`; both are
+pinned in the `ResolvedConstructionPlan`. The validator derives the actual
+training draws in a role-separated seed domain. `R_strategy` cannot alter `P`, `Q`, `w`, the
+official evaluation or stress distribution, reference process, or scorer.
+Wave B accepts no raw or custom dataset upload, path, URI, or miner-selected
+seed. Future custom-data or generalized-construction capability requires a
+prospective schema, rights, security, reconstruction, and scientific contract.
 
 ---
 
@@ -339,12 +399,12 @@ Landscape is Carbon’s batch intelligence system with four controlled ports —
 
 | Port | Consumer | Leaves the building |
 |------|----------|---------------------|
-| **A Search** | Miners / agents | Noisy priors, causal masks, diagnostics |
-| **B Eval** | Validators only | Progressive depth, adaptive stress (private; **floor rules**) |
+| **A Search** | Miners / agents | Immutable evidence-labeled PriorPacks, registered interventions, caveats, and falsification aids |
+| **B Eval** | Validators only | Scheduling, prefetch, and capacity proposals; never candidate-specific exam depth, stress, or gates |
 | **C Economy** | Governance | Challenge-weight / bounty *proposals* |
 | **D Product** | OpCo / bank | Opportunity specs → gauntlet → closed SKUs / briefs / sealed packs |
 
-**Epistemic split:** Gates = protocol truth (when Launch Bar green). Causal bands = observational estimates — never gate-level certainty language.
+**Epistemic split:** Gates are registered protocol decisions when the Launch Bar is green. Association and effect-candidate bands are decision support; causal claims require registered identification and promotion.
 
 ### What compounds (private)
 
@@ -352,7 +412,7 @@ Landscape is Carbon’s batch intelligence system with four controlled ports —
 |---------------|-----------------|
 | Model Card lake (D1) | Reproducible feature store for fits |
 | Symbolic library (D2) | Structured loss templates into priors / recipes |
-| Causal effects (D3) | Masks + bands for search; module targets for bank |
+| Epistemically typed effect candidates (D3) | Evidence-labeled interventions and bands for search; module targets for bank |
 | Failure atlas (D4) | Diagnostics + stress evolution |
 | Frontier map (D5) | Emission proposals toward unsaturated boards |
 | Promotion / PB graph (D11) | Repair loop; opportunity rank prefers regimes that graduate |
@@ -373,9 +433,9 @@ ship_commercial_full_sku =
 
 | Landscape phase | Unlock |
 |-----------------|--------|
-| L0 | Card lake + daily noisy priors (**after Launch Bar green**) |
+| L0 | Card lake + qualified versioned PriorPack publication on fixed release epochs (**after Launch Bar green, rights review, and disclosure approval**) |
 | L1 | Symbolic + failure atlas |
-| L2 | Causal core + opportunity ranker → bank queue |
+| L2 | Effect-candidate core + opportunity ranker → bank queue |
 | L3 | Eval + economy ports (Port B floors enforced) |
 | L4 | Full Port D gauntlet integration + air-gap packs |
 
@@ -456,14 +516,25 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 ## 13. Miner toolkit and submission interface
 
 - Docker toolkit, `carbon-miner` CLI, and async SDK patterns as specified in implementation docs.
-- Exposes `get_noisy_prior` and diagnostics — **not** full specialist download.
-- Cost estimation hooks for optional local / rented train paths (e.g. Chutes, Targon) without making pay-to-train mandatory.
+- Wave A implements an unnamespaced, process-local seven-operation surface:
+  `get_challenge_info`, `get_prior`, `get_mock_scaffold`, `dry_validate`,
+  `estimate`, `submit`, and `get_submission_result` with bounded existing
+  semantics.
+- After Wave B activation and B-07R/B-07S ratification, the separate local
+  topology may label the unchanged v1 surface `carbon_protocol_v1` and add
+  `carbon_research_v2` for manifest discovery, exact PriorPack retrieval,
+  compilation, prior alignment, resource inspection/forecasting, and
+  asynchronous practice research. The v2 service cannot duplicate official
+  submission or result authority.
+- Static resource inspection and calibrated forecasts may help miners plan
+  optional local or rented compute. They never predict official score, disclose
+  protected evaluator topology, or gate access to submission.
 
 ---
 
 ## 14. Validator operations and economics
 
-- Hardware tables, health gates, and queue priority (**sponsored > high rep > standard**) remain operational guidance in [`Operations.md`](./Design_Specs/Operations.md).
+- Hardware tables, health gates, fair admission, and isolated sponsored capacity remain operational guidance in [`Operations.md`](./Design_Specs/Operations.md). Reputation, stake, sponsorship, novelty, and practice results cannot change an eligible candidate's registered exam pack or scientific score.
 - Product-battery runs are **promotion-time** workloads scheduled by bank/OpCo — not unbounded per-submission defaults.
 - Compute efficiency strategy: [`Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md), [`JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md).
 
@@ -482,7 +553,7 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 | Loss masks are booleans | Schema |
 | Grad clip inside JIT | optax / training policy |
 | Determinism | Pin JAX stack; threefry; documented CUBLAS workspace policy |
-| Eval seed unknown to miners pre-commit | Block-hash / commit-reveal design |
+| Official entropy unknown to miners pre-commit | Registered `BeaconProvider` supplies exact 32-byte `OfficialEntropy`; RFC 5869 HKDF-SHA-256 derives role seeds; production provider/timing/finality remain unresolved until ratified |
 | Eval generator immutable per challenge version | Challenge registry |
 | Hard gates | Binary; zero score on fail |
 | Train ≠ eval distribution | Extended stress envelope |

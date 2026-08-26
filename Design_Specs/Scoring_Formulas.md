@@ -101,8 +101,9 @@ The A5 engine does not accept:
 - raw predictions or references;
 - model functions, datasets, arrays/tensors, raw draws, or raw percentiles;
 - infrastructure/reference failure or partial metrics;
-- miner metrics, prior similarity, `estimate`/`light_*`, exam fee, mock-only
-  metrics, or product-battery results; or
+- miner metrics, prior similarity/alignment, `estimate`, resource
+  inspection/forecast/quote, practice/`light_*` results, research information
+  value, exam fee, mock-only metrics, or product-battery results; or
 - seeds/draw identity, submission identity, cards, receipts, logging, or
   economic weights.
 

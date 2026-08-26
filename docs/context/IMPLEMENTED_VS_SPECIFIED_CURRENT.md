@@ -1,7 +1,7 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger after 2026-08-23 constitutional reconciliation.  
-**Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.  
+**Status:** OWNER-CANONICAL maturity ledger, current through the merged A10 closeout on 2026-08-26.
+**Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
 ---
@@ -77,7 +77,7 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done in the bounded scope after the documentation closeout merged normally in PR #38 as 404c039596b487cf2649bb1d73b80e9b49baaced
 ```
 
 Current `main` implements and tests only a bounded, in-process, fixture-only
@@ -192,4 +192,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0–A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its administrative closeout is pending independent review, explicit human authorization, and normal merge. A10 remains scientifically, security, network, commercially, and production unqualified; official/LIVE publication, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work. A11 and A12 remain `todo`.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0-A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its documentation closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. A10 remains scientifically, security, network, commercially, and production unqualified; official/LIVE publication, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work. A11 and A12 remain `todo`.**
