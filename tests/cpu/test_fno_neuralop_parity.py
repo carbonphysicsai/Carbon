@@ -28,9 +28,11 @@ import jax.numpy as jnp
 from tltorch.factorized_tensors.core import FactorizedTensor
 from neuralop.layers.spectral_convolution import SpectralConv as TorchSpectralConv
 from neuralop.layers.channel_mlp import ChannelMLP as TorchChannelMLP
+from neuralop.layers.embeddings import GridEmbeddingND as TorchGridEmbeddingND
 
 from poc.models.fno_neuralop.spectral_conv import SpectralConv1D
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
+from poc.models.fno_neuralop.embeddings import GridEmbedding1D
 
 pytestmark = [pytest.mark.backend_jax, pytest.mark.backend_torch]
 
@@ -168,3 +170,20 @@ def test_channel_mlp1d_matches_pytorch(
     np.testing.assert_allclose(
         y_jax, y_torch, rtol=RTOL_MULTILAYER, atol=ATOL_MULTILAYER
     )
+
+
+@pytest.mark.parametrize(("nx", "channels"), [(128, 3), (65, 1), (17, 5)])
+def test_grid_embedding1d_matches_pytorch(nx, channels):
+    rng = np.random.default_rng(0)
+    x_np = rng.standard_normal((2, channels, nx)).astype(np.float32)
+
+    torch_emb = TorchGridEmbeddingND(
+        in_channels=channels, dim=1, grid_boundaries=[[0.0, 1.0]]
+    )
+    y_torch = torch_emb(torch.from_numpy(x_np)).numpy()
+
+    jax_emb = GridEmbedding1D()
+    y_jax = np.asarray(jax_emb.apply({}, jnp.asarray(x_np)))
+
+    # Pure coordinate generation, no float accumulation: bit-exact.
+    np.testing.assert_allclose(y_jax, y_torch, rtol=RTOL, atol=ATOL)
