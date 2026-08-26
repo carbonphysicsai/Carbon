@@ -57,6 +57,8 @@ A9 depends on A2, A6, A7, A8. A12 depends on A4–A10.
 
 The long-horizon canonical plan is `Design_Specs/Agentic_Development_Master_Plan.md`. Existing Build Out Waves B–G remain active sequencing concepts. Later Waves H–N in the Master Plan express the integrated destination architecture and require explicit owner authorization before implementation.
 
+A baseline-pinned program-level testnet-to-mainnet roadmap is available at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.1.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.1.md); it does not replace this live ticket board or authorize launch.
+
 ## Notes
 
 - Do not mark done without test/file/review evidence.
