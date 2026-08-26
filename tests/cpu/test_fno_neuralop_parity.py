@@ -25,14 +25,17 @@ neuralop = pytest.importorskip("neuralop")
 pytest.importorskip("tltorch")
 
 import jax.numpy as jnp
+import flax.linen as nn
 from tltorch.factorized_tensors.core import FactorizedTensor
 from neuralop.layers.spectral_convolution import SpectralConv as TorchSpectralConv
 from neuralop.layers.channel_mlp import ChannelMLP as TorchChannelMLP
 from neuralop.layers.embeddings import GridEmbeddingND as TorchGridEmbeddingND
+from neuralop.layers.fno_block import FNOBlocks as TorchFNOBlocks
 
 from poc.models.fno_neuralop.spectral_conv import SpectralConv1D
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
 from poc.models.fno_neuralop.embeddings import GridEmbedding1D
+from poc.models.fno_neuralop.fno_block import FNOBlocks1D
 
 pytestmark = [pytest.mark.backend_jax, pytest.mark.backend_torch]
 
@@ -187,3 +190,131 @@ def test_grid_embedding1d_matches_pytorch(nx, channels):
 
     # Pure coordinate generation, no float accumulation: bit-exact.
     np.testing.assert_allclose(y_jax, y_torch, rtol=RTOL, atol=ATOL)
+
+
+class _FNOBlocksStack(nn.Module):
+    """Test-only wrapper looping over `n_layers`, matching how the
+    top-level `FNO` module will drive `FNOBlocks1D` (see fno_block.py's
+    class docstring: one shared instance, one call per layer index)."""
+
+    in_channels: int
+    out_channels: int
+    n_modes: int
+    n_layers: int
+    channel_mlp_expansion: float = 0.5
+
+    @nn.compact
+    def __call__(self, x):
+        block = FNOBlocks1D(
+            in_channels=self.in_channels,
+            out_channels=self.out_channels,
+            n_modes=self.n_modes,
+            n_layers=self.n_layers,
+            channel_mlp_expansion=self.channel_mlp_expansion,
+        )
+        for i in range(self.n_layers):
+            x = block(x, i)
+        return x
+
+
+@pytest.mark.parametrize(
+    ("nx", "n_modes", "channels", "n_layers"),
+    [
+        (64, 8, 6, 1),
+        (64, 8, 6, 3),
+        (128, 16, 4, 2),
+        (64, 8, 6, 4),  # matches poc's existing FNO1dConfig default depth
+    ],
+)
+def test_fno_blocks1d_matches_pytorch(nx, n_modes, channels, n_layers):
+    rng = np.random.default_rng(0)
+    kept_modes = _kept_modes(n_modes, nx)
+    hidden = round(channels * 0.5)
+
+    torch_blocks = TorchFNOBlocks(
+        in_channels=channels,
+        out_channels=channels,
+        n_modes=(n_modes,),
+        n_layers=n_layers,
+        channel_mlp_expansion=0.5,
+        fno_skip="linear",
+        channel_mlp_skip="soft-gating",
+        norm=None,
+        preactivation=False,
+    )
+
+    x_np = rng.standard_normal((2, channels, nx)).astype(np.float32)
+
+    wrapper = _FNOBlocksStack(
+        in_channels=channels, out_channels=channels, n_modes=n_modes, n_layers=n_layers
+    )
+    params = flax.core.unfreeze(wrapper.init(jax.random.PRNGKey(0), jnp.asarray(x_np)))
+    layer_params = params["params"]["FNOBlocks1D_0"]
+
+    for i in range(n_layers):
+        w_real = rng.standard_normal((channels, channels, kept_modes)).astype(np.float32)
+        w_imag = rng.standard_normal((channels, channels, kept_modes)).astype(np.float32)
+        conv_bias = rng.standard_normal(channels).astype(np.float32)
+        w_complex = torch.from_numpy(w_real + 1j * w_imag).to(torch.cfloat)
+        torch_blocks.convs[i].weight = FactorizedTensor.from_tensor(
+            w_complex, rank=None, factorization="ComplexDense"
+        )
+        with torch.no_grad():
+            torch_blocks.convs[i].bias.data = torch.from_numpy(conv_bias).view(channels, 1)
+        layer_params[f"convs_{i}"] = {
+            "weight_real": jnp.asarray(w_real),
+            "weight_imag": jnp.asarray(w_imag),
+            "bias": jnp.asarray(conv_bias),
+        }
+
+        skip_w = rng.standard_normal((channels, channels)).astype(np.float32)
+        with torch.no_grad():
+            torch_blocks.fno_skips[i].conv.weight.data = torch.from_numpy(skip_w).view(
+                channels, channels, 1
+            )
+        layer_params[f"fno_skip_weight_{i}"] = jnp.asarray(skip_w)
+
+        gate_w = rng.standard_normal((channels,)).astype(np.float32)
+        with torch.no_grad():
+            torch_blocks.channel_mlp_skips[i].weight.data = torch.from_numpy(gate_w).view(
+                1, channels, 1
+            )
+        layer_params[f"channel_mlp_skip_weight_{i}"] = jnp.asarray(gate_w)
+
+        w0 = rng.standard_normal((hidden, channels)).astype(np.float32)
+        b0 = rng.standard_normal((hidden,)).astype(np.float32)
+        w1 = rng.standard_normal((channels, hidden)).astype(np.float32)
+        b1 = rng.standard_normal((channels,)).astype(np.float32)
+        with torch.no_grad():
+            torch_blocks.channel_mlp[i].fcs[0].weight.data = torch.from_numpy(w0).view(
+                hidden, channels, 1
+            )
+            torch_blocks.channel_mlp[i].fcs[0].bias.data = torch.from_numpy(b0)
+            torch_blocks.channel_mlp[i].fcs[1].weight.data = torch.from_numpy(w1).view(
+                channels, hidden, 1
+            )
+            torch_blocks.channel_mlp[i].fcs[1].bias.data = torch.from_numpy(b1)
+        layer_params[f"channel_mlp_{i}"] = {
+            "weight_0": jnp.asarray(w0),
+            "bias_0": jnp.asarray(b0),
+            "weight_1": jnp.asarray(w1),
+            "bias_1": jnp.asarray(b1),
+        }
+
+    params["params"]["FNOBlocks1D_0"] = layer_params
+
+    x_torch = torch.from_numpy(x_np)
+    with torch.no_grad():
+        for i in range(n_layers):
+            x_torch = torch_blocks(x_torch, i)
+    y_torch = x_torch.numpy()
+
+    y_jax = np.asarray(wrapper.apply(params, jnp.asarray(x_np)))
+
+    # Deeper stacks compound fp32 rounding further still, but relative error
+    # stays bounded because output magnitude grows with the same random-walk
+    # weights on both sides (verified up to 6 layers deep in the design
+    # phase, well past this test's max of 4). RTOL_MULTILAYER holds.
+    np.testing.assert_allclose(
+        y_jax, y_torch, rtol=RTOL_MULTILAYER, atol=ATOL_MULTILAYER
+    )
