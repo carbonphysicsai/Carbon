@@ -64,11 +64,30 @@ def _provider_field(value: object, name: str) -> object:
     raise AssertionError
 
 
+def _require_utf8_capacity(value: str, maximum: int) -> None:
+    if len(value) > maximum:
+        raise LeaderboardResourceError()
+    width = 0
+    for character in value:
+        code_point = ord(character)
+        if code_point <= 0x7F:
+            width += 1
+        elif code_point <= 0x7FF:
+            width += 2
+        elif 0xD800 <= code_point <= 0xDFFF:
+            return
+        elif code_point <= 0xFFFF:
+            width += 3
+        else:
+            width += 4
+        if width > maximum:
+            raise LeaderboardResourceError()
+
+
 def _require_string_capacity(
     value: str, limits: FixtureLeaderboardResourceLimits
 ) -> None:
-    if len(value) > limits.max_string_utf8_bytes:
-        raise LeaderboardResourceError()
+    _require_utf8_capacity(value, limits.max_string_utf8_bytes)
 
 
 def _copy_limits(value: object) -> FixtureLeaderboardResourceLimits:
@@ -314,11 +333,8 @@ def _copy_request_cursor(
     raw = _request_field(value, "value")
     if type(raw) is not str:
         raise LeaderboardRequestError()
-    if (
-        len(raw) > limits.max_cursor_utf8_bytes
-        or len(raw) > limits.max_string_utf8_bytes
-    ):
-        raise LeaderboardResourceError()
+    _require_utf8_capacity(raw, limits.max_cursor_utf8_bytes)
+    _require_utf8_capacity(raw, limits.max_string_utf8_bytes)
     if not raw.isascii():
         raise LeaderboardRequestError()
     failed = False

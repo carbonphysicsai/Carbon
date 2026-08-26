@@ -1434,6 +1434,368 @@ def test_page_size_and_snapshot_row_bounds_are_exact() -> None:
     assert len(over_provider.calls) == 1
 
 
+@pytest.mark.parametrize(
+    ("value", "width"),
+    (
+        ("ASCII", 5),
+        ("é", 2),
+        ("€", 3),
+        ("😀", 4),
+        ("Aé€😀", 10),
+    ),
+)
+def test_utf8_capacity_counts_exact_valid_scalar_widths(
+    value: str,
+    width: int,
+) -> None:
+    require_utf8_capacity = sys.modules["carbon.leaderboard.service"].__dict__[
+        "_require_utf8_capacity"
+    ]
+
+    require_utf8_capacity(value, width)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        require_utf8_capacity(value, width - 1)
+    assert type(raised.value) is LeaderboardResourceError
+
+
+def test_utf8_capacity_stops_after_the_first_over_limit_scalar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    service_module = sys.modules["carbon.leaderboard.service"]
+    require_utf8_capacity = service_module.__dict__["_require_utf8_capacity"]
+    original_ord = ord
+    visited: list[str] = []
+
+    def counted_ord(character: str) -> int:
+        visited.append(character)
+        return original_ord(character)
+
+    monkeypatch.setattr(service_module, "ord", counted_ord, raising=False)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        require_utf8_capacity("ééAZ", 4)
+    assert type(raised.value) is LeaderboardResourceError
+    assert visited == ["é", "é", "A"]
+
+
+def test_multibyte_submission_id_is_resource_safe_before_reconstruction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "é" * 36
+    assert len(oversized) <= string_limit
+    assert len(oversized.encode("utf-8")) == string_limit + 1
+    forged_submission = _forge(SubmissionId, value=oversized)
+    invalid = _forged_candidate(
+        _candidate(),
+        submission_id=forged_submission,
+    )
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    service = _service(
+        provider,
+        limits=_limits(
+            max_string_utf8_bytes=string_limit,
+            max_concurrent_calls=1,
+        ),
+    )
+    original_post_init = SubmissionId.__post_init__
+    oversized_owner_calls: list[str] = []
+
+    def guarded_post_init(value: SubmissionId) -> None:
+        raw = object.__getattribute__(value, "value")
+        if raw == oversized:
+            oversized_owner_calls.append(raw)
+            raise AssertionError("byte-oversized SubmissionId reached owner validation")
+        original_post_init(value)
+
+    monkeypatch.setattr(SubmissionId, "__post_init__", guarded_post_init)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert oversized_owner_calls == []
+    assert len(provider.calls) == 1
+
+    provider.value = _snapshot((_candidate(2),))
+    assert len(service.list_entries(_request()).rows) == 1
+    assert len(provider.calls) == 2
+
+
+@pytest.mark.parametrize("oversized", ("é" * 36, "😀" * 18))
+def test_multibyte_result_id_is_resource_safe_before_owner_validation(
+    oversized: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    assert len(oversized) <= string_limit
+    assert len(oversized.encode("utf-8")) == string_limit + 1
+    invalid = _forged_candidate(_candidate(), result_id=oversized)
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    owner_calls: list[object] = []
+
+    def sentinel(value: object) -> str:
+        owner_calls.append(value)
+        raise AssertionError("byte-oversized result_id reached owner validation")
+
+    monkeypatch.setattr(
+        sys.modules["carbon.leaderboard.service"],
+        "validate_version",
+        sentinel,
+    )
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert owner_calls == []
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("boundary", ("snapshot", "candidate"))
+def test_multibyte_provider_hash_is_resource_safe_before_digest_validation(
+    boundary: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "é" * 36
+    assert len(oversized) <= string_limit
+    assert len(oversized.encode("utf-8")) == string_limit + 1
+    if boundary == "snapshot":
+        snapshot = _forged_snapshot(
+            _snapshot(),
+            scoring_pack_hash=oversized,
+        )
+    else:
+        invalid = _forged_candidate(
+            _candidate(),
+            scoring_pack_hash=oversized,
+        )
+        snapshot = _forged_snapshot(_snapshot(), candidates=(invalid,))
+    provider = _Provider(snapshot)
+    original_validator = sys.modules["carbon.leaderboard.service"].__dict__[
+        "is_sha256_digest"
+    ]
+    oversized_validator_calls: list[str] = []
+
+    def guarded_validator(value: object) -> bool:
+        if value == oversized:
+            oversized_validator_calls.append(oversized)
+            raise AssertionError("byte-oversized hash reached digest validation")
+        return original_validator(value)
+
+    monkeypatch.setattr(
+        sys.modules["carbon.leaderboard.service"],
+        "is_sha256_digest",
+        guarded_validator,
+    )
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert oversized_validator_calls == []
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("boundary", "expected_calls"),
+    (("request", 0), ("provider", 1)),
+)
+def test_multibyte_challenge_identity_is_bounded_before_owner_validation(
+    boundary: str,
+    expected_calls: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "é" * 36
+    assert len(oversized) <= string_limit
+    assert len(oversized.encode("utf-8")) == string_limit + 1
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=oversized,
+        version=CHALLENGE_KEY.version,
+    )
+    request = _request()
+    if boundary == "request":
+        request = _forge(
+            ListFixtureLeaderboardRequest,
+            challenge_key=forged_key,
+            page_size=1,
+            cursor=None,
+        )
+        provider = _Provider(_snapshot())
+    else:
+        provider = _Provider(_forged_snapshot(_snapshot(), challenge_key=forged_key))
+    service = _service(
+        provider,
+        limits=_limits(
+            max_string_utf8_bytes=string_limit,
+            max_concurrent_calls=1,
+        ),
+    )
+    original_post_init = ChallengeKey.__post_init__
+    oversized_owner_calls: list[str] = []
+
+    def guarded_post_init(value: ChallengeKey) -> None:
+        challenge_id = object.__getattribute__(value, "challenge_id")
+        if challenge_id == oversized:
+            oversized_owner_calls.append(challenge_id)
+            raise AssertionError("byte-oversized Challenge reached owner validation")
+        original_post_init(value)
+
+    monkeypatch.setattr(ChallengeKey, "__post_init__", guarded_post_init)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(request)
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert oversized_owner_calls == []
+    assert len(provider.calls) == expected_calls
+
+    provider.value = _snapshot()
+    assert service.list_entries(_request()).rows == ()
+    assert len(provider.calls) == expected_calls + 1
+
+
+@pytest.mark.parametrize(
+    ("cursor_limit", "string_limit"),
+    ((71, 72), (72, 71), (71, 71)),
+)
+def test_multibyte_incoming_cursor_obeys_each_utf8_byte_limit(
+    cursor_limit: int,
+    string_limit: int,
+) -> None:
+    raw = "😀" * 18
+    assert len(raw) <= min(cursor_limit, string_limit)
+    assert len(raw.encode("utf-8")) == 72
+    forged_cursor = _forge(LeaderboardCursor, value=raw)
+    forged_request = _forge(
+        ListFixtureLeaderboardRequest,
+        challenge_key=CHALLENGE_KEY,
+        page_size=1,
+        cursor=forged_cursor,
+    )
+    provider = _Provider(_snapshot())
+    service = _service(
+        provider,
+        limits=_limits(
+            max_cursor_utf8_bytes=cursor_limit,
+            max_string_utf8_bytes=string_limit,
+            max_concurrent_calls=1,
+        ),
+    )
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(forged_request)
+    _assert_fixed_identifier_error(
+        raised.value,
+        raw,
+        LeaderboardResourceError,
+    )
+    assert provider.calls == []
+
+    assert service.list_entries(_request()).rows == ()
+    assert len(provider.calls) == 1
+
+
+def test_multibyte_incoming_cursor_exact_byte_boundary_reaches_ascii_rule() -> None:
+    raw = "😀" * 18
+    width = len(raw.encode("utf-8"))
+    forged_cursor = _forge(LeaderboardCursor, value=raw)
+    forged_request = _forge(
+        ListFixtureLeaderboardRequest,
+        challenge_key=CHALLENGE_KEY,
+        page_size=1,
+        cursor=forged_cursor,
+    )
+    provider = _Provider(_snapshot())
+    service = _service(
+        provider,
+        limits=_limits(
+            max_cursor_utf8_bytes=width,
+            max_string_utf8_bytes=width,
+            max_concurrent_calls=1,
+        ),
+    )
+
+    with pytest.raises(LeaderboardRequestError) as raised:
+        service.list_entries(forged_request)
+    _assert_fixed_identifier_error(
+        raised.value,
+        raw,
+        LeaderboardRequestError,
+    )
+    assert provider.calls == []
+
+    assert service.list_entries(_request()).rows == ()
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("boundary", "expected_error", "expected_calls"),
+    (
+        ("request", LeaderboardRequestError, 0),
+        ("provider", LeaderboardIntegrationError, 1),
+    ),
+)
+def test_nonencodable_string_is_safe_and_releases_concurrency_capacity(
+    boundary: str,
+    expected_error: type[LeaderboardError],
+    expected_calls: int,
+) -> None:
+    malformed = "\ud800" + "a" * 70
+    forged_key = _forge(
+        ChallengeKey,
+        challenge_id=malformed,
+        version=CHALLENGE_KEY.version,
+    )
+    request = _request()
+    if boundary == "request":
+        request = _forge(
+            ListFixtureLeaderboardRequest,
+            challenge_key=forged_key,
+            page_size=1,
+            cursor=None,
+        )
+        provider = _Provider(_snapshot())
+    else:
+        provider = _Provider(_forged_snapshot(_snapshot(), challenge_key=forged_key))
+    service = _service(
+        provider,
+        limits=_limits(
+            max_string_utf8_bytes=len(SCORING_PACK_HASH),
+            max_concurrent_calls=1,
+        ),
+    )
+
+    with pytest.raises(expected_error) as raised:
+        service.list_entries(request)
+    _assert_fixed_identifier_error(
+        raised.value,
+        malformed,
+        expected_error,
+    )
+    assert len(provider.calls) == expected_calls
+
+    provider.value = _snapshot()
+    assert service.list_entries(_request()).rows == ()
+    assert len(provider.calls) == expected_calls + 1
+
+
 def test_oversized_submission_id_is_resource_safe_and_releases_capacity() -> None:
     string_limit = len(SCORING_PACK_HASH)
     oversized = "s" * (string_limit + 1)
@@ -1496,7 +1858,7 @@ def test_submission_capacity_precedes_owner_construction(
     assert len(provider.calls) == 1
 
 
-@pytest.mark.parametrize("malformed", ("0" * 36, "é" * 36))
+@pytest.mark.parametrize("malformed", ("0" * 36, "é" * 35))
 def test_bounded_malformed_submission_id_is_integration_error(
     malformed: str,
 ) -> None:
@@ -1800,6 +2162,129 @@ def test_provider_identifier_helpers_lock_capacity_before_owner_validation() -> 
             assert ascii_calls[0].lineno < owner_calls[0].lineno
         else:
             assert ascii_calls == ()
+
+
+def test_utf8_capacity_source_policy_and_ascii_len_guards() -> None:
+    source_path = LEADERBOARD_ROOT / "service.py"
+    tree = ast.parse(
+        source_path.read_text(encoding="utf-8"),
+        filename=str(source_path),
+    )
+    functions = {node.name: node for node in tree.body if type(node) is ast.FunctionDef}
+
+    primitive = functions["_require_utf8_capacity"]
+    primitive_calls = tuple(
+        node for node in ast.walk(primitive) if type(node) is ast.Call
+    )
+    assert not any(
+        type(call.func) is ast.Attribute and call.func.attr == "encode"
+        for call in primitive_calls
+    )
+    assert not {
+        call.func.id for call in primitive_calls if type(call.func) is ast.Name
+    }.intersection({"bytes", "bytearray", "memoryview", "repr", "str"})
+    loops = tuple(node for node in ast.walk(primitive) if type(node) is ast.For)
+    assert len(loops) == 1
+    loop_resource_raises = tuple(
+        node
+        for node in ast.walk(loops[0])
+        if type(node) is ast.Raise
+        and type(node.exc) is ast.Call
+        and type(node.exc.func) is ast.Name
+        and node.exc.func.id == "LeaderboardResourceError"
+    )
+    assert len(loop_resource_raises) == 1
+
+    wrapper = functions["_require_string_capacity"]
+    wrapper_calls = tuple(node for node in ast.walk(wrapper) if type(node) is ast.Call)
+    assert not any(
+        type(call.func) is ast.Name and call.func.id == "len" for call in wrapper_calls
+    )
+    delegations = tuple(
+        call
+        for call in wrapper_calls
+        if type(call.func) is ast.Name and call.func.id == "_require_utf8_capacity"
+    )
+    assert len(delegations) == 1
+    assert type(delegations[0].args[0]) is ast.Name
+    assert delegations[0].args[0].id == "value"
+    assert _attribute_path(delegations[0].args[1]) == ("limits.max_string_utf8_bytes")
+
+    wrapper_callers = {
+        function.name
+        for function in functions.values()
+        if any(
+            type(call.func) is ast.Name and call.func.id == "_require_string_capacity"
+            for call in ast.walk(function)
+            if type(call) is ast.Call
+        )
+    }
+    assert wrapper_callers == {
+        "_copy_provider_challenge",
+        "_copy_provider_hash",
+        "_copy_request_challenge",
+        "_copy_request_hash",
+        "_copy_result_id",
+        "_copy_score_status",
+        "_copy_submission_id",
+    }
+
+    cursor = functions["_copy_request_cursor"]
+    cursor_calls = tuple(node for node in ast.walk(cursor) if type(node) is ast.Call)
+    assert not any(
+        type(call.func) is ast.Name and call.func.id == "len" for call in cursor_calls
+    )
+    cursor_capacity_calls = tuple(
+        call
+        for call in cursor_calls
+        if type(call.func) is ast.Name and call.func.id == "_require_utf8_capacity"
+    )
+    assert len(cursor_capacity_calls) == 2
+    assert tuple(
+        (
+            call.args[0].id if type(call.args[0]) is ast.Name else None,
+            _attribute_path(call.args[1]),
+        )
+        for call in cursor_capacity_calls
+    ) == (
+        ("raw", "limits.max_cursor_utf8_bytes"),
+        ("raw", "limits.max_string_utf8_bytes"),
+    )
+    cursor_ascii_calls = tuple(
+        call
+        for call in cursor_calls
+        if type(call.func) is ast.Attribute and call.func.attr == "isascii"
+    )
+    assert len(cursor_ascii_calls) == 1
+    assert cursor_capacity_calls[-1].lineno < cursor_ascii_calls[0].lineno
+
+    for function_name, value_name in (
+        ("_new_cursor", "raw"),
+        ("_charge_response_text", "value"),
+        ("_response_utf8_bytes", "cursor_value"),
+    ):
+        function = functions[function_name]
+        calls = tuple(node for node in ast.walk(function) if type(node) is ast.Call)
+        ascii_calls = tuple(
+            call
+            for call in calls
+            if type(call.func) is ast.Attribute
+            and call.func.attr == "isascii"
+            and type(call.func.value) is ast.Name
+            and call.func.value.id == value_name
+        )
+        len_calls = tuple(
+            call
+            for call in calls
+            if type(call.func) is ast.Name
+            and call.func.id == "len"
+            and len(call.args) == 1
+            and type(call.args[0]) is ast.Name
+            and call.args[0].id == value_name
+        )
+        assert len(ascii_calls) == 1
+        assert len_calls
+        assert ascii_calls[0].lineno < min(call.lineno for call in len_calls)
 
 
 def test_oversized_request_challenge_id_is_bounded_before_provider_call() -> None:
