@@ -31,6 +31,7 @@ physicsnemo = [
 ]
 poc = [
     "jax>=0.4.30",
+    "flax>=0.9",
     "numpy>=1.26",
     "pyyaml>=6.0",
 ]
@@ -48,6 +49,7 @@ markers = [
     "poc: optional, scientifically unqualified PoC tests requiring carbon[poc]",
     "poc_integration: slow PoC generator, training, or end-to-end integration tests",
     "backend_jax: tests that require the optional JAX scientific backend",
+    "backend_torch: tests that require the optional PyTorch/neuraloperator scientific backend",
     "gold: opt-in long-budget PoC tests requiring POC_GOLD=1",
 ]
 
