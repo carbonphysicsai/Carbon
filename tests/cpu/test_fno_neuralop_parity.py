@@ -31,11 +31,13 @@ from neuralop.layers.spectral_convolution import SpectralConv as TorchSpectralCo
 from neuralop.layers.channel_mlp import ChannelMLP as TorchChannelMLP
 from neuralop.layers.embeddings import GridEmbeddingND as TorchGridEmbeddingND
 from neuralop.layers.fno_block import FNOBlocks as TorchFNOBlocks
+from neuralop.models.fno import FNO as TorchFNO
 
 from poc.models.fno_neuralop.spectral_conv import SpectralConv1D
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
 from poc.models.fno_neuralop.embeddings import GridEmbedding1D
 from poc.models.fno_neuralop.fno_block import FNOBlocks1D
+from poc.models.fno_neuralop.fno import FNO
 
 pytestmark = [pytest.mark.backend_jax, pytest.mark.backend_torch]
 
@@ -56,6 +58,79 @@ ATOL_MULTILAYER = 1e-5
 
 def _kept_modes(n_modes: int, nx: int) -> int:
     return min(n_modes // 2 + 1, nx // 2 + 1)
+
+
+def _inject_channel_mlp_weights(rng, torch_mlp, dims):
+    """dims: [(fan_out, fan_in), ...] per layer, in `torch_mlp.fcs` order.
+
+    Weights are scaled ~1/sqrt(fan_in) (realistic init magnitude) rather
+    than raw N(0,1) — see `test_fno_matches_pytorch`'s docstring for why
+    this matters for deep compositions.
+    """
+    out = {}
+    for i, (fc, (fan_out, fan_in)) in enumerate(zip(torch_mlp.fcs, dims)):
+        bound = 1.0 / (fan_in**0.5)
+        w = (bound * rng.standard_normal((fan_out, fan_in))).astype(np.float32)
+        b = (bound * rng.standard_normal((fan_out,))).astype(np.float32)
+        with torch.no_grad():
+            fc.weight.data = torch.from_numpy(w).view(fan_out, fan_in, 1)
+            fc.bias.data = torch.from_numpy(b)
+        out[f"weight_{i}"] = jnp.asarray(w)
+        out[f"bias_{i}"] = jnp.asarray(b)
+    return out
+
+
+def _inject_fno_blocks_weights(rng, torch_blocks, n_layers, channels, kept_modes, hidden):
+    """Builds one shared, realistically-scaled weight set per layer and
+    injects it into both `torch_blocks` (in place) and a returned JAX
+    param dict for `FNOBlocks1D`."""
+    spec_std = (2.0 / (channels + channels)) ** 0.5
+    skip_bound = 1.0 / (channels**0.5)
+    layer_params = {}
+    for i in range(n_layers):
+        w_real = (spec_std * rng.standard_normal((channels, channels, kept_modes))).astype(
+            np.float32
+        )
+        w_imag = (spec_std * rng.standard_normal((channels, channels, kept_modes))).astype(
+            np.float32
+        )
+        conv_bias = (spec_std * rng.standard_normal(channels)).astype(np.float32)
+        w_complex = torch.from_numpy(w_real + 1j * w_imag).to(torch.cfloat)
+        torch_blocks.convs[i].weight = FactorizedTensor.from_tensor(
+            w_complex, rank=None, factorization="ComplexDense"
+        )
+        with torch.no_grad():
+            torch_blocks.convs[i].bias.data = torch.from_numpy(conv_bias).view(channels, 1)
+        layer_params[f"convs_{i}"] = {
+            "weight_real": jnp.asarray(w_real),
+            "weight_imag": jnp.asarray(w_imag),
+            "bias": jnp.asarray(conv_bias),
+        }
+
+        skip_w = (skip_bound * rng.standard_normal((channels, channels))).astype(np.float32)
+        with torch.no_grad():
+            torch_blocks.fno_skips[i].conv.weight.data = torch.from_numpy(skip_w).view(
+                channels, channels, 1
+            )
+        layer_params[f"fno_skip_weight_{i}"] = jnp.asarray(skip_w)
+
+        gate_w = (0.1 * rng.standard_normal((channels,))).astype(np.float32)
+        with torch.no_grad():
+            torch_blocks.channel_mlp_skips[i].weight.data = torch.from_numpy(gate_w).view(
+                1, channels, 1
+            )
+        layer_params[f"channel_mlp_skip_weight_{i}"] = jnp.asarray(gate_w)
+
+        mlp_params = _inject_channel_mlp_weights(
+            rng, torch_blocks.channel_mlp[i], [(hidden, channels), (channels, hidden)]
+        )
+        layer_params[f"channel_mlp_{i}"] = {
+            "weight_0": mlp_params["weight_0"],
+            "bias_0": mlp_params["bias_0"],
+            "weight_1": mlp_params["weight_1"],
+            "bias_1": mlp_params["bias_1"],
+        }
+    return layer_params
 
 
 @pytest.mark.parametrize(
@@ -141,21 +216,9 @@ def test_channel_mlp1d_matches_pytorch(
         n_layers=n_layers,
     )
 
-    weights, biases = [], []
-    for fc in torch_mlp.fcs:
-        fan_out, fan_in = fc.weight.shape[0], fc.weight.shape[1]
-        w = rng.standard_normal((fan_out, fan_in)).astype(np.float32)
-        b = rng.standard_normal((fan_out,)).astype(np.float32)
-        weights.append(w)
-        biases.append(b)
-        with torch.no_grad():
-            fc.weight.data = torch.from_numpy(w).view(fan_out, fan_in, 1)
-            fc.bias.data = torch.from_numpy(b)
+    dims = [(fc.weight.shape[0], fc.weight.shape[1]) for fc in torch_mlp.fcs]
 
     x_np = rng.standard_normal((2, in_channels, nx)).astype(np.float32)
-
-    with torch.no_grad():
-        y_torch = torch_mlp(torch.from_numpy(x_np)).numpy()
 
     model = ChannelMLP1D(
         in_channels=in_channels,
@@ -163,11 +226,14 @@ def test_channel_mlp1d_matches_pytorch(
         hidden_channels=hidden_channels,
         n_layers=n_layers,
     )
-    params = model.init(jax.random.PRNGKey(0), jnp.asarray(x_np))
-    params = flax.core.unfreeze(params)
-    for i, (w, b) in enumerate(zip(weights, biases)):
-        params["params"][f"weight_{i}"] = jnp.asarray(w)
-        params["params"][f"bias_{i}"] = jnp.asarray(b)
+    params = flax.core.unfreeze(model.init(jax.random.PRNGKey(0), jnp.asarray(x_np)))
+    mlp_params = _inject_channel_mlp_weights(rng, torch_mlp, dims)
+    for key, value in mlp_params.items():
+        params["params"][key] = value
+
+    with torch.no_grad():
+        y_torch = torch_mlp(torch.from_numpy(x_np)).numpy()
+
     y_jax = np.asarray(model.apply(params, jnp.asarray(x_np)))
 
     np.testing.assert_allclose(
@@ -249,59 +315,9 @@ def test_fno_blocks1d_matches_pytorch(nx, n_modes, channels, n_layers):
         in_channels=channels, out_channels=channels, n_modes=n_modes, n_layers=n_layers
     )
     params = flax.core.unfreeze(wrapper.init(jax.random.PRNGKey(0), jnp.asarray(x_np)))
-    layer_params = params["params"]["FNOBlocks1D_0"]
-
-    for i in range(n_layers):
-        w_real = rng.standard_normal((channels, channels, kept_modes)).astype(np.float32)
-        w_imag = rng.standard_normal((channels, channels, kept_modes)).astype(np.float32)
-        conv_bias = rng.standard_normal(channels).astype(np.float32)
-        w_complex = torch.from_numpy(w_real + 1j * w_imag).to(torch.cfloat)
-        torch_blocks.convs[i].weight = FactorizedTensor.from_tensor(
-            w_complex, rank=None, factorization="ComplexDense"
-        )
-        with torch.no_grad():
-            torch_blocks.convs[i].bias.data = torch.from_numpy(conv_bias).view(channels, 1)
-        layer_params[f"convs_{i}"] = {
-            "weight_real": jnp.asarray(w_real),
-            "weight_imag": jnp.asarray(w_imag),
-            "bias": jnp.asarray(conv_bias),
-        }
-
-        skip_w = rng.standard_normal((channels, channels)).astype(np.float32)
-        with torch.no_grad():
-            torch_blocks.fno_skips[i].conv.weight.data = torch.from_numpy(skip_w).view(
-                channels, channels, 1
-            )
-        layer_params[f"fno_skip_weight_{i}"] = jnp.asarray(skip_w)
-
-        gate_w = rng.standard_normal((channels,)).astype(np.float32)
-        with torch.no_grad():
-            torch_blocks.channel_mlp_skips[i].weight.data = torch.from_numpy(gate_w).view(
-                1, channels, 1
-            )
-        layer_params[f"channel_mlp_skip_weight_{i}"] = jnp.asarray(gate_w)
-
-        w0 = rng.standard_normal((hidden, channels)).astype(np.float32)
-        b0 = rng.standard_normal((hidden,)).astype(np.float32)
-        w1 = rng.standard_normal((channels, hidden)).astype(np.float32)
-        b1 = rng.standard_normal((channels,)).astype(np.float32)
-        with torch.no_grad():
-            torch_blocks.channel_mlp[i].fcs[0].weight.data = torch.from_numpy(w0).view(
-                hidden, channels, 1
-            )
-            torch_blocks.channel_mlp[i].fcs[0].bias.data = torch.from_numpy(b0)
-            torch_blocks.channel_mlp[i].fcs[1].weight.data = torch.from_numpy(w1).view(
-                channels, hidden, 1
-            )
-            torch_blocks.channel_mlp[i].fcs[1].bias.data = torch.from_numpy(b1)
-        layer_params[f"channel_mlp_{i}"] = {
-            "weight_0": jnp.asarray(w0),
-            "bias_0": jnp.asarray(b0),
-            "weight_1": jnp.asarray(w1),
-            "bias_1": jnp.asarray(b1),
-        }
-
-    params["params"]["FNOBlocks1D_0"] = layer_params
+    params["params"]["FNOBlocks1D_0"] = _inject_fno_blocks_weights(
+        rng, torch_blocks, n_layers, channels, kept_modes, hidden
+    )
 
     x_torch = torch.from_numpy(x_np)
     with torch.no_grad():
@@ -311,10 +327,90 @@ def test_fno_blocks1d_matches_pytorch(nx, n_modes, channels, n_layers):
 
     y_jax = np.asarray(wrapper.apply(params, jnp.asarray(x_np)))
 
-    # Deeper stacks compound fp32 rounding further still, but relative error
-    # stays bounded because output magnitude grows with the same random-walk
-    # weights on both sides (verified up to 6 layers deep in the design
-    # phase, well past this test's max of 4). RTOL_MULTILAYER holds.
-    np.testing.assert_allclose(
-        y_jax, y_torch, rtol=RTOL_MULTILAYER, atol=ATOL_MULTILAYER
+    # Realistically-scaled weights (see _inject_fno_blocks_weights) keep
+    # activations well-conditioned even through several layers, so the
+    # tight single-operation tolerance holds here too -- observed
+    # max_abs_diff ~3e-7 at n_layers=4 during test development.
+    np.testing.assert_allclose(y_jax, y_torch, rtol=RTOL, atol=ATOL)
+
+
+@pytest.mark.parametrize(
+    ("nx", "n_modes", "in_channels", "out_channels", "hidden_channels", "n_layers"),
+    [
+        (64, 8, 1, 1, 16, 4),  # matches the Burgers use case: 1->1 channel, realistic depth
+        (32, 8, 2, 3, 8, 2),
+        (128, 16, 1, 1, 32, 4),
+    ],
+)
+def test_fno_matches_pytorch(nx, n_modes, in_channels, out_channels, hidden_channels, n_layers):
+    """Full lifting -> FNOBlocks -> projection stack, end to end.
+
+    Uses realistically-scaled weights (~1/sqrt(fan_in), matching each
+    layer's own natural init magnitude) rather than raw N(0,1): with 4
+    layers of width up to 32 and unscaled N(0,1) weights, both
+    implementations' activations blow up to O(1e4)+ before the final
+    layer, at which point a passing np.allclose is nearly meaningless
+    (any two large, similarly-scaled-but-wrong numbers satisfy a relative
+    tolerance). Rescaled, both implementations stay in a numerically
+    sane O(1) regime and the tight tolerance actually tests precision.
+    """
+    rng = np.random.default_rng(0)
+    kept_modes = _kept_modes(n_modes, nx)
+    lifting_channels = 2 * hidden_channels
+    projection_channels = 2 * hidden_channels
+    block_hidden = round(hidden_channels * 0.5)
+
+    torch_fno = TorchFNO(
+        n_modes=(n_modes,),
+        in_channels=in_channels,
+        out_channels=out_channels,
+        hidden_channels=hidden_channels,
+        n_layers=n_layers,
+        lifting_channel_ratio=2,
+        projection_channel_ratio=2,
+        positional_embedding="grid",
+        norm=None,
+        channel_mlp_expansion=0.5,
+        channel_mlp_skip="soft-gating",
+        fno_skip="linear",
     )
+
+    x_np = rng.standard_normal((2, in_channels, nx)).astype(np.float32)
+
+    jax_fno = FNO(
+        n_modes=n_modes,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        hidden_channels=hidden_channels,
+        n_layers=n_layers,
+    )
+    params = flax.core.unfreeze(jax_fno.init(jax.random.PRNGKey(0), jnp.asarray(x_np)))
+
+    # lifting: (in_channels + 1 grid channel) -> lifting_channels -> hidden_channels
+    lifting_dims = [
+        (lifting_channels, in_channels + 1),
+        (hidden_channels, lifting_channels),
+    ]
+    params["params"]["lifting"] = _inject_channel_mlp_weights(
+        rng, torch_fno.lifting, lifting_dims
+    )
+
+    params["params"]["fno_blocks"] = _inject_fno_blocks_weights(
+        rng, torch_fno.fno_blocks, n_layers, hidden_channels, kept_modes, block_hidden
+    )
+
+    # projection: hidden_channels -> projection_channels -> out_channels
+    projection_dims = [
+        (projection_channels, hidden_channels),
+        (out_channels, projection_channels),
+    ]
+    params["params"]["projection"] = _inject_channel_mlp_weights(
+        rng, torch_fno.projection, projection_dims
+    )
+
+    with torch.no_grad():
+        y_torch = torch_fno(torch.from_numpy(x_np)).numpy()
+
+    y_jax = np.asarray(jax_fno.apply(params, jnp.asarray(x_np)))
+
+    np.testing.assert_allclose(y_jax, y_torch, rtol=RTOL, atol=ATOL)
