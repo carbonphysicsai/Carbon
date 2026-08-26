@@ -174,12 +174,40 @@ A5 remains an execution engine; it must not parse `PhysicalSystemSpec` to invent
 **Source aliases:** DQ-004, OQ-004.  
 **Question:** How close can two candidates be before Carbon must say it cannot distinguish them?
 
-**Architect recommendation:** establish a **minimum resolvable improvement** from a reconstruction-seed × evaluation-seed matrix. Estimate variance in relevant estimands and final ranking under repeated fresh reconstruction/evaluation. Define a prospective indifference/contested band; candidates inside it are `INDETERMINATE`, not arbitrarily ordered for frontier promotion.
+**Architect recommendation:** establish a **minimum resolvable improvement**
+from a reconstruction × whole-case/trajectory design stratified by the
+registered stress plan. Construct the operative paired interval end to end
+across separately realized, producer-independent incumbent and challenger
+reconstruction replicates, common whole cases or trajectories, joint
+reference-error realizations, representation, and execution roles. Registered
+pairing or common random numbers are allowed, but shared dependencies remain
+modeled. Diagnose reconstruction-by-case interaction explicitly. Component
+uncertainty tables do not establish independence. The Dossier qualifies the
+procedure and its applicability test; the exact incumbent-challenger evidence
+must also satisfy that test before quadrature is permitted. Unidentified
+material dependence widens the interval or returns `INDETERMINATE`.
+
+Preregister a `ReconstructionEvidencePolicy` that separates typed protocol and
+resource admission, the Challenge-registered complete base reconstruction
+evidence required for every scientifically scored or nominated candidate, and
+repeat promotion evidence. A frozen reconstructed artifact may be reused
+across its authorized evaluation cases. Before complete base evidence exists,
+quality forecasts, partial builds, proxies, and screens affect scheduling only;
+an uncompleted path returns typed `EVIDENCE_DEFERRED` and no scientific result.
+After base evidence, official evidence may stop sequentially only at qualified
+decision boundaries. A heuristic futility stop also returns only
+`EVIDENCE_DEFERRED` and needs a calibrated false-elimination bound plus random
+audits. If the registered budget is exhausted before the comparison resolves,
+return `INDETERMINATE` with reason `INSUFFICIENT_EVIDENCE`.
 
 Use more evidence where economically justified, but do not concentrate payout resolution more sharply than scientific resolution.
 
 **Owner:** Statistics + Physics/SciML + protocol.  
-**Proof required:** power/rank-stability simulation and empirical repeated-run matrix.  
+**Proof required:** null/coverage/power and rank-stability simulation; empirical
+reconstruction × whole-case/trajectory evidence stratified by stress regime;
+exact-pair applicability diagnostics; and, when a
+screen or sequential rule is used, false-elimination, audit, cost, latency, and
+validator-capacity evidence.
 **Status:** `EVIDENCE_REQUIRED`.
 
 ---
@@ -320,8 +348,17 @@ compiler materializes those selections into one canonical
 `ResolvedTrainingSamplingPolicy`, denoted `R_strategy`, plus its
 content-addressed `TrainingSamplingPolicyRef` under a Challenge-owned
 training-support contract, while validators derive the actual train seeds and
-draws. This does not authorize participant-defined composition graphs. In Wave
-B, forbid arbitrary imports, Python/JAX/PyTorch code, subprocesses, custom
+draws. Where scientifically applicable, the closed catalog may also expose
+versioned, exact implementations of optional structure-preserving components
+(for example conservative or monotone operators, positive-semidefinite
+dissipation, divergence-free projections, equivariant layers, or
+Hamiltonian/dissipative structures). Each entry binds its mathematical
+assumptions, applicability envelope, implementation identity, interfaces, and
+falsification tests. Selecting or unit-testing such a component is never
+scientific gate evidence and never enters score; only registered measurements
+of the reconstructed candidate on protected cases can do that. This does not
+authorize participant-defined composition graphs. In Wave B, forbid arbitrary
+imports, Python/JAX/PyTorch code, subprocesses, custom
 executables, filesystem paths or URIs, network access, arbitrary
 dependencies/deserialization, raw or custom dataset uploads, miner-selected
 seeds, official target population `P`, official proposal/SamplingPlan `Q`,
@@ -332,8 +369,8 @@ Practice reconstruction and official construction must use the same semantic com
 
 Arbitrary participant code belongs only to a later `ConstructionProgram` threat model.
 
-**Owner:** Security + protocol.  
-**Proof required:** compiler-escape and catalog-confusion tests, malicious-Strategy tests, reconstruction-receipt tests, formal threat model, sandbox review, and abuse tests.
+**Owner:** Security + protocol + Physics/SciML.
+**Proof required:** compiler-escape and catalog-confusion tests, malicious-Strategy tests, reconstruction-receipt tests, structural-component applicability and anti-self-certification tests, formal threat model, sandbox review, and abuse tests.
 **Status:** `SECURITY_REVIEW_REQUIRED`.
 
 ---
@@ -500,8 +537,12 @@ TrainingStrategy
 
 Wave B remains on `TrainingStrategy`. It may support registered hybrid
 backbones or learned-component slots only through a Challenge-owned assembly
-contract. It may select from cataloged levers that the compiler resolves into
-one canonical `R_strategy` object and its `TrainingSamplingPolicyRef`, with
+contract. It may select from cataloged levers, including optional versioned
+structure-preserving components where their assumptions and applicability are
+registered, that the compiler resolves into one canonical construction plan.
+Structural-component labels do not certify physics or satisfy gates; hidden
+output evidence remains authoritative. Training-data levers resolve into one
+canonical `R_strategy` object and its `TrainingSamplingPolicyRef`, with
 validator-derived train draws. It does not authorize raw/custom datasets,
 participant-defined construction graphs, arbitrary code, or official
 evaluation controls. Expand hypothesis freedom incrementally; every broader

@@ -18,6 +18,10 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
 - [ ] Implement persistent `PriorDisclosureLedger` accounting across estimands, scopes, fields, cohorts, provenance, related releases, and version differences; unavailable or conflicting ledger fails closed.
 - [ ] Enforce `evidence_cutoff_epoch + minimum_lag < activation_epoch` and prevent evidence produced in an active window from influencing the pack consumed in that window.
 - [ ] Make fixture, mock, infrastructure, partial, stale, rights-ineligible, small-cell, identifying, poisoned, and unsupported evidence incapable of producing `BOOTSTRAP_PUBLIC` or `LEARNED_PUBLIC`.
+- [ ] Reject any actionable positive item that omits material eligible null,
+      negative, mixed, or out-of-scope evidence. Verify `NONE_FOUND` against the
+      exact public search scope and cutoff; preserve counterevidence through
+      coarsening, publication receipts, supersession, and withdrawal.
 - [ ] Generate no free text from private or fixture records and expose no exact recipes, effects, counts, identities, raw Strategy keys, lineages, or protected context.
 - [ ] Implement the non-circular fixture staging gate: exact candidate bytes →
       structural/redaction/canary/poisoning/differencing conformance → exact-
@@ -37,7 +41,11 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
       disclosure-ledger commit plus public-index activation. A test-only
       approval receipt cannot satisfy this gate, and Wave B fixtures cannot
       execute a public-class activation.
-- [ ] Add eligibility, poisoning, duplicate-lineage, joint-cell, canary, release-differencing, raw-string, lag/window, ledger/index TOCTOU and race, reciprocal/cyclic-ref rejection, receipt, authority, resource, and installed-wheel tests.
+- [ ] Add eligibility, poisoning, duplicate-lineage, joint-cell, canary,
+      release-differencing, contrary-evidence suppression, false-`NONE_FOUND`,
+      applicability erasure, raw-string, lag/window, ledger/index TOCTOU and
+      race, reciprocal/cyclic-ref rejection, receipt, authority, resource, and
+      installed-wheel tests.
 
 ## Human input
 

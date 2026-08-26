@@ -20,6 +20,12 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
       implementation plan.
 - [ ] Implement D1-D12 Dossier slot identities, evidence refs, status, signer roles, supersession, and exact Challenge binding.
 - [ ] Include population, SamplingPlan, generator conformance, reference, representation, measurement, statistical sufficiency, secrecy, censoring, limitations, and reproducibility sections.
+- [ ] Require the statistical-sufficiency and reproducibility sections to bind
+      the exact decision-interval method, dependence assumptions and evidence,
+      reconstruction-by-case and reconstruction-by-stratum interaction
+      diagnostics, empirical or
+      simulated interval coverage, power by stratum, censoring/missing-cell
+      treatment, and any sequential stopping or false-elimination audit.
 - [ ] Implement qualification-manifest construction and exact hash checks against the active registry record.
 - [ ] Reject missing, placeholder, fixture, unsigned, wrong-version, stale, malformed, or mismatched evidence.
 - [ ] Keep human approval distinct from schema completeness and code execution.
@@ -31,4 +37,6 @@ Scientific, statistics, security, launch, and independent-review owners produce 
 
 ## Must not
 
-Infer qualification from complete fields, passing unit tests, a solver run, or a coding-agent assertion.
+Infer qualification from complete fields, passing unit tests, a solver run, a
+coding-agent assertion, or an uncertainty decomposition whose coverage and
+dependence assumptions have not been qualified.

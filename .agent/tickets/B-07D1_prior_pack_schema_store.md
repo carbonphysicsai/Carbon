@@ -21,11 +21,19 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
       alter the wire contract.
 - [ ] Require every actionable intervention to target one registered `ParameterCatalog.surface_id`; method artifacts remain non-executable citation/rationale/falsification resources unless catalog-registered.
 - [ ] Define exact intervention anchors, scope semantics, estimands, separate evidence origin and epistemic type, the immutable origin/publication-class ceiling matrix, valid-pair/promotion rules, aggregate-only provenance, and canonical item ordering with no order signal.
+- [ ] Require one or more typed `counterevidence_and_applicability` entries for material
+      `NULL`, `NEGATIVE`, `MIXED`, and `OUT_OF_SCOPE` evidence. Permit
+      `NONE_FOUND` only with an exact public search-scope ref and evidence
+      cutoff. Bind these entries to the same estimand, scope, provenance,
+      coarsening, rights, and disclosure rules as positive guidance.
 - [ ] Implement canonical bytes/hash, immutable private history, exact approved-public lookup rules, publication receipts, and active/superseded/withdrawn lifecycle. Canonical `PriorPack` bytes contain neither their own hash nor `PriorPackRef`; `PriorPackRef.content_hash` is SHA-256 of those canonical bytes and is outside the preimage. Reject self-referential identities. Enforce the acyclic `previous index → receipt → new index` graph, with no receipt-to-resulting-index reference; superseded bytes remain public-exact and withdrawn bytes are no longer served but remain in the private audit store. Preserve the public tombstone/receipt and state explicitly that withdrawal cannot revoke previously retrieved copies. Keep the nominal private `TestOnlyPriorApprovalReceipt` and approval snapshot separate from public publication receipts and indexes.
 - [ ] Provide only a production signer/key seam and deterministic test-only signer; add no production algorithm, key registry, rotation, revocation, or custody claim.
 - [ ] Implement publication classes `TEST_ONLY`, `BOOTSTRAP_PUBLIC`, and `LEARNED_PUBLIC` with mechanical source eligibility.
 - [ ] Define the exact lossy v2-to-v1 offline compatibility mapping and internal `PriorProjectionReceipt`; no production v2-backed v1 provider exists and projected bytes remain private test artifacts.
-- [ ] Add canonicalization, history/index, exact/active lookup, atomicity, reciprocal/cyclic-ref rejection, mapping/loss, authority-erasure, signer-seam, malicious-ref, resource, and installed-wheel tests.
+- [ ] Add canonicalization, history/index, exact/active lookup, atomicity,
+      reciprocal/cyclic-ref rejection, mapping/loss, contrary-evidence
+      non-suppression, false-`NONE_FOUND`, applicability, authority-erasure,
+      signer-seam, malicious-ref, resource, and installed-wheel tests.
 
 ## Human input
 

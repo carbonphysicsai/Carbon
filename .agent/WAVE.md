@@ -74,7 +74,7 @@ B-01 also requires a separate reviewed post-merge activation closeout recording
 merge/tree equality, post-merge CI, and named owner acceptance. Later B-07R/B-07S
 gates own behavioral and exact service-protocol ratification.
 
-A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effort rebaseline, is available at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.2.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.2.md); it does not replace this live ticket board or authorize launch.
+A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effort rebaseline, is available at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md); it does not replace this live ticket board or authorize launch.
 
 ## Notes
 
