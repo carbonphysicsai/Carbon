@@ -19,7 +19,7 @@
 
 **Current position**
 
-**A0-A9 are implemented and tested only in their bounded fixture/control scopes. Carbon has not yet earned scientific, security, network, or production qualification.**
+**A0-A10 are implemented and tested only in their bounded fixture/control scopes. A10's documentation-only administrative closeout remains conditional on independent review, explicit human authorization, and normal merge. Carbon has not earned scientific, security, network, commercial, or production qualification.**
 
 # 1. Executive launch decision
 
@@ -74,7 +74,7 @@ The same word cannot safely describe a process-local test, a testnet deployment,
 
 | **Gate** | **Name**                   | **State**      | **Pass condition**                                                                                                 | **Claim boundary**                                         |
 |----------|----------------------------|----------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| **G0**   | CURRENT                    | PASS (bounded) | A0-A9 fixture/control foundation at the audited commit.                                                            | No real evaluator, network, or winner.                     |
+| **G0**   | CURRENT                    | PASS (bounded) | A0-A10 fixture/control foundation on current main; A10 administrative closeout remains pending.                   | No real evaluator, network, or winner.                     |
 | **G1**   | WAVE_A_CLOSED              | NOT REVIEWED   | A10-A12 complete; Wave-A Closeout Report signed.                                                                   | Still no science or network qualification.                 |
 | **G2**   | LOCALNET_READY             | NOT REVIEWED   | Bittensor v11 chain adapter, authenticated transport, durable state, localnet E2E, test-only weight capability.    | No fixture result presented as scientific evidence.        |
 | **G3**   | TESTNET_ALPHA              | NOT REVIEWED   | Real declarative reconstruction, sandbox, reference, measurements, receipts, score-to-weight transport on testnet. | Explicit NON-LIVE / NON-SETTLING.                          |
@@ -97,7 +97,7 @@ The same word cannot safely describe a process-local test, a testnet deployment,
 
 # 3. Repository baseline and Wave analysis
 
-The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf. The repository records 1,727 CPU tests at A9 closeout; this v1.0.1 correction independently re-ran the full CPU suite and quality gate without changing implementation code.
+The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf. The repository records 1,727 CPU tests at A9 closeout; this v1.0.1 correction independently re-ran the full CPU suite and quality gate without changing implementation code. That pinned launch-plan baseline is unchanged. Current main now includes the bounded A10 implementation through normal PR #37 merge `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. Exact post-merge push run `32941840184` passed 1,973 CPU tests and the quality inventory: Ruff 757/776, Black 62/68, removed Ruff debt 19, removed Black debt 6, five changed Python files, no new debt, and all changed Python files clean.
 
 | **Ticket** | **State** | **Bounded maturity**                                      |
 |------------|-----------|-----------------------------------------------------------|
@@ -112,7 +112,7 @@ The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf.
 | **A7**     | DONE-E    | Process-local submission/FSM/fee/retry/refund             |
 | **A8**     | DONE-E    | Deterministic fixture-only TrainEval stub; non-emitting   |
 | **A9**     | DONE-E    | Seven-tool in-process MCP control/disclosure skeleton     |
-| **A10**    | IN REVIEW | Contract ratified on main by merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; the bounded implementation candidate is open as draft PR #37 at exact head `d69b5ec77e630914fce4068abe2dc5303876cd12`. Implementation/test evidence remains branch-only and confers no scientific, network or production qualification. |
+| **A10**    | IN REVIEW | Contract ratified on main by merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; the bounded in-process fixture implementation merged normally in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1` and successful post-merge push run `32941840184`. Administrative closeout remains conditional on independent review, explicit human authorization, and normal merge; this grants no launch or qualification authority. |
 | **A11**    | TODO      | Observability, metrics, redaction, failure tags           |
 | **A12**    | TODO      | Invariant CI and Wave-A closeout                          |
 
@@ -171,7 +171,7 @@ The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf.
 
 ```mermaid
 flowchart LR
-    G0["G0<br/>A0-A9 bounded"] --> G1["G1<br/>Wave A closed"]
+    G0["G0<br/>A0-A10 bounded"] --> G1["G1<br/>Wave A closed"]
     G1 --> G2["G2<br/>Localnet ready"]
     G2 --> G3["G3<br/>Testnet alpha"]
     G3 --> G4["G4<br/>Qualified testnet"]
@@ -272,7 +272,7 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **CTRL-04** | P0      | READY      | Reconcile stale status, seed, truth, mock-fallback, operations and legacy-emission language. Exit: conflict ledger classified and accepted. | CDX / PL              | M          | CTRL-01          | S0         |
 | **CTRL-05** | P0      | TODO       | Create canonical B/C/D/H/I boards and bounded tickets. Exit: dependencies, DoD, owners and maturity states reviewed.                        | CDX / TL              | M          | CTRL-01-04       | S0         |
 | **A10-R**   | P0      | DONE       | A10 contract ratification merged in PR #36 as `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`. Exit evidence: exact contract ratified on main; no implementation or test authority implied. | PL / TL               | S          | A3,A5-A7         | S0         |
-| **A10-I**   | P0      | IN REVIEW  | Review the bounded fixture leaderboard implementation candidate in draft PR #37 at exact head `d69b5ec77e630914fce4068abe2dc5303876cd12`. Exit: focused/leakage/regression tests, independent review, explicit human authorization and normal merge. | CDX / TL              | M          | A10-R            | S0         |
+| **A10-I**   | P0      | DONE-E     | Bounded in-process fixture leaderboard merged normally in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, reviewed at `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`; post-merge push run `32941840184` passed 1,973 CPU tests and the quality gate. Administrative closeout is pending and effective only after independent review, explicit human authorization, and normal closeout merge; no launch or qualification authority is implied. | CDX / TL              | M          | A10-R            | S0         |
 | **A11-R**   | P0      | TODO       | Ratify redaction, metrics and failure taxonomy across A5-A10. Exit: reviewed contract and dependencies.                                     | PL+SEC / TL           | S          | A5-A10           | S0         |
 | **A11-I**   | P0      | TODO       | Implement structured logs/metrics/redaction. Exit: no-seed tests and typed failure telemetry.                                               | CDX+SRE / TL          | M          | A11-R            | S0         |
 | **A12-R**   | P0      | TODO       | Repair invariant manifest dependencies, including A7 and A11. Exit: exact manifest ratified.                                                | PL+SEC / TL           | S          | A4-A11           | S0         |
@@ -475,7 +475,7 @@ When this plan moves into the repository, each task row should carry: Work ID; g
 
 Repository sources reviewed at the baseline commit:
 
-- CONSTITUTION.md; AGENTS.md; .agent/INVARIANTS.md; .agent/WAVE.md; .agent tickets/plans; A10 ratification merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; draft PR #37 head `d69b5ec77e630914fce4068abe2dc5303876cd12`
+- CONSTITUTION.md; AGENTS.md; .agent/INVARIANTS.md; .agent/WAVE.md; .agent tickets/plans; A10 ratification merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; normal PR #37 implementation merge `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`; reviewed implementation head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`; post-merge push run `32941840184`
 
 - Design_Specs/Build_Out.md; Design_Specs/Build_Out_Protocol_Extension.md; Design_Specs/Build_Out_Constitutional_Overlay.md; Design_Specs/Agentic_Development_Master_Plan.md
 

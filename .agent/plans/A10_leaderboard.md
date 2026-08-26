@@ -1,11 +1,124 @@
-# A10 — bounded fixture leaderboard contract and future implementation plan
+# A10 — bounded fixture leaderboard contract, implementation, and closeout record
 
 **Ticket:** .agent/tickets/A10_leaderboard.md
-**Wave status:** todo
-**Document status:** documentation-only contract candidate
+**Wave status:** proposed done by this documentation-only closeout; effective only after independent review, explicit human authorization, and normal merge
+**Document status:** contract ratified; bounded implementation merged; administrative closeout candidate
 **Starting main:** f308281e69580216d5ebf5ec94a9d6c069cf1a56
 **Starting tree:** a2875c0b12caf7d4c07316626c218c55f3eb77ea
 **Starting subject:** Merge pull request #35 from carbonphysicsai/agent/a9-closeout
+
+## Current implementation and administrative closeout record — 2026-08-26
+
+The exact contract in A10-R1 through A10-R17 is preserved unchanged below.
+Those numbered sections, including their future-tense and pending-state prose,
+are the historical contract-ratification plan rather than current-state
+claims. Ratification was merged normally in PR #36 as
+`f4ad756a994a9bf21d919fccc4f164fc9719f4e6`, tree
+`17140d76d8c50d0c78880a95c00f9b75f3be8ee1`, with ordered parents
+`f308281e69580216d5ebf5ec94a9d6c069cf1a56` and
+`aca22b4727e9e571a95745294004f733aa419e14`.
+
+Current main is implementation merge
+`3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, tree
+`6a6e95262773b9b2e22ad5c43837194f06e070a6`, subject `Merge pull request
+#37 from carbonphysicsai/agent/a10-leaderboard`, valid GitHub signature, and
+ordered parents `bc95ef09910014ff3d08d3f0a9fbfaf6999c2d79` and reviewed head
+`6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The reviewed-head tree is the
+same exact tree and its file diff to the merge is empty. PR #37 merged normally
+at `2026-08-26T07:14:59Z`; auto-merge was never enabled and its source branch
+remains present.
+
+The authorized implementation history carried by that reviewed head is:
+
+1. `d69b5ec77e630914fce4068abe2dc5303876cd12` — `feat: implement bounded A10 fixture leaderboard`;
+2. `1c5196a5a48caeb6c9a14f90cef3c00fd6cfd7b9` — `merge: synchronize A10 implementation with current main`, ordered parents `d69b5ec77e630914fce4068abe2dc5303876cd12` then `bc95ef09910014ff3d08d3f0a9fbfaf6999c2d79`;
+3. `bd263c44fa955f32a28a6afd1c56ed8b9334cf11` — Challenge identity capacity before ASCII and A3 reconstruction;
+4. `6be31d10272ac18b580a4733079318f7d3d69309` — `SubmissionId`, `result_id`, and scoring-pack capacity before A7/A3 owner validation;
+5. `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1` — exact valid-Unicode UTF-8 byte capacity and incoming-cursor byte limits.
+
+The exact parent-one-to-merge implementation manifest is six paths and
+`+5125/-3`:
+
+| Path | Status | Additions | Deletions | Merged blob |
+|---|---:|---:|---:|---|
+| `.agent/WAVE.md` | M | 2 | 2 | `9f95f658ba22e801290e3a770db2106249c83734` |
+| `carbon/leaderboard/__init__.py` | M | 45 | 1 | `67823bc69da8591f5d2729e79fc679443a42e5ce` |
+| `carbon/leaderboard/model.py` | A | 781 | 0 | `2450cc8f3487bb8a1a9b258445900aafa36e82f4` |
+| `carbon/leaderboard/providers.py` | A | 24 | 0 | `000aebd1b0eced4122c2a0496d8ecc5b434a9d78` |
+| `carbon/leaderboard/service.py` | A | 905 | 0 | `ca7bfa97f126fab2b251f729ede2254da078d36f` |
+| `tests/cpu/test_leaderboard.py` | A | 3368 | 0 | `23480fb2dc6e4d59ecf16c5207c105cf4274dd81` |
+
+No merge-time edit, conflict resolution, or seventh path entered the merge.
+Post-merge push run `32941840184` is exact `push/main` CI on current main and
+completed successfully. CPU job `98094221825` recorded `1973 passed in
+53.86s`. Quality job `98094221851` recorded `Ruff 757/776`, `Black 62/68`,
+removed Ruff debt `19`, removed Black debt `6`, five changed Python files, no
+new debt, and all changed Python files clean.
+
+Final Greptile check `98088524053` succeeded on the exact reviewed head with
+six files reviewed and zero comments or annotations. Summary comment
+`5420464156` reports confidence `5/5` and no blocking failure. Both substantive
+threads are resolved and outdated; unresolved substantive count is zero. All
+four formal reviews remain `COMMENTED`, not `APPROVED`; this record makes no
+formal GitHub approval claim. PR #37's stale historical body sentence about an
+unresolved thread is not current authority and was not edited.
+
+The independent pre-edit audit used Python `3.11.11` in a fresh isolated
+environment over an archive of exact current main. Results were focused A10
+`246 passed in 6.05s`, exact related suite `1530 passed in 29.62s`, and full
+default suite `1973 passed in 30.61s`. Ruff `0.16.3` passed all five A10 source
+and focused-test paths; Black `26.5.1` would leave all five unchanged. A fresh
+outside-repository wheel was
+`carbon-0.9.0-py3-none-any.whl`, `183340` bytes, SHA-256
+`e39008b41550ecd3d198a1a2e01548178f72cc4f0aa722c99aa185ba538153d7`.
+It installed into a second fresh environment with `--no-deps --no-index`.
+Outside-checkout `python -I` resolved `carbon.leaderboard` from installed
+site-packages, confirmed distribution `carbon==0.9.0`, zero mandatory
+dependencies, the exact ordered sixteen-name export tuple, representative
+public construction and a rank-one fixture call, and zero attempted or newly
+loaded blocked optional-heavy, A8, A9, A11+, web, HTML, filesystem,
+environment, current-time, Landscape, neuron, Bittensor, chain, weight,
+settlement, or emission modules.
+
+Every one of the 57 unchanged ticket criteria was audited independently
+against exact current source, canonical tests, and the applicable A3/A5/A6/A7/
+A8/A9 owner evidence. Result: `57 PASS / 0 FAIL`. The plan intentionally
+contains no checkbox markers. Checking the ticket criteria in the closeout
+records already-merged implementation truth; this documentation-only closeout
+adds no implementation or test evidence.
+
+The exact closeout maturity ceiling is:
+
+~~~text
+A10 SPECIFIED / RATIFIED: YES
+A10 IMPLEMENTED: YES on current main only for the exact bounded in-process fixture leaderboard
+A10 TESTED: YES only for the exact recorded CPU, hostile-input, resource, concurrency, leakage, dependency, import, wheel, and quality engineering scope, including all reviewed repairs
+A10 SCIENTIFICALLY_QUALIFIED: NO
+A10 SECURITY_QUALIFIED: NO
+A10 NETWORK_QUALIFIED: NO
+A10 COMMERCIALLY_VALIDATED: NO
+A10 PRODUCTION_QUALIFIED: NO
+A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A11: todo
+A12: todo
+~~~
+
+A10 does not provide or authorize a production provider or publication feed;
+an official or LIVE leaderboard; public identity, authentication, hotkey
+publication, anonymization, or timestamp publication; durable persistence;
+HTTP, REST, GraphQL, HTML, or network transport; official score precision or
+cadence; adaptive-query security qualification; cross-Challenge or global
+ranking; `FrontierRecord`, `FrontierAdvanceEvent`, or frontier nomination
+authority beyond informational rank; Product Qualification; commercial rank;
+settlement or treasury; chain, Bittensor, weights, or emissions; A11 logging or
+metrics; A12 aggregate-invariant work; or scientific, security, network,
+commercial, or production qualification.
+
+> **Historical record boundary:** numbered sections 1 through 5 below are the
+> preserved ratification-era plan and chronology. Their pending, future, todo,
+> absent-implementation, and branch-preparation statements are historical, not
+> live current-state claims. A10-R1 through A10-R17 remain the ratified contract
+> text and are not rewritten by this closeout record.
 
 ## 1. Purpose and authority
 

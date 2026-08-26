@@ -53,7 +53,7 @@ No state implies a later state.
 | A7 | Yes | Yes | Yes | No | Bounded process-local submission/FSM/fee mechanics |
 | A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
-| A10 | Pending merge | No | No | No | Documentation-only contract candidate for a bounded in-process fixture leaderboard projection; no official or LIVE board |
+| A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
 | A11 | Yes | No | No | No | observability/redaction pending |
 | A12 | Yes | No | No | No | Wave-A invariant closeout pending |
 
@@ -66,39 +66,39 @@ It provides no transport, authentication, production providers, production
 policy, mock/light execution, adaptive loop, end-to-end integration,
 qualification, or production authority.
 
-A10 documentation-only contract-ratification candidate maturity:
+A10 current bounded maturity:
 
 ```text
-A10 SPECIFIED / RATIFIED: pending merge of this documentation PR
-A10 IMPLEMENTED: NO
-A10 TESTED: NO
+A10 SPECIFIED / RATIFIED: YES
+A10 IMPLEMENTED: YES on current main only for the exact bounded in-process fixture leaderboard
+A10 TESTED: YES only for the exact recorded CPU, hostile-input, resource, concurrency, leakage, dependency, import, wheel, and quality engineering scope, including all reviewed repairs
 A10 SCIENTIFICALLY_QUALIFIED: NO
 A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: todo
+A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
 ```
 
-The candidate contract is limited to a bounded, in-process, fixture-only
-projection for one exact Challenge. It provides no HTTP, REST, GraphQL, web UI,
-HTML, filesystem or network publication, persistence, scheduler, chain access,
-or current-time behavior. An absent official publication feed means the
-official board is unavailable, not an empty authoritative board. Production
-publication feed; official and LIVE publication; public identity and
-anonymization; timestamps; official score precision and cadence; frontier
-nomination or promotion; `FrontierRecord`; `FrontierAdvanceEvent`; Product
-Qualification; commercial rank; settlement; chain; weights; emissions; A11
-logging/metrics; and A12 aggregate invariants remain separately deferred.
-Production must remain fail closed.
+Current `main` implements and tests only a bounded, in-process, fixture-only
+projection for one exact Challenge. It provides no production provider or
+publication feed; official or LIVE leaderboard; public identity,
+authentication, hotkey, anonymization, or timestamp publication; durable
+persistence; HTTP, REST, GraphQL, web UI, HTML, filesystem or network
+transport; official score precision or cadence; adaptive-query security
+qualification; cross-Challenge or global ranking; frontier nomination or
+promotion authority; `FrontierRecord`; `FrontierAdvanceEvent`; Product
+Qualification; commercial rank; settlement; treasury; chain; Bittensor;
+weights; emissions; A11 logging/metrics; or A12 aggregate-invariant work. An
+absent official publication feed means the official board is unavailable, not
+an empty authoritative board. Production remains fail closed.
 
-The empty `carbon/leaderboard` package seam is not A10 implementation. The
-historical HTML generator and legacy validator, Landscape, score-to-weight, and
-emission paths are archaeology, not current A10 authority or evidence. Where
-earlier A10 ticket/Build Out shorthand admitted public hotkey or anonymized
-identity, timestamps, `get(submission_id)`, or an ambiguous official-or-fixture
-board, it was `DOCUMENTATION_LAG`. The candidate does not promote the legacy
-artifacts to `IMPLEMENTED` or `TESTED`.
+The historical HTML generator and legacy validator, Landscape,
+score-to-weight, and emission paths remain archaeology, not current A10
+authority or evidence. Earlier A10 ticket/Build Out shorthand admitting public
+hotkey or anonymized identity, timestamps, `get(submission_id)`, or an ambiguous
+official-or-fixture board was `DOCUMENTATION_LAG`; none of that behavior entered
+the bounded implementation.
 
 ---
 
@@ -175,8 +175,10 @@ The public narrative is reconciled to the integrated constitution and Business C
 
 No paper/deck may imply:
 
-- the full Miner MCP or any A10–A12 implementation is present; A10 contract
-  ratification remains pending merge of documentation only;
+- the full Miner MCP or any A11–A12 implementation is present;
+- bounded A10 implementation implies an official/LIVE leaderboard, scientific,
+  security, network, commercial, or production qualification, or any later
+  frontier, product, settlement, chain, weight, or emission authority;
 - A9 has network or production qualification;
 - A8 is a real miner-code, mock/light, LIVE, production, scientifically qualified, or security-qualified backend;
 - an A8 fixture result creates frontier, Product Qualification, treasury/settlement, leaderboard, weight, chain, or emission authority;
@@ -190,4 +192,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0–A9 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 has a documentation-only, fixture-only contract candidate pending merge and remains `todo`, unimplemented, untested, and unqualified; official/LIVE publication, frontier, Product Qualification, chain, weights, emissions, and production authority remain explicit future work.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0–A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its administrative closeout is pending independent review, explicit human authorization, and normal merge. A10 remains scientifically, security, network, commercially, and production unqualified; official/LIVE publication, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work. A11 and A12 remain `todo`.**

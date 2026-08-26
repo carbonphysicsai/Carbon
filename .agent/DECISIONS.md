@@ -1,5 +1,128 @@
 # Agent decisions log
 
+## 2026-08-26 — A10 bounded fixture-leaderboard implementation and conditional closeout
+
+**Decision and authority boundary.** The A10-R1 through A10-R17 contract was
+ratified by normal PR #36 merge
+`f4ad756a994a9bf21d919fccc4f164fc9719f4e6`, tree
+`17140d76d8c50d0c78880a95c00f9b75f3be8ee1`, with ordered parents
+`f308281e69580216d5ebf5ec94a9d6c069cf1a56` and
+`aca22b4727e9e571a95745294004f733aa419e14`. The dated 2026-08-25 entry below
+is preserved as the historical ratification record; its pending and
+future-state statements are not rewritten into false history.
+
+Current main is exact implementation merge
+`3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, tree
+`6a6e95262773b9b2e22ad5c43837194f06e070a6`, subject `Merge pull request
+#37 from carbonphysicsai/agent/a10-leaderboard`, with a valid GitHub signature
+and ordered parents `bc95ef09910014ff3d08d3f0a9fbfaf6999c2d79` then reviewed
+implementation head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The reviewed head has the
+same exact tree, is ancestral to current main, and has an empty file diff to
+the merge. PR #37 merged normally at `2026-08-26T07:14:59Z`; auto-merge was
+never enabled and its source branch remains present at the reviewed head.
+
+The exact five-commit implementation and corrective history is:
+
+1. `d69b5ec77e630914fce4068abe2dc5303876cd12` — `feat: implement bounded A10 fixture leaderboard`;
+2. `1c5196a5a48caeb6c9a14f90cef3c00fd6cfd7b9` — `merge: synchronize A10 implementation with current main`, with ordered parents `d69b5ec77e630914fce4068abe2dc5303876cd12` then `bc95ef09910014ff3d08d3f0a9fbfaf6999c2d79`;
+3. `bd263c44fa955f32a28a6afd1c56ed8b9334cf11` — `fix: bound A10 challenge identity before reconstruction`;
+4. `6be31d10272ac18b580a4733079318f7d3d69309` — `fix: bound A10 provider identifiers before validation`;
+5. `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1` — `fix: enforce A10 UTF-8 byte capacities`.
+
+The exact parent-one-to-merge delta is the following six paths and
+`+5125/-3`; no merge-time edit, conflict resolution, or seventh path entered
+the merge:
+
+| Path | Status | Additions | Deletions | Merged blob |
+|---|---:|---:|---:|---|
+| `.agent/WAVE.md` | M | 2 | 2 | `9f95f658ba22e801290e3a770db2106249c83734` |
+| `carbon/leaderboard/__init__.py` | M | 45 | 1 | `67823bc69da8591f5d2729e79fc679443a42e5ce` |
+| `carbon/leaderboard/model.py` | A | 781 | 0 | `2450cc8f3487bb8a1a9b258445900aafa36e82f4` |
+| `carbon/leaderboard/providers.py` | A | 24 | 0 | `000aebd1b0eced4122c2a0496d8ecc5b434a9d78` |
+| `carbon/leaderboard/service.py` | A | 905 | 0 | `ca7bfa97f126fab2b251f729ede2254da078d36f` |
+| `tests/cpu/test_leaderboard.py` | A | 3368 | 0 | `23480fb2dc6e4d59ecf16c5207c105cf4274dd81` |
+
+**Review findings and repairs.** Greptile's first substantive finding required
+Challenge identity capacity to precede ASCII validation and A3
+reconstruction. Commit `bd263c44fa955f32a28a6afd1c56ed8b9334cf11`
+made that gate explicit for request, snapshot, and candidate Challenges. Its
+second substantive finding required `SubmissionId`, `result_id`, and
+scoring-pack capacity to precede A7/A3 construction or validation; commit
+`6be31d10272ac18b580a4733079318f7d3d69309` repaired all three identifier
+families. Final follow-up required exact valid-Unicode UTF-8 byte accounting
+and both incoming-cursor byte limits before ASCII validation; commit
+`6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1` closed that family.
+
+Final Greptile check `98088524053` succeeded on the exact reviewed head and
+reported six files reviewed with zero comments and zero annotations. Summary
+comment `5420464156` records confidence `5/5` and no blocking failure. Both
+substantive threads are resolved and outdated; unresolved substantive count is
+zero. All four formal reviews remain `COMMENTED`, not `APPROVED`; this record
+does not claim a formal GitHub approval. The stale historical sentence in the
+closed PR #37 body was not edited and does not override current thread state.
+
+**Merged and fresh engineering evidence.** Exact post-merge push run
+`32941840184` is `push/main` on current main and completed successfully. CPU
+job `98094221825` recorded `1973 passed in 53.86s`. Quality job
+`98094221851` recorded `Ruff 757/776`, `Black 62/68`, removed Ruff debt `19`,
+removed Black debt `6`, five changed Python files, no new debt, and every
+changed Python file clean.
+
+The independent closeout audit used Python `3.11.11` in a fresh isolated
+environment over exact current main. Focused A10 passed `246` tests in
+`6.05s`; the exact related suite passed `1530` in `29.62s`; the full default
+suite passed `1973` in `30.61s`. Ruff `0.16.3` passed and Black `26.5.1`
+would leave the four A10 modules and sole focused test unchanged. Fresh wheel
+`carbon-0.9.0-py3-none-any.whl` is `183340` bytes with SHA-256
+`e39008b41550ecd3d198a1a2e01548178f72cc4f0aa722c99aa185ba538153d7`.
+It installed into a second fresh environment with `--no-deps --no-index`.
+Outside-checkout `python -I` proved site-packages resolution, distribution
+`carbon==0.9.0`, zero mandatory dependencies, the exact ordered sixteen-name
+root export tuple, representative public construction and fixture ranking, and
+zero attempted or newly loaded blocked optional-heavy, A8, A9, A11+, web,
+HTML, filesystem, environment, current-time, Landscape, neuron, Bittensor,
+chain, weight, settlement, or emission modules.
+
+Every one of the 57 unchanged A10 ticket criteria was independently traced to
+its controlling A10-R decision or owner boundary, exact current source symbol,
+canonical test evidence, applicable A3/A5/A6/A7/A8/A9 owner evidence, and
+bounded exclusion. Result: `57 PASS / 0 FAIL`. Checking those criteria in the
+documentation-only closeout records already-merged implementation truth; the
+closeout adds no implementation or test evidence.
+
+**Exact bounded maturity.** The decision records only this ceiling:
+
+~~~text
+A10 SPECIFIED / RATIFIED: YES
+A10 IMPLEMENTED: YES on current main only for the exact bounded in-process fixture leaderboard
+A10 TESTED: YES only for the exact recorded CPU, hostile-input, resource, concurrency, leakage, dependency, import, wheel, and quality engineering scope, including all reviewed repairs
+A10 SCIENTIFICALLY_QUALIFIED: NO
+A10 SECURITY_QUALIFIED: NO
+A10 NETWORK_QUALIFIED: NO
+A10 COMMERCIALLY_VALIDATED: NO
+A10 PRODUCTION_QUALIFIED: NO
+A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A11: todo
+A12: todo
+~~~
+
+This closeout does not provide or authorize a production provider or
+publication feed; an official or LIVE leaderboard; public identity,
+authentication, hotkey publication, anonymization, or timestamp publication;
+durable persistence; HTTP, REST, GraphQL, HTML, or network transport; official
+score precision or cadence; adaptive-query security qualification;
+cross-Challenge or global ranking; `FrontierRecord`, `FrontierAdvanceEvent`,
+or frontier nomination authority beyond informational rank; Product
+Qualification; commercial ranking; settlement or treasury; chain, Bittensor,
+weights, or emissions; A11 logging or metrics; A12 aggregate-invariant work;
+or scientific, security, network, commercial, or production qualification.
+
+The board and ticket may therefore propose A10 `done`, but that state becomes
+repository authority only after this documentation-only closeout receives
+independent review, fresh explicit human authorization, and a normal merge.
+Draft publication alone is not review, authorization, readiness, or merge.
+Wave A is not claimed closed; A11 and A12 remain `todo`.
+
 ## 2026-08-25 — A10 bounded fixture-leaderboard contract candidate
 
 **Repository truth, status, and scope.** A fresh fetch/prune resolved
