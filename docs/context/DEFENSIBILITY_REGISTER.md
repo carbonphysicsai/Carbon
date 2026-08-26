@@ -51,7 +51,7 @@
 | Real TrainEval backend | UNDER_DEFINED | Wave C implementation/qualification |
 | Bounded A9 in-process MCP Wave-A control/disclosure plane | IMPLEMENTED bounded | Preserve the exact seven-tool CPU, hostile-input, resource, concurrency, disclosure, dependency, import, wheel, and quality evidence |
 | Miner MCP end-to-end | DESIGN | Transport; authentication; production requester authorization; production providers; production limits, rates, and fees; mock/light execution; adaptive-query security evidence; full free/paid-loop integration |
-| A10 fixture leaderboard disclosure | DESIGN | Ratification is pending merge of the documentation-only fixture contract; then separately implement and test the bounded in-process projection and leakage boundary |
+| A10 fixture leaderboard disclosure | IMPLEMENTED bounded | Separately ratified official publication feed; official identity/disclosure policy; score-precision/cadence policy; adaptive-query security qualification; production publication and network qualification |
 | Official or LIVE leaderboard publication | UNDER_DEFINED | Separate nominal official-feed contract, qualification, implementation, and review; absent feed means unavailable, never an empty authoritative board |
 | Logging/metrics secrecy | DESIGN | A11 + red-team review |
 | Constitutional invariant CI | DESIGN | A12 |
@@ -61,31 +61,33 @@ Bounded A9 does not establish authenticated identity, end-to-end seed secrecy,
 adaptive non-oracle security, workload containment, network readiness, or
 production readiness.
 
-A10's maturity ceiling in this documentation candidate is exact:
+A10's current bounded maturity ceiling is exact:
 
 ```text
-A10 SPECIFIED / RATIFIED: pending merge of this documentation PR
-A10 IMPLEMENTED: NO
-A10 TESTED: NO
+A10 SPECIFIED / RATIFIED: YES
+A10 IMPLEMENTED: YES on current main only for the exact bounded in-process fixture leaderboard
+A10 TESTED: YES only for the exact recorded CPU, hostile-input, resource, concurrency, leakage, dependency, import, wheel, and quality engineering scope, including all reviewed repairs
 A10 SCIENTIFICALLY_QUALIFIED: NO
 A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: todo
+A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
 ```
 
-The candidate permits only a bounded in-process fixture projection.
-Production publication feed; official and LIVE publication; public identity
-and anonymization; timestamps; official score precision and cadence; frontier
-nomination or promotion; `FrontierRecord`; `FrontierAdvanceEvent`; Product
-Qualification; commercial rank; settlement; chain; weights; emissions; A11
+The implementation provides only a bounded in-process fixture projection.
+Production provider or publication feed; official and LIVE publication; public
+identity, authentication, hotkey, anonymization, and timestamps; durable
+persistence; HTTP, REST, GraphQL, HTML, filesystem, or network transport;
+official score precision and cadence; adaptive-query security qualification;
+cross-Challenge or global ranking; frontier nomination or promotion authority;
+`FrontierRecord`; `FrontierAdvanceEvent`; Product Qualification; commercial
+rank; settlement; treasury; chain; Bittensor; weights; emissions; A11
 logging/metrics; and A12 aggregate invariants remain deferred. It confers none
-of those authorities, and production remains fail closed. The empty
-`carbon/leaderboard` package seam is not implementation;
-historical HTML leaderboard and validator/Landscape/emission coupling are
-archaeology. Treating those artifacts as current A10 authority was
-`DOCUMENTATION_LAG`, not implementation or test evidence.
+of those authorities, and production remains fail closed. Historical HTML
+leaderboard and validator/Landscape/emission coupling remain archaeology.
+Treating those artifacts as current A10 authority was `DOCUMENTATION_LAG`, not
+implementation or test evidence.
 
 ## Security and secrecy
 

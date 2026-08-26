@@ -206,10 +206,14 @@ Future Landscape outputs may inform priors/hypotheses but remain leakage-governe
 
 # 5. A10 constitutional contract
 
-A10 remains `todo` and unimplemented. Its exact bounded contract becomes
-specified/ratified only after draft PR #36 is independently
-reviewed, explicitly human-authorized, and merged. Documentation is not A10
-implementation or test evidence.
+A10's exact bounded contract was specified and ratified by the normal merge of
+PR #36. Current main implements and tests that contract only as the bounded
+in-process fixture leaderboard merged normally in PR #37 at
+`3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head
+`6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. Administrative closeout remains
+conditional on independent review, explicit human authorization, and normal
+merge of the documentation-only closeout. That closeout adds no implementation
+or test evidence.
 
 The undefined `max_response_utf8_bytes` accounting procedure identified by the
 stopped ready-review gate is `DOCUMENTATION_LAG`. The correction defines an
@@ -226,14 +230,17 @@ current-time behavior. It is neither an official nor a LIVE leaderboard. An
 absent official publication feed means that an official board is unavailable;
 it must never be represented as an empty authoritative board.
 
-The future service and its value objects are distinct nominal fixture-only
+The current implementation is explicitly non-official, non-LIVE,
+non-emitting, non-frontier, non-product, non-network, and non-production.
+
+The service and its value objects are distinct nominal fixture-only
 types. `FixtureLeaderboardProvider` is a standard-library `typing.Protocol`
 satisfied structurally by a trusted concrete provider; concrete providers need
 not subclass it and are not subjected to exact-type or runtime-checkable
 Protocol introspection. A caller-supplied string cannot relabel any surface as
 an official publication type.
 
-The sole future operation is:
+The sole operation is:
 
 ```text
 FixtureLeaderboardService.list_entries(
@@ -291,7 +298,7 @@ extra error is exported.
 ## 5.2 Provider-owned publication projection
 
 Trusted composition injects a concrete structural implementation of the A10
-`FixtureLeaderboardProvider` Protocol with the exact future seam:
+`FixtureLeaderboardProvider` Protocol with the exact seam:
 
 ```text
 FixtureLeaderboardProvider.get_snapshot(
@@ -405,7 +412,7 @@ withdrawal, and supersession selection remain provider-owned.
 
 ## 5.4 Positive public allow-list
 
-The future immutable row allow-list is exactly:
+The immutable row allow-list is exactly:
 
 ```text
 rank
@@ -418,7 +425,7 @@ fixture_origin
 eligible_for_emission
 ```
 
-The future page contains only `schema_version="1.0"`, exact `ChallengeKey`, exact
+The page contains only `schema_version="1.0"`, exact `ChallengeKey`, exact
 scoring-pack hash, exact `LeaderboardSnapshotSequence`, immutable row tuple,
 next cursor or `None`, `fixture_origin=True`, and
 `eligible_for_emission=False`. It exposes no total row count.
@@ -551,7 +558,7 @@ without copying A9's larger graph/node model or adding an A9 dependency.
 
 ## 5.6 Fail-closed boundary
 
-The future fixed public hierarchy is:
+The fixed public hierarchy is:
 
 ```text
 LeaderboardError(Exception)
@@ -602,7 +609,7 @@ cursors, errors, caches, and representations must not leak seeds, draws,
 roles, domains, contexts, entropy, hidden pack material, margins, stress,
 diagnostics, fees, paths, private timestamps, or hidden identities.
 
-The smallest future implementation remains:
+The current implementation is exactly:
 
 ```text
 carbon/leaderboard/
@@ -624,15 +631,14 @@ from carbon.scoring import ScoreStatus
 from carbon.fees import SubmissionId
 ```
 
-It must not import A5 `InternalResult`/`ScoreEngine`, use A6 `EvaluationCard`
+It does not import A5 `InternalResult`/`ScoreEngine`, use A6 `EvaluationCard`
 as input, import A6/A7 private stores or records, import A8/A9 result
 or service models, Landscape, neurons, emissions, weights, chain, Bittensor,
 optional scientific dependencies, web/HTML frameworks, filesystem,
-environment, or current-time modules. The implementation must preserve zero
-mandatory package dependencies and support installed-wheel, outside-tree
-imports. Canonical future focused tests live only at
-`tests/cpu/test_leaderboard.py`; this documentation candidate creates no test
-evidence and checks no implementation criterion. The future suite must cover
+environment, or current-time modules. The implementation preserves zero
+mandatory package dependencies and supports installed-wheel, outside-tree
+imports. Canonical focused tests live only at
+`tests/cpu/test_leaderboard.py`; the merged suite covers
 the exact Provider `None`/empty-snapshot distinction; RuntimeError and
 provider-raised public-A10-error translation to a new exact integration error
 without message/cause/context leakage; unchanged A10-created public-error
@@ -643,7 +649,7 @@ forbidding `except BaseException`; Protocol versus concrete implementation;
 constructor, resource fields, schema literals, ordered exports, public validator
 reuse, u64 bounds, canonical zero, whole-snapshot ranking before slicing, and
 continuation page-size variation in addition to the existing fail-closed matrix.
-It must also lock the exact `response_utf8_bytes(page)` formula and explicit
+It also locks the exact `response_utf8_bytes(page)` formula and explicit
 chargeable/uncharged source manifest; declared page-field, final row-tuple, and
 declared row-field traversal order; per-occurrence charging of repeated equal or
 identity-shared strings; per-string and dual cursor bounds; exactly-once emitted
@@ -656,15 +662,15 @@ wire-format, or network dependency.
 ## 5.7 Maturity ceiling and deferrals
 
 ```text
-A10 SPECIFIED / RATIFIED: pending merge of PR #36
-A10 IMPLEMENTED: NO
-A10 TESTED: NO
+A10 SPECIFIED / RATIFIED: YES
+A10 IMPLEMENTED: YES on current main only for the exact bounded in-process fixture leaderboard
+A10 TESTED: YES only for the exact recorded CPU, hostile-input, resource, concurrency, leakage, dependency, import, wheel, and quality engineering scope, including all reviewed repairs
 A10 SCIENTIFICALLY_QUALIFIED: NO
 A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: todo
+A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
 A11: todo
 A12: todo
 ```
