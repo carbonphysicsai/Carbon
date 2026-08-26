@@ -175,9 +175,11 @@ def _copy_request_hash(value: object, limits: FixtureLeaderboardResourceLimits) 
 
 
 def _copy_provider_hash(value: object, limits: FixtureLeaderboardResourceLimits) -> str:
-    if type(value) is not str or not is_sha256_digest(value):
+    if type(value) is not str:
         raise LeaderboardIntegrationError()
     _require_string_capacity(value, limits)
+    if not is_sha256_digest(value):
+        raise LeaderboardIntegrationError()
     return value
 
 
@@ -243,15 +245,15 @@ def _copy_submission_id(
     raw = _provider_field(value, "value")
     if type(raw) is not str:
         raise LeaderboardIntegrationError()
+    _require_string_capacity(raw, limits)
+    if not raw.isascii():
+        raise LeaderboardIntegrationError()
     failed = False
     try:
         owned = SubmissionId(raw)
     except Exception:  # noqa: BLE001 - provider graph invalidity collapses
         failed = True
     else:
-        if not raw.isascii():
-            raise LeaderboardIntegrationError()
-        _require_string_capacity(raw, limits)
         return owned
     if failed:
         raise LeaderboardIntegrationError()
@@ -261,15 +263,17 @@ def _copy_submission_id(
 def _copy_result_id(value: object, limits: FixtureLeaderboardResourceLimits) -> str:
     if type(value) is not str:
         raise LeaderboardIntegrationError()
+    _require_string_capacity(value, limits)
+    if not value.isascii():
+        raise LeaderboardIntegrationError()
     failed = False
     try:
         owned = validate_version(value)
     except Exception:  # noqa: BLE001 - provider graph invalidity collapses
         failed = True
     else:
-        if type(owned) is not str or owned != value or not value.isascii():
+        if type(owned) is not str or owned != value:
             raise LeaderboardIntegrationError()
-        _require_string_capacity(value, limits)
         return value
     if failed:
         raise LeaderboardIntegrationError()

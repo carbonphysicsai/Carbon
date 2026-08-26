@@ -322,6 +322,20 @@ def _response_utf8_bytes(page: FixtureLeaderboardPage) -> int:
     return total
 
 
+def _assert_fixed_identifier_error(
+    error: LeaderboardError,
+    identifier: str,
+    expected_type: type[LeaderboardError],
+) -> None:
+    assert type(error) is expected_type
+    assert identifier not in str(error)
+    assert identifier not in repr(error)
+    assert identifier not in error.args
+    assert identifier not in error.__dict__.values()
+    assert error.__cause__ is None
+    assert error.__context__ is None
+
+
 def _reachable_values(value: object) -> tuple[object, ...]:
     pending = [value]
     seen: set[int] = set()
@@ -1418,6 +1432,374 @@ def test_page_size_and_snapshot_row_bounds_are_exact() -> None:
             _request()
         )
     assert len(over_provider.calls) == 1
+
+
+def test_oversized_submission_id_is_resource_safe_and_releases_capacity() -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "s" * (string_limit + 1)
+    forged_submission = _forge(SubmissionId, value=oversized)
+    invalid = _forged_candidate(
+        _candidate(),
+        submission_id=forged_submission,
+    )
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    service = _service(
+        provider,
+        limits=_limits(
+            max_string_utf8_bytes=string_limit,
+            max_concurrent_calls=1,
+        ),
+    )
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert len(provider.calls) == 1
+
+    provider.value = _snapshot((_candidate(2),))
+    page = service.list_entries(_request())
+    assert len(page.rows) == 1
+    assert page.next_cursor is None
+    assert len(provider.calls) == 2
+
+
+def test_submission_capacity_precedes_owner_construction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "s" * (string_limit + 1)
+    forged_submission = _forge(SubmissionId, value=oversized)
+    invalid = _forged_candidate(
+        _candidate(),
+        submission_id=forged_submission,
+    )
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    service = _service(
+        provider,
+        limits=_limits(max_string_utf8_bytes=string_limit),
+    )
+    owner_calls: list[str] = []
+
+    def sentinel(value: SubmissionId) -> None:
+        owner_calls.append(object.__getattribute__(value, "value"))
+        raise AssertionError("oversized SubmissionId reached owner validation")
+
+    monkeypatch.setattr(SubmissionId, "__post_init__", sentinel)
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(_request())
+    assert type(raised.value) is LeaderboardResourceError
+    assert owner_calls == []
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("malformed", ("0" * 36, "é" * 36))
+def test_bounded_malformed_submission_id_is_integration_error(
+    malformed: str,
+) -> None:
+    forged_submission = _forge(SubmissionId, value=malformed)
+    invalid = _forged_candidate(
+        _candidate(),
+        submission_id=forged_submission,
+    )
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+
+    with pytest.raises(LeaderboardIntegrationError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=len(SCORING_PACK_HASH)),
+        ).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        malformed,
+        LeaderboardIntegrationError,
+    )
+    assert len(provider.calls) == 1
+
+
+def test_submission_id_capacity_boundary_is_exact_and_freshly_owned() -> None:
+    source = _submission_id(1)
+    copy_submission_id = sys.modules["carbon.leaderboard.service"].__dict__[
+        "_copy_submission_id"
+    ]
+
+    owned = copy_submission_id(
+        source,
+        _limits(max_string_utf8_bytes=36),
+    )
+    assert type(owned) is SubmissionId
+    assert owned == source
+    assert owned is not source
+    with pytest.raises(LeaderboardResourceError) as raised:
+        copy_submission_id(
+            source,
+            _limits(max_string_utf8_bytes=35),
+        )
+    assert type(raised.value) is LeaderboardResourceError
+
+
+@pytest.mark.parametrize(
+    "oversized",
+    (
+        "r" * (len(SCORING_PACK_HASH) + 1),
+        "é" * (len(SCORING_PACK_HASH) + 1),
+    ),
+)
+def test_oversized_result_id_is_resource_safe(oversized: str) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    invalid = _forged_candidate(_candidate(), result_id=oversized)
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert len(provider.calls) == 1
+
+
+def test_result_capacity_precedes_owner_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "r" * (string_limit + 1)
+    invalid = _forged_candidate(_candidate(), result_id=oversized)
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+    service = _service(
+        provider,
+        limits=_limits(max_string_utf8_bytes=string_limit),
+    )
+    owner_calls: list[object] = []
+
+    def sentinel(value: object) -> str:
+        owner_calls.append(value)
+        raise AssertionError("oversized result_id reached owner validation")
+
+    monkeypatch.setattr(
+        sys.modules["carbon.leaderboard.service"],
+        "validate_version",
+        sentinel,
+    )
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(_request())
+    assert type(raised.value) is LeaderboardResourceError
+    assert owner_calls == []
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("malformed", ("bad value", "bad/value", "résult-1"))
+def test_bounded_malformed_result_id_is_integration_error(
+    malformed: str,
+) -> None:
+    invalid = _forged_candidate(_candidate(), result_id=malformed)
+    provider = _Provider(_forged_snapshot(_snapshot(), candidates=(invalid,)))
+
+    with pytest.raises(LeaderboardIntegrationError) as raised:
+        _service(provider).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        malformed,
+        LeaderboardIntegrationError,
+    )
+    assert len(provider.calls) == 1
+
+
+def test_result_id_capacity_boundary_preserves_the_exact_string() -> None:
+    source = "result-1"
+    copy_result_id = sys.modules["carbon.leaderboard.service"].__dict__[
+        "_copy_result_id"
+    ]
+
+    owned = copy_result_id(
+        source,
+        _limits(max_string_utf8_bytes=len(source)),
+    )
+    assert type(owned) is str
+    assert owned is source
+    with pytest.raises(LeaderboardResourceError) as raised:
+        copy_result_id(
+            source,
+            _limits(max_string_utf8_bytes=len(source) - 1),
+        )
+    assert type(raised.value) is LeaderboardResourceError
+
+
+@pytest.mark.parametrize("boundary", ("snapshot", "candidate"))
+def test_oversized_provider_hash_has_resource_precedence(boundary: str) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "sha256:" + "a" * 65
+    if boundary == "snapshot":
+        snapshot = _forged_snapshot(
+            _snapshot(),
+            scoring_pack_hash=oversized,
+        )
+    else:
+        invalid = _forged_candidate(
+            _candidate(),
+            scoring_pack_hash=oversized,
+        )
+        snapshot = _forged_snapshot(
+            _snapshot(),
+            candidates=(invalid,),
+        )
+    provider = _Provider(snapshot)
+
+    with pytest.raises(LeaderboardResourceError) as raised:
+        _service(
+            provider,
+            limits=_limits(max_string_utf8_bytes=string_limit),
+        ).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        oversized,
+        LeaderboardResourceError,
+    )
+    assert len(provider.calls) == 1
+
+
+def test_provider_hash_capacity_precedes_owner_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    string_limit = len(SCORING_PACK_HASH)
+    oversized = "sha256:" + "a" * 65
+    provider = _Provider(
+        _forged_snapshot(
+            _snapshot(),
+            scoring_pack_hash=oversized,
+        )
+    )
+    service = _service(
+        provider,
+        limits=_limits(max_string_utf8_bytes=string_limit),
+    )
+    owner_calls: list[object] = []
+
+    def sentinel(value: object) -> bool:
+        owner_calls.append(value)
+        raise AssertionError("oversized hash reached owner validation")
+
+    monkeypatch.setattr(
+        sys.modules["carbon.leaderboard.service"],
+        "is_sha256_digest",
+        sentinel,
+    )
+    with pytest.raises(LeaderboardResourceError) as raised:
+        service.list_entries(_request())
+    assert type(raised.value) is LeaderboardResourceError
+    assert owner_calls == []
+    assert len(provider.calls) == 1
+
+
+@pytest.mark.parametrize("boundary", ("snapshot", "candidate"))
+def test_bounded_malformed_provider_hash_is_integration_error(boundary: str) -> None:
+    malformed = "sha256:" + "g" * 64
+    if boundary == "snapshot":
+        snapshot = _forged_snapshot(
+            _snapshot(),
+            scoring_pack_hash=malformed,
+        )
+    else:
+        invalid = _forged_candidate(
+            _candidate(),
+            scoring_pack_hash=malformed,
+        )
+        snapshot = _forged_snapshot(
+            _snapshot(),
+            candidates=(invalid,),
+        )
+    provider = _Provider(snapshot)
+
+    with pytest.raises(LeaderboardIntegrationError) as raised:
+        _service(provider).list_entries(_request())
+    _assert_fixed_identifier_error(
+        raised.value,
+        malformed,
+        LeaderboardIntegrationError,
+    )
+    assert len(provider.calls) == 1
+
+
+def test_provider_hash_capacity_boundary_preserves_the_exact_string() -> None:
+    copy_provider_hash = sys.modules["carbon.leaderboard.service"].__dict__[
+        "_copy_provider_hash"
+    ]
+
+    owned = copy_provider_hash(
+        SCORING_PACK_HASH,
+        _limits(max_string_utf8_bytes=71),
+    )
+    assert type(owned) is str
+    assert owned is SCORING_PACK_HASH
+    with pytest.raises(LeaderboardResourceError) as raised:
+        copy_provider_hash(
+            SCORING_PACK_HASH,
+            _limits(max_string_utf8_bytes=70),
+        )
+    assert type(raised.value) is LeaderboardResourceError
+
+
+def test_provider_identifier_helpers_lock_capacity_before_owner_validation() -> None:
+    source_path = LEADERBOARD_ROOT / "service.py"
+    tree = ast.parse(
+        source_path.read_text(encoding="utf-8"),
+        filename=str(source_path),
+    )
+    functions = {
+        node.name: node
+        for node in tree.body
+        if type(node) is ast.FunctionDef
+        and node.name
+        in {
+            "_copy_submission_id",
+            "_copy_result_id",
+            "_copy_provider_hash",
+        }
+    }
+    expected = {
+        "_copy_submission_id": ("SubmissionId", True),
+        "_copy_result_id": ("validate_version", True),
+        "_copy_provider_hash": ("is_sha256_digest", False),
+    }
+    assert set(functions) == set(expected)
+    for function_name, (owner_name, requires_ascii) in expected.items():
+        calls = tuple(
+            node
+            for node in ast.walk(functions[function_name])
+            if type(node) is ast.Call
+        )
+        capacity_calls = tuple(
+            node
+            for node in calls
+            if type(node.func) is ast.Name
+            and node.func.id == "_require_string_capacity"
+        )
+        owner_calls = tuple(
+            node
+            for node in calls
+            if type(node.func) is ast.Name and node.func.id == owner_name
+        )
+        ascii_calls = tuple(
+            node
+            for node in calls
+            if type(node.func) is ast.Attribute and node.func.attr == "isascii"
+        )
+        assert len(capacity_calls) == 1
+        assert len(owner_calls) == 1
+        assert capacity_calls[0].lineno < owner_calls[0].lineno
+        if requires_ascii:
+            assert len(ascii_calls) == 1
+            assert capacity_calls[0].lineno < ascii_calls[0].lineno
+            assert ascii_calls[0].lineno < owner_calls[0].lineno
+        else:
+            assert ascii_calls == ()
 
 
 def test_oversized_request_challenge_id_is_bounded_before_provider_call() -> None:
