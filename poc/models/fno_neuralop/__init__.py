@@ -10,6 +10,7 @@ mapping and the verified parity details this port depends on.
 
 from __future__ import annotations
 
+from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
 from poc.models.fno_neuralop.spectral_conv import SpectralConv1D
 
-__all__ = ["SpectralConv1D"]
+__all__ = ["SpectralConv1D", "ChannelMLP1D"]
