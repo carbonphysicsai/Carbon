@@ -54,7 +54,7 @@ No state implies a later state.
 | A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
-| A11 | Yes | No | No | No | observability/redaction pending |
+| A11 | Pending merge | No | No | No | Documentation-only exact contract candidate for a bounded in-process operational observability primitive; no implementation, instrumentation, exporter, or production authority |
 | A12 | Yes | No | No | No | Wave-A invariant closeout pending |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
@@ -77,8 +77,38 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done
 ```
+
+A10's documentation-only closeout merged normally in PR #38 as current `main`
+`404c039596b487cf2649bb1d73b80e9b49baaced`. A10 is `done` only for the
+exact bounded in-process fixture leaderboard scope. The closeout added no new
+implementation or test evidence. A10 remains scientifically, security,
+network, commercially, and production unqualified.
+
+A11 documentation-only contract-candidate maturity:
+
+```text
+A11 SPECIFIED / RATIFIED:
+YES only after this documentation contract is independently reviewed,
+explicitly human-authorized, and normally merged
+
+A11 IMPLEMENTED: NO
+A11 TESTED: NO
+A11 SCIENTIFICALLY_QUALIFIED: NO
+A11 SECURITY_QUALIFIED: NO
+A11 NETWORK_QUALIFIED: NO
+A11 COMMERCIALLY_VALIDATED: NO
+A11 PRODUCTION_QUALIFIED: NO
+A11 WAVE STATUS: todo
+```
+
+Earlier high-level “Specified: Yes” language established only broad
+observability direction. The exact A11-R1–A11-R17 typed event/metric/duration,
+owner-projection, sink, resource, error, threat, and dependency contract is
+pending independent review, explicit human authorization, and normal merge.
+The candidate contains no A11 implementation or A11 test evidence and does not
+authorize direct A5–A10 instrumentation.
 
 Current `main` implements and tests only a bounded, in-process, fixture-only
 projection for one exact Challenge. It provides no production provider or
@@ -192,4 +222,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0–A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its administrative closeout is pending independent review, explicit human authorization, and normal merge. A10 remains scientifically, security, network, commercially, and production unqualified; official/LIVE publication, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work. A11 and A12 remain `todo`.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0–A10 software foundation on current `main` `404c039596b487cf2649bb1d73b80e9b49baaced`. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 closeout PR #38 merged normally, and A10 is `done` only for the exact bounded in-process fixture leaderboard; it remains scientifically, security, network, commercially, and production unqualified. The exact bounded A11 operational-observability contract is a documentation-only candidate with IMPLEMENTED: NO, TESTED: NO, and every qualification state NO until separately earned. A11 and A12 remain `todo`; Wave A remains incomplete. Official/LIVE publication, scientific evidence, Challenge health, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work.**

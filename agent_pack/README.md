@@ -35,12 +35,15 @@ constitutional authority
 ## Current process rules
 
 - Current board remains **Wave A**.
-- A0–A9 are done in the bounded scopes recorded in `.agent/WAVE.md`.
-- **A10's exact bounded in-process fixture leaderboard implementation and tests
-  are merged on current `main`; its administrative closeout is pending.** A10
-  becomes authoritatively `done` only after the documentation-only closeout is
-  independently reviewed, explicitly human-authorized, and normally merged.
-- A11 and A12 remain `todo` and are not started by the A10 closeout.
+- A0–A10 are done in the bounded scopes recorded in `.agent/WAVE.md`.
+- **A10's documentation-only closeout merged normally in PR #38 as current
+  `main` `404c039596b487cf2649bb1d73b80e9b49baaced`.** A10 is `done` only
+  for the exact bounded in-process fixture leaderboard scope; the closeout adds
+  no implementation or test evidence beyond the already-merged bounded work.
+- A11 and A12 remain `todo`. The exact A11-R1–A11-R17 bounded
+  operational-observability contract is a documentation-only candidate and is
+  not ratified until independent review, explicit human authorization, and
+  normal merge. No A11 implementation or A12 work starts here.
 - A9 and A10 are not scientifically qualified, security qualified, network qualified,
   commercially validated, or production qualified.
 - A10 implements only the bounded fixture projection. It does not provide a
@@ -63,12 +66,14 @@ constitutional authority
 
 ## Current next move
 
-1. independently review the documentation-only A10 administrative closeout;
+1. independently review the exact documentation-only A11 contract candidate;
 2. normally merge it only after fresh explicit human authorization through the
    review workflow;
-3. re-fetch and verify the closeout merge, clean topology, current authority,
-   green CI, and exact bounded maturity evidence; and
-4. allow A11 to begin only after the A10 closeout is independently reviewed,
-   explicitly human-authorized, and normally merged. A12 remains `todo` and
-   separately authorized, while every official, LIVE, frontier, product,
-   settlement, chain, weight, and emission path remains fail closed.
+3. re-fetch and verify the ratification merge, clean topology, current
+   authority, green CI, unchanged A11/A12 `todo` status, and every A11
+   implementation criterion still unchecked; and
+4. begin A11 implementation only under a separate explicit authorization,
+   preserving the exact bounded primitive and owner boundaries. A12 remains
+   `todo` and separately authorized, while every official, LIVE, evidence,
+   Challenge-health, frontier, product, settlement, chain, weight, and emission
+   path remains fail closed.
