@@ -88,7 +88,10 @@ Use stratified sampling so rare but decision-relevant in-envelope regimes receiv
 
 **Architect recommendation:** require the full D1–D12 Validation Dossier: physical-system fidelity, claim/envelope, target population, SamplingPlan, implementation, distribution conformance, truth, representation, measurement, statistical sufficiency, secrecy/role separation, and censoring/limitations.
 
-For Burgers, include audit seeds spanning interior and hard strata, coverage/degeneracy tests, generator-vs-primary-truth error, independent witness comparisons, numerical floors, exact artifact/environment identity, and documented failure regions.
+For Burgers, include audit seeds spanning interior and hard strata,
+coverage/degeneracy tests, generator-to-primary-reference discrepancy,
+independent witness comparisons, numerical floors, exact artifact/environment
+identity, and documented failure regions.
 
 **Do not:** approve a generator because it is deterministic, because the code runs, or because one convergence plot looks acceptable.
 
@@ -98,12 +101,16 @@ For Burgers, include audit seeds spanning interior and hard strata, coverage/deg
 
 ---
 
-## MQ-004 — Truth hierarchy / ReferencePolicy
+## MQ-004 — Reference hierarchy / ReferencePolicy
 
 **Source aliases:** DQ-003, OQ-002.  
 **Question:** What is the authoritative answer key and what role does an independent numerical solver play?
 
-**Architect recommendation:** for fixed-ν Burgers, use a qualified periodic **Cole–Hopf solution as primary truth**, a separately implemented high-resolution conservative numerical solver as **corroborating witness**, and treat the current/derived production generator as a **generator under test**, never as truth by definition.
+**Architect recommendation:** for fixed-ν Burgers, use a qualified periodic
+**Cole–Hopf solution as the primary reference**, a separately implemented
+high-resolution conservative numerical solver as a **corroborating witness**,
+and treat the current/derived production generator as a **generator under
+test**, never as truth by definition.
 
 ```text
 PRIMARY: Cole–Hopf
@@ -113,7 +120,9 @@ SECONDARY: independent qualified numerical witness
 GENERATOR UNDER TEST
 ```
 
-When truth sources disagree beyond qualified uncertainty, the Challenge is blocked/contested; do not average incompatible references into a convenient answer.
+When references disagree beyond qualified uncertainty, the Challenge is
+blocked/contested; do not average incompatible references into a convenient
+answer.
 
 **Owner:** Physics/SciML.  
 **Proof required:** primary implementation tests, independent witness convergence study, disagreement policy.  
@@ -302,14 +311,29 @@ Median aggregation is not a substitute for an under-specified experiment.
 **Source aliases:** OQ-008, DQ-008.  
 **Question:** What may a miner control in the first real backend?
 
-**Architect recommendation:** P0 remains **declarative and bounded**. Allow only versioned registered architecture/loss/optimizer/curriculum/data-control fields. Forbid arbitrary imports, Python/JAX/PyTorch code, subprocesses, custom executables, filesystem paths, network access, arbitrary deserialization, official seeds, and scorer/gate overrides.
+**Architect recommendation:** P0 remains **declarative and bounded**. Accept only versioned `TrainingStrategy` objects interpreted through a Challenge-bound `ParameterCatalog`, `CandidateAssemblyContract`, and deterministic `StrategyCompiler`. The compiler produces one canonical `ResolvedConstructionPlan` or one typed rejection. It rejects unknown, unused, incompatible, coerced, silently defaulted, silently clamped, and unsupported fields.
 
-Even declarative execution should run in a locked environment with no network, scratch-only filesystem, CPU/GPU/RAM/VRAM/wall-clock/step/output limits, immutable image/dependency identity, process isolation, and redacted logs.
+Carbon may register a fixed hybrid backbone or learned-component slot when the
+Challenge owns the outer assembly workflow. It may expose a closed set of
+Challenge-bounded training sampling, curriculum, and augmentation levers. The
+compiler materializes those selections into one canonical
+`ResolvedTrainingSamplingPolicy`, denoted `R_strategy`, plus its
+content-addressed `TrainingSamplingPolicyRef` under a Challenge-owned
+training-support contract, while validators derive the actual train seeds and
+draws. This does not authorize participant-defined composition graphs. In Wave
+B, forbid arbitrary imports, Python/JAX/PyTorch code, subprocesses, custom
+executables, filesystem paths or URIs, network access, arbitrary
+dependencies/deserialization, raw or custom dataset uploads, miner-selected
+seeds, official target population `P`, official proposal/SamplingPlan `Q`,
+evidence weights `w`, evaluation/stress/reference controls, and scorer/gate
+overrides.
+
+Practice reconstruction and official construction must use the same semantic compiler identity. Real execution runs in a locked environment with no network, scratch-only filesystem, CPU/GPU/RAM/VRAM/wall-clock/step/output limits, immutable image/dependency identity, process isolation, and redacted logs.
 
 Arbitrary participant code belongs only to a later `ConstructionProgram` threat model.
 
 **Owner:** Security + protocol.  
-**Proof required:** formal threat model, sandbox review, abuse tests.  
+**Proof required:** compiler-escape and catalog-confusion tests, malicious-Strategy tests, reconstruction-receipt tests, formal threat model, sandbox review, and abuse tests.
 **Status:** `SECURITY_REVIEW_REQUIRED`.
 
 ---
@@ -319,12 +343,14 @@ Arbitrary participant code belongs only to a later `ConstructionProgram` threat 
 **Source aliases:** OQ-009, DQ-009.  
 **Question:** How much feedback can miners receive without turning it into an oracle?
 
-**Architect recommendation:** expose budgeted coarse outcome information: overall score, coarse component/band information, gate pass/fail, controlled tags, safe diagnostics, version identities. Withhold seeds, draw IDs, per-draw metrics, exact margins, exact worst-case samples, fine stress breakdowns, references, and reconstruction-sensitive internals.
+**Architect recommendation:** maximize useful physics feedback subject to a registered Evaluation Information Policy. Low raw correlation between practice and official performance is not a safety objective because a genuine physics improvement should transfer. The prohibited leak is material incremental ability to infer protected case realizations, hidden stress composition, exact margins, or unresolved near-frontier ordering after controlling for performance on evaluator-held shadow cases sampled from the declared public distribution and unavailable to the attacking agent.
 
-Build an adaptive red-team agent that submits near-duplicates and attempts to infer hidden draws/category mix. Acceptance requires that repeated official feedback does not become a reliable rank substitute or exam reconstruction channel beyond legitimate free-loop signal.
+Expose only budgeted coarse outcome information: overall score, coarse component/band information, gate pass/fail, controlled tags, safe diagnostics, and version identities. Withhold seeds, draw IDs, per-draw metrics, exact margins, exact worst-case samples, fine stress breakdowns, references, and reconstruction-sensitive internals.
+
+The policy accounts jointly for EvaluationCards, leaderboards, prior versions, practice results, diagnostics, errors, timing, queue behavior, resource estimates, Strategy lineages, related requesters, and coordinated batches. Wave B tests an injected fixture-only disclosure-subject resolver; live cross-requester linkage requires later authentication plus privacy/legal, false-merge, appeal, and enforcement decisions. Build adaptive red-team agents for near-duplicate search, Sybil splitting, timing inference, prior differencing/poisoning, hidden-mixture inference, and cross-surface composition. Carbon owns any high-score/low-physics or protected-realization shortcut as an exam vulnerability.
 
 **Owner:** Security + agent engineering.  
-**Proof required:** adaptive-query leakage experiment.  
+**Proof required:** prospective agent attack campaign reporting both search utility and conditional hidden-exam leakage; production ceiling approved by human security owners.
 **Status:** `SECURITY_REVIEW_REQUIRED`.
 
 ---
@@ -335,6 +361,8 @@ Build an adaptive red-team agent that submits near-duplicates and attempts to in
 **Question:** How should paid official exams be priced and rate-limited?
 
 **Architect recommendation:** testnet begins zero/nominal while measuring actual validator cost. Production fee formula should be transparent expected resource cost plus anti-spam/congestion margin, versioned and independent of score. Use per-hotkey active-exam limits plus rolling quotas and emergency backpressure. Duplicate open identity returns the same submission rather than charging twice.
+
+Separate exact static resource inspection, a non-binding calibrated resource forecast, a binding execution quote, and the final observed resource receipt. Forecasts report model identity, calibration window, support status, hardware/resource scope, and uncertainty; unsupported Strategies return `UNRESOLVED`. Official quotes disclose no protected case count, stress mixture, strong-anchor frequency, or evaluator topology. Practice and official execution use separate quota and pricing policies.
 
 Do not set permanent token amounts/quotas without telemetry. Infrastructure failure gets the registered refund/retry treatment.
 
@@ -352,6 +380,8 @@ Do not set permanent token amounts/quotas without telemetry. Infrastructure fail
 **Question:** Who can approve or change each class of decision?
 
 **Architect recommendation:** define named roles and keys at minimum for Physics/SciML, Protocol, Security, Infrastructure, Product/Qualification, Treasury/Custody, Commercial, and Launch. Require separation of duties for production actions where team size permits; where one person temporarily holds multiple roles, disclose it explicitly.
+
+The matrix must also name the science, security, protocol, and rights approvers for activating or withdrawing any external miner-visible PriorPack, including curated bootstrap guidance. A publisher process or coding agent cannot approve its own release.
 
 No coding agent is an approver. No treasury signer can create scientific merit. No commercial approver can weaken the registered exam.
 
@@ -454,12 +484,29 @@ Do not begin with forced customer Alpha purchases, buyback/burn, revenue share, 
 
 ```text
 TrainingStrategy
-→ ModelConstructionStrategy
++ ParameterCatalog
++ CandidateAssemblyContract
+→ ResolvedConstructionPlan
 → ReconstructionProtocol
+```
+
+Future search-type expansion is separate:
+
+```text
+TrainingStrategy
+→ ModelConstructionStrategy
 → ConstructionProgram (later)
 ```
 
-Expand hypothesis freedom incrementally. Every broader capability gets a new threat model and qualification identity. The construction producer never controls the official measurement/evaluation environment.
+Wave B remains on `TrainingStrategy`. It may support registered hybrid
+backbones or learned-component slots only through a Challenge-owned assembly
+contract. It may select from cataloged levers that the compiler resolves into
+one canonical `R_strategy` object and its `TrainingSamplingPolicyRef`, with
+validator-derived train draws. It does not authorize raw/custom datasets,
+participant-defined construction graphs, arbitrary code, or official
+evaluation controls. Expand hypothesis freedom incrementally; every broader
+capability gets a new threat model and qualification identity. The construction
+producer never controls the official measurement/evaluation environment.
 
 **Owner:** Architecture + security + scientific protocol.  
 **Proof required:** wave-specific threat models and reconstruction evidence.  
@@ -472,12 +519,30 @@ Expand hypothesis freedom incrementally. Every broader capability gets a new thr
 **Source aliases:** DQ-027.  
 **Question:** What can Landscape expose without teaching miners the hidden exam?
 
-**Architect recommendation:** Landscape remains a hypothesis/routing layer, never scientific authority. Miner-facing outputs should be lagged, coarse, decontaminated, population-level where possible, and tested against adaptive exam-inference attacks. Exact hidden strata frequencies, threshold margins, protected cases, and unreleased diagnostics remain excluded.
+**Architect recommendation:** Landscape remains a hypothesis/routing layer, never scientific authority. Publish immutable, Challenge-bound prior snapshots that every miner receives on equal terms. Personalization happens miner-side. The provider serves approved stored bytes and never queries private evidence during a miner request.
 
-Any learned diagnostic that becomes highly predictive of hidden official outcomes should be treated as a leakage candidate and versioned/coarsened or removed.
+Each prior item references one public executable lever and a public estimand that fixes the baseline/comparison, population/scope, direction, aggregation functional, independence/resampling unit, and uncertainty method. It also declares exact intervention anchors, public applicability, evidence origin, epistemic status, support, uncertainty, stability, replication, limitations, cutoff, and aggregate-only provenance. Publish negative, null, mixed, and `INSUFFICIENT_EVIDENCE` findings as well as positive guidance. Do not echo raw Strategy fields, unique candidate information, exact support counts/effect sizes, protected contexts, hidden frequencies, current-frontier recipes, or private IP.
+
+Use deterministic aggregation, lineage/contributor influence caps, coarsening,
+joint-cell suppression, lag, fixed release epochs, and a persistent atomic
+cumulative-disclosure ledger. Add randomized or differential-privacy noise
+only under a formal privacy budget with measured utility. For any external
+activation, require cutoff plus minimum lag; evidence generated during an
+active window cannot influence the prior consumed in that window.
+
+Wave B may implement private `TEST_ONLY` staging with an exact-hash approval
+receipt carrying `NOT_UTILITY_QUALIFIED`, plus reviewed public-publication
+schemas and negative tests. The frozen TEST_ONLY bytes then enter the
+preregistered B-E4 utility/leakage gauntlet; the staging receipt is not a public
+publication receipt or utility claim. Carbon-derived learned public priors
+require Launch-Bar-grade source evidence, rights, poisoning resistance,
+prospective utility evidence, and security approval. Any output that provides
+protected-realization advantage beyond transferable physics is a leakage
+candidate and must be coarsened, delayed, withdrawn, or prospectively
+versioned.
 
 **Owner:** Landscape + security + protocol.  
-**Proof required:** prospective leakage/Goodhart red-team and decontamination tests.  
+**Proof required:** prospective utility plus leakage/Goodhart, membership, version-differencing, poisoning, Sybil/lineage, and decontamination tests.
 **Status:** `SECURITY_REVIEW_REQUIRED` before score-adjacent use.
 
 ---
@@ -488,6 +553,8 @@ Any learned diagnostic that becomes highly predictive of hidden official outcome
 **Question:** When can Carbon call accumulated evidence “Physics Intelligence” rather than descriptive analysis?
 
 **Architect recommendation:** require a prospective held-out decision task. Example: predict which construction intervention/method to try for a new registered Challenge/regime, or allocate a finite experiment budget. Compare against reasonable baselines such as no-memory, recency/frequency heuristics, nearest-task retrieval, and domain-expert/manual baseline where feasible.
+
+The first prior-specific test should compare matched-budget research agents using no prior, a generic static prior, the Wave A directive prior, and the proposed evidence-rich PriorPack. Use a semantically responsive toy physics fixture in Wave B and later a held-out Challenge version or public regime. Measure best held-out physics result per compute, attempts to first candidate passing declared non-authoritative practice checks, semantic compilation/reconstruction success, invalid-run rate, transfer to evaluator-held shadow cases, and diversity of tested interventions. Evaluate protected-realization leakage separately under MQ-016.
 
 Claim Physics Intelligence only when it improves prospective scientific/engineering decisions under decontaminated evaluation and survives replication. Retrospective explanatory narratives alone do not qualify.
 
@@ -783,6 +850,8 @@ No silent cross-customer reuse. Metadata needed for audit/provenance may be reta
 
 Carbon may license a reusable method library only where chain of title/license rights are clear. Submission alone should not magically transfer all IP.
 
+Terms must state separately whether Carbon may retain a Strategy, retain its ExperimentRecord, derive private aggregate knowledge, and publish a de-identified/coarsened prior item. Missing rights exclude the affected record from that use rather than silently expanding Carbon's license.
+
 **Owner:** Business/economics + counsel.  
 **Proof required:** contributor terms + sponsor rights schedule.  
 **Status:** `COUNSEL_REQUIRED`.
@@ -804,12 +873,18 @@ Do not sell a “guaranteed safe model.”
 
 ---
 
-## MQ-047 — First private deployment / customer-hosted truth topology
+## MQ-047 — First private deployment / customer-hosted reference topology
 
 **Source aliases:** BQ-018, DQ-022.  
 **Question:** Which private architecture should Carbon productize first?
 
-**Architect recommendation:** prioritize **customer-hosted truth service/RPC** first, then customer VPC. Keep the customer's proprietary solver and source data inside its control plane; Carbon sends authorized case specifications and receives only the reference outputs/metadata needed by the registered evidence path. Authenticate requests, bind cases to engagement/Challenge identity, minimize returned data, and define retention/logging explicitly.
+**Architect recommendation:** prioritize a **customer-hosted reference
+service/RPC** first, then customer VPC. Keep the customer's proprietary solver
+and source data inside its control plane; Carbon sends authorized case
+specifications and receives only the reference outputs/metadata needed by the
+registered evidence path. Authenticate requests, bind cases to
+engagement/Challenge identity, minimize returned data, and define
+retention/logging explicitly.
 
 Full air-gap comes later unless a design partner funds the additional product/security burden.
 

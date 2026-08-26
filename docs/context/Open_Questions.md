@@ -1,5 +1,10 @@
 # Carbon Open Questions
-**Status:** v1 — team review
+**Status:** superseded source queue and recommendation history
+
+> `MASTER_OPEN_DESIGN_QUESTIONS.md` owns canonical open status, current
+> recommendations, owners, and proof requirements. This file preserves the
+> older OQ source text for crosswalk and context. Its estimates and proposals do
+> not authorize implementation or override a current domain contract.
 
 Only unresolved human-owned questions belong here. Resolved architecture belongs in `DECISIONS.md`.
 

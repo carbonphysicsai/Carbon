@@ -1,551 +1,265 @@
-# Runtime Julia Truth Oracle — Minimal Viable SciML Service
+# Runtime Julia Reference Capability
 
-**Carbon Subnet**  
-**Version:** 1.0 (July 2026)  
-**Status:** Protocol Appendix — Infrastructure Appendix  
-**Audience:** Julia Engineer, DevOps, Harshdeep (Tech Lead)  
-**Status:** **Phase 0-1A: Mock Only** | **Phase 1A+: Real Service**  
-**Related:** `SPEC.md` §15, `IMPLEMENTATION.md` §11-13, `OPERATIONS.md` §5
+> **Historical filename:** retained to avoid breaking repository links. Julia
+> is not a universal truth oracle, and this file does not grant any solver
+> scientific authority.
 
----
-
-## TL;DR
-
-**Job:** Provide validators a **ground-truth oracle** for reference PDE solves, adjoints, and (later) symbolic losses — so physics gates can check against something other than the generator’s own numerical path.
-
-**Phase policy**
-| Phase | Mode |
-|-------|------|
-| **0–1A** | Mock client + analytic solutions (no live Julia service required) |
-| **1A+** | Real Julia/SciML service for reference solves and adjoints |
-| **2A+** | Symbolic loss path via ModelingToolkit where enabled |
-
-**Endpoints (v1):** `GET /health`, `POST /solve_pde`, `POST /adjoint`, `POST /symbolic_loss`, optional `POST /validate`.
-
-**Ops note:** When oracle checks are required, oracle downtime is validation-degraded (treat as high severity). See `Operations.md`.
-
-**Non-goals:** Not the miner training loop; not the Score Pack; not Landscape.
+**Version:** 2.0
+**Status:** reconciled target architecture; not implemented or qualified
+**Audience:** SciML, protocol, operations, security, and implementation teams
+**Controlling science:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`,
+`Evidence_and_Envelope_Standards.md`, and the future ratified
+`Reference_and_TruthAsset_Contract.md` owned by Wave B ticket B-04
+**Operations:** `Operations.md`
+**Sequencing:** `.agent/WAVE_B.md`
 
 ---
 
-## 1. Purpose
+## 1. Decision
 
-This document specifies the **minimal viable Julia/SciML Ground Truth Oracle** — a dedicated Julia service providing mathematically rigorous reference solutions and exact adjoint sensitivities for Carbon's physics gate validation.
+A Julia/SciML runtime may implement one registered role in a
+Challenge-specific reference hierarchy. It is a computational instrument, not
+truth by language, library, solver name, cost, or numerical tolerance.
 
-**Scope:** Phase 1A+ (Adjoint Consistency Gate) → Phase 4 (3D Turbulence)  
-**Phase 0-1A:** Mock client with analytic solutions (no Julia service required)
+For each Challenge, the future ratified `ReferencePolicy` must state whether a
+Julia implementation is:
 
----
+- the routine primary reference;
+- a corroborating or methodologically independent witness;
+- a qualification or audit anchor; or
+- not applicable.
 
-## 2. Service Interface (v1.0)
+That limited authority is earned by the Challenge's Validation Dossier. A
+successful process, a small solver tolerance, or agreement with another
+correlated implementation is not enough.
 
-### 2.1 API Endpoints (HTTP/JSON)
-
-| Endpoint | Method | Purpose | Phase |
-|----------|--------|---------|-------|
-| `GET /health` | GET | Liveness/readiness probe | All |
-| `POST /solve_pde` | POST | High-fidelity reference solution | All |
-| `POST /adjoint` | POST | Exact adjoint gradients (SciMLSensitivity.jl) | 1A+ |
-| `POST /symbolic_loss` | POST | Symbolic loss from ModelingToolkit.jl | 2A+ |
-| `POST /validate` | POST | Validate model vs reference | Optional |
-
----
-
-### 2.2 Request/Response Schemas
-
-#### `POST /solve_pde`
-```json
-// Request
-{
-  "action": "solve_pde",
-  "pde_spec": {
-    "type": "poisson|navier_stokes|heat|elasticity|reacting_ns|fsi",
-    "dimension": "2D|3D",
-    "pde": "poisson|navier_stokes|...",
-    "parameters": { "mach": 0.8, "reynolds": 1e6, ... }
-  },
-  "params": { "mach": 0.8, "reynolds": 1e6, "aoa": 2.0 }
-}
-
-// Response
-{
-  "solution": [[...]],
-  "coords": [[...]],
-  "times": [0.0, 0.01, ...],
-  "metadata": {
-    "solver": "Vern9",
-    "abstol": 1e-12,
-    "reltol": 1e-12,
-    "solve_time_seconds": 2.3
-  }
-}
+```text
+CanonicalChallengeCase
+        +
+qualified ReferencePolicy
+        +
+pinned implementation and environment
+        ↓
+typed ReferenceRunOutcome
+        ↓
+TruthAsset with provenance and uncertainty
+        ↓
+registered MeasurementContract and Score Pack
 ```
 
-#### `POST /adjoint`
-```json
-// Request
-{
-  "action": "adjoint_sensitivity",
-  "initial_state": [[...]],
-  "params": { "mach": 0.8, ... },
-  "loss_function": "physics_residual"
-}
-
-// Response
-{
-  "adjoint_gradients": [[...]],
-  "rel_error": 1.2e-12,
-  "forward_time_seconds": 0.45,
-  "adjoint_time_seconds": 0.12,
-  "success": true
-}
-```
-
-#### `POST /symbolic_loss`
-```json
-// Request
-{
-  "action": "symbolic_loss",
-  "symbolic_expression": "λ₁ * (div(u))^2 + λ₂ * (dρ/dt + div(ρu))^2",
-  "variables": ["u", "rho", "lambda1", "lambda2"]
-}
-
-// Response
-{
-  "jax_code": "def loss_fn(params, state): ...",
-  "julia_expression": "λ₁ * (∇·u)^2 + λ₂ * (∂ρ/∂t + ∇·(ρu))^2"
-}
-```
-
-#### `POST /validate`
-```json
-// Request
-{
-  "action": "validate_solution",
-  "model_prediction": [[...]],
-  "pde_spec": { ... },
-  "params": { ... }
-}
-
-// Response
-{
-  "passes": true,
-  "error_metrics": {
-    "l2_relative": 0.0012,
-    "linf": 0.0034,
-    "conservation_error": 1.2e-7
-  },
-  "reference_solution": { ... },
-  "passes_threshold": true
-}
-```
+The service computes a reference realization on the generator's exact
+Challenge-specific conditions. It does not define the physical population,
+select the official case, set a gate, or decide a winner.
 
 ---
 
-## 3. Julia Service Implementation
+## 2. Authority and maturity
 
-### 3.1 Service Architecture
+| Claim | Current state |
+|---|---|
+| Target Julia reference interface described | Yes |
+| Exact B-04 contract ratified | No |
+| Runtime implementation present and integrated | No evidence from this file |
+| Reference method scientifically qualified | No |
+| Production security or operations qualified | No |
+| Universal ground-truth oracle exists | No, by design |
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    JULIA/SCIML SERVICE                        │
-├─────────────────────────────────────────────────────────────┤
-│  HTTP Server (HTTP.jl)  →  Router (HTTP.jl)                │
-│         │                                                    │
-│         ├─ /health          → Health check                   │
-│         ├─ /solve_pde       → solve_pde_reference()          │
-│         ├─ /adjoint         → compute_adjoint_sensitivity()  │
-│         ├─ /symbolic_loss   → ModelingToolkit.jl bridge      │
-│         └─ /validate        → Validation against reference  │
-│                                                             │
-│  SciML Stack:                                               │
-│  • DifferentialEquations.jl  (Vern9, Tsit5, Rodas5)        │
-│  • NeuralPDE.jl             (PINN/DeepONet baselines)      │
-│  • ModelingToolkit.jl       (Symbolic → JAX loss terms)     │
-│  • SciMLSensitivity.jl      (Adjoint: ReverseDiffVJP)       │
-│  • MethodOfLines.jl         (PDE discretization)           │
-└─────────────────────────────────────────────────────────────┘
-```
+The exact public/internal types, canonical encoding, endpoint shape, bounds,
+and error precedence remain owned by B-04 and any later transport ticket. Code
+must not be implemented from illustrative historical endpoint shapes.
 
-### 3.2 Core Implementation
+---
 
-```julia
-# julia/sciML_service.jl
-using HTTP, JSON3, Sockets
-using DifferentialEquations, NeuralPDE, ModelingToolkit, SciMLSensitivity
-using MethodOfLines, SciMLSensitivity, ModelingToolkit
-using LinearAlgebra, Statistics, CUDA
+## 3. Required request and result semantics
 
-const PORT = 8083
+The reference runner consumes only a canonical, already-authorized request
+bound to exact identities such as:
 
-function start_server()
-    HTTP.serve(Sockets.localhost, PORT) do http::HTTP.Messages.Request
-        try
-            request = JSON3.read(String(http.body))
-            response = handle_request(request)
-            return HTTP.Response(200, JSON3.write(response))
-        catch e
-            @error "Request failed" exception=e
-            return HTTP.Response(500, JSON3.write(Dict("error" => string(e))))
-        end
-    end
-end
-
-function handle_request(request::Dict)
-    action = get(request, "action", "")
-    if action == "solve_pde"
-        return solve_pde_reference(request["pde_spec"], request["params"])
-    elseif action == "adjoint_sensitivity"
-        return compute_adjoint_sensitivity(request)
-    elseif action == "symbolic_loss"
-        return generate_symbolic_loss(request)
-    elseif action == "validate_solution"
-        return validate_against_reference(request)
-    else
-        return Dict("error" => "Unknown action: $action")
-    end
-end
-
-function solve_pde_reference(pde_spec::Dict, params::Dict)
-    @variables t x y z
-    @parameters p[1:length(params)]
-    eqs = build_pde_system(pde_spec, params)
-    prob = ODEProblem(eqs, u0, tspan, params)
-    sol = solve(prob, Vern9(), abstol=1e-12, reltol=1e-12, saveat=0.01)
-    return Dict(
-        "solution" => Array(sol),
-        "times" => sol.t,
-        "success" => true
-    )
-end
-
-function compute_adjoint_sensitivity(request::Dict)
-    u0 = request["initial_state"]
-    params = request["params"]
-    loss_fn = request["loss_function"]
-    prob = ODEProblem(ode_fn, u0, tspan, params)
-    sol = solve(prob, Tsit5(), saveat=0.01)
-    adj_sol = adjoint_sensitivities(sol, loss_fn,
-        alg=InterpolatingAdjoint(autojacvec=ReverseDiffVJP()))
-    return Dict("adjoint_gradients" => Array(adj_sol))
-end
-
-function generate_symbolic_loss(request::Dict)
-    symbolic_expr = request["symbolic_expression"]
-    vars = request["variables"]
-    @variables vars...
-    expr = Meta.parse(symbolic_expr)
-    loss_fn = eval(build_function(expr, vars))
-    return Dict(
-        "julia_code" => string(loss_fn),
-        "jax_translation" => translate_to_jax(loss_fn)
-    )
-end
-
-function validate_against_reference(request::Dict)
-    model_prediction = request["model_prediction"]
-    pde_spec = request["pde_spec"]
-    params = request["params"]
-    reference = solve_pde_reference(pde_spec, params)
-    error_metrics = compute_error_metrics(request["model_prediction"], reference["solution"])
-    return Dict(
-        "passes" => all(v < 1e-3 for v in error_metrics.values()),
-        "error_metrics" => error_metrics,
-        "reference_solution" => reference
-    )
-end
+```text
+challenge_ref
+canonical_case_ref
+reference_policy_ref
+reference_role
+implementation_ref
+environment_ref
+method_config_ref
+request_id / idempotency identity
+resource_policy_ref
 ```
 
----
+The caller cannot submit an arbitrary PDE string, executable expression,
+solver choice, tolerance, code fragment, file path, URI, package request, or
+generic `truth_mode`. Those choices belong to the registered policy and pinned
+implementation.
 
-## 3. Minimal Phase 1A Service (Adjoint Only)
+A successful outcome must bind at least:
 
-### 3.1 Minimal Service Scope (Phase 1A)
-
-```julia
-# julia/sciML_service_minimal.jl
-# Phase 1A: ONLY adjoint_consistency gate needed
-
-using HTTP, JSON3, Sockets
-using DifferentialEquations, SciMLSensitivity, ReverseDiff
-using LinearAlgebra, Statistics
-
-const PORT = 8083
-
-function start_server()
-    HTTP.serve(Sockets.localhost, PORT) do http::HTTP.Messages.Request
-        try
-            request = JSON3.read(String(http.body))
-            if request["action"] == "adjoint_sensitivity"
-                response = compute_adjoint_sensitivity(request)
-                return HTTP.Response(200, JSON3.write(response))
-            elseif request["action"] == "health"
-                return HTTP.Response(200, JSON3.write(Dict("status" => "ok")))
-            else
-                return HTTP.Response(404, JSON3.write(Dict("error" => "Not implemented in minimal service")))
-            end
-        catch e
-            @error "Request failed" exception=e
-            return HTTP.Response(500, JSON3.write(Dict("error" => string(e))))
-        end
-    end
-end
-
-function compute_adjoint_sensitivity(request::Dict)
-    u0 = request["initial_state"]
-    params = request["params"]
-    loss_fn_str = request["loss_function"]
-    loss_fn = build_loss_function(loss_fn_str)
-    prob = ODEProblem(ode_fn, u0, tspan, params)
-    sol = solve(prob, Tsit5(), saveat=0.01, abstol=1e-12, reltol=1e-12)
-    adj_sol = adjoint_sensitivities(sol, loss_fn,
-        alg=InterpolatingAdjoint(autojacvec=ReverseDiffVJP()))
-    adj_grad = Array(adj_sol)
-    fd_grad = finite_difference_gradient(loss_fn, sol.u[end])
-    rel_error = norm(adj_grad - fd_grad) / norm(fd_grad)
-    return Dict(
-        "adjoint_gradients" => adj_grad,
-        "rel_error" => rel_error,
-        "forward_time_seconds" => 0.0,
-        "adjoint_time_seconds" => 0.0,
-        "success" => true
-    )
-end
+```text
+exact request identity
+case and policy identities
+reference role
+implementation and environment identities
+method and configuration identities
+solution artifact reference
+units, coordinates, and time semantics
+applicability and conditioning status
+uncertainty representation
+convergence / diagnostic evidence references
+resource receipt
 ```
 
----
-
-## 3. Mock Client (Phase 0-1A)
-
-```python
-# carbon/sciml/mock_client.py
-class MockSciMLClient:
-    """Zero-dependency mock for Phase 0-1A. Analytic solutions only."""
-
-    ANALYTIC_SOLUTIONS = {
-        "poisson": lambda params: analytic_poisson(params),
-        "burgers": lambda params: analytic_burgers(params),
-        "darcy": lambda params: analytic_darcy(params),
-        "heat": lambda params: analytic_heat(params),
-        "elasticity": lambda params: analytic_elasticity(params),
-        "thermo_elasticity": lambda params: analytic_thermo_elasticity(params),
-    }
-
-    async def solve_pde_reference(self, pde_spec: Dict, params: Dict) -> Dict:
-        solver = self.ANALYTIC_SOLUTIONS.get(pde_spec["type"])
-        if not solver:
-            raise ValueError(f"No analytic solution for {pde_spec['type']}")
-        return {"solution": solver(params), "times": [0.0, 1.0], "success": True}
-
-    async def compute_adjoint_sensitivity(self, initial_state, params, loss_fn):
-        return {"adjoint_gradients": analytic_adjoint(params), "rel_error": 1e-12}
-
-    async def validate_against_reference(self, model_prediction, pde_spec, params):
-        return {"passes": True, "error_metrics": {"l2": 1e-10}}
-```
+The output becomes a `TruthAsset` only through the B-04 contract. The
+`TruthAsset` name means a qualified answer-key artifact with bounded authority,
+not metaphysical or exact physical truth.
 
 ---
 
-## 4. Deployment Specification
+## 4. Primary, witness, and anchor separation
 
-### 4.1 Dockerfile (Minimal)
+Primary and witness implementations must have nominally separate runner roles,
+provenance, and outputs. The witness does not silently replace the primary or
+vote truth into existence.
 
-```dockerfile
-# julia/Dockerfile.sciml
-FROM julia:1.10-bullseye
+The Validation Dossier must assess relevant correlation risks, including:
 
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip curl git && \
-    rm -rf /var/lib/apt/lists/*
+- shared equations or model-form assumptions;
+- shared discretization and time-integration families;
+- shared meshes, transforms, libraries, or generated code;
+- common calibration data;
+- common personnel or copied implementation paths;
+- shared floating-point and hardware failure modes.
 
-RUN julia --project -e '
-    using Pkg
-    Pkg.add([
-        "DifferentialEquations", "NeuralPDE", "ModelingToolkit",
-        "SciMLSensitivity", "MethodOfLines",
-        "Symbolics", "Optimization", "OptimizationOptimizers",
-        "HTTP", "JSON3", "Sockets", "CUDA", "ReverseDiff"
-    ])
-    Pkg.precompile()
-'
-
-RUN pip install --no-cache-dir httpx numpy
-
-COPY julia/sciML_service.jl /app/sciML_service.jl
-COPY julia/start_server.jl /app/start_server.jl
-
-EXPOSE 8083
-CMD ["julia", "--project", "/app/start_server.jl"]
-```
-
-### 4.2 Kubernetes Deployment (Phase 1A: 1 Spot H100)
-
-```yaml
-# k8s/sciml-deployment-phase1a.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: carbon-sciml-service
-  namespace: carbon
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: carbon-sciml
-  template:
-    metadata:
-      labels:
-        app: carbon-sciml
-    spec:
-      runtimeClassName: nvidia
-      containers:
-      - name: sciml-service
-        image: ghcr.io/carbon/sciml-service:v2.1.0-phase1a
-        ports:
-        - containerPort: 8083
-        env:
-        - name: JULIA_NUM_THREADS
-          value: "16"
-        - name: JULIA_DEPOT_PATH
-          value: "/opt/julia/depot"
-        - name: MOCK_FALLBACK
-          value: "true"
-        resources:
-          requests:
-            nvidia.com/gpu: 1
-            memory: "32Gi"
-            cpu: "8"
-          limits:
-            nvidia.com/gpu: 1
-            memory: "64Gi"
-            cpu: "16"
-        volumeMounts:
-        - name: julia-depot
-          mountPath: /opt/julia/depot
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8083
-          initialDelaySeconds: 60
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8083
-          initialDelaySeconds: 30
-          periodSeconds: 10
-      volumes:
-      - name: julia-depot
-        persistentVolumeClaim:
-          claimName: carbon-julia-depot
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: carbon-sciml
-  namespace: carbon
-spec:
-  selector:
-    app: carbon-sciml
-  ports:
-  - protocol: TCP
-    port: 8083
-    targetPort: 8083
-  type: ClusterIP
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: carbon-julia-depot
-  namespace: carbon
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 50Gi
-  storageClassName: nvme-fast
-```
+When independence is insufficient, the Dossier records the limitation and the
+decision interval widens or remains unresolved. Disagreement beyond the
+registered policy produces a typed contested outcome, not an averaged answer
+or candidate failure.
 
 ---
 
-## 5. Mock Fallback Strategy (Phase 1A)
+## 5. Failure contract
 
-```python
-# carbon/validator/sciml_validation.py
+Reference and infrastructure failures are never candidate physics failures.
+Required outcomes include distinct classes for:
 
-class SciMLValidationMixin:
-    def __init__(self, config: Dict):
-        self.config = config
-        self.sciml_client = self._create_client()
+- unsupported or out-of-applicability case;
+- conditioning or numerical-sensitivity failure;
+- non-convergence or diagnostic failure;
+- primary/witness disagreement;
+- stale or mismatched policy, implementation, or environment;
+- malformed artifact or provenance failure;
+- timeout, capacity, dependency, transport, or process failure;
+- cancellation.
 
-    def _create_client(self) -> SciMLClient:
-        endpoint = self.config.get("sciml_endpoint", "http://carbon-sciml:8083")
-        use_mock = self.config.get("sciml_mock_fallback", True)
-        return SciMLClient(endpoint, mock_fallback=use_mock)
+If the registered primary reference is unavailable and no already-qualified
+fallback is named by the same immutable `ReferencePolicy`, official evaluation
+waits or returns the registered indeterminate/infrastructure outcome. It does
+not fall back to a mock, analytic fixture, weaker solver, cached unbound output,
+or candidate-generated result.
 
-    async def _run_adjoint_gate(self, state: TrainState) -> GateResult:
-        try:
-            adjoint_result = await self.sciml_client.compute_adjoint_sensitivity(
-                model_fn=self.model_apply_fn,
-                params=state.params,
-                loss_fn="physics_residual"
-            )
-            rel_error = adjoint_result["rel_error"]
-            score = 1.0 / (1.0 + jnp.exp(20.0 * (rel_error - 1e-4) / 1e-4))
-            return GateResult(
-                gate_id="adjoint_consistency",
-                threshold=1e-4,
-                result=rel_error,
-                score=float(score),
-                status="PASS" if score > 0.5 else "FAIL"
-            )
-        except Exception as e:
-            logger.warning(f"SciML adjoint failed: {e}, using mock")
-            return GateResult(
-                gate_id="adjoint_consistency",
-                threshold=1e-4,
-                result=0.0,
-                score=0.0,
-                status="FAIL",
-                details={"fallback": "sciml_unavailable", "error": str(e)}
-            )
-```
+Mocks and analytic fixtures are permitted only in structurally test-only
+contexts. Their provenance must make LIVE activation and economic settlement
+impossible.
 
 ---
 
-## 5. Cost Summary (Minimal Phase 1A)
+## 6. Reproducibility and supply chain
 
-| Component | Spec | Monthly Cost |
-|-----------|--------|--------------|
-| **GPU** | 1× H100 Spot | ~$800/mo |
-| **Julia Depot PVC** | 50GiB NVMe | $75/mo |
-| **Network** | 10TB/mo | $50/mo |
-| **Total** | | **~$850/mo** |
+Every runnable Julia environment must be content-addressed and immutable for
+the registered policy:
 
-**With mock fallback:** Spot preemption → automatic fallback to mock client. Zero downtime.
+- exact Julia runtime and platform identity;
+- committed `Project.toml` and `Manifest.toml` hashes;
+- immutable package artifact/depot image;
+- exact service image and source revision;
+- solver, algorithm, tolerance, mesh, precision, threading, accelerator, and
+  deterministic-mode configuration where relevant;
+- hardware/resource class and numeric capability;
+- canonical request/result encoding;
+- checksums for produced artifacts.
+
+Production startup must instantiate the pinned manifest without resolving or
+updating packages. `Pkg.add`, `Pkg.update`, mutable tags, and implicit depot
+state are forbidden in a registered runtime. Promotion of any dependency or
+environment creates a new implementation/environment identity and requires the
+registered verification and review path.
+
+Residual nondeterminism is measured. It contributes to the uncertainty and
+decision interval and may make the reference inadmissible.
 
 ---
 
-## 5. Decision Checklist
+## 7. Security and data boundary
 
-| Decision | Status | Owner |
-|----------|--------|-------|
-| Phase 0: Mock only | ✅ Decided | You |
-| Phase 1A: 1 Spot H100 + mock fallback | ✅ Decided | You |
-| Julia dev hire | Month 2 | You |
-| Real Julia service deploy | Month 4 | You |
-| Phase 1B+ full Julia | Deferred to Phase 1B | You |
+The runtime receives the minimum authorized canonical case material and returns
+only the registered result/provenance fields. It must not:
+
+- execute expressions supplied by miners or general callers;
+- expose official seeds, case identities, mixture realizations, or per-case
+  protected data on public or miner-visible surfaces;
+- perform request-time package installation or network retrieval;
+- accept caller-selected filesystem paths or deserialization payloads;
+- log raw protected inputs or outputs outside the approved evidence store;
+- reveal validator topology, protected reservoir depth, or scheduling signals;
+- combine reference execution with scoring, ranking, payment, or settlement.
+
+Authentication, transport, isolation, quotas, secret handling, and production
+key custody are later security/operations contracts. Wave B may implement only
+local fixture runner interfaces and fail-closed production seams.
 
 ---
 
-## Summary
+## 8. Operational policy
 
-| What | Phase | Cost | Complexity |
-|------|-------|------|------------|
-| **Mock Client** | Phase 0-1A | $0 | Trivial |
-| **Minimal Julia (Adjoint only)** | Phase 1A | ~$800/mo | Low (single endpoint) |
-| **Full Julia Service** | Phase 1B+ | ~$2.4k/mo | Medium |
-| **Full HA (3 replicas)** | Phase 3+ | ~$8.5k/mo | High |
+Operations may schedule, prefetch, cache, or replicate only within the exact
+registered scientific identity. Capacity policy cannot change cases,
+measurements, reference fidelity, stress coverage, or exam depth by candidate.
 
-**Decision:** Start with mock. Deploy minimal Julia (adjoint only) at Phase 1A. Full service at Phase 1B.
+Cache keys must include every identity that affects scientific meaning. A cache
+hit must return byte-identical, provenance-bound material. Unknown identity,
+partial artifact, or stale environment fails closed.
+
+Cost, hardware count, audit frequency, latency budget, and strong-anchor
+sampling remain owner-approved planning inputs. Historical dollar figures and
+single-GPU deployment sketches are not current decisions.
+
+---
+
+## 9. Qualification evidence required before authority
+
+The Challenge's Dossier must include, as applicable:
+
+1. analytic or manufactured-solution checks;
+2. refinement and convergence evidence;
+3. conservation, invariance, and limiting-case tests;
+4. methodologically independent cross-code evidence;
+5. conditioning and failure-region mapping;
+6. residual numerical and reconstruction variance;
+7. applicability and exclusion boundaries;
+8. uncertainty propagation into Carbon's decision interval;
+9. evidence that remaining reference error cannot plausibly reverse the
+   smallest superiority decision Carbon permits;
+10. reproducibility from the pinned environment and artifacts;
+11. security, disclosure, and failure-injection evidence;
+12. named independent and accountable review.
+
+Passing this campaign grants only the exact role, envelope, implementation,
+environment, and Challenge version recorded in the signed Dossier. Authority
+does not transfer automatically to another PDE, regime, solver configuration,
+hardware path, or Challenge.
+
+---
+
+## 10. Wave B implementation boundary
+
+B-04 may define typed primary/witness runner interfaces, fixture outcomes,
+provenance, uncertainty, and failure semantics. B-06 may define the evidence
+slots and fail-closed qualification manifest. B-E2 may exercise Julia/reference
+failure behavior. B-07F may use fixture reference packs behind the unchanged v1
+fixture lifecycle.
+
+Wave B does not deploy a public Julia service, run a real protected exam,
+qualify a solver, activate a LIVE Challenge, or authorize an economic result.
+
+> **Closing rule:** Julia can be a powerful implementation of a qualified
+> reference role. Carbon trusts its output only to the degree demonstrated by
+> independent, Challenge-bound evidence and carried into the decision interval.

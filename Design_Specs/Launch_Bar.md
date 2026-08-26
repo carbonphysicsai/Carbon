@@ -7,14 +7,14 @@
 
 **Problem:** The Landscape flywheel treats lean Model Cards as training labels. If gates and scores are unfinished, **garbage-in compounds**.
 
-**Rule:** Do not present cards as “verified” for Port A publish, causal fits, or external intelligence claims until this bar is green.
+**Rule:** Do not activate any external miner-visible prior—including curated bootstrap guidance—or present cards as “verified” for Port A/effect-candidate publication or external intelligence claims until this bar is green and the named owners approve the exact artifact.
 
-**Lead product claim at raise / pre-launch:** trustless verification + dual threshold + sponsored path.  
+**Lead product claim at raise / pre-launch:** trust-minimized, auditable verification + dual threshold + sponsored path.
 **Landscape:** architecture and build order — not a live brain.
 
 ---
 
-**Version:** 1.1  
+**Version:** 1.3
 **Status:** Protocol stop-ship checklist  
 **Related:** `Scoring.md`, `Data_Management.md`, `POC_Burgers_FNO.md`, `Miner_MCP.md`, `Build_Out.md`, `Landscape_Agent.md`, `SPEC.md` §8
 
@@ -24,10 +24,10 @@
 
 | Epistemic grade | What it is |
 |-----------------|------------|
-| **Hard gates + lean score** | Protocol ground truth (when implemented) |
-| **Causal bands / priors** | Observational estimates on those labels |
+| **Hard gates + lean score** | Registered protocol result when the exam and implementation are qualified |
+| **Association guidance / `causal_candidate` priors** | Decision support with explicit evidence origin and epistemic limits |
 
-Causal libraries cannot be more trustworthy than the labels that feed them. This document binds Landscape L0+ to a **working lean exam**.
+Effect-candidate libraries cannot be more trustworthy than the labels that feed them. This document binds Landscape L0+ to a **working lean exam**.
 
 ---
 
@@ -35,6 +35,15 @@ Causal libraries cannot be more trustworthy than the labels that feed them. This
 
 ### 2.1 Lean exam integrity
 
+- [ ] **Exact qualified exam manifest** binds the approved physical claim,
+      target population `P`, official SamplingPlan `Q`, evidence weighting
+      `w`, Generator/Validation Dossier, `ReferencePolicy`, eligible
+      uncertainty-bearing `TruthAsset` path, `MeasurementContract`, Score Pack,
+      decision-resolution evidence, and exact versions/hashes
+- [ ] **Reference adequacy and availability fail closed:** missing,
+      inapplicable, disputed, stale, or failed required reference evidence
+      produces a typed non-settling reference/infrastructure outcome, never a
+      candidate physics zero or fallback truth
 - [ ] **Hard gates can zero** `S_combined` (finite / NaN, conservation, residual ceiling, short rollout as pack requires)
 - [ ] **Train ≠ eval ≠ stress** seeds (Data Management invariants; automated test)
 - [ ] **Score Pack** loaded by `(challenge_id, scoring_version)`; content hash pinned; **no silent global default**
@@ -59,13 +68,17 @@ Causal libraries cannot be more trustworthy than the labels that feed them. This
 
 Required before marketing agent mining or public prior surfaces that agents will grind against. Detail: `Miner_MCP.md`, `Build_Out.md`.
 
-- [ ] **Mock isolation:** `light_compare` / `light_train` reject non-`mock_` packs; no official seeds on free path
+- [ ] **Mock isolation:** nominal `start_research_task` practice kinds reject
+      non-mock contexts/packs; no official data rights or seeds on the free path
 - [ ] **Free signal imperfect:** mock ranges intentionally incomplete; free metrics **never** enter lean score / Yuma
 - [ ] **Scaffold path:** `get_mock_scaffold` serves a versioned mediocre baseline (not champion weights; not silent prior invert)
 - [ ] **Budgeted EvaluationCard:** miner-visible card withholds fine margins / per-stress breakdowns / seeds
 - [ ] **Fee ≠ score:** exam fee does not enter Score Pack
-- [ ] **Forbidden score inputs:** no prior similarity, estimate, or light_compare in `S_combined`
-- [ ] **PoC handoff:** TrainEvalAPI (or equivalent) used by both official exam and mock path without mode confusion
+- [ ] **Forbidden score inputs:** no prior alignment, resource forecast,
+      practice result, research information value, or fee in `S_combined`
+- [ ] **PoC handoff:** practice and official-shaped reconstruction share the
+      ratified semantic compiler identity while using nominally separate
+      request/result types and data rights; no generic mode confusion
 
 `Build_Out` Phase 0.9 = this document’s lean exam bar **plus** §2.4 when shipping the full agent/subnet loop (not required for offline PoC-only demos).
 
@@ -74,14 +87,16 @@ Required before marketing agent mining or public prior surfaces that agents will
 Until §2.1–2.3 are green for at least one live challenge family (and §2.4 if public agent/MCP mining is claimed):
 
 - [ ] **No** public claim that Landscape “produces intelligence” or causal effects
-- [ ] **No** Port A daily noisy-prior product surface marketed as verified guidance
+- [ ] **No** external miner-visible prior activation, including `BOOTSTRAP_PUBLIC` and `LEARNED_PUBLIC`; only closed `TEST_ONLY` fixtures may exist
 - [ ] Cards may be retained **offline for engineering only**
-- [ ] Port B progressive routing **off** or forced full-depth only
+- [ ] Port B candidate-specific exam routing **absent**; operational advice is limited to fair scheduling, prefetch, isolated capacity, conclusive mandatory-failure staging, supplemental audits, and prospective next-version proposals
 
 When green:
 
-- [ ] L0 may publish **aggregate / noisy** priors with `landscape_version` + `data_cutoff_block`
-- [ ] Explicit status: L0 = card lake + noisy aggregates — **no causal yet** (causal = L2)
+- [ ] L0 may publish owner-approved **aggregate / coarsened** immutable priors with
+      `landscape_version` + `data_cutoff_block`; randomized noise requires a
+      separately approved formal privacy policy and measured utility
+- [ ] Explicit status: L0 = card lake + coarsened associations; any later `causal_candidate` item remains decision support and requires its own identification evidence
 
 ---
 
@@ -90,29 +105,32 @@ When green:
 | Allowed | Not allowed |
 |---------|-------------|
 | Verification layer + dual threshold + sponsored challenges as lead | “Private AI brain already knows what works” |
-| Landscape as **designed** four-port compounding architecture | Gate-level certainty on causal bands |
+| Landscape as **designed** four-port compounding architecture | Proven-causal or gate-level certainty language for prior guidance |
 | Build order L0→L4 with status marks | Implied live DML / Port D at raise |
 | Success = post-gate progress + later PB conversion | Success = guidance-API engagement |
 
 **Epistemic line (repeatable):**  
-*Gates are verified when the Launch Bar is green. Causal effects are estimated decision-support under selection bias — never spoken as protocol truth.*
+*Gate results are registered protocol decisions when the Launch Bar is green. Prior guidance is evidence-labeled decision support under declared limitations, never a proven causal effect or grading authority.*
 
 ---
 
-## 4. Port B floor (even after bar is green)
+## 4. Port B fairness rule (even after the bar is green)
 
-Progressive depth is the highest-risk Landscape port (touches how hard the exam looks).
+Port B cannot change the score-bearing evidence by candidate, hotkey, history,
+rank, novelty, stake, sponsorship, practice result, prior use, or predicted
+quality. Every eligible submission that receives a nonzero score completes the
+same registered mandatory pack and SamplingPlan under the same Challenge
+identity.
 
-**Always full depth when any apply:**
+Port B may advise fair queue scheduling, capacity reservation, deterministic
+prefetch, or the order of mandatory checks. An evaluation may stop after a
+conclusive mandatory hard failure only because its score is already zero.
+Supplemental validator audits cannot improve or reduce the registered score.
+Learned failure patterns may propose a future Challenge, Generator Pack, or
+Score Pack version, but that prospective version must pass qualification and
+activate for all eligible candidates under its own identity.
 
-- New or low-history hotkey on that challenge  
-- Random audit fraction (pack- or policy-defined)  
-- Top-K leaderboard threat / near-record combined  
-- Prior shallow path followed by contested rank movement  
-
-**Never:** miner-visible routing; routing written into score; shallow-only path as sole exam for emissions without audit coverage.
-
-Detail: `Landscape_Agent.md` § Port B bounds.
+Detail: `Landscape_Agent.md` §2.4.
 
 ---
 
@@ -120,7 +138,9 @@ Detail: `Landscape_Agent.md` § Port B bounds.
 
 ```text
 Launch_Bar_GREEN(challenge_family) =
-    hard_gates_zero_score
+    exact_qualified_exam_manifest
+    AND reference_failure_is_non_settling
+    AND hard_gates_zero_score
     AND seed_separation_tested
     AND score_pack_hash_pinned
     AND discrimination_and_repro_CI
@@ -137,17 +157,22 @@ MCP_AGENT_SURFACE_GREEN =
 ```
 
 ```text
-Landscape_L0_PUBLISH_ALLOWED =
+LANDSCAPE_L0_PUBLIC_PRIOR_ALLOWED =
     Launch_Bar_GREEN(at least one live family)
+    AND MCP_AGENT_SURFACE_GREEN
     AND representation_discipline_acknowledged
+    AND exact_artifact_owner_approved
+    AND rights_and_disclosure_policy_green
 ```
 
 ```text
-Landscape_L2_CAUSAL_PUBLISH_ALLOWED =
-    L0_PUBLISH_ALLOWED
+LANDSCAPE_L2_CAUSAL_CANDIDATE_PUBLISH_ALLOWED =
+    LANDSCAPE_L0_PUBLIC_PRIOR_ALLOWED
     AND sufficient card volume + overlap diagnostics
-    AND publish gates (CI excludes zero, stability windows)
-    AND still no gate-level certainty language
+    AND registered identification + sensitivity evidence
+    AND publish gates (uncertainty, stability, prospective validation)
+    AND explicit causal_candidate label
+    AND still no proven-causal or gate-level certainty language
 ```
 
 ---

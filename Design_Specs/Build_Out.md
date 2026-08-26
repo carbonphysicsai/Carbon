@@ -50,7 +50,8 @@ Agents ship interfaces, loaders, fixtures with `HUMAN_INPUT` / `TODO(sciml)` mar
 These rules bind every component. Tests must cover them where enforceable in code.
 
 1. **No seed leakage.** Official seeds, derived seeds, draw IDs, or reversible identifiers never appear in EvaluationCard, leaderboard, MCP outputs, or miner-visible logs.
-2. **Mock isolation.** Mock / light execution never accesses official packs, official seeds, or hidden exam data.
+2. **Practice isolation.** Nominal practice/research execution never accesses
+   official packs, official entropy/seeds, or protected exam data.
 3. **Pinned evaluation.** Every scored submission is bound to immutable challenge / generator / Score Pack / backend (container digest) versions.
 4. **Disclosure allow-list.** InternalResult / Model Card fields are never returned on miner-facing APIs unless explicitly allow-listed for the disclosure tier.
 5. **LIVE requires qualification.** LIVE challenges require a complete signed human qualification manifest for that exact challenge version (not merely non-null YAML).
@@ -59,8 +60,16 @@ These rules bind every component. Tests must cover them where enforceable in cod
 8. **Determinism.** Re-running an identical official evaluation under identical versions, seeds, and limits is deterministic within documented tolerances.
 9. **No placeholder LIVE.** Placeholder, fixture, or mock values never enter LIVE configuration or emission weights.
 10. **No silent rescore.** Historical evaluation records are never silently reinterpreted under newer packs; new pack ⇒ new scoring_version for future runs only.
-11. **Forbidden score inputs.** Prior similarity, `estimate` / `light_*` metrics, exam fee, and mock metrics never enter `S_combined` / Yuma weights.
-12. **Free path imperfect.** Free-loop signal may be directionally useful but must remain a **non-oracle** vs the official exam (no reliable rank substitution / exam reconstruction; see Miner_MCP).
+11. **Forbidden score inputs.** Prior similarity/alignment, `estimate`,
+    resource forecasts, practice/`light_*` metrics, research information value,
+    exam fee, and mock metrics never enter `S_combined` / Yuma weights.
+12. **Practice is useful without revealing the realized exam.** Carbon measures
+    leakage as incremental ability to infer protected official cases, realized
+    stress composition, exact margins, or unresolved ordering after controlling
+    for physics performance on evaluator-held shadow cases sampled from the
+    declared distribution. Transferable rank improvement can reflect better
+    physics and is not itself a leak. Practice remains declared-incomplete and
+    outside official lifecycle, score, and scheduling authority.
 
 ---
 
@@ -77,9 +86,9 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C6 | Seeding / roles | **High** | Domain separation + leakage tests | Seed derivation formula confirm |
 | C7 | Validator neuron | **Med** | Composition harness across A7 FSM/pins, A8 execution, and A6 publication | Train backend quality, concrete A8 runtime qualification, BT ops |
 | C8 | Miner neuron | **High** | Optional thin client | — |
-| C9 | Miner MCP | **High** | Bounded control/disclosure tools + policy guards; later separately ratified mock/light adapter | Prior directive vocabulary/publication, scaffold body, production resource/query/authentication policy |
-| C10 | Prior publisher | **Med** | Pipeline + redact tests | Coarsen policy, first prior |
-| C11 | Mock packs / scaffolds | **Med** | Format, registry, mock_ guards | MOCK_RANGES, scaffold body |
+| C9 | Miner MCP | **High** | Bounded control/disclosure tools + policy guards; later separately ratified practice/research service | Prior directive vocabulary/publication, scaffold body, production resource/query/authentication policy |
+| C10 | Prior artifacts | **Med** | Immutable store, private TEST_ONLY staging, publisher schemas, ledger/redaction tests | Coarsen policy, first external prior |
+| C11 | Practice packs / scaffolds | **Med** | Format, registry, nominal practice guards | Practice scope/ranges, scaffold body |
 | C12 | Card store | **High** | Internal + budgeted paths | Disclosure tier confirm |
 | C13 | Fees | **High** | Ledger, idempotency, fee≠score | Fee amount |
 | C14 | Leaderboard | **High** | Public fields only | — |
@@ -104,21 +113,27 @@ WAVE A — infrastructure science cannot block
   TrainEvalAPI STUB (deterministic synthetic fixture scalar material; never emission-capable)
 
 WAVE B — science-ready skeletons
+  B-02A physical-task / population / SamplingPlan / canonical-case contracts
+  B-02B CandidateAssemblyContract + ParameterCatalog + StrategyCompiler
   C3 Generator API + Burgers fixture (HUMAN_INPUT ranges)
-  C11 mock pack + placeholder scaffold
-  C9 light_compare / light_train → separately ratified nominal mock TrainEval entry point
-  C10 prior pipeline + bootstrap prior placeholder
   C4 dossier layout + qualification manifest schema
-  C19 reference runner interface
+  C19 ReferencePolicy / TruthAsset / primary-witness runner interfaces
+  C5 MeasurementContract + Score Pack authoring bindings
+  C9/C11 separately ratified nominal mock/practice research lane
+  B-07R architecture ratification → B-07S exact bounded service protocol
+  B-07A shared v2 nominal primitives → B-07G twelve-operation service integration
+  C10 PriorPack v2 store + private TEST_ONLY staging + public-publication schemas
+  ResearchTask + ExperimentRecord + ResearchReceipt fixture lifecycle
+  Autoresearch utility / conditional-leakage gauntlet
 
 WAVE C — vertical integration
-  Real TrainEvalAPI behind nominally separate future qualified production and mock entry points
+  Real TrainEvalAPI behind nominally separate future qualified official and practice entry points
   C7 validator: queue → hidden data → run → score → cards
   MCP e2e: free loop then paid loop
   C15: actual Bittensor testnet path (not stub-only)
 
 WAVE D — human qualification (not agent-owned)
-  SciML: envelope, dossier Level-1, thresholds, MOCK incompleteness, scaffold mediocrity
+  SciML: envelope, dossier Level-1, thresholds, practice incompleteness, scaffold mediocrity
   Protocol: Launch_Bar (+ MCP §2.4), fee value, qualification manifest signed, LIVE flip
 
 POST-P0 (not required for P0; see §18)
@@ -128,8 +143,8 @@ POST-P0 (not required for P0; see §18)
 ```
 
 **Stub policy:** Wave A may use the fixture-official A8 stub for bounded
-lifecycle/contract CI. Wave B may add mock/light plumbing only after its
-separate nominal request/resource/disclosure contract is ratified. **Synthetic
+lifecycle/contract CI. Wave B may add nominal practice/research plumbing only
+after its separate request/resource/disclosure contract is ratified. **Synthetic
 stub material must never write emission weights or LIVE leaderboard ranks.**
 Wave C requires a separately qualified real backend before testnet acceptance.
 
@@ -138,8 +153,9 @@ Wave C requires a separately qualified real backend before testnet acceptance.
 A9 Wave A is an in-process control/disclosure boundary, not an execution
 surface. It registers exactly the seven names above under schema `"1.0"`, with
 no aliases and no network server. `light_compare`, `light_train`, and
-`list_my_submissions` are unavailable. The first two remain Wave-B mock work;
-the third has no Wave-A implementation authority.
+`list_my_submissions` are unavailable. The first two names remain retired;
+Wave B practice uses B-07S-ratified `start_research_task` task kinds. The third
+has no Wave-A implementation authority.
 
 The Wave-A `estimate` is a provider-derived structural/prior projection only.
 It performs no execution, imports/calls no A4/A5/A8 path, uses no mock,
@@ -154,7 +170,9 @@ policy. See `Miner_MCP.md` and A9-R1--A9-R15 for the exact contract.
 ## 5. TrainEvalAPI (critical shared contract)
 
 TrainEval remains the single architectural owner of official-shaped execution
-and the MCP `light_compare` / `light_train` execution family. Data rights are
+and the future MCP practice-task execution family. Historical
+`light_compare` / `light_train` names are not authority for the Wave B v2
+surface. Data rights are
 not selected by a string mode. Fixture-official, future production, and mock
 execution use nominally separate request/result types and entry points. The
 exact bounded contract is governed by ratified decisions A8-R1--A8-R15 in
@@ -230,11 +248,11 @@ through `acquire_fixture_official_context` and derives only through
 derived seed. Current process-local envelopes and handles are correctness
 values, not authenticated capabilities; exact-type checks are not a sandbox.
 
-### 5.2 Reserved mock/light lane
+### 5.2 Reserved practice/research lane
 
-Build Out and the A9 intent still require a mock/light free path, but a generic
-`mock | official` mode is forbidden. Its future contract is a separate nominal
-entry point, conceptually:
+Build Out and the A9 intent still require an honest non-authoritative practice
+path, but a generic `mock | official` mode is forbidden. Its domain runner is a
+separate nominal entry point, conceptually:
 
 ```text
 MockTrainEvalService.run_mock(
@@ -242,15 +260,25 @@ MockTrainEvalService.run_mock(
 ) -> MockRunOutcome
 ```
 
-The exact mock request, resource, and disclosure contract requires a later
-A8/A9 documentation ratification before any execution-dependent estimate or
-light implementation. A9's separately ratified Wave-A `StructuralEstimate`
-does not cross this gate because it performs no execution and uses no A8/A4/A5
-surface.
-Mock execution may use only mock context/data rights. A mock outcome is not an
-A5 `InternalResult`, cannot enter A7's official submission lifecycle or A6,
-cannot create a card, and cannot affect fees, official score, leaderboard
-rank, weights, or emissions. It is mechanically non-emission-capable.
+The exact practice request, resource, disclosure, and research-task contract
+requires B-07R architecture ratification and B-07S wire-protocol ratification
+before implementation. A9's separately ratified Wave-A `StructuralEstimate`
+does not cross this gate because it performs no execution and uses no
+A8/A4/A5 surface.
+
+The owner-review candidate for that later ratification is
+`Miner_MCP_Wave_B_Research_Contract.md`. It proposes an explicit
+`ChallengeInteractionManifest`, Challenge-bound `ParameterCatalog`, semantic
+compiler, nominal practice tasks, evidence classes, research receipts, and a
+versioned PriorPack. It is planning input only until independently reviewed,
+explicitly human-authorized, normally merged, and activated on the Wave board.
+It does not modify the current A8 or A9 contract.
+
+The nominal practice runner may use only mock context/data rights. Its
+`MockRunOutcome` is not an A5 `InternalResult`, cannot enter A7's official
+submission lifecycle or A6, cannot create a card, and cannot affect fees,
+official score, leaderboard rank, weights, or emissions. It is mechanically
+non-emission-capable.
 
 ### 5.3 Private fixture outcome and A7 mapping
 
@@ -463,7 +491,8 @@ Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 **P0 acceptance includes actual Bittensor testnet path** (scores → weights visible).  
 **Agent Wave C deliverable** includes wiring; **P0 done** ≠ “testnet stub only.”
 
-**Out of P0:** Landscape graph, specialist SKUs, automated free-loop non-oracle monitoring, commercial CAE, mainnet.
+**Out of P0:** Landscape graph, specialist SKUs, automated cross-surface
+conditional protected-realization leakage monitoring, commercial CAE, mainnet.
 
 **PoC handoff:** `POC_Burgers_FNO.md` is historical lean-loop evidence without
 MCP. Audit its primitives under KEEP → WRAP → REPAIR → REPLACE before any
@@ -490,14 +519,36 @@ isolation, or establish scientific/production qualification.
 
 ### Wave B done when
 
-- [ ] Generator + mock pack interfaces callable with fixtures  
-- [ ] light_* reject non-mock packs  
-- [ ] Dossier + qualification manifest schemas exist  
-- [ ] Prior pipeline runs on fixture cards (redact tests)  
+- [ ] Physical task, population, SamplingPlan, candidate-output, assembly, and canonical-case identities exist with fixtures
+- [ ] Generator, reference, measurement, and mock/practice interfaces are callable with fixtures
+- [ ] ParameterCatalog + StrategyCompiler produce one exact resolved plan or typed rejection; no accepted parameter is ignored
+- [ ] ResearchResourcePolicy exists with enforced fixture ceilings and keeps
+      static inspection, calibrated forecast, future execution quote, and
+      observed receipt nominally and epistemically separate
+- [ ] Practice requests reject non-mock contexts/packs and cannot enter A5-A7 or any official/economic path
+- [ ] Paired practice uses common fresh public cases and returns only policy-allowed aggregate evidence
+- [ ] A semantically responsive fixture-official consumer uses the same exact
+      resolved-plan identity as practice behind the unchanged v1 lifecycle,
+      while fixture rights and provenance cannot create official or economic
+      authority
+- [ ] ResearchTask, ExperimentRecord, ResearchReceipt, and evidence-class boundaries exist
+- [ ] Shared v2 nominal wire primitives are implemented once; the in-process
+      `ResearchMcpService` exposes exactly the twelve ratified research
+      operations, delegates each to its named domain owner, and neither exposes
+      nor delegates v1 official operations
+- [ ] Dossier + qualification manifest schemas exist and fixture evidence cannot satisfy LIVE
+- [ ] PriorPack schema/store, TEST_ONLY staging/disclosure ledger, and static
+      provider run on fixture evidence with redaction, lineage, atomic private
+      approval-snapshot, history, and exact-ref retrieval tests; public
+      publication remains unavailable
+- [ ] Fixture prior evidence is mechanically limited to `TEST_ONLY`; it cannot activate bootstrap/learned guidance and no v2-backed projection enters the public v1 provider
+- [ ] The preregistered autoresearch utility decision passes and the
+      conditional-leakage decision finds no protected-realization shortcut on
+      the fixture loop; failure or indeterminacy blocks Wave B closeout
 
 ### Wave C done when
 
-- [ ] Real TrainEvalAPI behind nominally separate future qualified production and mock entry points
+- [ ] Real TrainEvalAPI behind nominally separate future qualified official and practice entry points
 - [ ] Validator e2e: strategy → score → Model Card + EvaluationCard  
 - [ ] MCP free then paid loop e2e  
 - [ ] Gate fail → non-emitting  
@@ -522,7 +573,10 @@ identity and lifecycle. Neither invents physics passes on infrastructure
 failure.
 **C9:** Exact bounded Wave-A control/disclosure per `Miner_MCP.md` and
 A9-R1--A9-R15. Seven tools only; structural estimate never executes;
-mock/light remains Wave B; submit/result remain exact A7/A6 delegation.
+practice/research remains Wave B; submit/result remain exact A7/A6 delegation. The
+Wave B contract candidate is `Miner_MCP_Wave_B_Research_Contract.md`; it keeps
+the v1 service immutable and separates semantic compilation, prior alignment,
+resource forecasting, quoting, and measured practice.
 **C13:** Fee ledger with §6 semantics.  
 **C15:** P0 = working testnet path; mainnet = human.  
 **C17–C18:** Out of **Phase 0** SOW; preserve Model Card hooks in P0. Sequenced as Post-P0 Waves E–F (§18).  
@@ -551,11 +605,11 @@ isolation controls.
 
 These are **out of Phase 0 waves A–D**. They are not “never.” Post-P0 sequencing is §18.
 
-- Landscape causal / symbolic stack → **Wave E** (`Landscape_Agent.md`)  
+- Landscape effect-candidate / symbolic stack → **Wave E** (`Landscape_Agent.md`)
 - Specialist commercial SKU / product battery → **Wave F** (`Specialist_Bank.md`)  
 - Customer bounds / sponsored-challenge GTM → **Wave G** (`Customer_Bounds_Specialist.md`)  
 - Marketplace UI  
-- free-surface non-oracle monitoring / mock refresh service (track as P1 ops; §17)  
+- cross-surface conditional protected-realization leakage monitoring and practice refresh service (track as P1 ops; §17)
 - Full commercial CAE mesh pipeline  
 - Hermes/Mira vendor plugins  
 - Agent-invented LIVE physics thresholds (**permanent** non-goal)  
@@ -583,9 +637,9 @@ Items noticed in review that improve P0/P1 without changing architecture:
 
 | Opportunity | Why | Phase |
 |-------------|-----|-------|
-| Free-path rate limits on `light_compare` | Stop compute DoS of mock runner | P0 soft / P1 |
-| Future cost estimate on execution-bearing light responses | Miner UX; requires a later schema/policy decision and never enters A9 `StructuralEstimate` | P1 |
-| Explicit `corr` monitor offline job | Mock rotation trigger when free≈official | P1 |
+| Free-path rate limits on remote practice tasks | Stop compute DoS of mock runner | P0 soft / P1 |
+| Future authenticated binding execution quote | Miner UX; requires the Wave C transport, identity, quota, and economic contract; remains distinct from Wave B `forecast_resources` and A9 `StructuralEstimate` | P1 |
+| Conditional leakage monitor and adaptive-agent campaign | Detect incremental protected-realization inference after controlling for evaluator-held shadow-case physics performance; account across practice, priors, cards, leaderboards, diagnostics, errors, timing, and versions | P1 |
 | CI matrix: CPU-only unit vs GPU integration tags | Agents/CI without GPU | P0 |
 | Hotkey↔submission binding tests | Fee and card authz | P0 |
 | Pack content-addressed store | Pin verification | P1 |
@@ -611,9 +665,10 @@ What follows is **not** required to claim P0 subnet readiness. It *is* required 
 ```text
 WAVE E — Landscape signals (C17)
   Card lake from Launch-Bar-grade Model Cards only
-  L0: ingest + daily noisy prior packs (redact, lag, no full champ weights)
+  L0: ingest + fixed-epoch coarsened prior snapshots
+      (eligibility, suppression, lag, no full champion recipes)
   L1: failure atlas / symbolic hooks
-  L2: causal core + specialist *pipeline hooks* (not full SKU)
+  L2: effect-candidate core + specialist *pipeline hooks* (not full SKU)
   Ports: A search (miners) · B eval (validators only) · C economy proposals · D product hooks
   Authority: Landscape_Agent.md
   Human: coarsen policy, publish cadence, what may leave the building
@@ -621,7 +676,7 @@ WAVE E — Landscape signals (C17)
 WAVE F — Specialist bank (C18)
   Effect-synthesized recipes from Landscape → controlled retrain
   Product battery (verification gauntlet) before any commercial SKU
-  Dual egress: noisy search path vs closed product path
+  Dual egress: coarsened public search path vs closed product path
   No teacher-checkpoint distillation as the product
   Authority: Specialist_Bank.md
   Human: which regimes to productize; battery pass/fail signoff
@@ -639,7 +694,7 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 
 | Wave | Done when (summary) |
 |------|---------------------|
-| **E** | Card lake + noisy prior publish path exist; gates still sole score authority; Launch_Bar respected |
+| **E** | Card lake + immutable coarsened prior publish path exist; gates still sole score authority; Launch_Bar respected |
 | **F** | At least one regime can run recipe → retrain → **product battery** → closed artifact (fixture or real) |
 | **G** | Bounds schema + fulfillment rules documented and demoed; one trial path without requiring customer secret data |
 

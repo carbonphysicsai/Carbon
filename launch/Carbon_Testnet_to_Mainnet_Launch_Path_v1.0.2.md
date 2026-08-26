@@ -4,22 +4,25 @@
 
 **Status:** Working control document; not launch approval
 
-**Version:** 1.0.1
+**Version:** 1.0.2
 
 **Date:** 26 August 2026
 
-**Repository baseline:** main @ c664449f447c33809491ec9c1420bc71241d0aaf
+**Repository baseline:** main @ 404c039596b487cf2649bb1d73b80e9b49baaced
 
-**Planning assumption:** Recent Codex implementation pace, one independent review lane, timely human decisions
+**Planning basis:** Recent Codex implementation pace. The Wave B estimate is conditional: one qualified primary lane implies 14-24 working weeks; two qualified, non-overlapping primary lanes imply 9-15 working weeks. Independent review, timely human decisions, and scientific/security/rights work remain additional constraints.
 
 > [!IMPORTANT]
 > This file is an operational planning and execution view. It does not authorize implementation, scientific qualification, security acceptance, settlement, chain action, or launch. [`CONSTITUTION.md`](../CONSTITUTION.md), [`.agent/WAVE.md`](../.agent/WAVE.md), [`Design_Specs/Build_Out.md`](../Design_Specs/Build_Out.md), [`Design_Specs/Build_Out_Constitutional_Overlay.md`](../Design_Specs/Build_Out_Constitutional_Overlay.md), [`Design_Specs/Launch_Bar.md`](../Design_Specs/Launch_Bar.md), and [`docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md`](../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md) remain controlling.
+
+> [!CAUTION]
+> **Wave B rebaseline:** [`.agent/WAVE_B.md`](../.agent/WAVE_B.md) version 0.2 replaces the former umbrella B-02/B-07 estimate with 24 bounded tickets. Its current conditional estimate is 70-116 serial primary-lane days or 44-74 elapsed engineering days with two qualified non-overlapping lanes, before scientific/security/rights delays. The v1.0.1 S1 and downstream calendar dates are therefore not current promises. Launch owners must approve staffing and issue a calendar rebaseline before testnet or mainnet dates are represented as current.
 
 > **Recommended launch definition:** Treat a qualified one-Challenge testnet as the P0 proof, and treat Waves H and I as required before Carbon calls mainnet mechanism-complete. A direct score-to-weight mainnet can exist only as a separately authorized, restricted beta; it is not the incentive mechanism described in Carbon's current public architecture.
 
 **Current position**
 
-**A0-A10 are implemented and tested only in their bounded fixture/control scopes. A10's documentation-only administrative closeout remains conditional on independent review, explicit human authorization, and normal merge. Carbon has not earned scientific, security, network, commercial, or production qualification.**
+**A0-A10 are implemented and tested only in their bounded fixture/control scopes. A10's documentation-only closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. A11 and A12 remain open. Carbon has not earned scientific, security, network, commercial, or production qualification.**
 
 # 1. Executive launch decision
 
@@ -27,16 +30,16 @@ Carbon should manage launch as an evidence-gated program, not as a date-driven d
 
 > **Why this matters:** The repository can reach a Bittensor weight-write demo faster than it can earn the right to create scientific and economic winners. Keeping those milestones separate prevents transport progress from being mistaken for a trusted incentive mechanism.
 
-| **Milestone**                  | **Planning window**                    | **Confidence** | **What must be true**                                          |
-|--------------------------------|----------------------------------------|----------------|----------------------------------------------------------------|
-| **Wave A closed**              | 31 Aug-3 Sep 2026                      | High           | A10-A12 and closeout report                                    |
-| **Localnet ready**             | 11-18 Sep 2026                         | Medium-high    | v11 adapter, signed HTTP, state recovery, test-only weights    |
-| **Testnet alpha**              | 30 Sep-16 Oct 2026                     | Medium         | real reconstruction/evaluation path; explicitly non-LIVE       |
-| **Qualified testnet**          | 19 Oct-6 Nov 2026                      | Medium-low     | Wave D Burgers evidence, security gate, soak                   |
-| **Mainnet decision gate**      | 4 Dec 2026                             | Medium         | choose restricted beta or mechanism-complete-only path         |
-| **Mechanism-complete mainnet** | Target 12 Feb 2027; contingency 12 Mar | Low-medium     | Waves H/I, custody, settlement soak, external chain conditions |
+| **Milestone** | **Current planning window** | **Confidence** | **What must be true** |
+|---|---|---|---|
+| **Wave A closed** | Prior baseline: 31 Aug-3 Sep 2026 | High, subject to actual A11/A12 closeout | A11-A12 and Wave-A closeout report |
+| **Localnet ready** | May continue in parallel; owner rebaseline required | Medium | v11 adapter, signed HTTP, state recovery, test-only weights |
+| **Testnet alpha** | Rebaseline required after Wave B staffing decision | Unresolved | Wave B core contract/fixture dependencies plus real reconstruction/evaluation path; explicitly non-LIVE |
+| **Qualified testnet** | Rebaseline required after Wave B and Wave D campaign plans | Unresolved | Wave B closeout, Wave D Burgers evidence, security gate, soak |
+| **Mainnet decision gate** | Rebaseline after qualified-testnet forecast exists | Unresolved | choose restricted beta or mechanism-complete-only path |
+| **Mechanism-complete mainnet** | Rebaseline required | Unresolved | Waves H/I, custody, settlement soak, external chain conditions |
 
-These are planning windows, not launch promises. Root-controlled emission enablement, dynamic registration cost, chain activation timing, science reruns, security acceptance, and human custody actions are outside coding throughput.
+The surviving date is a historical near-term Wave A planning baseline, not a launch promise. Root-controlled emission enablement, dynamic registration cost, chain activation timing, science reruns, security acceptance, human review, and custody actions are outside coding throughput.
 
 ## Decision required now
 
@@ -74,8 +77,8 @@ The same word cannot safely describe a process-local test, a testnet deployment,
 
 | **Gate** | **Name**                   | **State**      | **Pass condition**                                                                                                 | **Claim boundary**                                         |
 |----------|----------------------------|----------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| **G0**   | CURRENT                    | PASS (bounded) | A0-A10 fixture/control foundation on current main; A10 administrative closeout remains pending.                   | No real evaluator, network, or winner.                     |
-| **G1**   | WAVE_A_CLOSED              | NOT REVIEWED   | A10-A12 complete; Wave-A Closeout Report signed.                                                                   | Still no science or network qualification.                 |
+| **G0**   | CURRENT                    | PASS (bounded) | A0-A10 fixture/control foundation and A10 closeout are merged on current main; A11-A12 remain open.                 | No real evaluator, network, or winner.                     |
+| **G1**   | WAVE_A_CLOSED              | NOT REVIEWED   | A11-A12 complete; Wave-A Closeout Report signed.                                                                    | Still no science or network qualification.                 |
 | **G2**   | LOCALNET_READY             | NOT REVIEWED   | Bittensor v11 chain adapter, authenticated transport, durable state, localnet E2E, test-only weight capability.    | No fixture result presented as scientific evidence.        |
 | **G3**   | TESTNET_ALPHA              | NOT REVIEWED   | Real declarative reconstruction, sandbox, reference, measurements, receipts, score-to-weight transport on testnet. | Explicit NON-LIVE / NON-SETTLING.                          |
 | **G4**   | QUALIFIED_TESTNET          | NOT REVIEWED   | Exact Burgers Challenge passes Wave D, security gate, independent review, and soak.                                | P0 complete; no frontier settlement yet.                   |
@@ -97,7 +100,7 @@ The same word cannot safely describe a process-local test, a testnet deployment,
 
 # 3. Repository baseline and Wave analysis
 
-The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf. The repository records 1,727 CPU tests at A9 closeout; this v1.0.1 correction independently re-ran the full CPU suite and quality gate without changing implementation code. That pinned launch-plan baseline is unchanged. Current main now includes the bounded A10 implementation through normal PR #37 merge `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. Exact post-merge push run `32941840184` passed 1,973 CPU tests and the quality inventory: Ruff 757/776, Black 62/68, removed Ruff debt 19, removed Black debt 6, five changed Python files, no new debt, and all changed Python files clean.
+The current audited baseline is Carbon main at `404c039596b487cf2649bb1d73b80e9b49baaced`, the normal PR #38 merge of the A10 documentation closeout. Historical planning evidence remains pinned to `c664449f447c33809491ec9c1420bc71241d0aaf`, where A9 recorded 1,727 CPU tests. The bounded A10 implementation merged normally in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, from reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. Exact post-implementation-merge push run `32941840184` passed 1,973 CPU tests and the quality inventory: Ruff 757/776, Black 62/68, removed Ruff debt 19, removed Black debt 6, five changed Python files, no new debt, and all changed Python files clean. The independent A10 closeout audit recorded `57/57 PASS`; PR #38 then merged that bounded closeout as current main. No scientific, security, network, commercial, or production qualification follows.
 
 | **Ticket** | **State** | **Bounded maturity**                                      |
 |------------|-----------|-----------------------------------------------------------|
@@ -112,7 +115,7 @@ The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf.
 | **A7**     | DONE-E    | Process-local submission/FSM/fee/retry/refund             |
 | **A8**     | DONE-E    | Deterministic fixture-only TrainEval stub; non-emitting   |
 | **A9**     | DONE-E    | Seven-tool in-process MCP control/disclosure skeleton     |
-| **A10**    | IN REVIEW | Contract ratified on main by merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; the bounded in-process fixture implementation merged normally in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1` and successful post-merge push run `32941840184`. Administrative closeout remains conditional on independent review, explicit human authorization, and normal merge; this grants no launch or qualification authority. |
+| **A10**    | DONE-E    | Contract ratified by merge `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`; bounded fixture implementation merged in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`; independent closeout audit recorded `57/57 PASS`; documentation closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. This grants no launch or qualification authority. |
 | **A11**    | TODO      | Observability, metrics, redaction, failure tags           |
 | **A12**    | TODO      | Invariant CI and Wave-A closeout                          |
 
@@ -153,17 +156,16 @@ The audited baseline is Carbon main at c664449f447c33809491ec9c1420bc71241d0aaf.
 
 | **Disposition** | **Scope**                                                                                                                            |
 |-----------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| **KEEP**        | A2-A9 bounded contracts, exact identity/pin rules, disclosure and infra-vs-science boundaries                                        |
-| **WRAP**        | A5 scoring, A7 lifecycle, A9 MCP, Challenge registry, seeding and card projection behind production adapters                         |
-| **REPAIR**      | A10-A12 dependency graph, stale maturity prose, CI, persistence, containers, K8s, observability and runbooks                         |
+| **KEEP**        | A2-A10 bounded contracts, exact identity/pin rules, disclosure and infra-vs-science boundaries                                       |
+| **WRAP**        | A5 scoring, A7 lifecycle, A9 MCP, A10 leaderboard, Challenge registry, seeding and card projection behind production adapters        |
+| **REPAIR**      | A11-A12 implementation/CI, persistence, containers, K8s, observability and runbooks                                                  |
 | **REPLACE**     | Legacy official neuron path, Axon/Dendrite/Synapse transport, hydrogen imports, placeholder client, direct legacy emission mechanics |
 
 ## Authority gaps to close before Wave B freezes
 
 | **Classification**     | **Required action**                                                                                                                                            |
 |------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **DOCUMENTATION_LAG**  | Master Plan still shows A8/A9 as todo; main WAVE/ledger are current.                                                                                           |
-| **DEPENDENCY_LAG**     | A11 and A12 omit dependencies required by their own acceptance claims; Wave-A report is missing.                                                               |
+| **EVIDENCE_GAP**       | A11 and A12 remain `todo`; the Wave-A report does not exist, so Wave B activation remains blocked.                                                              |
 | **MIGRATION_REQUIRED** | Legacy direct score-to-emission, block-hash seed, universal Julia truth, mock fallback and obsolete neuron language conflict with the integrated constitution. |
 | **NEW_OWNER_DECISION** | Launch taxonomy, H/I sequencing, network topology, weight/no-winner policy, keys/custody and validator independence are not ratified.                          |
 
@@ -186,22 +188,22 @@ The network foundation and Wave B science-authoring substrate can run in paralle
 
 ## Planning sprints
 
-| **Sprint** | **Window**    | **Primary outcome**                                                |
-|------------|---------------|--------------------------------------------------------------------|
-| **S0**     | 25 Aug-3 Sep  | Close A10-A12; ratify launch taxonomy/RACI; reconcile authority    |
-| **S1**     | 4-18 Sep      | Wave B contracts + Bittensor v11 foundation + localnet             |
-| **S2**     | 21 Sep-9 Oct  | Wave C real vertical; testnet alpha target                         |
-| **S3**     | 12-30 Oct     | Wave D campaigns; qualified testnet target                         |
-| **S4**     | 2 Nov-4 Dec   | Qualified soak; H/I specification; mainnet decision gate           |
-| **S5**     | 7 Dec-12 Feb  | H/I implementation, custody, settlement soak, mainnet readiness    |
-| **BUFFER** | 15 Feb-12 Mar | Evidence reruns, security fixes, chain/external timing contingency |
+| **Phase** | **Window** | **Primary outcome** |
+|---|---|---|
+| **S0** | Historical baseline: 25 Aug-3 Sep | Close A11-A12; ratify launch taxonomy/RACI; reconcile authority |
+| **WB-0/1** | Rebaseline from Wave B activation | Orientation plus scientific foundations; network work may continue in parallel |
+| **WB-2** | Dependency-driven | Semantic and exact research-service contracts |
+| **WB-3** | Dependency-driven | Core public research objects and records |
+| **WB-4** | Dependency-driven | Practice, PriorPack, publisher/provider, resource, and research-service integration |
+| **WB-5** | Dependency-driven | Service conformance, agent gauntlet, integrated closeout, and Wave B report |
+| **S2-S5 / BUFFER** | Calendar rebaseline required | Wave C, Wave D, qualified soak, H/I, custody, settlement, and external contingency |
 
 ## Workload evaluation
 
 | **Workstream**              | **Primary-lane days** | **Total person-days** | **Human/ops load**                 | **Uncertainty** |
 |-----------------------------|-----------------------|-----------------------|------------------------------------|-----------------|
 | **Wave A closeout**         | 3-5                   | 4-7                   | 1-2 review days                    | Low             |
-| **Wave B authoring**        | 8-12                  | 18-28                 | 3-7 SciML/protocol days            | Medium          |
+| **Wave B authoring/research substrate v0.2** | 70-116 serial; 44-74 elapsed with two qualified lanes | 79-134 | 13-32 SciML/protocol/security/rights days | High |
 | **v11 foundation/localnet** | 7-10                  | 15-24                 | 2-4 ops/security days              | Medium          |
 | **Wave C real vertical**    | 15-25                 | 40-65                 | 5-10 SciML/security/SRE days       | High            |
 | **Wave D qualification**    | 10-20 active          | 25-45 specialist      | Independent review + reruns        | Very high       |
@@ -211,7 +213,7 @@ The network foundation and Wave B science-authoring substrate can run in paralle
 | **Mainnet operations**      | 10-15                 | 15-25                 | Funding, keys, validator bootstrap | High            |
 | **Settlement/mainnet soak** | 10-15 elapsed         | 10-20                 | Active go/no-go review             | Medium          |
 
-Estimate model: one primary Codex implementation lane, one independent review lane, network/SciML/SRE work allowed in parallel, and blocking human decisions answered within two business days. A single serial executor or delayed scientific/security review adds roughly 30-50% calendar time. Soak time and external chain timing do not compress with more coding throughput.
+Estimate model: the Wave B serial total uses the repository S/M/L scale; the elapsed estimate assumes two qualified non-overlapping Codex implementation lanes, an independent review lane, parallel network/SciML/SRE work, and blocking human decisions answered within two business days. With one implementation lane, use the 70-116-day serial range. Delayed scientific/security/rights review extends either case. Soak time and external chain timing do not compress with more coding throughput.
 
 # 5. Ownership and execution model
 
@@ -269,10 +271,10 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **CTRL-01** | P0      | BLOCKED-H  | Ratify launch-state taxonomy and allowed economic mode. Exit: signed decision integrated into launch authority.                             | PL / LAUNCH           | S          | MQ-052           | S0         |
 | **CTRL-02** | P0      | BLOCKED-H  | Name governance/RACI and key authorities. Exit: signed authority matrix and named backups.                                                  | PL / LAUNCH           | S          | MQ-018           | S0         |
 | **CTRL-03** | P0      | BLOCKED-H  | Authorize H/I after D while E-G run parallel. Exit: Master Plan sequencing amendment.                                                       | PL / LAUNCH           | S          | MQ-053           | S0         |
-| **CTRL-04** | P0      | READY      | Reconcile stale status, seed, truth, mock-fallback, operations and legacy-emission language. Exit: conflict ledger classified and accepted. | CDX / PL              | M          | CTRL-01          | S0         |
+| **CTRL-04** | P0      | IN REVIEW  | Reconcile stale status, seed, reference, mock-fallback, operations and legacy-emission language. Candidate reconciliation is in this v1.0.2 package; exit still requires owner acceptance of the conflict ledger. | CDX / PL              | M          | CTRL-01          | S0         |
 | **CTRL-05** | P0      | TODO       | Create canonical B/C/D/H/I boards and bounded tickets. Exit: dependencies, DoD, owners and maturity states reviewed.                        | CDX / TL              | M          | CTRL-01-04       | S0         |
 | **A10-R**   | P0      | DONE       | A10 contract ratification merged in PR #36 as `f4ad756a994a9bf21d919fccc4f164fc9719f4e6`. Exit evidence: exact contract ratified on main; no implementation or test authority implied. | PL / TL               | S          | A3,A5-A7         | S0         |
-| **A10-I**   | P0      | DONE-E     | Bounded in-process fixture leaderboard merged normally in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, reviewed at `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`; post-merge push run `32941840184` passed 1,973 CPU tests and the quality gate. Administrative closeout is pending and effective only after independent review, explicit human authorization, and normal closeout merge; no launch or qualification authority is implied. | CDX / TL              | M          | A10-R            | S0         |
+| **A10-I**   | P0      | DONE-E     | Bounded fixture leaderboard merged in PR #37 as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, reviewed at `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`; push run `32941840184` passed 1,973 CPU tests and quality. Independent closeout audit recorded `57/57 PASS`; its documentation merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. No launch or qualification authority is implied. | CDX / TL              | M          | A10-R            | S0         |
 | **A11-R**   | P0      | TODO       | Ratify redaction, metrics and failure taxonomy across A5-A10. Exit: reviewed contract and dependencies.                                     | PL+SEC / TL           | S          | A5-A10           | S0         |
 | **A11-I**   | P0      | TODO       | Implement structured logs/metrics/redaction. Exit: no-seed tests and typed failure telemetry.                                               | CDX+SRE / TL          | M          | A11-R            | S0         |
 | **A12-R**   | P0      | TODO       | Repair invariant manifest dependencies, including A7 and A11. Exit: exact manifest ratified.                                                | PL+SEC / TL           | S          | A4-A11           | S0         |
@@ -280,19 +282,25 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 
 ## 6.2 Wave B science-authoring substrate
 
-| **ID**     | **Pri** | **Status** | **Deliverable and binary exit evidence**                                                                                                            | **Driver / approver** | **Effort** | **Depends / MQ**   | **Target** |
-|------------|---------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|------------|--------------------|------------|
-| **B-01**   | P0      | TODO       | Orient Wave B and pin authority. Exit: board baseline and exact source set recorded.                                                                | CDX+PL / TL           | S          | G1,CTRL-05         | S1         |
-| **B-02**   | P0      | TODO       | Implement PhysicalSystemSpec, CandidateOutputContract, population, SamplingPlan and canonical-case identities. Exit: schema/identity/fixture tests. | CDX+SCI / SCI         | L          | MQ-001/002         | S1         |
-| **B-03**   | P0      | TODO       | Generator API and fixed-viscosity Burgers implementation. Exit: deterministic, conformance, censoring and case-equality tests.                      | SCI+CDX / SCI         | L          | B-02,MQ-003        | S1         |
-| **B-04**   | P0      | TODO       | ReferencePolicy, TruthAsset, primary/witness runner and typed reference failure. Exit: provenance, uncertainty and failure contracts.               | SCI+CDX / SCI         | L          | B-02,MQ-004        | S1         |
-| **B-05**   | P0      | TODO       | MeasurementContract and production Score Pack authoring path. Exit: exact measurement identities and evidence-use bindings.                         | CDX+SCI / PL+SCI      | L          | B-04,MQ-005/006    | S1         |
-| **B-06**   | P0      | TODO       | D1-D12 Validation Dossier and qualification-manifest machinery. Exit: fail-closed workflow and signoff slots.                                       | CDX / SCI+IR          | M          | B-02-05,MQ-003     | S1         |
-| **B-07**   | P0      | TODO       | Nominal mock/light lane, scaffold and prior pipeline. Exit: mock isolation and non-oracle tests.                                                    | CDX / PL+SEC          | M          | A9,B-02            | S1         |
-| **B-E1**   | P0      | TODO       | R0/R1/R2 reproducibility harness. Exit: repeated-run matrix and typed contested outcome plumbing.                                                   | CDX+SCI / SCI+STAT    | M          | B-02-05,MQ-007/008 | S1         |
-| **B-E2**   | P0      | TODO       | Julia/reference failure contract. Exit: Julia/SciML service failures return typed reference or infrastructure statuses rather than synthetic candidate gate failures.          | CDX+SCI / SCI         | M          | B-04               | S1         |
-| **B-E3**   | P0      | TODO       | Credibility crosswalk and evidence manifest. Exit: machine-readable mapping without standards-compliance claim.                                     | CDX+SCI / IR          | S          | B-06               | S1         |
-| **B-GATE** | P0      | TODO       | Wave-B fixture integration. Exit: authoring manifest, no placeholder LIVE path, full invariants green.                                              | CDX / TL+SCI          | M          | B-01 through B-07; B-E1 through B-E3 | S1         |
+The exact controlling register is [`.agent/WAVE_B.md`](../.agent/WAVE_B.md)
+version 0.2 and its 24 ticket files. The former B-02 and B-07 umbrella rows are
+retired planning aliases only; they do not carry executable effort or status.
+
+| **Phase** | **Controlling tickets** | **Exit** | **Effort implication** |
+|---|---|---|---|
+| **WB-0** | B-01 | Exact authority/orientation baseline | S |
+| **WB-1** | B-02A, B-03, B-04, B-07R | Scientific foundations and research architecture ready for downstream contract work | Mixed M/L |
+| **WB-2** | B-02B, B-02C, B-05, B-06, B-07S, B-E1, B-E2 | Candidate semantics, resource policy, measurements, exact wire protocol, Dossier and evidence harnesses ratified/implemented to ticket ceilings | Mixed M/L |
+| **WB-3** | B-07A, B-07B, B-E3 plus WB-2 spillover | Shared v2 primitives, agent discovery, research records, and credibility map | Mixed S/M/L |
+| **WB-4** | B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G | Practice, prior, disclosure-ledger, provider, resource, fixture-official construction, and research-service integration under fixture rights | Mixed M/L |
+| **WB-5** | B-07G spillover, B-E4, B-GATE | Twelve-operation conformance, autoresearch/leakage gauntlet, and bounded Wave B closeout | M/L |
+
+Conditional total: **70-116 primary-lane days serial**, or **44-74 elapsed
+engineering days with two qualified non-overlapping lanes**, plus human review
+and evidence latency. CTRL-05 is not complete merely because this decomposition
+exists; the candidate board still requires independent review, explicit human
+authorization as the planning baseline, normal merge, and prospective Wave
+activation.
 
 ## 6.3 Bittensor v11 foundation and Wave C real vertical
 
@@ -306,7 +314,7 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **NET-5**  | P0      | TODO       | Reproducible localnet CI harness. Exit: subnet/neurons/auth/commitment/test weights/readback transcript and fault campaign.                                              | CDX+NET / TL          | L          | NET-1-4          | S1         |
 | **NET-6**  | P0      | TODO       | Pinned images, node, K8s, TLS/secrets, health, backup/restore and observability. Exit: release images scan/sign; restore/rotation drill.                                 | SRE+CDX / SEC         | L          | NET-1/2,A11      | S1/S2      |
 | **C-01**   | P0      | TODO       | Durable submission/card/transcript state, queue, crash recovery and idempotency. Exit: restart/replay/concurrency tests.                                                 | CDX+SRE / TL          | L          | A7,B-GATE        | S2         |
-| **C-02**   | P0      | TODO       | Real declarative JAX reconstruction backend and backend profile. Exit: repeated reconstruction under pinned resources.                                                   | CDX+VE+SCI / SCI      | L          | B-02/03,B-E1     | S2         |
+| **C-02**   | P0      | TODO       | Real declarative JAX reconstruction backend and backend profile. Exit: repeated reconstruction under pinned resources.                                                   | CDX+VE+SCI / SCI      | L          | B-02B,B-03,B-E1  | rebaseline |
 | **C-03**   | P0      | TODO       | Isolated worker: deny network; scratch-only FS; CPU/GPU/RAM/VRAM/time/process/output limits. Exit: threat model and abuse/kill/retry tests.                              | CDX+SRE / SEC         | L          | C-02,MQ-015      | S2         |
 | **C-04**   | P0      | TODO       | Protected primary reference/TruthAsset runtime and cache. Exit: exact case/pin/access rules; reference failures never score candidate.                                   | CDX+SCI / SCI         | L          | B-03/04          | S2         |
 | **C-05**   | P0      | TODO       | Measurement operators, uncertainty-bearing result and production A5 boundary. Exit: invalid/incomplete/indeterminate paths tested.                                       | CDX+SCI / SCI+STAT    | L          | B-05,C-04        | S2         |
@@ -324,7 +332,7 @@ This is the operational core of the document. Status values: DONE-E = bounded en
 | **ID**   | **Pri** | **Status** | **Deliverable and binary exit evidence**                                                                                                                      | **Driver / approver** | **Effort** | **Depends / MQ**     | **Target** |
 |----------|---------|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|------------|----------------------|------------|
 | **D-01** | P0      | BLOCKED-H  | Ratify fixed-viscosity Burgers identity and claim scope. Exit: exact Challenge decision and version.                                                          | PL / SCI+LAUNCH       | S          | MQ-001               | S0/S1      |
-| **D-02** | P0      | TODO       | Target population, strata, SamplingPlan and weighting evidence. Exit: conformance, support, collision, coverage and censoring report.                         | SCI+STAT / SCI        | L          | B-02/03,MQ-002       | S2/S3      |
+| **D-02** | P0      | TODO       | Target population, strata, SamplingPlan and weighting evidence. Exit: conformance, support, collision, coverage and censoring report.                         | SCI+STAT / SCI        | L          | B-02A,B-03,MQ-002    | rebaseline |
 | **D-03** | P0      | TODO       | Qualify periodic Cole-Hopf primary reference. Exit: precision, conditioning, limiting-case and convergence evidence.                                          | SCI / SCI+IR          | L          | C-04,MQ-004          | S2/S3      |
 | **D-04** | P0      | TODO       | Independent conservative numerical witness. Exit: methodologically separate convergence and discrepancy study.                                                | SCI+IR / IR           | L          | D-03,MQ-004          | S2/S3      |
 | **D-05** | P0      | TODO       | Qualify measurements, admissibility, uncertainty floors and first Score Pack. Exit: sensitivity and rank-stability evidence.                                  | SCI+STAT+PL / SCI     | L          | D-02-04,MQ-005/006   | S3         |
@@ -428,7 +436,7 @@ G2 may proceed with unresolved scientific values only when every output is struc
 
 - The generator/reference discrepancy is material at the smallest rewarded decision scale.
 
-- The physical-truth oracle can be outranked because the grader rewards generator or reference bias.
+- A candidate exploiting generator/reference bias can outrank one following the qualified physical reference.
 
 - The task omits a causal input, all realistic strategies are inadmissible, or ordinary variance flips the winner.
 

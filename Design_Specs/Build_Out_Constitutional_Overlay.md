@@ -144,9 +144,14 @@ Do not insert frontier or treasury policy into the A7 submission FSM merely to r
 
 # 3. A8 constitutional contract
 
-A8 remains **not implemented** until code/test/review/merge evidence exists.
+A8 is implemented, tested, reviewed, and merged only for the bounded
+deterministic process-local fixture-official stub recorded in `.agent/WAVE.md`
+and `.agent/DECISIONS.md`. It is not scientifically, security, network,
+commercially, or production qualified and grants no LIVE, frontier, weight,
+emission, or settlement authority.
 
-The currently specified fixture path is constitutionally acceptable only if it preserves:
+The current bounded fixture path remains constitutionally acceptable only while
+it preserves:
 
 1. exact trusted composition;
 2. fixture-official context only;
@@ -670,7 +675,9 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done for the bounded fixture scope after the reviewed
+documentation closeout merged normally in PR #38 as
+404c039596b487cf2649bb1d73b80e9b49baaced
 A11: todo
 A12: todo
 ```
@@ -704,272 +711,19 @@ product, commercial, network, settlement, weight, or emission authority.
 
 # 6. A11 constitutional contract
 
-The exact bounded A11 contract is proposed in A11-R1 through A11-R17 and
-becomes ratified only after the documentation candidate is independently
-reviewed, explicitly human-authorized, and normally merged. The candidate does
-not implement or test A11. A11 remains `todo`.
+Observability must support later scientific/economic separation.
 
-## 6.1 Bounded in-process primitive only
+Where applicable distinguish:
 
-Wave-A A11 is one dependency-light, in-process operational observability
-primitive. Its sole future semantic and implementation owner is exactly:
+- candidate/scientific failure;
+- reference failure;
+- generator failure;
+- reconstruction failure;
+- infrastructure failure;
+- treasury/settlement failure;
+- commercial acceptance failure.
 
-```text
-carbon/observability/
-    __init__.py
-    model.py
-    providers.py
-    service.py
-```
-
-Canonical focused tests belong only at
-`tests/cpu/test_observability.py`. A0's required `carbon/logging_utils` package
-and deferred logging/redaction marker create a prospective ownership seam.
-This contract resolves it as KEEP + REPLACE: KEEP that importable package as
-an untouched inert A0 compatibility marker, while REPLACE its prospective
-semantic ownership with `carbon/observability` as the sole future A11 owner.
-The marker gains no wrapper, alias, re-export, sink behavior, or alternate A11
-surface, and this documentation candidate performs no code migration.
-`carbon/audit` remains reserved for evaluation receipts and authorized
-re-execution. Root `carbon` exports do not change.
-
-The service has exactly three operations:
-
-```text
-emit_event(event)
-increment_counter(metric)
-observe_duration(stage, duration_ns)
-```
-
-It has no generic logger, free-form message, mapping event, metadata bag,
-dynamic metric name, arbitrary label/value, serializer, exporter, persistence,
-dashboard, alerting, authentication, public API, production backend, or current
-time.
-
-The exact ordered public family is:
-
-```text
-EventKind
-MetricKind
-DurationStage
-ObservabilityEvent
-ObservabilityResourceLimits
-StructuredEventSink
-MetricSink
-ObservabilityService
-ObservabilityError
-ObservabilityRequestError
-ObservabilityResourceError
-ObservabilityIntegrationError
-```
-
-Nominal values are immutable, slotted, exact-typed, subclass-rejecting, and
-representation-safe. They support no generic serialization/copy path.
-
-## 6.2 Events and current owner projection
-
-The exact closed event-kind order is:
-
-```text
-SUBMIT
-SCORE
-REJECT
-FAILED_STRATEGY
-FAILED_INFRA
-```
-
-An `ObservabilityEvent` has exactly the ordered fields `kind`,
-`submission_id`, `submission_state`, and `score_status`. It reuses exact public
-A7 `SubmissionId`/`SubmissionState` and A5 `ScoreStatus`; those owner types are
-not re-exported by A11.
-
-Only this matrix is valid:
-
-| Event | A7 lifecycle state | A5 score status |
-|---|---|---|
-| `SUBMIT` | `RECEIVED` | `None` |
-| `SCORE` | `SCORED` | `SCORED` or `MANDATORY_GATE_FAILED` |
-| `REJECT` | `REJECTED` | `None` |
-| `FAILED_STRATEGY` | `FAILED_STRATEGY` | `None` |
-| `FAILED_INFRA` | terminal `FAILED_INFRA` | `None` |
-
-The event therefore projects an existing exact A7 record and reconstructs a
-fresh exact `SubmissionId` for internal structured correlation. It creates no
-second identity or lifecycle. A pre-record request/resource failure with no
-safe `SubmissionId`, an open duplicate with no new record/transition,
-retryable infrastructure, `PUBLISHED`, `CANCELLED`, `PACK_NOT_READY`, and every
-mismatched or future category are rejected/omitted rather than relabeled.
-
-This preserves the owner meanings:
-
-- `REJECT` remains request/admission semantics;
-- terminal `FAILED_STRATEGY` remains positive strategy attribution;
-- terminal `FAILED_INFRA` remains infrastructure disposition and does not
-  absorb retryable infrastructure;
-- lifecycle `SCORED` remains distinct from A5 scientific `SCORED` and
-  `MANDATORY_GATE_FAILED`;
-- `PACK_NOT_READY` remains non-scientific unavailability and cannot construct
-  a `SCORE` event or be remapped to a generic failure.
-
-Reference, generator, reconstruction, retry, evidence, treasury/settlement,
-commercial-acceptance, incident, and Challenge-health categories remain
-unrepresented until their public owner types and exact integration seams are
-separately ratified. Omission is not collapse. A11 does not import private A8
-outcomes/causes or widen A6's public failure-tag vocabulary.
-
-`SubmissionId` is permitted only as the internal structured event correlation
-field. A11 never emits it as a metric label, free-form text, error,
-representation, generic serialization, or public/miner/customer telemetry.
-This A11 rule does not revoke A7/A9's separately owned opaque submission-ID
-interfaces. `RequesterIdentity` never crosses the A11 boundary.
-
-## 6.3 Metrics, durations, and cardinality
-
-The exact closed metric order is:
-
-```text
-SUBMIT_COUNT
-SCORE_COUNT
-REJECT_COUNT
-FAILED_INFRA_COUNT
-STAGE_DURATION_NS
-```
-
-Only the first four may be incremented, exactly by one. There is no supplied
-delta/value. `STAGE_DURATION_NS` is represented only by the duration operation.
-
-Metric labels are exactly empty. No SubmissionId, Challenge, requester,
-hotkey, wallet, customer, result, score, rank, cursor, provider, exception, or
-arbitrary dimension may enter a metric. The exact duration stages are
-`SUBMIT` and `SCORE`; this closed stage argument is not a generic label map.
-
-`duration_ns` is an exact built-in integer in `0..2**64-1`. A11 reads no
-clock, emits no timestamp, and performs no current-time or elapsed-time
-measurement. Caller-supplied duration is descriptive only and cannot affect a
-domain result or authority decision.
-
-## 6.4 Positive construction and prohibited material
-
-The boundary order is:
-
-```text
-exact outer type validation
-→ positive declared-field extraction
-→ exact owner/closed-enum validation
-→ prohibited-data exclusion by the closed shape
-→ fresh immutable owned reconstruction
-→ resource/reentrancy acquisition
-→ one corresponding sink access
-```
-
-There is no arbitrary mapping/iterable/descriptor/object-graph traversal,
-reflection, generic serializer, recursive sanitizer, or serialize-then-redact
-path. No hostile `repr` or `str` is called. Wave A has no allow-listed
-free-form textual field, so CR/LF, Unicode, oversized text, secret pattern, and
-arbitrary message attacks are eliminated structurally rather than authorized
-through a pattern redactor.
-
-Events, metrics, durations, errors, representations, and sink arguments contain
-no official/master/derived seed, draw/role/domain/context/entropy/nonce/
-commitment/preimage, hidden-pack identity, Strategy/parameter/weight/artifact,
-requester/hotkey/wallet/customer/credential, fee/payment/reward, result/
-receipt/cursor/provider, prior/estimate/scaffold/mock/light/query history,
-score/component/gate/margin/stress/diagnostic/rank, or backend exception/
-stack/path/command/environment/runtime-configuration material.
-
-The exact A5 `ScoreStatus` on `SCORE` is a closed disposition only. No score,
-rank, adaptive-query signal, scientific evidence, Challenge-health transition,
-frontier event, Product Qualification, or economic entitlement is created.
-
-## 6.5 Sinks, resources, and failure boundary
-
-Trusted composition injects one standard-library `StructuredEventSink`
-Protocol and one `MetricSink` Protocol plus a mandatory
-`ObservabilityResourceLimits(max_concurrent_calls)` value. Concrete sinks are
-structural; they need not subclass or pass runtime Protocol introspection.
-There is no default/global/environment-selected sink and no concrete
-production exporter. Test-local recording sinks may be used for acceptance but
-are not package exports.
-
-Each operation makes at most one corresponding synchronous sink call and
-requires exact `None` as the sink return. A missing/call-incompatible method,
-non-`None` return, hostile descriptor/hook ordinary exception, sink invocation
-ordinary exception, or sink-raised public A11 error maps to one new fixed
-integration error without passthrough, text/value/payload echo, or cause/context
-chain. A non-`Exception` `BaseException`, including `KeyboardInterrupt`,
-`SystemExit`, and `GeneratorExit`, propagates unchanged.
-
-One shared per-service non-blocking capacity applies across all operations.
-Same-service sink reentrancy is rejected non-blockingly before a second sink
-call. Capacity is released in `finally` after every success/failure class. A11
-does not batch, queue, retry, fallback, create background work, or claim
-exactly-once durability.
-
-Finite capacity bounds simultaneous sink occupancy but is not a timeout or
-production availability guarantee; a synchronous hostile sink can block its
-caller. Trusted composition must call telemetry outside owner locks and after
-any domain result that must survive has been determined. Initial A11
-instruments no A5–A10 owner and cannot mutate or reinterpret a domain result.
-
-The fixed hierarchy is exactly:
-
-```text
-ObservabilityError(Exception)
-
-ObservabilityRequestError
-    observability.request.invalid
-    Observability request is invalid.
-
-ObservabilityResourceError
-    observability.resource.exhausted
-    Observability resource limit was exceeded.
-
-ObservabilityIntegrationError
-    observability.integration.failed
-    Observability sink failed.
-```
-
-Malformed caller/event/resource construction maps to request; acquired
-capacity/reentrancy exhaustion maps to resource; sink integration maps to
-integration. No separate constructor-policy error is added.
-
-## 6.6 Dependency, maturity, and deferrals
-
-The only non-standard-library imports ratified for the first implementation
-are exact public `SubmissionId` and `SubmissionState` from `carbon.fees` and
-exact public `ScoreStatus` from `carbon.scoring`. A11 imports no owner service,
-private record/store/result, A8 private outcome/cause, RequesterIdentity, A9,
-A10, evidence/audit, optional exporter, filesystem, network, environment,
-current-time, Landscape, neuron, Bittensor, chain, settlement, weight, or
-emission surface.
-
-A5–A10 do not import `carbon.observability` in the first implementation.
-Direct instrumentation is a later composition task with its own exact
-non-circular hook and domain-result-preservation review. Production exporters,
-persistence/retention, dashboards, alerts/thresholds, authentication, incident
-management, receipt/evidence lifecycle, adaptive-query detection, Challenge
-health, additional vocabulary/stages, frontier/Product Qualification,
-commercial, settlement, chain, weight, emission, and LIVE operations remain
-separately deferred and fail closed.
-
-```text
-A11 SPECIFIED / RATIFIED:
-YES only after the documentation contract is independently reviewed,
-explicitly human-authorized, and normally merged
-
-A11 IMPLEMENTED: NO
-A11 TESTED: NO
-A11 SCIENTIFICALLY_QUALIFIED: NO
-A11 SECURITY_QUALIFIED: NO
-A11 NETWORK_QUALIFIED: NO
-A11 COMMERCIALLY_VALIDATED: NO
-A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo
-A12: todo
-```
-
-A11 creates no `tests/invariants/`, pytest invariant marker, workflow/CI or
-quality-baseline change, A12 status change, Wave-A closeout, or launch claim.
+These categories must not be collapsed into one generic failed result.
 
 ---
 
@@ -1002,6 +756,7 @@ When Waves B–D begin, `Build_Out.md` should be revised or supplemented to make
 ```text
 PhysicalSystemSpec
 CandidateOutputContract
+CandidateAssemblyContract
 InstanceDistributionContract
 SamplingPlan
 CanonicalChallengeCase
@@ -1009,10 +764,28 @@ ReferencePolicy
 MeasurementContract
 Validation Dossier
 Score Pack / Evidence Use Contract
+ParameterCatalog
+ResolvedConstructionPlan
+ChallengeInteractionManifest
+ResearchTask
 ExperimentRecord
+ResearchReceipt
+PriorPack
+PriorPolicyBundle
+PriorIndexSnapshot
+PriorPublicationReceipt
+PriorDisclosureLedger
+PublicEstimand
 ```
 
 The scientific job owns the population. The generator does not define the population merely by what it happens to sample.
+
+The miner research surface must also distinguish public contract facts,
+evidence-labeled priors, candidate-specific practice measurements, and official
+evidence. Strategy parameters receive executable meaning only through a
+Challenge-bound catalog and deterministic compiler. Practice and official
+execution remain nominally separate. Prior, practice, scaffold, forecast, and
+information-value artifacts never acquire score authority.
 
 ---
 

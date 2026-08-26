@@ -49,7 +49,7 @@ Fees, priors, mock/light metrics, Landscape similarity, Product-Battery status, 
 ## Data and consensus
 Official `train ≠ eval ≠ stress`. Validators grading one submission use the same scientific exam identity. Validator identity is excluded from scientific seed derivation. All score-bearing draws remain inside the declared envelope; stress may concentrate on rare regimes and edges.
 
-Randomness providers may evolve from a Phase-0 chain beacon toward stronger Drand/hybrid designs, but scientific seed semantics remain owned by the data/seeding specifications. Bittensor weight commit/reveal and Carbon exam randomness are distinct protocol concerns.
+A4 defines a typed `BeaconProvider` boundary, exact 32-byte `OfficialEntropy`, and RFC 5869 HKDF-SHA-256 domain separation. The production provider, observation timing, finality/reorg handling, fallback, and any chain, drand, or hybrid composition remain unresolved owner decisions. Bittensor weight commit/reveal and Carbon exam randomness are distinct protocol concerns.
 
 ## Scientific plane and emission plane
 Carbon separates the durable scientific result from Bittensor economic consensus.
@@ -71,13 +71,13 @@ Audit allocation may improve validator accountability and evidence quality but n
 Infrastructure/reference failures are structurally separate from scientific or strategy failures. Julia/SciML/reference exceptions, node failures, queue loss, policy OOM kills, and equivalent infra failures produce typed infra/reference statuses and retry/refund/quarantine semantics. They do not synthesize hard-gate failures.
 
 ## Miner interface
-Miner MCP provides a dense free loop and a rare official submit loop. Free practice is honest but cheaper, shallower, coverage-limited, and non-authoritative. It never sees the official realized exam and never grants emissions. EvaluationCard is budgeted to support repair without becoming a grader oracle.
+The implemented Wave A MCP provides the bounded seven-operation in-process control/disclosure surface, including official-shaped fixture submission and result retrieval but no execution-bearing practice loop. The proposed inactive Wave B research service adds local, nominally separate, declared-incomplete practice and paired comparison. Practice never sees the official realized exam, grants emissions, or becomes grading authority. EvaluationCard remains budgeted to support repair without becoming a grader oracle.
 
 ## Chain boundary
 Scientific modules should depend on narrow chain/metagraph/weight/beacon interfaces rather than deeply embedding Bittensor SDK objects where practical. Bittensor is the first adapter. This preserves testability and Carbon's scientific provenance if network implementation details evolve.
 
 ## Landscape
-Landscape is build-ordered, not assumed live at P0. It learns from verified Model Cards and later promotion outcomes, fits symbolic/causal hypotheses, improves search guidance, and ranks opportunities. It never overrides gates; causal effects are observational decision support.
+Landscape is build-ordered, not assumed live at P0. It learns from verified Model Cards and later promotion outcomes, fits symbolic hypotheses and effect candidates, improves search guidance, and ranks opportunities. It never overrides gates. Association evidence remains decision support; causal language requires a registered identification design and epistemic promotion.
 
 ## Specialist Bank
 Leaderboard rank is not product qualification. A winning strategy may seed a candidate, but a commercial full surrogate requires fresh controlled retraining and the applicable Product Battery. Product evidence is decontaminated from the lean draws that justified promotion where feasible.

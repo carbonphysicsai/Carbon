@@ -7,8 +7,11 @@
 
 **Job:** Productize landscape evidence into regime-scoped specialists without wrecking incentives or revenue.
 
-**Export doctrine:** *Ground truth in. Verified knowledge out.*  
-Do **not** distill teacher checkpoints or launder leaderboard weights. Build a **connected graph** of verified Model Cards and outcomes; **multiply** into recipes and product tasks; **execute** (retrain + physics + product battery); **grounding gate** — no evidence, no ship.
+**Export doctrine:** *Qualified evidence in. Independently re-tested capability out.*
+Do **not** distill teacher checkpoints or launder leaderboard weights. Build a
+**connected graph** of eligible qualified evidence and outcomes; **multiply**
+into recipes and product tasks; **execute** (retrain + physics + product
+battery); **grounding gate** — no evidence, no ship.
 
 **Dual threshold (product-first, search-safe)**
 
@@ -20,12 +23,12 @@ Do **not** distill teacher checkpoints or launder leaderboard weights. Build a *
 Leaderboard rank ≠ shelf product. **No commercial specialist ships without the product battery.**  
 Heavy evals run rarely (promote candidates), not on every submission.
 
-**Pipeline:** Model Cards → connected landscape graph → causal/symbolic fit → rank opportunities → recipe from landscape evidence (single-winner strategy may be a **candidate**; rank/checkpoint alone is **not** qualification) → controlled retrain → **fresh** lean gates → **product battery** → bank.
+**Pipeline:** Model Cards → connected landscape graph → effect-candidate/symbolic fit → rank opportunities → recipe from landscape evidence (single-winner strategy may be a **candidate**; rank/checkpoint alone is **not** qualification) → controlled retrain → **fresh** lean gates → **product battery** → bank.
 
 **Dual egress (do not mix)**
 | Path | Who | What they get |
 |------|-----|---------------|
-| **Public / miner (free)** | Miners, agents | Noisy, lagged prior / warm-start derivatives only — never full weights or exact bank recipe |
+| **Public / miner (free)** | Miners, agents | Approved coarsened, suppressed, lagged PriorPack items only—never full weights or exact bank recipe |
 | **Commercial (paid)** | Buyers | Closed SKU = ONNX + exact recipe + Model Card + **product-battery certs** + license + updates (+ optional air-gap) |
 
 Competition never requires purchase. Open the catalog and verification story; close the certified artifact.
@@ -35,7 +38,7 @@ Competition never requires purchase. Open the catalog and verification story; cl
 ---
 
 **Carbon Subnet**  
-**Version:** 1.3 (July 2026)  
+**Version:** 1.4 (August 2026)
 **Status:** Core Product & Engineering Appendix  
 **Related:** [`appendices/Landscape_Agent.md`](./Landscape_Agent.md), [`appendices/Use_Cases_by_Phase.md`](./Use_Cases_by_Phase.md), `SPEC.md`
 
@@ -49,11 +52,11 @@ This document defines:
 2. **Export doctrine:** grounded graph → multiply → execute → judge/repair → decontaminate → grounding gate → ship.
 3. **What** a specialist is (and is not).
 4. **Dual threshold:** lean miner→validator exam vs full product battery at bank graduation.
-5. **Dual egress:** noisy public/miner path vs closed commercial SKU path.
+5. **Dual egress:** evidence-labeled coarsened public/miner path vs closed commercial SKU path.
 6. **Which regimes** specialists target.
 7. **Who buys** specialists at each Carbon phase.
 
-The Specialist Bank is Port D of the Landscape Value Router: private causal/symbolic intelligence becomes versioned, re-verified **product** artifacts. Only **noisy derivatives** flow to miners; **full certified artifacts** are commercial products.
+The Specialist Bank is Port D of the Landscape Value Router: private effect-candidate/symbolic intelligence becomes versioned, re-verified **product** artifacts. Only approved **coarsened, suppressed, lagged PriorPack derivatives** flow to miners; **full certified artifacts** are commercial products.
 
 ---
 
@@ -118,7 +121,7 @@ Promotion / bank entry for a **full surrogate SKU** requires **all** of the foll
 |---------|------|---------------------------------------------|
 | **PB-PHYS** | Fresh controlled retrain + full physics gates + stress suite on **new** seeds | All hard gates pass; robustness ≥ baseline prior policy |
 | **PB-ROLL** | Plant/rollout suite at product depth (multi-step / Δt map as defined by regime) | Rollout error and stability within regime τ; no blow-up |
-| **PB-INV** | Inverse-design bakeoff: fixed targets + constraints + fixed query budget | Constraint satisfaction rate ≥ policy; improves vs noisy-prior scaffold |
+| **PB-INV** | Inverse-design bakeoff: fixed targets + constraints + fixed query budget | Constraint satisfaction rate ≥ policy; improves vs public PriorPack scaffold |
 | **PB-ADV** | Adversarial stress: short optimizer under box constraints maximizing violation / residual | Max found violation ≤ policy; document residual holes on card |
 | **PB-LAT** | Batch inference latency class on reference hardware profile | p95 latency ≤ declared class (e.g. L1 interactive / L2 batch) |
 | **PB-ART** | Export deployable artifact (ONNX or approved equiv.) + I/O schema | Round-trip numeric parity within ε vs training framework |
@@ -176,13 +179,16 @@ These are **high-value, low-frequency** labels. They improve opportunity ranking
 
 ---
 
-## 3. Ground Truth In → Verified Knowledge Out (Export Doctrine)
+## 3. Qualified Evidence In → Independently Re-Tested Capability Out
 
 This section is the **definable strategy** for Landscape → Specialist. It aligns Carbon with a grounded verification philosophy: do not ship model-echo; ship what survives execution against a record.
 
 ### 3.1 Doctrine (one sentence)
 
-> **Ground truth in. Verified knowledge out.** The engineering record of competitive, gated physics runs is turned into product artifacts only after graph lineage, task multiplication, real retrain/execution, judgment, decontamination, and a hard grounding gate.
+> **Qualified evidence in. Independently re-tested capability out.** The
+> engineering record of eligible, qualified physics runs is turned into product
+> artifacts only after graph lineage, task multiplication, real
+> retrain/execution, judgment, decontamination, and a hard grounding gate.
 
 ### 3.2 What we refuse (anti-distillation)
 
@@ -192,7 +198,7 @@ This section is the **definable strategy** for Landscape → Specialist. It alig
 | **Leaderboard laundering** | Yesterday's rank ≠ today's product; seeds and stress differ |
 | **Rank/checkpoint as qualification** | Winning strategy **may seed** a candidate; **rank/checkpoint alone is not qualification** — needs controlled retrain + product battery |
 | **Synthetic tasks with no execution** | Product claims (INV, plant) must be **run**, not asserted |
-| **Ship without lineage** | No traceable card/causal/PB evidence → no SKU |
+| **Ship without lineage** | No traceable card/effect-candidate/PB evidence → no SKU |
 
 Classic knowledge distillation (match a teacher model) is the wrong process for the Specialist Bank. Carbon's bank process is **synthesize from verified outcomes + re-prove by execution**.
 
@@ -205,7 +211,7 @@ Substrate is not git/PR/CVE — it is the **verified physics competition record*
 | Model Card | strategy hash, lean gates, stress margins, seeds, backend |
 | Regime | physics_class, challenge_family, backbone_family, envelope |
 | Gate / stress outcome | pass/fail vectors, category coverage |
-| Causal / symbolic artifact | effect_ids, expression_ids (Landscape D2/D3) |
+| Effect-candidate / symbolic artifact | effect_ids, expression_ids (Landscape D2/D3) |
 | Promotion attempt | PB-* pass/fail, failure modes |
 | Specialist version | lineage to landscape_version + data_cutoff_block |
 
@@ -216,8 +222,8 @@ Substrate is not git/PR/CVE — it is the **verified physics competition record*
 Analogous stages to a grounded training-data gauntlet, specialized for physics specialists:
 
 ```text
-SOURCES (ground truth)
-  Lean-verified Model Cards, gate vectors, stress results, strategies
+SOURCES (qualified evidence)
+  Eligible qualified Model Cards, gate vectors, stress results, strategies
         │
         ▼
 CONNECTED GRAPH (Landscape)
@@ -255,7 +261,7 @@ CONNECTED GRAPH (Landscape)
         ▼
 VERIFIED EXPORTS
   Closed SKU (ONNX, recipe, card, PB report, license)
-  Public: noisy prior derivatives only
+  Public: approved coarsened PriorPack derivatives only
 ```
 
 | Gauntlet step | Carbon implementation |
@@ -273,7 +279,7 @@ VERIFIED EXPORTS
 
 | Graph support | Multiplies into |
 |---------------|-----------------|
-| Stable causal band on conservation weight | Loss-pack module + default bands |
+| Stable association or `causal_candidate` band on conservation weight | Loss-pack module + default bands |
 | Systematic residual failures at low ν | PB-ADV box + PB-ESC notes for low-ν edge |
 | `product_jobs: [inverse_design]` on regime | PB-INV target set + query budget policy |
 | `product_jobs: [plant]` | PB-ROLL horizon and Δt definition |
@@ -297,7 +303,7 @@ If it did not **run**, it does not ship on the commercial path.
 
 ```text
 ship_commercial_full_sku =
-  has_lineage(landscape_version, causal_or_card_support)
+  has_lineage(landscape_version, effect_candidate_or_card_support)
   AND lean_retrain_pass(PB-PHYS)
   AND product_battery_pass(required PB set)
   AND seed_policy_ok
@@ -320,7 +326,7 @@ Landscape is the **connected graph + multiply + route-to-gauntlet** layer. The S
 
 ### 3.9 Pitch line (external)
 
-> We don't distill a teacher model's gaps into a product. We build a graph of physics runs that actually passed gates, multiply that evidence into training recipes and job-shaped tests, re-train and re-run them, and only then export a closed specialist — noisy hints for miners, certified artifacts for buyers.
+> We don't distill a teacher model's gaps into a product. We build a graph of physics runs that actually passed gates, multiply that evidence into training recipes and job-shaped tests, re-train and re-run them, and only then export a closed specialist—coarsened evidence-labeled hints for miners, certified artifacts for buyers.
 
 ---
 
@@ -334,27 +340,31 @@ Specialist Bank
        ├──────────────────────────────────────────────┐
        ▼                                              ▼
  PUBLIC / MINER (free)                         COMMERCIAL (paid)
- Noisy, lagged, incomplete                     Closed specialist SKU
- derivatives → prior packs                     = certified weights
- and warm-start API only                       + exact bank recipe
+ Coarsened, lagged, incomplete                 Closed specialist SKU
+ evidence → approved PriorPack items           = certified weights
+ + scaffold / falsification refs               + exact bank recipe
                                                + Model Card
  Never: full weights,                          + product-battery certs
         exact bank recipe,                     + license
-        tight causal coefficients,             + update channel
+        exact/private effect estimates,        + update channel
         bank verify / PB seeds                 (+ optional air-gap seal)
 
  Competition scoring NEVER depends on purchasing the commercial path.
 ```
 
-### Why miner path must be noisy
+### Why the miner path must be sufficient but recipe-safe
 
 Full specialist warm-start (exact recipe + weights + tight bands) recreates champion exposure:
 
 - Search collapses onto one artifact  
 - Cloning dominates exploration  
-- Landscape moat leaks through the warm-start API  
+- Private bank evidence leaks through the public prior channel
 
-**Subnet rule:** miners never pull a complete `specialist_bank_item`. Banked regimes may **inform** the daily noisy prior pack (same Port A path and noise/lag policy as `Landscape_Agent.md`). Warm-start ≠ SKU download.
+**Subnet rule:** miners never pull a complete `specialist_bank_item`. Banked
+regimes may **inform** an immutable fixed-epoch PriorPack only through the same
+eligibility, estimand, coarsening, suppression, lag, cumulative-disclosure,
+rights, and approval path as `Landscape_Agent.md`. A PriorPack item is evidence
+for a registered intervention, not a warm-start artifact or SKU download.
 
 ### Why commercial path must be closed
 
@@ -373,13 +383,13 @@ If the full specialist (weights + exact strategy + certs) is open-sourced as a f
 | May stay open (network health, not the SKU) | Role |
 |---------------------------------------------|------|
 | Coarse regime catalog (“Burgers–FNO specialist exists”) | Marketing + orientation |
-| Noisy priors derived from banked regimes | Free search orientation |
+| Approved coarsened PriorPack items derived from eligible bank evidence | Free search orientation |
 | Public Model Card *summaries* / marketing evidence | Trust without full recipe |
 | Descriptions of method *classes* | Scientific credibility |
 
 **Open the verification standard and the coarse catalog. Close the certified artifact and the rights/ops around it.**
 
-Someone may approximate a specialist from noisy priors and publish a clone. That is acceptable: commercial value is **assurance, envelope, job-shaped tests, license, and ongoing verify** — not eternal secrecy of every loss weight.
+Someone may approximate a specialist from public prior guidance and publish a clone. That is acceptable: commercial value is **assurance, envelope, job-shaped tests, license, and ongoing verify** — not eternal secrecy of every loss weight.
 
 ---
 
@@ -388,19 +398,19 @@ Someone may approximate a specialist from noisy priors and publish a clone. That
 ### Is
 
 - A **regime-scoped**, reusable artifact encoding training methodology (and optionally weights).
-- Built from **landscape graph evidence** (support density, causal stability, symbolic structure, PB history).
+- Built from **landscape graph evidence** (support density, effect stability, symbolic structure, PB history).
 - **Re-verified** under fresh hidden stress + physics gates before bank entry.
 - For **full SKUs:** passed the **product battery** / verification gauntlet.
 - Versioned with **provenance** back to landscape artifact IDs and data cutoff.
 - **Commercially** usable as closed product SKU or sealed air-gap pack.
-- **Publicly** usable only via noisy derivatives in prior / warm-start packs.
+- **Publicly** usable only via approved coarsened derivatives in PriorPack and scaffold resources.
 
 ### Is Not
 
 - Yesterday's challenge-winner checkpoint, rebranded.
 - A distilled copy of a teacher network's outputs.
 - A substitute for full validator evaluation when re-entering competition.
-- An open export of the causal graph or Model Card lake.
+- An open export of the effect-candidate graph or Model Card lake.
 - A full-fidelity free download for miners.
 - Mandatory for miners to compete (submission remains free).
 - “Passed lean gates only” without PB — that is a **leaderboard artifact**, not a commercial specialist.
@@ -410,8 +420,8 @@ Someone may approximate a specialist from noisy priors and publish a clone. That
 | Type | Contents | Typical use |
 |------|----------|-------------|
 | **Loss pack** | Structured loss terms + default weight bands (+ optional MT snippets) | Highest early ROI |
-| **Curriculum block** | Multi-fidelity / resolution / mode schedules with causal support | Training dynamics |
-| **Init / prior policy** | Scaffold + high-impact field masks | **Noisy** agent cold start only |
+| **Curriculum block** | Multi-fidelity / resolution / mode schedules with effect-candidate support | Training dynamics |
+| **Init / prior policy** | Scaffold + evidence-labeled search-attention hints | **Coarsened** agent cold start only |
 | **Backbone adapter recipe** | Hyper ranges / patterns for a backbone family | FNO vs GINO vs … |
 | **Composite specialist** | Locked combination of the above | Internal + **closed** product |
 | **Full surrogate SKU** | ONNX + Model Card + gate + **PB certs** from controlled retrain | Primary **paid** product |
@@ -444,7 +454,7 @@ Sponsored challenges should declare `product_jobs` in the brief so PB-INV / PB-R
 
 | Signal | Source | Role |
 |--------|--------|------|
-| Causal support | D3 | Levers that *cause* robustness / gate-pass |
+| Effect-candidate support | D3 | Levers associated with robustness / gate-pass under declared assumptions |
 | Support density | D1 | Enough verified cards |
 | Stability | D3 across windows | Direction holds over time |
 | Frontier residual / maturity | D5 | Productize vs keep searching |
@@ -456,7 +466,7 @@ Sponsored challenges should declare `product_jobs` in the brief so PB-INV / PB-R
 
 ```text
 opportunity(regime, module_type) =
-  causal_clarity
+  effect_evidence_clarity
   × support_density
   × stability
   × max(commercial_priority, phase_roadmap_priority)
@@ -472,7 +482,7 @@ Governance / product sets commercial priority and approves the queue. Landscape 
 ## 8. Pipeline — Landscape → Specialist Bank
 
 ```text
-Model Cards (lean verified)     ← ground truth ingest
+Model Cards (lean verified)     ← qualified evidence ingest
         │
         ▼
 CONNECTED GRAPH (Landscape fitters + PB outcomes)
@@ -498,17 +508,17 @@ Decontaminated export → Specialist Bank
         ├──────────────────────┐
         ▼                      ▼
 PUBLIC EGRESS            COMMERCIAL EGRESS
-Noisy prior pack         Closed SKU + license + PB certs
+Coarsened PriorPack      Closed SKU + license + PB certs
 ```
 
 ### Steps A–F
 
-**A — Select:** opportunity scores; min support; causal stability; commercial priority.  
+**A — Select:** opportunity scores; minimum support; effect stability; commercial priority.
 **B — Specify:** `specialist_candidate_v1` with `product_battery` required set and provenance.  
 **C — Construct:** candidate may start from a **winning strategy** or landscape effect bands (preferred when available). Rank/checkpoint is not qualification.  
 **D — Execute + judge:** fresh train; new seeds; lean gates; full PB for `full_surrogate`.  
 **E — Package:** `specialist_bank_item_v1` including `product_battery_report`, latency_class, lineage.  
-**F — Operate:** noisy miner path only; commercial closed path; refresh/retire on PB regression.
+**F — Operate:** approved coarsened miner path only; commercial closed path; refresh/retire on PB regression.
 
 ### Seed decontamination policy
 
@@ -529,7 +539,7 @@ Noisy prior pack         Closed SKU + license + PB certs
 
 ## 9. Worked Example (Phase 0)
 
-**Graph support:** Burgers + FNO cards show stable positive causal effect of conservation-penalty band and a resolution curriculum on stress robustness; n≈120; `product_jobs: [inverse_design, plant]`.
+**Graph support:** Burgers + FNO cards show a stable positive observed association between the conservation-penalty band, a resolution curriculum, and stress robustness; this is not a causal claim; `product_jobs: [inverse_design, plant]`.
 
 **Multiply:** candidate recipe (winner-seeded or effect-synthesized); PB-INV / PB-ROLL / PB-ADV as specified; always fresh independent qualification.
 
@@ -539,13 +549,13 @@ Noisy prior pack         Closed SKU + license + PB certs
 
 **Grounding gate:** all required PB pass → bank `specialist_burgers_fno_conservation_v1`.
 
-**Export:** public noisy prior influence only; commercial closed SKU + PB report + license.
+**Export:** public approved coarsened PriorPack influence only; commercial closed SKU + PB report + license.
 
 ---
 
 ## 10. Who Wants a Specialist at Each Phase
 
-Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evidence**, not lean screenshots alone.
+Miner adoption = **coarsened PriorPack/scaffold guidance only**. Buyers require **gauntlet / PB evidence**, not lean screenshots alone.
 
 ### Phase 0 — Core single-physics PDEs
 
@@ -597,7 +607,7 @@ Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evide
 | **3** | System digital-twin programs | Coupled building blocks | Closed coupled composites + PB |
 | **4** | Fleet / extreme programs | Production 3D / extreme surrogates | Program SKUs + full evidence |
 
-**Cross-cutting:** agent miners (noisy only); tooling platforms (licensed SKUs); sponsors (Tier 2–4; may extend PB definitions).
+**Cross-cutting:** agent miners (approved coarsened guidance only); tooling platforms (licensed SKUs); sponsors (Tier 2–4; may extend PB definitions).
 
 ---
 
@@ -605,7 +615,7 @@ Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evide
 
 | Bank output | GTM engine | Open or closed |
 |-------------|------------|----------------|
-| Noisy prior derivatives | Miner MCP / Port A | Open (free, noisy) |
+| Approved coarsened PriorPack derivatives | Miner MCP / Port A | Open (free, evidence-labeled) |
 | Coarse catalog listing | Marketing / roadmap | Open |
 | Catalog SKUs | Specialist Bank Tier 1 | **Closed** (+ PB report) |
 | Customer geometry / envelope | Sponsored Challenges Tier 2–4 | **Closed** per tier IP |
@@ -626,7 +636,7 @@ Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evide
 | Grounding gate | Zero commercial full SKUs without PB report |
 | Anti-distillation | Zero bank entries that are weight copies without controlled retrain |
 | Product | Attach rate, renewal, sponsored upsell |
-| Network | Noisy warm-start time-to-first-gate-pass (observational) |
+| Network | PriorPack-guided time-to-first-declared-practice-pass (observational) |
 | Commercial integrity | Zero pay-to-compete |
 | Goodhart guard | Lean rank vs PB pass correlation monitored |
 
@@ -636,7 +646,7 @@ Miner adoption = **noisy warm-start only**. Buyers require **gauntlet / PB evide
 
 Specialists are how Carbon turns **private landscape intelligence into objects the market understands**: verified methods and surrogates for a named physics regime, tested for the **jobs** customers run.
 
-**Export law:** *Ground truth in. Verified knowledge out.*  
+**Export law:** *Qualified evidence in. Independently re-tested capability out.*
 Connected graph of gated runs → multiply into recipes and product tasks → execute (retrain + physics) → product battery → grounding gate → dual egress.
 
 - **Lean validator exams** keep search fast and feed the graph.  
@@ -645,8 +655,8 @@ Connected graph of gated runs → multiply into recipes and product tasks → ex
 - **Dual egress** protects incentives and revenue.  
 - Phase customers move from canonical baselines → OEM design loops → sealed dual-regime → coupled production twins.
 
-That is the Landscape → Specialist system: evidence-ranked regimes, candidate recipes (winning strategies allowed as candidates; rank/checkpoint is not qualification evidence), mandatory re-execution, job-shaped verification, noisy public derivatives, and closed certified artifacts buyers pay for because assurance matches the physics and the job.
+That is the Landscape → Specialist system: evidence-ranked regimes, candidate recipes (winning strategies allowed as candidates; rank/checkpoint is not qualification evidence), mandatory re-execution, job-shaped verification, approved coarsened public guidance, and closed certified artifacts buyers pay for because assurance matches the physics and the job.
 
 ---
 
-*Canonical reference for Specialist Bank construction, dual threshold, **grounded verification gauntlet**, dual egress, and phase customer mapping. Implementation must enforce: lean-only emissions path; noisy-only miner derivatives; closed commercial SKUs; **no teacher-checkpoint distillation**; **full SKU ⇒ product battery pass** — as specified here, in `Use_Cases_by_Phase.md`, and in `Landscape_Agent.md`.*
+*Canonical reference for Specialist Bank construction, dual threshold, **grounded verification gauntlet**, dual egress, and phase customer mapping. Implementation must enforce: lean-only emissions path; approved coarsened evidence-labeled miner guidance; closed commercial SKUs; **no teacher-checkpoint distillation**; **full SKU ⇒ product battery pass**—as specified here, in `Use_Cases_by_Phase.md`, and in `Landscape_Agent.md`.*
