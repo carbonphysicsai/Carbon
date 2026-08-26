@@ -54,7 +54,7 @@ No state implies a later state.
 | A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
-| A11 | Yes | No | No | No | observability/redaction pending |
+| A11 | Yes at the broad C16 direction level; exact A11-R1–A11-R17 contract pending independent review, explicit human authorization, and normal merge | No | No | No | Corrected bounded observability contract candidate only; no implementation, instrumentation, exporter, test, or qualification evidence |
 | A12 | Yes | No | No | No | Wave-A invariant closeout pending |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
@@ -79,6 +79,31 @@ A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
 A10 WAVE STATUS: done in the bounded scope after the documentation closeout merged normally in PR #38 as 404c039596b487cf2649bb1d73b80e9b49baaced
 ```
+
+A11 corrected documentation-contract-candidate maturity:
+
+```text
+A11 SPECIFIED / RATIFIED:
+YES at the broad C16 direction level; the exact A11-R1 through A11-R17
+contract becomes ratified only after independent review, explicit human
+authorization, and normal merge
+
+A11 IMPLEMENTED: NO
+A11 TESTED: NO
+A11 SCIENTIFICALLY_QUALIFIED: NO
+A11 SECURITY_QUALIFIED: NO
+A11 NETWORK_QUALIFIED: NO
+A11 COMMERCIALLY_VALIDATED: NO
+A11 PRODUCTION_QUALIFIED: NO
+A11 WAVE STATUS: todo
+A12: todo
+Wave A: incomplete
+Wave B: candidate planning only; inactive
+```
+
+This documentation candidate adds no A11 implementation, owner
+instrumentation, exporter, test, or scientific, security, network, commercial,
+or production qualification evidence.
 
 Current `main` implements and tests only a bounded, in-process, fixture-only
 projection for one exact Challenge. It provides no production provider or

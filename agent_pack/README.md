@@ -36,14 +36,21 @@ constitutional authority
 
 - Current board remains **Wave A**.
 - A0–A10 are done in the bounded scopes recorded in `.agent/WAVE.md`.
-- **A10's documentation-only closeout merged normally in PR #38 as current
-  `main` `404c039596b487cf2649bb1d73b80e9b49baaced`.** A10 is `done` only
-  for the exact bounded in-process fixture leaderboard scope; the closeout adds
-  no implementation or test evidence beyond the already-merged bounded work.
-- A11 and A12 remain `todo`. The exact A11-R1–A11-R17 bounded
+- **A10's documentation-only closeout merged normally in PR #38 as
+  `404c039596b487cf2649bb1d73b80e9b49baaced`; that merge is ancestral to
+  current `main` `ea7f78b455f14f8ea674c196db349fd08b355305`.**
+  A10 is `done`
+  only for the exact bounded in-process fixture leaderboard scope; the
+  closeout adds no implementation or test evidence beyond the already-merged
+  bounded work.
+- Current main also contains candidate-only Wave B planning. Wave A remains
+  controlling and incomplete; Wave B is inactive, and no B ticket is
+  authorized until every recorded activation gate is separately satisfied.
+- A11 and A12 remain `todo`. The corrected A11-R1–A11-R17 bounded
   operational-observability contract is a documentation-only candidate and is
   not ratified until independent review, explicit human authorization, and
-  normal merge. No A11 implementation or A12 work starts here.
+  normal merge. No A11 implementation, A12 work, or Wave B activation starts
+  here.
 - A9 and A10 are not scientifically qualified, security qualified, network qualified,
   commercially validated, or production qualified.
 - A10 implements only the bounded fixture projection. It does not provide a
@@ -60,20 +67,23 @@ constitutional authority
 - Baseline tests before/after each ticket.
 - One bounded ticket per branch/worktree by default.
 - Do not infer scientific/security/network/commercial/production qualification from test success.
-- Later Waves H–N in the Agentic Master Plan are planning architecture only until explicitly authorized.
+- Current-main Wave B and later Waves H–N in the Agentic Master Plan are
+  planning architecture only until their exact activation gates are
+  explicitly satisfied.
 
 ---
 
 ## Current next move
 
-1. independently review the exact documentation-only A11 contract candidate;
+1. independently review the exact corrected documentation-only A11 contract
+   candidate against current main;
 2. normally merge it only after fresh explicit human authorization through the
    review workflow;
 3. re-fetch and verify the ratification merge, clean topology, current
    authority, green CI, unchanged A11/A12 `todo` status, and every A11
    implementation criterion still unchecked; and
-4. begin A11 implementation only under a separate explicit authorization,
-   preserving the exact bounded primitive and owner boundaries. A12 remains
-   `todo` and separately authorized, while every official, LIVE, evidence,
-   Challenge-health, frontier, product, settlement, chain, weight, and emission
-   path remains fail closed.
+4. begin A11 implementation only under a later separate explicit
+   authorization, preserving the exact bounded primitive and owner boundaries.
+   A12 remains `todo` and separately authorized; Wave B remains inactive;
+   every official, LIVE, evidence, Challenge-health, frontier, product,
+   settlement, chain, weight, and emission path remains fail closed.
