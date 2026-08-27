@@ -4,7 +4,7 @@
 **Status:** todo
 **Depends on:** B-02A, B-07R, A2
 **Build Out:** C2/C9 Wave B semantic construction seam
-**Master questions:** MQ-008, MQ-015, MQ-024
+**Master questions:** MQ-005, MQ-008, MQ-015, MQ-024
 **Authority:** current A2 contract; `Miner_MCP_Wave_B_Research_Contract.md` §§4-5
 
 ## Goal
@@ -38,6 +38,12 @@ Turn the ratified inert Strategy v1 envelope into an exact, Challenge-bound cons
       the fixture-official adapter and B-GATE owns integrated parity proof
       after B-07C and B-07F exist.
 - [ ] Include one fixture registered hybrid-backbone or learned-component slot without accepting participant-defined graphs or code.
+- [ ] Permit a fixture closed set of versioned structural-component surfaces
+      with exact executable semantics, physical-assumption/applicability refs,
+      fixed-versus-trainable boundaries, implementation pins, limitations,
+      resource impacts, and public falsification refs. Prove that component
+      labels and claimed invariants carry construction authority only and
+      cannot satisfy gates or enter score.
 - [ ] Emit exact static resource requirements without deciding policy
       admissibility; B-02C owns policy evaluation and enforcement and cannot
       mutate compiler semantics.
@@ -48,9 +54,9 @@ Turn the ratified inert Strategy v1 envelope into an exact, Challenge-bound cons
 ## Human input
 
 SciML, protocol, and security approve allowed backbones, hybrid assembly,
-parameter domains/units, training support, and policy family. B-02C owners
-approve resource policy and operational rails. Fixtures remain
-non-authoritative.
+structural components and their physical applicability, parameter
+domains/units, training support, and policy family. B-02C owners approve
+resource policy and operational rails. Fixtures remain non-authoritative.
 
 ## Must not
 

@@ -2,10 +2,12 @@
 
 **Wave:** B candidate
 **Status:** todo
-**Depends on:** B-02A, B-02B, B-04, B-05
+**Depends on:** B-02A, B-02B, B-02C, B-04, B-05
 **Build Out:** Wave B evidence harness
 **Master questions:** MQ-007, MQ-008
-**Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §§6-11; `Evaluation_Evidence_and_Validator_Audit.md`
+**Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §4 C13-C14 and
+§§6-11; `Evaluation_Evidence_and_Validator_Audit.md` §4;
+`Miner_MCP_Wave_B_Research_Contract.md` §8.2
 
 ## Goal
 
@@ -14,16 +16,51 @@ Provide fixture machinery for distinguishing exact identity, numerical reproduci
 ## Definition of Done
 
 - [ ] Represent R0 exact artifact/configuration identity, R1 numerical comparison, and R2 decision comparison as separate results.
-- [ ] Define repeated reconstruction-seed by evaluation-seed experiment matrices and exact evidence provenance.
-- [ ] Represent resolved, unresolved/indeterminate, reference-failed, reconstruction-failed, and infrastructure-failed outcomes.
+- [ ] Define reconstruction × whole-case/trajectory evidence identities,
+      stratified by the registered stress design, for incumbent and challenger,
+      with exact provenance, common-case pairing, and joint reference-
+      uncertainty realizations where material. Reconstruction replicates are
+      separately realized and producer-independent; registered pairing or
+      common random numbers are allowed and all shared dependencies remain
+      represented.
+- [ ] Preserve reconstruction-by-case and reconstruction-by-stratum
+      interaction, heteroscedasticity, representation/execution dependence,
+      missing or censored cells, and any deliberately paired training seed or
+      hardware role through a qualified crossed/hierarchical resampling method,
+      hierarchical model, or conservative bound.
+- [ ] Treat component uncertainty budgets as diagnostics. Permit quadrature or
+      zero covariance only when an injected Dossier qualifies the procedure and
+      applicability test and the exact fixture incumbent-challenger evidence
+      satisfies that test; otherwise use joint propagation or conservative
+      bounds and return indeterminate when unresolved.
+- [ ] Represent a staged `ReconstructionEvidencePolicy` with static admission,
+      registered complete base reconstruction evidence (one or more builds),
+      repeat promotion evidence, frozen-build reuse, random stability audits,
+      coverage-qualified scientific sequential stopping or extension, and a
+      separate heuristic-futility seam. A pre-base or heuristic stop returns
+      typed non-scientific `EVIDENCE_DEFERRED`; it cannot become
+      `NOT_SUPERIOR`, gate failure, or candidate physics failure.
+- [ ] Represent resolved, unresolved/indeterminate, evidence-deferred,
+      reference-failed, reconstruction-failed, and infrastructure-failed
+      outcomes without collapsing their authority.
 - [ ] Define typed contested-outcome plumbing without implementing frontier promotion.
 - [ ] Inject all tolerances, sample sizes, and power criteria; missing values fail closed.
-- [ ] Add deterministic fixture, variance, ordering, missing-evidence, hardware-profile, and failure-class tests.
+- [ ] Add deterministic fixture, null/coverage/power, correlated-error,
+      heteroscedastic stress, interaction, missing/censored evidence,
+      sequential-stopping, false-elimination, ordering, hardware-profile, and
+      failure-class tests.
 
 ## Human input
 
-SciML/statistics owners derive numerical and decision tolerances, sample sizes, minimum resolvable improvement, and supported backend profiles.
+SciML/statistics owners derive numerical and decision tolerances, sample sizes,
+minimum resolvable improvement, dependence model, interval procedure, exact-
+pair applicability test, coverage and power requirements, scientific stopping/
+extension rule, heuristic-futility error bound, stability-audit rate, and
+supported backend profiles.
 
 ## Must not
 
-Treat exact bits as universal reproducibility, use arbitrary epsilons, rank inside an unresolved interval, or create a frontier event.
+Treat exact bits as universal reproducibility, use arbitrary epsilons, assume
+independence from component labels, let a quality screen deny registered base
+evidence, convert `EVIDENCE_DEFERRED` into negative scientific evidence, rank
+inside an unresolved interval, or create a frontier event.

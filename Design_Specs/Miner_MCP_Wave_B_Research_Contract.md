@@ -1,7 +1,7 @@
 # Carbon Miner Research Interface and Prior Pack Contract
 
 **Status:** OWNER-REVIEW CONTRACT CANDIDATE. This file specifies proposed Wave B behavior. It does not change the ratified Wave A MCP, authorize Wave B implementation, publish a production prior, or qualify a public practice service.
-**Version:** 0.2
+**Version:** 0.3
 **Applies with:** `Miner_MCP.md`, `Physics_Intelligence_System.md`, `Landscape_Agent.md`, `Build_Out.md`, `Build_Out_Constitutional_Overlay.md`, `Launch_Bar.md`, and `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`
 **Sequencing:** `.agent/WAVE_B.md`
 
@@ -178,10 +178,30 @@ explicit default, if a default is permitted
 compatibility and dependency rules
 policy-agnostic static resource dimensions, contributions, and impact tags
 public outcome-family tags
+optional structural-component / physical-assumption / claimed-behavior refs
+implementation/build pins and fixed-versus-trainable boundary, when applicable
+applicability, limitation, and public falsification refs, when applicable
 deprecation / supersession state
 ```
 
 The catalog is bound to exact Challenge, candidate-assembly, backbone, compiler, and environment identities where those identities affect meaning.
+
+When the Challenge owns the outer assembly workflow, the catalog may expose a
+closed set of versioned, reconstructible structure-preserving components or
+assembly choices. Examples include conservative or monotone operators,
+positive-semidefinite dissipation, divergence-free or positivity-preserving
+parameterizations, equivariant layers, symplectic integrators, and Hamiltonian
+or dissipative blocks when the registered physics supports them. Each entry
+states the physical assumption, exact executable semantics, fixed and
+trainable boundary, applicability, known limitations, resource impact, and
+public falsification checks.
+
+These entries are optional construction levers, not scientific certificates.
+A component name, implementation pin, claimed invariant, or passing component
+unit test cannot satisfy a mandatory gate or enter the official score. Carbon
+still reconstructs the complete candidate and measures its output on fresh
+cases and hidden stress evidence under the same Challenge contracts used for
+all architectures.
 
 The first catalog remains declarative. It may include a registered hybrid
 neural-operator backbone or learned-component slot only when Carbon owns the
@@ -438,6 +458,40 @@ A forecast declares its model version, calibration window, applicable hardware/r
 
 No estimation operation predicts official quality, official score, rank, gate outcome, frontier status, weight, emission, or settlement.
 
+## 8.2 Resource staging cannot become scientific authority
+
+The research resource policy and its inspection or forecast operations may
+support a later `ReconstructionEvidencePolicy`, but they do not define or
+satisfy scientific evidence. A future official policy may separate:
+
+1. deterministic schema, dependency, hermeticity, and static resource checks;
+2. the Challenge-registered complete producer-independent base reconstruction
+   evidence, comprising one or more builds as required by the construction
+   family, used for ordinary scientific scoring or nomination;
+3. separately realized, producer-independent reconstruction replicates and
+   fresh common cases required for a frontier-promotion claim; and
+4. random repeat audits used to estimate missed instability.
+
+A frozen reconstructed artifact may be reused across the authorized cases in
+its evaluation window; reconstruction is not repeated once per case.
+Registered pairing or common random numbers are permitted, but shared data,
+backbone, seed-role, hardware, and implementation dependence remains modeled.
+Before complete base evidence exists, a quality forecast, partial build,
+resource estimate, proxy, or screen may schedule work only. It cannot
+permanently deny base evidence on predicted quality and an uncompleted path
+returns typed `EVIDENCE_DEFERRED`, never a scientific outcome. After base
+evidence, official evidence may stop sequentially only at coverage-qualified
+decision boundaries. A separate heuristic futility stop may conserve resources
+only by returning `EVIDENCE_DEFERRED` and must be prospective and audited for
+false elimination. An exhausted scientific evidence budget returns
+`INDETERMINATE` with reason `INSUFFICIENT_EVIDENCE`.
+
+B-05 owns the exact scientific policy and its Score Pack/UncertaintyPolicy
+binding. B-02C owns resource ceilings, enforcement, capacity/funding seams, and
+factual receipts only. B-E1 owns the fixture coverage, stopping, and false-
+elimination harness. None of those owners may reinterpret resource estimates
+as scientific evidence.
+
 ---
 
 # 9. PriorPack v2
@@ -572,6 +626,14 @@ upgrades an item's origin or epistemic status.
 
 Initial v2 items each address one public executable lever. Multi-lever combinations are withheld until a recipe-reconstruction gauntlet demonstrates that interactions can be released safely. Every actionable intervention targets one registered `ParameterCatalog.surface_id`. A `PublicMethodArtifact` may supply reviewed citations, formulas, rationale, or falsification resources, but it is non-executable unless and until a catalog surface registers it.
 
+A guidance item may recommend testing a registered structural-component
+surface when its evidence and applicability support that hypothesis. The pack
+must not suppress material null, negative, mixed, or out-of-scope evidence.
+Each actionable positive item carries typed counterevidence and applicability
+entries, or an explicit `NONE_FOUND` statement bound to a public search-scope
+reference and evidence cutoff. Guidance never upgrades the component's
+epistemic status or makes its claimed structure gate evidence.
+
 Each item contains:
 
 ```text
@@ -605,6 +667,16 @@ evidence:
   contributor-diversity band
   selection-bias and caveat codes
 
+counterevidence_and_applicability:
+  one or more entries, each containing:
+    public_estimand_ref
+    NULL | NEGATIVE | MIXED | OUT_OF_SCOPE
+    public scope/context refs
+    evidence_origin and epistemic_type
+    evidence-strength / uncertainty / replication bands
+    applicability, limitation, and caveat codes
+  OR explicit NONE_FOUND with public search_scope_ref and evidence_cutoff
+
 falsification:
   public practice-test refs
   optional reviewed PublicMethodArtifact refs
@@ -619,6 +691,14 @@ exact public alternatives; and `COMPARE` binds an exact public baseline and
 intervention. Empty scope lists are invalid. Universal public applicability is
 an explicit `ALL_REGISTERED_PUBLIC_CONTEXTS` value. Multiple outcome claims are
 separate entries, each with its own estimand and uncertainty.
+
+Counterevidence entries are not alternate secret recommendations. They use the
+same public estimand, scope, provenance, coarsening, rights, disclosure, and
+canonical-order rules as positive evidence. A publisher must reject an
+actionable item when material eligible contrary or out-of-scope evidence is
+known but omitted. `NONE_FOUND` means no eligible contrary evidence was found
+within the declared public search scope by the cutoff; it is not a claim that
+none exists.
 
 Each immutable `public_estimand_ref` defines the comparison/baseline,
 population and public scope, directionality, aggregation functional,
@@ -926,6 +1006,12 @@ Subject to contract ratification, Wave B fixes these architectural choices:
 18. B-07A implements the ratified shared v2 nominal primitives once; domain
     tickets consume them, and B-07G owns only the final twelve-operation local
     service composition, dispatch, and conformance.
+19. Challenge-owned structure-preserving components may be exposed as optional,
+    exactly reconstructible catalog surfaces; architecture labels and component
+    claims carry no scientific or score authority.
+20. Resource checks and staged evidence allocation may conserve compute but
+    cannot replace the complete reconstruction and repeat evidence required by
+    the registered decision. Unresolved evidence fails closed.
 
 ---
 
@@ -936,8 +1022,11 @@ These do not block fixture schemas and contract tests. They fail closed for the 
 | Input | Owner | Master question | Blocks |
 |---|---|---|---|
 | First executable lever catalog, units, ranges, hybrid assembly, backbones, training support, and allowed `R_strategy` sampling/curriculum/augmentation policies | SciML + protocol + security | MQ-015, MQ-024 | Real compiler catalog |
+| Structural-component assumptions, exact implementations, applicability, limitations, and falsification tests | SciML + protocol + security | MQ-005, MQ-015, MQ-024 | Real structural-component catalog entries or guidance |
 | Practice population relationship, honest reference, measurement selection/applicability, intentional omissions, and disclosure | SciML + statistics + security | MQ-002, MQ-003, MQ-004, MQ-005, MQ-016 | External practice release |
 | Runtime ceilings and qualified hardware/resource classes | SRE + security | MQ-008, MQ-015 | Real reconstruction |
+| ReconstructionEvidencePolicy, family-specific complete-base evidence, artifact-reuse window, scientific stopping/extension, typed deferral, heuristic-futility error control, and stability-audit rate | Statistics + SciML + protocol | MQ-007, MQ-008 | Real scientific ranking and later frontier promotion |
+| Validator capacity, reconstruction funding, queueing, and operational evidence budget | SRE + operations + economics | MQ-008, MQ-017 | Operational availability of registered evidence; otherwise `EVIDENCE_DEFERRED` |
 | Resource forecast calibration and unsupported-input rule | SRE + statistics | MQ-017 | Calibrated forecast claim |
 | Prior estimands, cohort, lag, cadence, coarsening, allowed granularity, and search-diversity metric/floor | Landscape + science + statistics + security | MQ-025, MQ-026 | Any external prior activation |
 | Preregistered B-E4 agent profiles, matched budgets, utility estimand/effect floor, uncertainty rule, diversity floor, and conditional-leakage limit on evaluator-held shadow cases | Research + science + statistics + security + protocol | MQ-016, MQ-026 | B-E4 execution and any public prior/agent claim |

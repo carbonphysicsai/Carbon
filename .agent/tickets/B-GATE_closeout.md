@@ -20,6 +20,9 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
 - [ ] Prove every allowed training-data lever resolves to an exact registered
       `R_strategy`, uses validator-derived train randomness, and cannot alter
       official `P`, `Q`, `w`, stress, reference, gate, or scorer controls.
+- [ ] Prove structural-component names, pins, unit tests, and claimed
+      invariants cannot satisfy a mandatory gate or enter score; only registered
+      measurements of reconstructed outputs carry scientific evidence.
 - [ ] Prove integrated practice and official-shaped reconstruction consume the same Strategy/compiler/resolved-plan semantic identity while retaining separate data rights and result types.
 - [ ] Prove mock/practice, prior, scaffold, forecast, and structural-research
       records cannot enter official score or lifecycle. Prove B-07F's
@@ -35,6 +38,15 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       receipt/index graph through schemas and negative tests while public-class
       activation remains unavailable and fail closed.
 - [ ] Prove protected-field, failure-class, reference, and infrastructure invariants across the integrated path.
+- [ ] Prove pre-base quality forecasts, partial builds, proxies, and screens can
+      affect scheduling only; an uncompleted path is `EVIDENCE_DEFERRED` and
+      cannot become `SUPERIOR`, `NOT_SUPERIOR`, gate failure, or candidate
+      physics failure. Prove every scored/nominated fixture receives its
+      registered complete base reconstruction evidence.
+- [ ] Require B-E1 to pass dependence-aware interval-coverage fixtures,
+      exact-pair quadrature-applicability checks, stratified reconstruction ×
+      whole-case interaction tests, and the registered scientific-stopping,
+      heuristic-deferral, and false-elimination audits.
 - [ ] Prove B-07G exposes exactly the twelve ratified v2 research operations,
       delegates each to its named domain owner, contains no shadow semantics or
       stores, and neither exposes nor delegates v1 official operations.

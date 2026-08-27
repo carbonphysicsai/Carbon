@@ -1,5 +1,42 @@
 # Agent decisions log
 
+## 2026-08-26 — Wave B v0.3 scientific-hardening amendment candidate
+
+**Candidate only; no activation.** This amendment proposes version 0.3 of
+`.agent/WAVE_B.md` and
+`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`, plus the matching
+tickets and launch roadmap v1.0.3. It supersedes the v0.2 candidate planning
+package only if independently reviewed, explicitly accepted by the named
+owners, and normally merged. The historical v0.2 decision below is preserved
+unchanged. Wave A remains authoritative and Wave B remains inactive.
+
+**Scientific changes proposed.** Optional Challenge-owned
+structure-preserving components may be exposed only as exact reconstructible
+catalog levers; a component name, claimed invariant, or unit test cannot
+self-certify physics, satisfy a gate, or enter score. A prospective
+`ReconstructionEvidencePolicy` gives every scientifically scored or nominated
+candidate its Challenge/family-registered complete base reconstruction evidence
+(one or more builds), permits frozen-build reuse across authorized cases, and
+may allocate repeat promotion evidence sequentially under qualified error
+control. Pre-base forecasts, partial builds, proxies, and heuristic screens
+schedule work only; an uncompleted path is typed `EVIDENCE_DEFERRED`, not
+negative scientific evidence. Decision intervals preserve reconstruction ×
+whole-case/trajectory dependence, stratified stress, joint reference
+uncertainty, and shared dependencies. Quadrature or zero covariance is allowed
+only when the Dossier qualifies both the procedure and its applicability test
+and the exact incumbent-challenger evidence satisfies that test.
+
+**Authority and ratification.** Changes to the owner-canonical scientific
+canon, locked generator/validation
+architecture, evidence/audit specification, and Launch Bar are explicit
+owner-ratification proposals. Before merge they require Physics/SciML,
+statistics, and protocol-owner acceptance; security/SRE/operations approval is
+also required where the affected ticket assigns it. Nothing here changes an
+active Wave-A ticket, implements a runtime, qualifies a Challenge, mandates a
+Port-Hamiltonian architecture, or creates scientific, security, network,
+commercial, production, LIVE, frontier, weight, emission, or settlement
+authority.
+
 ## 2026-08-26 — Wave B miner-research architecture and execution-board candidate
 
 **Candidate only; no activation.** The proposed governing artifacts are
