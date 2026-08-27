@@ -77,9 +77,16 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       conditional-leakage and evidence-authority decisions find no protected-
       realization shortcut or authority bypass; failed or indeterminate
       gauntlet evidence blocks closeout.
+- [ ] Before any prospective Wave C authorization, verify that the canonical C
+      and D ticket files created under the controlling roadmap inline the
+      approved requirements for C-02/C-04/C-05/C-06/C-07/C-10 and
+      D-02/D-03/D-04/D-05/D-06/D-08 from
+      `Design_Specs/Science_GTM_Engineering_Ticket_Delta.md`. A planning
+      crosswalk, launch-register row, or external document reference without
+      ticket-local Definition-of-Done criteria is insufficient.
 - [ ] Produce `.agent/WAVE_B_REPORT.md` with exact commits, tests, reviews, maturity states, evidence artifacts, human inputs, risks, and Wave C blockers.
 - [ ] Obtain independent review, explicit human closeout authorization, and normal merge before any board status changes.
 
 ## Must not
 
-Flip a Challenge LIVE, activate a remote service, claim scientific/security/network/production qualification, authorize a product or hybrid-system qualification object, or authorize Wave C by implication.
+Flip a Challenge LIVE, activate a remote service, claim scientific/security/network/production qualification, authorize a product or hybrid-system qualification object, authorize Wave C from a crosswalk-only handoff, or authorize Wave C by implication.
