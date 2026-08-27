@@ -324,6 +324,31 @@ def _assert_fixed_integration_error(error: ObservabilityIntegrationError) -> Non
     assert error.__context__ is None
 
 
+def _assert_dataclass_apis_are_blocked(
+    value: object,
+    *,
+    forbidden_text: str | None = None,
+) -> None:
+    """Prove stdlib dataclass traversal cannot return or echo this value."""
+
+    assert dataclasses.is_dataclass(value) is False
+    assert dataclasses.is_dataclass(type(value)) is False
+    for operation in (
+        dataclasses.asdict,
+        dataclasses.astuple,
+        dataclasses.replace,
+    ):
+        sentinel = object()
+        result: object = sentinel
+        with pytest.raises(TypeError) as raised:
+            result = operation(value)  # type: ignore[arg-type]
+        if forbidden_text is not None:
+            assert forbidden_text not in str(raised.value)
+            assert forbidden_text not in repr(raised.value)
+            assert forbidden_text not in raised.value.args
+        assert result is sentinel
+
+
 def test_exact_package_files_exports_and_root_namespace() -> None:
     assert tuple(path.name for path in sorted(OBSERVABILITY_ROOT.glob("*.py"))) == (
         "__init__.py",
@@ -403,34 +428,141 @@ def test_enums_have_exact_direct_string_contract(
 
 
 def test_models_have_exact_fields_and_are_frozen_slotted_safe_values() -> None:
-    values_and_fields = (
+    values_and_contracts = (
         (
             _event(),
             ("kind", "submission_id", "submission_state", "score_status"),
+            "ObservabilityEvent(<private>)",
         ),
-        (BoundaryErrorEvent(BoundaryErrorKind.MCP_REQUEST), ("error_kind",)),
-        (ObservabilityResourceLimits(1), ("max_concurrent_calls",)),
+        (
+            BoundaryErrorEvent(BoundaryErrorKind.MCP_REQUEST),
+            ("error_kind",),
+            "BoundaryErrorEvent(<private>)",
+        ),
+        (
+            ObservabilityResourceLimits(1),
+            ("max_concurrent_calls",),
+            "ObservabilityResourceLimits(<private>)",
+        ),
     )
-    for value, expected_fields in values_and_fields:
-        assert tuple(field.name for field in dataclasses.fields(value)) == (
+    for value, expected_fields, expected_repr in values_and_contracts:
+        value_type = type(value)
+        assert tuple(value_type.__slots__) == expected_fields
+        assert tuple(value_type.__annotations__) == expected_fields
+        signature = inspect.signature(value_type)
+        assert tuple(signature.parameters) == expected_fields
+        assert all(
+            parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+            and parameter.default is inspect.Parameter.empty
+            for parameter in signature.parameters.values()
+        )
+        assert {name for name in dir(value) if not name.startswith("_")} == set(
             expected_fields
         )
+        assert not hasattr(value_type, "__dataclass_fields__")
+        assert not hasattr(value_type, "__dataclass_params__")
         assert not hasattr(value, "__dict__")
-        with pytest.raises(dataclasses.FrozenInstanceError):
-            setattr(value, expected_fields[0], None)
+        assert repr(value) == expected_repr
 
-    assert SUBMISSION_ID_TEXT not in repr(values_and_fields[0][0])
-    assert "submission_id" not in repr(values_and_fields[1][0]).lower()
-    assert "message" not in repr(values_and_fields[1][0]).lower()
+        original_values = tuple(
+            object.__getattribute__(value, name) for name in expected_fields
+        )
+        for name in expected_fields:
+            with pytest.raises(AttributeError):
+                setattr(value, name, None)
+            with pytest.raises(AttributeError):
+                delattr(value, name)
+        with pytest.raises(AttributeError):
+            value.extra_public_field = None  # type: ignore[attr-defined]
+        assert (
+            tuple(object.__getattribute__(value, name) for name in expected_fields)
+            == original_values
+        )
+
+    assert SUBMISSION_ID_TEXT not in repr(values_and_contracts[0][0])
+    assert "submission_id" not in repr(values_and_contracts[1][0]).lower()
+    assert "message" not in repr(values_and_contracts[1][0]).lower()
 
 
-def test_values_reject_generic_copy_and_serialization_paths() -> None:
-    values = (
-        _event(),
-        BoundaryErrorEvent(BoundaryErrorKind.LEADERBOARD_INTEGRATION),
-        ObservabilityResourceLimits(U64_MAX),
+def test_manual_nominals_reject_reinitialization_and_partial_initialization() -> None:
+    event = _event()
+    boundary = BoundaryErrorEvent(BoundaryErrorKind.MCP_REQUEST)
+    limits = ObservabilityResourceLimits(1)
+    event_values = tuple(
+        object.__getattribute__(event, name) for name in type(event).__slots__
     )
-    for value in values:
+    boundary_value = object.__getattribute__(boundary, "error_kind")
+    limits_value = object.__getattribute__(limits, "max_concurrent_calls")
+
+    reinitializations: tuple[
+        tuple[Callable[[], None], object, tuple[object, ...]], ...
+    ] = (
+        (
+            lambda: ObservabilityEvent.__init__(
+                event,
+                EventKind.REJECT,
+                SubmissionId("12345678-1234-4234-9234-123456789abc"),
+                SubmissionState.REJECTED,
+                None,
+            ),
+            event,
+            event_values,
+        ),
+        (
+            lambda: BoundaryErrorEvent.__init__(
+                boundary,
+                BoundaryErrorKind.LEADERBOARD_INTEGRATION,
+            ),
+            boundary,
+            (boundary_value,),
+        ),
+        (
+            lambda: ObservabilityResourceLimits.__init__(limits, 2),
+            limits,
+            (limits_value,),
+        ),
+    )
+    for operation, value, expected_values in reinitializations:
+        with pytest.raises(ObservabilityRequestError) as raised:
+            operation()
+        assert raised.value.__cause__ is None
+        assert raised.value.__context__ is None
+        assert (
+            tuple(
+                object.__getattribute__(value, name) for name in type(value).__slots__
+            )
+            == expected_values
+        )
+
+    partial = object.__new__(ObservabilityEvent)
+    object.__setattr__(partial, "score_status", None)
+    with pytest.raises(ObservabilityRequestError) as raised:
+        ObservabilityEvent.__init__(
+            partial,
+            EventKind.SUBMIT,
+            _submission_id(),
+            SubmissionState.RECEIVED,
+            None,
+        )
+    assert raised.value.__cause__ is None
+    assert raised.value.__context__ is None
+    assert not hasattr(partial, "kind")
+    assert not hasattr(partial, "submission_id")
+    assert not hasattr(partial, "submission_state")
+    assert object.__getattribute__(partial, "score_status") is None
+
+
+def test_values_reject_generic_traversal_copy_and_serialization_paths() -> None:
+    values_and_forbidden_text = (
+        (_event(), SUBMISSION_ID_TEXT),
+        (BoundaryErrorEvent(BoundaryErrorKind.LEADERBOARD_INTEGRATION), None),
+        (ObservabilityResourceLimits(U64_MAX), None),
+    )
+    for value, forbidden_text in values_and_forbidden_text:
+        _assert_dataclass_apis_are_blocked(
+            value,
+            forbidden_text=forbidden_text,
+        )
         with pytest.raises(TypeError):
             copy.copy(value)
         with pytest.raises(TypeError):
@@ -613,15 +745,16 @@ def test_unbound_uuid_is_shape_valid_but_carries_no_provenance() -> None:
     )
     assert event.submission_id.value == unbound.value
     assert event.submission_id is not unbound
-    assert tuple(field.name for field in dataclasses.fields(event)) == (
+    field_names = tuple(type(event).__annotations__)
+    assert field_names == (
         "kind",
         "submission_id",
         "submission_state",
         "score_status",
     )
     assert not any(
-        token in field.name
-        for field in dataclasses.fields(event)
+        token in field_name
+        for field_name in field_names
         for token in (
             "authenticated",
             "evidence",
@@ -656,7 +789,7 @@ def test_event_construction_and_service_make_fresh_owned_copies() -> None:
 def test_boundary_event_is_exact_closed_one_field_value() -> None:
     event = BoundaryErrorEvent(BoundaryErrorKind.MCP_QUERY_BUDGET)
     assert event.error_kind is BoundaryErrorKind.MCP_QUERY_BUDGET
-    assert tuple(field.name for field in dataclasses.fields(event)) == ("error_kind",)
+    assert tuple(type(event).__annotations__) == ("error_kind",)
     for prohibited in (
         "cause",
         "challenge",
@@ -891,6 +1024,34 @@ def test_service_copies_resource_limits_and_does_not_inspect_sink_methods_at_ini
     with pytest.raises(ObservabilityIntegrationError) as raised:
         service.emit_event(_event())
     _assert_fixed_integration_error(raised.value)
+
+
+def test_service_and_sink_owned_values_block_dataclass_traversal() -> None:
+    event_sink = _RecordingEventSink()
+    metric_sink = _RecordingMetricSink()
+    caller_event = _event()
+    caller_boundary = BoundaryErrorEvent(BoundaryErrorKind.MCP_REQUEST)
+    caller_limits = ObservabilityResourceLimits(1)
+    service = ObservabilityService(event_sink, metric_sink, caller_limits)
+
+    assert service.emit_event(caller_event) is None
+    assert service.emit_event(caller_boundary) is None
+    assert len(event_sink.events) == 2
+    sink_event, sink_boundary = event_sink.events
+    assert type(sink_event) is ObservabilityEvent
+    assert type(sink_boundary) is BoundaryErrorEvent
+    assert sink_event is not caller_event
+    assert sink_boundary is not caller_boundary
+
+    owned_limits = object.__getattribute__(service, "_limits")
+    assert type(owned_limits) is ObservabilityResourceLimits
+    assert owned_limits is not caller_limits
+    _assert_dataclass_apis_are_blocked(
+        sink_event,
+        forbidden_text=SUBMISSION_ID_TEXT,
+    )
+    _assert_dataclass_apis_are_blocked(sink_boundary)
+    _assert_dataclass_apis_are_blocked(owned_limits)
 
 
 def test_protocols_have_exact_positional_only_structural_signatures() -> None:
@@ -1540,6 +1701,7 @@ def test_dependency_graph_and_runtime_escape_policy_are_exact() -> None:
         "aiohttp",
         "bittensor",
         "copy",
+        "dataclasses",
         "datetime",
         "flask",
         "http",
@@ -1566,20 +1728,26 @@ def test_dependency_graph_and_runtime_escape_policy_are_exact() -> None:
     forbidden_runtime_names = {
         "__import__",
         "asdict",
+        "astuple",
         "compile",
+        "dataclass",
         "deepcopy",
         "dumps",
         "eval",
         "exec",
+        "field",
         "fields",
         "getattr",
         "globals",
         "import_module",
         "isinstance",
+        "is_dataclass",
         "issubclass",
         "loads",
         "locals",
+        "make_dataclass",
         "repr",
+        "replace",
         "runtime_checkable",
         "sleep",
         "vars",
@@ -1622,8 +1790,15 @@ def test_dependency_graph_and_runtime_escape_policy_are_exact() -> None:
                 assert node.attr not in {
                     "__dict__",
                     "asdict",
+                    "astuple",
+                    "dataclass",
                     "dumps",
+                    "field",
+                    "fields",
+                    "is_dataclass",
                     "loads",
+                    "make_dataclass",
+                    "replace",
                     "to_dict",
                 }
             elif type(node) is ast.ExceptHandler and node.type is not None:
@@ -1886,11 +2061,18 @@ rejected(
 
 def test_import_with_optional_and_later_dependencies_blocked(tmp_path: Path) -> None:
     script = f"""
+import dataclasses
 import importlib
 import importlib.abc
 import sys
 
 sys.path.insert(0, {str(REPOSITORY_ROOT)!r})
+stdlib_dataclass_apis = (
+    dataclasses.is_dataclass,
+    dataclasses.asdict,
+    dataclasses.astuple,
+    dataclasses.replace,
+)
 
 blocked_roots = {{
     'aiohttp', 'bittensor', 'docker', 'fastapi', 'flask', 'jax', 'neuralop',
@@ -1921,6 +2103,19 @@ class DependencyBlocker(importlib.abc.MetaPathFinder):
 
 sys.meta_path.insert(0, DependencyBlocker())
 module = importlib.import_module('carbon.observability')
+assert all(
+    current is original
+    for current, original in zip(
+        (
+            dataclasses.is_dataclass,
+            dataclasses.asdict,
+            dataclasses.astuple,
+            dataclasses.replace,
+        ),
+        stdlib_dataclass_apis,
+        strict=True,
+    )
+)
 assert module.__all__ == {PUBLIC_EXPORTS!r}
 assert tuple(getattr(module, name).__name__ for name in module.__all__) == module.__all__
 assert attempted == []
@@ -2030,11 +2225,19 @@ def test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree(
     outside = tmp_path / "outside"
     outside.mkdir()
     script = f"""
+import dataclasses
 import importlib
 import importlib.abc
 import importlib.metadata
 import pathlib
 import sys
+
+stdlib_dataclass_apis = (
+    dataclasses.is_dataclass,
+    dataclasses.asdict,
+    dataclasses.astuple,
+    dataclasses.replace,
+)
 
 blocked_roots = {{
     'aiohttp', 'bittensor', 'docker', 'fastapi', 'flask', 'jax', 'neuralop',
@@ -2067,6 +2270,41 @@ sys.meta_path.insert(0, DependencyBlocker())
 module = importlib.import_module('carbon.observability')
 from carbon.fees import SubmissionId, SubmissionState
 
+assert all(
+    current is original
+    for current, original in zip(
+        (
+            dataclasses.is_dataclass,
+            dataclasses.asdict,
+            dataclasses.astuple,
+            dataclasses.replace,
+        ),
+        stdlib_dataclass_apis,
+        strict=True,
+    )
+)
+
+def assert_dataclass_apis_blocked(value, forbidden_text=None):
+    assert dataclasses.is_dataclass(value) is False
+    assert dataclasses.is_dataclass(type(value)) is False
+    for operation in (
+        dataclasses.asdict,
+        dataclasses.astuple,
+        dataclasses.replace,
+    ):
+        sentinel = object()
+        result = sentinel
+        try:
+            result = operation(value)
+        except TypeError as error:
+            if forbidden_text is not None:
+                assert forbidden_text not in str(error)
+                assert forbidden_text not in repr(error)
+                assert forbidden_text not in error.args
+        else:
+            raise AssertionError('generic dataclass operation returned an A11 value')
+        assert result is sentinel
+
 assert importlib.metadata.version('carbon') == '0.9.0'
 requirements = importlib.metadata.requires('carbon') or ()
 assert all('extra ==' in requirement.lower() for requirement in requirements)
@@ -2097,19 +2335,34 @@ class MetricSink:
 
 event_sink = EventSink()
 metric_sink = MetricSink()
+limits = module.ObservabilityResourceLimits(1)
 service = module.ObservabilityService(
-    event_sink, metric_sink, module.ObservabilityResourceLimits(1)
+    event_sink, metric_sink, limits
 )
+submission_text = {SUBMISSION_ID_TEXT!r}
 event = module.ObservabilityEvent(
     module.EventKind.SUBMIT,
-    SubmissionId({SUBMISSION_ID_TEXT!r}),
+    SubmissionId(submission_text),
     SubmissionState.RECEIVED,
     None,
 )
+boundary = module.BoundaryErrorEvent(module.BoundaryErrorKind.MCP_REQUEST)
+assert_dataclass_apis_blocked(event, submission_text)
+assert_dataclass_apis_blocked(boundary)
+assert_dataclass_apis_blocked(limits)
 assert service.emit_event(event) is None
+assert service.emit_event(boundary) is None
 assert service.increment_counter(module.MetricKind.SUBMIT_COUNT) is None
 assert service.observe_duration(module.DurationStage.SUBMIT, 0) is None
-assert len(event_sink.events) == 1
+assert len(event_sink.events) == 2
+assert event_sink.events[0] is not event
+assert event_sink.events[1] is not boundary
+assert_dataclass_apis_blocked(event_sink.events[0], submission_text)
+assert_dataclass_apis_blocked(event_sink.events[1])
+owned_limits = object.__getattribute__(service, '_limits')
+assert type(owned_limits) is module.ObservabilityResourceLimits
+assert owned_limits is not limits
+assert_dataclass_apis_blocked(owned_limits)
 assert metric_sink.counters == [module.MetricKind.SUBMIT_COUNT]
 assert metric_sink.durations == [(module.DurationStage.SUBMIT, 0)]
 """

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import NoReturn
 
@@ -10,6 +9,14 @@ from carbon.fees import SubmissionId, SubmissionState
 from carbon.scoring import ScoreStatus
 
 _UINT64_MAX = (1 << 64) - 1
+_OBSERVABILITY_EVENT_FIELDS = (
+    "kind",
+    "submission_id",
+    "submission_state",
+    "score_status",
+)
+_BOUNDARY_ERROR_EVENT_FIELDS = ("error_kind",)
+_RESOURCE_LIMIT_FIELDS = ("max_concurrent_calls",)
 
 
 def _reject_state(value: object) -> None:
@@ -34,6 +41,14 @@ def _reject_deepcopy(value: object, memo: object) -> object:
 
 class _NoSerialization:
     __slots__ = ()
+
+    def __setattr__(self, name: str, value: object) -> None:
+        del name, value
+        raise AttributeError("Observability values are immutable")
+
+    def __delattr__(self, name: str) -> None:
+        del name
+        raise AttributeError("Observability values are immutable")
 
     __getstate__ = _reject_state
     __reduce__ = _reject_state
@@ -165,6 +180,19 @@ def _raise_resource_error() -> NoReturn:
 
 def _raise_integration_error() -> NoReturn:
     _raise_clean(ObservabilityIntegrationError())
+
+
+def _require_uninitialized(value: object, field_names: tuple[str, ...]) -> None:
+    """Reject reinitialization or partially forged nominal values."""
+
+    for field_name in field_names:
+        try:
+            object.__getattribute__(value, field_name)
+        except AttributeError:
+            continue
+        except Exception:  # noqa: BLE001 - normalize damaged slot descriptors
+            _raise_request_error()
+        _raise_request_error()
 
 
 class EventKind(str, Enum):
@@ -486,49 +514,44 @@ def _require_duration_ns(value: object) -> int:
     return value
 
 
-@dataclass(frozen=True, slots=True, repr=False)
 class ObservabilityEvent(_NoSerialization):
     """Owner-shaped request that makes no record or provenance claim."""
 
+    __slots__ = _OBSERVABILITY_EVENT_FIELDS
+
     kind: EventKind
-    submission_id: SubmissionId = field(repr=False)
+    submission_id: SubmissionId
     submission_state: SubmissionState
     score_status: ScoreStatus | None
 
-    def __post_init__(self) -> None:
+    def __init__(
+        self,
+        kind: EventKind,
+        submission_id: SubmissionId,
+        submission_state: SubmissionState,
+        score_status: ScoreStatus | None,
+    ) -> None:
         if type(self) is not ObservabilityEvent:
             _raise_request_error()
+        _require_uninitialized(self, _OBSERVABILITY_EVENT_FIELDS)
 
-        invalid = False
-        kind_value: object = None
-        submission_id_value: object = None
-        submission_state_value: object = None
-        score_status_value: object = None
-        try:
-            kind_value = object.__getattribute__(self, "kind")
-            submission_id_value = object.__getattribute__(self, "submission_id")
-            submission_state_value = object.__getattribute__(self, "submission_state")
-            score_status_value = object.__getattribute__(self, "score_status")
-        except Exception:  # noqa: BLE001 - normalize a damaged exact A11 nominal
-            invalid = True
-        if invalid:
-            _raise_request_error()
-
-        kind = _copy_event_kind(kind_value)
-        submission_id = _copy_submission_id(submission_id_value)
-        submission_state = _copy_submission_state(submission_state_value)
-        score_status = (
-            None
-            if score_status_value is None
-            else _copy_score_status(score_status_value)
+        owned_kind = _copy_event_kind(kind)
+        owned_submission_id = _copy_submission_id(submission_id)
+        owned_submission_state = _copy_submission_state(submission_state)
+        owned_score_status = (
+            None if score_status is None else _copy_score_status(score_status)
         )
-        if not _event_matrix_accepts(kind, submission_state, score_status):
+        if not _event_matrix_accepts(
+            owned_kind,
+            owned_submission_state,
+            owned_score_status,
+        ):
             _raise_request_error()
 
-        object.__setattr__(self, "kind", kind)
-        object.__setattr__(self, "submission_id", submission_id)
-        object.__setattr__(self, "submission_state", submission_state)
-        object.__setattr__(self, "score_status", score_status)
+        object.__setattr__(self, "kind", owned_kind)
+        object.__setattr__(self, "submission_id", owned_submission_id)
+        object.__setattr__(self, "submission_state", owned_submission_state)
+        object.__setattr__(self, "score_status", owned_score_status)
 
     def __repr__(self) -> str:
         return "ObservabilityEvent(<private>)"
@@ -584,26 +607,19 @@ def _copy_observability_event(value: object) -> ObservabilityEvent:
     return ObservabilityEvent(*captured)  # type: ignore[arg-type]
 
 
-@dataclass(frozen=True, slots=True, repr=False)
 class BoundaryErrorEvent(_NoSerialization):
     """Closed observation of an already-translated A9 or A10 failure."""
 
+    __slots__ = _BOUNDARY_ERROR_EVENT_FIELDS
+
     error_kind: BoundaryErrorKind
 
-    def __post_init__(self) -> None:
+    def __init__(self, error_kind: BoundaryErrorKind) -> None:
         if type(self) is not BoundaryErrorEvent:
             _raise_request_error()
-        invalid = False
-        error_kind_value: object = None
-        try:
-            error_kind_value = object.__getattribute__(self, "error_kind")
-        except Exception:  # noqa: BLE001 - normalize a damaged exact A11 nominal
-            invalid = True
-        if invalid:
-            _raise_request_error()
-        object.__setattr__(
-            self, "error_kind", _copy_boundary_error_kind(error_kind_value)
-        )
+        _require_uninitialized(self, _BOUNDARY_ERROR_EVENT_FIELDS)
+        owned_error_kind = _copy_boundary_error_kind(error_kind)
+        object.__setattr__(self, "error_kind", owned_error_kind)
 
     def __repr__(self) -> str:
         return "BoundaryErrorEvent(<private>)"
@@ -625,29 +641,22 @@ def _copy_boundary_error_event(value: object) -> BoundaryErrorEvent:
     return BoundaryErrorEvent(error_kind_value)  # type: ignore[arg-type]
 
 
-@dataclass(frozen=True, slots=True, repr=False)
 class ObservabilityResourceLimits(_NoSerialization):
     """Mandatory finite per-service call-capacity policy."""
 
+    __slots__ = _RESOURCE_LIMIT_FIELDS
+
     max_concurrent_calls: int
 
-    def __post_init__(self) -> None:
+    def __init__(self, max_concurrent_calls: int) -> None:
         if type(self) is not ObservabilityResourceLimits:
             _raise_request_error()
-        invalid = False
-        max_concurrent_calls_value: object = None
-        try:
-            max_concurrent_calls_value = object.__getattribute__(
-                self, "max_concurrent_calls"
-            )
-        except Exception:  # noqa: BLE001 - normalize a damaged exact A11 nominal
-            invalid = True
-        if invalid:
-            _raise_request_error()
+        _require_uninitialized(self, _RESOURCE_LIMIT_FIELDS)
+        owned_max_concurrent_calls = _require_positive_u64(max_concurrent_calls)
         object.__setattr__(
             self,
             "max_concurrent_calls",
-            _require_positive_u64(max_concurrent_calls_value),
+            owned_max_concurrent_calls,
         )
 
     def __repr__(self) -> str:
