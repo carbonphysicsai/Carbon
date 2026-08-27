@@ -8,6 +8,7 @@
 **Authority:** `Scoring.md`; `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §4
 C13-C14 and §§7-8; `Miner_MCP_Wave_B_Research_Contract.md` §8.2;
 `Compute_Optimization.md`
+**Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
 ## Goal
 
@@ -20,7 +21,20 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       independent SciML/statistics/protocol review and explicit human
       ratification, and merge that contract normally; record the exact contract
       commit in the implementation plan.
-- [ ] Define exact `MeasurementContract` identity, applicability, observable, discretization, sampling, normalization, aggregation, precision, tolerance/uncertainty, and implementation refs.
+- [ ] Define exact `MeasurementContract` identity, scientific property claimed,
+      required observables, coordinates/units, numerical operator,
+      discretization, sampling/quadrature, normalization, aggregation,
+      precision, reference and numerical floor, applicability, uncertainty,
+      stratum/subpopulation applicability, known limitations, implementation
+      refs, and intended mandatory/soft/diagnostic role.
+- [ ] Bind measurement-qualification evidence by role, including analytic or
+      manufactured verification, refinement/convergence, independent witness,
+      limiting-case/invariance, and experimental or industrial validation where
+      applicable. The evidence record must state what each source supports and
+      what it cannot support.
+- [ ] Prevent MMS or another implementation-verification result from satisfying
+      customer-workload applicability, physical model validation, or an
+      engineering context-of-use claim without separate evidence.
 - [ ] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
 - [ ] Define the Score Pack `UncertaintyPolicy` bindings for independence and
       resampling units, common-case pairing, reconstruction-by-case and
@@ -38,9 +52,13 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       forecasts or receipts scientific authority. B-E1 owns the fixture
       coverage and false-elimination harness, not policy authorship.
 - [ ] Preserve mandatory admissibility before soft aggregation.
-- [ ] Reject partial, non-finite, inapplicable, reference-failed, and uncertainty-unresolved measurement material through typed paths.
+- [ ] Reject partial, non-finite, inapplicable, reference-failed, numerical-
+      floor-unresolved, and uncertainty-unresolved measurement material through
+      typed paths.
 - [ ] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
-- [ ] Add fixture authoring, hash/pin, role-confusion, forbidden-input, and fail-closed tests.
+- [ ] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
+      validation, measurement-floor, stratum-applicability, forbidden-input,
+      and fail-closed tests.
 
 ## Human input
 
@@ -53,5 +71,6 @@ resource-field compatibility but does not make the scientific decision.
 
 Promote fixture thresholds, treat a diagnostic as a full PDE residual,
 compensate a mandatory failure, assume covariance is zero without Dossier
-evidence, combine uncertainty components mechanically, or allow
-mock/prior/resource fields into score.
+evidence, combine uncertainty components mechanically, let MMS verification
+stand in for physical validation or context of use, or allow
+mock/prior/resource/product/commercial fields into score.
