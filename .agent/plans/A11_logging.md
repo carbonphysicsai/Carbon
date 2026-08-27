@@ -133,6 +133,11 @@ singleton across concurrent and later calls.
 R18 selects Option A only: immutable A11-owned primitive sink snapshots. Option
 B, an A5/A7 owner-enum migration, requires separate owner review and is outside
 this task. Option C would weaken the security boundary and is not authorized.
+The corrected R18 scope does not select Option C: Option C would permit shared
+owner/request/enum state or weaken mutation isolation of a supplied snapshot
+instance and its declared fields. Deliberate class/module/global mutation
+requires a stronger isolation boundary and is outside the trusted in-process
+sink contract.
 Production exporters, sandboxing, persistence, latency policy, dashboards,
 alerts, authentication, public APIs, additional vocabulary, and later
 scientific/economic authority still require separate decisions.
@@ -743,6 +748,12 @@ this contract changes no activation artifact and authorizes no B ticket.
 
 ### A11-R18 — Immutable A11-owned sink snapshot boundary
 
+The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
+records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
+(`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
+`P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
+`CONTRACT_PRECISION_DEFECT`.
+
 The public service request API remains exactly:
 
 ~~~python
@@ -825,10 +836,24 @@ non-pickleable; and rejected by `dataclasses.asdict`, `dataclasses.astuple`, and
 `dataclasses.replace`. Snapshot fields contain only exact immutable built-in
 `str`, `int`, or `None`, with no mapping, iterable, descriptor, arbitrary object
 graph, owner object, enum, exception, or metadata. Snapshots are authority-free
-and are never accepted as service requests. Direct public construction, if
-retained, proves exact closed shape only and creates no owner transition,
-lifecycle, scientific, audit, receipt, public, security, settlement, or
-economic authority.
+and are never accepted as service requests.
+
+Direct public construction of all four snapshot classes is allowed. Each has
+exactly the displayed parameter names and order, and every displayed parameter
+is required. The constructors accept only the exact built-in field types,
+literal sets, canonical UUIDv4 spelling, event-matrix combinations, and integer
+range stated above. They reject `bool`, field-type subclasses, coercible or
+malformed values, extra positional or keyword fields, constructor re-entry,
+and partially initialized values. Construction always creates an exact manual
+slotted non-dataclass instance with no instance `__dict__`, a fixed safe
+representation, and the assignment, deletion, copy, deepcopy, pickle, and
+dataclass-operation rejections stated above. No hidden token, private-factory
+requirement, alternate constructor, or subclass construction is permitted; the
+service uses these same public constructors after deriving exact primitive
+fields. Directly constructed snapshots prove only exact closed shape and
+create no provenance, owner transition, lifecycle, scientific, audit, receipt,
+public, security, settlement, or economic authority. The service rejects all
+four snapshot types as request values.
 
 The effective future ordered `carbon.observability.__all__` tuple becomes:
 
@@ -868,7 +893,7 @@ model.py
     SubmissionEventSnapshot, BoundaryErrorSnapshot
     CounterMetricSnapshot, DurationMetricSnapshot
     ObservabilityError and its three direct concrete errors
-    private exact request-validation and snapshot-construction helpers only
+    private exact request-validation and public-constructor invocation helpers only
 providers.py
     StructuredEventSink, MetricSink
     no concrete/default/global sink
@@ -909,7 +934,10 @@ class MetricSink(Protocol):
 ~~~
 
 Concrete sinks subclass neither Protocol. No production sink is added. The
-three public service methods remain unchanged.
+three public service methods remain unchanged. These Protocols are trusted
+in-process integration seams. Only trusted composition supplies sinks at
+mandatory service construction; miner-controlled or service-request input
+cannot choose or supply a sink implementation.
 
 Before capacity acquisition or sink access, the service must:
 
@@ -919,7 +947,8 @@ Before capacity acquisition or sink access, the service must:
 4. reconstruct and validate `SubmissionId` through the public A7 constructor
    where applicable;
 5. map validated semantics to A11 module-owned hard-coded literal strings;
-6. construct a fresh snapshot containing no request, owner, or enum reference;
+6. use the same direct public exact constructor to construct a fresh snapshot
+   containing no request, owner, or enum reference;
 7. acquire capacity and same-service reentrancy permission; and
 8. make at most one sink call.
 
@@ -934,22 +963,42 @@ from A11 fixed literal tables after exact validation. No sanitize-and-restore
 mutation of shared state is permitted, and no global lock is held across sink
 code.
 
-The exact supplied-value scope is:
+The exact supplied-snapshot-instance scope is:
 
 ~~~text
-Mutation through an object supplied by A11 to a sink cannot alter caller,
-owner, retained, concurrent, or later A11 state.
+Mutation of the supplied snapshot instance and its declared primitive fields,
+including normal assignment and object.__setattr__, cannot alter caller,
+owner, retained, concurrent, another-service, or later A11 state.
 ~~~
 
-Each sink receives one distinct fresh per-call snapshot. A sink may use Python
-escape hatches such as `object.__setattr__` to alter its own snapshot, but that
-mutation cannot affect another operation because the snapshot contains no
-shared mutable owner or enum reference and A11 retains no snapshot for reuse. A
-sink-retained snapshot cannot alter a later call. A11 does not sandbox arbitrary
-in-process sink code; a sink that independently imports and mutates unrelated
-process globals acts outside the A11 supplied-value boundary. Process
-isolation, capability restriction, and hostile-code sandboxing remain deferred.
-This is not permission to supply a shared mutable object to a sink.
+Each sink receives one distinct fresh per-call snapshot instance. A sink may
+use Python escape hatches to alter that instance, but the retained instance
+cannot affect another call because its declared fields are exact immutable
+built-in primitives, it contains no shared mutable owner or enum reference,
+and A11 never reuses a snapshot object.
+
+A11 does not defend against sink code that deliberately retrieves and mutates
+the snapshot class, A11 module globals, owner classes/modules, or any other
+process global.
+
+Such class/global mutation is outside the trusted in-process sink contract and
+requires process isolation or capability restriction, neither of which Wave A
+implements or claims.
+
+This exclusion does not permit A11 to pass a shared enum, owner nominal,
+request object, mapping, exception, metadata, or other mutable shared instance.
+Caller-added enum attributes remain excluded; no shared enum sanitize/restore
+occurs; and no ordinary mutex is held across sink code. Production-sink
+hardening, process isolation, plugin capability restriction, and hostile-sink
+qualification remain separately deferred. A11 claims no resistance to
+arbitrary malicious Python executing in the same process. `SECURITY_QUALIFIED`
+and `PRODUCTION_QUALIFIED` remain `NO`.
+
+The unchanged `agent_pack/README.md` phrase "mutation through an A11-supplied
+sink value" is non-normative shorthand for mutation of the supplied snapshot
+instance and its declared primitive fields only. It does not extend the
+guarantee to a class, module, or global object reachable through that instance;
+this A11-R18 plan controls.
 
 The service-request dependencies remain exact public `SubmissionId` and
 `SubmissionState` from `carbon.fees`, exact public `ScoreStatus` from
@@ -1077,14 +1126,18 @@ cover at least the following.
   snapshot per admitted public operation;
 - every snapshot field is exact built-in `str`, `int`, or `None`, with no enum,
   owner nominal, request object, arbitrary object graph, or retained A11 alias;
-- normal or `object.__setattr__` mutation of a supplied snapshot cannot affect
-  the caller, owner enums, another service, a concurrent operation, or a later
-  call; a sink-retained snapshot cannot affect later calls;
+- normal or `object.__setattr__` mutation of a supplied snapshot instance and
+  its declared primitive fields cannot affect the caller, owner enums, another
+  service, a concurrent operation, or a later call; a retained snapshot-
+  instance mutation cannot affect later calls;
 - distinct outer snapshots for every call, no snapshot reuse, no
   sanitize-and-restore global mutation, and no ordinary mutex held across sink
   execution;
-- no process-sandbox claim for a sink that independently imports and mutates an
-  unrelated process global;
+- no instance-isolation claim against deliberate mutation of a snapshot class,
+  A11 module global, owner class/module, or other process global;
+- direct public construction of every exact snapshot shape with all required
+  parameters, plus malformed, extra, re-entry, partial, coercion, bool,
+  field-subclass, and snapshot-subclass rejection;
 - missing/call-incompatible method, wrong return, hostile descriptor/hook, and
   ordinary `Exception` translation;
 - sink-raised A11 public errors translated to a fresh integration error;
@@ -1120,8 +1173,10 @@ cover at least the following.
   dashboard, alert, or production provider;
 - source-tree and fresh no-dependency installed-wheel/outside-tree proof of the
   exact eighteen-name surface, snapshot structure, primitive fields, request
-  conversion, distinct/retained/concurrent/later mutation isolation, unchanged
-  service signatures, and absence of owner changes;
+  conversion, all four direct public constructors, supplied snapshot-instance
+  and declared-field isolation across retained/concurrent/later calls,
+  unchanged service signatures, and absence of owner changes, without claiming
+  process isolation from deliberate snapshot-class/module/global mutation;
 - full default CPU regression;
 - strict Ruff and Black on later changed Python paths;
 - repository no-new-debt evidence.

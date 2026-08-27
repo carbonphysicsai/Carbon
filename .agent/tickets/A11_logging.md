@@ -48,6 +48,12 @@ unchanged by this documentation amendment, while its body metadata records the
 blocker and withdraws the stale audit claim. Its generic-dataclass correction
 remains intact at that draft head but does not resolve shared enum singletons.
 
+The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
+records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
+(`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
+`P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
+`CONTRACT_PRECISION_DEFECT`.
+
 A11-R18 supersedes only the sink-facing portions of A11-R1, A11-R2, A11-R3,
 A11-R10, A11-R13, A11-R14, and A11-R16. All other A11-R1 through A11-R17
 behavior and authority ceilings remain in force. The effective amended contract
@@ -68,7 +74,7 @@ authorization, and normal merge of this exact amendment candidate.
   DurationMetricSnapshot,
   ObservabilityError, ObservabilityRequestError, ObservabilityResourceError,
   ObservabilityIntegrationError, and private exact request-validation and
-  snapshot-construction helpers only.
+  public-constructor invocation helpers only.
 - providers.py owns StructuredEventSink and MetricSink, with no concrete,
   default, or global sink. service.py owns ObservabilityService plus private
   request-to-snapshot conversion,
@@ -177,10 +183,22 @@ authorization, and normal merge of this exact amendment candidate.
   assignment/deletion; representation-safe; non-copyable by copy/deepcopy;
   non-pickleable; rejected by dataclasses.asdict/astuple/replace; and composed
   only of exact built-in str, int, or None. It contains no request, enum, owner,
-  exception, mapping, iterable, descriptor, object graph, or metadata. A
-  snapshot is never a service request and direct construction proves shape
-  only, not owner transition or any lifecycle/scientific/audit/public/security/
-  settlement/economic authority.
+  exception, mapping, iterable, descriptor, object graph, or metadata.
+  Direct public construction of all four snapshot classes is allowed through
+  exactly the displayed parameter names and order, with every parameter
+  required. Each constructor accepts only the exact built-in field types,
+  literal sets, canonical UUIDv4 spelling, event-matrix combinations, and
+  integer range above; rejects bool, field-type subclasses, coercion, malformed
+  values, extra positional or keyword fields, constructor re-entry, partially
+  initialized values, and subclass construction; creates the exact manual
+  slotted non-dataclass instance with no instance dict and a fixed safe
+  representation; and retains every assignment/deletion/copy/deepcopy/pickle/
+  dataclass-operation rejection above. There is no hidden token, private-
+  factory requirement, alternate constructor, or service-only construction
+  path. Directly constructed snapshots remain authority-free and prove only
+  exact closed shape, not provenance, owner transition, or lifecycle/
+  scientific/audit/receipt/public/security/settlement/economic authority. The
+  service rejects every snapshot type as a request value.
 - The service exposes exactly emit_event(event), accepting exact
   ObservabilityEvent or BoundaryErrorEvent; increment_counter(metric); and
   observe_duration(stage, duration_ns). It accepts no mappings, free-form
@@ -190,7 +208,10 @@ authorization, and normal merge of this exact amendment candidate.
   BoundaryErrorSnapshot. MetricSink.increment_counter receives only exact
   CounterMetricSnapshot, and MetricSink.observe_duration receives only exact
   DurationMetricSnapshot. The Protocols remain structural and
-  non-runtime-checkable; concrete sinks subclass neither Protocol.
+  non-runtime-checkable; concrete sinks subclass neither Protocol. They are
+  trusted in-process integration seams. Only trusted composition supplies a
+  sink at mandatory service construction; miner-controlled or service-request
+  input cannot choose or supply a sink implementation.
 - Production A11 imports only Python standard library and exact public A5/A7
   request values. Snapshot classes use only built-ins and local A11 validation.
   A11 never imports A9/A10. A test-local trusted-composition harness may
@@ -203,12 +224,24 @@ authorization, and normal merge of this exact amendment candidate.
   exists. After exact request/canonical-enum/matrix validation and fresh A7 ID
   reconstruction, A11 maps semantics through fixed local literal tables and
   constructs a fresh snapshot before capacity and sink access.
-- Mutation through an object supplied by A11 to a sink cannot alter caller,
-  owner, retained, concurrent, or later A11 state. A sink escape hatch may
-  alter only its own distinct per-call snapshot. A11 retains no snapshot for
-  reuse, holds no global lock across sink code, performs no shared-state
-  sanitize/restore, and claims no sandbox for unrelated globals independently
-  imported by arbitrary in-process sink code.
+- Mutation of the supplied snapshot instance and its declared primitive fields,
+  including normal assignment and object.__setattr__, cannot alter caller,
+  owner, retained, concurrent, another-service, or later A11 state. A sink
+  escape hatch may alter only its own distinct per-call snapshot instance; a
+  retained instance cannot affect another call. A11 retains no snapshot for
+  reuse, holds no ordinary mutex across sink code, and performs no shared-enum
+  sanitize/restore.
+- A11 does not defend against sink code that deliberately retrieves and mutates
+  the snapshot class, A11 module globals, owner classes/modules, or any other
+  process global. Such class/global mutation is outside the trusted in-process
+  sink contract and requires process isolation or capability restriction,
+  neither of which Wave A implements or claims. This exclusion does not permit
+  any shared enum, owner nominal, request, mapping, exception, metadata, or
+  other mutable shared instance to cross the sink seam; caller-added enum
+  attributes remain excluded. Production-sink hardening, process isolation,
+  plugin capability restriction, and hostile-sink qualification remain
+  deferred. A11 claims no resistance to arbitrary malicious Python in the same
+  process; SECURITY_QUALIFIED and PRODUCTION_QUALIFIED remain NO.
 - A syntactically valid but unbound UUIDv4 has no lifecycle, scientific, audit,
   receipt, public, security, settlement, or economic authority. Production
   provenance and evidence remain separately deferred.
@@ -228,14 +261,16 @@ candidate implements and tests nothing.
 - [ ] Add only carbon/observability/__init__.py, model.py, providers.py, and
   service.py with the effective A11-R18 module ownership: model request/resource
   values, four snapshot types, errors, and private exact request-validation and
-  snapshot-construction helpers only; provider Protocols only; service
+  public-constructor invocation helpers only; provider Protocols only; service
   request-to-snapshot conversion, private accounting, sink invocation, and
   translation only; and __init__.py exact re-exports only. Do not modify,
   alias, import through, or re-export from the inert A0 carbon/logging_utils
   compatibility marker, carbon/audit, or root carbon/__init__.py.
 - [ ] Export the exact ordered eighteen-name carbon.observability.__all__ tuple
   amended by A11-R18, with all four snapshots in their exact specified order
-  and no owner-type re-export, alias, generic logger,
+  and directly publicly constructible through only their exact displayed
+  required constructors, with no hidden token, private-factory requirement,
+  alternate/subclass constructor, owner-type re-export, alias, generic logger,
   serializer, production provider, no-op default, private helper, or extra
   error.
 - [ ] Implement exact direct str, Enum inheritance, declaration order, names,
@@ -248,8 +283,9 @@ candidate implements and tests nothing.
   representation-safe owner-shaped operational-observation request with exact
   ordered fields kind, submission_id, submission_state, score_status and no
   generic serialization/copy path; it is a validated request only, never a sink
-  argument or sink-safe snapshot, and proves neither retained-record existence
-  nor authenticated provenance.
+  argument or sink-safe snapshot, its public request constructor continues to
+  accept the exact canonical owner enums rather than primitive snapshot fields,
+  and it proves neither retained-record existence nor authenticated provenance.
 - [ ] Implement ObservabilityResourceLimits as a frozen, slotted,
   representation-safe value with only required max_concurrent_calls, an exact
   built-in integer in 1..2**64-1.
@@ -268,6 +304,10 @@ candidate implements and tests nothing.
   shapes, and unsupported combinations through exact type, identity, name, and
   literal validation without calling hostile repr or str; never inspect, copy,
   traverse, retain, render, or emit unrelated caller-added enum attributes.
+  For each public snapshot constructor, also reject bool, field-type and
+  snapshot-class subclasses, coercion, malformed values/combinations, extra
+  positional or keyword fields, constructor re-entry, and partially initialized
+  values before any accepted snapshot instance is exposed.
 
 ### Exact submission event consistency and correlation
 
@@ -332,13 +372,16 @@ candidate implements and tests nothing.
   LEADERBOARD_INTEGRATION/leaderboard.integration.failed; assert no aliases,
   auto(), integer/alternative values, or extra members. It remains request
   vocabulary only; after exact validation, A11 maps the chosen literal through
-  a fixed local table to BoundaryErrorSnapshot.error_code and never passes the
-  enum to a sink.
+  a fixed local table to the distinct primitive field accepted by the direct
+  public BoundaryErrorSnapshot(error_code) constructor and never passes the
+  request enum to a sink or accepts the snapshot as a request.
 - [ ] Implement BoundaryErrorEvent as a frozen, slotted,
   representation-safe request with exactly one field, error_kind, accepting
-  only exact BoundaryErrorKind; it is never a sink argument. Construct a fresh
-  exact one-field BoundaryErrorSnapshot containing only the validated built-in
-  literal, and exclude SubmissionId, ChallengeKey, requester, request/tool
+  only exact BoundaryErrorKind; it is never a sink argument. Through the same
+  direct public exact constructor available to callers, construct a fresh
+  one-field BoundaryErrorSnapshot containing only the validated built-in
+  literal; reject malformed/extra/coercible/subclass/re-entry/partial snapshot
+  construction and exclude SubmissionId, ChallengeKey, requester, request/tool
   payload, cursor, provider, enum member, exception object/text, message,
   cause/context/traceback, private field, hidden identifier, seed/draw, and
   arbitrary string/mapping material.
@@ -371,17 +414,21 @@ candidate implements and tests nothing.
 - [ ] Permit increment_counter only for exact SUBMIT_COUNT, SCORE_COUNT,
   REJECT_COUNT, and FAILED_INFRA_COUNT; each successful call represents one
   increment and accepts no delta/value, then maps through a fixed local literal
-  table to one fresh CounterMetricSnapshot(metric_name) containing the exact
-  built-in string.
+  table to the distinct direct public CounterMetricSnapshot(metric_name)
+  constructor for one fresh snapshot containing the exact built-in string;
+  never accept that snapshot as the metric request.
 - [ ] Reject STAGE_DURATION_NS through increment_counter and represent it only
-  through observe_duration as a fresh DurationMetricSnapshot; never pass
-  STAGE_DURATION_NS or any MetricKind member to a sink.
+  through observe_duration as a fresh directly publicly constructed
+  DurationMetricSnapshot; never pass STAGE_DURATION_NS or any MetricKind member
+  to a sink and never accept either metric snapshot as a request value.
 - [ ] Accept only exact DurationStage.SUBMIT or DurationStage.SCORE and an
   exact built-in duration_ns in 0..2**64-1, including zero; reject bool,
   subclasses, floats, coercion, negatives, and overflow; map the validated
-  values to one fresh DurationMetricSnapshot whose stage is an exact local
-  built-in literal and whose duration_ns is the exact built-in integer, with no
-  DurationStage member reaching the sink.
+  values through the direct public DurationMetricSnapshot(stage, duration_ns)
+  constructor to one fresh snapshot whose stage is an exact local built-in
+  literal and whose duration_ns is the exact built-in integer, with no
+  DurationStage member reaching the sink; direct constructor input obeys the
+  same literal/type/range checks but creates no valid service request.
 - [ ] Expose exactly zero arbitrary metric labels: no label map, tag tuple,
   keyword metadata, SubmissionId, Challenge, requester, hotkey, wallet,
   customer, result, score, rank, cursor, provider, exception, boundary-error
@@ -404,8 +451,10 @@ candidate implements and tests nothing.
   request type; exact canonical enum type, identity, name, and literal; exact
   event matrix or metric/duration boundary; fresh SubmissionId reconstruction
   through public A7 where applicable; mapping through A11-owned fixed literal
-  tables; construction of one fresh snapshot with no request, owner, or enum
-  reference; capacity/reentrancy acquisition; then at most one sink call.
+  tables; construction through the same direct public exact constructor of one
+  fresh snapshot with no request, owner, or enum reference; capacity/reentrancy
+  acquisition; then at most one sink call. Direct snapshot construction never
+  bypasses or satisfies this service-request validation path.
 - [ ] Use no arbitrary mapping/iterable/descriptor/object-graph traversal,
   reflection, dataclass dump, pickle, JSON, generic serializer, recursive
   sanitizer, serialize-then-redact path, or silent normalization/truncation/
@@ -422,7 +471,9 @@ candidate implements and tests nothing.
 - [ ] Exclude official/master/derived seeds, draw IDs, roles, domains,
   contexts, entropy, nonces, commitments/preimages, hidden-pack identities,
   full Strategies, parameters, weights, checkpoints, and artifacts, including
-  any such value attached as an arbitrary request-enum attribute.
+  any such value attached as an arbitrary request-enum attribute; prove no
+  arbitrary enum attribute enters any declared snapshot-instance field through
+  service conversion or direct public construction.
 - [ ] Exclude requester/hotkey/wallet/customer/credential, fee/payment/reward,
   result/receipt/cursor/publication/provider, prior/estimate/scaffold/mock/light,
   and query-history material, including any such value attached as an arbitrary
@@ -441,19 +492,25 @@ candidate implements and tests nothing.
   StructuredEventSink.emit_event(event: SubmissionEventSnapshot |
   BoundaryErrorSnapshot, /), MetricSink.increment_counter(metric:
   CounterMetricSnapshot, /), and MetricSink.observe_duration(metric:
-  DurationMetricSnapshot, /).
+  DurationMetricSnapshot, /). These exact snapshot parameters remain distinct
+  from the unchanged public service-request parameters and define trusted
+  in-process integration seams only.
 - [ ] Accept trusted structural concrete sinks without Protocol subclassing,
   runtime_checkable, exact-type gating, or runtime Protocol introspection.
 - [ ] Make at most one corresponding synchronous sink call per public
   operation, passing one exact fresh snapshot, and no sink call after caller
   validation, capacity, or reentrancy failure.
 - [ ] Construct a distinct primitive-only A11-owned snapshot for every admitted
-  call before invocation. Mutation through an A11-supplied object, including
-  normal or object.__setattr__ mutation and a sink-retained reference, cannot
-  alter caller, owner, retained, concurrent, another-service, or later A11
-  state. A11 reuses no snapshot, mutates/restores no shared enum, holds no
-  ordinary mutex across sink code, and claims no sandbox for unrelated globals
-  independently imported by a sink.
+  call before invocation. Mutation of the supplied snapshot instance and its
+  declared primitive fields, including normal assignment and
+  object.__setattr__, cannot alter caller, owner, retained, concurrent,
+  another-service, or later A11 state. Retained instance mutation cannot affect
+  another call. A11 reuses no snapshot, mutates/restores no shared enum, and
+  holds no ordinary mutex across sink code. Deliberate mutation of the snapshot
+  class, A11 module globals, owner classes/modules, or any process global is
+  outside the trusted in-process sink contract and requires unclaimed process
+  isolation or capability restriction; no arbitrary-hostile-Python resistance
+  is asserted.
 - [ ] Treat missing/call-incompatible methods, non-None returns, hostile
   descriptor/hook ordinary exceptions, invocation ordinary exceptions, and
   sink-raised public A11 errors as one new fixed integration error.
@@ -505,7 +562,8 @@ candidate implements and tests nothing.
   rather than assert impossible absence of all transitive modules from
   `sys.modules`.
 - [ ] Enforce the exact dependency graph: model.py to standard library plus
-  public A5/A7 request values and local request-validation/snapshot helpers;
+  public A5/A7 request values and local request-validation/public-constructor
+  invocation helpers;
   providers.py to standard-library typing plus A11 snapshot model types;
   service.py to standard library plus A11 model/provider types and
   request-to-snapshot conversion; and __init__.py to the explicit eighteen
@@ -528,10 +586,14 @@ candidate implements and tests nothing.
 - [ ] Build a fresh zero-dependency wheel, install it with --no-deps outside
   the source tree, and prove isolated import exposes only the exact eighteen
   A11 names without loading forbidden optional/later-wave modules; prove all
-  four exact snapshot shapes and primitive fields, non-dataclass/copy/pickle/
-  dataclass-operation protections, unchanged public service signatures,
-  request-to-snapshot conversion, distinct/retained/concurrent/later mutation
-  isolation, and unchanged A5/A7 owner source.
+  four direct public exact snapshot constructors and required parameter order,
+  malformed/extra/re-entry/partial/subclass/coercion rejection, primitive
+  fields, non-dataclass/copy/pickle/dataclass-operation protections, unchanged
+  public service signatures, request-to-snapshot conversion, and supplied-
+  instance/declared-field isolation across distinct, retained, concurrent, and
+  later calls. Do not claim isolation from deliberate snapshot-class/module/
+  global mutation or arbitrary hostile sink code. Prove unchanged A5/A7 owner
+  source.
 - [ ] Pass the canonical focused suite at
   pytest tests/cpu/test_observability.py -q.
 - [ ] Pass the complete default CPU regression without treating it as A11

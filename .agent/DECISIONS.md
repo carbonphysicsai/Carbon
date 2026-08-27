@@ -601,6 +601,25 @@ through A11-R18 only after independent review, explicit human authorization,
 and normal merge of the exact amendment candidate. While its PR remains draft,
 A11-R18 is specified by this candidate and is not ratified.
 
+The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
+records:
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM
+taxonomy: CONTRACT_DEFECT
+current main defect: NO
+PR #47 candidate defect at that parent: YES
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY
+taxonomy: CONTRACT_PRECISION_DEFECT
+```
+
+The corrected supplied-instance scope below is not Option C. Option C would
+permit mutation of shared owner/request/enum state or weaken isolation of the
+supplied snapshot instance and its fields. Precisely excluding deliberate
+class/module/global mutation, which requires a stronger isolation boundary,
+does neither.
+
 The public service request API remains exactly:
 
 ```python
@@ -700,10 +719,24 @@ non-pickleable; rejected by `dataclasses.asdict`, `dataclasses.astuple`, and
 `dataclasses.replace`; and composed only of exact immutable built-in `str`,
 `int`, or `None` fields. It contains no arbitrary mapping, iterable,
 descriptor, object graph, owner object, enum member, exception, or metadata.
-It is authority-free and is never accepted as a service request. Direct
-snapshot construction, if retained as public Python construction, proves only
-exact closed shape and creates no owner transition, lifecycle, scientific,
-audit, receipt, public, security, settlement, or economic authority.
+It is authority-free and is never accepted as a service request.
+
+Direct public construction of all four snapshot classes is allowed. Each has
+exactly the displayed parameter names and order, and every displayed parameter
+is required. The constructors accept only the exact built-in field types,
+literal sets, canonical UUIDv4 spelling, event-matrix combinations, and integer
+range stated above. They reject `bool`, field-type subclasses, coercible or
+malformed values, extra positional or keyword fields, constructor re-entry,
+and partially initialized values. Construction always creates an exact manual
+slotted non-dataclass instance with no instance `__dict__`, a fixed safe
+representation, and the assignment, deletion, copy, deepcopy, pickle, and
+dataclass-operation rejections stated above. No hidden token, private-factory
+requirement, alternate constructor, or subclass construction is permitted; the
+service uses these same public constructors after deriving exact primitive
+fields. Directly constructed snapshots prove only exact closed shape and
+create no provenance, owner transition, lifecycle, scientific, audit, receipt,
+public, security, settlement, or economic authority. The service rejects all
+four snapshot types as request values.
 
 The effective future ordered `carbon.observability.__all__` tuple is exactly:
 
@@ -753,7 +786,7 @@ model.py
   ObservabilityRequestError
   ObservabilityResourceError
   ObservabilityIntegrationError
-  private exact request validation and snapshot-construction helpers only
+  private exact request validation and public-constructor invocation helpers only
 
 providers.py
   StructuredEventSink
@@ -798,7 +831,10 @@ class MetricSink(Protocol):
 ```
 
 Concrete sinks subclass neither Protocol. No production sink is added. The
-three public `ObservabilityService` operations remain unchanged.
+three public `ObservabilityService` operations remain unchanged. These
+Protocols are trusted in-process integration seams. Only trusted composition
+supplies sinks at mandatory service construction; miner-controlled or service-
+request input cannot choose or supply a sink implementation.
 
 The future service performs this exact order:
 
@@ -809,8 +845,8 @@ The future service performs this exact order:
 4. Reconstruct and validate `SubmissionId` through the public A7 constructor
    where applicable.
 5. Map validated semantic values to A11-owned hard-coded literal strings.
-6. Construct a fresh snapshot containing no request object, owner object, or
-   enum reference.
+6. Use the same direct public exact constructor to construct a fresh snapshot
+   containing no request object, owner object, or enum reference.
 7. Acquire capacity and same-service reentrancy permission.
 8. Make at most one sink call.
 
@@ -826,23 +862,42 @@ enum after snapshot construction cannot alter the snapshot. No
 sanitize-and-restore mutation of shared enum state is permitted, and no global
 lock is held across sink code.
 
-The exact supplied-value isolation scope is:
+The exact supplied-snapshot-instance isolation scope is:
 
 ```text
-Mutation through an object supplied by A11 to a sink cannot alter caller,
-owner, retained, concurrent, or later A11 state.
+Mutation of the supplied snapshot instance and its declared primitive fields,
+including normal assignment and object.__setattr__, cannot alter caller,
+owner, retained, concurrent, another-service, or later A11 state.
 ```
 
-Each sink receives one fresh per-call snapshot. A sink may use Python escape
-hatches to alter its own per-call snapshot, but that mutation cannot affect
-another operation because the snapshot contains no shared mutable owner or enum
-reference and A11 retains no snapshot for reuse. A sink-retained snapshot
-cannot alter a later call. A11 does not sandbox arbitrary in-process sink code;
-a sink that independently imports and mutates unrelated process globals acts
-outside the A11 supplied-value boundary. Process isolation, capability
-restriction, and hostile-code sandboxing remain separately deferred and are
-not claimed by Wave A. This limitation is not permission for A11 to hand a
-shared mutable object to a sink.
+Each sink receives one fresh per-call snapshot instance. A sink may use Python
+escape hatches to alter that distinct instance, but the retained instance
+cannot affect another call because its declared fields are exact immutable
+built-in primitives, it contains no shared mutable owner or enum reference,
+and A11 never reuses a snapshot object.
+
+A11 does not defend against sink code that deliberately retrieves and mutates
+the snapshot class, A11 module globals, owner classes/modules, or any other
+process global.
+
+Such class/global mutation is outside the trusted in-process sink contract and
+requires process isolation or capability restriction, neither of which Wave A
+implements or claims.
+
+This exclusion does not permit A11 to pass a shared enum, owner nominal,
+request object, mapping, exception, metadata, or other mutable shared instance.
+Caller-added enum attributes remain excluded; no shared enum sanitize/restore
+occurs; and no ordinary mutex is held across sink code. Production-sink
+hardening, process isolation, plugin capability restriction, and hostile-sink
+qualification remain separately deferred. A11 claims no resistance to
+arbitrary malicious Python executing in the same process. `SECURITY_QUALIFIED`
+and `PRODUCTION_QUALIFIED` remain `NO`.
+
+The unchanged `agent_pack/README.md` phrase "mutation through an A11-supplied
+sink value" is non-normative shorthand for mutation of the supplied snapshot
+instance and its declared primitive fields only. It does not extend the
+guarantee to a class, module, or global object reachable through that instance;
+this A11-R18 text controls.
 
 The current service-request dependency direction remains exactly:
 
@@ -891,12 +946,19 @@ installed-wheel tests that:
 - request `_name_` or `_value_` corruption rejects;
 - mutation of a request enum after snapshot creation cannot alter the sink
   snapshot;
-- normal or `object.__setattr__` mutation of a sink snapshot cannot affect the
-  caller, owner enums, another service, concurrent operations, or later calls;
-- a retained snapshot cannot affect later calls;
+- normal or `object.__setattr__` mutation of a supplied snapshot instance and
+  its declared primitive fields cannot affect the caller, owner enums, another
+  service, concurrent operations, or later calls;
+- a retained snapshot-instance mutation cannot affect later calls;
 - each call receives a distinct outer snapshot;
 - no snapshot-and-restore global mutation occurs;
 - no lock is held across sink execution;
+- deliberate mutation of a snapshot class, A11 module global, owner
+  class/module, or other process global is outside the trusted in-process sink
+  contract and is not claimed as an instance-isolation proof;
+- all four exact public snapshot constructors accept their required displayed
+  parameters directly and reject malformed, extra, re-entry, partial,
+  coercible, bool, field-subclass, and snapshot-subclass construction;
 - the previous dataclass correction remains intact;
 - public service method signatures remain unchanged;
 - Protocol signatures match A11-R18;
