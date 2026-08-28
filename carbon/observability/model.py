@@ -31,10 +31,11 @@ _DURATION_METRIC_SNAPSHOT_FIELDS = ("stage", "duration_ns")
 _SNAPSHOT_CONSTRUCTION_SENTINEL = object()
 
 
-def _snapshot_construction_guard() -> Iterator[object]:
-    """Create fresh one-shot state for one direct snapshot construction."""
+def _snapshot_construction_guard(owner: object) -> Iterator[object]:
+    """Create fresh owner-bound one-shot state for snapshot construction."""
 
     yield _SNAPSHOT_CONSTRUCTION_SENTINEL
+    yield owner
 
 
 def _reject_state(value: object) -> None:
@@ -547,7 +548,7 @@ def _allocate_snapshot(
     if snapshot_type is not expected_type:
         _raise_request_error()
     value = object.__new__(snapshot_type)
-    object.__setattr__(value, first_field, _snapshot_construction_guard())
+    object.__setattr__(value, first_field, _snapshot_construction_guard(value))
     return value
 
 
@@ -573,7 +574,11 @@ def _require_snapshot_initialization(
         yielded = tuple(guard)
     except Exception:  # noqa: BLE001 - fail closed if guard consumption fails
         _raise_request_error()
-    if len(yielded) != 1 or yielded[0] is not _SNAPSHOT_CONSTRUCTION_SENTINEL:
+    if (
+        len(yielded) != 2
+        or yielded[0] is not _SNAPSHOT_CONSTRUCTION_SENTINEL
+        or yielded[1] is not value
+    ):
         _raise_request_error()
     try:
         object.__delattr__(value, field_names[0])

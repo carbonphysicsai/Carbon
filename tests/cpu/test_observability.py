@@ -875,6 +875,14 @@ def test_failed_snapshot_initialization_permanently_rejects_reentry() -> None:
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *valid_args)
 
+        donor = snapshot_type.__new__(snapshot_type, *valid_args)
+        donor_guard = object.__getattribute__(donor, first_field)
+        object.__setattr__(snapshot, first_field, donor_guard)
+        with pytest.raises(ObservabilityRequestError):
+            snapshot_type.__init__(snapshot, *valid_args)
+        with pytest.raises(ObservabilityRequestError):
+            snapshot_type.__init__(donor, *valid_args)
+
 
 def test_service_rejects_all_snapshot_classes_as_request_values() -> None:
     snapshots = (
@@ -3040,6 +3048,21 @@ for snapshot_type, valid_args, invalid_args, first_field in failed_initializatio
         pass
     else:
         raise AssertionError('snapshot construction guard replay succeeded')
+    donor = snapshot_type.__new__(snapshot_type, *valid_args)
+    donor_guard = object.__getattribute__(donor, first_field)
+    object.__setattr__(snapshot, first_field, donor_guard)
+    try:
+        snapshot_type.__init__(snapshot, *valid_args)
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('cross-object snapshot guard transfer succeeded')
+    try:
+        snapshot_type.__init__(donor, *valid_args)
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('transferred snapshot guard remained reusable')
 
 first = event_sink.events[0]
 object.__setattr__(first, 'kind', 'REJECT')
