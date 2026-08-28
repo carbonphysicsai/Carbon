@@ -824,10 +824,52 @@ def test_snapshots_reject_reentry_partial_and_alternate_initialization() -> None
     with pytest.raises(ObservabilityRequestError):
         BoundaryErrorSnapshot.__init__(alternate, "mcp.request.invalid")
 
-    partial = object.__new__(DurationMetricSnapshot)
+    partial = DurationMetricSnapshot.__new__(DurationMetricSnapshot, "SUBMIT", 0)
     object.__setattr__(partial, "duration_ns", 0)
     with pytest.raises(ObservabilityRequestError):
         DurationMetricSnapshot.__init__(partial, "SUBMIT", 0)
+    object.__delattr__(partial, "duration_ns")
+    with pytest.raises(ObservabilityRequestError):
+        DurationMetricSnapshot.__init__(partial, "SUBMIT", 0)
+
+
+def test_failed_snapshot_initialization_permanently_rejects_reentry() -> None:
+    cases: tuple[
+        tuple[type[object], tuple[object, ...], tuple[object, ...], str], ...
+    ] = (
+        (
+            SubmissionEventSnapshot,
+            ("SUBMIT", SUBMISSION_ID_TEXT, "RECEIVED", None),
+            ("INVALID", SUBMISSION_ID_TEXT, "RECEIVED", None),
+            "kind",
+        ),
+        (
+            BoundaryErrorSnapshot,
+            ("mcp.request.invalid",),
+            ("invalid",),
+            "error_code",
+        ),
+        (
+            CounterMetricSnapshot,
+            ("SUBMIT_COUNT",),
+            ("INVALID",),
+            "metric_name",
+        ),
+        (
+            DurationMetricSnapshot,
+            ("SUBMIT", 0),
+            ("INVALID_STAGE", 0),
+            "stage",
+        ),
+    )
+    for snapshot_type, valid_args, invalid_args, first_field in cases:
+        snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
+        with pytest.raises(ObservabilityRequestError):
+            snapshot_type.__init__(snapshot, *invalid_args)
+        with pytest.raises(AttributeError):
+            object.__getattribute__(snapshot, first_field)
+        with pytest.raises(ObservabilityRequestError):
+            snapshot_type.__init__(snapshot, *valid_args)
 
 
 def test_service_rejects_all_snapshot_classes_as_request_values() -> None:
@@ -2945,6 +2987,43 @@ for operation in (
         pass
     else:
         raise AssertionError('invalid snapshot constructor succeeded')
+
+failed_initialization_cases = (
+    (
+        module.SubmissionEventSnapshot,
+        ('SUBMIT', submission_text, 'RECEIVED', None),
+        ('INVALID', submission_text, 'RECEIVED', None),
+    ),
+    (
+        module.BoundaryErrorSnapshot,
+        ('mcp.request.invalid',),
+        ('invalid',),
+    ),
+    (
+        module.CounterMetricSnapshot,
+        ('SUBMIT_COUNT',),
+        ('INVALID',),
+    ),
+    (
+        module.DurationMetricSnapshot,
+        ('SUBMIT', 0),
+        ('INVALID_STAGE', 0),
+    ),
+)
+for snapshot_type, valid_args, invalid_args in failed_initialization_cases:
+    snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
+    try:
+        snapshot_type.__init__(snapshot, *invalid_args)
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('invalid retained snapshot initialization succeeded')
+    try:
+        snapshot_type.__init__(snapshot, *valid_args)
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('failed snapshot initialization allowed re-entry')
 
 first = event_sink.events[0]
 object.__setattr__(first, 'kind', 'REJECT')

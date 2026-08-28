@@ -547,13 +547,17 @@ def _require_snapshot_initialization(
     value: object,
     field_names: tuple[str, ...],
 ) -> None:
-    """Reject re-entry, object.__new__ bypass, and partial initialization."""
+    """Consume one allocation marker and reject every later initialization."""
 
     try:
         marker = object.__getattribute__(value, field_names[0])
     except Exception:  # noqa: BLE001 - fail closed on alternate allocation
         _raise_request_error()
     if marker is not _SNAPSHOT_CONSTRUCTION_MARKER:
+        _raise_request_error()
+    try:
+        object.__delattr__(value, field_names[0])
+    except Exception:  # noqa: BLE001 - fail closed if marker consumption fails
         _raise_request_error()
     for field_name in field_names[1:]:
         try:
