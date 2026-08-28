@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import copy
 import dataclasses
+import gc
 import hashlib
 import inspect
 import os
@@ -13,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import weakref
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
@@ -862,26 +864,52 @@ def test_failed_snapshot_initialization_permanently_rejects_reentry() -> None:
             "stage",
         ),
     )
+    assert not hasattr(
+        sys.modules[SubmissionEventSnapshot.__module__],
+        "_snapshot_construction_guard",
+    )
     for snapshot_type, valid_args, invalid_args, first_field in cases:
         snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
-        retained_guard = object.__getattribute__(snapshot, first_field)
+        with pytest.raises(AttributeError):
+            object.__getattribute__(snapshot, first_field)
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *invalid_args)
         with pytest.raises(AttributeError):
             object.__getattribute__(snapshot, first_field)
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *valid_args)
-        object.__setattr__(snapshot, first_field, retained_guard)
-        with pytest.raises(ObservabilityRequestError):
-            snapshot_type.__init__(snapshot, *valid_args)
 
         donor = snapshot_type.__new__(snapshot_type, *valid_args)
-        donor_guard = object.__getattribute__(donor, first_field)
-        object.__setattr__(snapshot, first_field, donor_guard)
+        with pytest.raises(AttributeError):
+            object.__getattribute__(donor, first_field)
+        object.__setattr__(snapshot, first_field, donor)
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *valid_args)
-        with pytest.raises(ObservabilityRequestError):
-            snapshot_type.__init__(donor, *valid_args)
+        snapshot_type.__init__(donor, *valid_args)
+        assert all(
+            object.__getattribute__(donor, field_name) == expected
+            for field_name, expected in zip(
+                snapshot_type.__slots__, valid_args, strict=True
+            )
+        )
+
+
+def test_abandoned_snapshot_allocation_does_not_retain_eligibility() -> None:
+    cases: tuple[tuple[type[object], tuple[object, ...]], ...] = (
+        (
+            SubmissionEventSnapshot,
+            ("SUBMIT", SUBMISSION_ID_TEXT, "RECEIVED", None),
+        ),
+        (BoundaryErrorSnapshot, ("mcp.request.invalid",)),
+        (CounterMetricSnapshot, ("SUBMIT_COUNT",)),
+        (DurationMetricSnapshot, ("SUBMIT", 0)),
+    )
+    for snapshot_type, valid_args in cases:
+        snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
+        reference = weakref.ref(snapshot)
+        del snapshot
+        gc.collect()
+        assert reference() is None
 
 
 def test_service_rejects_all_snapshot_classes_as_request_values() -> None:
@@ -2861,7 +2889,10 @@ class DependencyBlocker(importlib.abc.MetaPathFinder):
 
 sys.meta_path.insert(0, DependencyBlocker())
 module = importlib.import_module('carbon.observability')
+model_module = importlib.import_module('carbon.observability.model')
 from carbon.fees import SubmissionId, SubmissionState
+
+assert not hasattr(model_module, '_snapshot_construction_guard')
 
 assert all(
     current is original
@@ -3028,7 +3059,12 @@ failed_initialization_cases = (
 )
 for snapshot_type, valid_args, invalid_args, first_field in failed_initialization_cases:
     snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
-    retained_guard = object.__getattribute__(snapshot, first_field)
+    try:
+        object.__getattribute__(snapshot, first_field)
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError('snapshot allocation capability reached a public field')
     try:
         snapshot_type.__init__(snapshot, *invalid_args)
     except module.ObservabilityRequestError:
@@ -3041,28 +3077,27 @@ for snapshot_type, valid_args, invalid_args, first_field in failed_initializatio
         pass
     else:
         raise AssertionError('failed snapshot initialization allowed re-entry')
-    object.__setattr__(snapshot, first_field, retained_guard)
-    try:
-        snapshot_type.__init__(snapshot, *valid_args)
-    except module.ObservabilityRequestError:
-        pass
-    else:
-        raise AssertionError('snapshot construction guard replay succeeded')
     donor = snapshot_type.__new__(snapshot_type, *valid_args)
-    donor_guard = object.__getattribute__(donor, first_field)
-    object.__setattr__(snapshot, first_field, donor_guard)
+    try:
+        object.__getattribute__(donor, first_field)
+    except AttributeError:
+        pass
+    else:
+        raise AssertionError('donor allocation capability reached a public field')
+    object.__setattr__(snapshot, first_field, donor)
     try:
         snapshot_type.__init__(snapshot, *valid_args)
     except module.ObservabilityRequestError:
         pass
     else:
-        raise AssertionError('cross-object snapshot guard transfer succeeded')
-    try:
-        snapshot_type.__init__(donor, *valid_args)
-    except module.ObservabilityRequestError:
-        pass
-    else:
-        raise AssertionError('transferred snapshot guard remained reusable')
+        raise AssertionError('public-field allocation eligibility replay succeeded')
+    snapshot_type.__init__(donor, *valid_args)
+    assert all(
+        object.__getattribute__(donor, field_name) == expected
+        for field_name, expected in zip(
+            snapshot_type.__slots__, valid_args, strict=True
+        )
+    )
 
 first = event_sink.events[0]
 object.__setattr__(first, 'kind', 'REJECT')

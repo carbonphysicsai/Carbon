@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from enum import Enum
-from types import GeneratorType
+from threading import Lock
 from typing import NoReturn, Self
+from weakref import ReferenceType, ref
 
 from carbon.fees import SubmissionId, SubmissionState
 from carbon.scoring import ScoreStatus
@@ -28,14 +28,8 @@ _SUBMISSION_EVENT_SNAPSHOT_FIELDS = (
 _BOUNDARY_ERROR_SNAPSHOT_FIELDS = ("error_code",)
 _COUNTER_METRIC_SNAPSHOT_FIELDS = ("metric_name",)
 _DURATION_METRIC_SNAPSHOT_FIELDS = ("stage", "duration_ns")
-_SNAPSHOT_CONSTRUCTION_SENTINEL = object()
-
-
-def _snapshot_construction_guard(owner: object) -> Iterator[object]:
-    """Create fresh owner-bound one-shot state for snapshot construction."""
-
-    yield _SNAPSHOT_CONSTRUCTION_SENTINEL
-    yield owner
+_SNAPSHOT_ALLOCATION_ELIGIBILITY: dict[int, ReferenceType[object]] = {}
+_SNAPSHOT_ALLOCATION_LOCK = Lock()
 
 
 def _reject_state(value: object) -> None:
@@ -74,6 +68,10 @@ class _NoSerialization:
     __reduce_ex__ = _reject_reduce
     __copy__ = _reject_copy
     __deepcopy__ = _reject_deepcopy
+
+
+class _SnapshotNoSerialization(_NoSerialization):
+    __slots__ = ("__weakref__",)
 
 
 class _FixedLiteral:
@@ -541,14 +539,22 @@ def _require_duration_ns(value: object) -> int:
 def _allocate_snapshot(
     snapshot_type: type[object],
     expected_type: type[object],
-    first_field: str,
 ) -> object:
     """Allocate one direct-construction snapshot with no caller token."""
 
     if snapshot_type is not expected_type:
         _raise_request_error()
     value = object.__new__(snapshot_type)
-    object.__setattr__(value, first_field, _snapshot_construction_guard(value))
+    identity = id(value)
+
+    def clear_eligibility(reference: ReferenceType[object]) -> None:
+        with _SNAPSHOT_ALLOCATION_LOCK:
+            if _SNAPSHOT_ALLOCATION_ELIGIBILITY.get(identity) is reference:
+                _SNAPSHOT_ALLOCATION_ELIGIBILITY.pop(identity, None)
+
+    reference = ref(value, clear_eligibility)
+    with _SNAPSHOT_ALLOCATION_LOCK:
+        _SNAPSHOT_ALLOCATION_ELIGIBILITY[identity] = reference
     return value
 
 
@@ -556,35 +562,13 @@ def _require_snapshot_initialization(
     value: object,
     field_names: tuple[str, ...],
 ) -> None:
-    """Consume one allocation guard and reject every later initialization."""
+    """Consume private allocation eligibility before validating any fields."""
 
-    try:
-        guard = object.__getattribute__(value, field_names[0])
-    except Exception:  # noqa: BLE001 - fail closed on alternate allocation
+    with _SNAPSHOT_ALLOCATION_LOCK:
+        reference = _SNAPSHOT_ALLOCATION_ELIGIBILITY.pop(id(value), None)
+    if reference is None or reference() is not value:
         _raise_request_error()
-    if type(guard) is not GeneratorType:
-        _raise_request_error()
-    try:
-        guard_code = object.__getattribute__(guard, "gi_code")
-    except Exception:  # noqa: BLE001 - normalize damaged guard state
-        _raise_request_error()
-    if guard_code is not _snapshot_construction_guard.__code__:
-        _raise_request_error()
-    try:
-        yielded = tuple(guard)
-    except Exception:  # noqa: BLE001 - fail closed if guard consumption fails
-        _raise_request_error()
-    if (
-        len(yielded) != 2
-        or yielded[0] is not _SNAPSHOT_CONSTRUCTION_SENTINEL
-        or yielded[1] is not value
-    ):
-        _raise_request_error()
-    try:
-        object.__delattr__(value, field_names[0])
-    except Exception:  # noqa: BLE001 - fail closed if guard removal fails
-        _raise_request_error()
-    for field_name in field_names[1:]:
+    for field_name in field_names:
         try:
             object.__getattribute__(value, field_name)
         except AttributeError:
@@ -644,7 +628,7 @@ def _snapshot_event_matrix_accepts(
     return False
 
 
-class SubmissionEventSnapshot(_NoSerialization):
+class SubmissionEventSnapshot(_SnapshotNoSerialization):
     """Primitive-only sink snapshot for one validated submission event."""
 
     __slots__ = _SUBMISSION_EVENT_SNAPSHOT_FIELDS
@@ -665,7 +649,6 @@ class SubmissionEventSnapshot(_NoSerialization):
         return _allocate_snapshot(  # type: ignore[return-value]
             cls,
             SubmissionEventSnapshot,
-            "kind",
         )
 
     def __init__(
@@ -702,7 +685,7 @@ class SubmissionEventSnapshot(_NoSerialization):
         return "SubmissionEventSnapshot(<private>)"
 
 
-class BoundaryErrorSnapshot(_NoSerialization):
+class BoundaryErrorSnapshot(_SnapshotNoSerialization):
     """Primitive-only sink snapshot for one validated boundary error kind."""
 
     __slots__ = _BOUNDARY_ERROR_SNAPSHOT_FIELDS
@@ -714,7 +697,6 @@ class BoundaryErrorSnapshot(_NoSerialization):
         return _allocate_snapshot(  # type: ignore[return-value]
             cls,
             BoundaryErrorSnapshot,
-            "error_code",
         )
 
     def __init__(self, error_code: str) -> None:
@@ -734,7 +716,7 @@ class BoundaryErrorSnapshot(_NoSerialization):
         return "BoundaryErrorSnapshot(<private>)"
 
 
-class CounterMetricSnapshot(_NoSerialization):
+class CounterMetricSnapshot(_SnapshotNoSerialization):
     """Primitive-only sink snapshot for one closed counter increment."""
 
     __slots__ = _COUNTER_METRIC_SNAPSHOT_FIELDS
@@ -746,7 +728,6 @@ class CounterMetricSnapshot(_NoSerialization):
         return _allocate_snapshot(  # type: ignore[return-value]
             cls,
             CounterMetricSnapshot,
-            "metric_name",
         )
 
     def __init__(self, metric_name: str) -> None:
@@ -766,7 +747,7 @@ class CounterMetricSnapshot(_NoSerialization):
         return "CounterMetricSnapshot(<private>)"
 
 
-class DurationMetricSnapshot(_NoSerialization):
+class DurationMetricSnapshot(_SnapshotNoSerialization):
     """Primitive-only sink snapshot for one caller-supplied duration."""
 
     __slots__ = _DURATION_METRIC_SNAPSHOT_FIELDS
@@ -779,7 +760,6 @@ class DurationMetricSnapshot(_NoSerialization):
         return _allocate_snapshot(  # type: ignore[return-value]
             cls,
             DurationMetricSnapshot,
-            "stage",
         )
 
     def __init__(self, stage: str, duration_ns: int) -> None:
