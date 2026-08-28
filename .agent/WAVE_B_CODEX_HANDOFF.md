@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** prepared for future execution; inactive while `.agent/WAVE.md` names Wave A
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.2
-**Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.2
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.3
+**Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
 **First ticket after activation:** [`tickets/B-01_orientation.md`](./tickets/B-01_orientation.md)
 
 This handoff gives a fresh Codex session enough repository context to execute
@@ -101,7 +101,7 @@ the domain owner provides a current repository contract.
 | `docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md`, `Implemented_vs_Specified`, `DEFENSIBILITY_REGISTER.md`, `Carbon_Context.md`, and `Open_Questions.md` | Current maturity and terminology projections reconciled to the same reference, practice, prior, and Wave B authority boundaries. They do not supersede domain owners. |
 | `Design_Specs/Implementation.md` | Historical illustrative code under its authority notice. It cannot restore retired noisy-prior, score-estimation, generic-mode, or simulated-authority behavior. |
 | `examples/llm_agent_prompt.md` | Non-normative current-v1 and gated candidate-v2 mining-agent examples using registered operation names. |
-| `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.2.md` | Program planning and workload view. It cannot activate a ticket or launch state. |
+| `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` | Program planning and workload view. It cannot activate a ticket or launch state. |
 
 When two documents disagree, apply `AGENTS.md` section 2. Record one of
 `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`,

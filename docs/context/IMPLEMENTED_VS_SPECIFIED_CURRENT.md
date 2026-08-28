@@ -1,6 +1,9 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, current through the merged A10 closeout on 2026-08-26.
+**Status:** OWNER-CANONICAL maturity ledger, current through main
+`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`, the merged A11-R1 through
+A11-R17 contract, and the synchronized and rebaselined draft A11-R18
+sink-snapshot amendment candidate on 2026-08-28.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
@@ -54,7 +57,7 @@ No state implies a later state.
 | A8 | Yes | Yes | Yes | No | Bounded fixture-official, deterministic, process-local TrainEval stub on current `main`, including the reviewed conformance repair; no real/mock/LIVE/production or qualification authority |
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
-| A11 | Yes at the broad C16 direction level; exact A11-R1–A11-R17 contract pending independent review, explicit human authorization, and normal merge | No | No | No | Corrected bounded observability contract candidate only; no implementation, instrumentation, exporter, test, or qualification evidence |
+| A11 | A11-R1–A11-R17 ratified; A11-R18 is specified only as the exact synchronized and rebaselined draft candidate pending independent exact-head review, explicit human authorization, and normal merge | No | No | No | PR #46 is a blocked, non-authoritative, unchanged draft implementation candidate; immutable A11-owned sink snapshots remain unimplemented and untested on current main |
 | A12 | Yes | No | No | No | Wave-A invariant closeout pending |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
@@ -80,30 +83,138 @@ A10 PRODUCTION_QUALIFIED: NO
 A10 WAVE STATUS: done in the bounded scope after the documentation closeout merged normally in PR #38 as 404c039596b487cf2649bb1d73b80e9b49baaced
 ```
 
-A11 corrected documentation-contract-candidate maturity:
+A11 current contract and amendment-candidate maturity:
 
 ```text
-A11 SPECIFIED / RATIFIED:
-YES at the broad C16 direction level; the exact A11-R1 through A11-R17
-contract becomes ratified only after independent review, explicit human
-authorization, and normal merge
+A11-R1 through A11-R17:
+RATIFIED
 
-A11 IMPLEMENTED: NO
-A11 TESTED: NO
+A11-R18:
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
+
+A11 IMPLEMENTED:
+NO on current main
+
+A11 TESTED:
+NO on current main
+
+PR #46:
+draft, blocked, non-authoritative, and unchanged
+
 A11 SCIENTIFICALLY_QUALIFIED: NO
 A11 SECURITY_QUALIFIED: NO
 A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo
+
+A11 WAVE STATUS:
+todo on current main
+
 A12: todo
 Wave A: incomplete
-Wave B: candidate planning only; inactive
+Wave B: inactive
 ```
 
-This documentation candidate adds no A11 implementation, owner
+PR #39 normally merged A11-R1 through A11-R17 at historical ratification merge
+`4e4a66d29566a2a62a82188adddac76e6e0fb8b8`; those decisions remain ratified.
+That merge is PR #47's original base, PR #45's first parent, and ancestral to
+current main; it is not current main after this rebaseline.
+Draft PR #46 is blocked because its sink seam passes shared canonical A11/A5/A7
+enum singletons. `P1_GENERIC_DATACLASS_SERIALIZATION_BYPASS` is repaired on
+that draft branch, but `P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS` is
+confirmed. The earlier `66 PASS / 0 FAIL` implementation audit is withdrawn.
+PR #46 test results are branch evidence only and do not make A11 implemented
+or tested on current main.
+
+Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
+tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
+#48 from carbonphysicsai/agent/science-gtm-wave-integration`, with ordered
+parents `bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
+`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`, signature `verified=true`,
+`reason=valid`. The immediately preceding PR #45 merge is
+`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
+`b6365e31b09339826b7568565bb28c7c32007fac`, with ordered parents
+`4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
+`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, signature verified and valid.
+
+Current-main run `33093494970` succeeded. CPU job `98592266955` recorded
+`1973 passed in 44.41s`; code-quality job `98592266774` recorded
+`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
+and no new debt. Current-main `.agent/WAVE.md` is exact blob
+`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
+`todo`; Wave A remains controlling and incomplete; Wave B remains inactive.
+
+PR #45 merged candidate-only Wave B v0.3 scientific-hardening planning and
+touches only `.agent/DECISIONS.md` among the six R18 documents. PR #48 merged
+Science-GTM future-ticket integration and touches none of the six. Neither
+merge widens A11-R18, activates Wave B, implements A11, or creates scientific,
+security, network, commercial, or production authority.
+
+PR #47 began from `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`; initial R18 commit
+`9de896dea92e5378d99ef205cd21a29ef9f57fd3` was corrected at reviewed head
+`76ef2b194132bd2e07677d4ac1cf6baa83509faf`. Old synthetic
+`7ab62b646ba1dee248e090cbd2490511a4b1d87a` and CI run `33039977702` are
+stale old-base evidence only. Current-base drift is confirmed, but there is no
+R18 semantic conflict and no new owner decision.
+
+Normal synchronization merge `cf9a773520645053e6d745c28aede15356fef80a`,
+tree `b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
+A11-R18 with current main`, has ordered parents corrected reviewed head
+`76ef2b194132bd2e07677d4ac1cf6baa83509faf` then current main
+`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. The one rebaseline commit is
+`docs: rebaseline A11-R18 against current main`, with that synchronization merge
+as its sole parent. Its generated SHA/tree are recorded after creation in PR
+#47 publication metadata. Its sequential and cumulative manifest is exactly the
+following six A11-R18 documents:
+
+```text
+M .agent/DECISIONS.md
+M .agent/plans/A11_logging.md
+M .agent/tickets/A11_logging.md
+M Design_Specs/Build_Out_Constitutional_Overlay.md
+M agent_pack/README.md
+M docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
+```
+
+Every incoming PR #45/#48 path outside those six is byte-identical to current
+main. The R18 semantic contract is unchanged.
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
+CORRECTED
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
+CORRECTED
+```
+
+A11-R18 is the next documentation-only owner decision. It selects an immutable
+A11-owned sink-snapshot representation: public service requests continue to
+accept exact canonical A11/A5/A7 request values, while future sinks receive
+only a fresh `SubmissionEventSnapshot`, `BoundaryErrorSnapshot`,
+`CounterMetricSnapshot`, or `DurationMetricSnapshot` composed of exact
+built-in `str`, `int`, or `None` fields. The existing request enums and
+nominals are validated request values, not sink arguments or sink-safe
+snapshots. The future exact public surface contains eighteen names, adding
+only those four snapshot types. A11-R18 supersedes only the sink-facing
+portions of A11-R1, A11-R2, A11-R3, A11-R10, A11-R13, A11-R14, and A11-R16;
+all other A11-R1 through A11-R17 behavior and authority ceilings remain in
+force.
+
+Relative to synchronized current main, this documentation candidate adds no A11 implementation, owner
 instrumentation, exporter, test, or scientific, security, network, commercial,
-or production qualification evidence.
+or production qualification evidence. It changes no A5/A7 owner source,
+A12 artifact, Wave B artifact, dependency, workflow, or quality baseline.
+
+The exact next-move sequence is:
+
+1. independently review and ratify exact A11-R18;
+2. normally merge the exact reviewed amendment only after explicit human
+   authorization;
+3. synchronize PR #46 with the amendment merge;
+4. repair PR #46 to implement the snapshot boundary; and
+5. independently review the repaired implementation before ready or merge.
 
 Current `main` implements and tests only a bounded, in-process, fixture-only
 projection for one exact Challenge. It provides no production provider or
@@ -200,7 +311,8 @@ The public narrative is reconciled to the integrated constitution and Business C
 
 No paper/deck may imply:
 
-- the full Miner MCP or any A11–A12 implementation is present;
+- the full Miner MCP or any A11–A12 implementation is present, or that draft
+  PR #46 is current-main implementation or test authority;
 - bounded A10 implementation implies an official/LIVE leaderboard, scientific,
   security, network, commercial, or production qualification, or any later
   frontier, product, settlement, chain, weight, or emission authority;
@@ -217,4 +329,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0-A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its documentation closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. A10 remains scientifically, security, network, commercially, and production unqualified; official/LIVE publication, frontier, Product Qualification, settlement, chain, weights, emissions, and production authority remain explicit future work. A11 and A12 remain `todo`.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0-A10 software foundation. A9 implements only the exact seven-tool in-process Wave-A control/disclosure skeleton. A10 implements and tests only the exact bounded in-process fixture leaderboard; its documentation closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. A11-R1 through A11-R17 are ratified, while A11-R18 remains the synchronized and rebaselined draft immutable-sink-snapshot amendment candidate. A11 is unimplemented and untested on current main; draft PR #46 is blocked, non-authoritative, and unchanged. A11 and A12 remain `todo`, Wave A remains incomplete, and Wave B remains inactive.**

@@ -17,9 +17,10 @@ inventing calibrated forecasts, prices, or production rails.
 
 - [ ] Before implementation, produce
       `Design_Specs/Research_Resource_Policy_Contract.md`, obtain independent
-      protocol/SRE/security review and explicit human ratification, and merge
-      that contract normally; record the exact contract commit in the
-      implementation plan.
+      protocol/SRE/security review, operations/economics review of the
+      capacity, funding, queueing, and evidence-budget fields, and explicit
+      human ratification; merge that contract normally and record the exact
+      contract commit in the implementation plan.
 - [ ] Define exact `ResearchResourcePolicy`, `ResearchResourcePolicyRef`,
       `ResourceClass`, `ResourceClassRef`, static construction dimensions,
       declared ceilings, enforcement points, kill semantics, and observed
@@ -37,6 +38,16 @@ inventing calibrated forecasts, prices, or production rails.
 - [ ] Define typed unsupported, over-limit, policy-stale, enforcement,
       infrastructure, and cancellation outcomes without turning them into
       candidate physics evidence.
+- [ ] Define receipt seams required by a later
+      `ReconstructionEvidencePolicy`: complete-build identity, frozen-artifact
+      reuse window, reconstruction replicate identity, observed cost/latency,
+      evidence-stage label, and stop cause. These fields record resource facts
+      only; they do not authorize scientific screening, ranking, or promotion.
+- [ ] Define fail-closed, non-scientific seams for validator capacity,
+      reconstruction funding, queueing, and evidence-budget availability.
+      Missing operational commitments leave work `EVIDENCE_DEFERRED`; they do
+      not lower the registered scientific evidence requirement or create a
+      price, quota, score, or candidate-quality inference.
 - [ ] Provide a bounded fixture policy with explicit non-production provenance;
       missing real rails leave production execution unavailable.
 - [ ] Add canonicalization, stale/cross-Challenge ref, hostile-limit,
@@ -45,12 +56,14 @@ inventing calibrated forecasts, prices, or production rails.
 
 ## Human input
 
-SRE, protocol, and security owners approve real hardware classes, ceilings,
-enforcement semantics, calibration eligibility, and future operational rails.
-Fixture values remain non-authoritative.
+SRE, protocol, security, operations, and economics owners approve real hardware
+classes, ceilings, enforcement semantics, calibration eligibility, validator
+capacity, reconstruction funding, queueing, evidence-budget availability, and
+future operational rails. Fixture values remain non-authoritative.
 
 ## Must not
 
 Predict official quality, reveal protected evaluator topology or case volume,
-invent a price or quota, let payment change scientific evidence, or interpret
-a forecast as authorization to execute.
+invent a price or quota, let payment change scientific evidence, interpret a
+forecast as authorization to execute, or let a partial build or resource screen
+create scientific superiority.

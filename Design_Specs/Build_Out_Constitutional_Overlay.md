@@ -218,7 +218,7 @@ in-process fixture leaderboard merged normally in PR #37 at
 `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The documentation closeout
 merged normally in PR #38 as
 `404c039596b487cf2649bb1d73b80e9b49baaced` and is ancestral to current
-main `ea7f78b455f14f8ea674c196db349fd08b355305`. A10's bounded Wave-A
+main `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. A10's bounded Wave-A
 status is `done`; A11 and A12 remain `todo`, and Wave A remains
 incomplete. The closeout added no implementation or test evidence.
 
@@ -713,12 +713,65 @@ product, commercial, network, settlement, weight, or emission authority.
 
 # 6. A11 constitutional contract
 
-The broad C16 observability direction is specified, but the exact bounded
-A11-R1 through A11-R17 contract below is a documentation-only candidate. It
-becomes `SPECIFIED / RATIFIED` only after independent review, explicit
-human authorization, and normal merge. It implements and tests nothing, does
-not instrument an existing owner, leaves A11 `todo`, does not begin A12,
-and does not activate Wave B.
+PR #39 normally merged the exact bounded A11-R1 through A11-R17 contract at
+historical commit `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. Those decisions
+are `SPECIFIED / RATIFIED`; the merge remains PR #47's original base, PR #45's
+first parent, and an ancestor of current main. It remains history and authority,
+but is not current main after this rebaseline.
+
+Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
+tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
+#48 from carbonphysicsai/agent/science-gtm-wave-integration`, with ordered
+parents `bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
+`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`; its signature is verified and
+valid. The immediately preceding PR #45 merge is
+`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
+`b6365e31b09339826b7568565bb28c7c32007fac`, ordered parents historical PR #39
+merge `4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
+`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, signature verified and valid.
+
+Current-main push run `33093494970` succeeded. CPU job `98592266955` recorded
+`1973 passed in 44.41s`; code-quality job `98592266774` recorded
+`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
+and no new debt. `.agent/WAVE.md` is exact current-main blob
+`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
+`todo`; Wave A remains controlling and incomplete; Wave B remains inactive.
+Current main still contains no A11 implementation or focused A11 test.
+
+PR #45 adds candidate-only Wave B v0.3 scientific-hardening planning; PR #48
+adds Science-GTM future-ticket integration. Neither merge widens A11-R18,
+activates Wave B, implements A11, or creates scientific, security, network,
+commercial, or production authority. PR #45 touches only `.agent/DECISIONS.md`
+among the six R18 documents, without changing R18; PR #48 touches none.
+
+PR #47 began from `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`; its initial R18
+commit is `9de896dea92e5378d99ef205cd21a29ef9f57fd3`, and corrected reviewed head
+is `76ef2b194132bd2e07677d4ac1cf6baa83509faf`. Old synthetic
+`7ab62b646ba1dee248e090cbd2490511a4b1d87a` and CI run `33039977702` are
+stale old-base evidence only. Current-base drift is confirmed, with no R18
+semantic conflict and no new owner decision. Normal synchronization merge
+`cf9a773520645053e6d745c28aede15356fef80a`, tree
+`b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
+A11-R18 with current main`, has ordered parents
+`76ef2b194132bd2e07677d4ac1cf6baa83509faf` and current main
+`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`.
+
+This rebaseline is the one six-document commit `docs: rebaseline A11-R18
+against current main`, whose sole parent is that synchronization merge. Its
+generated SHA and tree are recorded after creation in PR #47 publication
+metadata. Its sequential and cumulative manifest is exactly `.agent/DECISIONS.md`,
+`.agent/plans/A11_logging.md`, `.agent/tickets/A11_logging.md`,
+`Design_Specs/Build_Out_Constitutional_Overlay.md`, `agent_pack/README.md`, and
+`docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md`. The R18 semantic contract is
+unchanged by synchronization or rebaseline.
+
+Draft implementation PR #46 is blocked by
+`P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`. Its correction for the earlier
+`P1_GENERIC_DATACLASS_SERIALIZATION_BYPASS` does not repair the fact that its
+sink seam carries shared canonical A11/A5/A7 enum singletons. A11-R18 below is
+a documentation-only owner-decision candidate for an immutable A11-owned sink
+snapshot boundary. It is not ratified until the exact amendment is
+independently reviewed, explicitly human-authorized, and normally merged.
 
 ## A11-R1 — Exact owner paths and module ownership
 
@@ -1243,26 +1296,446 @@ weights, and emissions remain separately owned, deferred, and fail closed.
 
 ```text
 A11 SPECIFIED / RATIFIED:
-YES only after this exact corrected documentation contract is independently
-reviewed, explicitly human-authorized, and normally merged
+YES for A11-R1 through A11-R17, normally merged in PR #39
 
-A11 IMPLEMENTED: NO
-A11 TESTED: NO
+A11-R18:
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
+
+A11 IMPLEMENTED: NO on current main
+A11 TESTED: NO on current main
 A11 SCIENTIFICALLY_QUALIFIED: NO
 A11 SECURITY_QUALIFIED: NO
 A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo
+A11 WAVE STATUS: todo on current main
+PR #46: draft, blocked, non-authoritative, and unchanged
 A12: todo
 Wave A: incomplete
-Wave B: candidate planning only; inactive
+Wave B: inactive
 ```
 
 A11 creates no implementation or focused test, `tests/invariants/`,
 pytest invariant marker, dependency, packaging, workflow/CI,
 quality-baseline, A12 artifact/status change, Wave-A closeout, Wave B
 activation, or launch claim.
+
+## A11-R18 — Immutable A11-owned sink snapshot boundary
+
+This amendment selects **Option A: immutable A11-owned sink snapshots**. The
+finding that requires the amendment is:
+
+```text
+P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS:
+CONFIRMED
+
+implementation defect: YES
+current main defect: NO
+contract-preserving implementation under the current owner types: NO
+classification: NEW_OWNER_DECISION_REQUIRED
+```
+
+Ordinary direct `str, Enum` members are process-wide mutable singletons. The
+R1-R17 request model requires exact canonical A11/A5/A7 enum members, while
+its sink-facing isolation language requires every sink argument to be a fresh
+immutable A11-owned value whose mutation cannot affect caller, owner,
+retained, concurrent, or later A11 state. Passing the canonical members cannot
+satisfy both requirements. Merely detecting later corruption, deleting
+unexpected attributes, sanitizing and restoring global enum state, trusting a
+sink, or holding a process-global lock across arbitrary sink code does not
+close that boundary.
+
+Option B, separately hardening the A5/A7 owner enums, requires an owner-reviewed
+migration and is outside A11. Option C, narrowing sink-mutation isolation,
+weakens the security boundary and is not authorized. R18 therefore introduces
+fresh primitive-only sink snapshots without changing A5/A7 owner source or the
+public service-request API.
+
+The corrected R18 scope does not select Option C: Option C would permit shared
+owner/request/enum state or weaken mutation isolation of the supplied snapshot
+instance and its declared fields. Deliberate class/module/global mutation
+requires a stronger isolation boundary and is outside the trusted in-process
+sink contract.
+
+### R18 status and exact supersession
+
+The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
+records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
+(`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
+`P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
+`CONTRACT_PRECISION_DEFECT`.
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
+CORRECTED
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
+CORRECTED
+```
+
+A11-R1 through A11-R17 remain ratified historical decisions. Only after the
+exact R18 candidate is independently reviewed, explicitly human-authorized,
+and normally merged does the effective contract become A11-R1 through A11-R18.
+At that point R18 supersedes only the sink-facing portions of A11-R1, A11-R2,
+A11-R3, A11-R10, A11-R13, A11-R14, and A11-R16. All other behavior, matrices,
+failure separation, resource limits, leakage prohibitions, dependency
+boundaries, and maturity/authority ceilings in R1-R17 remain in force.
+
+The public service-request API remains exactly:
+
+```python
+ObservabilityService.emit_event(
+    event: ObservabilityEvent | BoundaryErrorEvent,
+) -> None
+
+ObservabilityService.increment_counter(
+    metric: MetricKind,
+) -> None
+
+ObservabilityService.observe_duration(
+    stage: DurationStage,
+    duration_ns: int,
+) -> None
+```
+
+`ObservabilityEvent`, `BoundaryErrorEvent`, `MetricKind`, and `DurationStage`
+are validated request values only. They are not sink arguments and are not
+sink-safe snapshots after R18. Public request construction continues to accept
+exact canonical A11/A5/A7 enums and continues to prove no record existence,
+owner transition, provenance, authentication, evidence, or authority.
+
+### Future public snapshot values
+
+R18 adds these four future public A11-owned nominal types:
+
+```python
+SubmissionEventSnapshot(
+    kind: str,
+    submission_id: str,
+    submission_state: str,
+    score_status: str | None,
+)
+
+BoundaryErrorSnapshot(
+    error_code: str,
+)
+
+CounterMetricSnapshot(
+    metric_name: str,
+)
+
+DurationMetricSnapshot(
+    stage: str,
+    duration_ns: int,
+)
+```
+
+`SubmissionEventSnapshot` has exactly the ordered fields `kind`,
+`submission_id`, `submission_state`, and `score_status`:
+
+- `kind` is an exact built-in `str` selected from `SUBMIT`, `SCORE`, `REJECT`,
+  `FAILED_STRATEGY`, and `FAILED_INFRA`;
+- `submission_id` is an exact built-in 36-character ASCII `str` in canonical
+  UUIDv4 spelling, after validation through a fresh public A7 `SubmissionId`
+  reconstruction, and remains internal correlation only;
+- `submission_state` is an exact built-in `str` selected from `RECEIVED`,
+  `SCORED`, `REJECTED`, `FAILED_STRATEGY`, and `FAILED_INFRA`; and
+- `score_status` is `None` or the exact built-in `str` `SCORED` or
+  `MANDATORY_GATE_FAILED`.
+
+The exact existing A11-R4 event matrix remains authoritative. The snapshot
+contains no `EventKind`, `SubmissionState`, `ScoreStatus`, `SubmissionId`, or
+other A11/owner enum or nominal object.
+
+`BoundaryErrorSnapshot` has exactly one field, `error_code`. It is an exact
+built-in `str` selected from the existing eleven values:
+
+```text
+mcp.request.invalid
+mcp.resource_limit_exceeded
+mcp.tool_unavailable
+mcp.challenge_unavailable
+mcp.submission_unavailable
+mcp.query_budget_exceeded
+mcp.integration_failure
+leaderboard.request.invalid
+leaderboard.resource.exhausted
+leaderboard.fixture.unavailable
+leaderboard.integration.failed
+```
+
+It contains no `BoundaryErrorKind`, owner error, exception, payload, request
+value, provider value, identity, seed, draw, or arbitrary metadata.
+
+`CounterMetricSnapshot` has exactly one field, `metric_name`, which is an exact
+built-in `str` selected from `SUBMIT_COUNT`, `SCORE_COUNT`, `REJECT_COUNT`, and
+`FAILED_INFRA_COUNT`. It has no label, delta, dynamic name, boundary-error
+counter, gauge, reset, or decrement.
+
+`DurationMetricSnapshot` has exactly the ordered fields `stage` and
+`duration_ns`. `stage` is an exact built-in `str`, `SUBMIT` or `SCORE`, and
+`duration_ns` is an exact built-in `int` in `0..2**64-1`. It has no clock,
+timestamp, label map, or arbitrary dimension.
+
+Every snapshot must be an exact manual slotted non-dataclass nominal class and
+a fresh outer object per admitted service operation. It has no instance
+`__dict__`, rejects normal assignment and deletion, has a fixed safe
+representation, rejects `copy.copy`, `copy.deepcopy`, and pickle, and is
+rejected by `dataclasses.asdict`, `dataclasses.astuple`, and
+`dataclasses.replace`. Its fields contain only exact immutable built-in `str`,
+`int`, or `None` values. No mapping, iterable, descriptor, object graph, owner
+object, enum member, exception, or metadata is retained.
+
+Snapshots are authority-free and are never accepted as service requests.
+Direct public construction of all four snapshot classes is allowed. Each has
+exactly the displayed parameter names and order, and every displayed parameter
+is required. The constructors accept only the exact built-in field types,
+literal sets, canonical UUIDv4 spelling, event-matrix combinations, and integer
+range stated above. They reject `bool`, field-type subclasses, coercible or
+malformed values, extra positional or keyword fields, constructor re-entry,
+and partially initialized values. Construction always creates an exact manual
+slotted non-dataclass instance with no instance `__dict__`, a fixed safe
+representation, and the assignment, deletion, copy, deepcopy, pickle, and
+dataclass-operation rejections stated above. No hidden token, private-factory
+requirement, alternate constructor, or subclass construction is permitted; the
+service uses these same public constructors after deriving exact primitive
+fields. Directly constructed snapshots prove only exact closed shape and
+create no provenance, owner transition, lifecycle, scientific, audit, receipt,
+public, security, settlement, or economic authority. The service rejects all
+four snapshot types as request values.
+
+### Future public surface and module ownership
+
+After R18 is ratified and implemented, the exact ordered
+`carbon.observability.__all__` tuple is:
+
+```python
+(
+    "EventKind",
+    "MetricKind",
+    "DurationStage",
+    "BoundaryErrorKind",
+    "ObservabilityEvent",
+    "BoundaryErrorEvent",
+    "ObservabilityResourceLimits",
+    "SubmissionEventSnapshot",
+    "BoundaryErrorSnapshot",
+    "CounterMetricSnapshot",
+    "DurationMetricSnapshot",
+    "StructuredEventSink",
+    "MetricSink",
+    "ObservabilityService",
+    "ObservabilityError",
+    "ObservabilityRequestError",
+    "ObservabilityResourceError",
+    "ObservabilityIntegrationError",
+)
+```
+
+Exactly eighteen names are exported. The previous fourteen-name surface is
+superseded only after R18 normally merges. No owner type, generic logger,
+serializer, provider, mapper, or extra error is exported.
+
+The effective future module ownership is:
+
+```text
+model.py
+  EventKind, MetricKind, DurationStage, BoundaryErrorKind
+  ObservabilityEvent, BoundaryErrorEvent, ObservabilityResourceLimits
+  SubmissionEventSnapshot, BoundaryErrorSnapshot
+  CounterMetricSnapshot, DurationMetricSnapshot
+  ObservabilityError, ObservabilityRequestError
+  ObservabilityResourceError, ObservabilityIntegrationError
+  private exact request-validation and public-constructor invocation helpers only
+
+providers.py
+  StructuredEventSink, MetricSink Protocols
+  no concrete, default, or global sink
+
+service.py
+  ObservabilityService
+  request-to-snapshot conversion
+  shared-capacity and same-service reentrancy accounting
+  sink lookup/invocation/return validation and exception translation
+  no owner instrumentation
+
+__init__.py
+  exact ordered eighteen-name re-export tuple only
+```
+
+### Exact future Protocol seams
+
+```python
+class StructuredEventSink(Protocol):
+    def emit_event(
+        self,
+        event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+        /,
+    ) -> None: ...
+
+
+class MetricSink(Protocol):
+    def increment_counter(
+        self,
+        metric: CounterMetricSnapshot,
+        /,
+    ) -> None: ...
+
+    def observe_duration(
+        self,
+        metric: DurationMetricSnapshot,
+        /,
+    ) -> None: ...
+```
+
+The Protocols remain structural and non-runtime-checkable. Concrete sinks
+subclass neither Protocol. No concrete or production sink is added. These
+Protocols are trusted in-process integration seams. Only trusted composition
+supplies sinks at mandatory service construction; miner-controlled or service-
+request input cannot choose or supply a sink implementation.
+
+### Positive request-to-snapshot conversion
+
+Before capacity acquisition or sink access, the future service must:
+
+1. validate the exact outer request type;
+2. validate exact canonical enum type, identity, name, and literal value;
+3. validate the existing event matrix or metric/duration boundary;
+4. reconstruct and validate `SubmissionId` through its public A7 constructor
+   where applicable;
+5. map validated semantic values to A11-module-owned hard-coded literal
+   strings;
+6. use the same direct public exact constructor to construct a fresh snapshot
+   containing no request, owner, or enum reference;
+7. acquire non-blocking capacity and reentrancy permission; and
+8. make at most one corresponding sink call.
+
+The service never passes `EventKind`, `MetricKind`, `DurationStage`,
+`BoundaryErrorKind`, `SubmissionState`, `ScoreStatus`, `SubmissionId`,
+`ObservabilityEvent`, or `BoundaryErrorEvent` to a sink. It never carries a
+mutable enum member forward to derive a sink field, traverses or copies an
+enum-member `__dict__`, or consults, copies, retains, renders, or emits a
+caller-added enum attribute. Corrupted enum `_name_` or `_value_` state rejects
+before capacity acquisition and sink access. Snapshot primitives come from
+A11-owned fixed literal tables after exact validation. No sanitizing mutation
+or snapshot-and-restore of shared enum state is permitted, and no ordinary or
+process-global lock is held across sink code.
+
+### Exact snapshot-instance mutation-isolation scope
+
+```text
+Mutation of the supplied snapshot instance and its declared primitive fields,
+including normal assignment and object.__setattr__, cannot alter caller,
+owner, retained, concurrent, another-service, or later A11 state.
+```
+
+Each sink receives one fresh per-call snapshot instance. A sink may use Python
+escape hatches to alter that instance, but the retained instance cannot affect
+another call because its declared fields are exact immutable built-in
+primitives, it contains no shared mutable owner or enum reference, and A11
+never reuses a snapshot object.
+
+A11 does not defend against sink code that deliberately retrieves and mutates
+the snapshot class, A11 module globals, owner classes/modules, or any other
+process global.
+
+Such class/global mutation is outside the trusted in-process sink contract and
+requires process isolation or capability restriction, neither of which Wave A
+implements or claims.
+
+This exclusion does not permit A11 to pass a shared enum, owner nominal,
+request object, mapping, exception, metadata, or other mutable shared instance.
+Caller-added enum attributes remain excluded; no shared enum sanitize/restore
+occurs; and no ordinary mutex is held across sink code. Production-sink
+hardening, process isolation, plugin capability restriction, and hostile-sink
+qualification remain separately deferred. A11 claims no resistance to
+arbitrary malicious Python executing in the same process. `SECURITY_QUALIFIED`
+and `PRODUCTION_QUALIFIED` remain `NO`.
+
+### Dependencies, implementation evidence, and maturity
+
+The service-request dependency remains:
+
+```text
+model.py
+  → Python standard library
+  → public SubmissionId and SubmissionState from carbon.fees
+  → public ScoreStatus from carbon.scoring
+```
+
+Snapshot types depend only on Python built-ins and local A11 validation. No
+A5/A7 owner source changes, runtime owner monkey-patching, A9/A10 production
+import, owner import of `carbon.observability`, or owner-service
+instrumentation is authorized.
+
+A later repaired implementation must prove in both source-tree and installed
+wheel tests that caller-added enum attributes never enter snapshots; sinks
+receive no enum or `SubmissionId`; snapshot fields are exact built-in
+primitives; semantic enum corruption rejects; all four direct public exact
+constructors enforce their displayed required parameters and closed values;
+each call receives a distinct outer snapshot; normal assignment or
+`object.__setattr__` mutation of the supplied snapshot instance and its
+declared primitive fields cannot affect the caller, owner enums, another
+service, concurrent operations, or later calls; a retained snapshot-instance
+mutation cannot affect a later call; no snapshot-and-restore global mutation
+or lock across sink execution exists; deliberate snapshot-class/module/global
+mutation is outside the trusted seam and is not an instance-isolation proof;
+the prior dataclass/copy/pickle protections and event matrix remain intact;
+the exact eighteen-name surface and revised Protocols hold; and the six-path
+R18 delta leaves A5/A7 owner source, owner services, A12, and Wave B
+byte-identical to synchronized current main.
+
+This documentation amendment implements and tests nothing. PR #46 remains a
+blocked draft implementation candidate; its historical engineering evidence
+is not current-main A11 implementation or test authority.
+
+```text
+A11-R1 through A11-R17:
+RATIFIED
+
+A11-R18:
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
+
+A11 IMPLEMENTED:
+NO on current main
+
+A11 TESTED:
+NO on current main
+
+PR #46:
+draft, blocked, non-authoritative, and unchanged
+
+A11 SCIENTIFICALLY_QUALIFIED:
+NO
+
+A11 SECURITY_QUALIFIED:
+NO
+
+A11 NETWORK_QUALIFIED:
+NO
+
+A11 COMMERCIALLY_VALIDATED:
+NO
+
+A11 PRODUCTION_QUALIFIED:
+NO
+
+A11 WAVE STATUS:
+todo on current main
+
+A12:
+todo
+
+Wave A:
+incomplete
+
+Wave B:
+inactive
+```
 
 ---
 

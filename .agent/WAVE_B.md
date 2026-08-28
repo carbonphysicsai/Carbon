@@ -1,12 +1,12 @@
 # Carbon Wave B Candidate Board
 
 **Status:** inactive unless the active `.agent/WAVE.md` names Wave B and this exact file as its controlling register. This file does not self-activate.
-**Version:** 0.2
+**Version:** 0.3
 **Activation gate:** A11 and A12 are merged and closed; `.agent/WAVE_A_REPORT.md` exists; this board, its contract, and its handoff are independently reviewed and normally merged; one prospective, exact-head-reviewed and human-authorized activation change records named owner-role approval plus the exact reviewed commit and SHA-256 hashes over the unchanged repository bytes of those three artifacts in `.agent/DECISIONS.md`, and makes `.agent/WAVE.md` name Wave B and this exact file as its controlling register. The activation change does not mutate the board, contract, or handoff. Before B-01, a separate reviewed closeout records the activation merge commit/tree, exact reviewed head/tree equality, owner acceptance, and post-merge CI. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point after activation:** `.agent/WAVE_B_CODEX_HANDOFF.md`
-**Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.2.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
+**Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
 
 This file alone does not authorize implementation. It makes the Wave B dependency graph reviewable before activation; authority comes only from the active `.agent/WAVE.md` plus the recorded activation evidence.
 
@@ -62,6 +62,16 @@ Wave B does not include real miner training, production reconstruction, authenti
 11. A `TestOnlyPriorApprovalReceipt` carries
     `TEST_ONLY / NOT_UTILITY_QUALIFIED`, permits only private exact-ref fixture
     retrieval, and cannot substitute for a public `PriorPublicationReceipt`.
+12. The catalog may expose Challenge-owned, versioned, reconstructible
+    structure-preserving components as optional construction levers. A
+    component label or claimed invariant never satisfies a scientific gate;
+    the reconstructed output remains subject to the same measurements and
+    hidden stress evidence as every other candidate.
+13. Resource-saving admission checks, staged reconstruction, and sequential
+    evidence allocation may conserve compute, but no partial build, forecast,
+    proxy, or screen can create `SUPERIOR`. Promotion-grade evidence preserves
+    reconstruction-by-case dependence and fails closed when it cannot resolve
+    the claim.
 
 ---
 
@@ -73,12 +83,12 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | todo | — | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
 | B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01 | MQ-001, MQ-002 | L | WB-1 |
-| B-02B | Candidate assembly, ParameterCatalog, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-008, MQ-015, MQ-024 | L | WB-2 |
-| B-02C | ResearchResourcePolicy, resource classes, ceilings, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
+| B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
+| B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | todo | — | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
 | B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | todo | — | Codex + SciML | SciML + statistics + protocol + independent reviewer | B-02A | MQ-004 | L | WB-1/2 |
-| B-05 | MeasurementContract and Score Pack authoring bindings | todo | — | Codex + SciML | SciML + statistics + protocol | B-04 | MQ-005, MQ-006 | L | WB-2 |
-| B-06 | D1-D12 Dossier and qualification-manifest machinery | todo | — | Codex | SciML + statistics + protocol + security + independent reviewer | B-02A, B-03, B-04, B-05, A3 | MQ-003 through MQ-008, MQ-018 | M | WB-2/3 |
+| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | todo | — | Codex + SciML | SciML + statistics + protocol + SRE | B-02C, B-04 | MQ-005, MQ-006, MQ-007, MQ-008 | L | WB-2 |
+| B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | todo | — | Codex | SciML + statistics + protocol + security + independent reviewer | B-02A, B-03, B-04, B-05, A3 | MQ-003 through MQ-008, MQ-018 | M | WB-2/3 |
 | B-07R | Ratify the miner research architecture and authority boundaries | todo | — | Protocol lead + Codex | Protocol + science + security + rights | B-01, B-02A | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-1 |
 | B-07S | Ratify the exact v2 wire, lifecycle, error, canonicalization, bound, and local-adapter contract | todo | — | Protocol lead + Codex | Protocol + science + security + rights/counsel | B-07R, B-02A, B-02B, B-02C | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | M | WB-2 |
 | B-07A | Shared v2 protocol primitives, ChallengeInteractionManifest, and public research-capability discovery | todo | — | Codex | Protocol + security | B-02A, B-02B, B-02C, B-05, B-07R, B-07S, A3, A9 | MQ-005, MQ-006, MQ-015, MQ-016, MQ-017, MQ-024 | L | WB-3 |
@@ -90,15 +100,15 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-07E | Static resource analysis, calibrated forecast seam, and receipt separation | todo | — | Codex + SRE | Protocol + SRE + statistics | B-02B, B-02C, B-07A, B-07B, B-07C, B-07D3, B-07S | MQ-008, MQ-017, MQ-024 | M | WB-4 |
 | B-07F | Resolved-plan fixture-official construction adapter behind unchanged v1 lifecycle | todo | — | Codex + SciML | Protocol + science + security | B-02B, B-02C, B-03, B-04, B-05, B-07S, A7, A8, A9 | MQ-004, MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-3/4 |
 | B-07G | ResearchMcpService composition, twelve-operation dispatch, and conformance | todo | — | Codex | Protocol + science + security | B-02B, B-07A, B-07B, B-07C, B-07D3, B-07E, B-07S, A9 | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | L | WB-4/5 |
-| B-E1 | R0/R1/R2 reproducibility harness and typed contested-outcome seam | todo | — | Codex + SciML | Statistics + SciML | B-02A, B-02B, B-04, B-05 | MQ-007, MQ-008 | M | WB-2/3 |
+| B-E1 | R0/R1/R2 reproducibility, dependence-aware reconstruction × whole-case interval, staged-evidence audit, and typed contested-outcome harness | todo | — | Codex + SciML | Statistics + SciML | B-02A, B-02B, B-02C, B-04, B-05 | MQ-007, MQ-008 | L | WB-2/3 |
 | B-E2 | Julia/reference failure contract | todo | — | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | todo | — | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
-| B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | todo | — | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-016, MQ-025, MQ-026 | L | WB-5 |
+| B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | todo | — | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
 | B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
 
-Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. The decomposed board totals roughly **70-116 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **44-74 elapsed engineering days (9-15 working weeks)**. A single lane is approximately **14-24 working weeks**. Scientific/security/rights decisions, review queueing, and later qualification are additional.
+Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. The decomposed board totals roughly **72-120 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **45-76 elapsed engineering days (9-16 working weeks)**. A single lane is approximately **15-24 working weeks**. Scientific/security/rights decisions, review queueing, and later qualification are additional.
 
-`WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.2 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
+`WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.3 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
 
 ---
 
@@ -107,9 +117,10 @@ Effort uses the launch-plan scale: S is at most one primary-lane day, M is two t
 ```text
 B-01 → B-02A
 B-02A → B-03
-B-02A → B-04 → B-05
+B-02A → B-04
 B-02A → B-07R
 B-02A + B-07R + A2 → B-02B → B-02C → B-07S
+B-02C + B-04 → B-05
 B-02B + B-02C + B-07R + B-07S → B-07A → B-07B
 B-07A + B-07B + B-07S → B-07D1 → B-07D2 → B-07D3
 B-02C + B-03 + B-05 + B-07A + B-07B + B-07S → B-07C
@@ -117,7 +128,7 @@ B-02B + B-02C + B-07A + B-07B + B-07C + B-07D3 + B-07S → B-07E
 B-02B + B-02C + B-03 + B-04 + B-05 + B-07S + A7/A8/A9 → B-07F
 B-02B + B-07A + B-07B + B-07C + B-07D3 + B-07E + B-07S + A9 → B-07G
 
-B-02A + B-02B + B-04 + B-05 → B-E1
+B-02A + B-02B + B-02C + B-04 + B-05 → B-E1
 B-04 → B-E2
 B-02A + B-03 + B-04 + B-05 + A3 → B-06 → B-E3
 B-07A/B/C/D1/D2/D3/E/F/G/S + B-E1 + A12 → B-E4
@@ -151,7 +162,10 @@ Agents implement mechanisms, placeholders that fail closed, test fixtures, and e
 | Primary/witness reference adequacy and uncertainty | SciML + independent reviewer | TruthAsset authority | Reference unavailable |
 | Measurements, gates, transforms, and weights | SciML + protocol | Production Score Pack | Pack not ready |
 | Executable catalog values, hybrid assembly, and allowed `R_strategy` policies | SciML + protocol + security | Real compiler catalog | Fixture catalog only |
+| Structure-preserving component assumptions, exact implementations, applicability, and limitations | SciML + protocol + security | Any real structural-component catalog entry or prior guidance | Component unavailable; no architectural preference inferred |
 | Runtime ceilings, hardware/resource classes, and enforcement rails | SRE + protocol + security | Real reconstruction | Fixture resource policy only |
+| ReconstructionEvidencePolicy, family-specific complete-base evidence, scientific stopping/extension, typed deferral, heuristic-futility error control, and stability-audit rate | Statistics + SciML + protocol | Real scientific ranking or frontier promotion | Nomination/promotion unavailable or `INDETERMINATE` (`INSUFFICIENT_EVIDENCE`) |
+| Validator capacity, reconstruction funding, queueing, and operational evidence budget | SRE + operations + economics | Operational availability of registered evidence | `EVIDENCE_DEFERRED`; no scientific outcome |
 | Resource forecast calibration and unsupported-input rule | SRE + statistics | Any calibrated forecast claim | `UNRESOLVED` forecast |
 | Practice scope, omissions, and disclosure policy | Science + statistics + security | External practice | In-process fixture only |
 | Prior estimands, cohorts, lag, cadence, granularity, diversity metric/floor, and first content | Landscape + science + statistics + security | Any external prior activation | `TEST_ONLY` / unavailable |
@@ -175,10 +189,19 @@ Every applicable Wave B ticket must preserve and test:
   operation, lifecycle, or store;
 - the same Strategy and compiler identities resolve to the same construction semantics in practice and official-shaped reconstruction;
 - unsupported or unused parameters fail rather than disappear;
+- a structural-component declaration, implementation test, or prior tag cannot
+  satisfy a scientific gate or enter score as evidence; only registered
+  measurements of reconstructed outputs can do so;
 - only registered training sampling/curriculum/augmentation levers may resolve
   to `R_strategy`; raw/custom data, miner seeds, and official `P`, `Q`, `w`,
   stress, reference, gate, and scorer controls fail closed;
 - reference or infrastructure failure cannot become candidate physics failure;
+- no pre-base quality check, partial build, forecast, or screen can deny the
+  registered complete base reconstruction or create any scientific outcome;
+  uncompleted work is `EVIDENCE_DEFERRED`, never negative evidence;
+  reconstruction × whole-case dependence, stratified by stress design, is
+  preserved in every decision-resolution fixture and unresolved evidence
+  remains indeterminate;
 - a `TEST_ONLY` prior cannot be externally activated or rendered as bootstrap/learned guidance, and no v2-backed projection can enter the public v1 provider;
 - a test-only approval receipt cannot satisfy a public publication gate, and
   the exact pack/receipt remains frozen across B-E4 v2-prior replicates;
@@ -235,6 +258,11 @@ No later state is inferred from an earlier one.
 - the preregistered B-E4 utility decision passes and the conditional-leakage
   decision does not find a protected-realization shortcut; a failed or
   indeterminate decision blocks closeout rather than being relabeled success;
+- B-E1 demonstrates dependence-aware interval coverage on fixture scenarios
+  with reconstruction-by-case interaction, heteroscedastic stress strata,
+  exact-pair applicability checks, missing or censored cells, qualified
+  scientific stopping, and heuristic deferral; unsupported independence or
+  unresolved coverage fails closed;
 - mock/practice isolation and protected-field canaries pass;
 - a Strategy parameter cannot be accepted yet ignored by the compiler;
 - the semantically responsive fixture-official consumer uses the same exact
