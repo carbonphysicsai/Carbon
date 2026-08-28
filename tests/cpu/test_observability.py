@@ -42,6 +42,9 @@ from carbon.mcp import (
 from carbon.observability import (
     BoundaryErrorEvent,
     BoundaryErrorKind,
+    BoundaryErrorSnapshot,
+    CounterMetricSnapshot,
+    DurationMetricSnapshot,
     DurationStage,
     EventKind,
     MetricKind,
@@ -54,6 +57,7 @@ from carbon.observability import (
     ObservabilityResourceLimits,
     ObservabilityService,
     StructuredEventSink,
+    SubmissionEventSnapshot,
 )
 from carbon.scoring import ScoreStatus
 
@@ -69,6 +73,10 @@ PUBLIC_EXPORTS = (
     "ObservabilityEvent",
     "BoundaryErrorEvent",
     "ObservabilityResourceLimits",
+    "SubmissionEventSnapshot",
+    "BoundaryErrorSnapshot",
+    "CounterMetricSnapshot",
+    "DurationMetricSnapshot",
     "StructuredEventSink",
     "MetricSink",
     "ObservabilityService",
@@ -129,6 +137,14 @@ VALID_EVENT_ROWS = (
     (EventKind.FAILED_INFRA, SubmissionState.FAILED_INFRA, None),
 )
 VALID_EVENT_ROW_SET = frozenset(VALID_EVENT_ROWS)
+VALID_SNAPSHOT_EVENT_ROWS = (
+    ("SUBMIT", "RECEIVED", None),
+    ("SCORE", "SCORED", "SCORED"),
+    ("SCORE", "SCORED", "MANDATORY_GATE_FAILED"),
+    ("REJECT", "REJECTED", None),
+    ("FAILED_STRATEGY", "FAILED_STRATEGY", None),
+    ("FAILED_INFRA", "FAILED_INFRA", None),
+)
 ALL_EVENT_ROWS = tuple(
     (kind, state, status)
     for kind in EventKind
@@ -190,6 +206,10 @@ class _IntegerSubclass(int):
     pass
 
 
+class _StringSubclass(str):
+    pass
+
+
 class _Hostile:
     def __repr__(self) -> str:
         raise AssertionError("hostile repr was invoked")
@@ -218,9 +238,13 @@ class _RecordingEventSink:
     """Test-local structural sink; it deliberately subclasses no Protocol."""
 
     def __init__(self) -> None:
-        self.events: list[ObservabilityEvent | BoundaryErrorEvent] = []
+        self.events: list[SubmissionEventSnapshot | BoundaryErrorSnapshot] = []
 
-    def emit_event(self, event: ObservabilityEvent | BoundaryErrorEvent, /) -> None:
+    def emit_event(
+        self,
+        event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+        /,
+    ) -> None:
         self.events.append(event)
 
 
@@ -228,14 +252,14 @@ class _RecordingMetricSink:
     """Test-local structural sink; it deliberately subclasses no Protocol."""
 
     def __init__(self) -> None:
-        self.counters: list[MetricKind] = []
-        self.durations: list[tuple[DurationStage, int]] = []
+        self.counters: list[CounterMetricSnapshot] = []
+        self.durations: list[DurationMetricSnapshot] = []
 
-    def increment_counter(self, metric: MetricKind, /) -> None:
+    def increment_counter(self, metric: CounterMetricSnapshot, /) -> None:
         self.counters.append(metric)
 
-    def observe_duration(self, stage: DurationStage, duration_ns: int, /) -> None:
-        self.durations.append((stage, duration_ns))
+    def observe_duration(self, metric: DurationMetricSnapshot, /) -> None:
+        self.durations.append(metric)
 
 
 def _submission_id() -> SubmissionId:
@@ -444,6 +468,31 @@ def test_models_have_exact_fields_and_are_frozen_slotted_safe_values() -> None:
             ("max_concurrent_calls",),
             "ObservabilityResourceLimits(<private>)",
         ),
+        (
+            SubmissionEventSnapshot(
+                "SUBMIT",
+                SUBMISSION_ID_TEXT,
+                "RECEIVED",
+                None,
+            ),
+            ("kind", "submission_id", "submission_state", "score_status"),
+            "SubmissionEventSnapshot(<private>)",
+        ),
+        (
+            BoundaryErrorSnapshot("mcp.request.invalid"),
+            ("error_code",),
+            "BoundaryErrorSnapshot(<private>)",
+        ),
+        (
+            CounterMetricSnapshot("SUBMIT_COUNT"),
+            ("metric_name",),
+            "CounterMetricSnapshot(<private>)",
+        ),
+        (
+            DurationMetricSnapshot("SUBMIT", 0),
+            ("stage", "duration_ns"),
+            "DurationMetricSnapshot(<private>)",
+        ),
     )
     for value, expected_fields, expected_repr in values_and_contracts:
         value_type = type(value)
@@ -557,6 +606,18 @@ def test_values_reject_generic_traversal_copy_and_serialization_paths() -> None:
         (_event(), SUBMISSION_ID_TEXT),
         (BoundaryErrorEvent(BoundaryErrorKind.LEADERBOARD_INTEGRATION), None),
         (ObservabilityResourceLimits(U64_MAX), None),
+        (
+            SubmissionEventSnapshot(
+                "SUBMIT",
+                SUBMISSION_ID_TEXT,
+                "RECEIVED",
+                None,
+            ),
+            SUBMISSION_ID_TEXT,
+        ),
+        (BoundaryErrorSnapshot("leaderboard.integration.failed"), None),
+        (CounterMetricSnapshot("FAILED_INFRA_COUNT"), None),
+        (DurationMetricSnapshot("SCORE", U64_MAX), None),
     )
     for value, forbidden_text in values_and_forbidden_text:
         _assert_dataclass_apis_are_blocked(
@@ -569,6 +630,230 @@ def test_values_reject_generic_traversal_copy_and_serialization_paths() -> None:
             copy.deepcopy(value)
         with pytest.raises(TypeError):
             pickle.dumps(value)
+
+
+@pytest.mark.parametrize(
+    ("kind", "submission_state", "score_status"),
+    VALID_SNAPSHOT_EVENT_ROWS,
+)
+def test_submission_snapshots_support_every_exact_direct_constructor_row(
+    kind: str,
+    submission_state: str,
+    score_status: str | None,
+) -> None:
+    snapshot = SubmissionEventSnapshot(
+        kind,
+        SUBMISSION_ID_TEXT,
+        submission_state,
+        score_status,
+    )
+    assert (
+        snapshot.kind,
+        snapshot.submission_id,
+        snapshot.submission_state,
+        snapshot.score_status,
+    ) == (kind, SUBMISSION_ID_TEXT, submission_state, score_status)
+    assert all(
+        value is None or type(value) in (str, int)
+        for value in (
+            snapshot.kind,
+            snapshot.submission_id,
+            snapshot.submission_state,
+            snapshot.score_status,
+        )
+    )
+
+
+def test_snapshot_direct_constructors_are_closed_and_exact() -> None:
+    boundary_literals = tuple(value for _, value in ENUM_CONTRACTS[3][1])
+    for literal in boundary_literals:
+        snapshot = BoundaryErrorSnapshot(literal)
+        assert type(snapshot.error_code) is str
+        assert snapshot.error_code == literal
+
+    for literal in (
+        "SUBMIT_COUNT",
+        "SCORE_COUNT",
+        "REJECT_COUNT",
+        "FAILED_INFRA_COUNT",
+    ):
+        snapshot = CounterMetricSnapshot(literal)
+        assert type(snapshot.metric_name) is str
+        assert snapshot.metric_name == literal
+
+    for stage in ("SUBMIT", "SCORE"):
+        for duration_ns in (0, 1, U64_MAX):
+            snapshot = DurationMetricSnapshot(stage, duration_ns)
+            assert type(snapshot.stage) is str
+            assert type(snapshot.duration_ns) is int
+            assert (snapshot.stage, snapshot.duration_ns) == (stage, duration_ns)
+
+
+def test_submission_snapshot_matrix_and_constructor_inputs_fail_closed() -> None:
+    valid = frozenset(VALID_SNAPSHOT_EVENT_ROWS)
+    for kind in (
+        "SUBMIT",
+        "SCORE",
+        "REJECT",
+        "FAILED_STRATEGY",
+        "FAILED_INFRA",
+        "UNRATIFIED",
+    ):
+        for state in (
+            "RECEIVED",
+            "SCORED",
+            "REJECTED",
+            "FAILED_STRATEGY",
+            "FAILED_INFRA",
+            "CANCELLED",
+        ):
+            for status in (None, "SCORED", "MANDATORY_GATE_FAILED", "PACK_NOT_READY"):
+                if (kind, state, status) in valid:
+                    continue
+                with pytest.raises(ObservabilityRequestError):
+                    SubmissionEventSnapshot(
+                        kind,
+                        SUBMISSION_ID_TEXT,
+                        state,
+                        status,
+                    )
+
+    invalid_calls: tuple[Callable[[], object], ...] = (
+        lambda: SubmissionEventSnapshot(  # type: ignore[arg-type]
+            EventKind.SUBMIT,
+            SUBMISSION_ID_TEXT,
+            "RECEIVED",
+            None,
+        ),
+        lambda: SubmissionEventSnapshot(
+            _StringSubclass("SUBMIT"),
+            SUBMISSION_ID_TEXT,
+            "RECEIVED",
+            None,
+        ),
+        lambda: SubmissionEventSnapshot(
+            "SUBMIT",
+            _StringSubclass(SUBMISSION_ID_TEXT),
+            "RECEIVED",
+            None,
+        ),
+        lambda: SubmissionEventSnapshot(
+            "SUBMIT",
+            "12345678-1234-4234-9234-123456789ABC",
+            "RECEIVED",
+            None,
+        ),
+        lambda: SubmissionEventSnapshot(
+            "SUBMIT",
+            "00000000-0000-1000-8000-000000000001",
+            "RECEIVED",
+            None,
+        ),
+        lambda: SubmissionEventSnapshot("SUBMIT", "invalid", "RECEIVED", None),
+        lambda: BoundaryErrorSnapshot(_StringSubclass("mcp.request.invalid")),
+        lambda: BoundaryErrorSnapshot("unratified"),
+        lambda: CounterMetricSnapshot(_StringSubclass("SUBMIT_COUNT")),
+        lambda: CounterMetricSnapshot("STAGE_DURATION_NS"),
+        lambda: DurationMetricSnapshot(_StringSubclass("SUBMIT"), 0),
+        lambda: DurationMetricSnapshot("SUBMIT", False),
+        lambda: DurationMetricSnapshot("SUBMIT", _IntegerSubclass(1)),
+        lambda: DurationMetricSnapshot("SUBMIT", -1),
+        lambda: DurationMetricSnapshot("SUBMIT", U64_MAX + 1),
+    )
+    for operation in invalid_calls:
+        with pytest.raises(ObservabilityRequestError):
+            operation()
+
+    with pytest.raises(TypeError):
+        BoundaryErrorSnapshot()  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        CounterMetricSnapshot("SUBMIT_COUNT", "extra")  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        DurationMetricSnapshot(stage="SUBMIT", duration_ns=0, extra=True)  # type: ignore[call-arg]
+
+
+def test_snapshots_reject_reentry_partial_and_alternate_initialization() -> None:
+    submission = SubmissionEventSnapshot(
+        "SUBMIT",
+        SUBMISSION_ID_TEXT,
+        "RECEIVED",
+        None,
+    )
+    boundary = BoundaryErrorSnapshot("mcp.request.invalid")
+    counter = CounterMetricSnapshot("SUBMIT_COUNT")
+    duration = DurationMetricSnapshot("SUBMIT", 0)
+    snapshots_and_reentry: tuple[tuple[object, Callable[[], None]], ...] = (
+        (
+            submission,
+            lambda: SubmissionEventSnapshot.__init__(
+                submission,
+                "REJECT",
+                SUBMISSION_ID_TEXT,
+                "REJECTED",
+                None,
+            ),
+        ),
+        (
+            boundary,
+            lambda: BoundaryErrorSnapshot.__init__(
+                boundary,
+                "leaderboard.integration.failed",
+            ),
+        ),
+        (
+            counter,
+            lambda: CounterMetricSnapshot.__init__(
+                counter,
+                "SCORE_COUNT",
+            ),
+        ),
+        (
+            duration,
+            lambda: DurationMetricSnapshot.__init__(
+                duration,
+                "SCORE",
+                1,
+            ),
+        ),
+    )
+    for _, operation in snapshots_and_reentry:
+        with pytest.raises(ObservabilityRequestError):
+            operation()
+
+    alternate = object.__new__(BoundaryErrorSnapshot)
+    with pytest.raises(ObservabilityRequestError):
+        BoundaryErrorSnapshot.__init__(alternate, "mcp.request.invalid")
+
+    partial = object.__new__(DurationMetricSnapshot)
+    object.__setattr__(partial, "duration_ns", 0)
+    with pytest.raises(ObservabilityRequestError):
+        DurationMetricSnapshot.__init__(partial, "SUBMIT", 0)
+
+
+def test_service_rejects_all_snapshot_classes_as_request_values() -> None:
+    snapshots = (
+        SubmissionEventSnapshot(
+            "SUBMIT",
+            SUBMISSION_ID_TEXT,
+            "RECEIVED",
+            None,
+        ),
+        BoundaryErrorSnapshot("mcp.request.invalid"),
+        CounterMetricSnapshot("SUBMIT_COUNT"),
+        DurationMetricSnapshot("SUBMIT", 0),
+    )
+    service, event_sink, metric_sink = _service()
+    for snapshot in snapshots:
+        with pytest.raises(ObservabilityRequestError):
+            service.emit_event(snapshot)  # type: ignore[arg-type]
+        with pytest.raises(ObservabilityRequestError):
+            service.increment_counter(snapshot)  # type: ignore[arg-type]
+        with pytest.raises(ObservabilityRequestError):
+            service.observe_duration(snapshot, 0)  # type: ignore[arg-type]
+    assert isinstance(event_sink, _RecordingEventSink)
+    assert isinstance(metric_sink, _RecordingMetricSink)
+    assert event_sink.events == []
+    assert metric_sink.counters == [] and metric_sink.durations == []
 
 
 @pytest.mark.parametrize(("error_type", "code", "message"), ERROR_CONTRACTS)
@@ -672,6 +957,18 @@ def test_all_constructible_nominals_and_service_reject_subclasses() -> None:
     class LimitsSubclass(ObservabilityResourceLimits):
         __slots__ = ()
 
+    class SubmissionSnapshotSubclass(SubmissionEventSnapshot):
+        __slots__ = ()
+
+    class BoundarySnapshotSubclass(BoundaryErrorSnapshot):
+        __slots__ = ()
+
+    class CounterSnapshotSubclass(CounterMetricSnapshot):
+        __slots__ = ()
+
+    class DurationSnapshotSubclass(DurationMetricSnapshot):
+        __slots__ = ()
+
     class ServiceSubclass(ObservabilityService):
         __slots__ = ()
 
@@ -689,6 +986,19 @@ def test_all_constructible_nominals_and_service_reject_subclasses() -> None:
         BoundarySubclass(BoundaryErrorKind.MCP_REQUEST)
     with pytest.raises(ObservabilityRequestError):
         LimitsSubclass(1)
+    with pytest.raises(ObservabilityRequestError):
+        SubmissionSnapshotSubclass(
+            "SUBMIT",
+            SUBMISSION_ID_TEXT,
+            "RECEIVED",
+            None,
+        )
+    with pytest.raises(ObservabilityRequestError):
+        BoundarySnapshotSubclass("mcp.request.invalid")
+    with pytest.raises(ObservabilityRequestError):
+        CounterSnapshotSubclass("SUBMIT_COUNT")
+    with pytest.raises(ObservabilityRequestError):
+        DurationSnapshotSubclass("SUBMIT", 0)
     with pytest.raises(ObservabilityRequestError):
         ServiceSubclass(
             _RecordingEventSink(),
@@ -774,16 +1084,109 @@ def test_event_construction_and_service_make_fresh_owned_copies() -> None:
     assert service.emit_event(caller_event) is None
     assert isinstance(sink, _RecordingEventSink)
     retained = sink.events[0]
-    assert type(retained) is ObservabilityEvent
+    assert type(retained) is SubmissionEventSnapshot
     assert retained is not caller_event
-    assert retained.submission_id is not caller_event.submission_id
     assert caller_event.submission_id is not caller_id
-    assert retained.submission_id.value == SUBMISSION_ID_TEXT
+    assert retained.submission_id == SUBMISSION_ID_TEXT
+    assert type(retained.submission_id) is str
 
     object.__setattr__(caller_event, "kind", EventKind.REJECT)
     object.__setattr__(caller_event.submission_id, "value", "tampered")
-    assert retained.kind is EventKind.SUBMIT
-    assert retained.submission_id.value == SUBMISSION_ID_TEXT
+    assert retained.kind == "SUBMIT"
+    assert retained.submission_id == SUBMISSION_ID_TEXT
+
+
+@pytest.mark.parametrize(
+    ("request_row", "snapshot_row"),
+    tuple(zip(VALID_EVENT_ROWS, VALID_SNAPSHOT_EVENT_ROWS, strict=True)),
+)
+def test_every_valid_event_request_maps_to_one_exact_fresh_snapshot(
+    request_row: tuple[EventKind, SubmissionState, ScoreStatus | None],
+    snapshot_row: tuple[str, str, str | None],
+) -> None:
+    service, sink, _ = _service()
+    request = _event(*request_row)
+    assert service.emit_event(request) is None
+    assert service.emit_event(request) is None
+    assert isinstance(sink, _RecordingEventSink)
+    first, second = sink.events
+    assert type(first) is SubmissionEventSnapshot
+    assert type(second) is SubmissionEventSnapshot
+    assert first is not second
+    expected_kind, expected_state, expected_status = snapshot_row
+    assert (
+        first.kind,
+        first.submission_id,
+        first.submission_state,
+        first.score_status,
+    ) == (expected_kind, SUBMISSION_ID_TEXT, expected_state, expected_status)
+    assert all(
+        item is None or type(item) in (str, int)
+        for item in (
+            first.kind,
+            first.submission_id,
+            first.submission_state,
+            first.score_status,
+        )
+    )
+
+
+def test_enum_canary_attributes_never_cross_the_snapshot_boundary() -> None:
+    members = (
+        EventKind.SCORE,
+        SubmissionState.SCORED,
+        ScoreStatus.SCORED,
+        BoundaryErrorKind.MCP_REQUEST,
+        MetricKind.SUBMIT_COUNT,
+        DurationStage.SUBMIT,
+    )
+    canaries = tuple(_Hostile() for _ in members)
+    original_identity = tuple(
+        (
+            object.__getattribute__(member, "_name_"),
+            object.__getattribute__(member, "_value_"),
+        )
+        for member in members
+    )
+    try:
+        for member, canary in zip(members, canaries, strict=True):
+            object.__setattr__(member, "a11_canary", canary)
+        service, event_sink, metric_sink = _service()
+        assert (
+            service.emit_event(
+                _event(EventKind.SCORE, SubmissionState.SCORED, ScoreStatus.SCORED)
+            )
+            is None
+        )
+        assert (
+            service.emit_event(BoundaryErrorEvent(BoundaryErrorKind.MCP_REQUEST))
+            is None
+        )
+        assert service.increment_counter(MetricKind.SUBMIT_COUNT) is None
+        assert service.observe_duration(DurationStage.SUBMIT, 1) is None
+    finally:
+        for member in members:
+            object.__delattr__(member, "a11_canary")
+
+    assert isinstance(event_sink, _RecordingEventSink)
+    assert isinstance(metric_sink, _RecordingMetricSink)
+    snapshots = (
+        *event_sink.events,
+        *metric_sink.counters,
+        *metric_sink.durations,
+    )
+    assert len({id(snapshot) for snapshot in snapshots}) == len(snapshots)
+    assert all(not hasattr(snapshot, "a11_canary") for snapshot in snapshots)
+    assert (
+        tuple(
+            (
+                object.__getattribute__(member, "_name_"),
+                object.__getattribute__(member, "_value_"),
+            )
+            for member in members
+        )
+        == original_identity
+    )
 
 
 def test_boundary_event_is_exact_closed_one_field_value() -> None:
@@ -821,6 +1224,14 @@ def test_test_local_owner_error_mapping_is_exact(
     event = _map_owner_error(owner_error_type())
     assert type(event) is BoundaryErrorEvent
     assert event.error_kind is expected
+    service, sink, _ = _service()
+    assert service.emit_event(event) is None
+    assert isinstance(sink, _RecordingEventSink)
+    assert len(sink.events) == 1
+    snapshot = sink.events[0]
+    assert type(snapshot) is BoundaryErrorSnapshot
+    assert snapshot.error_code == expected.value
+    assert type(snapshot.error_code) is str
 
 
 def test_test_local_owner_mapping_rejects_raw_base_subclass_and_lookalike_errors() -> (
@@ -891,7 +1302,9 @@ def test_exact_four_counters_increment_once(metric: MetricKind) -> None:
     service, _, sink = _service()
     assert service.increment_counter(metric) is None
     assert isinstance(sink, _RecordingMetricSink)
-    assert sink.counters == [metric]
+    assert len(sink.counters) == 1
+    assert type(sink.counters[0]) is CounterMetricSnapshot
+    assert sink.counters[0].metric_name == metric.value
 
 
 @pytest.mark.parametrize(
@@ -920,7 +1333,10 @@ def test_duration_accepts_exact_stages_and_u64_bounds(
     service, _, sink = _service()
     assert service.observe_duration(stage, duration_ns) is None
     assert isinstance(sink, _RecordingMetricSink)
-    assert sink.durations == [(stage, duration_ns)]
+    assert len(sink.durations) == 1
+    assert type(sink.durations[0]) is DurationMetricSnapshot
+    assert sink.durations[0].stage == stage.value
+    assert sink.durations[0].duration_ns == duration_ns
 
 
 @pytest.mark.parametrize(
@@ -977,8 +1393,10 @@ def test_service_constructor_and_public_operations_are_exact() -> None:
     assert isinstance(event_sink, _RecordingEventSink)
     assert isinstance(metric_sink, _RecordingMetricSink)
     assert len(event_sink.events) == 2
-    assert metric_sink.counters == [MetricKind.SUBMIT_COUNT]
-    assert metric_sink.durations == [(DurationStage.SCORE, 0)]
+    assert [metric.metric_name for metric in metric_sink.counters] == ["SUBMIT_COUNT"]
+    assert [(metric.stage, metric.duration_ns) for metric in metric_sink.durations] == [
+        ("SCORE", 0)
+    ]
 
 
 def test_service_rejects_none_sinks_and_invalid_resource_policy() -> None:
@@ -1038,8 +1456,8 @@ def test_service_and_sink_owned_values_block_dataclass_traversal() -> None:
     assert service.emit_event(caller_boundary) is None
     assert len(event_sink.events) == 2
     sink_event, sink_boundary = event_sink.events
-    assert type(sink_event) is ObservabilityEvent
-    assert type(sink_boundary) is BoundaryErrorEvent
+    assert type(sink_event) is SubmissionEventSnapshot
+    assert type(sink_boundary) is BoundaryErrorSnapshot
     assert sink_event is not caller_event
     assert sink_boundary is not caller_boundary
 
@@ -1060,7 +1478,7 @@ def test_protocols_have_exact_positional_only_structural_signatures() -> None:
     duration_signature = inspect.signature(MetricSink.observe_duration)
     assert tuple(event_signature.parameters) == ("self", "event")
     assert tuple(counter_signature.parameters) == ("self", "metric")
-    assert tuple(duration_signature.parameters) == ("self", "stage", "duration_ns")
+    assert tuple(duration_signature.parameters) == ("self", "metric")
     for signature in (event_signature, counter_signature, duration_signature):
         parameters = tuple(signature.parameters.values())[1:]
         assert all(
@@ -1073,13 +1491,15 @@ def test_protocols_have_exact_positional_only_structural_signatures() -> None:
     counter_hints = get_type_hints(MetricSink.increment_counter)
     duration_hints = get_type_hints(MetricSink.observe_duration)
     assert event_hints == {
-        "event": ObservabilityEvent | BoundaryErrorEvent,
+        "event": SubmissionEventSnapshot | BoundaryErrorSnapshot,
         "return": type(None),
     }
-    assert counter_hints == {"metric": MetricKind, "return": type(None)}
+    assert counter_hints == {
+        "metric": CounterMetricSnapshot,
+        "return": type(None),
+    }
     assert duration_hints == {
-        "stage": DurationStage,
-        "duration_ns": int,
+        "metric": DurationMetricSnapshot,
         "return": type(None),
     }
 
@@ -1237,11 +1657,15 @@ def test_unknown_fields_free_text_labels_and_generic_operations_are_absent() -> 
 def test_caller_mutation_race_cannot_change_the_sink_safe_copy() -> None:
     entered = threading.Event()
     release = threading.Event()
-    received: list[ObservabilityEvent] = []
+    received: list[SubmissionEventSnapshot] = []
 
     class BlockingSink:
-        def emit_event(self, event: ObservabilityEvent | BoundaryErrorEvent, /) -> None:
-            assert type(event) is ObservabilityEvent
+        def emit_event(
+            self,
+            event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+            /,
+        ) -> None:
+            assert type(event) is SubmissionEventSnapshot
             received.append(event)
             entered.set()
             assert release.wait(5)
@@ -1261,8 +1685,8 @@ def test_caller_mutation_race_cannot_change_the_sink_safe_copy() -> None:
     assert entered.wait(5)
     object.__setattr__(caller_event, "kind", EventKind.REJECT)
     object.__setattr__(caller_event.submission_id, "value", "x" * 10_000)
-    assert received[0].kind is EventKind.SUBMIT
-    assert received[0].submission_id.value == SUBMISSION_ID_TEXT
+    assert received[0].kind == "SUBMIT"
+    assert received[0].submission_id == SUBMISSION_ID_TEXT
     release.set()
     thread.join(5)
     assert not thread.is_alive()
@@ -1271,21 +1695,128 @@ def test_caller_mutation_race_cannot_change_the_sink_safe_copy() -> None:
 
 def test_sink_mutation_of_owned_argument_cannot_change_the_caller_event() -> None:
     caller_event = _event()
-    received: list[ObservabilityEvent] = []
+    received: list[SubmissionEventSnapshot] = []
 
     class MutatingSink:
-        def emit_event(self, event: ObservabilityEvent | BoundaryErrorEvent, /) -> None:
-            assert type(event) is ObservabilityEvent
+        def emit_event(
+            self,
+            event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+            /,
+        ) -> None:
+            assert type(event) is SubmissionEventSnapshot
             received.append(event)
-            object.__setattr__(event, "kind", EventKind.REJECT)
-            object.__setattr__(event.submission_id, "value", "sink-tampered")
+            object.__setattr__(event, "kind", "REJECT")
+            object.__setattr__(event, "submission_id", "sink-tampered")
 
     service, _, _ = _service(event_sink=MutatingSink())
     assert service.emit_event(caller_event) is None
     assert received[0] is not caller_event
-    assert received[0].submission_id is not caller_event.submission_id
     assert caller_event.kind is EventKind.SUBMIT
     assert caller_event.submission_id.value == SUBMISSION_ID_TEXT
+
+
+def test_retained_snapshot_mutation_cannot_affect_later_or_other_service_calls() -> (
+    None
+):
+    retained: list[SubmissionEventSnapshot] = []
+
+    class RetainingSink:
+        def emit_event(
+            self,
+            event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+            /,
+        ) -> None:
+            assert type(event) is SubmissionEventSnapshot
+            retained.append(event)
+
+    first_service, _, _ = _service(event_sink=RetainingSink())
+    second_service, second_sink, _ = _service()
+    request = _event()
+    assert first_service.emit_event(request) is None
+    first = retained[0]
+    object.__setattr__(first, "kind", "REJECT")
+    object.__setattr__(first, "submission_id", "mutated-retained-snapshot")
+    assert first_service.emit_event(request) is None
+    assert second_service.emit_event(request) is None
+
+    later = retained[1]
+    assert later is not first
+    assert (later.kind, later.submission_id) == ("SUBMIT", SUBMISSION_ID_TEXT)
+    assert isinstance(second_sink, _RecordingEventSink)
+    other = second_sink.events[0]
+    assert type(other) is SubmissionEventSnapshot
+    assert other is not first and other is not later
+    assert (other.kind, other.submission_id) == ("SUBMIT", SUBMISSION_ID_TEXT)
+    assert request.kind is EventKind.SUBMIT
+    assert request.submission_id.value == SUBMISSION_ID_TEXT
+
+
+def test_normal_snapshot_mutation_is_rejected_without_affecting_the_operation() -> None:
+    attempts: list[type[BaseException]] = []
+
+    class MutationAttemptSink:
+        def emit_event(
+            self,
+            event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+            /,
+        ) -> None:
+            for operation in (
+                lambda: setattr(event, "kind", "REJECT"),
+                lambda: delattr(event, "kind"),
+            ):
+                try:
+                    operation()
+                except BaseException as error:  # noqa: BLE001 - test records type
+                    attempts.append(type(error))
+
+    service, _, _ = _service(event_sink=MutationAttemptSink())
+    request = _event()
+    assert service.emit_event(request) is None
+    assert attempts == [AttributeError, AttributeError]
+    assert request.kind is EventKind.SUBMIT
+    assert request.submission_id.value == SUBMISSION_ID_TEXT
+
+
+def test_concurrent_operations_receive_distinct_isolated_snapshots() -> None:
+    entered = threading.Barrier(3)
+    release = threading.Event()
+    snapshots: list[SubmissionEventSnapshot] = []
+    guard = threading.Lock()
+
+    class ConcurrentSink:
+        def emit_event(
+            self,
+            event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+            /,
+        ) -> None:
+            assert type(event) is SubmissionEventSnapshot
+            with guard:
+                snapshots.append(event)
+            entered.wait(5)
+            assert release.wait(5)
+
+    service, _, _ = _service(event_sink=ConcurrentSink(), capacity=2)
+    failures: list[BaseException] = []
+
+    def invoke() -> None:
+        try:
+            service.emit_event(_event())
+        except BaseException as error:  # noqa: BLE001 - record thread failures
+            failures.append(error)
+
+    threads = (threading.Thread(target=invoke), threading.Thread(target=invoke))
+    for thread in threads:
+        thread.start()
+    entered.wait(5)
+    assert len(snapshots) == 2
+    assert snapshots[0] is not snapshots[1]
+    object.__setattr__(snapshots[0], "kind", "REJECT")
+    assert snapshots[1].kind == "SUBMIT"
+    release.set()
+    for thread in threads:
+        thread.join(5)
+        assert not thread.is_alive()
+    assert failures == []
 
 
 @pytest.mark.parametrize(
@@ -1337,13 +1868,13 @@ def test_non_none_sink_return_is_one_integration_failure_without_retry(
             self.calls = 0
             self.return_value: object | None = wrong_return
 
-        def increment_counter(self, metric: MetricKind, /) -> object:
+        def increment_counter(self, metric: CounterMetricSnapshot, /) -> object:
             del metric
             self.calls += 1
             return self.return_value
 
-        def observe_duration(self, stage: DurationStage, duration_ns: int, /) -> None:
-            del stage, duration_ns
+        def observe_duration(self, metric: DurationMetricSnapshot, /) -> None:
+            del metric
 
     sink = WrongReturnSink()
     service, _, _ = _service(metric_sink=sink)
@@ -1446,12 +1977,12 @@ def test_a11_created_errors_clear_ambient_caller_exception_context() -> None:
     assert type(request_error) is ObservabilityRequestError
 
     class FailingMetricSink:
-        def increment_counter(self, metric: MetricKind, /) -> None:
+        def increment_counter(self, metric: CounterMetricSnapshot, /) -> None:
             del metric
             raise ValueError("private sink failure")
 
-        def observe_duration(self, stage: DurationStage, duration_ns: int, /) -> None:
-            del stage, duration_ns
+        def observe_duration(self, metric: DurationMetricSnapshot, /) -> None:
+            del metric
 
     integration_service, _, _ = _service(metric_sink=FailingMetricSink())
     integration_error = under_ambient_exception(
@@ -1590,7 +2121,9 @@ def test_capacity_two_allows_simultaneous_sink_entry_without_an_ordinary_mutex()
         assert not thread.is_alive()
     assert failures == []
     assert service.observe_duration(DurationStage.SCORE, 1) is None
-    assert metric_sink.durations == [(DurationStage.SCORE, 1)]
+    assert [(metric.stage, metric.duration_ns) for metric in metric_sink.durations] == [
+        ("SCORE", 1)
+    ]
 
 
 def test_same_service_reentrancy_rejects_before_a_second_sink_call() -> None:
@@ -1629,9 +2162,13 @@ def test_same_service_reentrancy_rejects_before_a_second_sink_call() -> None:
     assert event_sink.calls == 1
     assert type(event_sink.inner_error) is ObservabilityResourceError
     assert first_metric_sink.counters == []
-    assert second_metric_sink.counters == [MetricKind.SCORE_COUNT]
+    assert [metric.metric_name for metric in second_metric_sink.counters] == [
+        "SCORE_COUNT"
+    ]
     assert first_service.increment_counter(MetricKind.SUBMIT_COUNT) is None
-    assert first_metric_sink.counters == [MetricKind.SUBMIT_COUNT]
+    assert [metric.metric_name for metric in first_metric_sink.counters] == [
+        "SUBMIT_COUNT"
+    ]
 
 
 @dataclass(frozen=True, slots=True)
@@ -1647,13 +2184,13 @@ def test_composition_preserves_determined_domain_result_when_telemetry_fails() -
         def __init__(self) -> None:
             self.calls = 0
 
-        def increment_counter(self, metric: MetricKind, /) -> None:
+        def increment_counter(self, metric: CounterMetricSnapshot, /) -> None:
             del metric
             self.calls += 1
             raise RuntimeError("private backend failure")
 
-        def observe_duration(self, stage: DurationStage, duration_ns: int, /) -> None:
-            del stage, duration_ns
+        def observe_duration(self, metric: DurationMetricSnapshot, /) -> None:
+            del metric
 
     result = _DeterminedDomainResult("SCORED", "SCORED", 7, 0)
     sink = FailingMetricSink()
@@ -1994,7 +2531,7 @@ class EventSink:
 class MetricSink:
     def increment_counter(self, metric, /):
         raise AssertionError('tampered metric reached sink')
-    def observe_duration(self, stage, duration_ns, /):
+    def observe_duration(self, metric, /):
         raise AssertionError('tampered duration reached sink')
 
 service = ObservabilityService(EventSink(), MetricSink(), ObservabilityResourceLimits(1))
@@ -2204,7 +2741,7 @@ def test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree(
         text=True,
     )
     assert create.returncode == 0, create.stderr
-    python = environment / "bin" / "python"
+    python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     install = subprocess.run(
         [
             str(python),
@@ -2225,11 +2762,13 @@ def test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree(
     outside = tmp_path / "outside"
     outside.mkdir()
     script = f"""
+import copy
 import dataclasses
 import importlib
 import importlib.abc
 import importlib.metadata
 import pathlib
+import pickle
 import sys
 
 stdlib_dataclass_apis = (
@@ -2330,8 +2869,8 @@ class MetricSink:
         self.durations = []
     def increment_counter(self, metric, /):
         self.counters.append(metric)
-    def observe_duration(self, stage, duration_ns, /):
-        self.durations.append((stage, duration_ns))
+    def observe_duration(self, metric, /):
+        self.durations.append(metric)
 
 event_sink = EventSink()
 metric_sink = MetricSink()
@@ -2357,14 +2896,61 @@ assert service.observe_duration(module.DurationStage.SUBMIT, 0) is None
 assert len(event_sink.events) == 2
 assert event_sink.events[0] is not event
 assert event_sink.events[1] is not boundary
+assert type(event_sink.events[0]) is module.SubmissionEventSnapshot
+assert type(event_sink.events[1]) is module.BoundaryErrorSnapshot
+assert event_sink.events[0].kind == 'SUBMIT'
+assert event_sink.events[0].submission_id == submission_text
+assert event_sink.events[0].submission_state == 'RECEIVED'
+assert event_sink.events[0].score_status is None
+assert event_sink.events[1].error_code == 'mcp.request.invalid'
 assert_dataclass_apis_blocked(event_sink.events[0], submission_text)
 assert_dataclass_apis_blocked(event_sink.events[1])
 owned_limits = object.__getattribute__(service, '_limits')
 assert type(owned_limits) is module.ObservabilityResourceLimits
 assert owned_limits is not limits
 assert_dataclass_apis_blocked(owned_limits)
-assert metric_sink.counters == [module.MetricKind.SUBMIT_COUNT]
-assert metric_sink.durations == [(module.DurationStage.SUBMIT, 0)]
+assert len(metric_sink.counters) == 1
+assert type(metric_sink.counters[0]) is module.CounterMetricSnapshot
+assert metric_sink.counters[0].metric_name == 'SUBMIT_COUNT'
+assert len(metric_sink.durations) == 1
+assert type(metric_sink.durations[0]) is module.DurationMetricSnapshot
+assert metric_sink.durations[0].stage == 'SUBMIT'
+assert metric_sink.durations[0].duration_ns == 0
+
+snapshots = (
+    module.SubmissionEventSnapshot('SUBMIT', submission_text, 'RECEIVED', None),
+    module.BoundaryErrorSnapshot('mcp.request.invalid'),
+    module.CounterMetricSnapshot('SUBMIT_COUNT'),
+    module.DurationMetricSnapshot('SUBMIT', 0),
+)
+for snapshot in snapshots:
+    assert_dataclass_apis_blocked(snapshot, submission_text)
+    for operation in (copy.copy, copy.deepcopy, pickle.dumps):
+        try:
+            operation(snapshot)
+        except TypeError:
+            pass
+        else:
+            raise AssertionError('snapshot generic copy or pickle succeeded')
+
+for operation in (
+    lambda: module.SubmissionEventSnapshot('SUBMIT', 'invalid', 'RECEIVED', None),
+    lambda: module.BoundaryErrorSnapshot('unknown'),
+    lambda: module.CounterMetricSnapshot('STAGE_DURATION_NS'),
+    lambda: module.DurationMetricSnapshot('SUBMIT', -1),
+):
+    try:
+        operation()
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('invalid snapshot constructor succeeded')
+
+first = event_sink.events[0]
+object.__setattr__(first, 'kind', 'REJECT')
+assert service.emit_event(event) is None
+assert event_sink.events[-1] is not first
+assert event_sink.events[-1].kind == 'SUBMIT'
 """
     imported = subprocess.run(
         [str(python), "-I", "-c", script],

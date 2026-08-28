@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import NoReturn
+from typing import NoReturn, Self
 
 from carbon.fees import SubmissionId, SubmissionState
 from carbon.scoring import ScoreStatus
@@ -17,6 +17,16 @@ _OBSERVABILITY_EVENT_FIELDS = (
 )
 _BOUNDARY_ERROR_EVENT_FIELDS = ("error_kind",)
 _RESOURCE_LIMIT_FIELDS = ("max_concurrent_calls",)
+_SUBMISSION_EVENT_SNAPSHOT_FIELDS = (
+    "kind",
+    "submission_id",
+    "submission_state",
+    "score_status",
+)
+_BOUNDARY_ERROR_SNAPSHOT_FIELDS = ("error_code",)
+_COUNTER_METRIC_SNAPSHOT_FIELDS = ("metric_name",)
+_DURATION_METRIC_SNAPSHOT_FIELDS = ("stage", "duration_ns")
+_SNAPSHOT_CONSTRUCTION_MARKER = object()
 
 
 def _reject_state(value: object) -> None:
@@ -338,6 +348,11 @@ _SCORE_STATUS_MEMBERS = (
     ),
     (ScoreStatus.PACK_NOT_READY, "PACK_NOT_READY", "PACK_NOT_READY"),
 )
+_BOUNDARY_ERROR_LITERALS = tuple(
+    literal for _, _, literal in _BOUNDARY_ERROR_KIND_MEMBERS
+)
+_COUNTER_METRIC_LITERALS = tuple(literal for _, _, literal in _METRIC_KIND_MEMBERS[:4])
+_DURATION_STAGE_LITERALS = tuple(literal for _, _, literal in _DURATION_STAGE_MEMBERS)
 
 
 def _enum_definition_is_exact(
@@ -514,6 +529,249 @@ def _require_duration_ns(value: object) -> int:
     return value
 
 
+def _allocate_snapshot(
+    snapshot_type: type[object],
+    expected_type: type[object],
+    first_field: str,
+) -> object:
+    """Allocate one direct-construction snapshot with no caller token."""
+
+    if snapshot_type is not expected_type:
+        _raise_request_error()
+    value = object.__new__(snapshot_type)
+    object.__setattr__(value, first_field, _SNAPSHOT_CONSTRUCTION_MARKER)
+    return value
+
+
+def _require_snapshot_initialization(
+    value: object,
+    field_names: tuple[str, ...],
+) -> None:
+    """Reject re-entry, object.__new__ bypass, and partial initialization."""
+
+    try:
+        marker = object.__getattribute__(value, field_names[0])
+    except Exception:  # noqa: BLE001 - fail closed on alternate allocation
+        _raise_request_error()
+    if marker is not _SNAPSHOT_CONSTRUCTION_MARKER:
+        _raise_request_error()
+    for field_name in field_names[1:]:
+        try:
+            object.__getattribute__(value, field_name)
+        except AttributeError:
+            continue
+        except Exception:  # noqa: BLE001 - normalize damaged slot descriptors
+            _raise_request_error()
+        _raise_request_error()
+
+
+def _validated_submission_id_text(value: object) -> str:
+    """Reconstruct one canonical UUIDv4 through A7 and return only its text."""
+
+    if type(value) is not str or str.__len__(value) != 36 or not str.isascii(value):
+        _raise_request_error()
+    invalid = False
+    owned: SubmissionId | None = None
+    try:
+        owned = SubmissionId(value)
+    except Exception:  # noqa: BLE001 - normalize public A7 constructor rejection
+        invalid = True
+    copied_value: object = None
+    if not invalid and type(owned) is SubmissionId:
+        try:
+            copied_value = object.__getattribute__(owned, "value")
+        except Exception:  # noqa: BLE001 - reject a damaged owner result
+            invalid = True
+    else:
+        invalid = True
+    if (
+        invalid
+        or type(copied_value) is not str
+        or copied_value != value
+        or str.__len__(copied_value) != 36
+        or not str.isascii(copied_value)
+    ):
+        _raise_request_error()
+    return copied_value
+
+
+def _snapshot_event_matrix_accepts(
+    kind: str,
+    submission_state: str,
+    score_status: str | None,
+) -> bool:
+    if kind == "SUBMIT":
+        return submission_state == "RECEIVED" and score_status is None
+    if kind == "SCORE":
+        return submission_state == "SCORED" and (
+            score_status == "SCORED" or score_status == "MANDATORY_GATE_FAILED"
+        )
+    if kind == "REJECT":
+        return submission_state == "REJECTED" and score_status is None
+    if kind == "FAILED_STRATEGY":
+        return submission_state == "FAILED_STRATEGY" and score_status is None
+    if kind == "FAILED_INFRA":
+        return submission_state == "FAILED_INFRA" and score_status is None
+    return False
+
+
+class SubmissionEventSnapshot(_NoSerialization):
+    """Primitive-only sink snapshot for one validated submission event."""
+
+    __slots__ = _SUBMISSION_EVENT_SNAPSHOT_FIELDS
+
+    kind: str
+    submission_id: str
+    submission_state: str
+    score_status: str | None
+
+    def __new__(
+        cls,
+        kind: str,
+        submission_id: str,
+        submission_state: str,
+        score_status: str | None,
+    ) -> Self:
+        del kind, submission_id, submission_state, score_status
+        return _allocate_snapshot(  # type: ignore[return-value]
+            cls,
+            SubmissionEventSnapshot,
+            "kind",
+        )
+
+    def __init__(
+        self,
+        kind: str,
+        submission_id: str,
+        submission_state: str,
+        score_status: str | None,
+    ) -> None:
+        if type(self) is not SubmissionEventSnapshot:
+            _raise_request_error()
+        _require_snapshot_initialization(
+            self,
+            _SUBMISSION_EVENT_SNAPSHOT_FIELDS,
+        )
+        if (
+            type(kind) is not str
+            or type(submission_state) is not str
+            or (score_status is not None and type(score_status) is not str)
+            or not _snapshot_event_matrix_accepts(
+                kind,
+                submission_state,
+                score_status,
+            )
+        ):
+            _raise_request_error()
+        owned_submission_id = _validated_submission_id_text(submission_id)
+        object.__setattr__(self, "kind", kind)
+        object.__setattr__(self, "submission_id", owned_submission_id)
+        object.__setattr__(self, "submission_state", submission_state)
+        object.__setattr__(self, "score_status", score_status)
+
+    def __repr__(self) -> str:
+        return "SubmissionEventSnapshot(<private>)"
+
+
+class BoundaryErrorSnapshot(_NoSerialization):
+    """Primitive-only sink snapshot for one validated boundary error kind."""
+
+    __slots__ = _BOUNDARY_ERROR_SNAPSHOT_FIELDS
+
+    error_code: str
+
+    def __new__(cls, error_code: str) -> Self:
+        del error_code
+        return _allocate_snapshot(  # type: ignore[return-value]
+            cls,
+            BoundaryErrorSnapshot,
+            "error_code",
+        )
+
+    def __init__(self, error_code: str) -> None:
+        if type(self) is not BoundaryErrorSnapshot:
+            _raise_request_error()
+        _require_snapshot_initialization(
+            self,
+            _BOUNDARY_ERROR_SNAPSHOT_FIELDS,
+        )
+        if type(error_code) is not str or not any(
+            error_code == literal for literal in _BOUNDARY_ERROR_LITERALS
+        ):
+            _raise_request_error()
+        object.__setattr__(self, "error_code", error_code)
+
+    def __repr__(self) -> str:
+        return "BoundaryErrorSnapshot(<private>)"
+
+
+class CounterMetricSnapshot(_NoSerialization):
+    """Primitive-only sink snapshot for one closed counter increment."""
+
+    __slots__ = _COUNTER_METRIC_SNAPSHOT_FIELDS
+
+    metric_name: str
+
+    def __new__(cls, metric_name: str) -> Self:
+        del metric_name
+        return _allocate_snapshot(  # type: ignore[return-value]
+            cls,
+            CounterMetricSnapshot,
+            "metric_name",
+        )
+
+    def __init__(self, metric_name: str) -> None:
+        if type(self) is not CounterMetricSnapshot:
+            _raise_request_error()
+        _require_snapshot_initialization(
+            self,
+            _COUNTER_METRIC_SNAPSHOT_FIELDS,
+        )
+        if type(metric_name) is not str or not any(
+            metric_name == literal for literal in _COUNTER_METRIC_LITERALS
+        ):
+            _raise_request_error()
+        object.__setattr__(self, "metric_name", metric_name)
+
+    def __repr__(self) -> str:
+        return "CounterMetricSnapshot(<private>)"
+
+
+class DurationMetricSnapshot(_NoSerialization):
+    """Primitive-only sink snapshot for one caller-supplied duration."""
+
+    __slots__ = _DURATION_METRIC_SNAPSHOT_FIELDS
+
+    stage: str
+    duration_ns: int
+
+    def __new__(cls, stage: str, duration_ns: int) -> Self:
+        del stage, duration_ns
+        return _allocate_snapshot(  # type: ignore[return-value]
+            cls,
+            DurationMetricSnapshot,
+            "stage",
+        )
+
+    def __init__(self, stage: str, duration_ns: int) -> None:
+        if type(self) is not DurationMetricSnapshot:
+            _raise_request_error()
+        _require_snapshot_initialization(
+            self,
+            _DURATION_METRIC_SNAPSHOT_FIELDS,
+        )
+        if type(stage) is not str or not any(
+            stage == literal for literal in _DURATION_STAGE_LITERALS
+        ):
+            _raise_request_error()
+        owned_duration_ns = _require_duration_ns(duration_ns)
+        object.__setattr__(self, "stage", stage)
+        object.__setattr__(self, "duration_ns", owned_duration_ns)
+
+    def __repr__(self) -> str:
+        return "DurationMetricSnapshot(<private>)"
+
+
 class ObservabilityEvent(_NoSerialization):
     """Owner-shaped request that makes no record or provenance claim."""
 
@@ -586,8 +844,20 @@ def _event_matrix_accepts(
     return False
 
 
-def _copy_observability_event(value: object) -> ObservabilityEvent:
-    """Positively reconstruct one exact sink-safe submission event."""
+def _literal_for_member(
+    member: Enum,
+    expected: tuple[tuple[Enum, str, str], ...],
+) -> str:
+    """Map one already-validated canonical member through fixed A11 literals."""
+
+    for canonical, _, literal in expected:
+        if member is canonical:
+            return literal
+    _raise_request_error()
+
+
+def _submission_event_snapshot(value: object) -> SubmissionEventSnapshot:
+    """Construct one fresh primitive-only snapshot from an exact request."""
 
     if type(value) is not ObservabilityEvent:
         _raise_request_error()
@@ -604,7 +874,35 @@ def _copy_observability_event(value: object) -> ObservabilityEvent:
         invalid = True
     if invalid:
         _raise_request_error()
-    return ObservabilityEvent(*captured)  # type: ignore[arg-type]
+    owned_kind = _copy_event_kind(captured[0])
+    owned_submission_id = _copy_submission_id(captured[1])
+    owned_submission_state = _copy_submission_state(captured[2])
+    owned_score_status = (
+        None if captured[3] is None else _copy_score_status(captured[3])
+    )
+    if not _event_matrix_accepts(
+        owned_kind,
+        owned_submission_state,
+        owned_score_status,
+    ):
+        _raise_request_error()
+    submission_id_text: object = None
+    try:
+        submission_id_text = object.__getattribute__(owned_submission_id, "value")
+    except Exception:  # noqa: BLE001 - reject damaged owner reconstruction
+        invalid = True
+    if invalid or type(submission_id_text) is not str:
+        _raise_request_error()
+    return SubmissionEventSnapshot(
+        _literal_for_member(owned_kind, _EVENT_KIND_MEMBERS),
+        submission_id_text,
+        _literal_for_member(owned_submission_state, _SUBMISSION_STATE_MEMBERS),
+        (
+            None
+            if owned_score_status is None
+            else _literal_for_member(owned_score_status, _SCORE_STATUS_MEMBERS)
+        ),
+    )
 
 
 class BoundaryErrorEvent(_NoSerialization):
@@ -625,8 +923,8 @@ class BoundaryErrorEvent(_NoSerialization):
         return "BoundaryErrorEvent(<private>)"
 
 
-def _copy_boundary_error_event(value: object) -> BoundaryErrorEvent:
-    """Positively reconstruct one exact sink-safe boundary-error event."""
+def _boundary_error_snapshot(value: object) -> BoundaryErrorSnapshot:
+    """Construct one fresh primitive-only snapshot from an exact request."""
 
     if type(value) is not BoundaryErrorEvent:
         _raise_request_error()
@@ -638,7 +936,10 @@ def _copy_boundary_error_event(value: object) -> BoundaryErrorEvent:
         invalid = True
     if invalid:
         _raise_request_error()
-    return BoundaryErrorEvent(error_kind_value)  # type: ignore[arg-type]
+    error_kind = _copy_boundary_error_kind(error_kind_value)
+    return BoundaryErrorSnapshot(
+        _literal_for_member(error_kind, _BOUNDARY_ERROR_KIND_MEMBERS)
+    )
 
 
 class ObservabilityResourceLimits(_NoSerialization):
@@ -683,13 +984,13 @@ def _copy_resource_limits(value: object) -> ObservabilityResourceLimits:
     )
 
 
-def _copy_counter_metric(value: object) -> MetricKind:
-    """Validate one of the exact four counter members."""
+def _counter_metric_snapshot(value: object) -> CounterMetricSnapshot:
+    """Construct one fresh primitive-only snapshot for a closed counter."""
 
     metric = _copy_local_enum_member(value, MetricKind, _METRIC_KIND_MEMBERS)
     if not any(metric is member for member, _, _ in _METRIC_KIND_MEMBERS[:4]):
         _raise_request_error()
-    return metric  # type: ignore[return-value]
+    return CounterMetricSnapshot(_literal_for_member(metric, _METRIC_KIND_MEMBERS[:4]))
 
 
 def _copy_duration_stage(value: object) -> DurationStage:
@@ -697,4 +998,18 @@ def _copy_duration_stage(value: object) -> DurationStage:
 
     return _copy_local_enum_member(  # type: ignore[return-value]
         value, DurationStage, _DURATION_STAGE_MEMBERS
+    )
+
+
+def _duration_metric_snapshot(
+    stage: object,
+    duration_ns: object,
+) -> DurationMetricSnapshot:
+    """Construct one fresh primitive-only snapshot for a closed duration."""
+
+    owned_stage = _copy_duration_stage(stage)
+    owned_duration_ns = _require_duration_ns(duration_ns)
+    return DurationMetricSnapshot(
+        _literal_for_member(owned_stage, _DURATION_STAGE_MEMBERS),
+        owned_duration_ns,
     )

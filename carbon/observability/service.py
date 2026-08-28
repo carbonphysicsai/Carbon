@@ -6,19 +6,22 @@ import threading
 
 from .model import (
     BoundaryErrorEvent,
+    BoundaryErrorSnapshot,
+    CounterMetricSnapshot,
+    DurationMetricSnapshot,
     DurationStage,
     MetricKind,
     ObservabilityEvent,
     ObservabilityResourceLimits,
-    _copy_boundary_error_event,
-    _copy_counter_metric,
-    _copy_duration_stage,
-    _copy_observability_event,
+    SubmissionEventSnapshot,
+    _boundary_error_snapshot,
     _copy_resource_limits,
+    _counter_metric_snapshot,
+    _duration_metric_snapshot,
     _raise_integration_error,
     _raise_request_error,
     _raise_resource_error,
-    _require_duration_ns,
+    _submission_event_snapshot,
 )
 from .providers import MetricSink, StructuredEventSink
 
@@ -69,7 +72,10 @@ class ObservabilityService:
         self._active_call.active = False
         self._capacity.release()
 
-    def _emit_admitted(self, event: ObservabilityEvent | BoundaryErrorEvent) -> None:
+    def _emit_admitted(
+        self,
+        event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+    ) -> None:
         failed = False
         try:
             method = self._event_sink.emit_event
@@ -81,7 +87,7 @@ class ObservabilityService:
         if failed:
             _raise_integration_error()
 
-    def _increment_admitted(self, metric: MetricKind) -> None:
+    def _increment_admitted(self, metric: CounterMetricSnapshot) -> None:
         failed = False
         try:
             method = self._metric_sink.increment_counter
@@ -93,11 +99,11 @@ class ObservabilityService:
         if failed:
             _raise_integration_error()
 
-    def _observe_admitted(self, stage: DurationStage, duration_ns: int) -> None:
+    def _observe_admitted(self, metric: DurationMetricSnapshot) -> None:
         failed = False
         try:
             method = self._metric_sink.observe_duration
-            result = method(stage, duration_ns)
+            result = method(metric)
             if result is not None:
                 failed = True
         except Exception:  # noqa: BLE001 - exact ordinary sink failure boundary
@@ -109,39 +115,38 @@ class ObservabilityService:
         """Synchronously emit one positively reconstructed closed event."""
 
         if type(event) is ObservabilityEvent:
-            owned_event: ObservabilityEvent | BoundaryErrorEvent = (
-                _copy_observability_event(event)
+            snapshot: SubmissionEventSnapshot | BoundaryErrorSnapshot = (
+                _submission_event_snapshot(event)
             )
         elif type(event) is BoundaryErrorEvent:
-            owned_event = _copy_boundary_error_event(event)
+            snapshot = _boundary_error_snapshot(event)
         else:
             _raise_request_error()
         if not self._admit():
             _raise_resource_error()
         try:
-            self._emit_admitted(owned_event)
+            self._emit_admitted(snapshot)
         finally:
             self._release()
 
     def increment_counter(self, metric: MetricKind) -> None:
         """Synchronously increment one closed counter by exactly one."""
 
-        owned_metric = _copy_counter_metric(metric)
+        snapshot = _counter_metric_snapshot(metric)
         if not self._admit():
             _raise_resource_error()
         try:
-            self._increment_admitted(owned_metric)
+            self._increment_admitted(snapshot)
         finally:
             self._release()
 
     def observe_duration(self, stage: DurationStage, duration_ns: int) -> None:
         """Synchronously observe caller-supplied nanoseconds for one stage."""
 
-        owned_stage = _copy_duration_stage(stage)
-        owned_duration = _require_duration_ns(duration_ns)
+        snapshot = _duration_metric_snapshot(stage, duration_ns)
         if not self._admit():
             _raise_resource_error()
         try:
-            self._observe_admitted(owned_stage, owned_duration)
+            self._observe_admitted(snapshot)
         finally:
             self._release()

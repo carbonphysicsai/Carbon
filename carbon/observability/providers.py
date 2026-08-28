@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import Protocol
 
 from .model import (
-    BoundaryErrorEvent,
-    DurationStage,
-    MetricKind,
-    ObservabilityEvent,
+    BoundaryErrorSnapshot,
+    CounterMetricSnapshot,
+    DurationMetricSnapshot,
+    SubmissionEventSnapshot,
 )
 
 
@@ -17,7 +17,7 @@ class StructuredEventSink(Protocol):
 
     def emit_event(
         self,
-        event: ObservabilityEvent | BoundaryErrorEvent,
+        event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
         /,
     ) -> None: ...
 
@@ -27,13 +27,12 @@ class MetricSink(Protocol):
 
     def increment_counter(
         self,
-        metric: MetricKind,
+        metric: CounterMetricSnapshot,
         /,
     ) -> None: ...
 
     def observe_duration(
         self,
-        stage: DurationStage,
-        duration_ns: int,
+        metric: DurationMetricSnapshot,
         /,
     ) -> None: ...

@@ -9,6 +9,10 @@ BoundaryErrorKind = model.BoundaryErrorKind
 ObservabilityEvent = model.ObservabilityEvent
 BoundaryErrorEvent = model.BoundaryErrorEvent
 ObservabilityResourceLimits = model.ObservabilityResourceLimits
+SubmissionEventSnapshot = model.SubmissionEventSnapshot
+BoundaryErrorSnapshot = model.BoundaryErrorSnapshot
+CounterMetricSnapshot = model.CounterMetricSnapshot
+DurationMetricSnapshot = model.DurationMetricSnapshot
 StructuredEventSink = providers.StructuredEventSink
 MetricSink = providers.MetricSink
 ObservabilityService = service.ObservabilityService
@@ -25,6 +29,10 @@ __all__ = (  # noqa: RUF022 - ratified public order is contractual
     "ObservabilityEvent",
     "BoundaryErrorEvent",
     "ObservabilityResourceLimits",
+    "SubmissionEventSnapshot",
+    "BoundaryErrorSnapshot",
+    "CounterMetricSnapshot",
+    "DurationMetricSnapshot",
     "StructuredEventSink",
     "MetricSink",
     "ObservabilityService",
