@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from enum import Enum
+from types import GeneratorType
 from typing import NoReturn, Self
 
 from carbon.fees import SubmissionId, SubmissionState
@@ -26,7 +28,13 @@ _SUBMISSION_EVENT_SNAPSHOT_FIELDS = (
 _BOUNDARY_ERROR_SNAPSHOT_FIELDS = ("error_code",)
 _COUNTER_METRIC_SNAPSHOT_FIELDS = ("metric_name",)
 _DURATION_METRIC_SNAPSHOT_FIELDS = ("stage", "duration_ns")
-_SNAPSHOT_CONSTRUCTION_MARKER = object()
+_SNAPSHOT_CONSTRUCTION_SENTINEL = object()
+
+
+def _snapshot_construction_guard() -> Iterator[object]:
+    """Create fresh one-shot state for one direct snapshot construction."""
+
+    yield _SNAPSHOT_CONSTRUCTION_SENTINEL
 
 
 def _reject_state(value: object) -> None:
@@ -539,7 +547,7 @@ def _allocate_snapshot(
     if snapshot_type is not expected_type:
         _raise_request_error()
     value = object.__new__(snapshot_type)
-    object.__setattr__(value, first_field, _SNAPSHOT_CONSTRUCTION_MARKER)
+    object.__setattr__(value, first_field, _snapshot_construction_guard())
     return value
 
 
@@ -547,17 +555,29 @@ def _require_snapshot_initialization(
     value: object,
     field_names: tuple[str, ...],
 ) -> None:
-    """Consume one allocation marker and reject every later initialization."""
+    """Consume one allocation guard and reject every later initialization."""
 
     try:
-        marker = object.__getattribute__(value, field_names[0])
+        guard = object.__getattribute__(value, field_names[0])
     except Exception:  # noqa: BLE001 - fail closed on alternate allocation
         _raise_request_error()
-    if marker is not _SNAPSHOT_CONSTRUCTION_MARKER:
+    if type(guard) is not GeneratorType:
+        _raise_request_error()
+    try:
+        guard_code = object.__getattribute__(guard, "gi_code")
+    except Exception:  # noqa: BLE001 - normalize damaged guard state
+        _raise_request_error()
+    if guard_code is not _snapshot_construction_guard.__code__:
+        _raise_request_error()
+    try:
+        yielded = tuple(guard)
+    except Exception:  # noqa: BLE001 - fail closed if guard consumption fails
+        _raise_request_error()
+    if len(yielded) != 1 or yielded[0] is not _SNAPSHOT_CONSTRUCTION_SENTINEL:
         _raise_request_error()
     try:
         object.__delattr__(value, field_names[0])
-    except Exception:  # noqa: BLE001 - fail closed if marker consumption fails
+    except Exception:  # noqa: BLE001 - fail closed if guard removal fails
         _raise_request_error()
     for field_name in field_names[1:]:
         try:

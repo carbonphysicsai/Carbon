@@ -864,10 +864,14 @@ def test_failed_snapshot_initialization_permanently_rejects_reentry() -> None:
     )
     for snapshot_type, valid_args, invalid_args, first_field in cases:
         snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
+        retained_guard = object.__getattribute__(snapshot, first_field)
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *invalid_args)
         with pytest.raises(AttributeError):
             object.__getattribute__(snapshot, first_field)
+        with pytest.raises(ObservabilityRequestError):
+            snapshot_type.__init__(snapshot, *valid_args)
+        object.__setattr__(snapshot, first_field, retained_guard)
         with pytest.raises(ObservabilityRequestError):
             snapshot_type.__init__(snapshot, *valid_args)
 
@@ -2993,25 +2997,30 @@ failed_initialization_cases = (
         module.SubmissionEventSnapshot,
         ('SUBMIT', submission_text, 'RECEIVED', None),
         ('INVALID', submission_text, 'RECEIVED', None),
+        'kind',
     ),
     (
         module.BoundaryErrorSnapshot,
         ('mcp.request.invalid',),
         ('invalid',),
+        'error_code',
     ),
     (
         module.CounterMetricSnapshot,
         ('SUBMIT_COUNT',),
         ('INVALID',),
+        'metric_name',
     ),
     (
         module.DurationMetricSnapshot,
         ('SUBMIT', 0),
         ('INVALID_STAGE', 0),
+        'stage',
     ),
 )
-for snapshot_type, valid_args, invalid_args in failed_initialization_cases:
+for snapshot_type, valid_args, invalid_args, first_field in failed_initialization_cases:
     snapshot = snapshot_type.__new__(snapshot_type, *valid_args)
+    retained_guard = object.__getattribute__(snapshot, first_field)
     try:
         snapshot_type.__init__(snapshot, *invalid_args)
     except module.ObservabilityRequestError:
@@ -3024,6 +3033,13 @@ for snapshot_type, valid_args, invalid_args in failed_initialization_cases:
         pass
     else:
         raise AssertionError('failed snapshot initialization allowed re-entry')
+    object.__setattr__(snapshot, first_field, retained_guard)
+    try:
+        snapshot_type.__init__(snapshot, *valid_args)
+    except module.ObservabilityRequestError:
+        pass
+    else:
+        raise AssertionError('snapshot construction guard replay succeeded')
 
 first = event_sink.events[0]
 object.__setattr__(first, 'kind', 'REJECT')
