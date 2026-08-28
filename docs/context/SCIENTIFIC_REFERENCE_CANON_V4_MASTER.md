@@ -1,6 +1,7 @@
 # Carbon Scientific Reference Canon v4 — Integrated Master
 
-**Status:** OWNER-CANONICAL integrated scientific/evidence constitution on `main`.  
+**Revision:** 4.1 candidate amendment
+**Status:** OWNER-RATIFICATION PROPOSAL — v4 remains the owner-canonical integrated scientific/evidence constitution on `main`; the v4.1 reconstruction/dependence additions require explicit Physics/SciML, statistics, and protocol-owner acceptance before becoming governing.
 **Purpose:** preserve Carbon's current scientific premises, epistemic laws, claim-control rules, agentic exploration boundary, Challenge-distribution doctrine, exam-qualification doctrine, Score Pack doctrine, frontier-promotion doctrine, and settlement separation.  
 **Relationship to `SCIENTIFIC_REFERENCE_CANON.md`:** the older file remains a bibliographic/evidence annex. Its literature remains useful; where architectural framing conflicts with this document, this v4 master governs scientific constitutional interpretation.  
 **Does not supersede:** current runtime specifications, LIVE Challenge records, Score Packs, Validation Dossiers, Product Qualification Packs, or settlement contracts. Those remain implementation/runtime authority until explicitly migrated.
@@ -94,6 +95,12 @@ The literature/evidence premises in the earlier canon remain useful. The followi
 23. Component qualification does not automatically compose into system qualification.
 24. Physical similarity, accumulated evidence, and Physics Intelligence must earn predictive value prospectively.
 25. Agentic autonomy is useful for search, but search authority must not become grading authority.
+26. Decision uncertainty is joint: material reconstruction-by-case, reference,
+    representation, and execution dependence must be preserved rather than
+    erased by an unsupported additive budget.
+27. Compute-saving screens may allocate evidence or nominate contenders, but
+    they cannot substitute for the producer-independent reconstruction and
+    repeat evidence required by the scientific claim.
 
 ---
 
@@ -146,6 +153,37 @@ Treasury may settle a scientific entitlement. It may not create, erase, or modif
 ## C12 — Agent autonomy expands hypotheses, not authority
 
 Agents may search more broadly over methods, architectures, programs, diagnostics, or experiments. They do not define official success after seeing candidate behavior.
+
+## C13 — Dependence is part of the decision
+
+The operative decision interval must preserve every material dependence among
+candidate reconstruction, physical case or trajectory, reference uncertainty,
+representation, and execution. Named uncertainty components are diagnostic
+bookkeeping, not evidence of independence. The Challenge Dossier must qualify
+the interval procedure and its applicability test; the exact incumbent-versus-
+challenger evidence must also satisfy that registered test. Carbon may combine
+components by quadrature only when both levels show that omitted covariance
+and interaction cannot change the decision. Otherwise it uses joint
+propagation or conservative bounds.
+
+## C14 — Evidence authority cannot be downsampled
+
+Static schema, dependency, hermeticity, and resource checks may reject a typed
+protocol or resource inadmissibility. Before the registered complete base
+reconstruction evidence exists, every quality forecast, partial build, proxy,
+or screen may affect scheduling only; it cannot permanently deny that evidence
+on predicted performance or create any scientific outcome. An unevaluated or
+deferred path is recorded as typed `EVIDENCE_DEFERRED`, never as
+`NOT_SUPERIOR`, gate failure, or candidate physics failure.
+
+After complete base reconstruction, official evidence may be allocated
+sequentially only under the preregistered, coverage-qualified decision rule.
+That rule may return `SUPERIOR`, `NOT_SUPERIOR`, or `INDETERMINATE` at its
+registered boundaries. A heuristic futility stop can conserve resources only
+by returning `EVIDENCE_DEFERRED`; it cannot make a negative scientific
+decision. If Carbon cannot obtain enough evidence, it returns `INDETERMINATE`
+with reason `INSUFFICIENT_EVIDENCE`, or narrows the claim rather than lowering
+the bar.
 
 ---
 
@@ -365,6 +403,10 @@ Rules:
 - every Challenge needs an explicit baseline/frontier identity;
 - equivalent/unresolved challengers do not receive arbitrary scientific promotion;
 - scientific resolution should bound economic reward resolution;
+- screen ranking and staged evidence allocation nominate only; no partial
+  build, proxy, or screen result can create `SUPERIOR`;
+- the promotion interval is constructed from the full paired evidence path and
+  preserves material reconstruction-by-case and other cross-source dependence;
 - version changes that destroy comparability require a new frontier relation rather than silent scalar comparison;
 - one paid frontier event must not be duplicated.
 
@@ -427,6 +469,20 @@ Stable abstraction rule:
 > **Abstract the interface now; do not broaden execution freedom now.**
 
 P0 fresh retraining is the first form of producer-independent reconstruction. Future `ReconstructionProtocol` may permit richer registered rebuilding while preserving security and provenance.
+
+A complete reconstructed artifact may be frozen and reused across the
+authorized cases in its evaluation window; Carbon does not retrain once per
+case. Every scientifically scored or nominated candidate receives the
+Challenge-registered complete base reconstruction evidence, which may require
+one or more builds according to the construction family. A Challenge may then
+stage repeated promotion builds and random stability audits under a
+preregistered `ReconstructionEvidencePolicy`. Producer-independent repeat
+realizations may use registered pairing or common random numbers, but shared
+data, backbone, seed-role, hardware, and implementation dependence remains in
+the analysis. Scientific sequential stopping follows the qualified decision
+boundaries; a separate heuristic futility stop returns only
+`EVIDENCE_DEFERRED`. Exhaustion without resolution is `INDETERMINATE` with
+reason `INSUFFICIENT_EVIDENCE`, not permission to promote on weaker evidence.
 
 No producer-supplied arbitrary executable gains official-evaluation authority by default.
 

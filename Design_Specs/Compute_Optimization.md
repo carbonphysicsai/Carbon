@@ -10,6 +10,7 @@
 |-------|------|------------|
 | **`lean_eval`** | Every full submission | Default unit cost; emissions path; staged ordering may stop on a conclusive mandatory failure, while every nonzero score completes the same registered pack |
 | **`practice_research`** | Optional miner research | Separate local/practice budget and rights; never official admission, priority, or score |
+| **`frontier_promotion`** | Only nominated contender versus incumbent | Common fresh cases plus the registered repeated-reconstruction evidence needed for `SUPERIOR`; unresolved evidence does not settle |
 | **`bank_retrain`** | Specialist promotion | Occasional; same train stack, fresh seeds |
 | **`product_battery`** | After bank lean re-gate | Rare INV/ROLL/ADV/LAT jobs — **never** baked into per-submission price |
 
@@ -32,7 +33,7 @@
 
 **Carbon PDE Subnet**  
 **Technical Analysis Document**  
-**Version:** 2.2 (August 2026)
+**Version:** 2.3 (August 2026)
 **Status:** Core Engineering & Strategy Appendix
 
 This document provides a rigorous, system-level analysis of compute efficiency as a limiting factor for the Carbon subnet. It examines where computational cost actually arises in Neural Operator training, evaluates kernel-level and algorithmic strategies for reducing that cost, and analyzes how those strategies interact with validator economics, miner incentives, model quality, and long-term commercial value.
@@ -118,6 +119,45 @@ hard-gate failure. A partial path cannot produce a positive score. Every
 candidate receiving a nonzero score completes the same registered lean pack
 under the same Challenge identity.
 
+### 5.2A Tiered Reconstruction Evidence
+
+Carbon separates the cost of constructing a candidate from the cost of
+evaluating many physical cases. A complete producer-independent build is frozen,
+content-addressed, and reused across the authorized cases in its evaluation
+window. Validators do not retrain once per case.
+
+The Challenge registers a `ReconstructionEvidencePolicy` with these minimum
+boundaries:
+
+1. static schema, dependency, hermeticity, and resource checks may reject a
+   protocol violation before expensive work;
+2. every candidate receiving ordinary scientific scoring or nomination gets
+   the Challenge-registered complete base reconstruction evidence, which may
+   require one or more builds for that construction family;
+3. contenders that enter a frontier-promotion decision receive the registered
+   separately realized, producer-independent reconstruction replicates and
+   fresh common evidence; registered pairing or common random numbers may be
+   used, but shared data, backbone, seed-role, hardware, and implementation
+   dependence remains modeled;
+4. repeat builds may be added sequentially under a prospective stopping or
+   extension rule until the decision resolves or the evidence budget is
+   exhausted;
+5. random repeat audits estimate missed instability and any screening
+   false-elimination rate; and
+6. an exhausted budget returns `INDETERMINATE` with reason
+   `INSUFFICIENT_EVIDENCE` rather than a weaker promotion standard.
+
+No prior, reputation, predicted score, resource forecast, partial build, or
+cheap proxy may permanently deny the complete base reconstruction because of
+predicted quality, or create any scientific result. Before base evidence, such
+signals may schedule work only; an uncompleted path is typed
+`EVIDENCE_DEFERRED`. After base evidence, official sequential inference may
+return a scientific decision only at its coverage-qualified boundaries. A
+separate heuristic futility rule may conserve resources only by returning
+`EVIDENCE_DEFERRED` and must be prospectively calibrated and audited for false
+elimination. Conclusive mandatory scientific failure may still stop the
+registered lean path under §5.2.
+
 ### 5.3 Sponsored Evaluation Capacity
 
 Sponsors (T3/T4) can fund isolated admission capacity for the same registered
@@ -183,6 +223,7 @@ Efficiency must not create paths for physically invalid models to earn emissions
 | Adaptive mode schedules | High | Medium | Miner-expressible | High |
 | Fair admission and queue scheduling | High | Medium | System | High |
 | Staged mandatory-check execution | High | Medium | System | High |
+| Tiered reconstruction evidence + sequential promotion repeats | Very High | Medium–High | System | High |
 | Grad accumulation + checkpointing (Ph 3–4) | Very High | Medium | Both | Highest (Ph 3+) |
 | Fused Triton spectral kernels | Medium–High | Medium | Validator | Medium–High |
 | Sponsored lean + PB capacity | Medium–High | Low–Medium | Commercial | Medium–High |
@@ -212,4 +253,4 @@ Efficiency must not create paths for physically invalid models to earn emissions
 
 ---
 
-*v2.2 (August 2026): explicit lean, practice, and bank/PB workload isolation; fair admission; the same registered exam pack for every nonzero result. Living analysis, to be updated with measured subnet evidence.*
+*v2.3 (August 2026): adds tiered reconstruction evidence, frozen-build reuse, sequential promotion repeats, and fail-closed compute exhaustion. Retains explicit lean, practice, frontier, and bank/PB workload isolation; fair admission; and the same registered exam pack for every nonzero ordinary result. Living analysis, to be updated with measured subnet evidence.*

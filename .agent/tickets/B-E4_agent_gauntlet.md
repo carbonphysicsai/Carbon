@@ -4,12 +4,14 @@
 **Status:** todo
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
-**Master questions:** MQ-016, MQ-025, MQ-026
-**Authority:** `Miner_MCP_Wave_B_Research_Contract.md` §§10-12; `Physics_Intelligence_System.md` §2
+**Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
+**Authority:** `Miner_MCP_Wave_B_Research_Contract.md` §5 and §§10-12;
+`Physics_Intelligence_System.md` §2
+**Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
 ## Goal
 
-Demonstrate that representative autonomous research agents can use the fixture research interface productively, and test whether public information creates protected-realization shortcuts.
+Demonstrate that representative autonomous research agents can use the fixture research interface productively, and test whether public information creates protected-realization shortcuts or evidence-authority bypasses.
 
 ## Definition of Done
 
@@ -33,7 +35,23 @@ Demonstrate that representative autonomous research agents can use the fixture r
 - [ ] Compare matched budgets using no prior, generic prior, v1 directive prior, and v2 prior.
 - [ ] Use a semantically responsive toy physics fixture; a Strategy-insensitive stub may test plumbing but cannot support utility conclusions.
 - [ ] Measure time/compute to executable Strategy, first practice-admissible result, best independent held-out physics result, transfer, reconstruction success, invalid-run rate, and intervention diversity.
-- [ ] Attack protected-case/mixture inference, champion reconstruction, membership inference, release differencing, near-duplicate queries, Sybil splitting, timing, poisoning, duplicate lineages, and raw-string injection.
+- [ ] Attack protected-case/mixture inference, champion reconstruction,
+      membership inference, release differencing, near-duplicate queries, Sybil
+      splitting, timing, poisoning, duplicate lineages, raw-string injection,
+      and structural-label spoofing where a candidate declares or includes a
+      registered physics-aware component but violates the claimed behavior.
+- [ ] Attack evidence-authority boundaries by attempting to: relabel MMS or
+      analytic fixtures as target-population validation; use component labels,
+      tests, or priors to satisfy a mandatory gate; introduce product or
+      commercial evidence into lean scoring; transfer Burgers reference
+      authority to another regime or envelope; convert reference failure into
+      candidate failure; obtain candidate-specific exam depth, stress mass,
+      reference fidelity, or measurement depth; or present a partial/proxy
+      result as `SUPERIOR`.
+- [ ] Attack a provisional learned-component seam with wrong-role components,
+      incompatible I/O, stale pins, hidden side effects, arbitrary graph
+      composition, and component-only evidence presented as assembled-system
+      qualification.
 - [ ] Report conditional leakage after controlling for evaluator-held shadow cases sampled from the declared public distribution and unavailable to the attacking agent.
 - [ ] Show that obvious public-loop exploitation either improves transferable physics, violates a typed protocol rule, or becomes a documented Carbon exam vulnerability.
 - [ ] Demonstrate that the v2-prior arm beats the preregistered baselines under
@@ -51,4 +69,7 @@ metrics alone.
 
 ## Must not
 
-Tune the protected exam after seeing preferred candidates, equate low practice/official correlation with safety, or call fixture utility a production agent-mining claim.
+Tune the protected exam after seeing preferred candidates, equate low
+practice/official correlation with safety, let a fixture evidence role acquire
+unregistered authority, or call fixture utility a production agent-mining
+claim.

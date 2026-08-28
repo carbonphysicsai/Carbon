@@ -14,8 +14,8 @@
 
 ---
 
-**Version:** 1.3
-**Status:** Protocol stop-ship checklist  
+**Version:** 1.4 candidate amendment
+**Status:** Protocol stop-ship checklist; the v1.4 scientific-evidence additions require explicit Physics/SciML, statistics, and protocol-owner acceptance before becoming governing.
 **Related:** `Scoring.md`, `Data_Management.md`, `POC_Burgers_FNO.md`, `Miner_MCP.md`, `Build_Out.md`, `Landscape_Agent.md`, `SPEC.md` §8
 
 ---
@@ -56,6 +56,21 @@ Effect-candidate libraries cannot be more trustworthy than the labels that feed 
 - [ ] **Gate-fail fixture** → `gate_failed=true`, `S_combined=0`
 - [ ] **Discrimination:** compliant / physics-aware strategy ranks above broken strategy on combined (same seeds)
 - [ ] **Reproducibility:** fixed seeds → scores within documented ε (CPU stricter)
+- [ ] **Dependence-aware decision interval:** common whole cases or
+      trajectories, reconstruction-by-case and reconstruction-by-stratum
+      interaction, joint
+      reference uncertainty, censoring, and material execution/representation
+      dependence are preserved; component quadrature is used only with
+      a Dossier-qualified applicability test that the exact incumbent-
+      challenger evidence also satisfies
+- [ ] **Tiered reconstruction evidence:** every scientifically scored candidate
+      receives the Challenge-registered complete base evidence (one or more
+      builds); pre-base quality screens and forecasts affect scheduling only
+      and an uncompleted path returns `EVIDENCE_DEFERRED`, not a scientific
+      outcome; promotion receives the registered repeat evidence and fresh
+      common cases; scientific sequential stopping uses coverage-qualified
+      boundaries; any heuristic futility stop is non-scientific and audited;
+      insufficient evidence remains non-settling
 - [ ] Golden fixtures checked into CI for the first live challenge (Burgers or designated)
 
 ### 2.3 Model Card minimum
