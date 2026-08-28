@@ -32,168 +32,87 @@ constitutional authority
 
 ---
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and the A12-next-move
+> text below are proposed administrative state only. They become repository
+> authority only after the exact PR #49 head containing this gate is
+> independently reviewed, explicitly human-authorized, and normally merged.
+> Until then, current-main administrative authority remains A11 `in_progress`
+> in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked / 0 checked`,
+> A12 remains `todo` and unstarted, Wave A remains incomplete, and Wave B
+> remains inactive. This draft does not authorize A12 or any later-wave work.
+
+---
+
 ## Current process rules
 
 - Current board remains **Wave A**.
-- A0–A10 are done in the bounded scopes recorded in `.agent/WAVE.md`.
-- **A10's documentation-only closeout merged normally in PR #38 as
-  `404c039596b487cf2649bb1d73b80e9b49baaced`; that merge is ancestral to
-  current `main` `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`.**
-  A10 is `done`
-  only for the exact bounded in-process fixture leaderboard scope; the
-  closeout adds no implementation or test evidence beyond the already-merged
-  bounded work.
-- Current main contains the candidate-only Wave B v0.3 scientific-hardening
-  planning merged by PR #45 and Science-GTM future-ticket integration merged by
-  PR #48. These do not activate Wave B or widen A11/A12. Wave A remains
-  controlling and incomplete; Wave B is inactive, and no B ticket is
-  authorized until every recorded activation gate is separately satisfied.
-- A11 and A12 remain `todo` on current main. PR #39 normally merged and
-  ratified the exact A11-R1–A11-R17 bounded operational-observability contract
-  at historical commit `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`, which remains
-  PR #47's original base, PR #45's first parent, and an ancestor of current
-  main. Current main still contains no A11 implementation or focused A11 test.
-- Draft implementation PR #46 is blocked by
-  `P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`; its earlier generic-dataclass
-  defect is repaired on that branch, but shared canonical A11/A5/A7 enum
-  singletons still cross its sink seam. Its stale `66 PASS / 0 FAIL` claim is
-  withdrawn, and its branch evidence is not current-main authority.
-- A11-R18, the immutable A11-owned sink-snapshot amendment, is a
-  documentation-only candidate. It selects fresh per-call primitive-only
-  snapshots rather than an A5/A7 owner migration or weakened sink isolation.
-  It is ratified only after independent review, explicit human authorization,
-  and normal merge. It implements and tests nothing.
-- A11 is neither implemented nor tested on current main and is not
-  scientifically, security, network, commercially, or production qualified.
-  Its current-main Wave status remains `todo`.
-- A9 and A10 are not scientifically qualified, security qualified, network qualified,
-  commercially validated, or production qualified.
-- A10 implements only the bounded fixture projection. It does not provide a
-  production provider or publication feed, an official/LIVE board, public
-  identity or authentication, hotkey/anonymized/timestamp publication,
-  transport, web/HTML publication, durable persistence, official score
-  precision or cadence, adaptive-query security qualification, cross-Challenge
-  or global ranking, frontier/Product Qualification authority, commercial
-  ranking, settlement, treasury, chain, Bittensor, weights, emissions, A11
-  logging/metrics, or A12 aggregate-invariant work.
-- Build Out v1.4 remains current detailed sequencing, interpreted through the constitutional overlay.
+- A0–A11 are `done` only in the bounded scopes recorded in `.agent/WAVE.md`.
+- A12 remains separately owned and `todo`. Wave A remains incomplete; Wave B
+  remains inactive. No B ticket is authorized until every recorded activation
+  gate is separately satisfied.
+- A9 remains only the exact seven-tool bounded in-process Wave-A
+  control/disclosure skeleton.
+- A10 remains only the bounded in-process fixture leaderboard; it is not an
+  official/LIVE board or a frontier, product, settlement, chain, weight, or
+  emission authority.
+- A11 remains only bounded in-process operational observability with injected
+  trusted structural sinks, closed events/metrics, fixed errors, and
+  primitive-only snapshots. It supplies no production provider, exporter,
+  persistence, dashboard, alerting, authentication, transport, or public API.
+- Build Out v1.4 remains current detailed sequencing, interpreted through the
+  constitutional overlay.
 - Read `CONSTITUTION.md` and `.agent/INVARIANTS.md` before every new ticket.
-- Orientation + KEEP/WRAP/REPAIR/REPLACE.
-- Baseline tests before/after each ticket.
-- One bounded ticket per branch/worktree by default.
-- Do not infer scientific/security/network/commercial/production qualification from test success.
-- Current-main Wave B and later Waves H–N in the Agentic Master Plan are
-  planning architecture only until their exact activation gates are
-  explicitly satisfied.
+- Use orientation plus KEEP / WRAP / REPAIR / REPLACE, baseline tests before
+  and after each ticket, and one bounded ticket per branch/worktree by default.
+- Never infer scientific, security, network, commercial, or production
+  qualification from implementation or test success.
+- Wave B and later Waves H–N in the Agentic Master Plan remain planning
+  architecture until their exact activation gates are explicitly satisfied.
 
-## Current A11-R18 rebaseline evidence
+## Current A11 implementation and closeout evidence
 
-Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
-tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
-#48 from carbonphysicsai/agent/science-gtm-wave-integration`, ordered parents
-`bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
-`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`, with a verified, valid signature.
-The immediately preceding PR #45 merge is
-`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
-`b6365e31b09339826b7568565bb28c7c32007fac`, ordered parents historical PR #39
-merge `4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
-`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, also with a verified, valid
-signature.
+A11-R1 through A11-R18 are ratified. PR #46's independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb`, tree
+`3d6682803422497efc6bff26451c12d9c306f96c`, merged normally as signed
+current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e` with ordered
+parents prior main `98865dd04c5a4018c8077517cb79aabd6045a468` and that reviewed
+head. The reviewed and merge trees are identical; their diff is empty. The
+prior-main manifest is exactly `.agent/WAVE.md`, the four
+`carbon/observability/` source files, and `tests/cpu/test_observability.py`.
 
-Current-main run `33093494970` succeeded. CPU job `98592266955` recorded
-`1973 passed in 44.41s`; code-quality job `98592266774` recorded
-`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
-and no new debt. `.agent/WAVE.md` is exact blob
-`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
-`todo`; Wave A is incomplete; Wave B is inactive.
+Greptile's exact-head record is `Confidence Score: 5/5`, with no actionable
+defect. There are no review threads or formal change requests. Exact post-merge
+run `33199541335` completed successfully: CPU job `98945235783` reported
+`2310 passed in 62.62s`; Code-quality job `98945235938` retained `Ruff
+757/776`, `Black 62/68`, removed debt `19/6`, five changed Python files clean,
+and no new debt.
 
-PR #47's history is original base `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`,
-initial R18 commit `9de896dea92e5378d99ef205cd21a29ef9f57fd3`, and corrected reviewed head
-`76ef2b194132bd2e07677d4ac1cf6baa83509faf`. Old synthetic
-`7ab62b646ba1dee248e090cbd2490511a4b1d87a` and run `33039977702` are stale
-old-base evidence. Current-base drift is confirmed, but there is no R18 semantic
-conflict and no new owner decision.
-
-Normal synchronization merge `cf9a773520645053e6d745c28aede15356fef80a`,
-tree `b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
-A11-R18 with current main`, has ordered parents corrected head
-`76ef2b194132bd2e07677d4ac1cf6baa83509faf` then current main
-`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. The one rebaseline commit is
-`docs: rebaseline A11-R18 against current main`, with that synchronization merge
-as sole parent; its generated SHA and tree are recorded after creation in PR
-#47 publication metadata. Its sequential and cumulative diff is exactly the
-following six A11-R18 documentation paths:
+An independent current-main closeout audit passed **66/66 criteria, 0 FAIL**.
+Fresh Python 3.11 Linux validation reported:
 
 ```text
-M .agent/DECISIONS.md
-M .agent/plans/A11_logging.md
-M .agent/tickets/A11_logging.md
-M Design_Specs/Build_Out_Constitutional_Overlay.md
-M agent_pack/README.md
-M docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
+focused observability: 337 passed
+related A5/A7/A9/A10/A11 owner boundaries: 1330 passed
+complete default CPU suite: 2310 passed
+strict Ruff: passed on all five A11 Python/test paths
+strict Black: 5 files unchanged
+quality against e2496e92: Ruff 757/776; Black 62/68; removed 19/6;
+                           changed Python files 0; no new debt
+git diff --check: passed
 ```
 
-The R18 semantic contract is unchanged.
+The fresh no-dependency wheel installed with `--no-deps` and imported in
+isolated mode outside the source tree:
 
 ```text
-P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
-CORRECTED
-
-P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
-CORRECTED
-
-A11-R1 through A11-R17:
-RATIFIED
-
-A11-R18:
-SPECIFIED as the exact synchronized and rebaselined draft candidate;
-not RATIFIED until independent exact-head review, explicit human authorization,
-and normal merge
-
-A11 IMPLEMENTED:
-NO on current main
-
-A11 TESTED:
-NO on current main
-
-PR #46:
-draft, blocked, non-authoritative, and unchanged
-
-A11 SCIENTIFICALLY_QUALIFIED:
-NO
-
-A11 SECURITY_QUALIFIED:
-NO
-
-A11 NETWORK_QUALIFIED:
-NO
-
-A11 COMMERCIALLY_VALIDATED:
-NO
-
-A11 PRODUCTION_QUALIFIED:
-NO
-
-A11 WAVE STATUS:
-todo on current main
-
-A12:
-todo
-
-Wave A:
-incomplete
-
-Wave B:
-inactive
+carbon-0.9.0-py3-none-any.whl
+sha256:ea686e933f6f93c72df281e79a3baebcb05f6789b25d4499ff81e937980e94fe
 ```
 
-## A11-R18 candidate summary
-
-The public service-request operations remain exactly `emit_event(event)`,
-`increment_counter(metric)`, and `observe_duration(stage, duration_ns)`.
-Request enums and owner values are validated inputs only; they are never future
-sink arguments. The future sink boundary uses fresh exact manual slotted
-non-dataclass values:
+It exposes exactly the ordered eighteen-name public surface. The four directly
+constructible snapshot types are:
 
 ```text
 SubmissionEventSnapshot(kind, submission_id, submission_state, score_status)
@@ -202,33 +121,38 @@ CounterMetricSnapshot(metric_name)
 DurationMetricSnapshot(stage, duration_ns)
 ```
 
-Their fields contain only exact built-in `str`, `int`, or `None` values mapped
-from A11-owned fixed literal tables after exact request validation. They retain
-no enum, `SubmissionId`, request, owner, mapping, exception, or arbitrary
-metadata reference. The future ordered public surface has exactly eighteen
-names: the previous fourteen public names plus these four snapshot types.
+The three service operations accept only the ratified request values and pass
+only fresh primitive-only snapshots to sinks. The final private identity-bound
+weak allocation mechanism is one-shot, consumed before validation, and
+collects abandoned allocations; failed, partial, repeated, donor, alternate,
+`object.__new__`, and concurrent construction fail closed. No owner/request/
+enum object crosses the sink boundary.
 
-The revised structural, non-runtime-checkable Protocol seams accept only
-`SubmissionEventSnapshot | BoundaryErrorSnapshot`, `CounterMetricSnapshot`,
-and `DurationMetricSnapshot`. Each admitted call creates one fresh snapshot;
-mutation through an A11-supplied sink value cannot alter caller, owner,
-retained, concurrent, or later A11 state. This does not claim that A11
-sandboxes a sink that independently imports and mutates unrelated process
-globals.
+```text
+A11 SPECIFIED / RATIFIED: YES, A11-R1 through A11-R18
+A11 IMPLEMENTED: YES, bounded in-process engineering scope only
+A11 TESTED: YES, exact recorded engineering scope only
+A11 SCIENTIFICALLY_QUALIFIED: NO
+A11 SECURITY_QUALIFIED: NO
+A11 NETWORK_QUALIFIED: NO
+A11 COMMERCIALLY_VALIDATED: NO
+A11 PRODUCTION_QUALIFIED: NO
+A11 WAVE STATUS: done
+A12: todo
+Wave A: incomplete
+Wave B: inactive
+```
+
+No new owner decision or semantic amendment was introduced by closeout. The
+full historical reconciliation and defect chain remains in
+`.agent/DECISIONS.md` and `.agent/plans/A11_logging.md`.
 
 ---
 
 ## Current next move
 
-1. independently review the exact documentation-only A11-R18 amendment;
-2. normally merge the exact reviewed amendment only after fresh explicit human
-   authorization through the review workflow;
-3. synchronize blocked draft PR #46 with the exact amendment merge;
-4. repair PR #46 to implement the immutable A11-owned snapshot boundary; and
-5. independently review the repaired exact implementation before PR #46 may be
-   marked ready or merged.
-
-A12 remains `todo` and separately authorized; Wave A remains incomplete; Wave
-B remains inactive; every official, LIVE, evidence, Challenge-health,
-frontier, product, settlement, chain, weight, and emission path remains fail
-closed.
+The next separately authorized Wave-A ticket is A12 invariant closeout. It
+must begin with its own orientation and baseline and may not infer Wave-A
+completion or Wave-B activation from A11 closeout. Every official, LIVE,
+evidence, Challenge-health, frontier, product, settlement, chain, weight, and
+emission path remains fail closed.

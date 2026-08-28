@@ -218,9 +218,14 @@ in-process fixture leaderboard merged normally in PR #37 at
 `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The documentation closeout
 merged normally in PR #38 as
 `404c039596b487cf2649bb1d73b80e9b49baaced` and is ancestral to current
-main `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. A10's bounded Wave-A
-status is `done`; A11 and A12 remain `todo`, and Wave A remains
-incomplete. The closeout added no implementation or test evidence.
+main. A10's bounded Wave-A status is `done`; A11 is now `done` only in its
+separately recorded bounded scope, A12 remains `todo`, and Wave A remains
+incomplete. The A10 closeout added no implementation or test evidence.
+
+Within draft PR #49, the A11 `done` label is a proposed administrative state,
+not current-main authority. It becomes authoritative only after the exact PR
+#49 head containing the closeout gate is independently reviewed, explicitly
+human-authorized, and normally merged.
 
 The undefined `max_response_utf8_bytes` accounting procedure identified by the
 stopped ready-review gate is `DOCUMENTATION_LAG`. The correction defines an
@@ -713,69 +718,49 @@ product, commercial, network, settlement, weight, or emission authority.
 
 # 6. A11 constitutional contract
 
-PR #39 normally merged the exact bounded A11-R1 through A11-R17 contract at
-historical commit `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. Those decisions
-are `SPECIFIED / RATIFIED`; the merge remains PR #47's original base, PR #45's
-first parent, and an ancestor of current main. It remains history and authority,
-but is not current main after this rebaseline.
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and any A12-next-step
+> wording in this proposed overlay are candidate administrative state only.
+> They become repository authority only after the exact PR #49 head containing
+> this gate is independently reviewed, explicitly human-authorized, and
+> normally merged. Until then, current-main administrative authority remains
+> A11 `in_progress` in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked
+> / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
+> and Wave B remains inactive. This draft does not authorize A12 or any
+> later-wave work.
 
-Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
-tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
-#48 from carbonphysicsai/agent/science-gtm-wave-integration`, with ordered
-parents `bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
-`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`; its signature is verified and
-valid. The immediately preceding PR #45 merge is
-`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
-`b6365e31b09339826b7568565bb28c7c32007fac`, ordered parents historical PR #39
-merge `4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
-`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, signature verified and valid.
+PR #39 normally merged A11-R1 through A11-R17, and PR #47 normally merged the
+A11-R18 immutable sink-snapshot amendment. A11-R1 through A11-R18 are therefore
+`SPECIFIED / RATIFIED`; the historical reconciliation and supersession chain
+remains recorded in `.agent/DECISIONS.md` and `.agent/plans/A11_logging.md`.
 
-Current-main push run `33093494970` succeeded. CPU job `98592266955` recorded
-`1973 passed in 44.41s`; code-quality job `98592266774` recorded
-`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
-and no new debt. `.agent/WAVE.md` is exact current-main blob
-`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
-`todo`; Wave A remains controlling and incomplete; Wave B remains inactive.
-Current main still contains no A11 implementation or focused A11 test.
+PR #46's independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb` merged normally as signed
+current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`, tree
+`3d6682803422497efc6bff26451c12d9c306f96c`, with ordered parents prior main
+`98865dd04c5a4018c8077517cb79aabd6045a468` and that reviewed head. The
+reviewed and merge trees are identical. The prior-main manifest is exactly
+`.agent/WAVE.md`, `carbon/observability/{__init__,model,providers,service}.py`,
+and `tests/cpu/test_observability.py`.
 
-PR #45 adds candidate-only Wave B v0.3 scientific-hardening planning; PR #48
-adds Science-GTM future-ticket integration. Neither merge widens A11-R18,
-activates Wave B, implements A11, or creates scientific, security, network,
-commercial, or production authority. PR #45 touches only `.agent/DECISIONS.md`
-among the six R18 documents, without changing R18; PR #48 touches none.
+Greptile's exact-head record is `Confidence Score: 5/5`, with no actionable
+defect, review thread, or formal change request. Post-merge run `33199541335`
+passed `2310` CPU tests and quality. An independent current-main closeout audit
+passed all `66/66` criteria; fresh Linux validation passed focused `337`,
+related owner-boundary `1330`, full default CPU `2310`, the isolated
+zero-dependency wheel gate, strict Ruff/Black, the no-new-debt quality gate,
+and `git diff --check`. No owner decision or A11 semantic amendment was added
+by closeout.
 
-PR #47 began from `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`; its initial R18
-commit is `9de896dea92e5378d99ef205cd21a29ef9f57fd3`, and corrected reviewed head
-is `76ef2b194132bd2e07677d4ac1cf6baa83509faf`. Old synthetic
-`7ab62b646ba1dee248e090cbd2490511a4b1d87a` and CI run `33039977702` are
-stale old-base evidence only. Current-base drift is confirmed, with no R18
-semantic conflict and no new owner decision. Normal synchronization merge
-`cf9a773520645053e6d745c28aede15356fef80a`, tree
-`b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
-A11-R18 with current main`, has ordered parents
-`76ef2b194132bd2e07677d4ac1cf6baa83509faf` and current main
-`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`.
-
-This rebaseline is the one six-document commit `docs: rebaseline A11-R18
-against current main`, whose sole parent is that synchronization merge. Its
-generated SHA and tree are recorded after creation in PR #47 publication
-metadata. Its sequential and cumulative manifest is exactly `.agent/DECISIONS.md`,
-`.agent/plans/A11_logging.md`, `.agent/tickets/A11_logging.md`,
-`Design_Specs/Build_Out_Constitutional_Overlay.md`, `agent_pack/README.md`, and
-`docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md`. The R18 semantic contract is
-unchanged by synchronization or rebaseline.
-
-Draft implementation PR #46 is blocked by
-`P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`. Its correction for the earlier
-`P1_GENERIC_DATACLASS_SERIALIZATION_BYPASS` does not repair the fact that its
-sink seam carries shared canonical A11/A5/A7 enum singletons. A11-R18 below is
-a documentation-only owner-decision candidate for an immutable A11-owned sink
-snapshot boundary. It is not ratified until the exact amendment is
-independently reviewed, explicitly human-authorized, and normally merged.
+A11 is implemented and tested only for the bounded in-process engineering
+scope below. It remains scientifically, security, network, commercially, and
+production unqualified. A12 remains separately owned and `todo`; Wave A is
+incomplete and Wave B inactive.
 
 ## A11-R1 — Exact owner paths and module ownership
 
-The sole future A11 semantic and implementation owner is:
+The sole A11 semantic and implementation owner is:
 
 ```text
 carbon/observability/
@@ -786,8 +771,8 @@ carbon/observability/
 ```
 
 Canonical focused tests belong only at
-`tests/cpu/test_observability.py`. The documentation candidate creates
-none of these paths.
+`tests/cpu/test_observability.py`. Current main contains exactly these four
+production paths and that focused test.
 
 Exact module ownership is:
 
@@ -878,7 +863,7 @@ class BoundaryErrorKind(str, Enum):
 ```
 
 There are no aliases, `auto()` values, integer values, alternative
-lowercase values, or extra members. Future tests must prove exact direct
+lowercase values, or extra members. Canonical tests prove exact direct
 inheritance, declaration order, names, literals, and absence of aliases.
 
 `ObservabilityEvent` is frozen, slotted, representation-safe, and has
@@ -1296,36 +1281,31 @@ weights, and emissions remain separately owned, deferred, and fail closed.
 
 ```text
 A11 SPECIFIED / RATIFIED:
-YES for A11-R1 through A11-R17, normally merged in PR #39
+YES for A11-R1 through A11-R18
 
-A11-R18:
-SPECIFIED as the exact synchronized and rebaselined draft candidate;
-not RATIFIED until independent exact-head review, explicit human authorization,
-and normal merge
-
-A11 IMPLEMENTED: NO on current main
-A11 TESTED: NO on current main
+A11 IMPLEMENTED: YES on current main for the bounded in-process scope
+A11 TESTED: YES only for the exact recorded engineering scope
 A11 SCIENTIFICALLY_QUALIFIED: NO
 A11 SECURITY_QUALIFIED: NO
 A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo on current main
-PR #46: draft, blocked, non-authoritative, and unchanged
+A11 WAVE STATUS: done
+PR #46: merged normally as e2496e92eeae31befdaa430501bb9f00b0e6339e
 A12: todo
 Wave A: incomplete
 Wave B: inactive
 ```
 
-A11 creates no implementation or focused test, `tests/invariants/`,
-pytest invariant marker, dependency, packaging, workflow/CI,
-quality-baseline, A12 artifact/status change, Wave-A closeout, Wave B
-activation, or launch claim.
+A11 closeout creates no new implementation or focused test,
+`tests/invariants/`, pytest invariant marker, dependency, packaging,
+workflow/CI, quality-baseline, A12 artifact/status change, Wave-A completion,
+Wave B activation, or launch claim.
 
 ## A11-R18 — Immutable A11-owned sink snapshot boundary
 
-This amendment selects **Option A: immutable A11-owned sink snapshots**. The
-finding that requires the amendment is:
+Ratified A11-R18 selects **Option A: immutable A11-owned sink snapshots**. The
+historical finding that required the amendment is:
 
 ```text
 P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS:
@@ -1375,11 +1355,11 @@ P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
 CORRECTED
 ```
 
-A11-R1 through A11-R17 remain ratified historical decisions. Only after the
-exact R18 candidate is independently reviewed, explicitly human-authorized,
-and normally merged does the effective contract become A11-R1 through A11-R18.
-At that point R18 supersedes only the sink-facing portions of A11-R1, A11-R2,
-A11-R3, A11-R10, A11-R13, A11-R14, and A11-R16. All other behavior, matrices,
+A11-R1 through A11-R17 remain ratified historical decisions. R18 was
+independently reviewed, explicitly human-authorized, and normally merged, so
+the effective contract is A11-R1 through A11-R18. R18 supersedes only the
+sink-facing portions of A11-R1, A11-R2, A11-R3, A11-R10, A11-R13, A11-R14,
+and A11-R16. All other behavior, matrices,
 failure separation, resource limits, leakage prohibitions, dependency
 boundaries, and maturity/authority ceilings in R1-R17 remain in force.
 
@@ -1406,9 +1386,9 @@ sink-safe snapshots after R18. Public request construction continues to accept
 exact canonical A11/A5/A7 enums and continues to prove no record existence,
 owner transition, provenance, authentication, evidence, or authority.
 
-### Future public snapshot values
+### Public snapshot values
 
-R18 adds these four future public A11-owned nominal types:
+R18 adds these four public A11-owned nominal types:
 
 ```python
 SubmissionEventSnapshot(
@@ -1534,11 +1514,11 @@ After R18 is ratified and implemented, the exact ordered
 )
 ```
 
-Exactly eighteen names are exported. The previous fourteen-name surface is
-superseded only after R18 normally merges. No owner type, generic logger,
+Exactly eighteen names are exported. The previous fourteen-name surface was
+superseded when R18 normally merged. No owner type, generic logger,
 serializer, provider, mapper, or extra error is exported.
 
-The effective future module ownership is:
+The effective module ownership is:
 
 ```text
 model.py
@@ -1565,7 +1545,7 @@ __init__.py
   exact ordered eighteen-name re-export tuple only
 ```
 
-### Exact future Protocol seams
+### Exact Protocol seams
 
 ```python
 class StructuredEventSink(Protocol):
@@ -1598,7 +1578,7 @@ request input cannot choose or supply a sink implementation.
 
 ### Positive request-to-snapshot conversion
 
-Before capacity acquisition or sink access, the future service must:
+Before capacity acquisition or sink access, the service must:
 
 1. validate the exact outer request type;
 2. validate exact canonical enum type, identity, name, and literal value;
@@ -1670,8 +1650,8 @@ A5/A7 owner source changes, runtime owner monkey-patching, A9/A10 production
 import, owner import of `carbon.observability`, or owner-service
 instrumentation is authorized.
 
-A later repaired implementation must prove in both source-tree and installed
-wheel tests that caller-added enum attributes never enter snapshots; sinks
+The merged implementation proves in both source-tree and installed-wheel tests
+that caller-added enum attributes never enter snapshots; sinks
 receive no enum or `SubmissionId`; snapshot fields are exact built-in
 primitives; semantic enum corruption rejects; all four direct public exact
 constructors enforce their displayed required parameters and closed values;
@@ -1683,31 +1663,28 @@ mutation cannot affect a later call; no snapshot-and-restore global mutation
 or lock across sink execution exists; deliberate snapshot-class/module/global
 mutation is outside the trusted seam and is not an instance-isolation proof;
 the prior dataclass/copy/pickle protections and event matrix remain intact;
-the exact eighteen-name surface and revised Protocols hold; and the six-path
-R18 delta leaves A5/A7 owner source, owner services, A12, and Wave B
-byte-identical to synchronized current main.
+the exact eighteen-name surface and revised Protocols hold; and the exact
+implementation delta leaves A5/A7 owner source, owner services, A12, and Wave
+B unchanged. The final private allocation mechanism binds a one-shot weak
+eligibility record to exact snapshot identity, consumes it before validation,
+and permits abandoned allocations to be collected.
 
-This documentation amendment implements and tests nothing. PR #46 remains a
-blocked draft implementation candidate; its historical engineering evidence
-is not current-main A11 implementation or test authority.
+Current-main and fresh closeout engineering evidence is authoritative only for
+the bounded A11 implementation/test claim. It creates no broader qualification
+or operational authority.
 
 ```text
-A11-R1 through A11-R17:
+A11-R1 through A11-R18:
 RATIFIED
 
-A11-R18:
-SPECIFIED as the exact synchronized and rebaselined draft candidate;
-not RATIFIED until independent exact-head review, explicit human authorization,
-and normal merge
-
 A11 IMPLEMENTED:
-NO on current main
+YES on current main for the bounded in-process scope
 
 A11 TESTED:
-NO on current main
+YES only for the exact recorded engineering scope
 
 PR #46:
-draft, blocked, non-authoritative, and unchanged
+merged normally as e2496e92eeae31befdaa430501bb9f00b0e6339e
 
 A11 SCIENTIFICALLY_QUALIFIED:
 NO
@@ -1725,7 +1702,7 @@ A11 PRODUCTION_QUALIFIED:
 NO
 
 A11 WAVE STATUS:
-todo on current main
+done
 
 A12:
 todo
