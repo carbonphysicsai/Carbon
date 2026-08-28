@@ -9,6 +9,18 @@ implementation is merged and independently closed out
 **Current subject:** `Merge pull request #46 from
 carbonphysicsai/agent/a11-observability`
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The `done`
+> status, "independently closed out" wording, checked ticket criteria, and any
+> A12-next-step wording in this plan are proposed administrative state only.
+> They become repository authority only after the exact PR #49 head containing
+> this gate is independently reviewed, explicitly human-authorized, and
+> normally merged. Until then, current-main administrative authority remains
+> A11 `in_progress` in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked
+> / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
+> and Wave B remains inactive. This draft does not authorize A12 or any
+> later-wave work.
+
 ## Current closeout state
 
 PR #46's independently reviewed head

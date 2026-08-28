@@ -222,6 +222,11 @@ main. A10's bounded Wave-A status is `done`; A11 is now `done` only in its
 separately recorded bounded scope, A12 remains `todo`, and Wave A remains
 incomplete. The A10 closeout added no implementation or test evidence.
 
+Within draft PR #49, the A11 `done` label is a proposed administrative state,
+not current-main authority. It becomes authoritative only after the exact PR
+#49 head containing the closeout gate is independently reviewed, explicitly
+human-authorized, and normally merged.
+
 The undefined `max_response_utf8_bytes` accounting procedure identified by the
 stopped ready-review gate is `DOCUMENTATION_LAG`. The correction defines an
 exact logical successful-page UTF-8 occurrence budget, not a wire-format
@@ -712,6 +717,18 @@ product, commercial, network, settlement, weight, or emission authority.
 ---
 
 # 6. A11 constitutional contract
+
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and any A12-next-step
+> wording in this proposed overlay are candidate administrative state only.
+> They become repository authority only after the exact PR #49 head containing
+> this gate is independently reviewed, explicitly human-authorized, and
+> normally merged. Until then, current-main administrative authority remains
+> A11 `in_progress` in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked
+> / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
+> and Wave B remains inactive. This draft does not authorize A12 or any
+> later-wave work.
 
 PR #39 normally merged A11-R1 through A11-R17, and PR #47 normally merged the
 A11-R18 immutable sink-snapshot amendment. A11-R1 through A11-R18 are therefore

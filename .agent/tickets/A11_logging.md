@@ -7,6 +7,18 @@
 **Depends on:** current A5, A6, A7, A8, A9, and A10 semantic owner boundaries; initial production imports remain limited to exact public A5/A7 values
 **Plan:** .agent/plans/A11_logging.md
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. This
+> branch's `done` status and checked criteria are proposed administrative state
+> only; no criterion is repository-authoritative merely because it is checked
+> here. They become repository authority only after the exact PR #49 head
+> containing this gate is independently reviewed, explicitly human-authorized,
+> and normally merged. Until then, current-main administrative authority
+> remains A11 `in_progress` in `.agent/WAVE.md`, this ticket remains at its
+> current-main state of `66 unchecked / 0 checked`, A12 remains `todo` and
+> unstarted, Wave A remains incomplete, and Wave B remains inactive. This draft
+> does not authorize A12 or any later-wave work.
+
 ## Closeout current state
 
 PR #46's independently reviewed head

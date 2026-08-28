@@ -11,6 +11,17 @@
 
 > **Current bounded Wave-A status:** A0-A11 are `done` only in their recorded bounded scopes. A11-R1 through A11-R18 are ratified. PR #46's independently reviewed head `e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb` merged normally as signed current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`; the head and merge tree are identical. Post-merge CI passed `2310` CPU tests and quality, and an independent current-main closeout audit passed all `66/66` criteria. A11 is implemented and tested only for the bounded in-process engineering scope; it remains scientifically, security, network, commercially, and production unqualified. A12 remains `todo`; Wave A remains incomplete and Wave B inactive.
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. Every A11
+> `done` label and checked closeout criterion in this branch is proposed
+> administrative state only. It becomes repository authority only after the
+> exact PR #49 head containing this gate is independently reviewed, explicitly
+> human-authorized, and normally merged. Until then, current-main administrative
+> authority remains A11 `in_progress`, the A11 ticket remains at `66 unchecked /
+> 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete, and
+> Wave B remains inactive. This draft does not authorize A12 or any later-wave
+> work.
+
 ## Workflow
 
 ```text

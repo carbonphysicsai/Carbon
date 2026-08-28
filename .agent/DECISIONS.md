@@ -2,6 +2,18 @@
 
 ## 2026-08-28 — A11 bounded operational-observability implementation closeout
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The checked
+> ticket criteria, A11 `done` status, "closeout" or "independently closed out"
+> wording, and any identification of A12 as the next move in this branch are
+> proposed administrative state only. They become repository authority only
+> after the exact PR #49 head containing this gate is independently reviewed,
+> explicitly human-authorized, and normally merged. Until then, current-main
+> administrative authority remains A11 `in_progress` in `.agent/WAVE.md`, the
+> A11 ticket remains at `66 unchecked / 0 checked`, A12 remains `todo` and
+> unstarted, Wave A remains incomplete, and Wave B remains inactive. This draft
+> does not authorize A12 or any later-wave work.
+
 **Current-main implementation truth.** PR #46 merged normally as signed merge
 commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`, tree
 `3d6682803422497efc6bff26451c12d9c306f96c`, with ordered parents prior main

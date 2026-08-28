@@ -6,6 +6,18 @@ A11-R18 contract, and the merged bounded A11 implementation on 2026-08-28.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and any A12-next-step
+> wording in this proposed ledger are candidate administrative state only.
+> They become repository authority only after the exact PR #49 head containing
+> this gate is independently reviewed, explicitly human-authorized, and
+> normally merged. Until then, current-main administrative authority remains
+> A11 `in_progress` in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked
+> / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
+> and Wave B remains inactive. This draft does not authorize A12 or any
+> later-wave work.
+
 ---
 
 # 1. Status vocabulary

@@ -32,6 +32,19 @@ constitutional authority
 
 ---
 
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and the A12-next-move
+> text below are proposed administrative state only. They become repository
+> authority only after the exact PR #49 head containing this gate is
+> independently reviewed, explicitly human-authorized, and normally merged.
+> Until then, current-main administrative authority remains A11 `in_progress`
+> in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked / 0 checked`,
+> A12 remains `todo` and unstarted, Wave A remains incomplete, and Wave B
+> remains inactive. This draft does not authorize A12 or any later-wave work.
+
+---
+
 ## Current process rules
 
 - Current board remains **Wave A**.
