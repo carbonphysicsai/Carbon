@@ -1,5 +1,52 @@
 # Agent decisions log
 
+## 2026-08-28 — A11 bounded operational-observability implementation closeout
+
+**Current-main implementation truth.** PR #46 merged normally as signed merge
+commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`, tree
+`3d6682803422497efc6bff26451c12d9c306f96c`, with ordered parents prior main
+`98865dd04c5a4018c8077517cb79aabd6045a468` and independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb`. The reviewed head and merge tree
+are identical and their diff is empty. The prior-main-to-merge manifest is
+exactly `.agent/WAVE.md`, the four `carbon/observability/` source files, and
+`tests/cpu/test_observability.py`. A11-R1 through A11-R18 are ratified; no new
+owner decision or semantic amendment is introduced by this closeout.
+
+**Review and post-merge evidence.** Greptile's exact-head review records
+`Confidence Score: 5/5`, no actionable defect, zero review threads, and zero
+formal change requests. Push run `33199541335` checked out the exact merge and
+completed successfully: CPU job `98945235783` reported `2310 passed in
+62.62s`; Code-quality job `98945235938` reported `Ruff 757/776`, `Black
+62/68`, removed debt `19/6`, five changed Python files clean, and no new debt.
+
+**Independent closeout audit.** A fresh exact-current-main audit mapped all 66
+ticket criteria to production source, canonical tests, and CI, wheel, import,
+quality, or topology evidence as applicable: **66 PASS / 0 FAIL**. Fresh
+Python 3.11 Linux validation reported focused `337 passed`, the related
+A5/A7/A9/A10/A11 owner boundaries `1330 passed`, and complete CPU regression
+`2310 passed`. A fresh no-dependency wheel installed with `--no-deps` and
+imported in isolated mode outside the source tree as
+`carbon-0.9.0-py3-none-any.whl`, SHA-256
+`ea686e933f6f93c72df281e79a3baebcb05f6789b25d4499ff81e937980e94fe`.
+Strict Ruff and Black passed the five A11 Python/test paths. The repository
+quality gate against exact closeout base `e2496e92...` retained `Ruff
+757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`, and no
+new debt; `git diff --check` passed.
+
+**Implemented boundary and maturity.** The final implementation uses private
+identity-bound weak allocation eligibility: exact snapshot `__new__` registers
+one weak reference for that exact object, exact `__init__` atomically consumes
+the one-shot eligibility before validation, abandoned allocations are
+collectible, and failed, partial, repeated, donor, alternate, `object.__new__`,
+or concurrent construction cannot restore eligibility. Sink snapshots contain
+only the ratified built-in primitive fields and each admitted call receives a
+distinct snapshot. A11 is `SPECIFIED / RATIFIED: YES`, `IMPLEMENTED: YES`, and
+`TESTED: YES` only for this bounded in-process engineering scope. It remains
+`SCIENTIFICALLY_QUALIFIED: NO`, `SECURITY_QUALIFIED: NO`,
+`NETWORK_QUALIFIED: NO`, `COMMERCIALLY_VALIDATED: NO`, and
+`PRODUCTION_QUALIFIED: NO`. A12 remains separately owned and `todo`; Wave A is
+not complete and Wave B remains inactive.
+
 ## 2026-08-26 — Wave B v0.3 scientific-hardening amendment candidate
 
 **Candidate only; no activation.** This amendment proposes version 0.3 of

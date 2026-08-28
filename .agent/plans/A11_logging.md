@@ -1,17 +1,42 @@
-# A11 — bounded operational observability contract and R18 amendment candidate
+# A11 — bounded operational observability implementation closeout
 
 **Ticket:** `.agent/tickets/A11_logging.md`
-**Wave status:** `todo`
-**Document status:** A11-R1 through A11-R17 are ratified; A11-R18 is specified
-as the exact synchronized and rebaselined draft candidate and is not ratified
-until independent exact-head review, explicit human authorization, and normal
-merge
-**Current main:** `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`
-**Current tree:** `15637ab89613daeec20f2f46bdefd045cb0ed7c6`
-**Current subject:** `Merge pull request #48 from
-carbonphysicsai/agent/science-gtm-wave-integration`
+**Wave status:** `done`
+**Document status:** A11-R1 through A11-R18 are ratified; the bounded
+implementation is merged and independently closed out
+**Current main:** `e2496e92eeae31befdaa430501bb9f00b0e6339e`
+**Current tree:** `3d6682803422497efc6bff26451c12d9c306f96c`
+**Current subject:** `Merge pull request #46 from
+carbonphysicsai/agent/a11-observability`
 
-## 1. Purpose, verified base, and authority
+## Current closeout state
+
+PR #46's independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb` merged normally as signed
+current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`. Its tree is
+identical to the merge tree, and the head-to-merge diff is empty. Greptile's
+exact-head record is `Confidence Score: 5/5`, with no actionable defect, no
+review threads, and no formal change request. Post-merge run `33199541335`
+passed `2310` CPU tests and the repository quality gate.
+
+The independent current-main audit is **66 PASS / 0 FAIL**. Fresh Python 3.11
+Linux validation passed focused `337`, related owner-boundary `1330`, and full
+default CPU `2310`. A fresh no-dependency, `--no-deps` installed, outside-tree
+isolated-import wheel was `carbon-0.9.0-py3-none-any.whl`, SHA-256
+`ea686e933f6f93c72df281e79a3baebcb05f6789b25d4499ff81e937980e94fe`.
+Strict Ruff and Black passed all five A11 Python/test paths. The quality gate
+against exact closeout base `e2496e92...` retained `Ruff 757/776`, `Black
+62/68`, removed debt `19/6`, changed Python files `0`, and no new debt;
+`git diff --check` passed.
+
+The final implementation uses private identity-bound weak one-shot allocation
+eligibility. It preserves the full reconciliation and defect history below,
+introduces no new owner decision or semantic amendment, and claims only
+bounded in-process IMPLEMENTED/TESTED maturity. Every qualification ceiling
+remains NO. A12 is separately owned and `todo`; Wave A is incomplete; Wave B
+is inactive.
+
+## 1. Historical pre-merge purpose, verified base, and authority
 
 PR #39 normally merged the exact A11-R1 through A11-R17 documentation contract.
 That historical merge remains ratified and ancestral to current main. This plan
@@ -110,7 +135,7 @@ This amendment changes only the six authorized documentation paths. It changes
 no Python, test, fixture, dependency, package, workflow, CI, quality baseline,
 A0–A10 behavior, `.agent/WAVE.md`, A12 artifact, or Wave B artifact.
 
-## 2. Reconciliation and KEEP → WRAP → REPAIR → REPLACE
+## 2. Historical reconciliation and KEEP → WRAP → REPAIR → REPLACE
 
 ### NO_CONFLICT
 
@@ -182,18 +207,16 @@ Production exporters, sandboxing, persistence, latency policy, dashboards,
 alerts, authentication, public APIs, additional vocabulary, and later
 scientific/economic authority still require separate decisions.
 
-## 3. Ratified A11-R1 through A11-R17 record and R18 candidate
+## 3. Ratified A11-R1 through A11-R18 contract record
 
 The A11-R1 through A11-R17 text below is preserved as the ratified historical
-record. A11-R18, if independently reviewed, explicitly human-authorized, and
-normally merged, supersedes only the sink-facing portions of A11-R1, A11-R2,
-A11-R3, A11-R10, A11-R13, A11-R14, and A11-R16. All other behavior and every
-authority ceiling remain in force. Until that merge, A11-R18 is a candidate,
-not a ratified decision.
+record. Ratified A11-R18 supersedes only the sink-facing portions of A11-R1,
+A11-R2, A11-R3, A11-R10, A11-R13, A11-R14, and A11-R16. All other behavior
+and every authority ceiling remain in force.
 
 ### A11-R1 — Exact package and module ownership
 
-The sole future semantic and implementation owner is exactly:
+The sole semantic and implementation owner is exactly:
 
 ~~~text
 carbon/observability/
@@ -234,12 +257,12 @@ __init__.py
 
 The implementation does not repurpose `carbon/audit`, modify or alias the
 inert A0 `carbon/logging_utils` compatibility marker, or add top-level
-`carbon` exports. The documentation task creates none of these
-implementation/test paths.
+`carbon` exports. Current main contains exactly these implementation/test
+paths and no owner-path alias.
 
 ### A11-R2 — Exact nominal public surface, field order, and construction
 
-The future exact ordered `carbon.observability.__all__` tuple is:
+The historical R1 ordered `carbon.observability.__all__` tuple was:
 
 ~~~python
 (
@@ -825,7 +848,7 @@ called sink-safe snapshots. Public request construction continues to accept
 exact canonical A11/A5/A7 enums and creates no record, provenance,
 authentication, evidence, or authority claim.
 
-The future public A11-owned sink values are exactly:
+The public A11-owned sink values are exactly:
 
 ~~~text
 SubmissionEventSnapshot(
@@ -903,7 +926,7 @@ create no provenance, owner transition, lifecycle, scientific, audit, receipt,
 public, security, settlement, or economic authority. The service rejects all
 four snapshot types as request values.
 
-The effective future ordered `carbon.observability.__all__` tuple becomes:
+The effective ordered `carbon.observability.__all__` tuple is:
 
 ~~~python
 (
@@ -928,11 +951,11 @@ The effective future ordered `carbon.observability.__all__` tuple becomes:
 )
 ~~~
 
-Exactly eighteen names are exported. The previous fourteen-name surface is
-superseded only after A11-R18 normally merges. No owner type, generic logger,
+Exactly eighteen names are exported. The previous fourteen-name surface was
+superseded when A11-R18 normally merged. No owner type, generic logger,
 serializer, provider, mapper, private helper, or extra error is exported.
 
-Effective future module ownership becomes:
+Effective module ownership is:
 
 ~~~text
 model.py
@@ -1055,16 +1078,16 @@ Python built-ins and local A11 validation. A11 imports no production A9/A10
 module; no A5/A7 owner source changes; no owner package imports
 `carbon.observability`; and no owner service is instrumented.
 
-## 4. Canonical future threat and test contract
+## 4. Canonical implemented threat and test contract
 
-The sole future focused path is:
+The sole canonical focused path is:
 
 ~~~text
 tests/cpu/test_observability.py
 ~~~
 
-This documentation task does not create or modify it. The future suite must
-cover at least the following.
+The merged implementation created this path. The suite covers the following
+ratified requirements.
 
 ### Surface and exact nominal values
 
@@ -1232,87 +1255,37 @@ cover at least the following.
 Documentation statements, existing A0–A10 tests, and repository regression
 success do not count as A11 implementation or A11 test evidence.
 
-## 5. Future implementation sequence
+## 5. Closeout and next sequence
 
-The exact next-move sequence is:
+A11's bounded implementation is merged and the independent closeout gate has
+passed. This plan therefore records no remaining A11 implementation action.
+The next separately authorized Wave-A ticket is A12 invariant closeout; A12
+remains `todo` until its own orientation, baseline, implementation, evidence,
+review, and merge workflow begins. No Wave-A completion or Wave-B activation
+is implied.
 
-1. independently review and ratify exact A11-R18;
-2. normally merge the exact reviewed amendment only after explicit human
-   authorization;
-3. synchronize PR #46 with the amendment merge;
-4. repair PR #46 to implement the immutable A11-owned snapshot boundary; and
-5. independently review the repaired exact-head implementation before any
-   ready or merge action.
+## 6. Closeout validation and maturity boundary
 
-PR #46 remains draft and blocked; its branch and blocker body stay unchanged by
-this synchronization and rebaseline.
-Direct A5–A10 instrumentation, production providers, A12 work, Wave-A closeout,
-and Wave-B activation remain outside this sequence.
-
-## 6. Documentation-candidate validation and maturity boundary
-
-Before publication, this candidate must prove:
-
-- the sequential and cumulative diff contains exactly the following six
-  authorized documentation paths and no seventh path:
-
-  ~~~text
-  M .agent/DECISIONS.md
-  M .agent/plans/A11_logging.md
-  M .agent/tickets/A11_logging.md
-  M Design_Specs/Build_Out_Constitutional_Overlay.md
-  M agent_pack/README.md
-  M docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
-  ~~~
-- `.agent/WAVE.md` is byte-identical to current main at blob
-  `6369a373630392955ea2d58f258f06482173578c`;
-- A10 remains `done`; A11 and A12 remain `todo`; Wave A remains incomplete;
-- the A11 ticket contains exactly 66 unchecked implementation criteria and zero
-  checked criteria;
-- this plan contains zero checkbox markers;
-- no Python, test, fixture, dependency, packaging, workflow, CI, or quality
-  baseline changes;
-- PR #39's A11-R1 through A11-R17 ratification history remains explicit while
-  the exact R18 sink-facing supersession is recorded without silent rewriting;
-- PR #46 remains draft and unmerged at unchanged branch head
-  `5b0b4927f8a4d2e6438b20a8201da43ae2a0645e`; its unchanged blocker body
-  already withdraws the stale audit claim;
-- all current-main Wave B artifacts and activation gates are byte-preserved,
-  Wave A remains controlling, and Wave B remains inactive;
-- no A0–A10 contract is weakened and no production/exporter/persistence/auth/
-  alert/threshold/Challenge-health/adaptive-query/evidence/frontier/product/
-  settlement/chain/weight/emission authority is added;
-- `git diff --check` passes;
-- the synchronization merge has the exact current-main second parent and tree;
-  the rebaseline commit has that synchronization merge as its sole parent and
-  the exact six-path manifest; and the final worktree is clean;
-- publication is a draft PR only, with no ready/merge/auto-merge action.
-
-The exact candidate maturity ceiling is:
+The closeout candidate must preserve an exact seven-document manifest, check
+exactly all 66 ticket criteria, keep this plan at zero checkbox markers, change
+no Python/test/fixture/dependency/packaging/workflow/CI/quality-baseline path,
+preserve A12 and every Wave B artifact, pass `git diff --check`, and publish
+only as a draft PR with no ready, merge, or auto-merge action.
 
 ~~~text
-A11-R1 through A11-R17:
-RATIFIED
-
-A11-R18:
-SPECIFIED as the exact synchronized and rebaselined draft candidate;
-not RATIFIED until independent exact-head review, explicit human authorization,
-and normal merge
-
-A11 IMPLEMENTED: NO on current main
-A11 TESTED: NO on current main
-PR #46:
-draft, blocked, non-authoritative, and unchanged
+A11-R1 through A11-R18: RATIFIED
+A11 IMPLEMENTED: YES, bounded in-process engineering scope only
+A11 TESTED: YES, exact recorded engineering scope only
 A11 SCIENTIFICALLY_QUALIFIED: NO
 A11 SECURITY_QUALIFIED: NO
 A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo on current main
+A11 WAVE STATUS: done
 A12: todo
 Wave A: incomplete
 Wave B: inactive
 ~~~
 
-A draft PR is only a candidate. It is not review, authorization, readiness,
-ratification, implementation, test evidence, or merge authority.
+The documentation closeout is administrative evidence only. It neither adds
+implementation nor widens any maturity or authority claim.

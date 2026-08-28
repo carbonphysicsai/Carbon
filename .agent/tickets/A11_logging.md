@@ -1,16 +1,52 @@
 # Ticket A11 — Bounded operational observability: events + metrics (C16)
 
 **Wave:** A
-**Status:** todo
-**Contract status:** A11-R1 through A11-R17 are ratified; A11-R18 is specified
-as the exact synchronized and rebaselined draft candidate and is not ratified
-until independent exact-head review, explicit human authorization, and normal
-merge
+**Status:** done
+**Contract status:** A11-R1 through A11-R18 are ratified
 **Build_Out:** v1.4 C16, interpreted through Design_Specs/Build_Out_Constitutional_Overlay.md
 **Depends on:** current A5, A6, A7, A8, A9, and A10 semantic owner boundaries; initial production imports remain limited to exact public A5/A7 values
 **Plan:** .agent/plans/A11_logging.md
 
-## Goal
+## Closeout current state
+
+PR #46's independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb`, tree
+`3d6682803422497efc6bff26451c12d9c306f96c`, merged normally as signed
+current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e` with ordered
+parents prior main `98865dd04c5a4018c8077517cb79aabd6045a468` and that reviewed
+head. The reviewed-head-to-merge diff is empty and the prior-main manifest is
+exactly `.agent/WAVE.md`, the four `carbon/observability/` source files, and
+`tests/cpu/test_observability.py`.
+
+Greptile's exact-head record is `Confidence Score: 5/5`, with no actionable
+defect; review threads and formal change requests are both zero. Post-merge
+run `33199541335` succeeded on the exact merge: CPU job `98945235783` reported
+`2310 passed in 62.62s`, and Code-quality job `98945235938` retained `Ruff
+757/776`, `Black 62/68`, removed debt `19/6`, five changed Python paths clean,
+and no new debt.
+
+The independent current-main implementation audit is **66 PASS / 0 FAIL**.
+Fresh Python 3.11 Linux validation passed the focused suite (`337`), related
+owner-boundary suite (`1330`), and full default CPU suite (`2310`). Fresh
+wheel evidence is `carbon-0.9.0-py3-none-any.whl`, SHA-256
+`ea686e933f6f93c72df281e79a3baebcb05f6789b25d4499ff81e937980e94fe`,
+built without dependencies, installed with `--no-deps`, and imported in
+isolated mode outside the source tree. Strict Ruff/Black passed all five A11
+Python/test paths; the repository quality gate against exact closeout base
+`e2496e92...` passed with changed Python files `0`; `git diff --check` passed.
+
+The final snapshot allocator uses private identity-bound weak one-shot
+eligibility. Failed, partial, repeated, donor, alternate, `object.__new__`,
+abandoned, and concurrent construction paths fail closed while abandoned
+allocations remain collectible. This is the ratified A11-R18 implementation;
+no new owner decision or semantic amendment was introduced.
+
+A11 is specified/ratified, implemented, and tested only for this bounded
+in-process engineering scope. It is not scientifically, security, network,
+commercially, or production qualified. A12 remains separately owned and
+`todo`; Wave A remains incomplete; Wave B remains inactive.
+
+## Historical pre-merge goal and reconciliation record
 
 Implement one bounded in-process operational observability primitive only after
 separate explicit implementation authorization. The future primitive uses
@@ -180,7 +216,7 @@ authorization, and normal merge of this exact amendment candidate.
 
 ## Required contract
 
-- Sole future semantic and implementation ownership is
+- Sole semantic and implementation ownership is
   carbon/observability/{__init__,model,providers,service}.py, with canonical
   focused tests only at tests/cpu/test_observability.py.
   carbon/logging_utils remains only the unchanged inert A0 compatibility
@@ -270,7 +306,7 @@ authorization, and normal merge of this exact amendment candidate.
   the exact one-field request: error_kind. Neither is evidence or authenticated
   provenance. These request values and all enum members are never sink
   arguments.
-- The four exact future sink values are:
+- The four exact sink values are:
 
   ~~~text
   SubmissionEventSnapshot(
@@ -363,20 +399,20 @@ authorization, and normal merge of this exact amendment candidate.
 - A syntactically valid but unbound UUIDv4 has no lifecycle, scientific, audit,
   receipt, public, security, settlement, or economic authority. Production
   provenance and evidence remain separately deferred.
-- A11 remains todo throughout this documentation candidate. A11-R1 through
-  A11-R17 remain ratified; A11-R18 remains a candidate until independently
-  reviewed, explicitly human-authorized, and normally merged. Documentation,
-  PR #46 tests, and repository regression evidence are not current-main A11
-  implementation or test evidence.
+- A11-R1 through A11-R18 are ratified. The merged implementation and recorded
+  tests establish only the bounded engineering scope; no documentation,
+  implementation, test, or CI evidence widens the qualification ceilings.
 
 ## Implementation DoD
 
-Every implementation criterion below remains unchecked. This documentation
-candidate implements and tests nothing.
+The independent exact-current-main closeout audit passed every criterion below:
+**66 PASS / 0 FAIL**. Each checked item is supported by merged production
+source, canonical focused tests, and CI, wheel, import, quality, or topology
+evidence where applicable.
 
 ### Exact package and public surface
 
-- [ ] Add only carbon/observability/__init__.py, model.py, providers.py, and
+- [x] Add only carbon/observability/__init__.py, model.py, providers.py, and
   service.py with the effective A11-R18 module ownership: model request/resource
   values, four snapshot types, errors, and private exact request-validation and
   public-constructor invocation helpers only; provider Protocols only; service
@@ -384,40 +420,40 @@ candidate implements and tests nothing.
   translation only; and __init__.py exact re-exports only. Do not modify,
   alias, import through, or re-export from the inert A0 carbon/logging_utils
   compatibility marker, carbon/audit, or root carbon/__init__.py.
-- [ ] Export the exact ordered eighteen-name carbon.observability.__all__ tuple
+- [x] Export the exact ordered eighteen-name carbon.observability.__all__ tuple
   amended by A11-R18, with all four snapshots in their exact specified order
   and directly publicly constructible through only their exact displayed
   required constructors, with no hidden token, private-factory requirement,
   alternate/subclass constructor, owner-type re-export, alias, generic logger,
   serializer, production provider, no-op default, private helper, or extra
   error.
-- [ ] Implement exact direct str, Enum inheritance, declaration order, names,
+- [x] Implement exact direct str, Enum inheritance, declaration order, names,
   and literal values for EventKind (SUBMIT, SCORE, REJECT, FAILED_STRATEGY,
   FAILED_INFRA), MetricKind (SUBMIT_COUNT, SCORE_COUNT, REJECT_COUNT,
   FAILED_INFRA_COUNT, STAGE_DURATION_NS), and DurationStage (SUBMIT, SCORE),
   with no aliases, auto(), integer values, alternative lowercase values, or
   extra members.
-- [ ] Implement ObservabilityEvent as a frozen, slotted,
+- [x] Implement ObservabilityEvent as a frozen, slotted,
   representation-safe owner-shaped operational-observation request with exact
   ordered fields kind, submission_id, submission_state, score_status and no
   generic serialization/copy path; it is a validated request only, never a sink
   argument or sink-safe snapshot, its public request constructor continues to
   accept the exact canonical owner enums rather than primitive snapshot fields,
   and it proves neither retained-record existence nor authenticated provenance.
-- [ ] Implement ObservabilityResourceLimits as a frozen, slotted,
+- [x] Implement ObservabilityResourceLimits as a frozen, slotted,
   representation-safe value with only required max_concurrent_calls, an exact
   built-in integer in 1..2**64-1.
-- [ ] Implement exactly ObservabilityService(event_sink, metric_sink,
+- [x] Implement exactly ObservabilityService(event_sink, metric_sink,
   resource_limits) with all arguments mandatory and no default, None,
   environment, registry, singleton, global sink, backend selector, or
   production numeric policy.
-- [ ] Expose only emit_event(event: ObservabilityEvent |
+- [x] Expose only emit_event(event: ObservabilityEvent |
   BoundaryErrorEvent), increment_counter(metric), and
   observe_duration(stage, duration_ns), each returning exact None on success;
   accept no snapshot as a request;
   expose no fourth operation, log, mapping emit, generic metric, record, batch,
   flush, retry, queue, serializer, exporter, or sink-selection operation.
-- [ ] Reject subclasses, forged enum members, corrupted canonical enum name or
+- [x] Reject subclasses, forged enum members, corrupted canonical enum name or
   literal value, bool-as-int, coercible primitives, generic lookalikes, unknown
   shapes, and unsupported combinations through exact type, identity, name, and
   literal validation without calling hostile repr or str; never inspect, copy,
@@ -429,53 +465,53 @@ candidate implements and tests nothing.
 
 ### Exact submission event consistency and correlation
 
-- [ ] Accept a SUBMIT-shaped request only with a fresh copied exact A7
+- [x] Accept a SUBMIT-shaped request only with a fresh copied exact A7
   SubmissionId, exact SubmissionState.RECEIVED, and score_status=None.
-- [ ] Accept a SCORE-shaped request only with a fresh copied exact A7
+- [x] Accept a SCORE-shaped request only with a fresh copied exact A7
   SubmissionId, exact SubmissionState.SCORED, and exact canonical A5
   ScoreStatus.SCORED or ScoreStatus.MANDATORY_GATE_FAILED.
-- [ ] Accept a REJECT-shaped request only with a fresh copied exact A7
+- [x] Accept a REJECT-shaped request only with a fresh copied exact A7
   SubmissionId, exact SubmissionState.REJECTED, and score_status=None.
-- [ ] Accept a FAILED_STRATEGY-shaped request only with a fresh copied exact A7
+- [x] Accept a FAILED_STRATEGY-shaped request only with a fresh copied exact A7
   SubmissionId, exact terminal SubmissionState.FAILED_STRATEGY, and
   score_status=None.
-- [ ] Accept a FAILED_INFRA-shaped request only with a fresh copied exact A7
+- [x] Accept a FAILED_INFRA-shaped request only with a fresh copied exact A7
   SubmissionId, exact terminal SubmissionState.FAILED_INFRA, and
   score_status=None.
-- [ ] Reject every mismatched kind/state/status combination and direct
+- [x] Reject every mismatched kind/state/status combination and direct
   PACK_NOT_READY, retryable-infrastructure, PUBLISHED, CANCELLED,
   pre-record/no-ID, or unsupported future-category request without remapping it
   to a current event.
-- [ ] Preserve A7 lifecycle SCORED versus A5 SCORED and
+- [x] Preserve A7 lifecycle SCORED versus A5 SCORED and
   MANDATORY_GATE_FAILED; preserve request/admission rejection, terminal
   strategy failure, terminal infrastructure failure, and non-scientific
   PACK_NOT_READY as distinct meanings while making no retained-state or
   transition-occurrence claim.
-- [ ] Prove an open duplicate, pre-record request/resource failure, retryable
+- [x] Prove an open duplicate, pre-record request/resource failure, retryable
   infrastructure result, omitted future reference/generator/reconstruction
   failure, or syntactically valid but unbound UUIDv4 cannot be falsely promoted
   into lifecycle, scientific, audit, receipt, public, security, settlement, or
   economic authority.
-- [ ] Reconstruct SubmissionId only through its public A7 constructor and
+- [x] Reconstruct SubmissionId only through its public A7 constructor and
   permit only its exact canonical 36-ASCII built-in string as
   SubmissionEventSnapshot.submission_id for internal correlation; never pass a
   SubmissionId object to a sink or place it in a metric, label, error,
   free-form text, representation, serialization, miner/customer/public
   telemetry, or second identity type. Exact nominal validity is a correctness
   value, not an authenticated capability.
-- [ ] Import, query, accept, and expose no SubmissionService,
+- [x] Import, query, accept, and expose no SubmissionService,
   _SubmissionStore, private A7 record, A7 fee/store internal,
   RequesterIdentity, A8 private outcome, result ID, receipt/evidence store or
   ID, cursor, hotkey, wallet, customer/participant identity, signature,
   capability token, or authentication material. Trusted composition alone
   supplies any factual relationship to an owner transition.
-- [ ] Prove A11 internal event kinds do not widen A6 public failure tags, do
+- [x] Prove A11 internal event kinds do not widen A6 public failure tags, do
   not create a second A7 lifecycle or A5 scoring disposition, and do not
   authenticate A5/A7 provenance.
 
 ### Exact A9/A10 boundary-error observations
 
-- [ ] Implement BoundaryErrorKind with exact direct str, Enum inheritance and
+- [x] Implement BoundaryErrorKind with exact direct str, Enum inheritance and
   the exact eleven-member declaration order, names, and literal values:
   MCP_REQUEST/mcp.request.invalid,
   MCP_RESOURCE/mcp.resource_limit_exceeded,
@@ -493,7 +529,7 @@ candidate implements and tests nothing.
   a fixed local table to the distinct primitive field accepted by the direct
   public BoundaryErrorSnapshot(error_code) constructor and never passes the
   request enum to a sink or accepts the snapshot as a request.
-- [ ] Implement BoundaryErrorEvent as a frozen, slotted,
+- [x] Implement BoundaryErrorEvent as a frozen, slotted,
   representation-safe request with exactly one field, error_kind, accepting
   only exact BoundaryErrorKind; it is never a sink argument. Through the same
   direct public exact constructor available to callers, construct a fresh
@@ -503,20 +539,20 @@ candidate implements and tests nothing.
   payload, cursor, provider, enum member, exception object/text, message,
   cause/context/traceback, private field, hidden identifier, seed/draw, and
   arbitrary string/mapping material.
-- [ ] In a test-local trusted-composition harness only, prove exact public A9
+- [x] In a test-local trusted-composition harness only, prove exact public A9
   mappings: McpRequestError to MCP_REQUEST; McpResourceError to MCP_RESOURCE;
   McpToolUnavailableError to MCP_TOOL_UNAVAILABLE;
   McpChallengeUnavailableError to MCP_CHALLENGE_UNAVAILABLE;
   McpSubmissionUnavailableError to MCP_SUBMISSION_UNAVAILABLE;
   McpQueryBudgetError to MCP_QUERY_BUDGET; and McpIntegrationError to
   MCP_INTEGRATION. Production carbon.observability imports no A9 module.
-- [ ] In a test-local trusted-composition harness only, prove exact public A10
+- [x] In a test-local trusted-composition harness only, prove exact public A10
   mappings: LeaderboardRequestError to LEADERBOARD_REQUEST;
   LeaderboardResourceError to LEADERBOARD_RESOURCE;
   LeaderboardUnavailableError to LEADERBOARD_UNAVAILABLE; and
   LeaderboardIntegrationError to LEADERBOARD_INTEGRATION. Production
   carbon.observability imports no A10 module.
-- [ ] Reject raw provider exceptions, owner exceptions outside the exact
+- [x] Reject raw provider exceptions, owner exceptions outside the exact
   mapped public classes, unknown or forged codes, subclasses/lookalikes, owner
   payloads, request values, identities, private fields, hidden identifiers,
   seeds/draws, arbitrary strings/mappings, and future reference/generator/
@@ -529,17 +565,17 @@ candidate implements and tests nothing.
 
 ### Metrics, labels, durations, and time
 
-- [ ] Permit increment_counter only for exact SUBMIT_COUNT, SCORE_COUNT,
+- [x] Permit increment_counter only for exact SUBMIT_COUNT, SCORE_COUNT,
   REJECT_COUNT, and FAILED_INFRA_COUNT; each successful call represents one
   increment and accepts no delta/value, then maps through a fixed local literal
   table to the distinct direct public CounterMetricSnapshot(metric_name)
   constructor for one fresh snapshot containing the exact built-in string;
   never accept that snapshot as the metric request.
-- [ ] Reject STAGE_DURATION_NS through increment_counter and represent it only
+- [x] Reject STAGE_DURATION_NS through increment_counter and represent it only
   through observe_duration as a fresh directly publicly constructed
   DurationMetricSnapshot; never pass STAGE_DURATION_NS or any MetricKind member
   to a sink and never accept either metric snapshot as a request value.
-- [ ] Accept only exact DurationStage.SUBMIT or DurationStage.SCORE and an
+- [x] Accept only exact DurationStage.SUBMIT or DurationStage.SCORE and an
   exact built-in duration_ns in 0..2**64-1, including zero; reject bool,
   subclasses, floats, coercion, negatives, and overflow; map the validated
   values through the direct public DurationMetricSnapshot(stage, duration_ns)
@@ -547,25 +583,25 @@ candidate implements and tests nothing.
   literal and whose duration_ns is the exact built-in integer, with no
   DurationStage member reaching the sink; direct constructor input obeys the
   same literal/type/range checks but creates no valid service request.
-- [ ] Expose exactly zero arbitrary metric labels: no label map, tag tuple,
+- [x] Expose exactly zero arbitrary metric labels: no label map, tag tuple,
   keyword metadata, SubmissionId, Challenge, requester, hotkey, wallet,
   customer, result, score, rank, cursor, provider, exception, boundary-error
   code, or arbitrary dimension in either request APIs or snapshots.
-- [ ] Prove metric cardinality is structurally bounded by four counter members
+- [x] Prove metric cardinality is structurally bounded by four counter members
   mapped to four exact CounterMetricSnapshot names plus two duration stages
   mapped to two exact DurationMetricSnapshot stage literals, with no dynamic
   metric name, gauge, decrement, reset, arbitrary histogram/value,
   boundary-error counter, or unratified FAILED_STRATEGY_COUNT.
-- [ ] Emit no timestamp and import/call no wall clock, monotonic clock,
+- [x] Emit no timestamp and import/call no wall clock, monotonic clock,
   current-time, date/timezone, sleep, deadline, or elapsed-time facility; use
   caller-supplied nanoseconds only.
-- [ ] Prove duration and every metric are descriptive only and cannot change a
+- [x] Prove duration and every metric are descriptive only and cannot change a
   score, gate, lifecycle, retry, rank, publication, Challenge-health decision,
   frontier, product, settlement, weight, or emission behavior.
 
 ### Positive construction and leakage elimination
 
-- [ ] Validate in exact order before capacity or sink access: exact outer
+- [x] Validate in exact order before capacity or sink access: exact outer
   request type; exact canonical enum type, identity, name, and literal; exact
   event matrix or metric/duration boundary; fresh SubmissionId reconstruction
   through public A7 where applicable; mapping through A11-owned fixed literal
@@ -573,52 +609,52 @@ candidate implements and tests nothing.
   fresh snapshot with no request, owner, or enum reference; capacity/reentrancy
   acquisition; then at most one sink call. Direct snapshot construction never
   bypasses or satisfies this service-request validation path.
-- [ ] Use no arbitrary mapping/iterable/descriptor/object-graph traversal,
+- [x] Use no arbitrary mapping/iterable/descriptor/object-graph traversal,
   reflection, dataclass dump, pickle, JSON, generic serializer, recursive
   sanitizer, serialize-then-redact path, or silent normalization/truncation/
   hashing/anonymization; never traverse/copy an enum __dict__ or sanitize and
   restore shared enum state.
-- [ ] Prove hostile mappings, iterables, descriptors, aliases, cycles,
+- [x] Prove hostile mappings, iterables, descriptors, aliases, cycles,
   mutation races, repr, str, CR/LF, Unicode confusables, and oversized values
   cannot enter or be consulted by accepted construction; caller-added enum
   attributes are ignored, and request-enum mutation after snapshot construction
   cannot alter that snapshot.
-- [ ] Include no free-form textual event field or pattern-redaction engine in
+- [x] Include no free-form textual event field or pattern-redaction engine in
   Wave A; eliminate textual injection/leakage structurally and require later
   ratification before any allow-listed text field.
-- [ ] Exclude official/master/derived seeds, draw IDs, roles, domains,
+- [x] Exclude official/master/derived seeds, draw IDs, roles, domains,
   contexts, entropy, nonces, commitments/preimages, hidden-pack identities,
   full Strategies, parameters, weights, checkpoints, and artifacts, including
   any such value attached as an arbitrary request-enum attribute; prove no
   arbitrary enum attribute enters any declared snapshot-instance field through
   service conversion or direct public construction.
-- [ ] Exclude requester/hotkey/wallet/customer/credential, fee/payment/reward,
+- [x] Exclude requester/hotkey/wallet/customer/credential, fee/payment/reward,
   result/receipt/cursor/publication/provider, prior/estimate/scaffold/mock/light,
   and query-history material, including any such value attached as an arbitrary
   request-enum attribute.
-- [ ] Exclude raw/combined/component scores, gates, margins, stress values,
+- [x] Exclude raw/combined/component scores, gates, margins, stress values,
   diagnostics, rank/history/delta, backend exceptions, exception objects,
   stack traces, paths, commands, environment/runtime-configuration values, and
   arbitrary diagnostics, including any such value attached as an arbitrary
   request-enum attribute.
-- [ ] Prove no sink/error fallback diagnostic can reintroduce forbidden
+- [x] Prove no sink/error fallback diagnostic can reintroduce forbidden
   material and no score/rank/adaptive-query signal creates an exam oracle.
 
 ### Sink Protocols, calls, errors, and resources
 
-- [ ] Implement exact standard-library Protocol seams with exact None returns:
+- [x] Implement exact standard-library Protocol seams with exact None returns:
   StructuredEventSink.emit_event(event: SubmissionEventSnapshot |
   BoundaryErrorSnapshot, /), MetricSink.increment_counter(metric:
   CounterMetricSnapshot, /), and MetricSink.observe_duration(metric:
   DurationMetricSnapshot, /). These exact snapshot parameters remain distinct
   from the unchanged public service-request parameters and define trusted
   in-process integration seams only.
-- [ ] Accept trusted structural concrete sinks without Protocol subclassing,
+- [x] Accept trusted structural concrete sinks without Protocol subclassing,
   runtime_checkable, exact-type gating, or runtime Protocol introspection.
-- [ ] Make at most one corresponding synchronous sink call per public
+- [x] Make at most one corresponding synchronous sink call per public
   operation, passing one exact fresh snapshot, and no sink call after caller
   validation, capacity, or reentrancy failure.
-- [ ] Construct a distinct primitive-only A11-owned snapshot for every admitted
+- [x] Construct a distinct primitive-only A11-owned snapshot for every admitted
   call before invocation. Mutation of the supplied snapshot instance and its
   declared primitive fields, including normal assignment and
   object.__setattr__, cannot alter caller, owner, retained, concurrent,
@@ -629,47 +665,47 @@ candidate implements and tests nothing.
   outside the trusted in-process sink contract and requires unclaimed process
   isolation or capability restriction; no arbitrary-hostile-Python resistance
   is asserted.
-- [ ] Treat missing/call-incompatible methods, non-None returns, hostile
+- [x] Treat missing/call-incompatible methods, non-None returns, hostile
   descriptor/hook ordinary exceptions, invocation ordinary exceptions, and
   sink-raised public A11 errors as one new fixed integration error.
-- [ ] Translate every sink-origin ordinary Exception without passthrough,
+- [x] Translate every sink-origin ordinary Exception without passthrough,
   value/text/payload echo, partial value, cause, or context chain; never invoke
   hostile repr/str and never call a fallback logger.
-- [ ] Propagate each non-Exception BaseException, including KeyboardInterrupt,
+- [x] Propagate each non-Exception BaseException, including KeyboardInterrupt,
   SystemExit, and GeneratorExit, unchanged and add a source guard forbidding
   except BaseException around sink/public translation seams.
-- [ ] Enforce one shared per-service non-blocking max_concurrent_calls policy
+- [x] Enforce one shared per-service non-blocking max_concurrent_calls policy
   across all operations; reject exact capacity exhaustion before sink access
   with the fixed resource error.
-- [ ] Reject same-service sink reentrancy non-blockingly before a second sink
+- [x] Reject same-service sink reentrancy non-blockingly before a second sink
   call, even if general configured capacity remains, without holding an
   ordinary mutex across the sink.
-- [ ] Release acquired capacity in finally after success, A11-created error,
+- [x] Release acquired capacity in finally after success, A11-created error,
   translated ordinary Exception, and propagated non-Exception BaseException.
-- [ ] Implement no batching, queue, retry, fallback, worker, thread, async
+- [x] Implement no batching, queue, retry, fallback, worker, thread, async
   task, background work, suppression/reordering of domain actions, or
   exactly-once/durability claim.
-- [ ] Demonstrate that a blocking test sink consumes only its finite capacity,
+- [x] Demonstrate that a blocking test sink consumes only its finite capacity,
   additional calls fail non-blockingly, and A11 makes no timeout/preemption or
   production-availability claim.
-- [ ] Implement exactly ObservabilityError(Exception) with direct
+- [x] Implement exactly ObservabilityError(Exception) with direct
   ObservabilityRequestError, ObservabilityResourceError, and
   ObservabilityIntegrationError subclasses and no fourth policy error.
-- [ ] Use the exact fixed code/message pairs from A11-R15 with immutable
+- [x] Use the exact fixed code/message pairs from A11-R15 with immutable
   payloads, no diagnostic constructor arguments, no value echo, no hostile
   representation, no cause/context chain, and no generic serialization/copy.
-- [ ] Map malformed mandatory construction/resource policy to request error,
+- [x] Map malformed mandatory construction/resource policy to request error,
   acquired-capacity/reentrancy exhaustion to resource error, and sink failures
   to integration error while preserving A11-created mappings.
 
 ### Domain, authority, dependency, packaging, and regression
 
-- [ ] Accept, return, store, mutate, retry, suppress, or reorder no domain
+- [x] Accept, return, store, mutate, retry, suppress, or reorder no domain
   result; instrument no A5–A10 owner in the first implementation.
-- [ ] Add a test-local composition harness proving an already-determined
+- [x] Add a test-local composition harness proving an already-determined
   domain result survives telemetry failure and no telemetry exception changes
   scientific, lifecycle, publication, or economic state.
-- [ ] In production A11 source, permit only Python standard library plus exact
+- [x] In production A11 source, permit only Python standard library plus exact
   public SubmissionId and SubmissionState imports from carbon.fees and exact
   public ScoreStatus from carbon.scoring; do not re-export those owner types.
   Snapshot classes depend only on Python built-ins and local A11 validation;
@@ -679,7 +715,7 @@ candidate implements and tests nothing.
   existing owner modules, source guards must prohibit direct A11 imports/calls
   rather than assert impossible absence of all transitive modules from
   `sys.modules`.
-- [ ] Enforce the exact dependency graph: model.py to standard library plus
+- [x] Enforce the exact dependency graph: model.py to standard library plus
   public A5/A7 request values and local request-validation/public-constructor
   invocation helpers;
   providers.py to standard-library typing plus A11 snapshot model types;
@@ -690,18 +726,18 @@ candidate implements and tests nothing.
   private outcomes/causes, production A9/A10, carbon.logging_utils,
   audit/evidence/receipt, legacy validator/neuron, Landscape, chain,
   settlement, weight, and emission imports.
-- [ ] Prove A5–A10 packages do not import carbon.observability and no existing
+- [x] Prove A5–A10 packages do not import carbon.observability and no existing
   owner source or service is modified or instrumented merely to satisfy A11,
   including no A5/A7 enum hardening or monkeypatch.
-- [ ] Add no OpenTelemetry, Prometheus, StatsD, logging backend, HTTP/network,
+- [x] Add no OpenTelemetry, Prometheus, StatsD, logging backend, HTTP/network,
   filesystem/database, persistence, environment-selected backend, exporter,
   dashboard, alerting, threshold, authentication, public API, or production
   provider dependency/behavior.
-- [ ] Prove no Challenge-health, information-budget, adaptive-query,
+- [x] Prove no Challenge-health, information-budget, adaptive-query,
   scientific evidence, receipt/re-execution, durable ledger, frontier/Product
   Qualification, commercial, LIVE, settlement, treasury, chain, Bittensor,
   weight, or emission authority exists.
-- [ ] Build a fresh zero-dependency wheel, install it with --no-deps outside
+- [x] Build a fresh zero-dependency wheel, install it with --no-deps outside
   the source tree, and prove isolated import exposes only the exact eighteen
   A11 names without loading forbidden optional/later-wave modules; prove all
   four direct public exact snapshot constructors and required parameter order,
@@ -712,32 +748,30 @@ candidate implements and tests nothing.
   later calls. Do not claim isolation from deliberate snapshot-class/module/
   global mutation or arbitrary hostile sink code. Prove unchanged A5/A7 owner
   source.
-- [ ] Pass the canonical focused suite at
+- [x] Pass the canonical focused suite at
   pytest tests/cpu/test_observability.py -q.
-- [ ] Pass the complete default CPU regression without treating it as A11
+- [x] Pass the complete default CPU regression without treating it as A11
   implementation evidence beyond the new focused contract.
-- [ ] Pass strict Ruff and Black on later changed Python/test paths and the
+- [x] Pass strict Ruff and Black on later changed Python/test paths and the
   repository no-new-debt quality gate.
-- [ ] Leave A12 separately owned and todo; create no tests/invariants/,
+- [x] Leave A12 separately owned and todo; create no tests/invariants/,
   pytest invariant marker, workflow/CI change, quality-baseline change, Wave-A
   closeout, Wave-B activation, or launch claim.
 
-## Must not
+## Closeout limits
 
-Do not implement A11-R18 under this documentation task. Do not modify or
-synchronize the PR #46 branch; do not mark PR #46 ready; do not mark A11
-in_progress or done; do not check any criterion; do not modify .agent/WAVE.md;
-do not create the package or test; do not modify Python, tests, fixtures,
-dependencies, packaging, workflows, CI, or quality baselines; do not modify or
-instrument A5–A10; do not add a production sink; do not begin A12; and do not
-activate Wave B.
+This documentation-only closeout changes no Python, tests, fixtures,
+dependencies, packaging, workflows, CI, or quality baselines; modifies or
+instruments no A5–A10 owner; adds no production sink; begins no A12 work;
+marks no Wave-A completion; activates no Wave B work; and creates no scientific,
+security, network, commercial, production, LIVE, frontier, product,
+settlement, chain, weight, emission, or launch claim.
 
-## Future focused command
+## Canonical focused command
 
 ~~~text
 pytest tests/cpu/test_observability.py -q
 ~~~
 
-The file and command are future repaired R18 implementation evidence only.
-They do not exist or run as current-main A11 evidence in this documentation
-candidate, and PR #46 evidence is non-authoritative until repaired and reviewed.
+The file is merged current-main A11 evidence. Fresh closeout execution reported
+`337 passed`; the exact post-merge full-suite run reported `2310 passed`.
