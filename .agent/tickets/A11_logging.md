@@ -3,8 +3,9 @@
 **Wave:** A
 **Status:** todo
 **Contract status:** A11-R1 through A11-R17 are ratified; A11-R18 is specified
-as this exact documentation-only candidate and is ratified only after
-independent review, explicit human authorization, and normal merge
+as the exact synchronized and rebaselined draft candidate and is not ratified
+until independent exact-head review, explicit human authorization, and normal
+merge
 **Build_Out:** v1.4 C16, interpreted through Design_Specs/Build_Out_Constitutional_Overlay.md
 **Depends on:** current A5, A6, A7, A8, A9, and A10 semantic owner boundaries; initial production imports remain limited to exact public A5/A7 values
 **Plan:** .agent/plans/A11_logging.md
@@ -40,19 +41,136 @@ A11 is not a generic logger, evidence store, lifecycle owner, scoring or
 Challenge-health authority, production exporter, public API, alerting system,
 or frontier/product/settlement/chain/weight/emission surface.
 
-PR #39 normally merged A11-R1 through A11-R17 into current main
-`4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. Current main contains no A11
-implementation or focused test. Draft PR #46 is blocked by
-`P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`; its branch is non-authoritative and
-unchanged by this documentation amendment, while its body metadata records the
-blocker and withdraws the stale audit claim. Its generic-dataclass correction
-remains intact at that draft head but does not resolve shared enum singletons.
+PR #39 normally merged A11-R1 through A11-R17 at historical commit
+`4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. That merge remains ratified, is
+PR #47's original base, is the first parent of PR #45, and is ancestral to
+current main; it is no longer current main.
+
+Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
+tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
+#48 from carbonphysicsai/agent/science-gtm-wave-integration`, with ordered
+parents `bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
+`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`, signature `verified=true`,
+`reason=valid`. The immediately preceding PR #45 merge is
+`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
+`b6365e31b09339826b7568565bb28c7c32007fac`, ordered parents
+`4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
+`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, signature verified and valid.
+
+Exact current-main push run `33093494970` succeeded. CPU job `98592266955`
+recorded `1973 passed in 44.41s`; code-quality job `98592266774` recorded
+`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
+and no new debt. Current-main `.agent/WAVE.md` is exact blob
+`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
+`todo`; Wave A is controlling and incomplete; Wave B is inactive. Current main
+contains no A11 implementation or focused test.
+
+PR #45 contributes candidate-only Wave B v0.3 scientific-hardening planning and
+changes only `.agent/DECISIONS.md` among PR #47's six authorized paths. PR #48
+contributes Science-GTM future-ticket integration and changes none of the six
+paths. Neither merge changes R18 semantics, widens A11/A12, activates Wave B,
+implements A11, or creates any scientific, security, network, commercial, or
+production authority.
+
+PR #47's original base is `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`;
+its initial R18 commit is `9de896dea92e5378d99ef205cd21a29ef9f57fd3`;
+its corrected reviewed head is `76ef2b194132bd2e07677d4ac1cf6baa83509faf`.
+Old synthetic `7ab62b646ba1dee248e090cbd2490511a4b1d87a` and CI run `33039977702`
+are stale old-base evidence only. Current-base drift is confirmed; R18 has no
+semantic conflict; no new owner decision is required. The starting-state
+classification required normal synchronization and current-state documentation
+repair; merge `cf9a773...` and this single rebaseline commit satisfy those two
+recovery actions.
+
+The normal synchronization merge is
+`cf9a773520645053e6d745c28aede15356fef80a`, tree
+`b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
+A11-R18 with current main`, with ordered parents
+`76ef2b194132bd2e07677d4ac1cf6baa83509faf` and
+`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. This rebaseline is the single
+documentation commit `docs: rebaseline A11-R18 against current main`, with that
+synchronization merge as its sole parent. Its generated SHA/tree are recorded
+after creation in PR #47 publication metadata, and its sequential and cumulative
+manifest is exactly:
+
+```text
+M .agent/DECISIONS.md
+M .agent/plans/A11_logging.md
+M .agent/tickets/A11_logging.md
+M Design_Specs/Build_Out_Constitutional_Overlay.md
+M agent_pack/README.md
+M docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
+```
+
+The synchronized and rebaselined R18 semantic contract is unchanged.
+
+Draft PR #46 remains open, draft, blocked, non-authoritative, and unchanged at
+head `5b0b4927f8a4d2e6438b20a8201da43ae2a0645e`, tree
+`3a84d98d95e53afaace00d500116cce91e66089e`. Its blocker body retains
+the exact heading `## BLOCKED - A11-R18 owner decision required`,
+`P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`, and the withdrawal of the former
+numeric readiness audit. Its generic-dataclass correction does not resolve
+shared enum singletons.
+
+```text
+A11-R1 through A11-R17:
+RATIFIED
+
+A11-R18:
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
+
+A11 IMPLEMENTED:
+NO on current main
+
+A11 TESTED:
+NO on current main
+
+PR #46:
+draft, blocked, non-authoritative, and unchanged
+
+A11 SCIENTIFICALLY_QUALIFIED:
+NO
+
+A11 SECURITY_QUALIFIED:
+NO
+
+A11 NETWORK_QUALIFIED:
+NO
+
+A11 COMMERCIALLY_VALIDATED:
+NO
+
+A11 PRODUCTION_QUALIFIED:
+NO
+
+A11 WAVE STATUS:
+todo on current main
+
+A12:
+todo
+
+Wave A:
+incomplete
+
+Wave B:
+inactive
+```
 
 The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
 records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
 (`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
 `P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
 `CONTRACT_PRECISION_DEFECT`.
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
+CORRECTED
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
+CORRECTED
+```
 
 A11-R18 supersedes only the sink-facing portions of A11-R1, A11-R2, A11-R3,
 A11-R10, A11-R13, A11-R14, and A11-R16. All other A11-R1 through A11-R17

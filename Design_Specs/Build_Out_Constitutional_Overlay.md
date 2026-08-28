@@ -218,7 +218,7 @@ in-process fixture leaderboard merged normally in PR #37 at
 `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The documentation closeout
 merged normally in PR #38 as
 `404c039596b487cf2649bb1d73b80e9b49baaced` and is ancestral to current
-main `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. A10's bounded Wave-A
+main `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`. A10's bounded Wave-A
 status is `done`; A11 and A12 remain `todo`, and Wave A remains
 incomplete. The closeout added no implementation or test evidence.
 
@@ -713,12 +713,57 @@ product, commercial, network, settlement, weight, or emission authority.
 
 # 6. A11 constitutional contract
 
-PR #39 normally merged the exact bounded A11-R1 through A11-R17 contract as
-current-main commit `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`.
-Those decisions are `SPECIFIED / RATIFIED`; they remain recorded below as the
-historical contract. Current main still contains no A11 implementation or
-focused A11 test, leaves A11 `todo`, does not begin A12, and does not activate
-Wave B.
+PR #39 normally merged the exact bounded A11-R1 through A11-R17 contract at
+historical commit `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`. Those decisions
+are `SPECIFIED / RATIFIED`; the merge remains PR #47's original base, PR #45's
+first parent, and an ancestor of current main. It remains history and authority,
+but is not current main after this rebaseline.
+
+Current `origin/main` is `644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`,
+tree `15637ab89613daeec20f2f46bdefd045cb0ed7c6`, subject `Merge pull request
+#48 from carbonphysicsai/agent/science-gtm-wave-integration`, with ordered
+parents `bf6e2e8910f90b345ded44bdebb63fca73646b0d` and
+`dec7ba8f1ac5d98c48c492abbdbeb8816e25e25e`; its signature is verified and
+valid. The immediately preceding PR #45 merge is
+`bf6e2e8910f90b345ded44bdebb63fca73646b0d`, tree
+`b6365e31b09339826b7568565bb28c7c32007fac`, ordered parents historical PR #39
+merge `4e4a66d29566a2a62a82188adddac76e6e0fb8b8` and
+`74f8edb04b3b806f4edc75de3ba8c4c6273815fb`, signature verified and valid.
+
+Current-main push run `33093494970` succeeded. CPU job `98592266955` recorded
+`1973 passed in 44.41s`; code-quality job `98592266774` recorded
+`Ruff 757/776`, `Black 62/68`, removed debt `19/6`, changed Python files `0`,
+and no new debt. `.agent/WAVE.md` is exact current-main blob
+`6369a373630392955ea2d58f258f06482173578c`: A10 is `done`; A11 and A12 are
+`todo`; Wave A remains controlling and incomplete; Wave B remains inactive.
+Current main still contains no A11 implementation or focused A11 test.
+
+PR #45 adds candidate-only Wave B v0.3 scientific-hardening planning; PR #48
+adds Science-GTM future-ticket integration. Neither merge widens A11-R18,
+activates Wave B, implements A11, or creates scientific, security, network,
+commercial, or production authority. PR #45 touches only `.agent/DECISIONS.md`
+among the six R18 documents, without changing R18; PR #48 touches none.
+
+PR #47 began from `4e4a66d29566a2a62a82188adddac76e6e0fb8b8`; its initial R18
+commit is `9de896dea92e5378d99ef205cd21a29ef9f57fd3`, and corrected reviewed head
+is `76ef2b194132bd2e07677d4ac1cf6baa83509faf`. Old synthetic
+`7ab62b646ba1dee248e090cbd2490511a4b1d87a` and CI run `33039977702` are
+stale old-base evidence only. Current-base drift is confirmed, with no R18
+semantic conflict and no new owner decision. Normal synchronization merge
+`cf9a773520645053e6d745c28aede15356fef80a`, tree
+`b06e2aa7a0bf28700449010d320d09317201d155`, subject `merge: synchronize
+A11-R18 with current main`, has ordered parents
+`76ef2b194132bd2e07677d4ac1cf6baa83509faf` and current main
+`644c6c38139e9215e5ccc8d3c8e8bc62e843dbb3`.
+
+This rebaseline is the one six-document commit `docs: rebaseline A11-R18
+against current main`, whose sole parent is that synchronization merge. Its
+generated SHA and tree are recorded after creation in PR #47 publication
+metadata. Its sequential and cumulative manifest is exactly `.agent/DECISIONS.md`,
+`.agent/plans/A11_logging.md`, `.agent/tickets/A11_logging.md`,
+`Design_Specs/Build_Out_Constitutional_Overlay.md`, `agent_pack/README.md`, and
+`docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md`. The R18 semantic contract is
+unchanged by synchronization or rebaseline.
 
 Draft implementation PR #46 is blocked by
 `P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS`. Its correction for the earlier
@@ -1254,8 +1299,9 @@ A11 SPECIFIED / RATIFIED:
 YES for A11-R1 through A11-R17, normally merged in PR #39
 
 A11-R18:
-SPECIFIED as the exact documentation candidate below; RATIFIED only after
-independent review, explicit human authorization, and normal merge
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
 
 A11 IMPLEMENTED: NO on current main
 A11 TESTED: NO on current main
@@ -1265,10 +1311,10 @@ A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
 A11 WAVE STATUS: todo on current main
-PR #46: draft, blocked, and non-authoritative
+PR #46: draft, blocked, non-authoritative, and unchanged
 A12: todo
 Wave A: incomplete
-Wave B: candidate planning only; inactive
+Wave B: inactive
 ```
 
 A11 creates no implementation or focused test, `tests/invariants/`,
@@ -1320,6 +1366,14 @@ records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
 (`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
 `P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
 `CONTRACT_PRECISION_DEFECT`.
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
+CORRECTED
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
+CORRECTED
+```
 
 A11-R1 through A11-R17 remain ratified historical decisions. Only after the
 exact R18 candidate is independently reviewed, explicitly human-authorized,
@@ -1629,29 +1683,58 @@ mutation cannot affect a later call; no snapshot-and-restore global mutation
 or lock across sink execution exists; deliberate snapshot-class/module/global
 mutation is outside the trusted seam and is not an instance-isolation proof;
 the prior dataclass/copy/pickle protections and event matrix remain intact;
-the exact eighteen-name surface and revised Protocols hold; and A5/A7 owner
-source, owner services, A12, and Wave B remain untouched.
+the exact eighteen-name surface and revised Protocols hold; and the six-path
+R18 delta leaves A5/A7 owner source, owner services, A12, and Wave B
+byte-identical to synchronized current main.
 
 This documentation amendment implements and tests nothing. PR #46 remains a
 blocked draft implementation candidate; its historical engineering evidence
 is not current-main A11 implementation or test authority.
 
 ```text
-A11-R1 through A11-R17: RATIFIED
-A11-R18: SPECIFIED as this exact candidate; RATIFIED only after independent
-review, explicit human authorization, and normal merge
-A11 IMPLEMENTED: NO on current main
-A11 TESTED: NO on current main
-A11 SCIENTIFICALLY_QUALIFIED: NO
-A11 SECURITY_QUALIFIED: NO
-A11 NETWORK_QUALIFIED: NO
-A11 COMMERCIALLY_VALIDATED: NO
-A11 PRODUCTION_QUALIFIED: NO
-A11 WAVE STATUS: todo on current main
-PR #46: draft, blocked, and non-authoritative
-A12: todo
-Wave A: incomplete
-Wave B: candidate planning only; inactive
+A11-R1 through A11-R17:
+RATIFIED
+
+A11-R18:
+SPECIFIED as the exact synchronized and rebaselined draft candidate;
+not RATIFIED until independent exact-head review, explicit human authorization,
+and normal merge
+
+A11 IMPLEMENTED:
+NO on current main
+
+A11 TESTED:
+NO on current main
+
+PR #46:
+draft, blocked, non-authoritative, and unchanged
+
+A11 SCIENTIFICALLY_QUALIFIED:
+NO
+
+A11 SECURITY_QUALIFIED:
+NO
+
+A11 NETWORK_QUALIFIED:
+NO
+
+A11 COMMERCIALLY_VALIDATED:
+NO
+
+A11 PRODUCTION_QUALIFIED:
+NO
+
+A11 WAVE STATUS:
+todo on current main
+
+A12:
+todo
+
+Wave A:
+incomplete
+
+Wave B:
+inactive
 ```
 
 ---
