@@ -1,5 +1,152 @@
 # Agent decisions log
 
+## 2026-08-29 — A12 and Wave A bounded engineering closeout candidate
+
+> **Documentation-only closeout authority gate.** The merged A12 contract and
+> implementation are current-main engineering evidence. The checked A12
+> ticket criteria, A12 `done` status, Wave A `closed` status, and final closure
+> ruling in this exact eight-file candidate are proposed administrative state
+> only. They become repository authority only after the exact closeout head is
+> independently reviewed, explicitly human-authorized, and normally merged.
+> A branch, draft pull request, or green pull-request CI is not that authority.
+> Until that merge, current-main administrative authority remains A12 `todo`,
+> Wave A incomplete, and Wave B inactive.
+
+**Exact merged authority.** PR #50 ratified the A12 contract at independently
+reviewed head `6695c279728438befd6404fb81c4f7a27e382a67` and normal signed merge
+`746e56e42c412bc8ba2eeb4d85ed83396e1a084c`, tree
+`651c568631465a4902d69036a06c937104660d37`. PR #51 then implemented the
+bounded invariant judge and CI lane from that base at independently reviewed
+final head `33b4626a1ffe7d0c65336336a870a8f4a73ab92f`. It merged normally as
+current main `2a8b273a1167588efb4a11159da5224264d5b37a`, tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`, with ordered parents
+`746e56e42c412bc8ba2eeb4d85ed83396e1a084c` and
+`33b4626a1ffe7d0c65336336a870a8f4a73ab92f`; GitHub records
+`verified=true`, `reason=valid`. The PR #51 base-to-merge manifest is exactly
+the dedicated workflow lane and six `tests/invariants/` implementation paths.
+
+**Ratification, implementation, and repair chronology.** A12-CI-1 superseded
+the initial ratification candidate at head
+`4e85e3cd4b1c0ee9ef4910db24cad60e4b7c397e`, tree
+`181530a32c69edd36c868600f930751bc8df15e1`, because its bare marker command
+could not discover `tests/invariants/` under the repository's `tests/cpu`
+default. The repaired contract at reviewed head
+`6695c279728438befd6404fb81c4f7a27e382a67` made the explicit-directory
+command canonical and merged normally in PR #50. The initial implementation
+candidate at superseded head `18d4f02895533d3a850217824e44b0d6d587c1b0`
+then established the seven-file invariant-judge/CI shape and a 22-test lane
+(run `33240409328`). Close review identified three acceptance-evidence gaps:
+A12-TEST-1 required direct behavioral exercise of the real fail-closed pytest
+guard; A12-XWALK-1 required exact machine locks for proof kinds, ceilings, and
+node resolution; and A12-R11-1 required the dedicated forbidden-input proof to
+cover both numeric and Boolean A5 channels. Their replacement head
+`bf978b6e073c7b431b2fcb68cf9826bf582903a9` passed 27 invariant tests in run
+`33243707714`. Greptile then identified A12-XWALK-2, a valid canonical-path
+containment gap for parent traversal and symlink aliases. The final reviewed
+head `33b4626a1ffe7d0c65336336a870a8f4a73ab92f` repaired that gap with strict
+resolved containment and traversal/symlink canaries, bringing the exact lane
+to 28 tests before normal merge. These were closed implementation-acceptance
+evidence defects; the closeout audit found no owner implementation defect and
+no `NEW_OWNER_DECISION_REQUIRED` condition.
+
+**Exact closeout audit.** Every one of the 24 ticket criteria passes: the
+twelve ratified A12-R1 through A12-R12 criteria, six dedicated-suite/CI
+criteria, and six failure/closeout-governance criteria are **24 PASS / 0
+FAIL**. The machine crosswalk is exactly ordered A12-R1 through A12-R12 and is
+text-equal to `Design_Specs/Build_Out.md` section 2. It maps twelve unique
+dedicated row proofs and sixteen unique infrastructure proofs, for exactly
+`12 + 16 = 28` marked invariant tests, with canonical node containment,
+supporting owner nodes below `tests/cpu`, and no unmapped or prohibited
+greenwashing path.
+
+The twelve-case entrypoint matrix also passes exactly: marked-pass control,
+ordinary marked failure, missing target, empty target, only-unmarked target,
+zero marker matches, complete deselection, partial deselection, runtime skip,
+expected xfail, non-strict xpass, and collection-time module skip. The passing
+control exits green; every prohibited or invalid case fails closed. No skip,
+`skipif`, xfail, deselection, exception swallowing, imported-owner-test,
+private-state manufacture, or weakened-proof route can make the canonical lane
+green.
+
+The exact nine `Design_Specs/Build_Out.md` section 12 Wave A acceptance bullets
+are **9 PASS / 0 FAIL** against current owner source and tests. The board audit
+retains the bounded merged evidence for A-1 and A0 through A11 and adds A12
+only after all closeout gates pass, yielding a proposed **14 done / 0 todo / 0
+in_progress / 0 blocked**. That proposed board result is not current-main
+authority until this closeout candidate is reviewed, authorized, and merged.
+
+**Pre-edit local validation evidence.** Fresh closeout-branch validation ran
+the canonical command `python -m pytest tests/invariants -m invariant -q` with
+`28 passed in 3.98s`; the unfiltered invariant run reported the identical 28
+nodes and `28 passed in 3.96s`, with zero deselected, skipped, xfailed, or
+xpassed outcomes. The exact ten-file A3-A11 supporting-owner regression
+reported `2052 passed in 35.62s`, and the complete default CPU suite reported
+`2310 passed in 36.10s`. The repository quality ratchet against exact base
+`2a8b273a1167588efb4a11159da5224264d5b37a` passed with Ruff `757` checked
+against a `776` baseline, Black `62` checked against a `68` baseline, removed
+debt `19/6`, zero changed Python files, and no new debt. This is pre-edit
+evidence; the exact final closeout head must pass the same gates before push.
+
+Exact post-implementation main push run `33250521376` completed successfully
+on `2a8b273a1167588efb4a11159da5224264d5b37a`: invariant job `99095290077`
+reported `28 passed in 4.22s`; CPU job `99095290170` reported `2310 passed in
+59.52s`; and Code-quality job `99095290146` retained `Ruff 757/776`, `Black
+62/68`, removed debt `Ruff 19, Black 6`, five changed Python files clean, and
+no new debt.
+
+**Exact closeout manifest.** This candidate changes only:
+
+```text
+.agent/DECISIONS.md
+.agent/WAVE.md
+.agent/WAVE_A_REPORT.md
+.agent/plans/A12_invariant_ci.md
+.agent/tickets/A12_invariant_ci.md
+Design_Specs/Build_Out_Constitutional_Overlay.md
+agent_pack/README.md
+docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
+```
+
+It makes no source, invariant-test, CPU-test, fixture, workflow, quality
+baseline, constitution, Build-Out sequencing, Wave-B artifact, activation, or
+launch change.
+
+**Bounded maturity ruling.** The implementation proves a repository-owned,
+fail-closed invariant judge over the present Wave A owner surfaces. In
+particular, A12-R6 remains a negative absence proof with no sandbox or workload
+isolation claim; A12-R8 remains exact pinned-fixture reproducibility with no
+selected scientific tolerance; and A12-R12 remains a declared-incomplete,
+non-executing absence proof with no usefulness, leakage-threshold, or
+shadow-case adequacy claim. Wave A closure is an engineering process
+milestone, not scientific qualification, security acceptance, network
+qualification, commercial validation, production qualification, LIVE or
+launch authority, frontier authority, or emission authority.
+
+```text
+A12 SPECIFIED / RATIFIED: YES
+A12 IMPLEMENTED: YES, bounded invariant-judge/CI scope
+A12 TESTED: YES, bounded engineering evidence
+A12 SCIENTIFICALLY_QUALIFIED: NO
+A12 SECURITY_QUALIFIED: NO
+A12 NETWORK_QUALIFIED: NO
+A12 COMMERCIALLY_VALIDATED: NO
+A12 PRODUCTION_QUALIFIED: NO
+
+Candidate branch before closeout merge:
+A12 WAVE STATUS: proposed done; authoritative main remains todo
+Wave A: proposed closed in bounded engineering scope; authoritative main remains incomplete
+Wave B: inactive
+
+After exact-head independent review, explicit human authorization, and normal merge:
+A12 WAVE STATUS: done
+Wave A: closed in bounded engineering scope
+Wave B: inactive
+```
+
+Closing Wave A does not activate Wave B. No Wave-B controlling register,
+ticket, owner approval, activation hash, handoff, or B-01 work is changed or
+authorized here.
+
 ## 2026-08-29 — A12 exact Wave-A invariant-manifest contract candidate
 
 > **Documentation-only ratification gate.** This six-file candidate proposes

@@ -32,41 +32,40 @@ constitutional authority
 
 ---
 
-> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
-> the recorded `66/66` audit are current-main engineering evidence. The A11
-> `done` status, checked ticket criteria, closeout wording, and the A12-next-move
-> text below are proposed administrative state only. They become repository
-> authority only after the exact PR #49 head containing this gate is
-> independently reviewed, explicitly human-authorized, and normally merged.
-> Until then, current-main administrative authority remains A11 `in_progress`
-> in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked / 0 checked`,
-> A12 remains `todo` and unstarted, Wave A remains incomplete, and Wave B
-> remains inactive. This draft does not authorize A12 or any later-wave work.
-
----
-
-> **A12 contract-ratification authority gate.** The current six-file A12
-> candidate is documentation only. It preserves the exact twelve numbered
-> `Build_Out.md` section 2 invariants and defines a future dedicated CI lane;
-> it does not add tests, change CI, implement A12, create the Wave-A report,
-> close Wave A, activate Wave B, or authorize launch. It becomes
-> `SPECIFIED / RATIFIED` only after exact-head independent review, explicit
-> human authorization, and normal merge. Until then A12 remains `todo`, Wave A
-> remains incomplete, and Wave B remains inactive.
+> **A12 / Wave-A closeout authority gate.** A12-R1 through A12-R12 are ratified
+> and their bounded invariant-judge implementation and tests are on current
+> main. This documentation-only candidate proposes only the administrative
+> transitions A12 `todo` → `done` and Wave A `incomplete` → `closed`, both for
+> the exact bounded engineering scope recorded in `.agent/WAVE_A_REPORT.md`.
+> Those transitions and the checked closeout criteria become repository
+> authority only after this exact candidate head is independently reviewed,
+> explicitly human-authorized, and normally merged. Until then, current-main
+> administrative authority remains A12 `todo` and Wave A incomplete. Wave B is
+> inactive before, during, and after this closeout. This candidate does not
+> activate Wave B, authorize B-01 or launch, or earn any scientific, security,
+> network, commercial, or production qualification.
 
 ---
 
 ## Current process rules
 
-- Current board remains **Wave A**.
-- A0–A11 are `done` only in the bounded scopes recorded in `.agent/WAVE.md`.
-- A12 remains separately owned and `todo`. Wave A remains incomplete; Wave B
-  remains inactive. No B ticket is authorized until every recorded activation
-  gate is separately satisfied.
-- The A12 contract candidate changes documentation only and uses the exact
-  twelve numbered Build Out section 2 rows as its denominator. A11 redaction
-  maps to rows 1/4, fee isolation to row 11, and A8 non-emission to row 9;
-  none creates an extra invariant.
+- Current board remains **Wave A**. This closeout candidate records it as
+  `closed` only for the bounded engineering scope and only after the authority
+  gate above is satisfied.
+- A-1 and A0–A11 are `done` only in the bounded scopes recorded in
+  `.agent/WAVE.md`. This candidate proposes A12 `done` on the same bounded
+  basis; until its merge, current-main administrative authority remains A12
+  `todo` and Wave A incomplete.
+- Wave B remains inactive. No B ticket is authorized until every separate
+  contract-review, owner-approval, hash-pinning, activation, and post-merge
+  activation-closeout gate is satisfied.
+- A12 uses exactly the twelve numbered Build Out section 2 rows as its
+  denominator. A11 redaction maps to rows 1/4, fee isolation to row 11, and A8
+  non-emission to row 9; none creates an extra invariant.
+- PR #50 ratified that exact denominator. PR #51 merged the bounded lane with
+  exactly `28` tests (`12` unique row-dedicated plus `16` infrastructure).
+  Independent closeout audits pass `24/24` ticket criteria and `9/9` Wave-A
+  acceptance bullets.
 - A9 remains only the exact seven-tool bounded in-process Wave-A
   control/disclosure skeleton.
 - A10 remains only the bounded in-process fixture leaderboard; it is not an
@@ -153,8 +152,11 @@ A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
 A11 WAVE STATUS: done
-A12: todo
-Wave A: incomplete
+A12: done in this closeout candidate only; current-main administrative status
+remains todo until exact-head review, explicit human authorization, and normal
+merge
+Wave A: closed in this closeout candidate only, bounded engineering scope;
+current-main administrative status remains incomplete until that gate
 Wave B: inactive
 ```
 
@@ -164,7 +166,7 @@ full historical reconciliation and defect chain remains in
 
 ---
 
-## Current A12 contract candidate
+## Current A12 implementation and closeout evidence
 
 The proposed manifest is exactly, in order:
 
@@ -184,40 +186,48 @@ A12-R12  Practice is useful without revealing the realized exam
 ```
 
 The exact normative wording and bounded evidence ceiling live in
-`.agent/plans/A12_invariant_ci.md`; the implementation criteria remain
-unchecked in `.agent/tickets/A12_invariant_ci.md`. The plan preserves every
-numbered Build Out rule, including execution isolation, no silent rescore, and
-the full declared-incomplete practice/leakage rule that were not separate in
-the former overlay shorthand.
+`.agent/plans/A12_invariant_ci.md`. PR #50 ratified the contract from reviewed
+head `6695c279728438befd6404fb81c4f7a27e382a67` by normal merge
+`746e56e42c412bc8ba2eeb4d85ed83396e1a084c`, tree
+`651c568631465a4902d69036a06c937104660d37`. PR #51 then merged the exact
+bounded implementation from reviewed head
+`33b4626a1ffe7d0c65336336a870a8f4a73ab92f` as current main
+`2a8b273a1167588efb4a11159da5224264d5b37a`, tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`.
 
-The current `12/12` result is a contract-feasibility audit against existing
-A3–A11 owner code/tests. It found no new implementation repair or owner
-decision and the broad focused regression passed `2052` tests. It is not a
-green A12 lane: current main has no `tests/invariants/` directory and no test
-selected by the registered `invariant` marker.
+The implemented invariant lane has exactly `28` tests: `12` unique dedicated
+tests in A12-R1 through A12-R12 order and `16` infrastructure tests proving
+crosswalk equality, canonical resolution, marker/entrypoint integrity,
+fail-closed behavior, and containment. The canonical command is exactly
+`python -m pytest tests/invariants -m invariant -q`; no normative bare-marker
+form remains. The lane fails closed for a missing/empty suite, zero marker
+matches, complete deselection, crosswalk or mapping drift, or prohibited
+bypass. Green cannot come from skip, xfail, deselection, exception swallowing,
+imported owner tests, private-state manufacture, weakened assertions,
+reinterpretation, or bypass.
 
-After ratification and separate authorization, implementation must add
-dedicated marked tests and a CI entrypoint running exactly
-`python -m pytest tests/invariants -m invariant -q`, plus an R1–R12 crosswalk
-and separately reviewed Wave-A report/board evidence. The explicit directory
-is required because current `pyproject.toml` roots default pytest discovery at
-`tests/cpu`. No dedicated tests, a missing or empty `tests/invariants/`, zero
-`invariant` marker matches, or complete deselection must fail rather than
-green. A failing invariant must stop closeout; green cannot come from skip,
-xfail, deselection, exception swallowing, imported owner tests, private-state
-manufacture, weakened assertions, reinterpretation, or bypass.
+Main push CI run `33250521376` passed the `28` invariant tests in `4.22s`, all
+`2310` CPU tests in `59.52s`, and Code quality at `Ruff 757/776; Black 62/68`,
+removed debt `19/6`, five changed Python files clean, and no new debt. The
+supporting owner regression passes `2052` tests. Independent closeout audits
+pass all `24/24` ticket criteria and all `9/9` Build Out section 12 Wave-A
+acceptance bullets; `.agent/WAVE_A_REPORT.md` preserves the evidence and the
+unearned ceilings. No implementation repair or new owner decision was exposed.
 
 ```text
-A12 SPECIFIED / RATIFIED: candidate only until review, human authorization, and normal merge
-A12 IMPLEMENTED: NO
-A12 TESTED: NO
+A12 SPECIFIED / RATIFIED: YES
+A12 IMPLEMENTED: YES, exact bounded invariant-judge/CI scope only
+A12 TESTED: YES, exact recorded engineering scope only
 A12 SCIENTIFICALLY_QUALIFIED: NO
 A12 SECURITY_QUALIFIED: NO
 A12 NETWORK_QUALIFIED: NO
 A12 COMMERCIALLY_VALIDATED: NO
 A12 PRODUCTION_QUALIFIED: NO
-A12 WAVE STATUS: todo
-Wave A: incomplete
+A12 WAVE STATUS: done in this closeout candidate; current-main administrative
+authority remains todo until exact-head review, explicit human authorization,
+and normal merge
+Wave A: closed in this closeout candidate, bounded engineering scope only;
+current-main administrative authority remains incomplete until that gate
 Wave B: inactive
 ```
 
@@ -226,8 +236,12 @@ Wave B: inactive
 ## Current next move
 
 The current next gate is independent exact-head review, explicit human
-authorization, and normal merge of the A12 documentation contract. Only after
-that merge may a separately authorized A12 implementation begin from the then
-current main. Neither contract publication nor its merge closes Wave A or
-activates Wave B. Every official, LIVE, evidence, Challenge-health, frontier,
-product, settlement, chain, weight, and emission path remains fail closed.
+authorization, and normal merge of this documentation-only A12 / Wave-A
+closeout candidate. Do not edit or recommit a reviewed head, mark it ready,
+enable auto-merge, or merge without that explicit authorization. After an
+authorized normal merge there is no active implementation wave. Wave B remains
+inactive and requires its separate reviewed contract, named owner-role
+approval, exact artifact hashes, prospective activation change, and
+post-activation closeout; B-01 is not authorized by Wave-A closure. Every
+official, LIVE, evidence, Challenge-health, frontier, product, settlement,
+chain, weight, and emission path remains fail closed.

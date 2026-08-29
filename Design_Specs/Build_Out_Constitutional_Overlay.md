@@ -1718,14 +1718,14 @@ inactive
 
 # 7. A12 constitutional contract
 
-> **A12 contract-ratification gate.** The section below records the proposed
-> exact invariant manifest for a future separately authorized A12
-> implementation. It is documentation only. It creates no invariant test,
-> marker use, CI job, source repair, `.agent/WAVE_A_REPORT.md`, A12 status
-> change, Wave-A closeout, Wave-B activation, launch authority, or
-> qualification claim. It becomes ratified only after the exact six-file
-> contract candidate is independently reviewed, explicitly human-authorized,
-> and normally merged.
+> **A12 implementation and closeout gate.** PR #50 ratified the exact contract
+> below, and PR #51 normally merged its bounded invariant judge and dedicated
+> CI lane into current main. The present eight-file documentation candidate
+> proposes only the administrative A12 `done` and Wave A `closed` transition.
+> Those statuses become repository authority only after the exact closeout
+> head is independently reviewed, explicitly human-authorized, and normally
+> merged. A branch, draft pull request, or green pull-request CI creates no
+> closure, Wave-B activation, launch authority, or qualification claim.
 
 ## 7.1 Exact denominator and authority
 
@@ -1819,23 +1819,58 @@ The exact current projections are:
 The broader current, future scientific, business, and publication invariants
 remain binding. They do not alter the exact A12 twelve-row denominator.
 
-## 7.3 Implementation, failure, and future reservation
+## 7.3 Bounded implementation, failure enforcement, and future reservation
 
-The future A12 implementation must add dedicated marked tests under
-`tests/invariants/` and a dedicated CI entrypoint running exactly
-`python -m pytest tests/invariants -m invariant -q`, plus a machine-auditable
-R1–R12 evidence crosswalk and separately reviewed board/report evidence. The
-explicit directory is required because current `pyproject.toml` roots default
-pytest discovery at `tests/cpu`. No dedicated tests, a missing or empty
-`tests/invariants/`, zero `invariant` marker matches, or complete deselection
-must fail rather than green. The existing full CPU and no-new-debt quality jobs
-remain required.
+PR #51 normally merged the bounded A12 implementation at independently
+reviewed final head `33b4626a1ffe7d0c65336336a870a8f4a73ab92f` as signed merge
+`2a8b273a1167588efb4a11159da5224264d5b37a`, tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`. Its exact seven-file manifest is
+the dedicated workflow lane plus the six `tests/invariants/` implementation
+paths. The canonical entrypoint is exactly:
 
-If any row exposes a current owner defect or an unresolved scientific,
-security, protocol, or economic decision, preserve the failing invariant and
-stop A12 closeout. Do not skip, xfail, deselect, swallow exceptions, import
-owner tests as dedicated proof, weaken, reinterpret, or manufacture private
-state to make the lane green.
+```text
+python -m pytest tests/invariants -m invariant -q
+```
+
+The machine crosswalk locks exact Build-Out section 2 contract equality and
+the ordered A12-R1 through A12-R12 denominator. It maps twelve unique
+dedicated row proofs and sixteen unique infrastructure proofs, for exactly 28
+marked invariant tests. Every mapped node resolves through strict canonical
+path containment; every supporting owner node resolves below canonical
+`tests/cpu`; and no test in the dedicated invariant suite is unmapped.
+
+The committed guard fails the lane for no tests, a missing or empty target,
+zero marker matches, any deselection, collection-time or runtime skip, xfail,
+or xpass. Twelve direct entrypoint cases exercise the marked pass/failure
+controls and each fail-closed condition against the real guard. Canonical
+traversal and symlink canaries also prevent a lexical path alias from escaping
+the allowed evidence roots. Imported owner tests, exception swallowing,
+private-state manufacture, proof weakening, and reinterpretation remain
+prohibited.
+
+Exact post-merge main push run `33250521376` succeeded on that merge:
+invariant job `99095290077` reported `28 passed in 4.22s`; CPU job
+`99095290170` reported `2310 passed in 59.52s`; and Code-quality job
+`99095290146` retained `Ruff 757/776`, `Black 62/68`, removed debt `19/6`, five
+changed Python files clean, and no new debt. The closeout audit separately
+records `24/24` A12 ticket criteria, `12/12` semantic rows, and `9/9`
+Build-Out section 12 Wave A acceptance criteria. No owner implementation defect
+or new owner decision remains.
+
+These results establish only bounded engineering implementation and test
+evidence. A12 is `SPECIFIED / RATIFIED: YES`, `IMPLEMENTED: YES` in the bounded
+invariant-judge/CI scope, and `TESTED: YES` as bounded engineering evidence.
+`SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`,
+`COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED` all remain `NO`. A12
+`done` and Wave A `closed in bounded engineering scope` remain conditional on
+independent review, explicit human authorization, and normal merge of the
+exact closeout head. Wave B remains inactive; closing Wave A neither activates
+it nor authorizes B-01.
+
+If a future audit exposes an owner defect or unresolved scientific, security,
+protocol, or economic decision, preserve the failing invariant. Do not skip,
+xfail, deselect, swallow exceptions, import owner tests as dedicated proof,
+weaken, reinterpret, or manufacture private state to make the lane green.
 
 Receipt canonicalization/hash/signature stability, non-disclosing commitment
 types, qualified production backends, empirical leakage measurement,

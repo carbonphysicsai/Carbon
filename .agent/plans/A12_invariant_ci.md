@@ -1,26 +1,29 @@
-# A12 — Wave-A invariant CI contract candidate
+# A12 — Wave-A invariant CI closeout candidate
 
 **Ticket:** `.agent/tickets/A12_invariant_ci.md`
-**Wave status:** `todo`
-**Contract status:** documentation-only candidate; ratified only after independent exact-head review, explicit human authorization, and normal merge
-**Ratification branch:** `agent/a12-contract-ratification`
-**Starting main:** `37074e9f0663d36ce1f7655aaedfc7ad4fb6a3c1`
-**Starting tree:** `8848085952115672a9f90d255e5feb9bee8116db`
-**Starting subject:** `Merge pull request #49 from carbonphysicsai/agent/a11-closeout`
+**Wave status:** proposed `done`; authoritative `todo` until the exact closeout
+head is independently reviewed, explicitly human-authorized, and normally
+merged
+**Contract status:** ratified by PR #50 and implemented in bounded scope by
+PR #51
+**Historical ratification branch:** `agent/a12-contract-ratification`
+**Historical ratification base:** `37074e9f0663d36ce1f7655aaedfc7ad4fb6a3c1`
+**Historical ratification base tree:** `8848085952115672a9f90d255e5feb9bee8116db`
+**Ratification merge:** `746e56e42c412bc8ba2eeb4d85ed83396e1a084c`
+**Implementation branch:** `agent/a12-invariant-ci`
+**Reviewed implementation head:** `33b4626a1ffe7d0c65336336a870a8f4a73ab92f`
+**Implementation merge / closeout base:** `2a8b273a1167588efb4a11159da5224264d5b37a`
+**Closeout branch:** `agent/a12-closeout`
 
 ## 1. Purpose, verified base, and authority
 
-This plan proposes the exact bounded Wave-A A12 invariant manifest and future
-CI acceptance contract. It does not implement A12, add or mark an invariant
-test, change CI, create `.agent/WAVE_A_REPORT.md`, change `.agent/WAVE.md`,
-close Wave A, or activate Wave B.
+This plan records the documentation-only closeout of the exact A12 contract
+and bounded invariant-judge implementation already merged on `main`. It adds
+no source, test, fixture, workflow, dependency, packaging, or quality-baseline
+change. It neither activates Wave B nor begins B-01.
 
-The contract becomes repository authority only after this exact documentation
-candidate is independently reviewed, explicitly human-authorized, and normally
-merged. A separate implementation branch may begin only from the resulting
-authoritative main and under separate authorization.
-
-The starting main was freshly resolved against GitHub before editing:
+The contract-ratification starting main was freshly resolved before its
+historical edit:
 
 ```text
 commit:    37074e9f0663d36ce1f7655aaedfc7ad4fb6a3c1
@@ -31,17 +34,24 @@ parent 2:  0daafae840e920f2e3abd63bc26d7321a13f32da
 signature: verified=true, reason=valid
 ```
 
-PR #49 is normally merged at that exact commit. Exact-main push run
+PR #49 was normally merged at that exact commit. Exact-main push run
 `33207423717` completed successfully: CPU job `98971914859` recorded `2310
 passed in 63.74s`; Code-quality job `98971915133` recorded `Ruff 757/776`,
 `Black 62/68`, removed debt `Ruff 19, Black 6`, zero changed Python files,
 and no new debt.
 
-The starting worktree was clean. `.agent/WAVE.md` records A0–A11 `done` only
-in their bounded scopes, A12 `todo`, Wave A incomplete, and Wave B inactive.
-No remote A12 branch or pull request existed at orientation.
+That historical ratification candidate was independently reviewed and
+normally merged by PR #50. Its reviewed head
+`6695c279728438befd6404fb81c4f7a27e382a67` became parent 2 of merge
+`746e56e42c412bc8ba2eeb4d85ed83396e1a084c`; both have tree
+`651c568631465a4902d69036a06c937104660d37`. PR #51 subsequently merged the
+bounded implementation. Reviewed head
+`33b4626a1ffe7d0c65336336a870a8f4a73ab92f` became parent 2 of current
+`main` `2a8b273a1167588efb4a11159da5224264d5b37a`; both have tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`.
 
-This candidate changes exactly six documentation paths:
+The historical ratification candidate changed exactly six documentation
+paths:
 
 ```text
 .agent/DECISIONS.md
@@ -52,9 +62,19 @@ agent_pack/README.md
 docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md
 ```
 
-It leaves every Python file, test, fixture, dependency, package declaration,
-workflow, CI job, quality baseline, `.agent/WAVE.md`, Wave-B artifact, and
-Wave-A report untouched.
+The current closeout candidate changes exactly the separately authorized eight
+documentation paths: `.agent/DECISIONS.md`, `.agent/WAVE.md`, the new
+`.agent/WAVE_A_REPORT.md`, this plan, the A12 ticket, the constitutional
+overlay, `agent_pack/README.md`, and the current implementation ledger. It
+leaves every Python file, test, fixture, dependency, package declaration,
+workflow, CI job, quality baseline, `Design_Specs/Build_Out.md`, and Wave-B
+artifact untouched.
+
+The board and ticket remain administratively `todo`/incomplete on pre-closeout
+`main`. The checked ticket and closed board state on this branch are proposals,
+not repository authority. They become authoritative only after independent
+exact-head review, explicit human authorization, and normal merge of the
+closeout PR.
 
 ## 2. Reconciliation and conflict classification
 
@@ -81,30 +101,27 @@ The following current owner boundaries agree with that manifest:
 
 ### DOCUMENTATION_LAG
 
-The short A12 ticket and overlay theme list do not preserve the exact numbered
-denominator on their own. In particular, execution isolation, no silent
-rescore, and declared-incomplete practice remain mandatory even though the
-current overlay shorthand does not list them as separate bullets. Conversely,
-A11 redaction, fee/payment isolation, and A8 non-emission are concrete
-projections of numbered rows 1/4, 11, and 9 rather than extra invariants.
-
-This candidate repairs that manifest presentation and the post-A11 current
-state in the two live maturity summaries. Historical evidence remains
-historical and is not rewritten.
+Pre-closeout `main` still records A12 `todo`, Wave A incomplete, no Wave-A
+report, unchecked ticket criteria, and preimplementation/current-state prose
+in the ticket, plan, decision log, overlay, README, and implementation ledger.
+That lag is administrative only: PR #50 ratified the contract and PR #51
+merged the bounded implementation and tests. This eight-document candidate
+reconciles those records while preserving historical evidence as historical.
 
 ### IMPLEMENTATION_LAG
 
-The `invariant` pytest marker is registered, but current main has no marked
-test and no `tests/invariants/` directory. CI has no dedicated invariant lane,
-and `.agent/WAVE_A_REPORT.md` does not exist. Therefore A12 is IMPLEMENTED: NO
-and TESTED: NO. Running the existing owner suites is contract-feasibility and
-regression evidence only; it is not a green A12 invariant lane.
+None within A12's ratified bounded integration-judge scope. Current `main`
+contains the dedicated marked suite, exact machine-readable crosswalk,
+fail-closed entrypoint guard, and the Python 3.11 invariant CI job. The suite
+has 12 unique row proofs plus 16 infrastructure tests, and the canonical
+command passes 28 tests with no deselection, skip, xfail, or xpass. This does
+not implement the future capabilities excluded by the row ceilings.
 
 ### MIGRATION_REQUIRED
 
-None for this ratification candidate or the current bounded A3–A11 owners. The
-missing dedicated suite, marker use, CI lane, and Wave-A report are expected
-A12 implementation lag, not an owner migration.
+None for this closeout candidate or the current bounded A3–A11 owners. The
+branch-head 24-criterion and nine-item Wave-A acceptance audits exposed no
+owner repair.
 
 If a ratified invariant cannot be enforced through the current public owner
 surfaces, the affected owner must receive a separately reviewed repair before
@@ -114,9 +131,9 @@ claim.
 
 ### NEW_OWNER_DECISION_REQUIRED
 
-No new owner decision is required to ratify this exact current manifest and
-future CI lane. The feasibility audit found a current fail-closed proof path
-for all twelve rows.
+No new owner decision is required to close this exact bounded engineering
+milestone. The ratification feasibility audit and merged executable judge
+preserve a valid current proof path for all twelve rows.
 
 Production sandbox design and security acceptance; scientific tolerances;
 LIVE qualification content/signature custody; practice leakage thresholds and
@@ -281,64 +298,104 @@ shadow cases, methodology, and thresholds remain Wave-B/science work. A12
 neither chooses those values nor claims that current practice is useful or
 scientifically adequate.
 
-## 4. Future implementation and CI contract
+## 4. Merged implementation and CI contract
 
-After ratification and separate implementation authorization, A12 must:
+PR #51 implemented the smallest coherent A12 integration judge within the
+ratified scope:
 
-1. add dedicated tests under `tests/invariants/` and mark every A12 invariant
-   module/test with the already-registered `invariant` marker;
-2. exercise all A12-R1 through A12-R12 through current public owner surfaces
-   and explicit source/dependency guards where absence is the boundary;
-3. include a clear machine-auditable crosswalk from every row to at least one
-   dedicated assertion and the supporting owner tests;
-4. add a dedicated CI entrypoint that installs the supported Python 3.11 dev
-   environment and runs exactly:
-   `python -m pytest tests/invariants -m invariant -q`
-   The explicit `tests/invariants` path is mandatory because current
-   `pyproject.toml` roots default pytest discovery at `tests/cpu`;
-5. retain the default full CPU job and no-new-debt quality gate;
-6. ensure no dedicated tests, a missing or empty `tests/invariants/`, zero
-   `invariant` marker matches, or complete deselection fails rather than
-   greens the lane;
-7. preserve every existing owner test; never import existing owner test
-   functions as the dedicated proof; and never skip, xfail, deselect, swallow
-   an exception, manufacture private state, or weaken a failing invariant to
-   obtain green CI;
-8. make no production sandbox, LIVE, scientific, security, network,
-   commercial, frontier, product, settlement, chain, weight, or emission
-   claim from a passing engineering suite; and
-9. create `.agent/WAVE_A_REPORT.md` and update `.agent/WAVE.md` only in the
-   separately reviewed A12 implementation/closeout sequence after exact-head
-   evidence exists.
+1. all A12 tests live under `tests/invariants/` and carry the registered
+   `invariant` marker;
+2. exactly A12-R1 through A12-R12 are each exercised by one unique dedicated
+   assertion through public owner surfaces or an explicit structural-negative
+   guard;
+3. `tests/invariants/a12_crosswalk.json` records the exact contracts,
+   dedicated nodes, supporting owner nodes, proof kinds, and evidence ceilings;
+4. the dedicated Python 3.11 CI entrypoint runs exactly
+   `python -m pytest tests/invariants -m invariant -q`; the explicit directory
+   remains mandatory because `pyproject.toml` roots default discovery at
+   `tests/cpu`;
+5. the complete default CPU and no-new-debt quality jobs remain intact;
+6. the committed guard fails the lane for missing/empty targets, zero marker
+   matches, complete or partial deselection, runtime or collection skip,
+   expected xfail, and non-strict xpass;
+7. owner tests are references, not imported aggregate proof; no private-state
+   manufacture, skip, xfail, deselection, exception swallowing, or weakened
+   assertion creates green; and
+8. the implementation earns no sandbox, LIVE, scientific, security, network,
+   commercial, frontier, product, settlement, chain, weight, emission, or
+   production claim.
 
-The future implementation may change the dedicated invariant tests, the CI
-workflow, the A12 ticket/plan/decision evidence, `.agent/WAVE.md`, and the
-Wave-A report only within that separately authorized scope. It may not change
-`.ci/quality-baseline.json` to absorb debt.
+The exact implementation manifest is the modified
+`.github/workflows/ci.yml` plus six added files under `tests/invariants/`:
+`a12_crosswalk.json`, `a12_support.py`, `conftest.py`,
+`test_a12_crosswalk.py`, `test_a12_entrypoint.py`, and
+`test_a12_invariants.py`. No owner source, owner test, fixture, dependency,
+package configuration, quality baseline, or authority document changed in
+PR #51.
 
 ## 5. Failure, repair, and owner-decision gate
 
-The dedicated suite is an integration judge, not a new semantic owner.
+The dedicated suite remains an integration judge, not a new semantic owner.
+During review, every finding was repaired within the A12 contract/crosswalk/
+test/CI scope. No branch-head proof exposed an A3–A11 implementation defect or
+required a new scientific, security, protocol, economic, or commercial owner
+decision.
 
-If branch-head implementation validation finds that an A12-R row cannot pass:
+The standing gate remains: a future failing A12-R row must preserve the exact
+owner meaning and failure; classify the seam as an implementation repair or
+owner decision; and block closure/regression acceptance until the owner repair
+or smallest named decision is separately reviewed and merged. A12 may never
+reinterpret an invariant, manufacture private-state success, or treat
+unavailable future authority as implemented behavior.
 
-- preserve the failing test and exact owner meaning;
-- classify the seam as implementation repair or owner decision;
-- stop A12 closeout;
-- repair the owning A3–A11 component on a separate reviewed change, or obtain
-  the smallest named owner decision; and
-- rerun the exact invariant, focused owner, full CPU, quality, and governance
-  lanes from the repaired authoritative main.
+## 6. Ratification, implementation, repair, and validation evidence
 
-A12 may not reinterpret the invariant, manufacture a private-state success,
-or treat unavailable future authority as implemented behavior.
+### Review and repair chronology
 
-## 6. Feasibility and contract-ratification evidence
+- **A12-CI-1:** PR #50 candidate head
+  `4e85e3cd4b1c0ee9ef4910db24cad60e4b7c397e` was superseded after review
+  found that the bare marker command could not discover the required suite
+  under the repository's `tests/cpu` default. The ratified contract now uses
+  the canonical explicit-directory command everywhere. Final reviewed
+  ratification head `6695c279728438befd6404fb81c4f7a27e382a67`
+  merged normally as `746e56e42c412bc8ba2eeb4d85ed83396e1a084c`.
+- **A12-TEST-1:** implementation candidate head
+  `18d4f02895533d3a850217824e44b0d6d587c1b0` was superseded because its
+  subprocess cases did not behaviorally exercise the exact committed
+  anti-greenwashing guard. The repair copied that guard byte-for-byte into
+  temporary suites and covered partial deselection, runtime skip, expected
+  xfail, non-strict xpass, and collection-time skip.
+- **A12-XWALK-1:** the same superseded head accepted broad proof-kind values
+  and arbitrary nonempty ceilings. The replacement locked the exact ordered
+  proof kinds and exact bounded ceilings, including the R6, R8, and R12
+  limits, and made the infrastructure-node inventory exact and resolvable.
+- **A12-R11-1:** the same replacement expanded the dedicated forbidden-score
+  proof across both public numeric and Boolean input channels and proved the
+  named forbidden set disjoint from every loaded pack input key.
+- The combined A12-TEST-1/A12-XWALK-1/A12-R11-1 replacement head
+  `bf978b6e073c7b431b2fcb68cf9826bf582903a9` passed 27 invariant tests but
+  was later superseded by **A12-XWALK-2**.
+- **A12-XWALK-2:** review found lexical owner-path containment could accept
+  traversal or symlink aliases. The final repair added strict canonical
+  resolution/containment for dedicated, infrastructure, and owner nodes plus
+  direct traversal and symlink canaries. Final reviewed head
+  `33b4626a1ffe7d0c65336336a870a8f4a73ab92f` passed 28 tests in candidate CI
+  run `33248924648` and merged normally as current `main`
+  `2a8b273a1167588efb4a11159da5224264d5b37a`.
 
-The documentation candidate uses existing tests only to establish that the
-ratified manifest is implementable without a presently known source repair or
-new owner decision. The exact twelve-row audit passed `12/12` on the starting
-main. A broad supporting owner run passed `2052` tests:
+Superseded heads are chronology only and confer no current review authority.
+
+### Exact executable evidence
+
+The machine-readable crosswalk has 12 ordered rows, 12 unique dedicated row
+proofs, 16 exact infrastructure/anti-greenwashing tests, and 28 total tests.
+All contract text equals `Design_Specs/Build_Out.md` section 2; all referenced
+dedicated, infrastructure, and supporting-owner nodes resolve canonically and
+are marked as required; no suite test is unmapped; and the R6 negative-only,
+R8 pinned-fixture-only, and R12 declared-incomplete ceilings remain exact.
+
+The supporting-owner regression contains exactly these ten files and passes
+2052 tests:
 
 ```text
 tests/cpu/test_no_leakage.py
@@ -353,39 +410,44 @@ tests/cpu/test_leaderboard.py
 tests/cpu/test_observability.py
 ```
 
-This is contract-feasibility evidence only. Current main has zero marked
-invariant tests, so the future command
-`python -m pytest tests/invariants -m invariant -q` must not be reported as a
-green A12 result until the separate implementation creates the dedicated lane.
+Current-main push run `33250521376` completed successfully on
+`2a8b273a1167588efb4a11159da5224264d5b37a`: invariant job `99095290077`
+recorded `28 passed in 4.22s`; CPU job `99095290170` recorded `2310 passed in
+59.52s`; Code-quality job `99095290146` retained `Ruff 757/776`, `Black
+62/68`, removed debt `Ruff 19, Black 6`, all five implementation Python files
+clean, and no new debt.
 
-Before opening the contract PR, the exact candidate head must pass:
-
-- the same ten-suite focused owner regression;
-- the complete default CPU suite;
-- the repository quality ratchet against exact base `37074e9f...`;
-- `git diff --check`;
-- an exact six-path manifest/protected-blob audit; and
-- an exact-head remote/PR topology check.
+The closeout branch audit passes all **24/24** ticket criteria: 12 invariant
+rows, six dedicated suite/CI criteria, and six failure/closeout governance
+criteria. The exact `Design_Specs/Build_Out.md` section 12 Wave-A acceptance
+audit passes **9/9**: CI schema/seed/mock/scoring coverage; LIVE qualification
+blocking; exact seven-tool A9 surface; A2-delegated/non-executing A9
+validation/estimate; A7 lifecycle, fee isolation, and idempotence; budget-first
+published-result polling; A6 allow-listed/requester-bound card storage;
+non-emitting fixture-official A8; and EvaluationCard/leaderboard leakage
+coverage.
 
 ## 7. Maturity and authorization ceiling
 
 ```text
-A12 SPECIFIED / RATIFIED:
-YES only after this exact documentation contract is independently reviewed,
-explicitly human-authorized, and normally merged
-
-A12 IMPLEMENTED: NO
-A12 TESTED: NO
+A12 SPECIFIED / RATIFIED: YES on current main
+A12 IMPLEMENTED: YES for the bounded invariant-judge/CI scope on current main
+A12 TESTED: YES for the recorded bounded engineering evidence on current main
 A12 SCIENTIFICALLY_QUALIFIED: NO
 A12 SECURITY_QUALIFIED: NO
 A12 NETWORK_QUALIFIED: NO
 A12 COMMERCIALLY_VALIDATED: NO
 A12 PRODUCTION_QUALIFIED: NO
-A12 WAVE STATUS: todo
-Wave A: incomplete
+
+A12 WAVE STATUS: proposed done; todo until the closeout PR normally merges
+Wave A: proposed closed in its bounded engineering scope; incomplete until merge
 Wave B: inactive
 ```
 
-Opening or reviewing this contract PR does not authorize A12 implementation,
-Wave-A closeout, Wave-B activation, launch, or merge. Those gates remain
-separate and prospective.
+Wave-A closure is an engineering milestone only and earns none of the listed
+qualifications. Neither this branch, a draft PR, local validation, nor green
+CI supplies administrative closeout authority. The proposed A12 `done` and
+bounded Wave-A closed state become repository authority only after independent
+review of the exact closeout head, explicit human authorization, and normal
+merge. Wave-B activation and B-01 remain separate future gates; no Wave-B
+authority is granted here.
