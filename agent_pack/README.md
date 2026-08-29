@@ -45,6 +45,17 @@ constitutional authority
 
 ---
 
+> **A12 contract-ratification authority gate.** The current six-file A12
+> candidate is documentation only. It preserves the exact twelve numbered
+> `Build_Out.md` section 2 invariants and defines a future dedicated CI lane;
+> it does not add tests, change CI, implement A12, create the Wave-A report,
+> close Wave A, activate Wave B, or authorize launch. It becomes
+> `SPECIFIED / RATIFIED` only after exact-head independent review, explicit
+> human authorization, and normal merge. Until then A12 remains `todo`, Wave A
+> remains incomplete, and Wave B remains inactive.
+
+---
+
 ## Current process rules
 
 - Current board remains **Wave A**.
@@ -52,6 +63,10 @@ constitutional authority
 - A12 remains separately owned and `todo`. Wave A remains incomplete; Wave B
   remains inactive. No B ticket is authorized until every recorded activation
   gate is separately satisfied.
+- The A12 contract candidate changes documentation only and uses the exact
+  twelve numbered Build Out section 2 rows as its denominator. A11 redaction
+  maps to rows 1/4, fee isolation to row 11, and A8 non-emission to row 9;
+  none creates an extra invariant.
 - A9 remains only the exact seven-tool bounded in-process Wave-A
   control/disclosure skeleton.
 - A10 remains only the bounded in-process fixture leaderboard; it is not an
@@ -149,10 +164,70 @@ full historical reconciliation and defect chain remains in
 
 ---
 
+## Current A12 contract candidate
+
+The proposed manifest is exactly, in order:
+
+```text
+A12-R1   No seed leakage
+A12-R2   Practice isolation
+A12-R3   Pinned evaluation
+A12-R4   Disclosure allow-list
+A12-R5   LIVE requires qualification
+A12-R6   Execution isolation
+A12-R7   Infra ≠ science
+A12-R8   Determinism
+A12-R9   No placeholder LIVE
+A12-R10  No silent rescore
+A12-R11  Forbidden score inputs
+A12-R12  Practice is useful without revealing the realized exam
+```
+
+The exact normative wording and bounded evidence ceiling live in
+`.agent/plans/A12_invariant_ci.md`; the implementation criteria remain
+unchecked in `.agent/tickets/A12_invariant_ci.md`. The plan preserves every
+numbered Build Out rule, including execution isolation, no silent rescore, and
+the full declared-incomplete practice/leakage rule that were not separate in
+the former overlay shorthand.
+
+The current `12/12` result is a contract-feasibility audit against existing
+A3–A11 owner code/tests. It found no new implementation repair or owner
+decision and the broad focused regression passed `2052` tests. It is not a
+green A12 lane: current main has no `tests/invariants/` directory and no test
+selected by the registered `invariant` marker.
+
+After ratification and separate authorization, implementation must add
+dedicated marked tests and a CI entrypoint running exactly
+`python -m pytest tests/invariants -m invariant -q`, plus an R1–R12 crosswalk
+and separately reviewed Wave-A report/board evidence. The explicit directory
+is required because current `pyproject.toml` roots default pytest discovery at
+`tests/cpu`. No dedicated tests, a missing or empty `tests/invariants/`, zero
+`invariant` marker matches, or complete deselection must fail rather than
+green. A failing invariant must stop closeout; green cannot come from skip,
+xfail, deselection, exception swallowing, imported owner tests, private-state
+manufacture, weakened assertions, reinterpretation, or bypass.
+
+```text
+A12 SPECIFIED / RATIFIED: candidate only until review, human authorization, and normal merge
+A12 IMPLEMENTED: NO
+A12 TESTED: NO
+A12 SCIENTIFICALLY_QUALIFIED: NO
+A12 SECURITY_QUALIFIED: NO
+A12 NETWORK_QUALIFIED: NO
+A12 COMMERCIALLY_VALIDATED: NO
+A12 PRODUCTION_QUALIFIED: NO
+A12 WAVE STATUS: todo
+Wave A: incomplete
+Wave B: inactive
+```
+
+---
+
 ## Current next move
 
-The next separately authorized Wave-A ticket is A12 invariant closeout. It
-must begin with its own orientation and baseline and may not infer Wave-A
-completion or Wave-B activation from A11 closeout. Every official, LIVE,
-evidence, Challenge-health, frontier, product, settlement, chain, weight, and
-emission path remains fail closed.
+The current next gate is independent exact-head review, explicit human
+authorization, and normal merge of the A12 documentation contract. Only after
+that merge may a separately authorized A12 implementation begin from the then
+current main. Neither contract publication nor its merge closes Wave A or
+activates Wave B. Every official, LIVE, evidence, Challenge-health, frontier,
+product, settlement, chain, weight, and emission path remains fail closed.
