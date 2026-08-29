@@ -1718,23 +1718,132 @@ inactive
 
 # 7. A12 constitutional contract
 
-Wave-A invariant tests should close on current enforceable guarantees and explicitly reserve future ones.
+> **A12 contract-ratification gate.** The section below records the proposed
+> exact invariant manifest for a future separately authorized A12
+> implementation. It is documentation only. It creates no invariant test,
+> marker use, CI job, source repair, `.agent/WAVE_A_REPORT.md`, A12 status
+> change, Wave-A closeout, Wave-B activation, launch authority, or
+> qualification claim. It becomes ratified only after the exact six-file
+> contract candidate is independently reviewed, explicitly human-authorized,
+> and normally merged.
 
-Current required themes:
+## 7.1 Exact denominator and authority
 
-- seed secrecy;
-- mock isolation;
-- pin integrity;
-- disclosure allow-list;
-- LIVE qualification gate;
-- forbidden score inputs;
-- infra != science;
-- deterministic fixture execution;
-- placeholder/stub cannot become LIVE/production evidence;
-- fees/payment do not alter score;
-- A8 fixture path cannot publish emission/settlement entitlement.
+The A12 denominator is exactly the twelve numbered cross-cutting invariants in
+`Design_Specs/Build_Out.md` section 2, in their original order and meaning.
+The former eleven bullets in this section were current Wave-A themes, not a
+replacement manifest. A11 redaction, fee/payment isolation, and A8
+non-emission are evidence under existing numbered rows rather than new rows.
 
-Future frontier/treasury/product invariants belong to later waves once their types exist.
+1. **No seed leakage.** Official seeds, derived seeds, draw IDs, or reversible
+   identifiers never appear in EvaluationCard, leaderboard, MCP outputs, or
+   miner-visible logs.
+2. **Practice isolation.** Nominal practice/research execution never accesses
+   official packs, official entropy/seeds, or protected exam data.
+3. **Pinned evaluation.** Every scored submission is bound to immutable
+   challenge / generator / Score Pack / backend (container digest) versions.
+4. **Disclosure allow-list.** InternalResult / Model Card fields are never
+   returned on miner-facing APIs unless explicitly allow-listed for the
+   disclosure tier.
+5. **LIVE requires qualification.** LIVE challenges require a complete signed
+   human qualification manifest for that exact challenge version (not merely
+   non-null YAML).
+6. **Execution isolation.** Miner-supplied strategies run under enforced
+   compute, network, filesystem, and wall-clock limits. Strategy execution
+   isolation is a **P0 security invariant**; implementation may live in ops
+   documentation, but the requirement is here.
+7. **Infra ≠ science.** Infrastructure failures such as OOM policy kill, node
+   death, or queue loss are never scored as scientific / physics failures and
+   never grant emissions.
+8. **Determinism.** Re-running an identical official evaluation under
+   identical versions, seeds, and limits is deterministic within documented
+   tolerances.
+9. **No placeholder LIVE.** Placeholder, fixture, or mock values never enter
+   LIVE configuration or emission weights.
+10. **No silent rescore.** Historical evaluation records are never silently
+    reinterpreted under newer packs; new pack ⇒ new scoring_version for future
+    runs only.
+11. **Forbidden score inputs.** Prior similarity/alignment, `estimate`,
+    resource forecasts, practice/`light_*` metrics, research information
+    value, exam fee, and mock metrics never enter `S_combined` / Yuma weights.
+12. **Practice is useful without revealing the realized exam.** Carbon
+    measures leakage as incremental ability to infer protected official cases,
+    realized stress composition, exact margins, or unresolved ordering after
+    controlling for physics performance on evaluator-held shadow cases sampled
+    from the declared distribution. Transferable rank improvement can reflect
+    better physics and is not itself a leak. Practice remains
+    declared-incomplete and outside official lifecycle, score, and scheduling
+    authority.
+
+These rows are labeled A12-R1 through A12-R12 only for the A12 plan, ticket,
+evidence crosswalk, and future CI output. The labels do not create a second
+semantic owner.
+
+## 7.2 Current Wave-A evidence ceiling
+
+The exact current projections are:
+
+- R1 uses A4 secrecy plus A6/A9/A10 public projections and A11
+  positive-construction/forbidden-material coverage. A11 redaction is shared
+  R1/R4 evidence, not a thirteenth A12 invariant.
+- R2 preserves nominal practice/research isolation. Wave A has no practice
+  execution backend; fixture/mock domain separation and unavailable practice
+  paths are supporting fail-closed evidence, not a claim that estimate or
+  scaffold lookup is practice execution.
+- R3 uses the immutable identity and pin checks owned across A3, A4, A5, A7,
+  and A8.
+- R4 uses the positive public/sink allow-lists owned by A6, A9, A10, and A11.
+- R5 proves only exact-version fail-closed qualification binding. It does not
+  qualify a signer, key-custody system, backend, Challenge, or scientific exam.
+- R6 passes only as a negative capability boundary because no miner-controlled
+  production runtime exists. A8 is a fixture stub, not a sandbox. No security
+  or production qualification follows.
+- R7 preserves A5 scientific-input boundaries and A7/A8 typed
+  infrastructure-versus-science, retry, refund, and `FAILED_INFRA` semantics.
+- R8 proves only exact pinned fixture reproducibility. It supplies no human
+  scientific tolerance or production reproducibility evidence.
+- R9 includes the existing A8 non-production/false-emission and A10
+  fixture-only boundaries. Future production-evidence and
+  emission/settlement-entitlement types remain reserved.
+- R10 uses immutable owner pins/results, no overwrite, and prospective pack
+  versioning. It does not claim a production-qualified durable historical
+  store.
+- R11 includes A5 forbidden-input construction and A7 fee isolation.
+  Fee/payment does not alter score, but that is a required subcase rather than
+  a separate invariant.
+- R12 proves only that current non-executing practice-facing surfaces are
+  declared-incomplete and outside official lifecycle, score, and scheduling.
+  It does not establish practice usefulness, leakage thresholds, or
+  shadow-case scientific adequacy.
+
+The broader current, future scientific, business, and publication invariants
+remain binding. They do not alter the exact A12 twelve-row denominator.
+
+## 7.3 Implementation, failure, and future reservation
+
+The future A12 implementation must add dedicated marked tests under
+`tests/invariants/` and a dedicated CI entrypoint running exactly
+`python -m pytest tests/invariants -m invariant -q`, plus a machine-auditable
+R1–R12 evidence crosswalk and separately reviewed board/report evidence. The
+explicit directory is required because current `pyproject.toml` roots default
+pytest discovery at `tests/cpu`. No dedicated tests, a missing or empty
+`tests/invariants/`, zero `invariant` marker matches, or complete deselection
+must fail rather than green. The existing full CPU and no-new-debt quality jobs
+remain required.
+
+If any row exposes a current owner defect or an unresolved scientific,
+security, protocol, or economic decision, preserve the failing invariant and
+stop A12 closeout. Do not skip, xfail, deselect, swallow exceptions, import
+owner tests as dedicated proof, weaken, reinterpret, or manufacture private
+state to make the lane green.
+
+Receipt canonicalization/hash/signature stability, non-disclosing commitment
+types, qualified production backends, empirical leakage measurement,
+frontier/Product Qualification, treasury/settlement, chain, weight, and
+emission objects remain later-owner work where those types do not exist.
+Future frontier/treasury/product invariants belong to later waves once their
+types exist; A12 may prove only the current absence of that authority and may
+not invent the types.
 
 ---
 

@@ -1,8 +1,8 @@
 # Carbon — Current Implemented vs Specified Ledger
 
 **Status:** OWNER-CANONICAL maturity ledger, current through main
-`e2496e92eeae31befdaa430501bb9f00b0e6339e`, the ratified A11-R1 through
-A11-R18 contract, and the merged bounded A11 implementation on 2026-08-28.
+`37074e9f0663d36ce1f7655aaedfc7ad4fb6a3c1`, the signed normal merge of A11
+closeout PR #49 on 2026-08-28.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
@@ -17,6 +17,15 @@ A11-R18 contract, and the merged bounded A11 implementation on 2026-08-28.
 > / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
 > and Wave B remains inactive. This draft does not authorize A12 or any
 > later-wave work.
+
+> **A12 contract-ratification authority gate.** This branch proposes an exact
+> twelve-row A12 invariant manifest and future CI acceptance contract through
+> six documentation files only. It does not implement or test A12, change CI,
+> create the Wave-A report, close Wave A, activate Wave B, or earn any
+> qualification. The contract becomes `SPECIFIED / RATIFIED` only after the
+> exact candidate head is independently reviewed, explicitly
+> human-authorized, and normally merged. Until then A12 remains `todo`, Wave A
+> remains incomplete, and Wave B remains inactive.
 
 ---
 
@@ -69,7 +78,7 @@ No state implies a later state.
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
 | A11 | Yes; A11-R1–A11-R18 ratified | Yes | Yes | No | Exact bounded in-process operational observability merged normally in PR #46 as `e2496e92eeae31befdaa430501bb9f00b0e6339e`; independently audited `66/66 PASS`; no scientific, security, network, commercial, or production qualification |
-| A12 | Yes | No | No | No | Wave-A invariant closeout pending |
+| A12 | Yes; exact twelve-row contract candidate pending review/authorization/merge | No | No | No | Documentation-only A12-R1–A12-R12 candidate; dedicated invariant CI and Wave-A report remain unimplemented |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
 
@@ -135,6 +144,43 @@ Strict Ruff/Black, the no-new-debt quality gate, and `git diff --check` passed.
 The final sink-snapshot construction mechanism is private, identity-bound,
 weak, one-shot, and consumed before validation. No new owner decision or
 semantic amendment was introduced by closeout.
+
+A12 current bounded maturity:
+
+```text
+A12-R1 through A12-R12:
+documentation-only contract candidate; not ratified until independent
+exact-head review, explicit human authorization, and normal merge
+
+A12 IMPLEMENTED: NO
+A12 TESTED: NO
+A12 SCIENTIFICALLY_QUALIFIED: NO
+A12 SECURITY_QUALIFIED: NO
+A12 NETWORK_QUALIFIED: NO
+A12 COMMERCIALLY_VALIDATED: NO
+A12 PRODUCTION_QUALIFIED: NO
+
+A12 WAVE STATUS: todo
+Wave A: incomplete
+Wave B: inactive
+```
+
+The exact denominator is the twelve numbered cross-cutting invariants in
+`Design_Specs/Build_Out.md` section 2. A11 redaction is evidence under no seed
+leakage/disclosure; fee/payment isolation is evidence under forbidden score
+inputs; and A8 non-emission is evidence under no placeholder LIVE. They do not
+create extra rows. The current `12/12` feasibility audit and `2052`-test
+supporting owner regression found no source repair or new owner decision, but
+they are contract evidence only. No current test is marked `invariant` and
+`tests/invariants/` does not exist.
+
+The future canonical entrypoint is
+`python -m pytest tests/invariants -m invariant -q`. The explicit directory is
+required because current `pyproject.toml` roots default pytest discovery at
+`tests/cpu`; the bare marker form cannot discover dedicated tests placed only
+under `tests/invariants/` and must not be reported as green. No dedicated
+tests, a missing or empty directory, zero marker matches, or complete
+deselection must fail the future job.
 
 **Historical pre-implementation chronology below — superseded for current
 state.** It is preserved to retain the full reconciliation, amendment, and
@@ -353,4 +399,4 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0-A11 software foundation. A9 remains only the exact seven-tool in-process Wave-A control/disclosure skeleton; A10 remains only the exact bounded in-process fixture leaderboard; A11 implements and tests only bounded in-process operational observability with primitive-only sink snapshots. A11-R1 through A11-R18 are ratified, PR #46 merged normally as `e2496e92eeae31befdaa430501bb9f00b0e6339e`, and the independent closeout audit passed all 66 criteria. A11 remains scientifically, security, network, commercially, and production unqualified. A12 remains `todo`, Wave A incomplete, and Wave B inactive.**
+> **Carbon has an integrated constitutional architecture and a tested bounded A0-A11 software foundation. A9 remains only the exact seven-tool in-process Wave-A control/disclosure skeleton; A10 remains only the exact bounded in-process fixture leaderboard; A11 implements and tests only bounded in-process operational observability with primitive-only sink snapshots. A11-R1 through A11-R18 are ratified, PR #46 merged normally as `e2496e92eeae31befdaa430501bb9f00b0e6339e`, and the independent closeout audit passed all 66 criteria; A11 closeout then merged normally in PR #49 as current main `37074e9f0663d36ce1f7655aaedfc7ad4fb6a3c1`. A11 remains scientifically, security, network, commercially, and production unqualified. A12-R1 through A12-R12 are a documentation-only contract candidate pending exact-head review, explicit human authorization, and normal merge; A12 remains `todo` and unimplemented/untested, Wave A incomplete, and Wave B inactive.**
