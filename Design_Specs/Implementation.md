@@ -1,5 +1,15 @@
 # Scoring.md — Lean Emission Scoring & Challenge Score Bank
 
+> **Authority notice (August 2026):** this document contains historical
+> illustrative implementation sketches, not executable protocol authority.
+> In particular, every `latest noisy prior`, request-time perturbation,
+> dynamic private prior query, generic execution mode, and causal-certainty
+> example is superseded by `Miner_MCP.md`,
+> `Miner_MCP_Wave_B_Research_Contract.md`, `Landscape_Agent.md`, and the active
+> Wave board. Implementations must use immutable exact PriorPack references,
+> static approved retrieval, explicit evidence labels, nominal execution
+> paths, and the later ratified ticket contracts.
+
 **Carbon Subnet**  
 **Version:** 2.0 (July 2026)  
 **Status:** Protocol Appendix — Security & Incentive Critical  
@@ -10,11 +20,11 @@
 
 ## Executive Summary
 
-Carbon is a Bittensor subnet that operates a **decentralized verification layer for physics-informed neural operator surrogates**. It coordinates a network of miners and autonomous agents to discover optimal training strategies for Neural Operators (FNO, GINO, WNO, Transolver) under rigorous, trustless adversarial validation.
+Carbon is designed as a Bittensor subnet that coordinates miners and autonomous agents to discover training strategies for neural operators under a registered, trust-minimized, auditable evaluation process. Implementation and scientific qualification remain separately evidenced.
 
-**Core Innovation**: Miners submit training strategies (loss configurations, curricula, architectures, data generation parameters). Validators execute full deterministic training from scratch on hidden, procedurally generated data, evaluating against hard physics gates. The Landscape Agent compounds symbolic and causal insights across all evaluations, creating a self-improving intelligence layer.
+**Core Innovation**: Miners submit bounded declarative training strategies. Validators independently reconstruct candidates and evaluate them on protected fresh realizations using qualified references, mandatory physics gates, and a Challenge-bound Score Pack. Landscape may later compound evidence-labeled associations and registered effect candidates without becoming grading authority.
 
-**Design Philosophy:** The scoring function is the *incentive engine* of the subnet. It must translate **engineering value** (inverse design capability, plant-model fidelity, worst-case robustness) into **differentiable emission incentives**. Every component is derived from first principles of computational physics, uncertainty quantification, and reliability engineering — not heuristic tuning.
+**Design Philosophy:** The scoring function is the *incentive engine* of the subnet. It must translate registered, Challenge-scoped evidence of physics fidelity, robustness, and accuracy into emission incentives. Thresholds, transforms, and weights require Dossier evidence and owner approval; implementation does not invent them.
 
 ---
 
@@ -1247,7 +1257,7 @@ class ValidatorTrainer:
                 val_metrics = self._validate(state, val_loader)
                 gate_results = self._run_physics_gates(state)
                 
-                # SciML Validation: Compare against Ground Truth Oracle
+                # Historical sketch: compare against a registered reference
                 if epoch % 50 == 0:  # Periodic SciML validation
                     sciml_validation = await self._sciml_validation(state, strategy)
                     if not sciml_validation["passes"]:
@@ -1267,12 +1277,12 @@ class ValidatorTrainer:
         return state
     
     async def _sciml_validation(self, state: TrainState, strategy: Dict) -> Dict:
-        """Validate trained model against Julia/SciML Ground Truth Oracle."""
+        """Illustrative validation against a registered Julia/SciML reference."""
         # Get challenge spec
         challenge_id = strategy["challenge_id"]
         challenge_spec = self.get_challenge_spec(challenge_id)
         
-        # Get reference solution from Julia/SciML Ground Truth Oracle
+        # Get a reference solution from the registered Julia/SciML capability
         reference = await self.sciml_client.solve_pde_reference(
             pde_spec=challenge_spec.pde_spec,
             params=strategy.get("pde_params", {})
@@ -1855,11 +1865,17 @@ volumes:
 
 ---
 
-## 19. Julia/SciML Ground Truth Service
+## 19. Julia/SciML Reference Capability
 
 ## Overview
 
-The **Julia/SciML Ground Truth Service** is Carbon's "mathematical oracle" — a dedicated Julia service that provides mathematically rigorous reference solutions, adjoint sensitivities, and symbolic loss terms using the world-class Julia SciML ecosystem. This service is the **ground truth oracle** that makes Carbon's verification *trustless in the mathematical sense*.
+The proposed Julia/SciML service is one possible Challenge-registered reference
+or qualification capability. It may provide numerical reference solutions,
+adjoint sensitivities, and symbolic loss terms. It is not a universal oracle,
+and successful execution does not qualify its output. Each use must bind the
+exact `ReferencePolicy`, implementation, environment, uncertainty, and
+Validation Dossier evidence. If a required capability fails, official scoring
+pauses or returns the registered typed reference/infrastructure outcome.
 
 ### Architecture
 
@@ -1875,7 +1891,7 @@ The **Julia/SciML Ground Truth Service** is Carbon's "mathematical oracle" — a
 │                              │                                   │
 │                              ▼                                   │
 │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  JULIA/SCIML GROUND TRUTH SERVICE (Port 8083)              │ │
+│  │  JULIA/SCIML REFERENCE SERVICE (Port 8083)                 │ │
 │  │  ├─ DifferentialEquations.jl (Reference Solvers)           │ │
 │  │  ├─ NeuralPDE.jl (PINN Baselines)                          │ │
 │  │  ├─ ModelingToolkit.jl (Symbolic Loss Terms)               │ │
@@ -2013,7 +2029,7 @@ import asyncio
 
 @dataclass
 class SciMLClient:
-    """Async client for Julia SciML Ground Truth Service"""
+    """Illustrative async client for a Julia/SciML reference service."""
     base_url: str = "http://localhost:8083"
     timeout: float = 300.0  # 5 min for complex PDE solves
     
@@ -2103,11 +2119,11 @@ class ValidatorTrainer:
         self.sciml_client = SciMLClient()  # Julia/SciML bridge
     
     async def _sciml_validation(self, state: TrainState, strategy: Dict) -> Dict:
-        """Validate trained model against Julia/SciML Ground Truth Oracle."""
+        """Illustrative validation against a registered Julia/SciML reference."""
         challenge_id = strategy["challenge_id"]
         challenge_spec = self.get_challenge_spec(challenge_id)
         
-        # Get reference solution from Julia/SciML Ground Truth Oracle
+        # Get a reference solution from the registered Julia/SciML capability
         reference = await self.sciml_client.solve_pde_reference(
             pde_spec=challenge_spec.pde_spec,
             params=strategy.get("pde_params", {})
@@ -2170,7 +2186,7 @@ import asyncio
 
 @dataclass
 class SciMLClient:
-    """Async client for Julia SciML Ground Truth Service"""
+    """Illustrative async client for a Julia/SciML reference service."""
     base_url: str = "http://localhost:8083"
     timeout: float = 300.0  # 5 min for complex PDE solves
     
@@ -2351,7 +2367,7 @@ end
 # Handle graceful shutdown
 atexit(() -> println("SciML Service shutting down..."))
 
-println("Starting SciML Ground Truth Service on port $PORT...")
+println("Starting illustrative SciML reference service on port $PORT...")
 start_server()
 ```
 
@@ -2495,7 +2511,7 @@ import asyncio
 
 @dataclass
 class SciMLClient:
-    """Async client for Julia SciML Ground Truth Service"""
+    """Illustrative async client for a Julia/SciML reference service."""
     base_url: str = "http://localhost:8083"
     timeout: float = 300.0  # 5 min for complex PDE solves
     

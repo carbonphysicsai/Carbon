@@ -1,12 +1,19 @@
 # OPERATIONS.md — Carbon Subnet Operations & Deployment Guide
 
+> **Maturity and MCP authority:** This file describes a target operating
+> environment. It does not prove that Carbon has deployed or qualified these
+> services. `Miner_MCP.md` controls the implemented Wave A v1 in-process
+> interface. The Wave B board, research contract, and later B-07S protocol
+> control the separate local v2 research service after activation. Wave B adds
+> no network listener, credentials, remote quota, or production signer.
+
 ## TL;DR
 
-**Job:** Run the subnet day-to-day without breaking determinism, gate integrity, or the SciML oracle.
+**Job:** Run the subnet day-to-day without breaking determinism, gate integrity, or a Challenge's registered reference path.
 
 **What this document owns**
 - Validator fleet + miner toolkit Docker/K8s
-- Julia/SciML Ground Truth Oracle (port 8083) — reference solves, adjoints, symbolic losses
+- Registered reference service (Julia/SciML in the target deployment, port 8083) — Challenge-bound reference solves, adjoints, or symbolic losses
 - Queue, monitoring, alerts, incident response, backups
 - Capacity planning by phase
 - **Job-class isolation:** lean emissions path vs Specialist Bank / product-battery path
@@ -16,20 +23,22 @@
 | `job_class` | Trigger | Queue | Emissions? |
 |-------------|---------|-------|------------|
 | **`lean_eval`** | Full miner submission | Default validator queue | **Yes** |
+| **`practice_research`** | Optional miner research task | Separate local/practice worker and quota | No |
 | **`bank_retrain`** | Specialist opportunity promote | Bank workers / isolated pool | No |
 | **`product_battery`** | After bank lean re-gate | Bank / off-peak / sponsored PB capacity | No |
 
 **Non-negotiable ops rules**
 1. Physics gates always run in **fp32** (validators that skip this get false fails and should be treated as faulty)
 2. JAX determinism: pinned lockfile + `threefry` + persistent XLA compile cache volumes
-3. SciML Oracle is on the critical path — if it is down, validation is degraded; treat as SEV-1 when oracle checks are required
+3. When a Challenge requires the SciML-backed reference capability, it is on that Challenge's critical path. If it is unavailable, affected official work pauses or returns the registered typed infrastructure/reference-unavailable outcome. Operators never disable a required reference and continue scoring.
 4. Train ≠ eval seeds; stress tensors never leave the validator process; **PB seeds never on miner API**
 5. Hard step + wall-clock kills on every **lean** evaluation (ignore runaway miner `epochs`)
 6. **Product-battery GPU must not starve lean_eval SLO** (`JAX_Optimization.md`, `Compute_Optimization.md`)
 7. No teacher-checkpoint “distill” jobs that bypass controlled retrain + PB (`Specialist_Bank.md`)
+8. Practice results never prequalify, prioritize, admit, reject, or score an official submission
 
 **Daily operator loop**
-- Morning: pod health, SciML `/health`, **lean** queue depth, overnight submission count, bank/PB backlog if live
+- Morning: pod health, registered reference-service health, **lean** queue depth, overnight submission count, bank/PB backlog if live
 - Mid-day: GPU util / OOM, stuck lean submissions (>2 h), SciML latency
 - Evening: reward snapshot, queue trend, backup verification
 
@@ -37,7 +46,7 @@
 | Service | Port | Failure impact |
 |---------|------|----------------|
 | Validator (lean) | 8080/8081 | No scoring / emissions |
-| SciML Oracle | 8083 | No reference/adjoint validation |
+| Registered reference service | 8083 | Affected Challenges pause or return typed reference/infrastructure failure; no fallback score |
 | Queue processor | — | Lean backlog → latency |
 | Bank / PB workers (when live) | — | No commercial graduation; lean continues |
 
@@ -46,19 +55,21 @@
 
 ---
 
-**Version:** 3.1 (July 2026)  
-**Status:** Production Operations Manual  
+**Version:** 3.2 (August 2026)
+**Status:** Target operations contract; production deployment and qualification unproven
 **Audience:** DevOps Engineers, Validator Operators, Platform Engineers, On-Call Engineers  
-**Purpose:** Day-to-day operations, deployment, incident response, and maintenance for Carbon — including Julia/SciML Ground Truth Oracle and **lean vs bank/PB capacity isolation**
+**Purpose:** Day-to-day operations, deployment, incident response, and maintenance for Carbon, including Challenge-registered reference services and **lean vs bank/PB capacity isolation**
 
 ---
 
 # 0. WORKLOAD CLASSES (OPS CONTRACT)
 
-Carbon has three GPU-consuming job classes. Operators must not merge them into one undifferentiated “validator load.”
+Carbon plans four compute classes. Operators must keep practice, official lean,
+bank retraining, and product-battery work separate.
 
 ```text
 lean_eval  ──► emissions, Model Cards → Landscape D1
+practice_research ──► miner-owned research evidence only
 bank_retrain ──► controlled specialist candidate
 product_battery ──► INV / deep ROLL / ADV / LAT / ART ──► ship or promotion_fail (D11)
 ```
@@ -114,7 +125,7 @@ bank:
 2. Docker & Container Operations
 3. Kubernetes Deployment
 4. Validator Operations
-5. Julia/SciML Ground Truth Service Operations
+5. Julia/SciML Reference Service Operations
 6. Monitoring & Alerting
 7. Miner Onboarding & Support
 8. Incident Response
@@ -135,8 +146,9 @@ bank:
 │                        CARBON INFRASTRUCTURE                     │
 ├─────────────────────────────────────────────────────────────────┤
 │  Validator Fleet (lean_eval)     │  Bank / PB workers (optional) │
-│  + MCP Server                    │  isolated GPU quota           │
-│  Julia/SciML Oracle :8083        │  Landscape batch jobs         │
+│  + future network adapter        │  isolated GPU quota           │
+│  Julia/SciML Reference :8083     │  Landscape batch jobs         │
+│  Local practice worker (separate rights/quota; when authorized)    │
 │  Persistent: compile_cache, jax_cache, checkpoints, model_registry│
 │  Bittensor: Subtensor / Metagraph / Dendrite                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -170,7 +182,12 @@ GitHub Actions build-push for `ghcr.io/carbon/validator`, `ghcr.io/carbon/sciml-
 
 **SciML Oracle:** port 8083; `JULIA_NUM_THREADS=16`; julia depot PVC; health `:8083/health`.
 
-**Miner toolkit:** MCP endpoint + hotkey; strategies/configs mounts; GPU as needed for light training.
+**Miner toolkit:** current Wave A v1 calls an unnamespaced process-local
+adapter. After B-07S ratification, the Wave B topology may label that unchanged
+surface `carbon_protocol_v1` and add a local `carbon_research_v2` adapter for
+bounded practice research without credentials or a network listener. Any remote
+endpoint, hotkey authentication, or rented practice worker requires a later
+authorized transport contract.
 
 ## 2.4 Image Lifecycle
 
@@ -206,7 +223,8 @@ carbon-job-capable: lean|bank|pb
 - **Optional `carbon-bank-worker`:** `carbon-job-capable=bank,pb`; `job_classes_enabled` includes bank_retrain/product_battery; lower PriorityClass than lean validators.
 - **PVCs:** compile-cache 500Gi, jax-cache 200Gi, checkpoints 500Gi, model-registry 1Ti, julia-depot 100Gi (nvme-fast, RWX where needed).
 - **ConfigMap `validator-config`:** netuid, timeouts, gates path, landscape flags, sciml endpoint, `job_classes_enabled: [lean_eval]`, `bank.enabled: false` until live.
-- **Secrets:** validator hotkeys, redis URL, MCP endpoint.
+- **Secrets:** validator hotkeys and Redis URL. Add remote MCP credentials only
+  after a later transport/security ticket authorizes a network endpoint.
 
 ## 3.3 GPU Resource Management
 
@@ -218,7 +236,7 @@ NVIDIA device plugin required. Prometheus/DCGM rules: GPU memory >95%, util <10%
 
 ## 4.1 Daily Checklist
 
-**Morning:** validator pods Running; SciML pods; **lean** queue depth; overnight submission count; α/TAO floor; rewards; `curl` SciML `/health`; if Bank live — bank worker Ready + PB backlog.
+**Morning:** validator pods Running; required reference-service pods; **lean** queue depth; overnight submission count; α/TAO floor; rewards; check each registered reference health endpoint; if Bank live — bank worker Ready + PB backlog.
 
 **Mid-day:** queue rate; `kubectl top`; stuck lean jobs >2h; SciML latency; diagnostics quality.
 
@@ -244,17 +262,31 @@ sum(rate(carbon_gate_pass_total[5m])) / sum(rate(carbon_gate_total[5m]))
 
 ---
 
-# 5. JULIA/SCIML GROUND TRUTH SERVICE OPERATIONS
+# 5. JULIA/SCIML REFERENCE SERVICE OPERATIONS
 
-## 5.1 Role
+## 5.1 Role and authority
 
-Julia SciML oracle: DifferentialEquations.jl, ModelingToolkit.jl, SciMLSensitivity.jl, NeuralPDE/MethodOfLines as needed. Validators call via `SciMLClient`.
+The target Julia/SciML service may provide DifferentialEquations.jl,
+ModelingToolkit.jl, SciMLSensitivity.jl, and NeuralPDE/MethodOfLines capabilities.
+Validators may call it through a later ratified adapter only when the
+Challenge's registered reference or qualification policy requires that
+capability. It is not a
+universal ground-truth oracle. Other Challenges may register analytic,
+high-fidelity solver, qualified accelerator, cross-code, or experimental
+reference paths.
 
-**Endpoints:** `GET /health`, `POST /solve_pde`, `POST /adjoint_sensitivity`, `POST /symbolic_loss`, `POST /validate_solution`.
+Any endpoint list is illustrative until B-04 and the owning transport contract
+ratify exact request/result types, bounds, canonicalization, and failure
+precedence.
 
 ## 5.2 Deploy / Update / Depot
 
-`kubectl apply` sciml deployment; rolling image updates; depot on PVC; weekly `Pkg.update` + precompile on one replica (shared depot); verify all replicas load DE/MT/SciMLSensitivity.
+`kubectl apply` the reference-service deployment; use rolling image updates;
+mount an immutable depot/Manifest identity registered by the Challenge; and
+verify that every replica loads the exact registered package and artifact set.
+Dependency updates occur only through a reviewed, staged, newly versioned
+reference release. Never run an in-place scheduled `Pkg.update` against a
+qualified shared depot.
 
 ## 5.3 Monitoring
 
@@ -262,8 +294,11 @@ Solve/adjoint latency histograms; validation pass rate; Julia GC pressure; solve
 
 ## 5.4 SEV Procedures
 
-**SEV-1 SciML down:** assess pods/nodes; OOM/depot/driver checks; optional temporary `sciml_oracle.enabled=false` on validators (internal gates only); restart; smoke solve.  
-**SEV-2 latency/divergence:** metrics + GC; memory/threads; solver fallback; scale replicas.
+**SEV-1 required SciML capability down:** stop admission or pause affected official jobs; preserve their committed identities; return only the registered typed `REFERENCE_UNAVAILABLE` or infrastructure outcome where the lifecycle requires a terminal result; assess pods/nodes and OOM/depot/driver state; restart; smoke solve; resume only after health and reference-identity checks pass. Never disable a required reference and continue scoring. Unaffected Challenges may continue only when their registered reference paths are independent.
+**SEV-2 latency/divergence:** inspect metrics, GC, memory, and threads; scale
+replicas. Use a fallback only when the Challenge's immutable `ReferencePolicy`
+registers that exact fallback and its identity. Otherwise pause the affected
+work or return the typed unavailable/infrastructure outcome.
 
 ## 5.5 Backup / DR
 
@@ -284,7 +319,20 @@ Scrape validators `:8082`, SciML metrics, DCGM. Separate lean vs bank series wit
 
 # 7. MINER ONBOARDING & SUPPORT
 
-Wallet register; toolkit Docker; MCP `get_noisy_prior` / submit / diagnostics. **Support rule:** priors are noisy-only; do not distribute full specialist ONNX as competition help. Point commercial SKU requests to product channel.
+The implemented Wave A unnamespaced process-local surface has seven exact
+operations: `get_challenge_info`, `get_prior`, `get_mock_scaffold`,
+`dry_validate`, `estimate`, `submit`, and `get_submission_result`. Do not invent
+aliases such as `get_noisy_prior` or `diagnostics`.
+
+After Wave B activation and B-07R/B-07S ratification, the local topology may
+label the unchanged official surface `carbon_protocol_v1` and add
+`carbon_research_v2` for registered discovery, compilation, prior, practice,
+research-record, and resource operations. Agents and clients separately call
+v1 for official `submit` and `get_submission_result`; v2 neither exposes nor
+delegates those operations. Operators must serve exact
+approved PriorPack bytes, never request-time noisy or personalized derivatives.
+Do not distribute specialist weights or exact bank recipes as miner guidance.
+Route commercial SKU requests to the product channel.
 
 ---
 
@@ -302,7 +350,7 @@ Always preserve train≠eval and fp32 gate invariants during emergency mitigatio
 
 # 9. MAINTENANCE
 
-Weekly: image prune, Julia depot update, cert/secret rotation check.  
+Weekly: image prune, immutable reference-depot integrity check, and cert/secret rotation check.
 Monthly: kernel/driver on staging first; capacity review (lean GPU util vs PB quota); DR restore drill.
 
 ---
@@ -341,10 +389,10 @@ Image scan/sign; secret rotation; no stress/PB seeds in logs or miner APIs; netw
 - Lean queue backlog  
 - PB starving lean  
 - Restore julia depot  
-- Disable oracle temporarily  
+- Pause and resume a Challenge after required-reference outage
 
 Detailed SciML deploy/restore steps: §5.6.
 
 ---
 
-*v3.1: full ops manual retained in compressed operational form with explicit job-class contract. Docker/K8s/SciML procedures and SEV paths preserved; lean path is the default production SLO; product battery is isolated promotion work. Aligns with SPEC dual threshold, Specialist Bank, and JAX workload classes.*
+*v3.2: target operations contract with explicit job classes, Challenge-bound reference authority, fail-closed reference outages, and isolated promotion work. Desired infrastructure remains unproven until implemented and qualified.*

@@ -1,7 +1,7 @@
 # Generator Creation — Human Build Guide, Reference Verification, and Incentive Defensibility
 
 **Carbon Subnet**  
-**Version:** 5.0  
+**Version:** 5.1 (owner-ratification proposal; v5.0 remains authoritative until accepted)
 **Status:** OWNER-RECOMMENDED architecture; Challenge-specific scientific acceptance remains evidence- and reviewer-owned.  
 **Purpose:** Explain, in human-readable form, exactly what Carbon builds when it creates a Challenge data generator, how the code is structured, how generated cases are tied to qualified reference values, how the generator is verified, and why this can support a scientifically defensible incentive mechanism.  
 **Related:** [`Generator_Validation.md`](./Generator_Validation.md), [`Challenge_Instance_Distribution.md`](./Challenge_Instance_Distribution.md), [`Evidence_and_Envelope_Standards.md`](./Evidence_and_Envelope_Standards.md), [`Data_Management.md`](./Data_Management.md), [`Scoring.md`](./Scoring.md), [`Physical_System_Representation.md`](./Physical_System_Representation.md), [`Build_Out.md`](./Build_Out.md), `SPEC.md`.
@@ -764,6 +764,26 @@ reference uncertainty
 SCIENTIFIC RESOLUTION
 ```
 
+The terms in this diagnostic budget are not presumed independent. The
+operative decision interval is constructed end to end from the paired loss
+path across separately realized, producer-independent reconstruction
+replicates, common whole physical cases or trajectories stratified by the
+registered stress design, joint reference-error realizations, representation,
+and execution roles. Registered pairing or common random numbers are allowed;
+shared data, backbone, seed-role, hardware, and implementation dependence must
+remain modeled. The analysis must examine reconstruction-by-case interaction
+explicitly because a build can be stable on ordinary cases and unstable on
+shocks, steep gradients, or stiff regimes.
+
+Permitted approaches include crossed or hierarchical resampling, a qualified
+hierarchical model, or conservative dependence-aware bounds. Scalar component
+tables remain useful diagnostics. The Validation Dossier qualifies the
+interval procedure and its applicability test; the exact incumbent-challenger
+comparison must also satisfy that registered test before Carbon combines
+components by quadrature. Otherwise it uses joint propagation or conservative
+bounds. Unidentified material dependence widens the interval or returns
+`INDETERMINATE`.
+
 **Why this matters for incentives:** Carbon should not pay Candidate A for a 0.1% apparent lead if the experiment itself fluctuates by 1%.
 
 Economic reward concentration must not be sharper than scientific resolution.
@@ -1175,7 +1195,7 @@ At minimum:
 | **R4 — Reference disagreement** | primary-vs-witness discrepancy, uncertainty, disposition, envelope impact |
 | **R5 — Generator-vs-reference** | case/stratum discrepancies, failures, boundary concentration |
 | **R6 — Measurement floors** | qualified floor/uncertainty for every score-eligible measurement |
-| **R7 — Decision resolution** | repeated reconstruction/evaluation, gate/rank flips, contested band |
+| **R7 — Decision resolution** | reconstruction × whole-case/trajectory evidence stratified by stress regime, joint reference uncertainty, gate/rank flips, interval coverage, contested band, and any screening false-elimination audit |
 | **R8 — Limitations** | every weakened or blocked region/quantity/measurement |
 
 Summary plots are useful explanations, but the authoritative decision must be reproducible from underlying data.

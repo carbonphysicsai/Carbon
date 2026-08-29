@@ -5,11 +5,18 @@ Version: **2.3**<br>
 Authority: `CONSTITUTION.md`, `.agent/INVARIANTS.md`, `.agent/DECISIONS.md`, and the governing A2, A3, A6, A7, and A8 contracts<br>
 Implementation maturity: **implemented and tested only for the recorded bounded engineering scope; not scientifically qualified, security qualified, network qualified, commercially validated, or production qualified**
 
+> **Wave B contract candidate:**
+> [`Miner_MCP_Wave_B_Research_Contract.md`](./Miner_MCP_Wave_B_Research_Contract.md)
+> proposes the separately versioned ParameterCatalog, semantic compilation,
+> practice, research-record, resource-estimation, and PriorPack extension. It
+> does not change this ratified v2.3/Wave-A service or authorize implementation
+> before its own review, human ratification, and Wave activation.
+
 This specification replaced the earlier aspirational MCP sketch with the
 ratified bounded Wave-A contract. The exact seven-tool in-process implementation
 is merged on current `main`. Full transport, authentication, production
-providers and policy, mock/light execution, adaptive-query qualification, and
-the end-to-end research loop remain deferred. The merged implementation adds no
+providers and policy, nominal practice/research execution, adaptive-query
+qualification, and the end-to-end research loop remain deferred. The merged implementation adds no
 network protocol, ranking, or scientific-quality claim.
 
 ## 1. Scope and wave boundary
@@ -42,8 +49,10 @@ contract.
 
 Wave B may define `MockExecutionRequest`, `MockRunOutcome`,
 `MockTrainEvalService.run_mock`, mock packs and resources, execution disclosure,
-adaptive-loop evidence, and any light comparison or light training surface.
-None of those names or behaviors exists in Wave A.
+and adaptive-loop evidence. The inactive Wave B contract and B-07S own the
+exact v2 vocabulary; measured practice runs through `start_research_task` rather
+than separate `light_compare` or `light_train` wire operations. None of those
+types or behaviors exists in Wave A.
 
 A8-R15 remains binding for every execution-dependent claim. Wave A's
 `estimate` tool is a pure structural prior operation; it does not execute a
@@ -635,10 +644,18 @@ The broader discover → prior → scaffold → mock → compare → train → s
 inspect loop remains design intent, not Wave-A scope. Before any Wave-B work,
 the owners must separately ratify:
 
+- the ChallengeInteractionManifest, CandidateAssemblyContract,
+  ParameterCatalog, StrategyCompiler, and ResolvedConstructionPlan semantics;
 - mock evaluator semantics and resources;
 - deterministic execution and evidence disclosure;
-- comparison and training request/result schemas;
-- adaptive-budget and leakage controls;
+- ResearchTask, ExperimentRecord, ResearchReceipt, paired-comparison, and
+  training request/result schemas;
+- PriorPack source classes, epistemic fields, static retrieval, publication
+  lifecycle, compatibility projection, and equal-access policy;
+- structural prior alignment, static resource inspection, calibrated resource
+  forecast, binding quote, and measured receipt as separate authorities;
+- adaptive-budget and conditional hidden-exam leakage controls across priors,
+  practice, cards, leaderboards, errors, timing, and Strategy lineages;
 - authentication and transport boundaries;
 - Launch Bar metrics, including real-user success and quality thresholds; and
 - the A8-R15 execution-dependent resource path.
@@ -673,8 +690,10 @@ Current bounded maturity:
   **NO**;
 - A9 wave ticket: **done only after its closeout is independently reviewed,
   explicitly human-authorized, and merged**;
-- A10, A11, and A12: **todo**.
+- A10: **done only for the merged bounded fixture-leaderboard scope recorded in
+  `.agent/DECISIONS.md`; no official/public-production authority**;
+- A11 and A12: **todo**.
 
-Transport, authentication, production providers and policy, mock/light
-execution, adaptive-query qualification, and end-to-end loop integration remain
+Transport, authentication, production providers and policy, nominal
+practice/research execution, adaptive-query qualification, and end-to-end loop integration remain
 separately authorized future work.

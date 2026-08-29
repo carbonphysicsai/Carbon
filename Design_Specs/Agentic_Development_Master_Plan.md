@@ -1,7 +1,7 @@
 # Carbon Agentic Development Master Plan
 
 **Status:** OWNER-CANONICAL long-horizon development plan.  
-**Purpose:** connect the implemented A0–A7 foundation, the remaining A8–A12 Wave-A work, Waves B–G in `Build_Out.md`, and Carbon's longer-term generalized agentic construction, frontier, treasury, commercial, qualification, and Physics Intelligence architecture.  
+**Purpose:** connect the implemented bounded A0–A10 foundation, the remaining A11–A12 Wave-A work, Waves B–G in `Build_Out.md`, and Carbon's longer-term generalized agentic construction, frontier, treasury, commercial, qualification, and Physics Intelligence architecture.
 **Authority:** this document owns long-horizon sequencing and dependency interpretation. `Design_Specs/Build_Out.md` remains the detailed current implementation sequencing authority for the active P0 waves.  
 **Non-permission rule:** later waves are not authorized for implementation merely because they are described here.
 
@@ -42,13 +42,13 @@ At this reconciliation:
 | A5 | done | bounded scoring engine + fixture pack; not production qualification |
 | A6 | done | internal card store + disclosure projection boundary |
 | A7 | done | submission identity/FSM/fee/infra-vs-science separation |
-| A8 | todo | fixture-only TrainEval execution seam |
-| A9 | todo | miner MCP integration |
-| A10 | todo | public leaderboard projection |
+| A8 | done | bounded fixture-only TrainEval execution seam; no scientific/production authority |
+| A9 | done | bounded seven-tool in-process miner MCP; no transport/production authority |
+| A10 | done | bounded fixture leaderboard projection; no official/public-production authority |
 | A11 | todo | logs/metrics/redaction/failure tags |
 | A12 | todo | invariant suite / Wave-A closeout |
 
-No A0–A7 component is superseded merely by broader design. Future work wraps/extends/migrates explicitly.
+No A0–A10 component is superseded merely by broader design. Future work wraps/extends/migrates explicitly.
 
 ---
 
@@ -74,7 +74,9 @@ Scope:
 
 Constitutional gate:
 
-> A8 may exercise lifecycle and contract shapes. It may not be treated as evidence that the scientific backend, sandbox, truth source, or production scoring path is qualified.
+> A8 may exercise lifecycle and contract shapes. It may not be treated as
+> evidence that the scientific backend, sandbox, reference process, or
+> production scoring path is qualified.
 
 ## A9 — MCP surface
 
@@ -87,11 +89,15 @@ Integrate:
 - estimate;
 - submit;
 - submission result;
-- later ratified light/mock paths.
+- later ratified, nominally separate research/practice paths.
 
 Hard rule:
 
-> free/practice signal cannot become a high-fidelity surrogate for the hidden exam.
+> Free/practice signal should reward transferable improvement on the declared
+> physics distribution. It must not create material incremental ability to
+> infer protected realized cases, mixture, margins, or unresolved ordering
+> after controlling for performance on evaluator-held shadow cases unavailable
+> to the attacking agent.
 
 ## A10 — public leaderboard
 
@@ -132,14 +138,25 @@ Components:
 
 - generator API;
 - canonical case representation;
-- nominally separate mock/light execution path;
+- nominally separate practice/research execution path;
 - scaffold/prior infrastructure;
 - Validation Dossier structure;
 - qualification manifest schema;
 - reference runner abstraction;
 - `MeasurementContract` plumbing;
 - initial `PhysicalSystemSpec` binding;
-- explicit `CandidateOutputContract` hooks.
+- explicit `CandidateOutputContract` hooks;
+- `CandidateAssemblyContract` and public `ParameterCatalog`;
+- deterministic Strategy compilation into a `ResolvedConstructionPlan`;
+- `ChallengeInteractionManifest` capability discovery;
+- architecture ratification followed by an exact bounded Wave B service-protocol gate;
+- one shared implementation of the ratified v2 nominal primitives followed by
+  twelve-operation `ResearchMcpService` composition and conformance;
+- nominal fixture-only practice tasks, paired comparison, research records,
+  and receipts;
+- immutable PriorPack models, TEST_ONLY fixture staging, and bootstrap
+  source-eligibility/publication schemas with negative activation seams;
+- an autoresearch utility and conditional hidden-exam leakage gauntlet.
 
 Add constitutional objects where not already represented:
 
@@ -149,9 +166,27 @@ SamplingPlan
 ReferencePolicy
 MeasurementContract
 CanonicalChallengeCase
+CandidateAssemblyContract
+ParameterCatalog
+ResolvedConstructionPlan
+ChallengeInteractionManifest
+ResearchTask
+ExperimentRecord
+ResearchReceipt
+PriorPack
+PriorPolicyBundle
+PriorPublicationReceipt
+PriorDisclosureLedger
+PublicEstimand
 ```
 
 Humans/scientific owners still supply actual population semantics, solver adequacy, measurement qualification, thresholds, and LIVE judgment.
+
+Wave B keeps the ratified Strategy v1 input declarative. The catalog/compiler
+seam may register a fixed hybrid backbone or learned component inside a
+Challenge-owned assembly contract, but it does not authorize arbitrary
+participant code or construction graphs. Real reconstruction and authenticated
+remote research transport remain Wave C.
 
 ---
 
@@ -188,7 +223,8 @@ Required implementation work:
 STOP-SHIP if:
 
 - generator error is material at candidate-resolution scale;
-- physical-truth oracle can be outranked because the grader rewards generator bias;
+- a candidate exploiting generator/reference bias can outrank one following
+  the qualified physical reference;
 - task omits a causal input;
 - all realistic strategies are scientifically inadmissible;
 - winner flips under ordinary reconstruction/evaluation variance.
@@ -231,12 +267,16 @@ Landscape may:
 - surface hypotheses;
 - propose candidate Challenge additions/retirements/versioning;
 - propose information-value experiments;
-- provide priors/routing under leakage controls.
+- provide priors and search orientation under leakage controls;
+- provide validator scheduling, safe-prefetch, and capacity hints under
+  leakage and fairness controls.
 
 Landscape may not:
 
 - define scientific truth;
 - dynamically rewrite current Score Packs;
+- change a live candidate's registered cases, sampling law, stress mass,
+  reference fidelity, measurement depth, gates, or weights;
 - change current Challenge-set allocation mid-epoch;
 - alter a current frontier decision after observing results;
 - expose hidden exam structure.
@@ -287,7 +327,7 @@ Integrate the `Business/` canon via:
 CommercialEngagementSpec
 CommercialRightsPolicy
 CustomerDisclosurePolicy
-TruthAccessMode
+ReferenceAccessMode
 DeliverableContract
 CustomerAcceptancePlan
 CommercialEconomicsRecord
@@ -295,7 +335,7 @@ CommercialEconomicsRecord
 
 Priority private modes:
 
-1. customer-hosted truth service;
+1. customer-hosted reference service;
 2. controlled private/VPC evaluation;
 3. later air-gapped deployment when qualified.
 

@@ -23,7 +23,7 @@
 | Exam must be qualified before candidates | CANON | First complete LIVE Validation Dossier |
 | Target population is distinct from physical envelope | CANON / HUMAN | First LIVE InstanceDistributionContract |
 | P/Q/w are separate semantics | CANON | First LIVE Score Pack using them explicitly |
-| Truth authority is Challenge-specific | CANON | First Burgers truth qualification |
+| Reference authority is Challenge-specific | CANON | First Burgers reference qualification |
 | Reference failure is not candidate failure | CANON / IMPLEMENTED bounded | Real backend integration |
 | Mandatory physical failure is non-compensable | CANON / IMPLEMENTED fixture | Qualified LIVE gates |
 | Scores are Challenge-bound | CANON | Runtime/economic guards |
@@ -36,11 +36,11 @@
 |---|---|---|
 | Fixed viscosity first authoritative direction | DESIGN | Human ratification + dossier |
 | All causal inputs exposed to candidate | CANON | Exact Challenge contract |
-| Cole–Hopf primary truth | DESIGN / EXPERIMENT | Qualified implementation |
+| Cole–Hopf primary reference | DESIGN / EXPERIMENT | Qualified implementation |
 | Independent numerical witness | DESIGN / EXPERIMENT | Convergence/cross-check evidence |
 | Old spatial-balance proxy is diagnostic only | CANON | Runtime/publication migration guard |
 | Reconstruction variability is material | DESIGN / EXPERIMENT | strategy × reconstruction × eval matrix |
-| Generator error cannot outrank qualified truth | CANON | Truth-dominance acceptance test |
+| Generator/reference bias cannot outrank qualified physical behavior | CANON | Reference-dominance acceptance test |
 
 ## Implementation A0–A12
 
@@ -50,7 +50,7 @@
 | A8 fixture TrainEval | IMPLEMENTED bounded | Real backend, execution-isolation/security, scientific/reference/backend qualification, and later integration |
 | Real TrainEval backend | UNDER_DEFINED | Wave C implementation/qualification |
 | Bounded A9 in-process MCP Wave-A control/disclosure plane | IMPLEMENTED bounded | Preserve the exact seven-tool CPU, hostile-input, resource, concurrency, disclosure, dependency, import, wheel, and quality evidence |
-| Miner MCP end-to-end | DESIGN | Transport; authentication; production requester authorization; production providers; production limits, rates, and fees; mock/light execution; adaptive-query security evidence; full free/paid-loop integration |
+| Miner MCP end-to-end | DESIGN | Transport; authentication; production requester authorization; production providers; production limits, rates, and fees; nominal practice research plus resolved-plan reconstruction integration; adaptive-query security evidence; full research/submission-loop integration |
 | A10 fixture leaderboard disclosure | IMPLEMENTED bounded | Separately ratified official publication feed; official identity/disclosure policy; score-precision/cadence policy; adaptive-query security qualification; production publication and network qualification |
 | Official or LIVE leaderboard publication | UNDER_DEFINED | Separate nominal official-feed contract, qualification, implementation, and review; absent feed means unavailable, never an empty authoritative board |
 | Logging/metrics secrecy | DESIGN | A11 + red-team review |
@@ -72,7 +72,7 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done for the bounded fixture scope after the reviewed documentation closeout merged normally in PR #38 as 404c039596b487cf2649bb1d73b80e9b49baaced
 ```
 
 The implementation provides only a bounded in-process fixture projection.

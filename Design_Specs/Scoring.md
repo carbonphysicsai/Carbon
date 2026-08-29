@@ -325,8 +325,10 @@ The following are not members of `ScoreInput`:
   exam commitment;
 - strategy, submission, miner, validator, receipt, block, or public-card
   identity;
-- prior similarity, `estimate`, any `light_*`, exam fee/payment, mock-only
-  metrics, product-battery results, or miner-supplied evaluation metrics.
+- prior similarity/alignment, `estimate`, resource inspection/forecast/quote,
+  any practice or `light_*` result, research information value, exam
+  fee/payment, mock-only metrics, product-battery results, or miner-supplied
+  evaluation metrics.
 
 Forbidden and unknown inputs are rejected rather than ignored. A closed type
 should make them structurally unrepresentable; runtime validation remains
@@ -699,9 +701,10 @@ security/operations review, and human authorization.
 The following never enter a scientific component, top-level aggregate,
 eligibility decision, or later emission weight:
 
-- prior similarity or Landscape similarity;
-- `estimate` or any `light_*` result;
-- mock/free-loop metrics;
+- prior similarity/alignment or Landscape similarity;
+- `estimate`, resource inspection/forecast/quote, or any practice/`light_*`
+  result;
+- mock/free-loop metrics or research information value;
 - exam fee or payment amount;
 - product-battery/commercial qualification results;
 - miner-supplied evaluation metrics; or

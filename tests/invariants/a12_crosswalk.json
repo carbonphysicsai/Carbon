@@ -1,0 +1,211 @@
+{
+  "schema_version": "1.0",
+  "authority": "Design_Specs/Build_Out.md section 2",
+  "rows": [
+    {
+      "id": "A12-R1",
+      "title": "No seed leakage",
+      "contract": "No seed leakage. Official seeds, derived seeds, draw IDs, or reversible identifiers never appear in EvaluationCard, leaderboard, MCP outputs, or miner-visible logs.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r01_no_seed_leakage_across_public_surfaces"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_no_leakage.py::test_public_projection_omits_all_private_and_reconstruction_fields",
+        "tests/cpu/test_card_store.py::test_public_projection_is_allow_listed_and_has_no_private_graph",
+        "tests/cpu/test_mcp_skeleton.py::test_poll_covers_every_state_and_reads_card_only_when_published",
+        "tests/cpu/test_leaderboard.py::test_cursor_and_public_representations_contain_no_hidden_material",
+        "tests/cpu/test_observability.py::test_forbidden_material_has_no_positive_construction_path"
+      ],
+      "proof_kind": "behavioral+structural-negative",
+      "ceiling": "Synthetic in-process projection evidence only; no deployed transport, adaptive leakage, security, or production qualification."
+    },
+    {
+      "id": "A12-R2",
+      "title": "Practice isolation",
+      "contract": "Practice isolation. Nominal practice/research execution never accesses official packs, official entropy/seeds, or protected exam data.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r02_practice_isolation_is_fail_closed"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_seeding.py::test_every_context_type_crossing_rejects_for_every_entry_point",
+        "tests/cpu/test_mcp_skeleton.py::test_alias_deferred_and_unknown_tools_are_unavailable_without_capture",
+        "tests/cpu/test_traineval_stub.py::test_source_import_graph_and_calls_exclude_forbidden_owners"
+      ],
+      "proof_kind": "behavioral+structural-negative",
+      "ceiling": "No nominal practice execution backend exists; mock, fixture, scaffold, and estimate boundaries do not prove practice quality or security."
+    },
+    {
+      "id": "A12-R3",
+      "title": "Pinned evaluation",
+      "contract": "Pinned evaluation. Every scored submission is bound to immutable challenge / generator / Score Pack / backend (container digest) versions.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r03_scored_fixture_evaluation_is_exactly_pinned"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_registry.py::test_matching_digest_is_computed_from_actual_file_bytes",
+        "tests/cpu/test_seeding.py::test_every_pinned_identity_field_changes_seed_and_commitment",
+        "tests/cpu/test_scoring_engine.py::test_score_input_pin_mismatch_rejects_before_gate_evaluation",
+        "tests/cpu/test_submission_fsm.py::test_queue_admission_is_atomic_no_fee_and_pins_exact_binding",
+        "tests/cpu/test_traineval_stub.py::test_service_preflight_rejects_profile_pack_and_environment_mismatch"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Exact fixture identity and pin enforcement only; no production backend, container enforcement, LIVE, science, or security qualification."
+    },
+    {
+      "id": "A12-R4",
+      "title": "Disclosure allow-list",
+      "contract": "Disclosure allow-list. InternalResult / Model Card fields are never returned on miner-facing APIs unless explicitly allow-listed for the disclosure tier.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r04_miner_disclosure_uses_positive_allow_lists"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_scoring_engine.py::test_public_scoring_surface_is_small_and_keeps_evidence_types_private",
+        "tests/cpu/test_card_store.py::test_public_projection_is_allow_listed_and_has_no_private_graph",
+        "tests/cpu/test_mcp_skeleton.py::test_poll_covers_every_state_and_reads_card_only_when_published",
+        "tests/cpu/test_leaderboard.py::test_public_allowlist_has_no_identity_time_diagnostics_or_economics",
+        "tests/cpu/test_observability.py::test_every_valid_event_request_maps_to_one_exact_fresh_snapshot"
+      ],
+      "proof_kind": "behavioral+structural-negative",
+      "ceiling": "Bounded in-process disclosure types only; no transport, authentication, network, gateway, or production security claim."
+    },
+    {
+      "id": "A12-R5",
+      "title": "LIVE requires qualification",
+      "contract": "LIVE requires qualification. LIVE challenges require a complete signed human qualification manifest for that exact challenge version (not merely non-null YAML).",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r05_live_requires_complete_exact_qualification"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_registry.py::test_each_required_slot_missing_blocks",
+        "tests/cpu/test_registry.py::test_wrong_or_stale_manifest_identity_blocks",
+        "tests/cpu/test_registry.py::test_successful_activation_and_later_artifact_mutation_fail_closed"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Structural exact-version gate evidence only; scientific acceptance, signature verification, signer identity, and key custody remain human-owned."
+    },
+    {
+      "id": "A12-R6",
+      "title": "Execution isolation",
+      "contract": "Execution isolation. Miner-supplied strategies run under enforced compute, network, filesystem, and wall-clock limits. Strategy execution isolation is a P0 security invariant (implementation may live in ops docs; requirement is here).",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r06_production_execution_remains_unavailable_without_sandbox"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_submission_fsm.py::test_positive_production_gate_still_fails_closed_without_later_seams",
+        "tests/cpu/test_traineval_stub.py::test_strategy_and_independent_strategy_hash_are_never_observed",
+        "tests/cpu/test_traineval_stub.py::test_no_ambient_hash_time_random_filesystem_network_or_environment_dependency",
+        "tests/cpu/test_traineval_stub.py::test_source_import_graph_and_calls_exclude_forbidden_owners"
+      ],
+      "proof_kind": "structural-negative",
+      "ceiling": "Negative fail-closed absence proof only; no sandbox, workload isolation, SECURITY_QUALIFIED, or PRODUCTION_QUALIFIED claim."
+    },
+    {
+      "id": "A12-R7",
+      "title": "Infra ≠ science",
+      "contract": "Infra ≠ science. Infrastructure failures (OOM policy kill, node death, queue loss) are never scored as scientific / physics failures and never grant emissions.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r07_infrastructure_cannot_be_scored_as_science"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_scoring_engine.py::test_partial_or_infra_shaped_input_never_becomes_a_failed_gate",
+        "tests/cpu/test_submission_fsm.py::test_mandatory_gate_failure_is_completed_science_not_infrastructure",
+        "tests/cpu/test_submission_fsm.py::test_noncompletion_a5_status_is_operational_retry_then_terminal_refund",
+        "tests/cpu/test_traineval_stub.py::test_every_infrastructure_cause_maps_by_retry_class_to_exact_a7_operation"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Typed fixture-only infrastructure classification, retry/refund, and FAILED_INFRA separation only; named real infrastructure failures and production operations are not integration-tested here."
+    },
+    {
+      "id": "A12-R8",
+      "title": "Determinism",
+      "contract": "Determinism. Re-running an identical official evaluation under identical versions, seeds, and limits is deterministic within documented tolerances.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r08_pinned_fixture_reexecution_is_exactly_reproducible"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_seeding.py::test_deterministic_fixture_provider_reproduces_seed_and_commitment",
+        "tests/cpu/test_scoring_engine.py::test_repeated_scoring_is_exactly_deterministic",
+        "tests/cpu/test_traineval_stub.py::test_independent_oracle_and_literal_golden_vectors"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Exact pinned-fixture reproducibility only; A12 chooses no scientific tolerance and claims no production reproducibility."
+    },
+    {
+      "id": "A12-R9",
+      "title": "No placeholder LIVE",
+      "contract": "No placeholder LIVE. Placeholder, fixture, or mock values never enter LIVE configuration or emission weights.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r09_fixture_values_cannot_gain_live_or_emission_authority"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_registry.py::test_fixture_origin_blocks_production_after_status_and_mode_relabelling",
+        "tests/cpu/test_registry.py::test_placeholder_challenge_version_blocks_production",
+        "tests/cpu/test_traineval_stub.py::test_completed_outcome_maps_to_a7_publication_and_a6_false_emission",
+        "tests/cpu/test_leaderboard.py::test_forged_ineligible_provider_candidate_rejects_whole_snapshot"
+      ],
+      "proof_kind": "behavioral+structural-negative",
+      "ceiling": "Fixture and placeholder rejection only; no frontier, product, receipt, treasury, settlement, chain, weight, or emission types are created."
+    },
+    {
+      "id": "A12-R10",
+      "title": "No silent rescore",
+      "contract": "No silent rescore. Historical evaluation records are never silently reinterpreted under newer packs; new pack ⇒ new scoring_version for future runs only.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r10_new_pack_cannot_silently_overwrite_history"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_scoring_engine.py::test_any_source_byte_perturbation_changes_pack_identity",
+        "tests/cpu/test_card_store.py::test_every_material_valid_result_difference_conflicts_without_overwrite"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Bounded process-local insert-only history only; no production-qualified durable store or migration policy."
+    },
+    {
+      "id": "A12-R11",
+      "title": "Forbidden score inputs",
+      "contract": "Forbidden score inputs. Prior similarity/alignment, `estimate`, resource forecasts, practice/`light_*` metrics, research information value, exam fee, and mock metrics never enter `S_combined` / Yuma weights.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r11_named_forbidden_signals_cannot_enter_scoring"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_scoring_engine.py::test_forbidden_or_downstream_input_keys_cannot_construct_score_input",
+        "tests/cpu/test_submission_fsm.py::test_fee_values_cannot_enter_a5_models_or_scoring_signature"
+      ],
+      "proof_kind": "behavioral",
+      "ceiling": "Closed fixture A5 input boundary and fee separation only; no Yuma or production-weight implementation."
+    },
+    {
+      "id": "A12-R12",
+      "title": "Practice is useful without revealing the realized exam",
+      "contract": "Practice is useful without revealing the realized exam. Carbon measures leakage as incremental ability to infer protected official cases, realized stress composition, exact margins, or unresolved ordering after controlling for physics performance on evaluator-held shadow cases sampled from the declared distribution. Transferable rank improvement can reflect better physics and is not itself a leak. Practice remains declared-incomplete and outside official lifecycle, score, and scheduling authority.",
+      "dedicated_tests": [
+        "tests/invariants/test_a12_invariants.py::test_a12_r12_practice_is_incomplete_and_has_no_official_authority"
+      ],
+      "supporting_owner_tests": [
+        "tests/cpu/test_mcp_skeleton.py::test_alias_deferred_and_unknown_tools_are_unavailable_without_capture",
+        "tests/cpu/test_mcp_skeleton.py::test_valid_estimate_calls_provider_once_with_owned_strategy",
+        "tests/cpu/test_mcp_skeleton.py::test_source_dependency_and_owner_call_guards"
+      ],
+      "proof_kind": "structural-negative",
+      "ceiling": "Declared-incomplete, non-executing absence proof only; no usefulness, leakage, shadow-case, scientific-adequacy, score, lifecycle, or scheduling claim."
+    }
+  ],
+  "infrastructure_tests": [
+    "tests/invariants/test_a12_crosswalk.py::test_a12_crosswalk_has_exact_order_and_authority",
+    "tests/invariants/test_a12_crosswalk.py::test_a12_crosswalk_resolves_all_dedicated_and_owner_nodes",
+    "tests/invariants/test_a12_crosswalk.py::test_a12_suite_has_no_unmapped_or_greenwashing_tests",
+    "tests/invariants/test_a12_crosswalk.py::test_a12_crosswalk_canonical_containment_rejects_aliases",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_accepts_marked_passing_test",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_propagates_marked_failure",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_fails_when_target_is_missing",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_fails_when_target_is_empty",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_fails_when_only_tests_are_unmarked",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_fails_when_zero_marker_matches",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_fails_when_collection_is_completely_deselected",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_partial_deselection",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_runtime_skip",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_expected_xfail",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_non_strict_xpass",
+    "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_collection_time_module_skip"
+  ]
+}

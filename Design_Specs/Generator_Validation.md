@@ -1,7 +1,7 @@
 # Carbon Validation Dossier — Challenge Distribution, Generator, Truth, and Measurement Qualification
 
-**Version:** 2.0  
-**Status:** LOCKED ARCHITECTURE — owner-ratified on 2026-08-21; challenge-specific criteria, exact schemas, and implementation details remain subject to tech/science review.  
+**Version:** 2.1 candidate amendment
+**Status:** OWNER-RATIFICATION PROPOSAL — v2.0 remains the locked architecture ratified on 2026-08-21 until this dependence amendment receives explicit Physics/SciML, statistics, and protocol-owner acceptance. Challenge-specific criteria, exact schemas, and implementation details remain subject to tech/science review.
 **Purpose:** Define the evidence package required before Carbon may treat a registered Challenge exam as scientifically fit to judge candidates.  
 **Related:** `Challenge_Instance_Distribution.md`, `Generator_Creation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Scoring.md`, `Physical_System_Representation.md`, `Launch_Bar.md`.
 
@@ -167,6 +167,18 @@ The dossier states what each scientific quantity means and whether finite eviden
 
 Possible estimands include expected target-population error, physical-failure probability, tail risk, worst-stratum behavior, consequence-weighted performance, answerability/coverage, and robustness under a registered stress population.
 
+For any ranking or promotion interval, D10 records the independence and
+resampling units, common-case pairing, reconstruction-by-case and
+reconstruction-by-stratum interactions, reference-case dependence,
+heteroscedasticity, minimum evidence, and any prospective stopping or extension
+rule. It reports empirical or simulated interval coverage, false-promotion
+control, power by relevant stratum, and the minimum resolvable improvement.
+Component uncertainty tables are diagnostic. The Dossier qualifies the
+interval procedure and its applicability test; every exact incumbent-
+challenger decision must also satisfy that registered test before using a zero
+covariance or additive quadrature assumption. Otherwise the decision uses
+joint propagation or conservative bounds.
+
 No universal sample-size formula is assumed.
 
 ## D11 — Evaluation secrecy, decontamination, and role separation
@@ -176,6 +188,12 @@ Evidence that producers cannot reconstruct or control the official exam. This in
 ## D12 — Censoring, limitations, and residual uncertainty
 
 The dossier records generator/reference/infrastructure failures, timeouts, invalid cases, non-applicable measurements, corrupted observations, weak evidence strata, solver disagreement, distribution uncertainty, representation approximations, unsupported regimes, and unresolved scientific questions.
+
+It also records missing or censored reconstruction-by-case cells, the effect of
+any sequential evidence allocation or performance-futility rule, random-audit
+results, and residual dependence that the design cannot identify or
+conservatively bound. Such uncertainty widens the decision interval or blocks
+the comparison; it is never silently set to zero.
 
 Hard physical cases must not disappear silently from the realized evidence population because they are expensive or difficult to evaluate.
 

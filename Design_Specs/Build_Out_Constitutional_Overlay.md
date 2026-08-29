@@ -144,9 +144,14 @@ Do not insert frontier or treasury policy into the A7 submission FSM merely to r
 
 # 3. A8 constitutional contract
 
-A8 remains **not implemented** until code/test/review/merge evidence exists.
+A8 is implemented, tested, reviewed, and merged only for the bounded
+deterministic process-local fixture-official stub recorded in `.agent/WAVE.md`
+and `.agent/DECISIONS.md`. It is not scientifically, security, network,
+commercially, or production qualified and grants no LIVE, frontier, weight,
+emission, or settlement authority.
 
-The currently specified fixture path is constitutionally acceptable only if it preserves:
+The current bounded fixture path remains constitutionally acceptable only while
+it preserves:
 
 1. exact trusted composition;
 2. fixture-official context only;
@@ -210,10 +215,17 @@ A10's exact bounded contract was specified and ratified by the normal merge of
 PR #36. Current main implements and tests that contract only as the bounded
 in-process fixture leaderboard merged normally in PR #37 at
 `3b2d96e287f06c24cc4d57b46dfc418359a9e97f`, with reviewed head
-`6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. Administrative closeout remains
-conditional on independent review, explicit human authorization, and normal
-merge of the documentation-only closeout. That closeout adds no implementation
-or test evidence.
+`6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`. The documentation closeout
+merged normally in PR #38 as
+`404c039596b487cf2649bb1d73b80e9b49baaced` and is ancestral to current
+main. A10's bounded Wave-A status is `done`; A11 is now `done` only in its
+separately recorded bounded scope, A12 remains `todo`, and Wave A remains
+incomplete. The A10 closeout added no implementation or test evidence.
+
+Within draft PR #49, the A11 `done` label is a proposed administrative state,
+not current-main authority. It becomes authoritative only after the exact PR
+#49 head containing the closeout gate is independently reviewed, explicitly
+human-authorized, and normally merged.
 
 The undefined `max_response_utf8_bytes` accounting procedure identified by the
 stopped ready-review gate is `DOCUMENTATION_LAG`. The correction defines an
@@ -670,7 +682,9 @@ A10 SECURITY_QUALIFIED: NO
 A10 NETWORK_QUALIFIED: NO
 A10 COMMERCIALLY_VALIDATED: NO
 A10 PRODUCTION_QUALIFIED: NO
-A10 WAVE STATUS: done only after this closeout is independently reviewed, explicitly human-authorized, and normally merged
+A10 WAVE STATUS: done for the bounded fixture scope after the reviewed
+documentation closeout merged normally in PR #38 as
+404c039596b487cf2649bb1d73b80e9b49baaced
 A11: todo
 A12: todo
 ```
@@ -704,41 +718,1167 @@ product, commercial, network, settlement, weight, or emission authority.
 
 # 6. A11 constitutional contract
 
-Observability must support later scientific/economic separation.
+> **Draft PR #49 closeout authority gate.** The merged A11 implementation and
+> the recorded `66/66` audit are current-main engineering evidence. The A11
+> `done` status, checked ticket criteria, closeout wording, and any A12-next-step
+> wording in this proposed overlay are candidate administrative state only.
+> They become repository authority only after the exact PR #49 head containing
+> this gate is independently reviewed, explicitly human-authorized, and
+> normally merged. Until then, current-main administrative authority remains
+> A11 `in_progress` in `.agent/WAVE.md`, the A11 ticket remains at `66 unchecked
+> / 0 checked`, A12 remains `todo` and unstarted, Wave A remains incomplete,
+> and Wave B remains inactive. This draft does not authorize A12 or any
+> later-wave work.
 
-Where applicable distinguish:
+PR #39 normally merged A11-R1 through A11-R17, and PR #47 normally merged the
+A11-R18 immutable sink-snapshot amendment. A11-R1 through A11-R18 are therefore
+`SPECIFIED / RATIFIED`; the historical reconciliation and supersession chain
+remains recorded in `.agent/DECISIONS.md` and `.agent/plans/A11_logging.md`.
 
-- candidate/scientific failure;
-- reference failure;
-- generator failure;
-- reconstruction failure;
-- infrastructure failure;
-- treasury/settlement failure;
-- commercial acceptance failure.
+PR #46's independently reviewed head
+`e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb` merged normally as signed
+current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`, tree
+`3d6682803422497efc6bff26451c12d9c306f96c`, with ordered parents prior main
+`98865dd04c5a4018c8077517cb79aabd6045a468` and that reviewed head. The
+reviewed and merge trees are identical. The prior-main manifest is exactly
+`.agent/WAVE.md`, `carbon/observability/{__init__,model,providers,service}.py`,
+and `tests/cpu/test_observability.py`.
 
-These categories must not be collapsed into one generic failed result.
+Greptile's exact-head record is `Confidence Score: 5/5`, with no actionable
+defect, review thread, or formal change request. Post-merge run `33199541335`
+passed `2310` CPU tests and quality. An independent current-main closeout audit
+passed all `66/66` criteria; fresh Linux validation passed focused `337`,
+related owner-boundary `1330`, full default CPU `2310`, the isolated
+zero-dependency wheel gate, strict Ruff/Black, the no-new-debt quality gate,
+and `git diff --check`. No owner decision or A11 semantic amendment was added
+by closeout.
+
+A11 is implemented and tested only for the bounded in-process engineering
+scope below. It remains scientifically, security, network, commercially, and
+production unqualified. A12 remains separately owned and `todo`; Wave A is
+incomplete and Wave B inactive.
+
+## A11-R1 — Exact owner paths and module ownership
+
+The sole A11 semantic and implementation owner is:
+
+```text
+carbon/observability/
+    __init__.py
+    model.py
+    providers.py
+    service.py
+```
+
+Canonical focused tests belong only at
+`tests/cpu/test_observability.py`. Current main contains exactly these four
+production paths and that focused test.
+
+Exact module ownership is:
+
+- `model.py` owns `EventKind`, `MetricKind`,
+  `DurationStage`, `BoundaryErrorKind`,
+  `ObservabilityEvent`, `BoundaryErrorEvent`,
+  `ObservabilityResourceLimits`, the four A11 errors, and private
+  exact-copy/validation helpers only;
+- `providers.py` owns `StructuredEventSink` and `MetricSink`
+  Protocols, with no concrete, default, or global sink;
+- `service.py` owns `ObservabilityService` and private shared-capacity
+  accounting, same-service reentrancy accounting, sink
+  lookup/invocation/return validation, and `Exception`/`BaseException`
+  translation only, with no owner instrumentation; and
+- `__init__.py` owns only the exact fourteen-name re-export tuple, with
+  no private helper or owner-type re-export.
+
+A0's importable `carbon/logging_utils` package remains an unchanged inert
+compatibility marker. Its prospective A11 semantic ownership is REPLACED by
+`carbon/observability`, while the package itself is KEPT without a
+wrapper, alias, re-export, sink behavior, or alternate A11 surface.
+`carbon/audit` remains reserved for evaluation receipts and authorized
+re-execution. Root `carbon` exports remain unchanged.
+
+## A11-R2 — Exact nominal surface, enums, values, and limits
+
+The exact ordered `carbon.observability.__all__` tuple is:
+
+```python
+(
+    "EventKind",
+    "MetricKind",
+    "DurationStage",
+    "BoundaryErrorKind",
+    "ObservabilityEvent",
+    "BoundaryErrorEvent",
+    "ObservabilityResourceLimits",
+    "StructuredEventSink",
+    "MetricSink",
+    "ObservabilityService",
+    "ObservabilityError",
+    "ObservabilityRequestError",
+    "ObservabilityResourceError",
+    "ObservabilityIntegrationError",
+)
+```
+
+Exactly fourteen names are exported. No A5, A7, A9, or A10 owner type is
+re-exported.
+
+The four enums have exact direct `str, Enum` inheritance and these exact
+declaration orders, names, and literal values:
+
+```python
+class EventKind(str, Enum):
+    SUBMIT = "SUBMIT"
+    SCORE = "SCORE"
+    REJECT = "REJECT"
+    FAILED_STRATEGY = "FAILED_STRATEGY"
+    FAILED_INFRA = "FAILED_INFRA"
+
+
+class MetricKind(str, Enum):
+    SUBMIT_COUNT = "SUBMIT_COUNT"
+    SCORE_COUNT = "SCORE_COUNT"
+    REJECT_COUNT = "REJECT_COUNT"
+    FAILED_INFRA_COUNT = "FAILED_INFRA_COUNT"
+    STAGE_DURATION_NS = "STAGE_DURATION_NS"
+
+
+class DurationStage(str, Enum):
+    SUBMIT = "SUBMIT"
+    SCORE = "SCORE"
+
+
+class BoundaryErrorKind(str, Enum):
+    MCP_REQUEST = "mcp.request.invalid"
+    MCP_RESOURCE = "mcp.resource_limit_exceeded"
+    MCP_TOOL_UNAVAILABLE = "mcp.tool_unavailable"
+    MCP_CHALLENGE_UNAVAILABLE = "mcp.challenge_unavailable"
+    MCP_SUBMISSION_UNAVAILABLE = "mcp.submission_unavailable"
+    MCP_QUERY_BUDGET = "mcp.query_budget_exceeded"
+    MCP_INTEGRATION = "mcp.integration_failure"
+    LEADERBOARD_REQUEST = "leaderboard.request.invalid"
+    LEADERBOARD_RESOURCE = "leaderboard.resource.exhausted"
+    LEADERBOARD_UNAVAILABLE = "leaderboard.fixture.unavailable"
+    LEADERBOARD_INTEGRATION = "leaderboard.integration.failed"
+```
+
+There are no aliases, `auto()` values, integer values, alternative
+lowercase values, or extra members. Canonical tests prove exact direct
+inheritance, declaration order, names, literals, and absence of aliases.
+
+`ObservabilityEvent` is frozen, slotted, representation-safe, and has
+exactly these fields in this order:
+
+```text
+kind: exact EventKind
+submission_id: exact A7 SubmissionId
+submission_state: exact A7 SubmissionState
+score_status: exact A5 ScoreStatus | None
+```
+
+`BoundaryErrorEvent` is frozen, slotted, representation-safe, and has
+exactly one field:
+
+```text
+error_kind: exact BoundaryErrorKind
+```
+
+`ObservabilityResourceLimits` is frozen, slotted,
+representation-safe, and has exactly one required field:
+
+```text
+max_concurrent_calls: exact built-in int in 1..2**64-1
+```
+
+Exact types reject subclasses, forged enum members, booleans-as-integers, and
+coercible or lookalike values. These nominal values expose no generic
+serialization, copy, or deepcopy path and never invoke caller-controlled
+`repr` or `str`.
+
+## A11-R3 — Exactly three service capabilities
+
+Construction is exactly:
+
+```python
+ObservabilityService(
+    event_sink: StructuredEventSink,
+    metric_sink: MetricSink,
+    resource_limits: ObservabilityResourceLimits,
+)
+```
+
+All arguments are mandatory. The resource value is copied and validated at
+construction. There is no `None`, default, singleton, module global,
+registry lookup, environment-selected backend, or production numeric default.
+
+The only service operations are:
+
+```python
+emit_event(
+    event: ObservabilityEvent | BoundaryErrorEvent,
+) -> None
+
+increment_counter(
+    metric: MetricKind,
+) -> None
+
+observe_duration(
+    stage: DurationStage,
+    duration_ns: int,
+) -> None
+```
+
+Successful calls return exact `None`. There is no fourth operation and no
+generic logger, mapping, free-form message, labels, metadata, serializer,
+exporter, queue, batch, retry, flush, background worker, or backend selector.
+
+## A11-R4 — Submission-event matrix and honest provenance boundary
+
+The only valid `ObservabilityEvent` matrix is:
+
+| `EventKind` | exact `SubmissionState` | exact `ScoreStatus` |
+|---|---|---|
+| `SUBMIT` | `RECEIVED` | `None` |
+| `SCORE` | `SCORED` | `SCORED` or `MANDATORY_GATE_FAILED` |
+| `REJECT` | `REJECTED` | `None` |
+| `FAILED_STRATEGY` | `FAILED_STRATEGY` | `None` |
+| `FAILED_INFRA` | `FAILED_INFRA` | `None` |
+
+Every other kind/state/status combination is invalid. `PUBLISHED`,
+`CANCELLED`, `VALIDATED`, `QUEUED`, `RUNNING`,
+retryable infrastructure, `PACK_NOT_READY`, forged or cross-enum
+statuses, and unsupported future categories are rejected or omitted, never
+remapped.
+
+A request that fails before a safe A7 `SubmissionId` exists cannot
+construct an `ObservabilityEvent`. The separate
+`BoundaryErrorEvent` carries no correlation field. Trusted composition
+must not represent an open duplicate or any owner action with no corresponding
+record/transition as a new submission event.
+
+The former assertion that every event projects an existing exact A7 record is:
+
+```text
+P1_UNENFORCEABLE_EVENT_PROVENANCE_CLAIM
+taxonomy: DOCUMENTATION_LAG
+A11 implementation defect: NO
+new private lookup authorized: NO
+```
+
+`ObservabilityEvent` is only an owner-shaped, process-local operational
+observation request. A11 validates exact nominal types and the closed
+kind/state/status consistency matrix. It does not verify that an A7 record
+exists, that the stated A7 state is the current retained state, that an owner
+transition occurred, or that the values have authenticated A5/A7 provenance.
+Trusted composition alone supplies the factual relationship to an owner
+transition. Exact nominal values are correctness values, not authenticated
+capabilities. A syntactically valid but unbound UUIDv4 has no lifecycle,
+scientific, audit, receipt, public, security, settlement, or economic
+authority. Production provenance and evidence remain separately deferred.
+
+No store lookup, capability token, signature, receipt, second identity, or
+additional event field is authorized.
+
+## A11-R5 — Closed A9/A10 boundary-error projection
+
+Trusted composition may map only these exact public A9 classes:
+
+| Exact public A9 class | `BoundaryErrorKind` |
+|---|---|
+| `McpRequestError` | `MCP_REQUEST` |
+| `McpResourceError` | `MCP_RESOURCE` |
+| `McpToolUnavailableError` | `MCP_TOOL_UNAVAILABLE` |
+| `McpChallengeUnavailableError` | `MCP_CHALLENGE_UNAVAILABLE` |
+| `McpSubmissionUnavailableError` | `MCP_SUBMISSION_UNAVAILABLE` |
+| `McpQueryBudgetError` | `MCP_QUERY_BUDGET` |
+| `McpIntegrationError` | `MCP_INTEGRATION` |
+
+and only these exact public A10 classes:
+
+| Exact public A10 class | `BoundaryErrorKind` |
+|---|---|
+| `LeaderboardRequestError` | `LEADERBOARD_REQUEST` |
+| `LeaderboardResourceError` | `LEADERBOARD_RESOURCE` |
+| `LeaderboardUnavailableError` | `LEADERBOARD_UNAVAILABLE` |
+| `LeaderboardIntegrationError` | `LEADERBOARD_INTEGRATION` |
+
+Mapping is by exact public class identity, not arbitrary `.code` text.
+Unknown codes, raw exceptions, base errors, subclasses, and owner payloads fail
+closed and cannot construct a boundary event. Every ordinary raw provider
+error must first be translated by its A9/A10 owner boundary; A11 never receives
+or classifies the raw provider exception.
+
+`BoundaryErrorEvent` contains no `SubmissionId`,
+`ChallengeKey`, requester, request value, tool payload, cursor, provider,
+exception object or text, message, cause, context, traceback, private field,
+hidden identifier, seed/draw, arbitrary string, or mapping. Production A11
+source imports no A9 or A10 module. A test-local composition harness may import
+their public errors solely to prove the exact mapping.
+
+Reference, generator, reconstruction, retry, evidence, treasury, settlement,
+commercial-acceptance, and Challenge-health categories remain unrepresented
+until exact public owner types and integration seams exist. Omission is not
+collapse.
+
+## A11-R6 — Metrics, durations, labels, and cardinality
+
+The metric vocabulary is exactly `SUBMIT_COUNT`,
+`SCORE_COUNT`, `REJECT_COUNT`, `FAILED_INFRA_COUNT`,
+and `STAGE_DURATION_NS`. Only the first four are counter inputs, and each
+accepted call means exactly one increment with no supplied delta or value.
+`STAGE_DURATION_NS` is rejected by `increment_counter` and is
+represented only by `observe_duration`.
+
+Metric labels are exactly empty. Neither public metric operation nor
+`MetricSink` receives a mapping, tuple of labels, keyword metadata, or
+tag collection. No `SubmissionId`, Challenge identity/version,
+requester, hotkey, wallet, customer, result, score, rank, cursor, provider,
+exception, or arbitrary value becomes a dimension. `DurationStage` is a
+closed typed argument, not an arbitrary label map. Cardinality is structurally
+bounded by four counter members and two duration stages. There is no
+`FAILED_STRATEGY_COUNT`, gauge, arbitrary histogram, set, decrement,
+reset, dynamic name, or generic metric operation.
+
+## A11-R7 — Exact A7 SubmissionId correlation boundary
+
+A11 creates no correlation, trace, span, request, receipt, or result identity.
+For a valid submission event it reconstructs a fresh exact public A7
+`SubmissionId` through its owner constructor. The copied ID may appear
+only as `ObservabilityEvent.submission_id` for internal structured
+correlation; it cannot appear in a boundary-error event, metric, label, error,
+free-form text, representation, generic serialization, or miner/customer/public
+observability value.
+
+Canonical UUIDv4 validation proves syntax only and supplies none of the
+provenance disclaimed in A11-R4. `RequesterIdentity` never crosses the
+A11 boundary and is not imported. This restriction does not revoke A7/A9's
+separately owned opaque submission-ID interfaces.
+
+## A11-R8 — Owner failure and lifecycle separation
+
+A11 does not invent lifecycle or scientific semantics:
+
+- `REJECT` remains exact A7 request/admission rejection, not strategy,
+  scientific, or infrastructure failure;
+- `FAILED_STRATEGY` remains the exact terminal A7 strategy disposition
+  and accepts no ambiguous or infrastructure cause;
+- `FAILED_INFRA` remains the exact terminal A7 infrastructure
+  disposition and does not absorb retryable infrastructure;
+- `SCORE` requires lifecycle `SCORED` while retaining exact A5
+  `SCORED` versus `MANDATORY_GATE_FAILED`; and
+- `PACK_NOT_READY` remains non-scientific unavailability, cannot satisfy
+  lifecycle `SCORED`, and is rejected or omitted rather than relabeled.
+
+A6 public failure tags are not widened. A8 private outcomes and causes are not
+imported. Reference, generator, reconstruction, retry, settlement, treasury,
+commercial-acceptance, incident, and Challenge-health meanings remain deferred
+instead of being collapsed into a generic failed result.
+
+## A11-R9 — No score, rank, or adaptive-oracle telemetry
+
+A11 accepts or emits no raw, combined, or component score; gate; margin; stress
+value; diagnostic; delta; rank or rank history; prior; estimate; scaffold;
+practice/mock/light result; feedback; or query history. Exact
+`ScoreStatus` is a closed disposition only. A5 remains sole scoring
+authority. No event, metric, duration, error, or sink result creates scientific
+evidence, an adaptive-exam oracle, Challenge-health decision, frontier event,
+Product Qualification, publication authority, or economic entitlement.
+
+## A11-R10 — Positive construction
+
+The accepted boundary order is:
+
+```text
+exact outer-type validation
+→ declared-order positive field extraction
+→ exact owner/closed-enum validation
+→ prohibited-data exclusion by the closed shape
+→ fresh immutable A11-owned reconstruction
+→ non-blocking resource/reentrancy acquisition
+→ at most one corresponding sink access
+```
+
+There is no arbitrary mapping, iterable, descriptor, reflection, object-graph
+or cycle traversal, alias retention, generic serializer, recursive sanitizer,
+or serialize-then-redact path. A11 never invokes hostile `repr` or
+`str`. Because there is no allow-listed free-form textual field, CR/LF,
+Unicode, oversized-text, secret-pattern, and arbitrary-message attacks are
+eliminated structurally; no pattern-redaction engine is shipped. Unsafe
+material is rejected, not normalized, truncated, hashed, anonymized, or
+transformed.
+
+## A11-R11 — Forbidden material
+
+Events, metrics, durations, errors, representations, sink arguments, and
+retained aliases contain no:
+
+- official/master/derived seed, draw ID, role, domain, context, entropy, nonce,
+  commitment, preimage, or hidden pack;
+- Strategy, parameter, weight, checkpoint, or artifact;
+- requester, hotkey, wallet, customer, participant, credential,
+  authentication, fee, payment, reward, or identity payload;
+- result, receipt, cursor, publication sequence, provider metadata, prior,
+  estimate, scaffold, practice/mock/light feedback, or query history;
+- score, component, gate, margin, stress value, diagnostic, rank, or rank
+  history; or
+- exception text/object, traceback, path, command, environment value,
+  runtime-configuration value, or arbitrary diagnostic.
+
+No sink/error fallback diagnostic may reintroduce forbidden material.
+
+## A11-R12 — Duration and clock boundary
+
+Duration stages are exactly `DurationStage.SUBMIT` and
+`DurationStage.SCORE`. `duration_ns` is an exact built-in
+`int` in `0..2**64-1`; booleans, subclasses, coercible values,
+negative integers, floats, and overflow reject. A11 reads no wall, monotonic,
+date, timezone, sleep, deadline, or current-time source and emits no timestamp.
+Caller-supplied duration is descriptive only and cannot change a domain result
+or authority decision. Additional stages require a later contract change.
+
+## A11-R13 — Exact Protocol seams and no production sink
+
+The standard-library Protocols are exactly:
+
+```python
+class StructuredEventSink(Protocol):
+    def emit_event(
+        self,
+        event: ObservabilityEvent | BoundaryErrorEvent,
+        /,
+    ) -> None: ...
+
+
+class MetricSink(Protocol):
+    def increment_counter(
+        self,
+        metric: MetricKind,
+        /,
+    ) -> None: ...
+
+    def observe_duration(
+        self,
+        stage: DurationStage,
+        duration_ns: int,
+        /,
+    ) -> None: ...
+```
+
+Trusted concrete sinks are structural. They need not subclass a Protocol and
+are not checked through `runtime_checkable`, exact-type gates, or runtime
+Protocol introspection. No concrete sink, default/global sink, no-op default,
+`logging.Logger` wrapper, or production exporter is exported.
+
+## A11-R14 — Sink failure, resources, reentrancy, and domain-result preservation
+
+Each public operation makes at most one corresponding synchronous sink call
+and requires exact `None` as its return. Missing or call-incompatible
+methods, non-`None` returns, hostile descriptor/hook ordinary
+exceptions, invocation ordinary exceptions, and sink-raised public A11 errors
+map to one fresh fixed integration error. Translation exposes no original
+exception, value, text, payload, partial value, cause, or context chain, calls
+no hostile `repr`/`str`, and invokes no fallback logger.
+Non-`Exception` `BaseException` values, including
+`KeyboardInterrupt`, `SystemExit`, and `GeneratorExit`,
+propagate unchanged.
+
+One shared per-service non-blocking `max_concurrent_calls` policy covers
+all three operations. Exact capacity exhaustion and same-service sink
+reentrancy reject before another sink access, even when general capacity
+remains. No ordinary mutex is held across the sink. Capacity is released in
+`finally` after success, A11-created error, translated ordinary
+`Exception`, and propagated non-`Exception`
+`BaseException`.
+
+There is no batch, queue, retry, fallback, worker, thread, async task,
+background work, timeout/preemption, suppression or reordering of domain
+actions, durability, or exactly-once claim. A blocking sink consumes only its
+finite capacity and may block its caller. Trusted composition calls telemetry
+outside owner locks and only after any domain result that must survive has been
+determined. Telemetry failure cannot change that scientific, lifecycle,
+publication, or economic result.
+
+## A11-R15 — Exact A11 errors
+
+The hierarchy and fixed values are exactly:
+
+```text
+ObservabilityError(Exception)
+
+ObservabilityRequestError
+  code: observability.request.invalid
+  message: Observability request is invalid.
+
+ObservabilityResourceError
+  code: observability.resource.exhausted
+  message: Observability resource limit was exceeded.
+
+ObservabilityIntegrationError
+  code: observability.integration.failed
+  message: Observability sink failed.
+```
+
+There is no fourth public error. Errors are immutable, fixed, non-echoing,
+representation-safe, unchained, and non-serializable; they accept no diagnostic
+constructor argument. The three concrete errors are direct
+`ObservabilityError` subclasses. Malformed mandatory construction or caller
+values map to request error, acquired-capacity/reentrancy exhaustion maps to
+resource error, and sink failure maps to integration error.
+
+## A11-R16 — Dependency direction and initial non-integration
+
+The exact first-implementation dependency direction is:
+
+```text
+model.py
+  → Python standard library
+  → exact public SubmissionId and SubmissionState from carbon.fees
+  → exact public ScoreStatus from carbon.scoring
+
+providers.py
+  → Python standard-library typing
+  → A11 model types only
+
+service.py
+  → Python standard library
+  → A11 model types
+  → A11 provider Protocols
+
+__init__.py
+  → explicit re-exports from model, providers, and service
+```
+
+There is no circular import; production A11 imports no A6, A8, A9, or A10
+module, A5 engine/result, A7 service/private record/store/fee implementation,
+`carbon.logging_utils`, `carbon.audit`, evidence/receipt,
+filesystem/network/environment, optional exporter, Landscape, neuron,
+Bittensor, chain, settlement, weight, or emission surface. No owner package
+imports `carbon.observability` in the first implementation.
+
+The semantic dependencies remain A5 ownership of `ScoreStatus`, A6
+public failure-tag stability, A7 ownership of `SubmissionId` and
+lifecycle meaning, A8 private-outcome exclusion, and the closed A9/A10 public
+error mapping in A11-R5. Initial A11 modifies or instruments no A5–A10 owner.
+Direct instrumentation is a later composition task requiring its own exact,
+non-circular, domain-result-preserving hook review.
+
+The required public package-root imports may transitively initialize existing
+owner modules: `carbon.fees` initializes its current service dependencies, and
+`carbon.scoring` initializes its current engine/pack exports. The enforceable
+rule is therefore no direct A11 source import or call of those forbidden owner
+internals; tests must not assert impossible absence of every transitive module
+from `sys.modules`. Production A11 remains free of A9/A10 imports and loads
+caused by A11 itself.
+
+## A11-R17 — A12 separation, maturity, and authority ceiling
+
+Production exporters, persistence/retention, dashboards, alert thresholds,
+authentication, public APIs, incident systems, current timestamps, additional
+vocabulary/stages, Challenge-health or adaptive-query authority,
+evidence/receipt lifecycle, official/LIVE operation, frontier/Product
+Qualification, commercial acceptance, treasury/settlement, chain, Bittensor,
+weights, and emissions remain separately owned, deferred, and fail closed.
+
+```text
+A11 SPECIFIED / RATIFIED:
+YES for A11-R1 through A11-R18
+
+A11 IMPLEMENTED: YES on current main for the bounded in-process scope
+A11 TESTED: YES only for the exact recorded engineering scope
+A11 SCIENTIFICALLY_QUALIFIED: NO
+A11 SECURITY_QUALIFIED: NO
+A11 NETWORK_QUALIFIED: NO
+A11 COMMERCIALLY_VALIDATED: NO
+A11 PRODUCTION_QUALIFIED: NO
+A11 WAVE STATUS: done
+PR #46: merged normally as e2496e92eeae31befdaa430501bb9f00b0e6339e
+A12: todo
+Wave A: incomplete
+Wave B: inactive
+```
+
+A11 closeout creates no new implementation or focused test,
+`tests/invariants/`, pytest invariant marker, dependency, packaging,
+workflow/CI, quality-baseline, A12 artifact/status change, Wave-A completion,
+Wave B activation, or launch claim.
+
+## A11-R18 — Immutable A11-owned sink snapshot boundary
+
+Ratified A11-R18 selects **Option A: immutable A11-owned sink snapshots**. The
+historical finding that required the amendment is:
+
+```text
+P1_MUTABLE_ENUM_SINGLETON_BOUNDARY_BYPASS:
+CONFIRMED
+
+implementation defect: YES
+current main defect: NO
+contract-preserving implementation under the current owner types: NO
+classification: NEW_OWNER_DECISION_REQUIRED
+```
+
+Ordinary direct `str, Enum` members are process-wide mutable singletons. The
+R1-R17 request model requires exact canonical A11/A5/A7 enum members, while
+its sink-facing isolation language requires every sink argument to be a fresh
+immutable A11-owned value whose mutation cannot affect caller, owner,
+retained, concurrent, or later A11 state. Passing the canonical members cannot
+satisfy both requirements. Merely detecting later corruption, deleting
+unexpected attributes, sanitizing and restoring global enum state, trusting a
+sink, or holding a process-global lock across arbitrary sink code does not
+close that boundary.
+
+Option B, separately hardening the A5/A7 owner enums, requires an owner-reviewed
+migration and is outside A11. Option C, narrowing sink-mutation isolation,
+weakens the security boundary and is not authorized. R18 therefore introduces
+fresh primitive-only sink snapshots without changing A5/A7 owner source or the
+public service-request API.
+
+The corrected R18 scope does not select Option C: Option C would permit shared
+owner/request/enum state or weaken mutation isolation of the supplied snapshot
+instance and its declared fields. Deliberate class/module/global mutation
+requires a stronger isolation boundary and is outside the trusted in-process
+sink contract.
+
+### R18 status and exact supersession
+
+The corrective review of parent `9de896dea92e5378d99ef205cd21a29ef9f57fd3`
+records `P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM` as a `CONTRACT_DEFECT`
+(`current main defect: NO`; `PR #47 candidate defect at that parent: YES`) and
+`P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY` as a
+`CONTRACT_PRECISION_DEFECT`.
+
+```text
+P1_SNAPSHOT_TYPE_MUTATION_SCOPE_OVERCLAIM:
+CORRECTED
+
+P2_PUBLIC_SNAPSHOT_CONSTRUCTION_AMBIGUITY:
+CORRECTED
+```
+
+A11-R1 through A11-R17 remain ratified historical decisions. R18 was
+independently reviewed, explicitly human-authorized, and normally merged, so
+the effective contract is A11-R1 through A11-R18. R18 supersedes only the
+sink-facing portions of A11-R1, A11-R2, A11-R3, A11-R10, A11-R13, A11-R14,
+and A11-R16. All other behavior, matrices,
+failure separation, resource limits, leakage prohibitions, dependency
+boundaries, and maturity/authority ceilings in R1-R17 remain in force.
+
+The public service-request API remains exactly:
+
+```python
+ObservabilityService.emit_event(
+    event: ObservabilityEvent | BoundaryErrorEvent,
+) -> None
+
+ObservabilityService.increment_counter(
+    metric: MetricKind,
+) -> None
+
+ObservabilityService.observe_duration(
+    stage: DurationStage,
+    duration_ns: int,
+) -> None
+```
+
+`ObservabilityEvent`, `BoundaryErrorEvent`, `MetricKind`, and `DurationStage`
+are validated request values only. They are not sink arguments and are not
+sink-safe snapshots after R18. Public request construction continues to accept
+exact canonical A11/A5/A7 enums and continues to prove no record existence,
+owner transition, provenance, authentication, evidence, or authority.
+
+### Public snapshot values
+
+R18 adds these four public A11-owned nominal types:
+
+```python
+SubmissionEventSnapshot(
+    kind: str,
+    submission_id: str,
+    submission_state: str,
+    score_status: str | None,
+)
+
+BoundaryErrorSnapshot(
+    error_code: str,
+)
+
+CounterMetricSnapshot(
+    metric_name: str,
+)
+
+DurationMetricSnapshot(
+    stage: str,
+    duration_ns: int,
+)
+```
+
+`SubmissionEventSnapshot` has exactly the ordered fields `kind`,
+`submission_id`, `submission_state`, and `score_status`:
+
+- `kind` is an exact built-in `str` selected from `SUBMIT`, `SCORE`, `REJECT`,
+  `FAILED_STRATEGY`, and `FAILED_INFRA`;
+- `submission_id` is an exact built-in 36-character ASCII `str` in canonical
+  UUIDv4 spelling, after validation through a fresh public A7 `SubmissionId`
+  reconstruction, and remains internal correlation only;
+- `submission_state` is an exact built-in `str` selected from `RECEIVED`,
+  `SCORED`, `REJECTED`, `FAILED_STRATEGY`, and `FAILED_INFRA`; and
+- `score_status` is `None` or the exact built-in `str` `SCORED` or
+  `MANDATORY_GATE_FAILED`.
+
+The exact existing A11-R4 event matrix remains authoritative. The snapshot
+contains no `EventKind`, `SubmissionState`, `ScoreStatus`, `SubmissionId`, or
+other A11/owner enum or nominal object.
+
+`BoundaryErrorSnapshot` has exactly one field, `error_code`. It is an exact
+built-in `str` selected from the existing eleven values:
+
+```text
+mcp.request.invalid
+mcp.resource_limit_exceeded
+mcp.tool_unavailable
+mcp.challenge_unavailable
+mcp.submission_unavailable
+mcp.query_budget_exceeded
+mcp.integration_failure
+leaderboard.request.invalid
+leaderboard.resource.exhausted
+leaderboard.fixture.unavailable
+leaderboard.integration.failed
+```
+
+It contains no `BoundaryErrorKind`, owner error, exception, payload, request
+value, provider value, identity, seed, draw, or arbitrary metadata.
+
+`CounterMetricSnapshot` has exactly one field, `metric_name`, which is an exact
+built-in `str` selected from `SUBMIT_COUNT`, `SCORE_COUNT`, `REJECT_COUNT`, and
+`FAILED_INFRA_COUNT`. It has no label, delta, dynamic name, boundary-error
+counter, gauge, reset, or decrement.
+
+`DurationMetricSnapshot` has exactly the ordered fields `stage` and
+`duration_ns`. `stage` is an exact built-in `str`, `SUBMIT` or `SCORE`, and
+`duration_ns` is an exact built-in `int` in `0..2**64-1`. It has no clock,
+timestamp, label map, or arbitrary dimension.
+
+Every snapshot must be an exact manual slotted non-dataclass nominal class and
+a fresh outer object per admitted service operation. It has no instance
+`__dict__`, rejects normal assignment and deletion, has a fixed safe
+representation, rejects `copy.copy`, `copy.deepcopy`, and pickle, and is
+rejected by `dataclasses.asdict`, `dataclasses.astuple`, and
+`dataclasses.replace`. Its fields contain only exact immutable built-in `str`,
+`int`, or `None` values. No mapping, iterable, descriptor, object graph, owner
+object, enum member, exception, or metadata is retained.
+
+Snapshots are authority-free and are never accepted as service requests.
+Direct public construction of all four snapshot classes is allowed. Each has
+exactly the displayed parameter names and order, and every displayed parameter
+is required. The constructors accept only the exact built-in field types,
+literal sets, canonical UUIDv4 spelling, event-matrix combinations, and integer
+range stated above. They reject `bool`, field-type subclasses, coercible or
+malformed values, extra positional or keyword fields, constructor re-entry,
+and partially initialized values. Construction always creates an exact manual
+slotted non-dataclass instance with no instance `__dict__`, a fixed safe
+representation, and the assignment, deletion, copy, deepcopy, pickle, and
+dataclass-operation rejections stated above. No hidden token, private-factory
+requirement, alternate constructor, or subclass construction is permitted; the
+service uses these same public constructors after deriving exact primitive
+fields. Directly constructed snapshots prove only exact closed shape and
+create no provenance, owner transition, lifecycle, scientific, audit, receipt,
+public, security, settlement, or economic authority. The service rejects all
+four snapshot types as request values.
+
+### Future public surface and module ownership
+
+After R18 is ratified and implemented, the exact ordered
+`carbon.observability.__all__` tuple is:
+
+```python
+(
+    "EventKind",
+    "MetricKind",
+    "DurationStage",
+    "BoundaryErrorKind",
+    "ObservabilityEvent",
+    "BoundaryErrorEvent",
+    "ObservabilityResourceLimits",
+    "SubmissionEventSnapshot",
+    "BoundaryErrorSnapshot",
+    "CounterMetricSnapshot",
+    "DurationMetricSnapshot",
+    "StructuredEventSink",
+    "MetricSink",
+    "ObservabilityService",
+    "ObservabilityError",
+    "ObservabilityRequestError",
+    "ObservabilityResourceError",
+    "ObservabilityIntegrationError",
+)
+```
+
+Exactly eighteen names are exported. The previous fourteen-name surface was
+superseded when R18 normally merged. No owner type, generic logger,
+serializer, provider, mapper, or extra error is exported.
+
+The effective module ownership is:
+
+```text
+model.py
+  EventKind, MetricKind, DurationStage, BoundaryErrorKind
+  ObservabilityEvent, BoundaryErrorEvent, ObservabilityResourceLimits
+  SubmissionEventSnapshot, BoundaryErrorSnapshot
+  CounterMetricSnapshot, DurationMetricSnapshot
+  ObservabilityError, ObservabilityRequestError
+  ObservabilityResourceError, ObservabilityIntegrationError
+  private exact request-validation and public-constructor invocation helpers only
+
+providers.py
+  StructuredEventSink, MetricSink Protocols
+  no concrete, default, or global sink
+
+service.py
+  ObservabilityService
+  request-to-snapshot conversion
+  shared-capacity and same-service reentrancy accounting
+  sink lookup/invocation/return validation and exception translation
+  no owner instrumentation
+
+__init__.py
+  exact ordered eighteen-name re-export tuple only
+```
+
+### Exact Protocol seams
+
+```python
+class StructuredEventSink(Protocol):
+    def emit_event(
+        self,
+        event: SubmissionEventSnapshot | BoundaryErrorSnapshot,
+        /,
+    ) -> None: ...
+
+
+class MetricSink(Protocol):
+    def increment_counter(
+        self,
+        metric: CounterMetricSnapshot,
+        /,
+    ) -> None: ...
+
+    def observe_duration(
+        self,
+        metric: DurationMetricSnapshot,
+        /,
+    ) -> None: ...
+```
+
+The Protocols remain structural and non-runtime-checkable. Concrete sinks
+subclass neither Protocol. No concrete or production sink is added. These
+Protocols are trusted in-process integration seams. Only trusted composition
+supplies sinks at mandatory service construction; miner-controlled or service-
+request input cannot choose or supply a sink implementation.
+
+### Positive request-to-snapshot conversion
+
+Before capacity acquisition or sink access, the service must:
+
+1. validate the exact outer request type;
+2. validate exact canonical enum type, identity, name, and literal value;
+3. validate the existing event matrix or metric/duration boundary;
+4. reconstruct and validate `SubmissionId` through its public A7 constructor
+   where applicable;
+5. map validated semantic values to A11-module-owned hard-coded literal
+   strings;
+6. use the same direct public exact constructor to construct a fresh snapshot
+   containing no request, owner, or enum reference;
+7. acquire non-blocking capacity and reentrancy permission; and
+8. make at most one corresponding sink call.
+
+The service never passes `EventKind`, `MetricKind`, `DurationStage`,
+`BoundaryErrorKind`, `SubmissionState`, `ScoreStatus`, `SubmissionId`,
+`ObservabilityEvent`, or `BoundaryErrorEvent` to a sink. It never carries a
+mutable enum member forward to derive a sink field, traverses or copies an
+enum-member `__dict__`, or consults, copies, retains, renders, or emits a
+caller-added enum attribute. Corrupted enum `_name_` or `_value_` state rejects
+before capacity acquisition and sink access. Snapshot primitives come from
+A11-owned fixed literal tables after exact validation. No sanitizing mutation
+or snapshot-and-restore of shared enum state is permitted, and no ordinary or
+process-global lock is held across sink code.
+
+### Exact snapshot-instance mutation-isolation scope
+
+```text
+Mutation of the supplied snapshot instance and its declared primitive fields,
+including normal assignment and object.__setattr__, cannot alter caller,
+owner, retained, concurrent, another-service, or later A11 state.
+```
+
+Each sink receives one fresh per-call snapshot instance. A sink may use Python
+escape hatches to alter that instance, but the retained instance cannot affect
+another call because its declared fields are exact immutable built-in
+primitives, it contains no shared mutable owner or enum reference, and A11
+never reuses a snapshot object.
+
+A11 does not defend against sink code that deliberately retrieves and mutates
+the snapshot class, A11 module globals, owner classes/modules, or any other
+process global.
+
+Such class/global mutation is outside the trusted in-process sink contract and
+requires process isolation or capability restriction, neither of which Wave A
+implements or claims.
+
+This exclusion does not permit A11 to pass a shared enum, owner nominal,
+request object, mapping, exception, metadata, or other mutable shared instance.
+Caller-added enum attributes remain excluded; no shared enum sanitize/restore
+occurs; and no ordinary mutex is held across sink code. Production-sink
+hardening, process isolation, plugin capability restriction, and hostile-sink
+qualification remain separately deferred. A11 claims no resistance to
+arbitrary malicious Python executing in the same process. `SECURITY_QUALIFIED`
+and `PRODUCTION_QUALIFIED` remain `NO`.
+
+### Dependencies, implementation evidence, and maturity
+
+The service-request dependency remains:
+
+```text
+model.py
+  → Python standard library
+  → public SubmissionId and SubmissionState from carbon.fees
+  → public ScoreStatus from carbon.scoring
+```
+
+Snapshot types depend only on Python built-ins and local A11 validation. No
+A5/A7 owner source changes, runtime owner monkey-patching, A9/A10 production
+import, owner import of `carbon.observability`, or owner-service
+instrumentation is authorized.
+
+The merged implementation proves in both source-tree and installed-wheel tests
+that caller-added enum attributes never enter snapshots; sinks
+receive no enum or `SubmissionId`; snapshot fields are exact built-in
+primitives; semantic enum corruption rejects; all four direct public exact
+constructors enforce their displayed required parameters and closed values;
+each call receives a distinct outer snapshot; normal assignment or
+`object.__setattr__` mutation of the supplied snapshot instance and its
+declared primitive fields cannot affect the caller, owner enums, another
+service, concurrent operations, or later calls; a retained snapshot-instance
+mutation cannot affect a later call; no snapshot-and-restore global mutation
+or lock across sink execution exists; deliberate snapshot-class/module/global
+mutation is outside the trusted seam and is not an instance-isolation proof;
+the prior dataclass/copy/pickle protections and event matrix remain intact;
+the exact eighteen-name surface and revised Protocols hold; and the exact
+implementation delta leaves A5/A7 owner source, owner services, A12, and Wave
+B unchanged. The final private allocation mechanism binds a one-shot weak
+eligibility record to exact snapshot identity, consumes it before validation,
+and permits abandoned allocations to be collected.
+
+Current-main and fresh closeout engineering evidence is authoritative only for
+the bounded A11 implementation/test claim. It creates no broader qualification
+or operational authority.
+
+```text
+A11-R1 through A11-R18:
+RATIFIED
+
+A11 IMPLEMENTED:
+YES on current main for the bounded in-process scope
+
+A11 TESTED:
+YES only for the exact recorded engineering scope
+
+PR #46:
+merged normally as e2496e92eeae31befdaa430501bb9f00b0e6339e
+
+A11 SCIENTIFICALLY_QUALIFIED:
+NO
+
+A11 SECURITY_QUALIFIED:
+NO
+
+A11 NETWORK_QUALIFIED:
+NO
+
+A11 COMMERCIALLY_VALIDATED:
+NO
+
+A11 PRODUCTION_QUALIFIED:
+NO
+
+A11 WAVE STATUS:
+done
+
+A12:
+todo
+
+Wave A:
+incomplete
+
+Wave B:
+inactive
+```
 
 ---
 
 # 7. A12 constitutional contract
 
-Wave-A invariant tests should close on current enforceable guarantees and explicitly reserve future ones.
+> **A12 implementation and closeout gate.** PR #50 ratified the exact contract
+> below, and PR #51 normally merged its bounded invariant judge and dedicated
+> CI lane into current main. The present eight-file documentation candidate
+> proposes only the administrative A12 `done` and Wave A `closed` transition.
+> Those statuses become repository authority only after the exact closeout
+> head is independently reviewed, explicitly human-authorized, and normally
+> merged. A branch, draft pull request, or green pull-request CI creates no
+> closure, Wave-B activation, launch authority, or qualification claim.
 
-Current required themes:
+## 7.1 Exact denominator and authority
 
-- seed secrecy;
-- mock isolation;
-- pin integrity;
-- disclosure allow-list;
-- LIVE qualification gate;
-- forbidden score inputs;
-- infra != science;
-- deterministic fixture execution;
-- placeholder/stub cannot become LIVE/production evidence;
-- fees/payment do not alter score;
-- A8 fixture path cannot publish emission/settlement entitlement.
+The A12 denominator is exactly the twelve numbered cross-cutting invariants in
+`Design_Specs/Build_Out.md` section 2, in their original order and meaning.
+The former eleven bullets in this section were current Wave-A themes, not a
+replacement manifest. A11 redaction, fee/payment isolation, and A8
+non-emission are evidence under existing numbered rows rather than new rows.
 
-Future frontier/treasury/product invariants belong to later waves once their types exist.
+1. **No seed leakage.** Official seeds, derived seeds, draw IDs, or reversible
+   identifiers never appear in EvaluationCard, leaderboard, MCP outputs, or
+   miner-visible logs.
+2. **Practice isolation.** Nominal practice/research execution never accesses
+   official packs, official entropy/seeds, or protected exam data.
+3. **Pinned evaluation.** Every scored submission is bound to immutable
+   challenge / generator / Score Pack / backend (container digest) versions.
+4. **Disclosure allow-list.** InternalResult / Model Card fields are never
+   returned on miner-facing APIs unless explicitly allow-listed for the
+   disclosure tier.
+5. **LIVE requires qualification.** LIVE challenges require a complete signed
+   human qualification manifest for that exact challenge version (not merely
+   non-null YAML).
+6. **Execution isolation.** Miner-supplied strategies run under enforced
+   compute, network, filesystem, and wall-clock limits. Strategy execution
+   isolation is a **P0 security invariant**; implementation may live in ops
+   documentation, but the requirement is here.
+7. **Infra ≠ science.** Infrastructure failures such as OOM policy kill, node
+   death, or queue loss are never scored as scientific / physics failures and
+   never grant emissions.
+8. **Determinism.** Re-running an identical official evaluation under
+   identical versions, seeds, and limits is deterministic within documented
+   tolerances.
+9. **No placeholder LIVE.** Placeholder, fixture, or mock values never enter
+   LIVE configuration or emission weights.
+10. **No silent rescore.** Historical evaluation records are never silently
+    reinterpreted under newer packs; new pack ⇒ new scoring_version for future
+    runs only.
+11. **Forbidden score inputs.** Prior similarity/alignment, `estimate`,
+    resource forecasts, practice/`light_*` metrics, research information
+    value, exam fee, and mock metrics never enter `S_combined` / Yuma weights.
+12. **Practice is useful without revealing the realized exam.** Carbon
+    measures leakage as incremental ability to infer protected official cases,
+    realized stress composition, exact margins, or unresolved ordering after
+    controlling for physics performance on evaluator-held shadow cases sampled
+    from the declared distribution. Transferable rank improvement can reflect
+    better physics and is not itself a leak. Practice remains
+    declared-incomplete and outside official lifecycle, score, and scheduling
+    authority.
+
+These rows are labeled A12-R1 through A12-R12 only for the A12 plan, ticket,
+evidence crosswalk, and future CI output. The labels do not create a second
+semantic owner.
+
+## 7.2 Current Wave-A evidence ceiling
+
+The exact current projections are:
+
+- R1 uses A4 secrecy plus A6/A9/A10 public projections and A11
+  positive-construction/forbidden-material coverage. A11 redaction is shared
+  R1/R4 evidence, not a thirteenth A12 invariant.
+- R2 preserves nominal practice/research isolation. Wave A has no practice
+  execution backend; fixture/mock domain separation and unavailable practice
+  paths are supporting fail-closed evidence, not a claim that estimate or
+  scaffold lookup is practice execution.
+- R3 uses the immutable identity and pin checks owned across A3, A4, A5, A7,
+  and A8.
+- R4 uses the positive public/sink allow-lists owned by A6, A9, A10, and A11.
+- R5 proves only exact-version fail-closed qualification binding. It does not
+  qualify a signer, key-custody system, backend, Challenge, or scientific exam.
+- R6 passes only as a negative capability boundary because no miner-controlled
+  production runtime exists. A8 is a fixture stub, not a sandbox. No security
+  or production qualification follows.
+- R7 preserves A5 scientific-input boundaries and A7/A8 typed
+  infrastructure-versus-science, retry, refund, and `FAILED_INFRA` semantics.
+- R8 proves only exact pinned fixture reproducibility. It supplies no human
+  scientific tolerance or production reproducibility evidence.
+- R9 includes the existing A8 non-production/false-emission and A10
+  fixture-only boundaries. Future production-evidence and
+  emission/settlement-entitlement types remain reserved.
+- R10 uses immutable owner pins/results, no overwrite, and prospective pack
+  versioning. It does not claim a production-qualified durable historical
+  store.
+- R11 includes A5 forbidden-input construction and A7 fee isolation.
+  Fee/payment does not alter score, but that is a required subcase rather than
+  a separate invariant.
+- R12 proves only that current non-executing practice-facing surfaces are
+  declared-incomplete and outside official lifecycle, score, and scheduling.
+  It does not establish practice usefulness, leakage thresholds, or
+  shadow-case scientific adequacy.
+
+The broader current, future scientific, business, and publication invariants
+remain binding. They do not alter the exact A12 twelve-row denominator.
+
+## 7.3 Bounded implementation, failure enforcement, and future reservation
+
+PR #51 normally merged the bounded A12 implementation at independently
+reviewed final head `33b4626a1ffe7d0c65336336a870a8f4a73ab92f` as signed merge
+`2a8b273a1167588efb4a11159da5224264d5b37a`, tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`. Its exact seven-file manifest is
+the dedicated workflow lane plus the six `tests/invariants/` implementation
+paths. The canonical entrypoint is exactly:
+
+```text
+python -m pytest tests/invariants -m invariant -q
+```
+
+The machine crosswalk locks exact Build-Out section 2 contract equality and
+the ordered A12-R1 through A12-R12 denominator. It maps twelve unique
+dedicated row proofs and sixteen unique infrastructure proofs, for exactly 28
+marked invariant tests. Every mapped node resolves through strict canonical
+path containment; every supporting owner node resolves below canonical
+`tests/cpu`; and no test in the dedicated invariant suite is unmapped.
+
+The committed guard fails the lane for no tests, a missing or empty target,
+zero marker matches, any deselection, collection-time or runtime skip, xfail,
+or xpass. Twelve direct entrypoint cases exercise the marked pass/failure
+controls and each fail-closed condition against the real guard. Canonical
+traversal and symlink canaries also prevent a lexical path alias from escaping
+the allowed evidence roots. Imported owner tests, exception swallowing,
+private-state manufacture, proof weakening, and reinterpretation remain
+prohibited.
+
+Exact post-merge main push run `33250521376` succeeded on that merge:
+invariant job `99095290077` reported `28 passed in 4.22s`; CPU job
+`99095290170` reported `2310 passed in 59.52s`; and Code-quality job
+`99095290146` retained `Ruff 757/776`, `Black 62/68`, removed debt `19/6`, five
+changed Python files clean, and no new debt. The closeout audit separately
+records `24/24` A12 ticket criteria, `12/12` semantic rows, and `9/9`
+Build-Out section 12 Wave A acceptance criteria. No owner implementation defect
+or new owner decision remains.
+
+These results establish only bounded engineering implementation and test
+evidence. A12 is `SPECIFIED / RATIFIED: YES`, `IMPLEMENTED: YES` in the bounded
+invariant-judge/CI scope, and `TESTED: YES` as bounded engineering evidence.
+`SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`,
+`COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED` all remain `NO`. A12
+`done` and Wave A `closed in bounded engineering scope` remain conditional on
+independent review, explicit human authorization, and normal merge of the
+exact closeout head. Wave B remains inactive; closing Wave A neither activates
+it nor authorizes B-01.
+
+If a future audit exposes an owner defect or unresolved scientific, security,
+protocol, or economic decision, preserve the failing invariant. Do not skip,
+xfail, deselect, swallow exceptions, import owner tests as dedicated proof,
+weaken, reinterpret, or manufacture private state to make the lane green.
+
+Receipt canonicalization/hash/signature stability, non-disclosing commitment
+types, qualified production backends, empirical leakage measurement,
+frontier/Product Qualification, treasury/settlement, chain, weight, and
+emission objects remain later-owner work where those types do not exist.
+Future frontier/treasury/product invariants belong to later waves once their
+types exist; A12 may prove only the current absence of that authority and may
+not invent the types.
 
 ---
 
@@ -749,6 +1889,7 @@ When Waves B–D begin, `Build_Out.md` should be revised or supplemented to make
 ```text
 PhysicalSystemSpec
 CandidateOutputContract
+CandidateAssemblyContract
 InstanceDistributionContract
 SamplingPlan
 CanonicalChallengeCase
@@ -756,10 +1897,28 @@ ReferencePolicy
 MeasurementContract
 Validation Dossier
 Score Pack / Evidence Use Contract
+ParameterCatalog
+ResolvedConstructionPlan
+ChallengeInteractionManifest
+ResearchTask
 ExperimentRecord
+ResearchReceipt
+PriorPack
+PriorPolicyBundle
+PriorIndexSnapshot
+PriorPublicationReceipt
+PriorDisclosureLedger
+PublicEstimand
 ```
 
 The scientific job owns the population. The generator does not define the population merely by what it happens to sample.
+
+The miner research surface must also distinguish public contract facts,
+evidence-labeled priors, candidate-specific practice measurements, and official
+evidence. Strategy parameters receive executable meaning only through a
+Challenge-bound catalog and deterministic compiler. Practice and official
+execution remain nominally separate. Prior, practice, scaffold, forecast, and
+information-value artifacts never acquire score authority.
 
 ---
 

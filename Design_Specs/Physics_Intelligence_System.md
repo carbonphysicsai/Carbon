@@ -119,7 +119,11 @@ No agent may invent a production information budget or leakage threshold. Human 
 2. Raising granularity is an explicit policy revision, not an incidental API change.
 3. New miner-facing Landscape outputs must be included in the Challenge's disclosure analysis before publication.
 4. Raw official seeds, draw IDs, reversible identifiers, private per-case breakdowns, and other directly reconstructive fields remain forbidden regardless of budget.
-5. Mock/free surfaces must remain scientifically honest inside their declared scope while remaining non-oracular with respect to the official exam.
+5. Practice/free surfaces must remain scientifically honest inside their
+   declared scope. Security review measures incremental inference of protected
+   official realizations, mixtures, margins, and unresolved ordering after
+   controlling for performance on evaluator-held shadow cases from the declared
+   distribution. Transferable physics improvement is allowed.
 6. Historical results remain bound to the disclosure/evaluation policy under which they were generated.
 
 ## 2.4 Audit object
@@ -156,7 +160,9 @@ A Challenge can remain physically valid while becoming less useful as a discrimi
 Carbon therefore distinguishes:
 
 - **scientific validity** — the generator/envelope still represents the claimed physics;
-- **evaluation health** — the protected exam still provides useful, non-oracular discrimination under adaptive participation.
+- **evaluation health** — the protected exam still discriminates useful physics
+  improvements while resisting incremental inference of its protected realized
+  cases, mixtures, margins, and unresolved ordering.
 
 ## 3.2 Evaluation-health telemetry
 
@@ -166,7 +172,8 @@ The system may monitor evidence such as:
 - population convergence;
 - declining strategy diversity;
 - declining discrimination between frontier strategies;
-- mock/official rank-substitution risk;
+- incremental protected-realization inference after controlling for
+  evaluator-held shadow-case physics performance;
 - diagnostic / disclosure accumulation;
 - suspiciously stable exploitation of known feedback surfaces;
 - repeated Challenge-specific failure modes no longer separating methods.

@@ -1,6 +1,7 @@
 # Carbon Evaluation Evidence & Validator Audit Specification
 
-**Status:** Normative architecture extension — ratified for implementation planning  
+**Revision:** 1.1 candidate amendment (2026-08-26)
+**Status:** OWNER-RATIFICATION PROPOSAL — the previously ratified architecture remains authoritative; revision 1.1's scientific-repeat and dependence rules require explicit Physics/SciML, statistics, and protocol-owner acceptance.
 **Scope:** P0 evidence spine, backend qualification, validator accountability, testnet auditability, future proof-readiness  
 **Authority:** This document owns execution evidence, evaluation receipts, reproducibility qualification, validator audit/re-execution, and scientific-vs-emission consensus separation. It does **not** override `Scoring.md`, `Data_Management.md`, `Trustless_Verification.md`, `Miner_MCP.md`, generator qualification specs, or `Launch_Bar.md` in their owned domains.
 
@@ -160,6 +161,38 @@ Repeated honest evaluation must be stable enough that backend noise does not unp
 
 A result inside the qualified uncertainty band of a mandatory threshold is **CONTESTED / NON-EMITTING pending retry**, not automatically a physics failure.
 
+For ranking or promotion, R2 is evaluated over separately realized,
+producer-independent reconstruction replicates and common whole physical cases
+or trajectories stratified by the registered stress design. Registered paired
+seeds or common random numbers are permitted, but shared data, backbone,
+seed-role, hardware, implementation, reference, representation, and execution
+dependence remains in the model. The procedure must diagnose reconstruction-by-
+case interaction and propagate joint reference uncertainty. A Challenge
+Dossier qualifies the interval procedure and its applicability test; the exact
+incumbent-challenger evidence must also satisfy that test before a zero-
+covariance or quadrature shortcut is allowed.
+
+### 4.1 Scientific stability repeats are not validator-integrity audits
+
+Carbon uses two different repeat mechanisms:
+
+- a **scientific reconstruction-stability repeat** samples the registered
+  construction process to estimate failure probability, variability, tails,
+  and reconstruction-by-case interaction. It is governed by the
+  `ReconstructionEvidencePolicy` and may enter the paired scientific decision
+  interval; and
+- a **validator-integrity re-execution audit** under §9 tests whether an
+  evaluator honestly executed and reported a committed contract. Its audit
+  selection, disagreement, and quarantine evidence does not substitute for
+  the scientific replicate design and does not directly change candidate
+  score.
+
+One execution may serve both roles only when the Challenge prospectively binds
+both roles, preserves the required provenance and sampling design, and prevents
+double-counting it as two independent units. Receipts and Dossiers label the
+role explicitly as `SCIENTIFIC_STABILITY_REPEAT`, `VALIDATOR_INTEGRITY_AUDIT`,
+or a prospectively authorized dual role.
+
 ---
 
 ## 5. Backend qualification
@@ -297,6 +330,11 @@ Similarity metrics may be used for telemetry and audit prioritization, never as 
 ## 9. Probabilistic re-execution audits
 
 Carbon SHOULD add randomized secondary evaluation audits once real backend execution exists.
+
+These are validator-integrity audits, not the scientific reconstruction-
+stability repeats defined in §4.1. A high integrity-audit rate cannot repair an
+underpowered scientific repeat design, and scientific repeat evidence cannot
+excuse a dishonest or irreproducible evaluator.
 
 Lifecycle:
 
