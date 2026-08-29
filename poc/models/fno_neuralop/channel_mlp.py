@@ -13,11 +13,11 @@ has no meaningful cross-framework numerical parity target.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
 
 from poc.models.fno_neuralop.activations import exact_gelu
 
@@ -40,14 +40,16 @@ class ChannelMLP1D(nn.Module):
     """
 
     in_channels: int
-    out_channels: Optional[int] = None
-    hidden_channels: Optional[int] = None
+    out_channels: int | None = None
+    hidden_channels: int | None = None
     n_layers: int = 2
     non_linearity: Callable = exact_gelu
     dropout: float = 0.0
     param_dtype: jnp.dtype = jnp.float32
 
-    def _layer_dims(self, i: int, out_channels: int, hidden_channels: int) -> tuple[int, int]:
+    def _layer_dims(
+        self, i: int, out_channels: int, hidden_channels: int
+    ) -> tuple[int, int]:
         """Returns (fan_in, fan_out) for layer i."""
         if i == 0 and i == self.n_layers - 1:
             return self.in_channels, out_channels
@@ -66,9 +68,13 @@ class ChannelMLP1D(nn.Module):
                 "target); use dropout=0.0."
             )
 
-        out_channels = self.out_channels if self.out_channels is not None else self.in_channels
+        out_channels = (
+            self.out_channels if self.out_channels is not None else self.in_channels
+        )
         hidden_channels = (
-            self.hidden_channels if self.hidden_channels is not None else self.in_channels
+            self.hidden_channels
+            if self.hidden_channels is not None
+            else self.in_channels
         )
 
         for i in range(self.n_layers):
@@ -81,9 +87,7 @@ class ChannelMLP1D(nn.Module):
             weight = self.param(
                 f"weight_{i}", _uniform_init, (fan_out, fan_in), self.param_dtype
             )
-            bias = self.param(
-                f"bias_{i}", _uniform_init, (fan_out,), self.param_dtype
-            )
+            bias = self.param(f"bias_{i}", _uniform_init, (fan_out,), self.param_dtype)
             x = jnp.einsum("oi,bix->box", weight, x) + bias[None, :, None]
             if i < self.n_layers - 1:
                 x = self.non_linearity(x)

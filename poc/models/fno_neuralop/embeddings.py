@@ -9,14 +9,12 @@ parameters.
 
 from __future__ import annotations
 
-from typing import Tuple
-
-import jax.numpy as jnp
 import flax.linen as nn
+import jax.numpy as jnp
 
 
 class GridEmbedding1D(nn.Module):
-    grid_boundaries: Tuple[float, float] = (0.0, 1.0)
+    grid_boundaries: tuple[float, float] = (0.0, 1.0)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:

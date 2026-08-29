@@ -28,9 +28,9 @@ long residual bypassing two sublayers, not two short sequential ones.
 
 from __future__ import annotations
 
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
 
 from poc.models.fno_neuralop.activations import exact_gelu
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
@@ -58,19 +58,21 @@ class FNOBlocks1D(nn.Module):
     def __call__(self, x: jnp.ndarray, layer_idx: int) -> jnp.ndarray:
         """x: (batch, in_channels, nx) -> (batch, out_channels, nx)."""
         if not (0 <= layer_idx < self.n_layers):
-            raise ValueError(
-                f"layer_idx={layer_idx} out of range [0, {self.n_layers})"
-            )
+            raise ValueError(f"layer_idx={layer_idx} out of range [0, {self.n_layers})")
         is_last = layer_idx == self.n_layers - 1
 
         def _uniform_init(key, shape, dtype, fan_in):
             bound = 1.0 / (fan_in**0.5)
-            return jax.random.uniform(key, shape, minval=-bound, maxval=bound, dtype=dtype)
+            return jax.random.uniform(
+                key, shape, minval=-bound, maxval=bound, dtype=dtype
+            )
 
         # fno_skip="linear": unbiased 1x1 conv/Dense, from the block's input.
         skip_fno_weight = self.param(
             f"fno_skip_weight_{layer_idx}",
-            lambda key, shape, dtype: _uniform_init(key, shape, dtype, self.in_channels),
+            lambda key, shape, dtype: _uniform_init(
+                key, shape, dtype, self.in_channels
+            ),
             (self.out_channels, self.in_channels),
             self.param_dtype,
         )

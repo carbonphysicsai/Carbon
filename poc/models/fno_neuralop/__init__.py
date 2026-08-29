@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
 from poc.models.fno_neuralop.embeddings import GridEmbedding1D
-from poc.models.fno_neuralop.fno_block import FNOBlocks1D
 from poc.models.fno_neuralop.fno import FNO
+from poc.models.fno_neuralop.fno_block import FNOBlocks1D
 from poc.models.fno_neuralop.spectral_conv import SpectralConv1D
 
-__all__ = ["SpectralConv1D", "ChannelMLP1D", "GridEmbedding1D", "FNOBlocks1D", "FNO"]
+__all__ = ["FNO", "ChannelMLP1D", "FNOBlocks1D", "GridEmbedding1D", "SpectralConv1D"]

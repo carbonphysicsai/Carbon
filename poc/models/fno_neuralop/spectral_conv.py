@@ -25,9 +25,9 @@ default.
 
 from __future__ import annotations
 
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
 
 
 class SpectralConv1D(nn.Module):
@@ -39,8 +39,14 @@ class SpectralConv1D(nn.Module):
     n_modes : int
         Requested number of Fourier modes, matching the PyTorch
         `SpectralConv(in_channels, out_channels, (n_modes,), ...)` calling
-        convention. The number of complex coefficients actually retained is
-        `min(n_modes // 2 + 1, nx // 2 + 1)` — see module docstring step 1.
+        convention. Parameter storage is always allocated for
+        `n_modes // 2 + 1` coefficients — fixed by this config value alone,
+        independent of any particular call's input resolution, matching
+        upstream's `max_n_modes` (which defaults to `n_modes`, not to a
+        per-call `min(..., nx)`). Only `min(n_modes // 2 + 1, nx // 2 + 1)`
+        of those allocated coefficients are actually used in a given call
+        — see module docstring step 1 — so the same parameters can be
+        reused across inputs of different `nx` without a shape mismatch.
     bias : bool, default True
     fft_norm : str, default "forward"
         Matches the current `neuralop.layers.spectral_convolution.SpectralConv`
@@ -58,10 +64,10 @@ class SpectralConv1D(nn.Module):
     enforce_hermitian_symmetry: bool = True
     param_dtype: jnp.dtype = jnp.float32
 
-    def _kept_modes(self, nx: int) -> int:
-        requested = self.n_modes // 2 + 1
-        nfreq = nx // 2 + 1
-        return min(requested, nfreq)
+    def _allocated_modes(self) -> int:
+        """Parameter-storage mode count: a function of `n_modes` alone,
+        never of a particular call's `nx` (see class docstring)."""
+        return self.n_modes // 2 + 1
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -72,7 +78,7 @@ class SpectralConv1D(nn.Module):
                 f"expected in_channels={self.in_channels}, got {in_channels}"
             )
 
-        kept_modes = self._kept_modes(nx)
+        allocated_modes = self._allocated_modes()
         init_std = (2.0 / (self.in_channels + self.out_channels)) ** 0.5
 
         def _normal_init(key, shape, dtype):
@@ -81,19 +87,26 @@ class SpectralConv1D(nn.Module):
         weight_real = self.param(
             "weight_real",
             _normal_init,
-            (self.in_channels, self.out_channels, kept_modes),
+            (self.in_channels, self.out_channels, allocated_modes),
             self.param_dtype,
         )
         weight_imag = self.param(
             "weight_imag",
             _normal_init,
-            (self.in_channels, self.out_channels, kept_modes),
+            (self.in_channels, self.out_channels, allocated_modes),
             self.param_dtype,
         )
-        weight = weight_real + 1j * weight_imag
 
         x_ft = jnp.fft.rfft(x, axis=-1, norm=self.fft_norm)
         nfreq = x_ft.shape[-1]
+        # Modes actually used this call -- bounded by both the allocated
+        # weight and this input's spectrum, but the allocation itself
+        # (above) never depends on nx, so the same params reuse cleanly
+        # across resolutions.
+        kept_modes = min(allocated_modes, nfreq)
+        weight = (
+            weight_real[..., :kept_modes] + 1j * weight_imag[..., :kept_modes]
+        )
 
         x_ft_low = x_ft[..., :kept_modes]
         out_low = jnp.einsum("bik,iok->bok", x_ft_low, weight)

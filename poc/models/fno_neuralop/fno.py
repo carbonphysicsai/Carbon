@@ -24,10 +24,8 @@ padding, resolution scaling, non-default norms).
 
 from __future__ import annotations
 
-from typing import Optional
-
-import jax.numpy as jnp
 import flax.linen as nn
+import jax.numpy as jnp
 
 from poc.models.fno_neuralop.channel_mlp import ChannelMLP1D
 from poc.models.fno_neuralop.embeddings import GridEmbedding1D
@@ -48,7 +46,7 @@ class FNO(nn.Module):
     n_layers: int = 4
     lifting_channel_ratio: float = 2
     projection_channel_ratio: float = 2
-    positional_embedding: Optional[str] = "grid"
+    positional_embedding: str | None = "grid"
     channel_mlp_expansion: float = 0.5
 
     @nn.compact
