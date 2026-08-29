@@ -104,9 +104,7 @@ class SpectralConv1D(nn.Module):
         # (above) never depends on nx, so the same params reuse cleanly
         # across resolutions.
         kept_modes = min(allocated_modes, nfreq)
-        weight = (
-            weight_real[..., :kept_modes] + 1j * weight_imag[..., :kept_modes]
-        )
+        weight = weight_real[..., :kept_modes] + 1j * weight_imag[..., :kept_modes]
 
         x_ft_low = x_ft[..., :kept_modes]
         out_low = jnp.einsum("bik,iok->bok", x_ft_low, weight)
