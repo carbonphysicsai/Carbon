@@ -1,6 +1,13 @@
 # Burgers v1 — JAX/Flax FNO Neuraloperator Parity Port
 
-**Status:** DRAFT — design note, pending review. Not yet implemented.
+**Status:** Non-authoritative research candidate. No Wave/ticket authority
+is claimed for this work — it carries no active `.agent/` ticket, is not
+part of the current Wave B buildout on `main`, and creates no scientific,
+security, or production qualification. It is scoped as an independent
+architecture-and-reference-implementation port that a future ticket (e.g.
+a prospective B-02B contract) could adopt, not as something already
+authorized. See "Implementation status" below for what actually exists on
+this branch today versus what remains planned.
 **Purpose:** map the official PyTorch `neuraloperator` FNO architecture to a
 JAX/Flax Linen port module-for-module, specify how that port and a new
 periodic Cole–Hopf reference plug into the Burgers v1 exam flow described in
@@ -10,8 +17,25 @@ apparatus.
 **Related:** `docs/context/Carbon_Independent_Exam_Burgers_v1.md`,
 `Design_Specs/POC_Burgers_FNO.md`, `Design_Specs/Scoring.md`,
 `Design_Specs/Scoring_Formulas.md`, `docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md`,
-`docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` (MQ-001, MQ-004, MQ-005),
+`docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` (MQ-001: `READY_TO_RATIFY`,
+MQ-004: `EVIDENCE_REQUIRED`, MQ-005: `EVIDENCE_REQUIRED` — none of these are
+ratified; this note treats them as architect recommendations only, see §6.1),
 upstream `github.com/neuraloperator/neuraloperator`.
+
+## Implementation status
+
+| Component | Status |
+|---|---|
+| `SpectralConv1D`, `ChannelMLP1D`, `GridEmbedding1D`, `FNOBlocks1D`, `FNO` (Flax Linen) | **Implemented and tested** — 22 cross-framework cases pass against installed `neuraloperator==2.0.0` and against current upstream `main` source. |
+| Scope of that test evidence | **Shared-weight fp32 forward-pass parity only.** It does *not* establish initialization-scheme parity, gradient parity, optimizer/training-trajectory parity, packaging parity, or reconstruction-runtime parity. If JAX training becomes the canonical reconstruction executor, that is a separate qualification claim requiring its own tests under the relevant reconstruction contract. |
+| Cole–Hopf reference solver | **Not implemented.** Planned (§9 step 6). |
+| Fixed-ν, zero-mean bounded-Fourier generator | **Not implemented.** Planned (§9 step 7). |
+| Doc-derived stress strata | **Not implemented.** Planned (§9 step 8). |
+| The four mandatory gates (doc §14) | **Not implemented.** Planned (§9 step 7). |
+| Doc-exact soft scoring (doc §15–18) | **Not implemented.** Planned (§9 step 8). |
+| `run_exam.py` integration harness | **Not implemented.** Planned (§9 step 9). |
+| Scientific qualification | **No.** No claim is made or implied. |
+| Production qualification | **No.** No claim is made or implied. |
 
 ---
 
@@ -32,10 +56,11 @@ separately-labeled code that computes the exam doc's formulas directly, for
 dossier-building and mechanism-proving — not a new LIVE Score Pack.
 
 **Existing code found along the way that this note does *not* fix:** a
-fixed-vs-ranged viscosity conflict with ratified MQ-001, a broken kwarg
-mismatch in `carbon/backbones/neural_operator.py`, and three formula
-divergences between the exam doc/`Scoring.md` and the PoC's live
-`poc/eval/score.py`. All flagged in §6, none touched by this branch.
+fixed-vs-ranged viscosity inconsistency against MQ-001's (unratified,
+`READY_TO_RATIFY`) recommendation, a broken kwarg mismatch in
+`carbon/backbones/neural_operator.py`, and three formula divergences
+between the exam doc/`Scoring.md` and the PoC's live `poc/eval/score.py`.
+All flagged in §6, none touched by this branch.
 
 ---
 
@@ -109,15 +134,27 @@ deciding it here.
 
 **Dependencies:** parity tests need both the JAX stack (`poc` extra) and the
 real PyTorch `neuraloperator` package (`neuraloperator` extra). Neither
-extra alone is enough; install `pip install -e ".[poc,neuraloperator]"` for
-local parity testing. Propose adding `flax>=0.9` to the `poc` extra (only
-`jax`/`numpy`/`pyyaml` currently listed). Parity tests should
-`pytest.importorskip` both stacks so default CI (whichever extras are
-installed) stays green, and should be registered in `poc/tests/conftest.py`'s
-existing `(file, test_name)` allowlist pattern under `backend_jax`; a new
-`backend_torch` marker (registered in `pyproject.toml`) is proposed for the
-PyTorch-side requirement, following the same classification-not-autouse
-convention already used for `backend_jax`.
+extra alone is enough; install `pip install -e ".[dev,poc,neuraloperator]"`
+for local parity testing (verified this combination installs cleanly and
+`neuraloperator`'s own metadata pulls in `tensorly`/`tensorly-torch`/
+`opt_einsum` transitively — no separate install step needed for those).
+`flax>=0.9` was added to the `poc` extra (previously only `jax`/`numpy`/
+`pyyaml`).
+
+**Correction from an earlier draft of this note:** this design note
+originally said the classification would go through `poc/tests/conftest.py`'s
+`(file, test_name)` allowlist. That is wrong and was never actually
+implemented that way — `tests/cpu/test_fno_neuralop_parity.py` lives under
+`tests/cpu/`, not `poc/tests/`, and `poc/tests/conftest.py`'s hook only
+processes tests under `poc/tests/`; registering it there would have had no
+effect. What the test file actually does is set
+`pytestmark = [pytest.mark.backend_jax, pytest.mark.backend_torch]` directly
+at module level (both markers registered in `pyproject.toml`). Because the
+default CI `test` job installs only `.[dev]`, the whole module previously
+skipped via `pytest.importorskip` at collection time and never ran; a
+dedicated `test-fno-parity` CI job (`.github/workflows/ci.yml`) now installs
+`.[dev,poc,neuraloperator]` and runs this file specifically, so it's
+exercised on every push/PR instead of silently skipping.
 
 ---
 
@@ -234,6 +271,32 @@ FFT only); the legacy module defaults to `"backward"`. The port uses
 `norm="forward"` for both `jnp.fft.rfft`/`jnp.fft.irfft` to match current
 upstream.
 
+### 4.5 Parameter allocation must be independent of the input resolution used at `init()`
+
+Caught in review, not by the parity tests as originally written: an earlier
+version of `SpectralConv1D` computed the *allocated* parameter shape as
+`min(n_modes // 2 + 1, nx // 2 + 1)` — i.e. as a function of whichever `nx`
+happened to be passed to `.init()`. Upstream's weight tensor is allocated
+once at construction time from `n_modes`/`max_n_modes` alone (never from a
+forward-call input), which is exactly what gives FNO its discretization
+invariance — the same trained weights apply at any resolution. Binding
+allocation to the init-time `nx` broke that: reusing the same params at a
+different resolution later requested a differently-sized parameter slice
+than what was actually stored, raising `flax.errors.ScopeParamShapeError`.
+
+Fixed by separating the two concerns: `_allocated_modes()` returns
+`n_modes // 2 + 1` unconditionally (this is the parameter's real shape,
+always), and `kept_modes = min(allocated_modes, nfreq)` is computed fresh
+inside `__call__` from the *current* call's `nx` purely to decide how much
+of that fixed-size weight to slice into the einsum — never to size the
+parameter itself.
+`tests/cpu/test_fno_neuralop_parity.py::test_spectral_conv1d_reused_across_resolutions`
+is a regression test for this: it inits at one `nx`, applies at a different
+one, and asserts both that the allocated shape matches `n_modes // 2 + 1`
+and that `.apply()` doesn't raise. Confirmed this test actually catches the
+regression (fails against the pre-fix code, passes against the fix) before
+relying on it.
+
 ---
 
 ## 5. `FNOBlocks1D` — residual wiring (non-obvious, verified by reading `forward_with_postactivation`)
@@ -276,18 +339,26 @@ lifting_channel_ratio(2) * hidden_channels`, `n_layers=2`. Projection:
 
 ## 6. Findings on existing code (flagged, not fixed by this branch)
 
-### 6.1 ν must be fixed at 5×10⁻³ for v1 — current PoC config uses ranges
+### 6.1 Fixed ν = 5×10⁻³ is the architect-recommended candidate for v1, not yet ratified — current PoC config uses ranges
 
-Both the exam doc and ratified `MASTER_OPEN_DESIGN_QUESTIONS.md` (MQ-001)
-are explicit: *"Do not vary viscosity until ν is an explicit candidate
-input."* `poc/configs/challenge_burgers1d.yaml` samples ν from ranges per
-role (`train: [0.001, 0.01]`, `stress: [0.0005, 0.005]`), and
+The exam doc recommends fixed ν, and
+`docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md`'s MQ-001 makes the same
+recommendation explicitly — *"Do not vary viscosity until ν is an explicit
+candidate input"* — but MQ-001's status is `READY_TO_RATIFY`, not ratified;
+the owning Physics/SciML and protocol authorities have not signed off.
+`poc/configs/challenge_burgers1d.yaml` samples ν from ranges per role
+(`train: [0.001, 0.01]`, `stress: [0.0005, 0.005]`), and
 `poc/generators/burgers1d.py` draws `nu = rng.uniform(nu_lo, nu_hi)` per
-sample. This is a live conflict between ratified direction and current PoC
-code (`IMPLEMENTATION_LAG` per the Constitution's own taxonomy in §12).
-**Not fixed here** — the new `poc/challenges/burgers_v1/generator.py` uses
-fixed `ν = 5×10⁻³` per the doc, and the existing `poc/configs/*` /
-`poc/generators/burgers1d.py` are left untouched.
+sample. Because there is no ratified LIVE contract for fixed-ν Burgers yet,
+this is not an `IMPLEMENTATION_LAG` (that classification presumes a
+conflict against something already ratified) — per the Constitution's own
+taxonomy (§12) this is better read as `NEW_OWNER_DECISION_REQUIRED`: an
+open decision the relevant owners still need to make, not a bug in the
+existing PoC code. **Not fixed here either way** — the new (also
+unratified, equally a research candidate) `poc/challenges/burgers_v1/generator.py`
+uses fixed `ν = 5×10⁻³` to match the exam doc's and MQ-001's recommendation,
+and the existing `poc/configs/*` / `poc/generators/burgers1d.py` are left
+untouched pending an actual ratification decision.
 
 ### 6.2 `carbon/backbones/neural_operator.py` calls the wrong kwargs
 
@@ -349,7 +420,7 @@ Per your instruction, explicitly not silently skipped:
 | §11.C Reconstruction variability | Multi-seed retraining variance study | No training loop wired to this new harness yet (out of scope: this note covers architecture + reference + gates + scoring, not the JAX training loop) | — |
 | §11.D Finite-exam variability | Repeated fresh-exam score/rank variance | Requires a running exam loop at scale | Deterministic, seeded `run_exam.py` entry point this can later be driven repeatedly against |
 | §11.E Minimum resolvable improvement | Derivation from A–D above | Depends on all of the above existing first | — |
-| §13 Adversarial reference-bias test | Two controlled candidate families (bias-imitator vs. reference-tracker) | Requires trained candidates and a qualified witness; neither exists yet | Cole–Hopf reference is the qualified target such a test would check against |
+| §13 Adversarial reference-bias test | Two controlled candidate families (bias-imitator vs. reference-tracker) | Requires trained candidates and a qualified witness; neither exists yet | Cole–Hopf reference is the architect-recommended (MQ-004, `EVIDENCE_REQUIRED` — not yet ratified) primary-truth candidate such a test would eventually check against |
 | §21 Validation Dossier | The full signed evidence package | Is the terminal deliverable of everything above | This branch is a prerequisite artifact, not a substitute |
 
 None of these are silently dropped from the codebase's ambitions — they're
@@ -360,8 +431,9 @@ solver exist to measure against.
 
 ## 8. Open questions for review
 
-1. **§6.1** — should the ratified-vs-PoC ν conflict be raised as its own
-   ticket/decision now, independent of this branch?
+1. **§6.1** — should MQ-001 (fixed-ν) actually be ratified, and should the
+   resulting ratified-vs-PoC ν inconsistency be raised as its own
+   ticket/decision, independent of this branch?
 2. **§6.2** — is fixing `carbon/backbones/neural_operator.py`'s kwarg bug
    in scope for a follow-up commit on this branch, or a separate PR (it's
    unrelated to the JAX port but touches the same upstream package)?
