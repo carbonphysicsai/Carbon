@@ -1,13 +1,39 @@
 # Burgers v1 — JAX/Flax FNO Neuraloperator Parity Port
 
 **Status:** Non-authoritative research candidate. No Wave/ticket authority
-is claimed for this work — it carries no active `.agent/` ticket, is not
-part of the current Wave B buildout on `main`, and creates no scientific,
-security, or production qualification. It is scoped as an independent
-architecture-and-reference-implementation port that a future ticket (e.g.
-a prospective B-02B contract) could adopt, not as something already
-authorized. See "Implementation status" below for what actually exists on
-this branch today versus what remains planned.
+is claimed for this work — it carries no active `.agent/` ticket and creates
+no scientific, security, or production qualification. Branch merged with
+current `main` (post-A11/A12-closeout, Wave B buildout landed), which
+surfaced the actual matching Wave B tickets this work is closest to —
+none of which this branch is authorized under or should be read as
+satisfying:
+
+- `.agent/tickets/B-03_generator_burgers_fixture.md` (`todo`) — the fixed-ν
+  Burgers generator work in §9 step 7.
+- `.agent/tickets/B-04_reference_truth_contracts.md` (`todo`) — the
+  Cole–Hopf reference work in §9 step 6.
+- `.agent/tickets/B-05_measurement_scorepack_authoring.md` (`todo`) — the
+  gates/scoring work in §9 steps 7–8.
+
+Each of those tickets' own Definition of Done requires producing a
+dedicated contract doc, independent SciML/protocol/statistics review, and
+explicit human ratification *before* implementation — none of which this
+branch has done. It is offered as an unratified research candidate a
+future ticket could draw on, not as progress against those tickets. See
+"Implementation status" below for what actually exists on this branch
+today versus what remains planned.
+
+One relevant finding from that sync: B-04 cites
+`Design_Specs/Runtime_Julia_Truth_Oracle.md` as a "reconciled target."
+Reading it: it does *not* mandate Julia as the Burgers primary reference —
+it establishes that a Julia/SciML runtime may fill *one* role (primary,
+witness, or audit anchor) in a future ratified `ReferencePolicy`, decided
+per-Challenge, with no authority from language/library/tolerance alone.
+That's compatible with this note's plan: a JAX Cole–Hopf implementation as
+primary reference and a Julia (or other) implementation as the exam doc
+§10 methodologically-independent witness is one plausible fit, not a
+conflict — but that allocation is itself an unratified decision for B-04,
+not something this branch presumes.
 **Purpose:** map the official PyTorch `neuraloperator` FNO architecture to a
 JAX/Flax Linen port module-for-module, specify how that port and a new
 periodic Cole–Hopf reference plug into the Burgers v1 exam flow described in
@@ -20,7 +46,11 @@ apparatus.
 `docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` (MQ-001: `READY_TO_RATIFY`,
 MQ-004: `EVIDENCE_REQUIRED`, MQ-005: `EVIDENCE_REQUIRED` — none of these are
 ratified; this note treats them as architect recommendations only, see §6.1),
-upstream `github.com/neuraloperator/neuraloperator`.
+`.agent/tickets/B-03_generator_burgers_fixture.md`,
+`.agent/tickets/B-04_reference_truth_contracts.md`,
+`.agent/tickets/B-05_measurement_scorepack_authoring.md` (all `todo` — see
+Status above), `Design_Specs/Runtime_Julia_Truth_Oracle.md`, upstream
+`github.com/neuraloperator/neuraloperator`.
 
 ## Implementation status
 
@@ -415,7 +445,7 @@ Per your instruction, explicitly not silently skipped:
 
 | Doc section | What's deferred | Why | What this branch still provides |
 |---|---|---|---|
-| §11.A Reference uncertainty | δ_ref campaign vs. an independent witness | Requires a methodologically independent (non-pseudo-spectral) solver, which doesn't exist yet, plus a multi-case measurement campaign | Cole–Hopf implementation built to doc §9's stability requirements (log-domain/rescaling), so a future finite-volume/finite-difference witness has something real to compare against |
+| §11.A Reference uncertainty | δ_ref campaign vs. an independent witness | Requires a methodologically independent (non-pseudo-spectral) solver, which doesn't exist yet, plus a multi-case measurement campaign | Cole–Hopf implementation built to doc §9's stability requirements (log-domain/rescaling), so a future finite-volume/finite-difference witness has something real to compare against — possibly the Julia witness role `Design_Specs/Runtime_Julia_Truth_Oracle.md` describes, per a future B-04-ratified `ReferencePolicy` |
 | §11.B Measurement floors | Numerical floor characterization per measurement | Needs the §11.A witness data first | Gates/scoring code structured so floors can be substituted in as pack-bound thresholds later, not hardcoded |
 | §11.C Reconstruction variability | Multi-seed retraining variance study | No training loop wired to this new harness yet (out of scope: this note covers architecture + reference + gates + scoring, not the JAX training loop) | — |
 | §11.D Finite-exam variability | Repeated fresh-exam score/rank variance | Requires a running exam loop at scale | Deterministic, seeded `run_exam.py` entry point this can later be driven repeatedly against |
@@ -452,6 +482,13 @@ solver exist to measure against.
    `poc/challenges/burgers_v1/` are the right locations, versus e.g. a
    top-level `carbon/operators/` if this is meant to graduate beyond PoC
    status sooner than the rest of the harness.
+6. **Wave B routing** — now that B-03/B-04/B-05 exist as `todo` tickets
+   covering this exact scope (generator, reference/truth, measurement/
+   scoring respectively), should the remaining §9 steps 6–9 work be held
+   until those tickets' own ratified contracts land, contributed as input
+   to authoring those contracts, or continued here as an explicitly
+   unratified research candidate in parallel? This branch does not decide
+   that — it's an owner call.
 
 ---
 
