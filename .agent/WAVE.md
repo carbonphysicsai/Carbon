@@ -1,8 +1,12 @@
 # Carbon Agent Wave Status
 
-**Current wave:** A  
-**State:** **closed in bounded engineering scope**
-**Wave B:** inactive
+**Current wave:** B
+**State:** **active in bounded development scope**
+**Wave A:** closed in bounded engineering scope
+**Controlling register:** `.agent/WAVE_B.md` version 0.4
+**Next selected ticket:** B-01
+**B-01 status:** `todo`
+**B-01 development:** authorized after this governance change normally merges
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -11,33 +15,27 @@
 **Agent constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
 
-> **Current bounded Wave-A closeout evidence:** A-1 and A0-A11 are `done` only
-> in their recorded bounded scopes. PR #50 ratified A12-R1 through A12-R12 from
-> reviewed head `6695c279728438befd6404fb81c4f7a27e382a67` by normal merge
-> `746e56e42c412bc8ba2eeb4d85ed83396e1a084c`, tree
-> `651c568631465a4902d69036a06c937104660d37`. PR #51 then merged the bounded
-> invariant-judge implementation from reviewed head
-> `33b4626a1ffe7d0c65336336a870a8f4a73ab92f` as current-main commit
-> `2a8b273a1167588efb4a11159da5224264d5b37a`, tree
-> `cb7b23d32e3663bbf00704f1e28c16020bfb9226`. Push CI run
-> `33250521376` passed the exact `28`-test invariant lane (`12` unique
-> row-dedicated tests plus `16` infrastructure tests), all `2310` CPU tests,
-> and the no-new-debt quality gate. The independent closeout audits pass all
-> `24/24` A12 ticket criteria and all `9/9` Build Out Wave-A acceptance bullets;
-> `.agent/WAVE_A_REPORT.md` records the bounded evidence and ceilings.
+> **Authority timing.** This file records the proposed post-merge state of the
+> exact seven-file Wave B governance change. Until that change is independently
+> reviewed, green, and normally merged, current `main` remains Wave A closed in
+> bounded engineering scope, Wave B inactive, B-01 `todo` and unauthorized, and
+> no implementation wave active. This documentation change does not itself
+> start B-01.
 
-> **A12 / Wave-A closeout authority gate.** The `A12 done` row, `24/24`
-> checked ticket criteria, this board's `closed` state, and the Wave-A report
-> are proposed administrative state in this documentation-only candidate.
-> They become repository authority only after this exact candidate head is
-> independently reviewed, explicitly human-authorized, and normally merged.
-> Until that merge, current-main administrative authority remains A12 `todo`
-> and Wave A incomplete, even though the ratified bounded implementation and
-> tests are already on main. After that merge, the authoritative state is A12
-> `done` and Wave A `closed`, both only for the recorded bounded engineering
-> scope. A12 remains scientifically, security, network, commercially, and
-> production unqualified. Wave B is inactive before, during, and after this
-> closeout; this candidate does not activate Wave B or authorize B-01.
+> **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
+> their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
+> A12-R12; PR #51 merged the bounded invariant-judge implementation; and PR #52
+> normally merged the exact reviewed Wave-A closeout head
+> `f7efe935601db862e9a27947c1f100e69452d05e` as signed merge
+> `62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+> `0cc4fc8661663b29d954eb617323cc4fefc6c9cb`. GitHub Actions run
+> `33255939632`, attempt 2, passed the exact 28-test invariant lane, all 2310
+> CPU tests, and the no-new-debt quality gate on that merge. The closeout audit
+> passed `24/24` A12 ticket criteria and `9/9` Build Out Wave-A acceptance
+> bullets; `.agent/WAVE_A_REPORT.md` records the bounded evidence and ceilings.
+> Wave A closure creates no scientific, security, network, commercial,
+> production, `LIVE`, launch, frontier, settlement, weight, or emission
+> authority.
 
 ## Workflow
 
@@ -67,7 +65,7 @@ current authority → one ticket → baseline tests → implement → tests → 
 | A9 | C9 | MCP tools: get_challenge_info, get_prior, get_mock_scaffold, dry_validate, estimate, submit, get_submission_result | done | PR #32 ratified A9-R1–A9-R15 by normal merge `47a62b2397b4125bb608eb69bf0e3dc6360c519d`, tree `4f55d28d06ef6f06cf521fd8f04bbf3881e58379`, with exact reviewed-head/tree equality and empty diff. PR #33 implemented the seven-tool, exact-34-export bounded skeleton from exact reviewed implementation head `c9c324d1192c9c52009b15970e371d076a0b3e89` by normal merge `97d835f495cb7e3f194364cb4e674e2416531936`, tree `46e8a2d96e15f8bec58e3fb7b9fd28f0684f00b6`, again with exact reviewed-head/tree equality and empty diff. Independent repair `aea3f5db86dde5851f5ea02994e5f91866f477d1`, synchronization `1f921c1223f94cad87b9e52a0773c1299d2980a5`, computed-key repair `0830f479ec765905a016e86ea6a366bbc136e873`, variable-bound-key repair `ddca0d3c7c71361b80aacb5489c56e7f36e0783e`, and exact final repaired head/synchronization `dc88336f5edb544af5d4f4a82661f3f031de7603` were merged normally in PR #34 as `0099a198bf19845390a0a12825eac0eeef06ffd2`, tree `f934ea4f3c4f63b26e890a26f4c941f73519b73b`; the exact head/tree equals the merge, its diff is empty, and its prior-main manifest is only `tests/cpu/test_mcp_skeleton.py`, `+652/-20`, with all four production blobs unchanged. Greptile's exact-head summary states `Confidence Score: 5/5` and `No blocking failure remains.`; both substantive threads are resolved, unresolved count is zero, all four formal reviews remain `COMMENTED`, and review decision is empty. Post-merge CI runs `32713700257`, `32733665726`, and `32809955531` passed CPU totals `1584`, `1697`, and `1727`; their quality jobs retained `Ruff 757/776; Black 62/68`, removed debt `Ruff 19, Black 6`, and found respectively zero, five, and one changed Python files clean with no new debt. Fresh focused `143`, related `935`, combined `1078`, and full CPU `1727` passed. Recorded/fresh wheel SHA-256 values are `71cb3706e4bad091b5a5290210a666fccb07d296d83274548288a29a422d18fd` and `0f33d38334e9de15b7a28188e856180c55934129b9c92d473330326285359263`; fresh Python 3.11.11 outside-tree `-I` wheel import exposed exact 34 exports and loaded zero forbidden optional-heavy/later-wave modules. Independent closeout audit is `29/29 PASS`, `0 FAIL`. This documentation-only `done` becomes authoritative only after independent review, explicit human authorization, and normal merge. `SPECIFIED / RATIFIED: YES`; `IMPLEMENTED: YES` only for the bounded, process-local, in-process control/disclosure skeleton; `TESTED: YES` only for the exact recorded CPU/hostile-input/resource/concurrency/disclosure/dependency/import/wheel/quality engineering scope; `SCIENTIFICALLY_QUALIFIED: NO`; `SECURITY_QUALIFIED: NO`; `NETWORK_QUALIFIED: NO`; `COMMERCIALLY_VALIDATED: NO`; `PRODUCTION_QUALIFIED: NO`. No production provider/content/policy, prior publication, scaffold body, value authority, authentication, network/MCP-SDK transport, mock/light or real training execution, production context/backend, LIVE science, evidence/signature, A10+ leaderboard, A11 logging, A12 invariant, frontier, Product Qualification, treasury/settlement, chain, weight, or emission authority exists. |
 | A10 | C14 | Leaderboard (public fields only) | done | PR #37 merged the bounded implementation as `3b2d96e287f06c24cc4d57b46dfc418359a9e97f` from reviewed head `6f505d5cffd69f0c3d4d0e6d71bb91233c0ce6b1`; reviewed and merge trees are exactly `6a6e95262773b9b2e22ad5c43837194f06e070a6` and their file diff is empty. Push run `32941840184` passed `1973` CPU tests and quality at `Ruff 757/776; Black 62/68`, removed debt `19/6`, five changed Python files clean, no new debt. Independent closeout audit: `57/57 PASS`, `0 FAIL`; documentation closeout merged normally in PR #38 as `404c039596b487cf2649bb1d73b80e9b49baaced`. Scope remains fixture-only, non-official, non-LIVE, non-emitting, non-frontier, non-product, non-network, and non-production; leaderboard rank is not a `FrontierAdvanceEvent` or Product Qualification. |
 | A11 | C16 | Logging **+ metrics** / redaction / failure tags | done | A11-R1–A11-R18 ratified; reviewed head `e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb` merged normally in PR #46 as signed commit `e2496e92eeae31befdaa430501bb9f00b0e6339e`, with identical reviewed/merge tree `3d6682803422497efc6bff26451c12d9c306f96c`; post-merge run `33199541335` passed `2310` CPU tests and quality; independent closeout audit `66/66 PASS`; bounded in-process IMPLEMENTED/TESTED only, all qualification ceilings remain NO |
-| A12 | §2 | Invariant suite green in CI | done | **Proposed closeout state until the authority gate above is satisfied.** A12-R1–A12-R12 were ratified in PR #50; bounded implementation merged in PR #51 as `2a8b273a1167588efb4a11159da5224264d5b37a`. Exact lane: `28` tests (`12` unique dedicated + `16` infrastructure); independent closeout: `24/24` ticket criteria and `9/9` Wave-A acceptance bullets; push CI `33250521376` passed invariant, `2310` CPU, and quality. All qualification ceilings remain NO. |
+| A12 | §2 | Invariant suite green in CI | done | A12-R1–A12-R12 were ratified in PR #50; bounded implementation merged in PR #51 as `2a8b273a1167588efb4a11159da5224264d5b37a`; and the exact reviewed closeout head merged normally in PR #52 as `62f52065b6695fc5f0e1e77562da4b3774eaaf3e`. Exact lane: `28` tests (`12` unique dedicated + `16` infrastructure); independent closeout: `24/24` ticket criteria and `9/9` Wave-A acceptance bullets; exact-main run `33255939632`, attempt 2, passed invariant, `2310` CPU, and quality. All qualification ceilings remain NO. |
 
 **Statuses:** `todo` | `in_progress` | `done` | `blocked`
 
@@ -83,26 +81,34 @@ A9 depends on A2, A6, A7, A8. A12 depends on A4–A11.
 
 ## Post-Wave-A interpretation
 
-The long-horizon canonical plan is `Design_Specs/Agentic_Development_Master_Plan.md`. Existing Build Out Waves B–G remain planning and sequencing concepts, not active implementation waves. Later Waves H–N in the Master Plan express the integrated destination architecture and require explicit owner authorization before implementation.
+The long-horizon canonical plan is
+`Design_Specs/Agentic_Development_Master_Plan.md`. Its later waves remain
+planning and sequencing authority until a prospective, reviewed, green, and
+normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
+does not authorize implementation by itself.
 
-A proposed, non-active Wave B dependency board is available at
-[`WAVE_B.md`](./WAVE_B.md), with its contract candidate at
-[`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md).
-Future Codex sessions should enter through
-[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md); the handoff preserves
-the same activation gate and does not authorize B-01.
-It does not supersede this Wave A closeout board. This candidate satisfies only
-the A11/A12-complete and Wave-A-report prerequisites after its exact reviewed,
-authorized normal merge. Wave B implementation remains blocked: the Wave B
-contract must still be independently reviewed, `.agent/DECISIONS.md` must
-record named owner-role approval with the exact reviewed commit and SHA-256
-hashes over the exact repository bytes of the board, contract, and handoff,
-and one prospective, independently reviewed activation change must make this
-file name Wave B and `WAVE_B.md` as its controlling register without mutating
-those three reviewed artifacts. Later B-01 also requires a separate reviewed
-post-merge activation closeout recording merge/tree equality, post-merge CI,
-and named owner acceptance. Later B-07R/B-07S gates own behavioral and exact
-service-protocol ratification.
+After this exact governance change normally merges, [`WAVE_B.md`](./WAVE_B.md)
+version 0.4 is the controlling Wave B dependency board. Its architecture
+contract remains version 0.3 at
+[`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
+and sessions enter through
+[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the next
+selected `todo` ticket and is not started by this documentation change. It may
+begin on its own later ticket branch only after this governance change normally
+merges.
+
+No multi-role approval bundle, exact-byte activation approval, or separate
+activation closeout is required before B-01 development. Authorization comes
+from the active wave and selected ticket. Material decisions must be recorded
+and delivered through the non-blocking lead-notification process in
+`.agent/DECISIONS.md`, the Wave B board, and the handoff. Harshdeep Sharma
+(`@harshaa765`) may amend, reject, or supersede such a decision; silence is not
+a gate, while a lead `REQUEST_CHANGES` review or explicit `BLOCKED` direction
+pauses the affected change. B-07R and B-07S remain later architecture and exact
+service-protocol ratification gates. Scientific truth and qualification,
+security acceptance, rights/legal policy, live economics, launch, production,
+`LIVE`, frontier, product, settlement, chain, weight, and emission authority
+remain unearned and human-owned where `AGENTS.md` reserves them.
 
 A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effort rebaseline, is available at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md); it does not replace this live ticket board or authorize launch.
 
@@ -110,7 +116,6 @@ A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effo
 
 - Do not mark done without test/file/review evidence.
 - Before/after each ticket: run the required baseline pytest/PoC smoke.
-- The proposed `done` state and `.agent/WAVE_A_REPORT.md` become authoritative
-  only through the exact-head review, explicit human authorization, and normal
-  merge gate above.
+- Wave-A `done` state and `.agent/WAVE_A_REPORT.md` are authoritative through
+  the normally merged PR #52 closeout, only in their bounded engineering scope.
 - Do not convert fixture/stub success into scientific, security, network, commercial, or production qualification claims.

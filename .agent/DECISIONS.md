@@ -1,5 +1,121 @@
 # Agent decisions log
 
+## 2026-08-29 — Executive Wave B development governance and lead notification
+
+> **Authority timing.** This documentation-only governance candidate changes
+> repository authority only after its exact head is independently reviewed, its
+> required CI is green, and it normally merges. Until that merge, current main
+> remains at Wave A closed in bounded engineering scope, Wave B inactive, B-01
+> `todo` and unauthorized, and no active implementation wave. This candidate
+> does not start B-01.
+
+**Executive authority and designated lead.** Ryan Bequette (`@jbequ5`), acting
+as Carbon's executive owner, has removed prior role approval as a prerequisite
+to begin, continue, or normally merge bounded development authorized by the
+active wave and selected ticket. Harshdeep Sharma (`@harshaa765`) is Carbon's
+designated SciML / Technical Lead. Development authorization comes from the
+current merged `.agent/WAVE.md`, its controlling ticket register, the selected
+ticket, applicable specifications and invariants, and the repository's normal
+branch, test, CI, technical-review, and merge process.
+
+After this governance change normally merges, development requires neither an
+eight-role approval set, an exact-byte approval bundle, a prospective
+activation-approval record, nor a separate activation closeout before B-01.
+The absence of a lead response, reaction, or affirmative approval does not
+block authorized development. This governance change itself activates only
+Wave B's bounded development authority and selects B-01 as the next `todo`
+ticket; B-01 begins only through its own later ticket branch.
+
+**Material development decision.** A material decision changes or selects any
+of the following:
+
+- architecture or domain ownership;
+- a contract or invariant;
+- a public interface or persisted schema;
+- a scientific assumption or evidence interpretation;
+- a security or disclosure boundary;
+- a rights or data-use policy;
+- an operational or resource policy;
+- Wave or ticket sequencing; or
+- a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE` disposition with cross-ticket
+  impact.
+
+Routine implementation details within an already ratified contract do not
+require a separate lead notification.
+
+**Non-blocking lead-notification and amendment model.** For each pull request
+that makes or changes a material decision, the executor must:
+
+1. record the durable decision in this log or the applicable ticket, plan, or
+   specification;
+2. include a pull-request section titled `Lead notification` naming the
+   decision ID or heading, affected ticket and files, selected approach,
+   alternatives rejected, invariant/interface/sequencing effects,
+   reversibility and migration effect, and notification issue/comment; and
+3. post or update a notification in issue #42 mentioning `@harshaa765`.
+
+The notification is evidence of delivery, not approval. No affirmative
+response, reaction, approval, or waiting period is required. The lead may
+adjust a decision before merge through review or an explicit direction. A lead
+`REQUEST_CHANGES` review or explicit `BLOCKED` direction pauses the affected
+change but does not stop unrelated work. A post-merge adjustment uses a new
+bounded branch and a later normally merged repository decision that marks the
+earlier decision superseded; historical evidence is not rewritten. Current
+merged repository authority remains controlling until that superseding change
+normally merges.
+
+The Accountable reviewer assignments in the Wave B board route technical and
+domain review and notification. They do not create an affirmative pre-approval
+or silence gate. Independent technical review, resolution of blocking review
+findings, required CI, and normal merge remain mandatory.
+
+**Reserved human decisions remain reserved.** This decision does not authorize
+an agent to invent or approve physical or scientific truth, thresholds,
+tolerances, Challenge populations or SamplingPlan claims, scientific
+qualification, security acceptance, rights or legal policy, live economics,
+launch readiness, production deployment authority, or any production, `LIVE`,
+frontier, product, settlement, chain, weight, or emission authority. Material
+company decisions that `AGENTS.md` reserves to humans also remain human-owned.
+When correct implementation requires an unresolved reserved decision, the
+affected capability must stop or remain explicit, bounded, and fail closed.
+That blocker does not prevent unrelated fixture, schema, interface, test, or
+infrastructure development.
+
+**Supersession and historical evidence.** All earlier entries below that
+require named or multi-role approval, an exact-byte or hash-bound approval
+bundle, a prospective activation-approval record, or a separate activation
+closeout before B-01 are retained as point-in-time historical provenance but
+are superseded for development authorization after this decision normally
+merges. Those earlier gates are not deemed satisfied, and their historical
+approval evidence is not upgraded. This supersession does not reach later
+scientific qualification, security acceptance, rights/legal, live-economic,
+launch/deployment, Wave closeout, or other reserved-human gates.
+
+Issue #53 remains open while this candidate is reviewed. After normal merge it
+should be closed as `superseded by executive governance decision`, not as a
+completed approval bundle, and its comments remain historical coordination
+evidence. Issues #41, #42, and #43 should then be synchronized separately;
+issue #42 becomes the durable lead-notification route rather than a blocking
+approval queue for development.
+
+```text
+Proposed state after this exact governance change normally merges:
+Current wave: B
+Wave B state: active in bounded development scope
+Controlling register: .agent/WAVE_B.md version 0.4
+Next selected ticket: B-01
+B-01 status: todo
+B-01 development: authorized to begin on its own later branch
+Wave B IMPLEMENTED: NO
+Wave B TESTED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+SECURITY_QUALIFIED: NO
+NETWORK_QUALIFIED: NO
+COMMERCIALLY_VALIDATED: NO
+PRODUCTION_QUALIFIED: NO
+LIVE / launch / frontier / product / settlement / chain / weight / emission authority: NO
+```
+
 ## 2026-08-29 — A12 and Wave A bounded engineering closeout candidate
 
 > **Documentation-only closeout authority gate.** The merged A12 contract and

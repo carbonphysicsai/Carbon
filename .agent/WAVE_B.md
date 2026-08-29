@@ -1,19 +1,19 @@
-# Carbon Wave B Candidate Board
+# Carbon Wave B Board
 
-**Status:** inactive unless the active `.agent/WAVE.md` names Wave B and this exact file as its controlling register. This file does not self-activate.
-**Version:** 0.3
-**Activation gate:** A11 and A12 are merged and closed; `.agent/WAVE_A_REPORT.md` exists; this board, its contract, and its handoff are independently reviewed and normally merged; one prospective, exact-head-reviewed and human-authorized activation change records named owner-role approval plus the exact reviewed commit and SHA-256 hashes over the unchanged repository bytes of those three artifacts in `.agent/DECISIONS.md`, and makes `.agent/WAVE.md` name Wave B and this exact file as its controlling register. The activation change does not mutate the board, contract, or handoff. Before B-01, a separate reviewed closeout records the activation merge commit/tree, exact reviewed head/tree equality, owner acceptance, and post-merge CI. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
+**Version:** 0.4
+**Activation gate:** Wave A is closed in bounded engineering scope; this exact governance change is independently reviewed, green, and normally merged; and `.agent/WAVE.md` names Wave B, this version 0.4 board as its controlling register, and B-01 as the next selected `todo` ticket. For the unchanged B-01 dependency row, that normal merge is the explicit Wave B activation. B-01 remains `todo` until work begins on its own later ticket branch. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before B-01 development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
-**Codex entry point after activation:** `.agent/WAVE_B_CODEX_HANDOFF.md`
+**Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
 **Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
 
-This file alone does not authorize implementation. It makes the Wave B dependency graph reviewable before activation; authority comes only from the active `.agent/WAVE.md` plus the recorded activation evidence.
-
-The documentation-only board/contract candidate may be independently reviewed
-while A11/A12 close. That review does not start B-01 or any implementation
-ticket. Exact Wave B ticket execution still begins only after the activation
-gate above.
+Authority comes from the merged active `.agent/WAVE.md` and the selected ticket,
+not this file alone or prior role approval. This version 0.4 governance change
+does not start B-01. After the activation gate above normally merges, B-01 may
+begin only through its own bounded ticket branch and remains subject to the
+ticket's specifications, dependencies, invariants, tests, review, and merge
+process.
 
 ---
 
@@ -215,6 +215,53 @@ Every applicable Wave B ticket must preserve and test:
 
 ## 7. Ticket execution requirements
 
+### Development decisions and lead notification
+
+Development authorization comes from the active wave and selected ticket, not
+from prior multi-role approval. A material decision changes or selects:
+
+- architecture or domain ownership;
+- a contract or invariant;
+- a public interface or persisted schema;
+- a scientific assumption or evidence interpretation;
+- a security or disclosure boundary;
+- a rights or data-use policy;
+- an operational or resource policy;
+- Wave or ticket sequencing; or
+- a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE` disposition with cross-ticket
+  impact.
+
+Routine implementation details within an already ratified contract do not need
+a separate lead notification. For every material-decision-affecting pull
+request, record the durable decision in `.agent/DECISIONS.md` or the applicable
+ticket, plan, or specification; include a pull-request section titled
+`Lead notification` naming the decision ID or heading, affected ticket and
+files, selected approach, alternatives rejected, invariant/interface/
+sequencing effects, reversibility and migration effect, and notification
+issue/comment; and post or update issue #42 mentioning designated SciML /
+Technical Lead Harshdeep Sharma (`@harshaa765`).
+
+Notification is evidence of delivery, not approval. No affirmative response,
+reaction, approval, or waiting period is required. A lead `REQUEST_CHANGES`
+review or explicit `BLOCKED` direction pauses the affected change but not
+unrelated work. After merge, an adjustment uses a new bounded branch and later
+normally merged repository decision; historical evidence is marked superseded,
+not rewritten. Current merged repository authority controls until then.
+
+The Accountable reviewer column remains technical/domain review and
+notification routing. It creates no affirmative pre-approval or silence gate.
+Independent technical review, resolution of blocking findings, required CI,
+and normal merge remain mandatory.
+
+This non-blocking development rule does not allow an agent to invent or approve
+scientific truth, thresholds, tolerances, population or SamplingPlan claims,
+qualification, security acceptance, rights/legal policy, live economics,
+launch or deployment authority, or production, `LIVE`, frontier, product,
+settlement, chain, weight, or emission authority. An unresolved reserved human
+decision leaves the affected capability stopped, explicit, bounded, and fail
+closed; it does not block unrelated fixture, schema, interface, test, or
+infrastructure development.
+
 Before each ticket begins:
 
 1. read `CONSTITUTION.md`, `AGENTS.md`, `.agent/INVARIANTS.md`, the active `.agent/WAVE.md`, this candidate board, and the ticket;
@@ -229,7 +276,9 @@ Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.
 The implementation change leaves merge fields pending. A separate reviewed
 post-merge closeout records the tree-identical merge, post-merge CI, independent
-review, and Accountable reviewer acceptance before the board changes to `done`.
+review outcome, resolved blocking findings, and lead-notification delivery when
+applicable before the board changes to `done`. An affirmative reviewer or lead
+response is not required.
 
 Ticket completion must separately report:
 

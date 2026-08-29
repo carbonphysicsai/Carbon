@@ -1,24 +1,27 @@
 # Carbon — Current Implemented vs Specified Ledger
 
 **Status:** OWNER-CANONICAL maturity ledger, current through main
-`2a8b273a1167588efb4a11159da5224264d5b37a`, tree
-`cb7b23d32e3663bbf00704f1e28c16020bfb9226`, the signed normal merge of A12
-implementation PR #51 on 2026-08-29.
+`62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+`0cc4fc8661663b29d954eb617323cc4fefc6c9cb`, the signed normal merge of A12 /
+Wave-A closeout PR #52 on 2026-08-29.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
-> **A12 / Wave-A closeout authority gate.** A12-R1 through A12-R12 are ratified
-> and the bounded invariant-judge implementation and tests are on current main.
-> This documentation-only candidate proposes only the administrative
-> transitions A12 `todo` → `done` and Wave A `incomplete` → `closed`, both in
-> the bounded engineering scope recorded here and in `.agent/WAVE_A_REPORT.md`.
-> Those transitions and the checked closeout criteria become repository
-> authority only after this exact candidate head is independently reviewed,
-> explicitly human-authorized, and normally merged. Until then, current-main
-> administrative authority remains A12 `todo` and Wave A incomplete. Wave B is
-> inactive before, during, and after this closeout; neither this candidate nor
-> its merge activates Wave B, authorizes B-01, or earns any scientific,
-> security, network, commercial, or production qualification.
+> **Wave-B development-governance transition.** Current main records A12
+> `done`, Wave A closed in bounded engineering scope, Wave B inactive, and
+> B-01 `todo` and unauthorized. This documentation-only candidate proposes
+> Wave B active in bounded development scope only after this exact governance
+> change is independently reviewed, green, and normally merged. B-01 remains
+> unstarted and becomes the next authorized `todo` ticket only after that
+> merge; no Wave B implementation exists yet.
+>
+> Prior multi-role approval, exact-byte approval-bundle, and separate
+> activation-closeout prerequisites are superseded for development by the
+> executive record in `.agent/DECISIONS.md`. Material decisions must be
+> recorded and the designated SciML / Technical Lead notified through issue
+> #42, but silence is non-blocking. Reserved scientific, security, rights,
+> economic, launch, deployment, LIVE, frontier, product, settlement, chain,
+> weight, emission, and production decisions remain human-owned and unearned.
 
 ---
 
@@ -71,7 +74,7 @@ No state implies a later state.
 | A9 | Yes | Yes | Yes | No | Exact seven-tool bounded in-process Wave-A control/disclosure skeleton; tested only for the recorded engineering scope, with no scientific, security, network, commercial, or production qualification |
 | A10 | Yes | Yes | Yes | No | Exact bounded in-process fixture leaderboard; fixture-only, non-official, non-LIVE, and tested only for the recorded engineering scope |
 | A11 | Yes; A11-R1–A11-R18 ratified | Yes | Yes | No | Exact bounded in-process operational observability merged normally in PR #46 as `e2496e92eeae31befdaa430501bb9f00b0e6339e`; independently audited `66/66 PASS`; no scientific, security, network, commercial, or production qualification |
-| A12 | Yes; A12-R1–A12-R12 ratified in PR #50 | Yes, exact bounded invariant-judge/CI scope | Yes, exact recorded engineering scope | No | Implementation merged in PR #51; `28` invariant tests, `24/24` ticket audit, and `9/9` Wave-A acceptance audit; `done` is proposed by this closeout candidate and authoritative only after its exact reviewed/authorized normal merge |
+| A12 | Yes; A12-R1–A12-R12 ratified in PR #50 | Yes, exact bounded invariant-judge/CI scope | Yes, exact recorded engineering scope | No | Implementation merged in PR #51; `28` invariant tests, `24/24` ticket audit, and `9/9` Wave-A acceptance audit; A12 is `done` in bounded engineering scope on current main after closeout PR #52 |
 
 Exact implementation/test evidence remains in `.agent/WAVE.md` and historical ledger.
 
@@ -119,11 +122,13 @@ A11 PRODUCTION_QUALIFIED: NO
 A11 WAVE STATUS:
 done
 
-A12: `done` in this closeout candidate only; current-main administrative
-authority remains `todo` until the exact-head review/authorization/merge gate
-Wave A: `closed` in this closeout candidate only; current-main administrative
-authority remains incomplete until that gate
-Wave B: inactive
+A12: done in its bounded invariant-judge/CI scope
+Wave A: closed in bounded engineering scope
+Wave B: inactive on the exact governance base; proposed active in bounded
+development scope only after this governance candidate normally merges
+B-01: todo and unstarted
+Wave B implemented: NO
+Wave B tested: NO
 ```
 
 The exact A11 implementation is reviewed head
@@ -162,12 +167,13 @@ A12 NETWORK_QUALIFIED: NO
 A12 COMMERCIALLY_VALIDATED: NO
 A12 PRODUCTION_QUALIFIED: NO
 
-A12 WAVE STATUS: done in this closeout candidate; current-main administrative
-authority remains todo until this exact head is independently reviewed,
-explicitly human-authorized, and normally merged
-Wave A: closed in this closeout candidate, bounded engineering scope only;
-current-main administrative authority remains incomplete until that gate
-Wave B: inactive
+A12 WAVE STATUS: done in its bounded invariant-judge/CI scope
+Wave A: closed in bounded engineering scope
+Wave B: inactive on the exact governance base; proposed active in bounded
+development scope only after this governance candidate normally merges
+B-01: todo and unstarted
+Wave B implemented: NO
+Wave B tested: NO
 ```
 
 The exact denominator is the twelve numbered cross-cutting invariants in
@@ -193,10 +199,18 @@ crosswalk drift, mapping drift, or prohibited bypass. Push CI run
 in `59.52s`, and Code quality at `Ruff 757/776; Black 62/68`, removed debt
 `19/6`, five changed Python files clean, and no new debt.
 
+Exact-current-main GitHub Actions run `33255939632`, attempt 2, passed on
+GitHub-hosted Ubuntu: `28` invariant tests, `2310` CPU tests, and unchanged
+quality at `Ruff 757/776; Black 62/68`, removed debt `19/6`, zero changed
+Python files, and no new debt.
+
 The reviewed implementation head is
-`33b4626a1ffe7d0c65336336a870a8f4a73ab92f`; its normal PR #51 merge is
-current main `2a8b273a1167588efb4a11159da5224264d5b37a`, tree
-`cb7b23d32e3663bbf00704f1e28c16020bfb9226`. This evidence earns only bounded
+`33b4626a1ffe7d0c65336336a870a8f4a73ab92f`; PR #51 normally merged it as
+`2a8b273a1167588efb4a11159da5224264d5b37a`, tree
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`. PR #52 then normally merged
+the bounded A12/Wave-A closeout as current main
+`62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+`0cc4fc8661663b29d954eb617323cc4fefc6c9cb`. This evidence earns only bounded
 `IMPLEMENTED: YES` and `TESTED: YES`; it does not qualify the underlying
 scientific, execution-isolation, security, network, commercial, or production
 systems beyond the exact structural and engineering assertions tested.
@@ -421,4 +435,16 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon has an integrated constitutional architecture and a tested bounded A0-A12 software foundation. A9 remains only the exact seven-tool in-process Wave-A control/disclosure skeleton; A10 remains only the exact bounded in-process fixture leaderboard; and A11 remains only bounded in-process operational observability with primitive-only sink snapshots. A12-R1 through A12-R12 were ratified in PR #50, and PR #51 merged the exact bounded invariant-judge/CI implementation as current main `2a8b273a1167588efb4a11159da5224264d5b37a`, tree `cb7b23d32e3663bbf00704f1e28c16020bfb9226`. Its `28`-test lane, `2052` owner regression, `2310` CPU suite, quality gate, `24/24` ticket audit, and `9/9` Wave-A acceptance audit pass. This closeout candidate proposes A12 `done` and Wave A `closed` only for that bounded engineering scope; they become authoritative only after exact-head independent review, explicit human authorization, and normal merge. All A12 qualification ceilings remain NO, and Wave B remains inactive.**
+> **Carbon current main
+> `62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+> `0cc4fc8661663b29d954eb617323cc4fefc6c9cb`, has an integrated
+> constitutional architecture and a tested bounded A0–A12 software foundation.
+> PR #52 records A12 done and Wave A closed in bounded engineering scope. This
+> governance candidate proposes Wave B active only after its exact reviewed,
+> green, normal merge, with `.agent/WAVE_B.md` v0.4 controlling and B-01 still
+> `todo` and unstarted. No Wave B implementation or testing exists yet.
+> Development no longer requires the prior approval bundle or separate
+> activation closeout; material decisions require non-blocking lead
+> notification. Every scientific, security, network, rights, commercial,
+> production, LIVE, launch, frontier, product, settlement, chain, weight, and
+> emission maturity state remains unearned.**
