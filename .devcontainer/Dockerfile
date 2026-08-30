@@ -15,6 +15,7 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/workspaces/Carbon/.venv \
     VIRTUAL_ENV=/workspaces/Carbon/.venv \
+    HOME=/home/ubuntu \
     CARBON_CANONICAL_DEV_ENV=ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64 \
     PATH=/workspaces/Carbon/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -29,21 +30,21 @@ RUN apt-get update \
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
-RUN uv python install "${PYTHON_VERSION}" \
+RUN mkdir -p /home/ubuntu /workspaces/Carbon \
+    && uv python install "${PYTHON_VERSION}" \
     && python_path="$(uv python find "${PYTHON_VERSION}")" \
     && ln -s "${python_path}" /usr/local/bin/python3.11 \
     && ln -s "${python_path}" /usr/local/bin/python3 \
     && ln -s "${python_path}" /usr/local/bin/python \
     && [ "$(id -u "${USERNAME}")" = "${USER_UID}" ] \
     && [ "$(id -g "${USERNAME}")" = "${USER_GID}" ] \
-    && mkdir -p /workspaces/Carbon \
-    && chown -R "${USERNAME}:${USERNAME}" /opt/uv-python /workspaces/Carbon
+    && chown -R "${USERNAME}:${USERNAME}" /home/ubuntu /opt/uv-python /workspaces/Carbon
 
 LABEL org.opencontainers.image.title="Carbon canonical development environment" \
       org.opencontainers.image.description="Ubuntu 24.04, glibc, CPython 3.11.16, uv 0.12.7; B-01E development evidence only" \
       org.opencontainers.image.source="https://github.com/carbonphysicsai/Carbon"
 
 WORKDIR /workspaces/Carbon
-USER vscode
+USER ubuntu
 
 CMD ["sleep", "infinity"]

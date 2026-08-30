@@ -67,6 +67,14 @@ fi
 if [[ -e /.dockerenv ]]; then
   [[ "${CARBON_CANONICAL_DEV_ENV:-}" == "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64" ]] \
     || fail "this container is not the pinned Carbon development image."
+  [[ "$(id -un)" == "ubuntu" ]] \
+    || fail "the pinned Carbon image must run as the non-root ubuntu user."
+  [[ "$(id -u)" == "1000" ]] \
+    || fail "the pinned Carbon image must run with UID 1000."
+  [[ "$(id -g)" == "1000" ]] \
+    || fail "the pinned Carbon image must run with GID 1000."
+  [[ "${HOME:-}" == "/home/ubuntu" ]] \
+    || fail "the pinned Carbon image must use /home/ubuntu as HOME."
 elif [[ -n "${CARBON_CANONICAL_DEV_ENV:-}" ]]; then
   [[ "${CARBON_CANONICAL_DEV_ENV}" == "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64" ]] \
     || fail "the Carbon environment marker is invalid."

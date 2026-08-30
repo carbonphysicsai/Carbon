@@ -151,7 +151,7 @@ ordinary `dev` synchronization.
 - `linux/amd64`;
 - exact repository root and Git availability;
 - committed dev-container metadata and, inside Docker, the canonical image
-  marker;
+  marker, non-root `ubuntu` user, UID/GID 1000, and `/home/ubuntu` home;
 - a WSL clone is not under `/mnt/<drive>`;
 - exact uv 0.12.7, delivered by the pinned image or setup action;
 - exact CPython 3.11.16 in this repository's `.venv`;
@@ -178,7 +178,13 @@ canonical job on an ubuntu-24.04 runner
     -> ./scripts/dev/ci.sh
 
 clean-image job on a fresh ubuntu-24.04 runner
-    -> build .devcontainer/Dockerfile for linux/amd64 without cache
+    -> build and load .devcontainer/Dockerfile for linux/amd64 without cache
+    -> start the exact image as ubuntu (UID/GID 1000)
+    -> copy a clean exact-head checkout and assign it to ubuntu
+    -> prove the image marker, Ubuntu/glibc, uv, and CPython identities
+    -> ./scripts/dev/bootstrap.sh
+    -> ./scripts/dev/doctor.sh
+    -> ./scripts/dev/ci.sh
 ```
 
 The local path ends in the same repository command:
@@ -192,8 +198,9 @@ Carbon Dev Container
 Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.
 The workflow fetches complete history so the quality comparison and immutable
 archive-tag boundary can be verified at the exact candidate head. The separate
-clean-image job proves the pinned dev-container definition builds without
-making image-build mechanics part of local test semantics.
+clean-image job proves the pinned dev-container definition is runnable as its
+configured non-root user and can execute the same repository-controlled gates;
+a successful Docker build alone is not runnable-container evidence.
 
 ## Supported troubleshooting
 
@@ -230,10 +237,12 @@ lock update.
 Infrastructure maintainers may reproduce the image directly:
 
 ```bash
-docker build --platform linux/amd64 \
+docker build --no-cache --pull --platform linux/amd64 \
   --file .devcontainer/Dockerfile \
   --tag carbon-dev:b-01e .
+QUALITY_BASE_SHA=origin/main \
+  ./scripts/dev/verify_image.sh carbon-dev:b-01e
 ```
 
-A failed image build is an environment/infrastructure failure. It is not a
-scientific failure.
+A failed image build, startup, identity check, or in-image gate is an
+environment/infrastructure failure. It is not a scientific failure.
