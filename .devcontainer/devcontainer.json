@@ -11,7 +11,7 @@
     "--platform=linux/amd64"
   ],
   "workspaceFolder": "/workspaces/Carbon",
-  "remoteUser": "vscode",
+  "remoteUser": "ubuntu",
   "updateRemoteUserUID": true,
   "postCreateCommand": "./scripts/dev/bootstrap.sh",
   "customizations": {

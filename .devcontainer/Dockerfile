@@ -6,7 +6,7 @@ FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG PYTHON_VERSION=3.11.16
-ARG USERNAME=vscode
+ARG USERNAME=ubuntu
 ARG USER_UID=1000
 ARG USER_GID=1000
 
@@ -25,7 +25,6 @@ RUN apt-get update \
         curl \
         git \
         libc6 \
-        passwd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=uv /uv /uvx /usr/local/bin/
@@ -35,8 +34,8 @@ RUN uv python install "${PYTHON_VERSION}" \
     && ln -s "${python_path}" /usr/local/bin/python3.11 \
     && ln -s "${python_path}" /usr/local/bin/python3 \
     && ln -s "${python_path}" /usr/local/bin/python \
-    && groupadd --gid "${USER_GID}" "${USERNAME}" \
-    && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USERNAME}" \
+    && [ "$(id -u "${USERNAME}")" = "${USER_UID}" ] \
+    && [ "$(id -g "${USERNAME}")" = "${USER_GID}" ] \
     && mkdir -p /workspaces/Carbon \
     && chown -R "${USERNAME}:${USERNAME}" /opt/uv-python /workspaces/Carbon
 
