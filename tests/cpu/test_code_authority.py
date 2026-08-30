@@ -8,11 +8,12 @@ import json
 import re
 import subprocess
 import sys
-import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -692,6 +693,9 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
     assert '[[ "$(id -un)" == "ubuntu" ]]' in doctor
     assert '[[ "$(id -u)" == "1000" ]]' in doctor
     assert '[[ "$(id -g)" == "1000" ]]' in doctor
+    assert 'ldd_identity="$(ldd --version 2>&1 || true)"' in doctor
+    assert "grep -Eqi 'glibc|GNU libc' <<< \"${ldd_identity}\"" in doctor
+    assert "ldd --version 2>&1 | head -n 1 | grep" not in doctor
 
     verifier = VERIFY_IMAGE_PATH.read_text(encoding="utf-8")
     verifier_index = _run_git("ls-files", "--stage", "scripts/dev/verify_image.sh")

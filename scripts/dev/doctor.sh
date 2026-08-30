@@ -42,7 +42,8 @@ source /etc/os-release
 
 glibc_version="$(getconf GNU_LIBC_VERSION 2>/dev/null || true)"
 [[ "${glibc_version}" == glibc\ * ]] || fail "GNU glibc is required; musl is unsupported."
-ldd --version 2>&1 | head -n 1 | grep -Eqi 'glibc|GNU libc' \
+ldd_identity="$(ldd --version 2>&1 || true)"
+grep -Eqi 'glibc|GNU libc' <<< "${ldd_identity}" \
   || fail "ldd does not report GNU glibc; musl is unsupported."
 
 architecture="$(uname -m)"
