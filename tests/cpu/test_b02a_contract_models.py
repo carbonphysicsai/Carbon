@@ -356,14 +356,16 @@ def _population(
             ),
         )
         if role is PopulationRole.OFFICIAL_PROPOSAL_Q
-        else LawSemantics(
-            LawKind.NOT_A_PROBABILITY_LAW,
-            _owner("non_probability_reason", "weighting_is_not_probability"),
-        )
-        if role is PopulationRole.EVIDENCE_WEIGHT_W
-        else LawSemantics(
-            LawKind.SET_MEMBERSHIP_ONLY,
-            _owner("no_prevalence_claim", "membership_only"),
+        else (
+            LawSemantics(
+                LawKind.NOT_A_PROBABILITY_LAW,
+                _owner("non_probability_reason", "weighting_is_not_probability"),
+            )
+            if role is PopulationRole.EVIDENCE_WEIGHT_W
+            else LawSemantics(
+                LawKind.SET_MEMBERSHIP_ONLY,
+                _owner("no_prevalence_claim", "membership_only"),
+            )
         )
     )
     weighting = (

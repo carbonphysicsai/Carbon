@@ -812,9 +812,12 @@ class CanonicalCaseDisposition:
                 payload.payload.exclusion_contract_ref,
             ):
                 raise ValueError("excluded replacement trigger contract mismatch")
-            if self.case_state is CaseState.GENERATION_FAILURE and not _owner_pin_equal(
-                replacement_trigger.payload,
-                payload.payload.failure_evidence_ref,
+            if (
+                self.case_state is CaseState.GENERATION_FAILURE
+                and not _owner_pin_equal(
+                    replacement_trigger.payload,
+                    payload.payload.failure_evidence_ref,
+                )
             ):
                 raise ValueError("generation replacement trigger reason mismatch")
         object.__setattr__(

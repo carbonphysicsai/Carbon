@@ -1066,9 +1066,9 @@ def validate_loaded_authoring_graph(objects_by_ref: Mapping[object, object]) -> 
                     raise ValueError("realized disposition scope mismatch")
 
 
-def _closed_record_schemas() -> dict[
-    type[object], tuple[str, tuple[str, ...], frozenset[str]]
-]:
+def _closed_record_schemas() -> (
+    dict[type[object], tuple[str, tuple[str, ...], frozenset[str]]]
+):
     """Return the explicit v1 subordinate-record registry.
 
     This is intentionally a closed table.  It does not inspect arbitrary
@@ -2357,9 +2357,11 @@ def _decode_union(
             require_empty(payload)
         return StratificationRelation(
             kind,
-            None
-            if kind is StratificationRelationKind.DISJOINT_EXHAUSTIVE
-            else _decode_nominal_ref(payload),
+            (
+                None
+                if kind is StratificationRelationKind.DISJOINT_EXHAUSTIVE
+                else _decode_nominal_ref(payload)
+            ),
         )
     if expected is Allocation:
         kind = AllocationKind(tag)
@@ -2381,9 +2383,11 @@ def _decode_union(
             require_empty(payload)
         return ReplacementPolicy(
             kind,
-            None
-            if kind is ReplacementPolicyKind.NEVER
-            else _decode_canonical_value(payload),
+            (
+                None
+                if kind is ReplacementPolicyKind.NEVER
+                else _decode_canonical_value(payload)
+            ),
         )
     if expected is CandidateOutcomeAccessBinding:
         return CandidateOutcomeAccessBinding(

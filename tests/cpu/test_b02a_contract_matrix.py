@@ -1222,9 +1222,11 @@ def test_evidence_roles_are_exact_and_cannot_be_relabelled(
     )
     role_binding = EvidenceRoleBinding(
         role,
-        fixtures._owner("hybrid_evidence_role", "matrix_hybrid")
-        if role is EvidenceRole.REGISTERED_HYBRID
-        else None,
+        (
+            fixtures._owner("hybrid_evidence_role", "matrix_hybrid")
+            if role is EvidenceRole.REGISTERED_HYBRID
+            else None
+        ),
     )
     binding = CaseEvidenceBinding(
         authoritative_case_ref=case.to_ref(),
@@ -1258,9 +1260,11 @@ def test_evidence_roles_are_exact_and_cannot_be_relabelled(
     other_role = next(item for item in EvidenceRole if item is not role)
     requested = EvidenceRoleBinding(
         other_role,
-        fixtures._owner("hybrid_evidence_role", "matrix_other_hybrid")
-        if other_role is EvidenceRole.REGISTERED_HYBRID
-        else None,
+        (
+            fixtures._owner("hybrid_evidence_role", "matrix_other_hybrid")
+            if other_role is EvidenceRole.REGISTERED_HYBRID
+            else None
+        ),
     )
     with pytest.raises(ValueError, match="cannot be relabeled"):
         reject_evidence_role_relabel(binding, requested)

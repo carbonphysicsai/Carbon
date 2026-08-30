@@ -311,9 +311,9 @@ def test_corrupt_predecessor_payload_cannot_authorize_successor(tmp_path) -> Non
     first_ref = store.put(_fixture_loaded(first))
     target = store.root.joinpath(*store._parts_for(first_ref))
     tampered = bytearray(target.read_bytes())
-    tampered[-1] ^= (
-        1  # Payload is the envelope's final bounded blob; header stays exact.
-    )
+    tampered[
+        -1
+    ] ^= 1  # Payload is the envelope's final bounded blob; header stays exact.
     target.write_bytes(tampered)
 
     with pytest.raises(ReferenceMismatchError):
