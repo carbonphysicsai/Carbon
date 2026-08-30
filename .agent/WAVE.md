@@ -4,7 +4,7 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.4
-**Next selected ticket:** B-01
+**Selected ticket:** B-01
 **B-01 status:** `in_progress`
 **B-01 development:** bounded orientation/evidence candidate on `agent/b-01-orientation`
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  

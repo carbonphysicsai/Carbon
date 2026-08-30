@@ -1,20 +1,23 @@
 # Codex handoff: Wave B miner research buildout
 
-**Status:** active for bounded Wave B development only after the version 0.4 governance change normally merges and `.agent/WAVE.md` names Wave B
+**Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
 **Governance version:** 0.4
 **Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.4
 **Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
-**Next selected ticket:** [`tickets/B-01_orientation.md`](./tickets/B-01_orientation.md), status `todo`
+**Current ticket:** derive the selected ticket and status from the current
+`.agent/WAVE.md`; require the matching `.agent/WAVE_B.md` row and ticket file
+to agree. This handoff does not cache or independently select ticket state.
 
 This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. Initial B-01 start gate
+## 1. Initial B-01 start-only gate
 
-Codex must stop before B-01 implementation unless all conditions below hold at
-the current checked-out commit. Later tickets use the dependency/readiness gate
-in section 4:
+This section governs only the one-time transition of B-01 from `todo` to
+`in_progress`. Apply the conditions below only when current repository
+authority still selects B-01 as `todo`. Continuation or review of an
+already-started ticket, and selection of later tickets, use section 4.
 
 1. Wave A is closed in bounded engineering scope.
 2. The merged `.agent/WAVE.md` names Wave B active in bounded development
@@ -28,10 +31,15 @@ in section 4:
 6. The proposed work does not invent or approve a decision that `AGENTS.md`
    reserves to a human.
 
-If one condition fails, report the mismatch and stop. B-01 may begin after this
-governance pull request normally merges, only through its own later ticket
-branch. No multi-role approval bundle, exact-byte activation approval, or
-separate activation closeout is required before B-01 development.
+If one condition fails during an attempted initial B-01 start, report the
+mismatch and stop. Once `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the B-01
+ticket consistently record B-01 as `in_progress`, conditions 4 and 5 are
+historical start evidence rather than continuation requirements. Verify the
+recorded branch, base, current HEAD/tree, worktree changes, evidence record,
+and blocking-review state, then continue only B-01. Do not create a replacement
+branch or repeat its orientation work. No multi-role approval bundle,
+exact-byte activation approval, or separate activation closeout is required
+before bounded B-01 development.
 
 ## 2. Required read order
 
@@ -75,7 +83,7 @@ the domain owner provides a current repository contract.
 
 | File | Role after this planning reconciliation |
 |---|---|
-| `.agent/WAVE.md` | Active-wave authority. After the version 0.4 governance change normally merges, it authorizes bounded Wave B development and selects B-01 as the next `todo` ticket. |
+| `.agent/WAVE.md` | Active-wave and current-ticket-selection authority. Read its current wave, state, controlling register, selected ticket, and selected-ticket status; require the matching board and ticket records to agree rather than inferring current state from this handoff or a historical summary. |
 | `.agent/WAVE_B.md` | Controlling Wave B ticket register, dependencies, effort, review routing, and closeout gate. |
 | `SPEC.md` | System/runtime doctrine. It preserves the current v1 service and records the gated migration to the separate Wave B research service. |
 | `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | Proposed behavioral and authority architecture for the local research service. B-07R ratifies it. |
@@ -103,21 +111,35 @@ When two documents disagree, apply `AGENTS.md` section 2. Record one of
 `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`,
 `MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`. Stop on the last class.
 
-## 4. Ticket selection
+## 4. Current-ticket state and selection
 
-Start B-01 only after the version 0.4 governance change normally merges. For
-each later session:
+Section 1 owns only the initial B-01 `todo` to `in_progress` transition. At the
+start of every session:
 
-1. With current user authorization, fetch `origin main`, record the remote SHA,
-   verify it against the intended base, and create the ticket branch/worktree
-   from that exact SHA. Do not use `git pull`.
-2. If the user names a ticket, verify its readiness. Otherwise select the first
-   ready `todo` row in Wave B board order.
-3. Use one reviewable branch and worktree for that ticket.
-4. Do not combine tickets because they share files or concepts.
-5. Run parallel lanes only when `.agent/WAVE_B.md` permits them, their
-   dependencies have merged, and the lanes do not edit the same authority.
-6. Stop after the ticket's bounded implementation and evidence package.
+1. Read the current wave, wave state, controlling register, selected ticket,
+   and selected-ticket status from `.agent/WAVE.md`. Require the matching row
+   in `.agent/WAVE_B.md` and the selected ticket file to agree. Stop on a
+   disagreement.
+2. If the selected ticket is `in_progress`, continue or review only that ticket
+   in its recorded branch/worktree after verifying its recorded base, current
+   HEAD/tree, worktree changes, evidence record, CI, and blocking-review state.
+   Do not create a new branch from `origin/main` merely to continue existing
+   work.
+3. If the selected ticket is `todo`, verify readiness, then, with current user
+   authorization, fetch `origin main`, record its exact SHA/tree, and create
+   the dedicated ticket branch/worktree from that exact base. Do not use
+   `git pull`.
+4. If the previously selected ticket is authoritatively `done` and no ticket
+   is `in_progress`, use a user-named ready ticket or otherwise the first ready
+   `todo` row in Wave B board order. Record the new selection and status
+   consistently in the wave, board, and ticket records on that ticket's branch
+   before implementation.
+5. A `blocked` ticket does not permit starting one of its dependents. An
+   unrelated ticket may be selected only if its own dependency/readiness gate
+   passes and the board permits that lane.
+6. Use one reviewable branch/worktree per ticket, do not combine tickets, run
+   parallel lanes only when the board permits and their authority/files do not
+   overlap, and stop after the bounded implementation and evidence package.
 
 B-07R must ratify the research architecture before dependent implementation.
 B-07S must ratify the exact wire protocol before service-facing code. B-07A
@@ -132,6 +154,14 @@ has closed, no unresolved reserved-human decision is needed for correct bounded
 implementation, and every deferred human input has an explicit fail-closed
 fixture behavior. Non-reserved material decisions follow the record-and-notify
 rule below. Do not skip a blocked ticket by starting one of its dependents.
+
+B-02A and every later Wave B ticket remain unready until B-01 is
+authoritatively `done` with its reviewed tree-identical merge, successful
+post-merge CI, and separate reviewed closeout evidence. Checked B-01
+Definition-of-Done boxes, an `in_progress` record, candidate evidence, or an
+open implementation/orientation pull request do not satisfy that dependency.
+`B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
+exact individual dependency rows.
 
 ## 5. Per-ticket execution protocol
 
@@ -363,18 +393,22 @@ Use this prompt only after the start gate has passed. Replace `<TICKET>` with on
 eligible ticket ID.
 
 ```text
-In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. With current
-user authorization, fetch `origin main`, record the exact remote SHA, and create
-the ticket branch/worktree from that SHA without using `git pull`. Read
+In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.4 as the controlling register, selects the intended ticket, and that
-every <TICKET> dependency has merged with evidence. Confirm that no reserved
-human decision is being invented. If a check fails, stop and report it.
+version 0.4 as the controlling register, and selects <TICKET> with the same
+status recorded by the board and ticket file. If <TICKET> is `in_progress`,
+continue only its recorded branch/worktree after verifying the recorded base,
+current HEAD/tree, evidence, CI, and review state. If <TICKET> is `todo`, verify
+that every dependency is authoritatively `done`, then, with current user
+authorization, fetch `origin main`, record the exact remote SHA/tree, and create
+the dedicated ticket branch/worktree from that SHA without using `git pull`.
+Confirm that no reserved human decision is being invented. If a check fails,
+stop and report it.
 
-Create a ticket-scoped branch and plan when required. Implement the smallest
-change that satisfies the ticket Definition of Done. Do not invent scientific,
+Create a ticket-scoped plan when required. Implement the smallest change that
+satisfies the ticket Definition of Done. Do not invent scientific,
 security, rights, economic, or launch values. Preserve mock/official isolation,
 protected-field non-disclosure, v1 compatibility, and every applicable Carbon
 invariant. Run and report the ticket's focused, subsystem, full CPU, invariant,
