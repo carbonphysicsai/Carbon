@@ -9,7 +9,7 @@ Model choice, API keys, and vendor harness config are **out of band** (see optio
 **Build sequencing:** `Design_Specs/Build_Out.md` v1.4 + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Long-horizon plan:** `Design_Specs/Agentic_Development_Master_Plan.md`  
 **Agent constitution:** repo root `AGENTS.md`  
-**Board / tickets (canonical):** repo root `.agent/`  
+**Board / tickets (canonical):** repo root `.agent/`
 **Delegated decisions:** `.agent/DELEGATED_DECISION_PROTOCOL.md`
 
 ```text
