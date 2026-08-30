@@ -224,3 +224,212 @@ Before the corresponding later tickets/LIVE work, designated humans must also su
 ## A-1 conclusion
 
 The repository contains substantial historical reference material but no currently runnable canonical lowercase `carbon` package. The most defensible path is audit-first selective reuse: preserve the PoC and scientific trees as evidence/reference, wrap or repair narrowly compatible primitives, and replace official semantics where current specifications materially supersede the prototype. A0 must begin only after human review of this orientation and must not infer semantic truth from the legacy layout.
+
+---
+
+# Wave B orientation — B-01 (2026-08-29)
+
+> **Prospective appendix.** Everything above this divider is the historical
+> A-1 orientation record and remains unchanged evidence of what was observed
+> then. This appendix records the current B-01 audit at the verified Wave-B
+> base. The full component map, conflict ledger, command output, and ticket
+> crosswalk are canonical in
+> [`.agent/evidence/wave_b/b-01.md`](./evidence/wave_b/b-01.md).
+
+## Exact B-01 base and authority
+
+| Item | Pin |
+|---|---|
+| Repository | `carbonphysicsai/Carbon` |
+| Base commit | `cce1efec19601d4e460676e9b422cc569b9d66d0` |
+| Base tree | `a270616e2d54401f5c73b408b469d8c9f6a8b1f9` |
+| Branch | `agent/b-01-orientation` |
+| Worktree | `C:\Users\Ryan_\source\Carbon` |
+| Initial status | clean |
+| `origin/main` at branch creation | `cce1efec19601d4e460676e9b422cc569b9d66d0` |
+| B-01 ticket blob | `4702fe30305bf25556bedce95420cc07a4704b23` |
+| Active wave | Wave B, active in bounded development scope |
+| Controlling board | `.agent/WAVE_B.md` version 0.4 |
+| Build Out | version 1.4 plus the owner-canonical constitutional overlay |
+| Research contract | version 0.3, OWNER-REVIEW CONTRACT CANDIDATE; not ratified by B-01 |
+| Scientific canon | v4 remains owner-canonical; v4.1 additions remain proposed |
+| Post-merge CI at base | run 33282379171, successful exact-SHA push |
+
+PR #54 normally merged the reviewed Wave-B governance tree as the exact base.
+Fresh remote, tree, status, board, ticket-selection, issue/review queue, and
+reserved-human checks passed. No explicit `REQUEST_CHANGES` or `BLOCKED`
+direction applies to B-01, and no reserved decision is required for
+orientation.
+
+## Wave A closure and Wave B boundary
+
+A-1 and A0–A12 are closed only in their recorded bounded engineering scopes.
+No Wave-A row remains conditional, unmerged, `todo`, `in_progress`, or
+`blocked` within that closed scope. Closure and Wave-B activation create no
+scientific, security, network, commercial, production, `LIVE`, launch,
+frontier, product, settlement, chain, weight, or emission authority. Wave B
+does not retroactively widen a Wave-A implementation.
+
+B-01 is documentation/evidence orientation only. The proposed Wave-B research
+architecture remains gated by B-07R; the exact v2 service protocol remains
+gated by B-07S. B-02, B-07, and all other later implementation remain
+unstarted.
+
+## Current repository map
+
+The root-layout `carbon==0.9.0` package is now canonical and includes bounded
+Wave-A implementations for:
+
+- exact Strategy v1 validation;
+- Challenge registry and fail-closed LIVE qualification;
+- typed seeding/domain separation;
+- fixture-only Score Pack loading/scoring;
+- private result storage and allow-listed EvaluationCard projection;
+- submission identity/FSM and typed infrastructure failure;
+- deterministic fixture TrainEval;
+- the exact seven-operation v1 in-process MCP surface;
+- fixture-only Challenge-bound leaderboard projection;
+- redacted in-process observability; and
+- invariant CI.
+
+These are implemented/tested only in their recorded bounded scopes. Empty or
+reserved `evaluation`, `audit`, `qualification`, and `chain` packages are
+package seams, not implemented capabilities.
+
+The following remain historical, optional, unqualified, or noncanonical:
+
+- `poc/` Burgers/FNO generator, NumPy/JAX training, score/card, seed, and smoke
+  paths;
+- `Julia/` and legacy SciML client/validator paths;
+- legacy miner, validator, protocol, Bittensor, emission, and direct-weight
+  paths;
+- noisy/random Landscape, specialist, symbolic, and prior paths;
+- old generic Challenge/data loaders and rich Strategy helpers; and
+- legacy arithmetic/fixed-threshold scoring and raw seed bundles.
+
+No runtime implementation exists yet for the proposed `ParameterCatalog`,
+`StrategyCompiler`, `ResolvedConstructionPlan`,
+`ChallengeInteractionManifest`, research records/receipts, `PriorPack`,
+`TruthAsset`, `ReferencePolicy`, `MeasurementContract`, `SamplingPlan`, or
+`ResearchMcpService`.
+
+## Reuse disposition summary
+
+The 30-row canonical audit in the B-01 evidence record has:
+
+- **KEEP:** 14
+- **WRAP:** 5
+- **REPAIR:** 3
+- **REPLACE:** 7
+- **NEW_OWNER_DECISION_REQUIRED:** 1
+
+The principal KEEP choices are the canonical Wave-A Strategy, registry,
+seeding, scoring, card, FSM, fixture TrainEval, seven-tool MCP, leaderboard,
+observability, CI, package, and governance boundaries. Select PoC
+generator/FNO/test ideas and optional backbone adapters are WRAP candidates
+only after their owning scientific/protocol tickets. Julia and legacy SciML
+paths require REPAIR after B-04/B-E2 authority. Legacy rich Strategy,
+raw-seed, simulated-score, noisy-prior, generic Challenge, and network/direct
+weight paths are REPLACE/EXCLUDE as Wave-B authority.
+
+The owner-decision row covers physical identity/population, SamplingPlan,
+generator/reference adequacy, measurements, thresholds/weights, backend
+qualification, and gauntlet policy. Fixture work can remain structurally fail
+closed; B-01 decides none of those values.
+
+These dispositions record already-authoritative canonical-versus-legacy
+boundaries and route future work. They do not adopt a new architecture or
+authorize a later-ticket action.
+
+## Conflict ledger
+
+The canonical 23-row ledger is in
+[`b-01.md` Section 6](./evidence/wave_b/b-01.md#6-conflict-ledger):
+
+| Class | Count |
+|---|---:|
+| `NO_CONFLICT` | 2 |
+| `DOCUMENTATION_LAG` | 3 |
+| `IMPLEMENTATION_LAG` | 5 |
+| `MIGRATION_REQUIRED` | 13 |
+| `NEW_OWNER_DECISION_REQUIRED` | 0 |
+
+The highest-risk seams are inert Strategy parameters versus later compiler
+semantics; v1 seven-tool MCP versus proposed v2; mock/practice versus official
+rights; A4 typed entropy versus raw legacy seeds; A5 scoring versus legacy
+simulated scores; A8 fixtures versus real construction; allow-listed
+disclosure versus seed-rich legacy cards; PriorPack versus noisy Landscape
+publication; qualified TruthAsset authority versus PoC/Julia code presence;
+and Wave-B local research versus legacy Bittensor weights.
+
+## Dependencies and authority
+
+All 24 Wave-B ticket rows were checked against their tickets:
+
+- dependency mismatches: `0/24`;
+- base-status mismatches: `0/24`;
+- semantic Master-question mismatches: `0`; and
+- every ticket after B-01 remained `todo`.
+
+The ratification sequence is
+`B-07R → B-02B/B-02C → B-07S → B-07A/domain implementations → B-07G`.
+B-07F separately owns the resolved-plan fixture-official adapter behind the
+unchanged v1 lifecycle; B-E4 and B-GATE join the research and v1-fixture
+paths. No dependency order was changed.
+
+## Open design questions
+
+For B-01:
+
+- `RESOLVED`: 1 (MQ-018's bounded-development governance slice);
+- `DEFERRED_FAIL_CLOSED`: 17 (MQ-001–008, MQ-013, MQ-015–017, the broader
+  MQ-018 production slice, MQ-024–026, MQ-045, and MQ-051); and
+- `OWNER_BLOCKING`: 0.
+
+Fail-closed mechanisms include `HUMAN_INPUT`/fixture-only identities, no LIVE
+manifest, typed unavailable reference outcomes, `PACK_NOT_READY`,
+`EVIDENCE_DEFERRED`/`INDETERMINATE`, `UNRESOLVED` forecasts, local-only/no
+charged path, TEST_ONLY priors with no public-v1 provider, rights-ineligible
+evidence exclusion, and no external release.
+
+## Baseline
+
+The exact base passed in an isolated CI-equivalent Linux/Python 3.11
+environment:
+
+| Check | Result |
+|---|---|
+| Invariants | 28 passed |
+| Default CPU | 2310 passed |
+| Quality | Ruff 757/776; Black 62/68; removed 19/6; zero changed Python files; no new debt |
+| Package/wheel/outside-tree | 28 passed; `carbon-0.9.0-py3-none-any.whl`, `sha256:d6af2e51ff6e13d1d6046ac96814cd45d654ae6226a7a3f7d4c746700024f18f` |
+
+Optional/inherited results:
+
+- native Windows cannot satisfy POSIX `fcntl`, descriptor-relative I/O, and
+  symlink assumptions; the same base is green in canonical Linux;
+- `poc/tests` exits 2 on the inherited missing `role_seed` import;
+- the PoC smoke's oracle and three NumPy fallback fixtures run, then the same
+  collection error occurs; it explicitly reports protocol-only/no
+  train-quality claim;
+- `.[dev,poc]` cannot resolve `jaxlib` in the available musl environment, so
+  no JAX parity/training check was claimed;
+- Julia is unavailable, `Julia/Project.toml` is invalid at line 6, column 61,
+  and no Manifest exists.
+
+No inherited failure was repaired. Exact commands, timings, versions, and
+diagnostics are in [`b-01.md` Section 9](./evidence/wave_b/b-01.md#9-baseline-validation).
+
+## Maturity, risks, and human input
+
+B-01 establishes a specified and tested orientation baseline and a
+documentation/evidence candidate. It does not implement or test the Wave-B
+research service. It earns no scientific, security, network, commercial, or
+production qualification and no `LIVE`, launch, frontier, product,
+settlement, chain, weight, or emission authority.
+
+Later tickets own the recorded compiler/catalog, resource, generator,
+reference, measurement, Dossier, prior, practice, service, gauntlet, and
+legacy-migration risks.
+
+**Human input required for B-01 completion:** None.

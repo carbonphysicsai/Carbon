@@ -4,9 +4,9 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.4
-**Next selected ticket:** B-01
-**B-01 status:** `todo`
-**B-01 development:** authorized after this governance change normally merges
+**Selected ticket:** B-01
+**B-01 status:** `in_progress`
+**B-01 development:** bounded orientation/evidence candidate on `agent/b-01-orientation`
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -15,12 +15,12 @@
 **Agent constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
 
-> **Authority timing.** This file records the proposed post-merge state of the
-> exact seven-file Wave B governance change. Until that change is independently
-> reviewed, green, and normally merged, current `main` remains Wave A closed in
-> bounded engineering scope, Wave B inactive, B-01 `todo` and unauthorized, and
-> no implementation wave active. This documentation change does not itself
-> start B-01.
+> **Authority state.** PR #54 normally merged the independently reviewed,
+> green seven-file Wave B governance change as
+> `cce1efec19601d4e460676e9b422cc569b9d66d0`, tree
+> `a270616e2d54401f5c73b408b469d8c9f6a8b1f9`. B-01 began later on its
+> dedicated branch and is now `in_progress`. This status change authorizes no
+> later Wave-B ticket or runtime implementation.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -87,15 +87,14 @@ planning and sequencing authority until a prospective, reviewed, green, and
 normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
 does not authorize implementation by itself.
 
-After this exact governance change normally merges, [`WAVE_B.md`](./WAVE_B.md)
-version 0.4 is the controlling Wave B dependency board. Its architecture
+Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.4 the
+controlling Wave B dependency board. Its architecture
 contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
-[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the next
-selected `todo` ticket and is not started by this documentation change. It may
-begin on its own later ticket branch only after this governance change normally
-merges.
+[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the selected
+`in_progress` ticket on its dedicated branch. B-02 and every later ticket
+remain `todo` and unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes
