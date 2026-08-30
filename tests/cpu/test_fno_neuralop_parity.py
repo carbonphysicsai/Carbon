@@ -7,10 +7,10 @@ the forward-pass outputs at a stated fp32 tolerance. Initialization schemes
 are *not* expected to match between the two frameworks — only the forward
 computation, given identical weights.
 
-Requires both the JAX/Flax stack (`carbon[poc]`) and the real PyTorch
-`neuraloperator` package (`carbon[neuraloperator]`) installed together;
-skips gracefully if either is absent so default CI stays green regardless
-of which extras are installed.
+Requires both the JAX/Flax stack (`science-jax` uv dependency group) and the
+real PyTorch `neuraloperator` package (`science-torch` group) installed
+together; skips gracefully if either is absent so the canonical CI job stays
+green regardless of which groups are synced.
 """
 
 from __future__ import annotations

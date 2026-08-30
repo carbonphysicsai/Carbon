@@ -162,14 +162,16 @@ its own stated purpose, and is a separate decision from porting an FNO
 architecture. §6.4 flags this as an open reconciliation question rather than
 deciding it here.
 
-**Dependencies:** parity tests need both the JAX stack (`poc` extra) and the
-real PyTorch `neuraloperator` package (`neuraloperator` extra). Neither
-extra alone is enough; install `pip install -e ".[dev,poc,neuraloperator]"`
+**Dependencies:** parity tests need both the JAX stack (`science-jax` uv
+dependency group) and the real PyTorch `neuraloperator` package
+(`science-torch` group). Neither group alone is enough; run
+`CARBON_UV_GROUPS="science-jax science-torch" ./scripts/dev/bootstrap.sh`
 for local parity testing (verified this combination installs cleanly and
 `neuraloperator`'s own metadata pulls in `tensorly`/`tensorly-torch`/
 `opt_einsum` transitively — no separate install step needed for those).
-`flax>=0.9` was added to the `poc` extra (previously only `jax`/`numpy`/
-`pyyaml`).
+`flax>=0.9` is part of the `science-jax` group (the former `poc`
+`[project.optional-dependencies]` extra, renamed and folded into
+`[dependency-groups]` by B-01E's canonical-environment work).
 
 **Correction from an earlier draft of this note:** this design note
 originally said the classification would go through `poc/tests/conftest.py`'s
@@ -179,12 +181,13 @@ implemented that way — `tests/cpu/test_fno_neuralop_parity.py` lives under
 processes tests under `poc/tests/`; registering it there would have had no
 effect. What the test file actually does is set
 `pytestmark = [pytest.mark.backend_jax, pytest.mark.backend_torch]` directly
-at module level (both markers registered in `pyproject.toml`). Because the
-default CI `test` job installs only `.[dev]`, the whole module previously
-skipped via `pytest.importorskip` at collection time and never ran; a
-dedicated `test-fno-parity` CI job (`.github/workflows/ci.yml`) now installs
-`.[dev,poc,neuraloperator]` and runs this file specifically, so it's
-exercised on every push/PR instead of silently skipping.
+at module level (both markers registered in `pyproject.toml`). The
+canonical CI job only syncs the `dev` group, so the whole module skips via
+`pytest.importorskip` at collection time there; a dedicated `fno-parity`
+CI job (`.github/workflows/ci.yml`) instead bootstraps the locked
+environment with `CARBON_UV_GROUPS="science-jax science-torch"` and runs
+this file specifically, so it's exercised on every push/PR instead of
+silently skipping.
 
 ---
 
