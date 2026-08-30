@@ -4,10 +4,10 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.5
-**Selected ticket:** B-01E
-**B-01E status:** `in_progress`
+**Selected ticket:** B-02A — prospective `todo`; not started
+**B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
-**B-02A status:** `todo` / unstarted
+**B-02A status:** `todo` / next selected / **NOT STARTED**
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -27,10 +27,22 @@
 > `4ee58d56862d0441d5d151d79db1fe3036f1025d`; the merge tree equals the
 > reviewed tree exactly, and exact-main CI `33308165189` passed. B-01 is
 > therefore authoritatively `done`. Executive-owner direction dated
-> 2026-08-30 inserts B-01E as the sole selected `in_progress` ticket. B-02A
-> and every later Wave B ticket remain `todo` and unstarted. B-01E's candidate
-> status becomes authoritative only through its own normal review/merge and
-> later closeout gates.
+> 2026-08-30 inserted B-01E before B-02A. B-01E's independently reviewed
+> implementation head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree
+> `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as
+> `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5`; the merge tree equals the
+> reviewed tree exactly, and exact-main push run `33319267255` passed. This
+> documentation-only closeout branch therefore proposes B-01E `done` and
+> B-02A as the next selected `todo`, but those tokens are non-authoritative
+> review content until the exact closeout head is independently reviewed with
+> all blocking findings and threads resolved, required PR CI passes, it
+> normally merges under separate authorization with the reviewed tree
+> preserved, and exact-main closeout CI succeeds. Until that complete gate,
+> B-01E's prior authoritative status remains `in_progress` despite any
+> prospective closeout token on a branch or newly merged main; B-02A and every
+> later ticket remain `todo` and unstarted.
+> Even after the gate, B-02A requires a fresh authorized ticket session; this
+> branch does not begin its scientific design or implementation.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -104,10 +116,13 @@ contract. Its architecture
 contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
-[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). The current sequence is
-`B-01 done → B-01E selected/in_progress → B-02A todo`. B-01E owns only the
-canonical development environment and legacy executable quarantine. B-02A
-and every later ticket remain `todo` and unstarted.
+[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). This closeout proposes
+`B-01 done → B-01E done → B-02A next selected/todo`. B-01E owns only the
+canonical development environment and legacy executable quarantine. The
+proposal cannot start B-02A from this branch: the handoff derives state from
+exact fetched `origin/main`, and requires the reviewed closeout merge plus
+successful exact-main closeout CI before the transition becomes authoritative.
+B-02A and every later ticket remain unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes
@@ -127,8 +142,8 @@ A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effo
 ## Notes
 
 - Do not mark done without test/file/review evidence.
-- During B-01E development, run the explicitly recorded transition evidence.
-  After B-01E merges, ordinary ticket evidence runs through
+- B-01E implementation evidence is recorded in
+  `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
   `./scripts/dev/ci.sh` in the canonical Linux environment. Native-Windows
   diagnostics and archived PoC, Julia, network, JAX, chain, GPU, or other
   legacy validation are required only when the selected ticket explicitly

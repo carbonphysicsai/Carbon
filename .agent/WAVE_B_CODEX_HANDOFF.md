@@ -16,18 +16,28 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-01E insertion and readiness gate
+## 1. B-01E closeout and B-02A readiness gate
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
 `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`. Executive-owner direction
-inserts B-01E between B-01 and B-02A. B-01E may begin only after a fresh
-`origin/main` verification proves that B-01 completion and a clean base.
+inserted B-01E between B-01 and B-02A. B-01E's independently reviewed
+implementation head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree
+`4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as
+`b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree
+preserved. Exact-main push run `33319267255` passed on that merge.
 
-B-02A and every later ticket remain unready until B-01E has normally merged
-its exact reviewed tree, exact-main CI has passed, and a separate reviewed
-closeout has recorded B-01E `done`. A B-01E branch, draft PR, green PR CI, or
-checked implementation criteria do not satisfy that dependency.
+The separate documentation closeout proposes B-01E `done` and B-02A as the
+next selected `todo`, but its branch state is review content only. B-02A and
+every later ticket remain unready until the closeout's exact head is
+independently reviewed with every blocking finding and thread resolved,
+required PR CI passes, it normally merges under separate authorization with
+the reviewed tree preserved, and exact-main closeout CI succeeds. Only then
+may a fresh session derive
+B-02A as selected from exact fetched `origin/main`; B-02A still remains
+unstarted and requires separate current user authorization plus its own
+readiness and branch gate. A closeout branch, draft PR, green PR CI, or
+independent review alone does not satisfy that dependency.
 
 ## 2. Required read order
 
@@ -107,7 +117,7 @@ When two documents disagree, apply `AGENTS.md` section 2. Record one of
 
 ## 4. Current-ticket state and selection
 
-Section 1 owns only the initial B-01 `todo` to `in_progress` transition. At the
+Section 1 records the current B-01E closeout and B-02A readiness gate. At the
 start of every session:
 
 1. Fetch `origin/main` without using `git pull`, record its exact commit and
@@ -168,11 +178,15 @@ implementation, and every deferred human input has an explicit fail-closed
 fixture behavior. Non-reserved material decisions follow the record-and-notify
 rule below. Do not skip a blocked ticket by starting one of its dependents.
 
-B-02A and every later Wave B ticket remain unready until B-01E is
-authoritatively `done` with its reviewed tree-identical merge, successful
-exact-main CI, and separate reviewed closeout evidence. Checked B-01E
-Definition-of-Done boxes, an `in_progress` record, candidate evidence, or an
-open implementation pull request do not satisfy that dependency.
+B-01E's reviewed implementation merge and implementation exact-main CI are
+complete at the identities in section 1. B-02A and every later Wave B ticket
+remain unready until B-01E is authoritatively `done` through the separate
+reviewed, normally merged closeout and successful exact-main closeout CI.
+Checked B-01E Definition-of-Done boxes, a prospective closeout `done` token,
+candidate evidence, a draft closeout pull request, green PR CI, or independent
+review alone do not satisfy that dependency. After the gate, B-02A is only the
+selected `todo`; item 3 still requires current user authorization before its
+own branch or implementation begins.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
