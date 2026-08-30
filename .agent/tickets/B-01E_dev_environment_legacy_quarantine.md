@@ -88,7 +88,7 @@ notice is accurate. The cleanup target is superseded executable material.
 ```text
 OS family: Linux
 distribution: Ubuntu 24.04 LTS, glibc
-architecture: x86_64 or aarch64
+architecture: x86_64 (`linux/amd64`); no ARM64 qualification is claimed
 Python: exact CPython patch recorded in .python-version
 dependency manager: exact uv version recorded in the dev image and docs
 shell: bash

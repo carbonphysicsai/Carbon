@@ -36,7 +36,8 @@ RUN uv python install "${PYTHON_VERSION}" \
     && ln -s "${python_path}" /usr/local/bin/python \
     && groupadd --gid "${USER_GID}" "${USERNAME}" \
     && useradd --uid "${USER_UID}" --gid "${USER_GID}" --create-home --shell /bin/bash "${USERNAME}" \
-    && chown -R "${USERNAME}:${USERNAME}" /opt/uv-python
+    && mkdir -p /workspaces/Carbon \
+    && chown -R "${USERNAME}:${USERNAME}" /opt/uv-python /workspaces/Carbon
 
 LABEL org.opencontainers.image.title="Carbon canonical development environment" \
       org.opencontainers.image.description="Ubuntu 24.04, glibc, CPython 3.11.16, uv 0.12.7; B-01E development evidence only" \
