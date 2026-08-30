@@ -2,7 +2,7 @@
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
 **Version:** 0.4
-**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. That merge satisfied B-01's explicit activation dependency. B-01 is now `in_progress` on its dedicated branch. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before B-01 development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. That merge satisfied B-01's explicit activation dependency. PR #55 later normally merged the independently reviewed B-01 orientation/evidence tree and exact-main CI succeeded. This separate documentation closeout proposes B-01 `done`; authoritative merged `main` remains `in_progress` until the exact closeout head is independently reviewed and normally merged. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -10,10 +10,11 @@
 
 Authority comes from the merged active `.agent/WAVE.md` and the selected ticket,
 not this file alone or prior role approval. This version 0.4 governance change
-does not start B-01. After the activation gate above normally merges, B-01 may
-begin only through its own bounded ticket branch and remains subject to the
-ticket's specifications, dependencies, invariants, tests, review, and merge
-process.
+did not itself start B-01. B-01 began later through its own bounded ticket
+branch and remained subject to the ticket's specifications, dependencies,
+invariants, tests, review, and merge process. This candidate records the
+resulting merge evidence and proposes only the B-01 transition to `done`; it
+does not select or start B-02A or any later ticket.
 
 ---
 
@@ -81,7 +82,7 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 
 | ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | Master questions | Effort | Target |
 |---|---|---|---|---|---|---|---|---|---|
-| B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | in_progress | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
+| B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
 | B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01 | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
