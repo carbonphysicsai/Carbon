@@ -36,10 +36,12 @@ mismatch and stop. Once `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the B-01
 ticket consistently record B-01 as `in_progress`, conditions 4 and 5 are
 historical start evidence rather than continuation requirements. Verify the
 recorded branch, base, current HEAD/tree, worktree changes, evidence record,
-and blocking-review state, then continue only B-01. Do not create a replacement
-branch or repeat its orientation work. No multi-role approval bundle,
-exact-byte activation approval, or separate activation closeout is required
-before bounded B-01 development.
+and blocking-review state, then continue only B-01. When the recorded local
+worktree is unavailable, section 4 permits a verified local tracking checkout
+of the exact existing remote ticket branch; that is not a replacement branch.
+Do not create another ticket branch or repeat its orientation work. No
+multi-role approval bundle, exact-byte activation approval, or separate
+activation closeout is required before bounded B-01 development.
 
 ## 2. Required read order
 
@@ -121,10 +123,16 @@ start of every session:
    in `.agent/WAVE_B.md` and the selected ticket file to agree. Stop on a
    disagreement.
 2. If the selected ticket is `in_progress`, continue or review only that ticket
-   in its recorded branch/worktree after verifying its recorded base, current
-   HEAD/tree, worktree changes, evidence record, CI, and blocking-review state.
-   Do not create a new branch from `origin/main` merely to continue existing
-   work.
+   from its recorded ticket branch. If its recorded local worktree exists,
+   verify and use it. If that machine-local worktree is unavailable, fetch the
+   exact existing remote ticket branch, verify its remote HEAD/tree against the
+   current pull request and evidence record, and create a local tracking
+   checkout/worktree at that exact head. Creating that local tracking checkout
+   is continuation, not a replacement ticket branch. Do not branch from
+   `origin/main`, reset/rebase the ticket branch, discard another worktree's
+   uncommitted state, or duplicate the ticket. Stop if the remote branch is
+   absent or its identity cannot be reconciled. Before work, verify the
+   recorded base, current HEAD/tree, evidence, CI, and blocking-review state.
 3. If the selected ticket is `todo`, verify readiness, then, with current user
    authorization, fetch `origin main`, record its exact SHA/tree, and create
    the dedicated ticket branch/worktree from that exact base. Do not use
@@ -399,11 +407,14 @@ follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
 version 0.4 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
-continue only its recorded branch/worktree after verifying the recorded base,
-current HEAD/tree, evidence, CI, and review state. If <TICKET> is `todo`, verify
-that every dependency is authoritatively `done`, then, with current user
-authorization, fetch `origin main`, record the exact remote SHA/tree, and create
-the dedicated ticket branch/worktree from that SHA without using `git pull`.
+continue only its recorded ticket branch after verifying the recorded base,
+current remote HEAD/tree, evidence, CI, and review state. Use its existing
+local worktree when available; otherwise fetch and create a local tracking
+checkout/worktree from the exact existing remote ticket branch, never from
+`origin/main`. If <TICKET> is `todo`, verify that every dependency is
+authoritatively `done`, then, with current user authorization, fetch
+`origin main`, record the exact remote SHA/tree, and create the dedicated
+ticket branch/worktree from that SHA without using `git pull`.
 Confirm that no reserved human decision is being invented. If a check fails,
 stop and report it.
 
