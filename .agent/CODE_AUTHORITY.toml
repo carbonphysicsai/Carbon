@@ -1,0 +1,99 @@
+schema_version = 1
+decision = "B-01E-D1"
+
+[archive]
+tag = "archive/pre-wave-b-legacy-2026-08-30"
+branch = "archive/legacy-prototypes"
+commit = "4ee58d56862d0441d5d151d79db1fe3036f1025d"
+tree = "9f767ea16ffb7185ab64acff2542c7a8dcc2e339"
+index = "docs/history/LEGACY_CODE_INDEX.md"
+authority = "Archive presence grants no current implementation authority."
+
+[canonical]
+implementation_roots = [
+    "carbon/__init__.py",
+    "carbon/audit",
+    "carbon/backbones",
+    "carbon/cards",
+    "carbon/chain",
+    "carbon/evaluation",
+    "carbon/fees",
+    "carbon/leaderboard",
+    "carbon/logging_utils",
+    "carbon/mcp",
+    "carbon/observability",
+    "carbon/qualification",
+    "carbon/registry",
+    "carbon/schema",
+    "carbon/scoring",
+    "carbon/seeding",
+    "carbon/traineval",
+]
+test_roots = [
+    "tests/cpu",
+    "tests/invariants",
+]
+fixture_roots = [
+    "tests/fixtures",
+]
+script_roots = [
+    "scripts/check_quality.py",
+    "scripts/dev",
+]
+package_include = [
+    "carbon*",
+]
+default_ci_entrypoint = "./scripts/dev/ci.sh"
+
+[retired]
+runtime_namespaces = [
+    "carbon.base",
+    "carbon.challenges",
+    "carbon.common",
+    "carbon.data",
+    "carbon.emission",
+    "carbon.landscape",
+    "carbon.miner",
+    "carbon.physics",
+    "carbon.protocol",
+    "carbon.sciml",
+    "carbon.specialist",
+    "carbon.symbolic",
+    "carbon.training",
+    "carbon.validator",
+    "neurons",
+    "poc",
+]
+executable_paths = [
+    "Julia",
+    "carbon/base",
+    "carbon/challenges",
+    "carbon/common",
+    "carbon/data",
+    "carbon/emission",
+    "carbon/landscape",
+    "carbon/miner",
+    "carbon/physics",
+    "carbon/protocol.py",
+    "carbon/sciml",
+    "carbon/specialist",
+    "carbon/symbolic",
+    "carbon/training",
+    "carbon/validator",
+    "docker",
+    "examples/mcp_client_example.py",
+    "examples/run_agentic_miner.py",
+    "k8s",
+    "neurons",
+    "poc",
+    "scripts/generate_leaderboard.py",
+    "scripts/generate_score_data.py",
+    "scripts/local_validate.py",
+    "scripts/publish_daily_priors.py",
+    "scripts/run_landscape_daily.py",
+    "tests/legacy",
+]
+
+[exceptions]
+runtime_imports = []
+executable_paths = []
