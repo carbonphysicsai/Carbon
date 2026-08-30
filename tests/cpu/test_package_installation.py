@@ -39,7 +39,7 @@ def test_import_carbon() -> None:
 
 
 @pytest.mark.parametrize("module_name", ROLE_PACKAGES)
-def test_import_canonical_role_package(module_name: str) -> None:
+def test_import_a0_role_package(module_name: str) -> None:
     module = importlib.import_module(module_name)
 
     assert module.__name__ == module_name
