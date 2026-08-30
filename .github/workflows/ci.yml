@@ -74,3 +74,31 @@ jobs:
         env:
           QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
+
+  fno-parity:
+    name: FNO neuraloperator parity tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARBON_UV_GROUPS: "science-jax science-torch"
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Bootstrap locked Carbon environment with the JAX and PyTorch backend groups
+        run: ./scripts/dev/bootstrap.sh
+
+      - name: Run FNO neuraloperator parity tests
+        run: ./scripts/dev/test.sh tests/cpu/test_fno_neuralop_parity.py
+
+# TODO later: docker build test for validator image

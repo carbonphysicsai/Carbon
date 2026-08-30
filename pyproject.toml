@@ -35,6 +35,7 @@ dev = [
 ]
 science-jax = [
     "jax>=0.4.30",
+    "flax>=0.9",
     "numpy>=1.26",
     "pyyaml>=6.0",
 ]
@@ -73,6 +74,12 @@ addopts = ["--strict-markers"]
 testpaths = ["tests/cpu"]
 markers = [
     "invariant: constitutional invariant tests introduced by A12 and later tickets",
+    "legacy: retained tests for retired namespaces or superseded prototype behavior",
+    "poc: optional, scientifically unqualified PoC tests requiring the science-jax dependency group",
+    "poc_integration: slow PoC generator, training, or end-to-end integration tests",
+    "backend_jax: tests that require the optional JAX scientific backend",
+    "backend_torch: tests that require the optional PyTorch/neuraloperator scientific backend",
+    "gold: opt-in long-budget PoC tests requiring POC_GOLD=1",
 ]
 
 [tool.black]
