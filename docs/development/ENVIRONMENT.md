@@ -10,7 +10,7 @@ Carbon has one ordinary development and evidence baseline:
 | Architecture | `linux/amd64` |
 | Shell | Bash |
 | Python | CPython 3.11.16 |
-| Dependency manager | uv 0.12.7, commit `61291a8ca` |
+| Dependency manager | uv 0.12.7, pinned by OCI digest/action commit |
 | Dependency state | committed `uv.lock` |
 | Default dependency group | `dev` only |
 | Normal pre-PR command | `./scripts/dev/ci.sh` |
@@ -153,7 +153,7 @@ ordinary `dev` synchronization.
 - committed dev-container metadata and, inside Docker, the canonical image
   marker;
 - a WSL clone is not under `/mnt/<drive>`;
-- exact uv 0.12.7 at commit `61291a8ca`;
+- exact uv 0.12.7, delivered by the pinned image or setup action;
 - exact CPython 3.11.16 in this repository's `.venv`;
 - `uv.lock` agrees with `pyproject.toml`;
 - selected locked groups are already installed and dependency-consistent;

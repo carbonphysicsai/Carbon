@@ -75,8 +75,8 @@ fi
 actual_uv="$(uv --version)"
 uv_version="${actual_uv#uv }"
 uv_version="${uv_version%% *}"
-if [[ "${uv_version}" != "0.12.7" ]] || [[ "${actual_uv}" != *"61291a8ca"* ]]; then
-  fail "expected uv 0.12.7 at 61291a8ca; found ${actual_uv}."
+if [[ "${uv_version}" != "0.12.7" ]]; then
+  fail "expected the pinned uv 0.12.7 release; found ${actual_uv}."
 fi
 
 expected_python="$(tr -d '[:space:]' < .python-version)"

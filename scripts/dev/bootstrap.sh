@@ -50,8 +50,8 @@ fi
 actual_uv="$(uv --version)"
 uv_version="${actual_uv#uv }"
 uv_version="${uv_version%% *}"
-if [[ "${uv_version}" != "0.12.7" ]] || [[ "${actual_uv}" != *"61291a8ca"* ]]; then
-  echo "Unsupported uv version: expected the 0.12.7 release at 61291a8ca." >&2
+if [[ "${uv_version}" != "0.12.7" ]]; then
+  echo "Unsupported uv version: expected the pinned 0.12.7 release." >&2
   echo "Found: ${actual_uv}" >&2
   exit 2
 fi
