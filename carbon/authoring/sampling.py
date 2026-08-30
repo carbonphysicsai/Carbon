@@ -58,8 +58,12 @@ class FractionAllocation:
         )
         if checked == 0.0:
             if not binding.is_bound:
-                raise ValueError("zero fraction requires exact zero-allocation authority")
-            owner(binding.value, "zero_allocation_authority", "zero allocation authority")
+                raise ValueError(
+                    "zero fraction requires exact zero-allocation authority"
+                )
+            owner(
+                binding.value, "zero_allocation_authority", "zero allocation authority"
+            )
         elif binding.is_bound:
             raise ValueError("positive fraction cannot carry zero-allocation authority")
 
@@ -233,7 +237,9 @@ class ReplacementPolicy:
             if self.payload is not None:
                 raise ValueError("NEVER replacement policy has no payload")
         else:
-            exact(self.payload, RegisteredReplacementPolicy, "replacement policy payload")
+            exact(
+                self.payload, RegisteredReplacementPolicy, "replacement policy payload"
+            )
 
 
 class CandidateOutcomeAccessKind(str, Enum):
@@ -305,7 +311,9 @@ class FiniteEvidenceDesign:
             ceiling.require_not_applicable("fixed extension_ceiling_binding")
         else:
             if not budget.is_bound or not ceiling.is_bound:
-                raise ValueError("sequential design requires budget and extension ceiling")
+                raise ValueError(
+                    "sequential design requires budget and extension ceiling"
+                )
             owner(budget.value, "evidence_budget", "budget_binding")
             owner(ceiling.value, "extension_ceiling", "extension_ceiling_binding")
         required_literals = {
@@ -389,7 +397,9 @@ class SamplingPlan:
     official_proposal_binding: ApplicabilityBinding[InstanceDistributionContractRef]
     evidence_weight_binding: ApplicabilityBinding[InstanceDistributionContractRef]
     query_population_binding: ApplicabilityBinding[InstanceDistributionContractRef]
-    observation_population_binding: ApplicabilityBinding[InstanceDistributionContractRef]
+    observation_population_binding: ApplicabilityBinding[
+        InstanceDistributionContractRef
+    ]
     evidence_campaign_binding: ApplicabilityBinding[object]
     intended_estimand_or_reporting_ref: object
     finite_evidence_design: FiniteEvidenceDesign
@@ -462,8 +472,13 @@ class SamplingPlan:
             proposal = self.official_proposal_binding.require_bound(
                 InstanceDistributionContractRef, "official_proposal_binding"
             )
-            if target != self.primary_population_ref or proposal != self.selection_population_ref:
-                raise ValueError("official plan P/Q bindings must equal primary/selection")
+            if (
+                target != self.primary_population_ref
+                or proposal != self.selection_population_ref
+            ):
+                raise ValueError(
+                    "official plan P/Q bindings must equal primary/selection"
+                )
         else:
             self.official_proposal_binding.require_not_applicable(
                 "non-official official_proposal_binding"
@@ -482,11 +497,15 @@ class SamplingPlan:
             ApplicabilityBinding,
             "evidence_campaign_binding",
         )
-        if self.sampling_role in {
-            SamplingRole.PRODUCT_QUALIFICATION,
-            SamplingRole.VERIFICATION,
-            SamplingRole.EVIDENCE_CAMPAIGN,
-        } and not campaign.is_bound:
+        if (
+            self.sampling_role
+            in {
+                SamplingRole.PRODUCT_QUALIFICATION,
+                SamplingRole.VERIFICATION,
+                SamplingRole.EVIDENCE_CAMPAIGN,
+            }
+            and not campaign.is_bound
+        ):
             raise ValueError("sampling role requires an evidence campaign")
         if campaign.is_bound:
             owner(campaign.value, "evidence_campaign", "evidence_campaign_binding")
@@ -495,7 +514,9 @@ class SamplingPlan:
             "intended_estimand_or_reporting",
             "intended_estimand_or_reporting_ref",
         )
-        exact(self.finite_evidence_design, FiniteEvidenceDesign, "finite_evidence_design")
+        exact(
+            self.finite_evidence_design, FiniteEvidenceDesign, "finite_evidence_design"
+        )
         owner(self.full_design_law_ref, "full_design_law", "full_design_law_ref")
         stratified = exact(
             self.stratified_allocation_binding,
@@ -567,9 +588,15 @@ class SamplingPlan:
                 RegisteredAdaptiveAccess,
                 "adaptive access",
             )
-            if adaptive.coverage_qualification_ref != policy.coverage_qualification_binding.value:
+            if (
+                adaptive.coverage_qualification_ref
+                != policy.coverage_qualification_binding.value
+            ):
                 raise ValueError("adaptive coverage ref mismatch")
-            if adaptive.sequential_rule_ref != policy.sequential_allocation_binding.value:
+            if (
+                adaptive.sequential_rule_ref
+                != policy.sequential_allocation_binding.value
+            ):
                 raise ValueError("adaptive sequential rule mismatch")
         exact(self.replacement_policy, ReplacementPolicy, "replacement_policy")
         exact(self.duplicate_policy, DuplicatePolicy, "duplicate_policy")
@@ -585,9 +612,7 @@ class SamplingPlan:
             "protected_realization_fields",
             unique=True,
         )
-        object.__setattr__(
-            self, "public_authored_facts", canonical_set_tuple(public)
-        )
+        object.__setattr__(self, "public_authored_facts", canonical_set_tuple(public))
         object.__setattr__(
             self,
             "protected_realization_fields",
@@ -612,7 +637,10 @@ class SamplingPlan:
             )
 
     def dependency_refs(self) -> tuple[object, ...]:
-        refs: list[object] = [self.primary_population_ref, self.selection_population_ref]
+        refs: list[object] = [
+            self.primary_population_ref,
+            self.selection_population_ref,
+        ]
         for binding in (
             self.supersedes,
             self.target_population_binding,
@@ -650,4 +678,6 @@ def validate_sampling_selection_law(plan: SamplingPlan, law: LawSemantics) -> No
     exact(plan, SamplingPlan, "plan")
     exact(law, LawSemantics, "selection law")
     if law.kind not in {LawKind.PROBABILITY_LAW, LawKind.FINITE_ENUMERATION}:
-        raise ValueError("an executable SamplingPlan requires an executable selection law")
+        raise ValueError(
+            "an executable SamplingPlan requires an executable selection law"
+        )

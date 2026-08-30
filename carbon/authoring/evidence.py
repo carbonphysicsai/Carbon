@@ -75,9 +75,8 @@ def _exact_echo_value(observed: object, expected: object) -> bool:
             for left, right in zip(observed, expected, strict=True)
         )
     if type(expected) is ApplicabilityBinding:
-        return (
-            observed.tag is expected.tag
-            and _exact_echo_value(observed.value, expected.value)
+        return observed.tag is expected.tag and _exact_echo_value(
+            observed.value, expected.value
         )
     return observed == expected
 
@@ -117,7 +116,9 @@ class EvidenceScopeBinding:
         ):
             binding = exact(getattr(self, name), ApplicabilityBinding, name)
             if binding.is_bound:
-                ref = exact(binding.value, InstanceDistributionContractRef, f"{name} value")
+                ref = exact(
+                    binding.value, InstanceDistributionContractRef, f"{name} value"
+                )
                 if ref.expected_population_role != role.value:
                     raise ValueError(f"{name} has the wrong role")
         owner(
@@ -230,7 +231,9 @@ class CensoringTrigger:
     def __post_init__(self) -> None:
         exact_enum(self.kind, CensoringTriggerKind, "censoring trigger kind")
         if self.kind is CensoringTriggerKind.EVIDENCE_ACQUISITION_INFRASTRUCTURE:
-            exact(self.payload, InfrastructureCensoringTrigger, "infrastructure trigger")
+            exact(
+                self.payload, InfrastructureCensoringTrigger, "infrastructure trigger"
+            )
             return
         payload_kind = getattr(self.payload, "ref_kind", None)
         if payload_kind not in _CENSORING_TRIGGER_OWNER_KINDS:
@@ -262,7 +265,9 @@ class ReplacementPolicyBinding:
     policy_ref: object | None
 
     def __post_init__(self) -> None:
-        exact_enum(self.kind, ReplacementPolicyBindingKind, "replacement policy binding")
+        exact_enum(
+            self.kind, ReplacementPolicyBindingKind, "replacement policy binding"
+        )
         if self.kind is ReplacementPolicyBindingKind.PLAN_NEVER:
             if self.policy_ref is not None:
                 raise ValueError("PLAN_NEVER cannot carry policy ref")
@@ -303,7 +308,10 @@ class ReplacementDecision:
                 raise ValueError("PLAN_NEVER requires PROHIBITED decision")
             trigger.require_not_applicable("PLAN_NEVER trigger_binding")
             lineage.require_not_applicable("PLAN_NEVER lineage_binding")
-        elif self.decision is not ReplacementDecisionKind.PROHIBITED and not trigger.is_bound:
+        elif (
+            self.decision is not ReplacementDecisionKind.PROHIBITED
+            and not trigger.is_bound
+        ):
             raise ValueError("permitted/requisite replacement requires exact trigger")
 
 
@@ -333,11 +341,17 @@ def validate_replacement_decision(
         if decision.policy_binding.kind is not ReplacementPolicyBindingKind.PLAN_NEVER:
             raise ValueError("NEVER plan requires PLAN_NEVER binding")
     else:
-        if decision.policy_binding.kind is not ReplacementPolicyBindingKind.REGISTERED_POLICY:
+        if (
+            decision.policy_binding.kind
+            is not ReplacementPolicyBindingKind.REGISTERED_POLICY
+        ):
             raise ValueError("registered plan requires registered policy binding")
         if decision.policy_binding.policy_ref != policy.payload.policy_ref:
             raise ValueError("registered replacement policy ref mismatch")
-        if decision.trigger_binding.is_bound and decision.trigger_binding.value not in policy.payload.triggers:
+        if (
+            decision.trigger_binding.is_bound
+            and decision.trigger_binding.value not in policy.payload.triggers
+        ):
             raise ValueError("replacement trigger is not registered")
 
 
@@ -413,7 +427,12 @@ class GenerationFailurePayload:
 @dataclass(frozen=True, slots=True)
 class CaseStatePayload:
     state: CaseState
-    payload: ValidCasePayload | CensoringRecordRef | ExcludedCasePayload | GenerationFailurePayload
+    payload: (
+        ValidCasePayload
+        | CensoringRecordRef
+        | ExcludedCasePayload
+        | GenerationFailurePayload
+    )
 
     def __post_init__(self) -> None:
         exact_enum(self.state, CaseState, "case payload state")
@@ -487,9 +506,18 @@ class CensoringRecord:
             self.population_ref, self.sampling_plan_ref.challenge_key, "population_ref"
         )
         for ref in _scope_population_refs(self.evidence_scope):
-            _require_challenge(ref, self.sampling_plan_ref.challenge_key, "evidence_scope")
-        exact(self.evidence_campaign_binding, ApplicabilityBinding, "evidence_campaign_binding")
-        if self.evidence_campaign_binding != self.evidence_scope.evidence_campaign_binding:
+            _require_challenge(
+                ref, self.sampling_plan_ref.challenge_key, "evidence_scope"
+            )
+        exact(
+            self.evidence_campaign_binding,
+            ApplicabilityBinding,
+            "evidence_campaign_binding",
+        )
+        if (
+            self.evidence_campaign_binding
+            != self.evidence_scope.evidence_campaign_binding
+        ):
             raise ValueError("censoring campaign binding must equal evidence scope")
         object.__setattr__(
             self,
@@ -509,7 +537,9 @@ class CensoringRecord:
                 replacement_trigger.kind is not ReplacementTriggerKind.CENSORED
                 or replacement_trigger.payload is not self.censoring_reason
             ):
-                raise ValueError("replacement trigger reason differs from censoring reason")
+                raise ValueError(
+                    "replacement trigger reason differs from censoring reason"
+                )
         owner(self.accounting_binding, "censoring_accounting", "accounting_binding")
         missingness = exact(
             self.missingness_adjustment_binding,
@@ -613,10 +643,7 @@ def validate_censoring_against_plan(record: CensoringRecord, plan: object) -> No
         raise ValueError(
             "bound query/observation scope requires acquisition provenance"
         )
-    if (
-        not query_or_observation_bound
-        and censoring.query_observation_provenance
-    ):
+    if not query_or_observation_bound and censoring.query_observation_provenance:
         raise ValueError(
             "query/observation provenance requires a bound query or observation scope"
         )
@@ -665,7 +692,10 @@ class CanonicalCaseDispositionRef:
     content_digest: str
 
     def __post_init__(self) -> None:
-        if type(self.record_type) is not str or self.record_type != "canonical_case_disposition":
+        if (
+            type(self.record_type) is not str
+            or self.record_type != "canonical_case_disposition"
+        ):
             raise ValueError("record_type must be canonical_case_disposition")
         _validate_derived_header(self.schema_version, self.canonicalization_profile)
         validate_tagged_sha256(self.content_digest, "content_digest")
@@ -709,7 +739,9 @@ class CanonicalCaseDisposition:
         )
         exact(self.evidence_scope, EvidenceScopeBinding, "evidence_scope")
         exact_enum(self.case_state, CaseState, "case_state")
-        case_binding = exact(self.case_ref_binding, ApplicabilityBinding, "case_ref_binding")
+        case_binding = exact(
+            self.case_ref_binding, ApplicabilityBinding, "case_ref_binding"
+        )
         if case_binding.is_bound:
             case_ref = exact(
                 case_binding.value, CanonicalChallengeCaseRef, "case_ref_binding value"
@@ -718,7 +750,9 @@ class CanonicalCaseDisposition:
                 case_ref, self.sampling_plan_ref.challenge_key, "case_ref_binding"
             )
         for ref in _scope_population_refs(self.evidence_scope):
-            _require_challenge(ref, self.sampling_plan_ref.challenge_key, "evidence_scope")
+            _require_challenge(
+                ref, self.sampling_plan_ref.challenge_key, "evidence_scope"
+            )
         attempt = exact(
             self.attempt_commitment_binding,
             ApplicabilityBinding,
@@ -735,7 +769,9 @@ class CanonicalCaseDisposition:
             raise ValueError("case state and payload tag differ")
         if self.case_state in {CaseState.VALID, CaseState.CENSORED}:
             if not case_binding.is_bound or attempt.is_bound:
-                raise ValueError("valid/censored state requires case and no attempt-only ref")
+                raise ValueError(
+                    "valid/censored state requires case and no attempt-only ref"
+                )
         elif self.case_state is CaseState.GENERATION_FAILURE:
             if case_binding.is_bound or not attempt.is_bound:
                 raise ValueError("generation failure requires attempt and no case")
@@ -853,7 +889,11 @@ class CaseEvidenceBinding:
     def __post_init__(
         self, _projection_authority: CaseProjectionAuthority | None
     ) -> None:
-        exact(self.authoritative_case_ref, CanonicalChallengeCaseRef, "authoritative_case_ref")
+        exact(
+            self.authoritative_case_ref,
+            CanonicalChallengeCaseRef,
+            "authoritative_case_ref",
+        )
         projection = exact(
             self.public_projection_binding,
             ApplicabilityBinding,
@@ -891,7 +931,10 @@ class CaseEvidenceBinding:
             self.authoritative_case_ref.challenge_key,
             "role_population_ref",
         )
-        if role_population.expected_population_role != PopulationRole.EVIDENCE_CAMPAIGN.value:
+        if (
+            role_population.expected_population_role
+            != PopulationRole.EVIDENCE_CAMPAIGN.value
+        ):
             raise ValueError("evidence binding requires EVIDENCE_CAMPAIGN population")
         owner(self.evidence_artifact_ref, "evidence_artifact", "evidence_artifact_ref")
         owner(self.claim_scope_ref, "claim_scope", "claim_scope_ref")
@@ -951,7 +994,9 @@ class CaseEvidenceBinding:
 
     @property
     def is_mms(self) -> bool:
-        return self.evidence_role.role is EvidenceRole.MANUFACTURED_SOLUTION_VERIFICATION
+        return (
+            self.evidence_role.role is EvidenceRole.MANUFACTURED_SOLUTION_VERIFICATION
+        )
 
 
 def reject_evidence_role_relabel(
@@ -1016,8 +1061,7 @@ def validate_case_evidence_binding(
         raise ValueError("evidence binding claim scope mismatch")
     if (
         not loaded_case.evidence_campaign_binding.is_bound
-        or loaded_case.evidence_campaign_binding.value
-        != binding.evidence_campaign_ref
+        or loaded_case.evidence_campaign_binding.value != binding.evidence_campaign_ref
     ):
         raise ValueError("evidence binding campaign differs from canonical case")
     if not any(
@@ -1137,17 +1181,11 @@ class CaseEvidenceBindingAuthority:
             "evidence_artifact_ref": binding.evidence_artifact_ref,
             "claim_scope_ref": binding.claim_scope_ref,
             "applicability_refs": binding.applicability_refs,
-            "query_observation_provenance": (
-                binding.query_observation_provenance
-            ),
-            "policy_qualification_binding": (
-                binding.policy_qualification_binding
-            ),
+            "query_observation_provenance": (binding.query_observation_provenance),
+            "policy_qualification_binding": (binding.policy_qualification_binding),
             "provenance_refs": binding.provenance_refs,
             "disclosure_contract": binding.disclosure_contract,
-            "downstream_use_restrictions": (
-                binding.downstream_use_restrictions
-            ),
+            "downstream_use_restrictions": (binding.downstream_use_restrictions),
         }
         for name, value in expected.items():
             if not _exact_echo_value(getattr(echo, name), value):
@@ -1176,7 +1214,10 @@ class RealizedValidEvidenceRecordRef:
     content_digest: str
 
     def __post_init__(self) -> None:
-        if type(self.record_type) is not str or self.record_type != "realized_valid_evidence_record":
+        if (
+            type(self.record_type) is not str
+            or self.record_type != "realized_valid_evidence_record"
+        ):
             raise ValueError("record_type must be realized_valid_evidence_record")
         _validate_derived_header(self.schema_version, self.canonicalization_profile)
         validate_tagged_sha256(self.content_digest, "content_digest")
@@ -1485,8 +1526,7 @@ def _validated_final_evidence_composition(
             "loaded censoring records must exactly equal the censored disposition links"
         )
     intended_units = tuple(
-        disposition.intended_evidence_unit_ref
-        for disposition in validated_dispositions
+        disposition.intended_evidence_unit_ref for disposition in validated_dispositions
     )
     if len(set(intended_units)) != len(intended_units):
         raise ValueError("finalized dispositions duplicate an intended evidence unit")
@@ -1664,15 +1704,16 @@ class RealizedEvidenceLoadAuthority:
         authority: RealizedEvidenceHistoryAuthority,
     ) -> None:
         if _capability is not _REALIZED_LOAD_AUTHORITY_CAPABILITY:
-            raise PermissionError("realized-load authority requires controlled issuance")
+            raise PermissionError(
+                "realized-load authority requires controlled issuance"
+            )
         owner(authority_ref, "accounting_authority", "authority_ref")
         if callable(authority):
             raise TypeError("realized history authority must not be a raw callable")
         verifier = getattr(authority, "verify_realized_evidence_load", None)
         if not callable(verifier):
             raise TypeError(
-                "realized history authority must provide "
-                "verify_realized_evidence_load"
+                "realized history authority must provide verify_realized_evidence_load"
             )
         self.authority_ref = authority_ref
         self._authority = authority
@@ -1721,8 +1762,7 @@ class RealizedEvidenceLoadAuthority:
             "accounting capability",
         )
         if (
-            type(capability.construction_authority_ref)
-            is not type(self.authority_ref)
+            type(capability.construction_authority_ref) is not type(self.authority_ref)
             or capability.construction_authority_ref != self.authority_ref
         ):
             raise ValueError("realized capability authority mismatch")
@@ -1850,7 +1890,9 @@ class RealizedValidEvidenceRecord:
 
     def __init__(self, *, _capability: object, **fields: object) -> None:
         if _capability is not _REALIZED_CAPABILITY:
-            raise PermissionError("realized evidence requires controlled accounting capability")
+            raise PermissionError(
+                "realized evidence requires controlled accounting capability"
+            )
         expected = _REALIZED_EVIDENCE_FIELDS
         if set(fields) != set(expected):
             raise TypeError("realized evidence fields are closed and complete")
@@ -1860,7 +1902,9 @@ class RealizedValidEvidenceRecord:
 
     def __post_init__(self) -> None:
         _validate_derived_header(self.schema_version, self.canonicalization_profile)
-        object.__setattr__(self, "challenge_key", copied_challenge_key(self.challenge_key))
+        object.__setattr__(
+            self, "challenge_key", copied_challenge_key(self.challenge_key)
+        )
         exact(self.sampling_plan_ref, SamplingPlanRef, "sampling_plan_ref")
         _require_challenge(
             self.sampling_plan_ref, self.challenge_key, "sampling_plan_ref"
@@ -1875,7 +1919,9 @@ class RealizedValidEvidenceRecord:
         ):
             binding = exact(getattr(self, name), ApplicabilityBinding, name)
             if binding.is_bound:
-                ref = exact(binding.value, InstanceDistributionContractRef, f"{name} value")
+                ref = exact(
+                    binding.value, InstanceDistributionContractRef, f"{name} value"
+                )
                 if ref.expected_population_role != role.value:
                     raise ValueError(f"{name} role mismatch")
                 _require_challenge(ref, self.challenge_key, name)
@@ -1894,9 +1940,7 @@ class RealizedValidEvidenceRecord:
             nonempty=True,
             unique=True,
         )
-        object.__setattr__(
-            self, "disposition_refs", canonical_set_tuple(dispositions)
-        )
+        object.__setattr__(self, "disposition_refs", canonical_set_tuple(dispositions))
         for name, kind in (
             ("complete_unit_manifest_ref", "protected_unit_manifest"),
             ("accounting_evidence_ref", "realized_evidence_accounting"),
@@ -1983,7 +2027,9 @@ def construct_realized_valid_evidence(
         tuple(disposition.to_ref() for disposition in validated)
     )
     if disposition_refs != authorization.disposition_refs:
-        raise ValueError("disposition refs differ from finalized accounting composition")
+        raise ValueError(
+            "disposition refs differ from finalized accounting composition"
+        )
     if "disposition_refs" in fields or "complete_unit_manifest_ref" in fields:
         raise TypeError("disposition refs and complete manifest are capability-derived")
     if "construction_authority_ref" in fields or "construction_audit_refs" in fields:
@@ -2003,9 +2049,7 @@ def construct_realized_valid_evidence(
         "accounting_evidence_ref": capability.accounting_evidence_ref,
         "denominator_policy_ref": capability.denominator_policy_ref,
         "censoring_policy_ref": capability.censoring_policy_ref,
-        "missingness_adjustment_binding": (
-            capability.missingness_adjustment_binding
-        ),
+        "missingness_adjustment_binding": (capability.missingness_adjustment_binding),
         "sensitivity_analysis_binding": capability.sensitivity_analysis_binding,
     }
     for name, expected in exact_fields.items():

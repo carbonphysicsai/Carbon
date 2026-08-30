@@ -138,7 +138,9 @@ class TrainingSupportContract:
             ref = exact(getattr(self, name), ref_type, name)
             if ref.challenge_key != copied:
                 raise ValueError(f"{name} Challenge mismatch")
-        exact(self.membership_contract, TrainingMembershipContract, "membership_contract")
+        exact(
+            self.membership_contract, TrainingMembershipContract, "membership_contract"
+        )
         object.__setattr__(
             self,
             "physical_invariant_refs",
@@ -168,7 +170,9 @@ class TrainingSupportContract:
         object.__setattr__(
             self, "permitted_source_materials", canonical_set_tuple(materials)
         )
-        exact(self.permitted_generators, PermittedGeneratorBinding, "permitted_generators")
+        exact(
+            self.permitted_generators, PermittedGeneratorBinding, "permitted_generators"
+        )
         owner(self.rights_profile_ref, "rights_profile", "rights_profile_ref")
         object.__setattr__(
             self,
@@ -229,7 +233,10 @@ class TrainingSupportContract:
 def reject_training_support_substitution(value: object, field: str) -> None:
     """Stable guard for any official population/evaluation input."""
 
-    if type(value) is TrainingSupportContract or type(value) is TrainingSupportContractRef:
+    if (
+        type(value) is TrainingSupportContract
+        or type(value) is TrainingSupportContractRef
+    ):
         raise TypeError(f"{field} does not accept Challenge training support")
 
 

@@ -66,7 +66,9 @@ class ObservedCaseSource:
     observation_source_ref: object
 
     def __post_init__(self) -> None:
-        owner(self.observation_source_ref, "observation_source", "observation_source_ref")
+        owner(
+            self.observation_source_ref, "observation_source", "observation_source_ref"
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,7 +160,9 @@ class CanonicalChallengeCase:
     case_representation_ref: object
     physical_payload_ref: object
     query_population_binding: ApplicabilityBinding[InstanceDistributionContractRef]
-    observation_population_binding: ApplicabilityBinding[InstanceDistributionContractRef]
+    observation_population_binding: ApplicabilityBinding[
+        InstanceDistributionContractRef
+    ]
     evidence_campaign_binding: ApplicabilityBinding[object]
     intended_slot_binding: ApplicabilityBinding[object]
     prospective_censoring_policy_binding: ApplicabilityBinding[object]
@@ -204,7 +208,9 @@ class CanonicalChallengeCase:
         object.__setattr__(
             self, "related_population_bindings", canonical_set_tuple(related)
         )
-        plan = exact(self.sampling_plan_binding, ApplicabilityBinding, "sampling_plan_binding")
+        plan = exact(
+            self.sampling_plan_binding, ApplicabilityBinding, "sampling_plan_binding"
+        )
         if plan.is_bound:
             plan_ref = exact(plan.value, SamplingPlanRef, "sampling_plan_binding value")
             if plan_ref.challenge_key != copied:
@@ -215,15 +221,22 @@ class CanonicalChallengeCase:
             "representation",
             "case_representation_ref",
         )
-        owner(self.physical_payload_ref, "protected_case_payload", "physical_payload_ref")
+        owner(
+            self.physical_payload_ref, "protected_case_payload", "physical_payload_ref"
+        )
         for name, role in (
             ("query_population_binding", PopulationRole.QUERY),
             ("observation_population_binding", PopulationRole.OBSERVATION),
         ):
             binding = exact(getattr(self, name), ApplicabilityBinding, name)
             if binding.is_bound:
-                ref = exact(binding.value, InstanceDistributionContractRef, f"{name} value")
-                if ref.expected_population_role != role.value or ref.challenge_key != copied:
+                ref = exact(
+                    binding.value, InstanceDistributionContractRef, f"{name} value"
+                )
+                if (
+                    ref.expected_population_role != role.value
+                    or ref.challenge_key != copied
+                ):
                     raise ValueError(f"{name} role or Challenge mismatch")
         for name, kind in (
             ("evidence_campaign_binding", "evidence_campaign"),
@@ -237,7 +250,9 @@ class CanonicalChallengeCase:
             if not self.intended_slot_binding.is_bound:
                 raise ValueError("plan-bound case requires protected intended slot")
             if not self.prospective_censoring_policy_binding.is_bound:
-                raise ValueError("plan-bound case requires prospective censoring policy")
+                raise ValueError(
+                    "plan-bound case requires prospective censoring policy"
+                )
         elif (
             self.intended_slot_binding.is_bound
             or self.prospective_censoring_policy_binding.is_bound
@@ -408,7 +423,9 @@ class CaseProjectionAuthority:
             raise ValueError("projection verification authority mismatch")
         if type(echo.case_ref) is not type(case_ref) or echo.case_ref != case_ref:
             raise ValueError("projection verification case mismatch")
-        if echo.projection != projection or type(echo.projection) is not type(projection):
+        if echo.projection != projection or type(echo.projection) is not type(
+            projection
+        ):
             raise ValueError("projection verification projection mismatch")
 
 
@@ -463,7 +480,9 @@ class ProtectedCaseIdentityProjection:
         )
         if binding.is_bound:
             validate_canonical_id(binding.value, "realized_stratum_id")
-        linkage = exact(self.replacement_linkage, ApplicabilityBinding, "replacement_linkage")
+        linkage = exact(
+            self.replacement_linkage, ApplicabilityBinding, "replacement_linkage"
+        )
         if linkage.is_bound:
             owner(
                 linkage.value,
@@ -513,7 +532,9 @@ class InternalCaseIdentityProjection:
             InstanceDistributionContractRef,
             "primary_population_ref",
         )
-        plan = exact(self.sampling_plan_binding, ApplicabilityBinding, "sampling_plan_binding")
+        plan = exact(
+            self.sampling_plan_binding, ApplicabilityBinding, "sampling_plan_binding"
+        )
         if plan.is_bound:
             exact(plan.value, SamplingPlanRef, "sampling_plan_binding value")
         campaign = exact(
@@ -550,7 +571,9 @@ class PublicCaseIdentityProjection:
         from .primitives import validate_version_token
 
         validate_version_token(self.schema_version, "schema_version")
-        object.__setattr__(self, "challenge_key", copied_challenge_key(self.challenge_key))
+        object.__setattr__(
+            self, "challenge_key", copied_challenge_key(self.challenge_key)
+        )
         owner(
             self.opaque_public_handle,
             "opaque_public_case_handle",

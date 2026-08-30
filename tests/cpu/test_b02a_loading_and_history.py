@@ -311,7 +311,9 @@ def test_corrupt_predecessor_payload_cannot_authorize_successor(tmp_path) -> Non
     first_ref = store.put(_fixture_loaded(first))
     target = store.root.joinpath(*store._parts_for(first_ref))
     tampered = bytearray(target.read_bytes())
-    tampered[-1] ^= 1  # Payload is the envelope's final bounded blob; header stays exact.
+    tampered[-1] ^= (
+        1  # Payload is the envelope's final bounded blob; header stays exact.
+    )
     target.write_bytes(tampered)
 
     with pytest.raises(ReferenceMismatchError):
@@ -519,18 +521,14 @@ def test_graph_fingerprint_pins_exact_resolved_origin_manifest() -> None:
         root=loaded,
         dependencies=(),
         expected_dependency_refs=(),
-        composition_audit_ref=_owner(
-            "origin_composition_audit", "composition_audit"
-        ),
+        composition_audit_ref=_owner("origin_composition_audit", "composition_audit"),
         registered_authority=None,
     )
     same = compose_authoring_graph_origin(
         root=loaded,
         dependencies=(),
         expected_dependency_refs=(),
-        composition_audit_ref=_owner(
-            "origin_composition_audit", "composition_audit"
-        ),
+        composition_audit_ref=_owner("origin_composition_audit", "composition_audit"),
         registered_authority=None,
     )
     different_origin = _fixture_loaded(
@@ -541,9 +539,7 @@ def test_graph_fingerprint_pins_exact_resolved_origin_manifest() -> None:
         root=different_origin,
         dependencies=(),
         expected_dependency_refs=(),
-        composition_audit_ref=_owner(
-            "origin_composition_audit", "composition_audit"
-        ),
+        composition_audit_ref=_owner("origin_composition_audit", "composition_audit"),
         registered_authority=None,
     )
 

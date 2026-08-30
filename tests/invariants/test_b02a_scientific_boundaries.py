@@ -46,9 +46,7 @@ def test_sampling_roles_do_not_alias_population_roles() -> None:
     assert SamplingRole.OFFICIAL_EVALUATION.value not in {
         role.value for role in PopulationRole
     }
-    assert PopulationRole.DEPLOYMENT.value not in {
-        role.value for role in SamplingRole
-    }
+    assert PopulationRole.DEPLOYMENT.value not in {role.value for role in SamplingRole}
 
 
 @pytest.mark.invariant
@@ -80,7 +78,9 @@ def test_mms_has_only_verification_role_not_live_or_target_authority() -> None:
 
 
 @pytest.mark.invariant
-def test_public_case_projection_schema_has_no_raw_or_reversible_identity_fields() -> None:
+def test_public_case_projection_schema_has_no_raw_or_reversible_identity_fields() -> (
+    None
+):
     public_fields = set(PublicCaseIdentityProjection.__dataclass_fields__)
     forbidden = {
         "case_ref",
