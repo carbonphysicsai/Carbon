@@ -24,6 +24,8 @@ from carbon.authoring.model import (
 )
 from carbon.authoring.physical import AxisExtent, AxisExtentKind
 
+pytestmark = pytest.mark.invariant
+
 
 @pytest.mark.invariant
 def test_population_vocabulary_cannot_accept_training_support_or_r_strategy() -> None:

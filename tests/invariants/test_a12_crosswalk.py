@@ -246,7 +246,7 @@ def _canonical_contained_file(candidate: Path, allowed_root: Path) -> Path:
 
 def _suite_nodes() -> set[str]:
     nodes: set[str] = set()
-    for path in sorted(SUITE_ROOT.glob("test_*.py")):
+    for path in sorted(SUITE_ROOT.glob("test_a12_*.py")):
         relative = path.relative_to(REPOSITORY_ROOT).as_posix()
         nodes.update(f"{relative}::{name}" for name in _test_functions(path))
     return nodes
