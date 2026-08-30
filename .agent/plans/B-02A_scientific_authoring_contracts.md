@@ -8,7 +8,7 @@
 **Authoritative governance base:** `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`
 **Governance base tree:** `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`
 **Branch:** `agent/b-02a-contract-ratification` (name retained; no replacement branch)
-**Worktree:** `C:/Users/Ryan_/Documents/Codex/2026-08-30/live-main-remains-at-the-b`
+**Worktree:** dedicated host-local B-02A worktree (absolute path redacted)
 **Working contract:** `Design_Specs/Scientific_Challenge_Authoring_Contract.md` version 0.1, `AGENT-SELECTED WORKING CONTRACT`
 
 This plan supersedes only the obsolete contract-ratification stop in the
