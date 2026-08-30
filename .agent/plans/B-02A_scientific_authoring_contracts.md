@@ -87,6 +87,14 @@ repair `c255e519b01d8c4b0ecf67e3482888c3f99f338f`, tree
 `test_a12_*` while preserving the all-invariant anti-greenwashing scan and
 adds the required module-level invariant marker to the B-02A suite.
 
+The repair/evidence checkpoint `a512f2f577c1d3bc801994f5af579513369b249a`,
+tree `7c286b90ded19924c37f3e61ff1babb38f19b5f8`, then passed all 37
+invariants and all 2617 CPU tests in both GitHub lanes in run `33337819922`.
+Its remaining failure was strict Black 26.5.1 quality debt on five B-02A files.
+Normal style-only repair `6d6ee0714295816f8dd6b07afce33a2bbb0c86a5`,
+tree `d3c153bc76a0203c8f04e10eecce5cc04a9c6877`, applies that exact pinned
+formatter and changes no semantics.
+
 ## 2. Controlling authority and maturity
 
 The implementation reads and applies the current versions of:
