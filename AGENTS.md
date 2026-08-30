@@ -56,7 +56,17 @@ If documents materially conflict:
 2. determine the domain owner;
 3. check the constitutional overlay;
 4. classify the seam as `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`;
-5. if a material decision remains unresolved, stop and request human/owner input.
+5. if a material decision remains unresolved, stop the affected change and
+   request human/owner input.
+
+An engineering decision within the active ticket's delegated authority is no
+longer unresolved for this rule once the executor selects and records the
+recommended working decision and sends any required lead notification under
+`.agent/DELEGATED_DECISION_PROTOCOL.md`. A human-reserved decision remains
+unresolved: the affected behavior or sub-scope must stop and stay fail closed,
+but unrelated authorized ticket work may continue. Stop the whole ticket only
+when no correct bounded implementation can proceed without that reserved
+decision.
 
 Do not silently choose the convenient interpretation.
 
@@ -81,7 +91,11 @@ Agents must not independently decide:
 
 Humans retain final authority over scientific qualification, security acceptance, live economics, launch, legal/commercial rights, and material company decisions.
 
-When owner input is required: **stop, mark blocked, and state the smallest decision required.**
+When owner input is required: **stop the affected behavior or sub-scope, mark
+it blocked, and state the smallest decision required.** Unrelated authorized
+ticket work may continue only where the unresolved value remains explicit and
+fail closed. Stop the whole ticket when no correct bounded implementation can
+proceed without that owner decision.
 
 ---
 
@@ -460,7 +474,8 @@ without evidence.
 Stop and escalate when:
 
 - specification/constitution conflict blocks correctness;
-- required scientific/economic/security/legal input is absent;
+- required scientific/economic/security/legal input is absent for an affected
+  behavior and cannot remain explicit and fail closed;
 - implementation would weaken an invariant;
 - required external credentials/infrastructure are unavailable;
 - two materially different attempts fail for the same root reason;
@@ -476,6 +491,10 @@ Report:
 5. smallest owner decision required.
 
 A clean blocker is better than invented progress.
+
+These stop conditions apply to the affected change or sub-scope. They stop the
+whole ticket only when the blocker prevents every correct bounded continuation
+under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
 
 ---
 

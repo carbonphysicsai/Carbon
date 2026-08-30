@@ -62,6 +62,13 @@ When one of these decisions is needed, the executor must preserve a typed fail-c
 
 A reserved decision blocks the whole ticket only when no correct bounded implementation can continue without selecting the reserved value or authority.
 
+This is the scope rule for `AGENTS.md` conflict, owner-input, and escalation
+stops: the affected change or sub-scope stops and is marked blocked; unrelated
+authorized work continues only while the unresolved value remains explicit
+and fail closed. An agent-authorized engineering choice is no longer
+unresolved after the executor selects and records the working decision and
+sends any required notification.
+
 ## 4. Decision record requirements
 
 Every material development decision must identify:
