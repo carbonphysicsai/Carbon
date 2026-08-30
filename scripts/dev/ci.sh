@@ -7,6 +7,9 @@ python_bin="${repo_root}/.venv/bin/python"
 quality_base="${QUALITY_BASE_SHA:-origin/main}"
 artifact_dir="${CARBON_ARTIFACT_DIR:-${repo_root}/.carbon-artifacts}"
 
+export VIRTUAL_ENV="${repo_root}/.venv"
+export PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
 cd "${repo_root}"
 mkdir -p "${artifact_dir}"
 

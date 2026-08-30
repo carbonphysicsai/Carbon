@@ -16,7 +16,7 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \
     UV_PROJECT_ENVIRONMENT=/workspaces/Carbon/.venv \
     VIRTUAL_ENV=/workspaces/Carbon/.venv \
     CARBON_CANONICAL_DEV_ENV=ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64 \
-    PATH=/workspaces/Carbon/.venv/bin:/usr/local/bin:/usr/bin:/bin
+    PATH=/workspaces/Carbon/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
