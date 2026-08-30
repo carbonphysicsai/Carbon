@@ -1,5 +1,431 @@
 # Agent decisions log
 
+## 2026-08-30 — B-02A-D1: Authored objects, exact refs, canonical bytes, and prospective history
+
+> **Authority timing.** This decision is an owner-review contract candidate on
+> `agent/b-02a-contract-ratification`, based exactly on
+> `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree
+> `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`. It becomes contract authority
+> only after independent SciML/statistics/protocol review, resolution of
+> blocking findings, explicit human ratification, required validation, and
+> normal merge. It does not authorize implementation.
+
+**Selected approach.** Define five distinct immutable authored-contract
+families plus one immutable, capability-created canonical-case realization
+record, with six distinct final nominal ref types. Every top-level object carries an exact
+Challenge key, object kind, canonical ID, semantic version, schema version,
+canonicalization profile, and prospective same-kind supersession binding. A
+ref carries the exact kind, Challenge key, ID, version, schema, profile, and
+tagged SHA-256 digest. The digest is not self-embedded in authored bytes.
+Authored contract or realized-case content, exact ref, trusted loader result,
+structural origin, qualification state, mutable runtime events, and derived
+disposition/censoring/realized-evidence records remain separate. Derived
+records use distinct domain framing and external digest refs, so no record
+self-embeds its digest.
+
+Reuse A3's exact Challenge/identifier/version/digest grammar and verified-byte
+reader. Because no public generic Carbon semantic serializer exists, propose
+the schema-local `carbon_scientific_authoring_canonical_v1` binary profile:
+an exact domain header, object-kind separation, tagged exact primitives,
+big-endian fixed-width integers/binary64, strict already-NFC UTF-8, closed
+records whose exact field-name/value pairs sort by UTF-8 field-name bytes,
+explicit tagged unions including exact empty payloads, ordered tuples,
+canonical-byte sorting for set-like tuples, a closed subordinate schema/union
+registry, SHA-256, and exact engineering bounds. It is
+independent of `repr`, object identity, insertion order, locale, path, time,
+environment, and host endianness. Every accepted zero is canonical positive
+zero. Boolean, integer, and float remain distinct.
+
+Historical lookup is exact and content-addressed. A material change is a new
+version/digest; same-kind, same-Challenge, same-object-ID acyclic supersession
+is prospective only. Cross-Challenge/cross-ID supersession is forbidden in v1. No
+evidence-bearing `latest`, overwrite, alias, or silent historical
+reinterpretation exists.
+
+**Controlling authority.** `CONSTITUTION.md`; `AGENTS.md`; A3 registry identity,
+digest, store, and LIVE-gate owners; the scientific canon's exact identity and
+prospective-change laws; locked
+`Design_Specs/Challenge_Instance_Distribution.md`; the B-02A ticket's explicit
+content-addressing, validation, equality, supersession, and history criteria;
+and current A4/A5/A7 schema-local canonicalization precedents.
+
+**Alternatives rejected.** A second Challenge/version/SHA grammar; path/URI or
+logical-ID-only identity; digest-only cross-kind equality; a self-referential
+digest field; Python `repr`, pickle, object identity, dict insertion order,
+ambient JSON defaults, current filesystem/time/environment, or another
+owner's private encoder; silently Unicode-normalizing input; conflating
+authored content with source provenance, fixture status, qualification, or
+runtime objects; mutable `latest`; open record/enum vocabularies; a
+self-referential derived-record digest; and in-place historical repair.
+
+**Affected contracts and later tickets.** All B-02A objects/refs/loaders;
+B-02B compiler inputs; B-03 generator/case results; B-04 evidence refs; B-05
+measurement inputs; B-06 dossier pins; B-07R/B-07S public/protocol
+consumption; A3 qualification binding; later storage, package, export, wheel,
+and canonicalization tests.
+
+**Invariant effects.** Strengthens exact identity, closed-world parsing,
+hash-pin, immutable history, mutation isolation, and no-authority-by-label
+invariants. It creates no qualification. Exact digest verification precedes
+parse, and ref/object equality is exact nominal equality.
+
+**Migration and compatibility.** No current code is changed or replaced.
+A3 is `KEEP`; its public primitives are later `WRAP/COMPOSE`. A4/A5/A7 private
+encoders are pattern-only. Legacy generic loaders remain
+`MIGRATION_REQUIRED` historical material and are not ported. The profile is
+prospective; a later profile preserves all v1 bytes and refs.
+
+**Reversibility.** Review may amend this candidate before ratification. After
+ratification/merge, semantic changes require a new prospective contract and
+profile/object version; historical refs remain exact. The engineering bounds
+are reviewable here but cannot be silently tuned after implementation.
+
+**Unresolved human input.** Explicit acceptance/amendment of the profile,
+closed schema registry, and engineering bounds; later immutable history-store
+owner; exact A3 binding; and the implementation package/export decision.
+
+**Maturity ceiling.** Proposed contract specification only. `RATIFIED`,
+`IMPLEMENTED`, B-02A implementation `TESTED`, scientific/security/network/
+commercial/production qualification, LIVE, frontier, settlement, weight, and
+emission authority remain `NO`.
+
+## 2026-08-30 — B-02A-D2: Population-role, training-support, rights, and `R_strategy` separation
+
+> **Authority timing.** Candidate contract decision only; it has the same
+> review, ratification, normal-merge, and no-implementation gate as B-02A-D1.
+
+**Selected approach.** Represent target/workload `P`, official proposal `Q`,
+and evidence weighting `w` as exact role-tagged, content-addressed contracts.
+State expressly that `w` is not necessarily a probability distribution. Q
+binds exact P and gains no prevalence authority; executable Q requires a
+complete probability/finite-enumeration law. A set-only P owns membership but
+no prevalence/expectation authority; set-only Q cannot execute a plan. w binds
+exact P and binds Q whenever design-dependent under a closed role matrix, and
+is never inferred from sampling frequency, allocation, or retained cases.
+
+Give stress, practice, product-qualification, deployment, query, observation,
+and evidence-campaign roles distinct identities. Keep realized valid evidence
+out of the authored population enum: a protected accounting capability creates
+a separate exact derived record/ref only after execution, without authority to
+rewrite P/Q/w, denominators, or applicability. Every authored role binds its
+claim, support/membership, law/weight semantics, collection-level stratification,
+applicability, exclusions, exact rights-profile ref, permitted uses,
+restrictions, provenance, disclosure contract, allowed consumers, and
+prospective supersession. Common support, PDE, generator, seed family, range,
+representation, storage, or rows cannot confer role identity or authority.
+Applicability is always represented by a nonempty exact owner-ref set, including
+an owner-issued no-additional-applicability ref when needed. Allowed consumption
+uses a closed capability union; downstream-owner use additionally requires its
+exact pinned consumer-contract ref. Unknown or unlisted consumers reject.
+
+Define `TrainingSupportContract` separately with exact membership, physical
+and representation invariants, permitted source/generator refs, provenance,
+rights, uses, restrictions, and disclosure. Reserve `R_strategy` exclusively
+for B-02B's later `ResolvedTrainingSamplingPolicy`; it operates only inside
+exact Challenge-owned support and cannot redefine any official population,
+draw, reference, measurement, gate, score, or qualification. Determinism and
+reconstructibility provide no scientific authority.
+
+**Controlling authority.** Scientific canon §§5–6; locked distribution
+architecture §§3–5, 9, 11–13, 16, 18–20, 23–25; B-02A ticket; Data Management;
+Build Out Constitutional Overlay §8; owner-approved Science/GTM integration;
+Business Canon §13 rights doctrine; and B-02B ownership on the Wave B board.
+
+**Alternatives rejected.** One generic dataset/population identity; an
+author-created realized-evidence population; treating set membership as
+prevalence or an executable proposal; treating Q as P/prevalence; deriving w from Q or observed frequency; representing w as
+necessarily a probability law; treating training support, search data,
+stress, practice, product, deployment, query, campaign, or realized retained
+cases as P; allowing R_strategy to choose official cases/seeds/reference/
+measurements/scores; free-text rights; rights inferred from possession or
+commercial use; and untyped caller role labels.
+
+**Affected contracts and later tickets.** `InstanceDistributionContract`,
+`SamplingPlan`, `TrainingSupportContract`, `CanonicalChallengeCase`; B-02B
+compiler; B-03 generation; B-04 reference/evidence campaign; B-05
+estimand/weighting; B-06 qualification; B-07R public research; product and
+business rights owners.
+
+**Invariant effects.** Makes population-role confusion a closed role-tag and
+expected-role-ref validation failure;
+preserves target/proposal/weighting, train/eval/stress, rights, query, and
+intended/realized evidence boundaries. Unknown membership, provenance, rights,
+permitted use, or required scientific input rejects rather than defaults.
+
+**Migration and compatibility.** The stale `carbon/challenges`,
+`carbon/data`, and `carbon/physics` suggestions are `DOCUMENTATION_LAG` under
+B-01E code authority and grant no package permission. Strategy Schema and
+Miner MCP candidate examples remain unratified compatibility input. No data,
+population, generator, compiler, or archive migration occurs.
+
+**Reversibility.** Pre-ratification review may revise roles and fields. A
+post-ratification material population/support/rights change is prospective,
+versioned, requalified as required, and cannot reinterpret historical
+evidence.
+
+**Unresolved human input.** MQ-002 real P/Q/w, estimands, support, laws, strata/
+stratification,
+allocations, exclusions, provenance, rights, sources, uses, restrictions, and
+adequacy evidence; B-02B's exact policy/compiler objects. Missing inputs leave
+production authoring unavailable.
+
+**Maturity ceiling.** Proposed type/authority semantics only; no real
+population, training permission, compiler, official draw, scientific
+qualification, or LIVE authority is selected.
+
+## 2026-08-30 — B-02A-D3: Physical/candidate contracts, SamplingPlan, canonical case, and disposition/censoring
+
+> **Authority timing.** Candidate contract decision only; implementation and
+> every DoD completion remain prohibited/pending.
+
+**Selected approach.** Use an acyclic graph: `CandidateOutputContract` binds
+exact `PhysicalSystemSpec`; physical spec does not back-reference the
+candidate contract. The physical spec binds governing job/laws, assumptions,
+all causal inputs, physical quantities, units, representation/shape/precision,
+geometry/domain, BC/IC, time/horizon, exact envelope, exact claim, and
+fail-closed missing-input behavior. The candidate contract binds every
+applicable causal input and totally binds every required physical quantity to
+exactly one candidate output without changing physical meaning. Missing,
+substituted, extra, or unregistered-derived outputs reject. Format conformance
+is not scientific evidence.
+
+The candidate contract owns one authoritative declared candidate-input
+vocabulary. Causal, BC, IC, and time/horizon bindings resolve exact IDs into
+that vocabulary; v1 rejects orphan/duplicate/cross-family targets and
+cross-source packing. Candidate and physical geometry/domain refs are exactly
+equal in v1 because no identity-bearing geometry adapter is defined.
+
+Only an `OFFICIAL_EVALUATION` `SamplingPlan` binds exact P/Q; every other plan
+role uses the closed role matrix and acquires no official authority. Each plan
+binds its base selection law, complete finite-design law, exact estimand or
+reporting use, sampling/analysis unit, fixed or registered-sequential evidence
+design, collection-level stratification/crosswalk/allocation,
+query/observation and reference-fidelity allocations, dependence/replication,
+uncertainty/tail/subgroup objectives, stopping/extension, explicit compatible
+w or an exact no-w branch limited to non-aggregation or fully specified
+non-official role reporting with no P/Q/w/score authority, replacement,
+near-/duplicate,
+inclusion/exclusion, censoring, public/protected facts, provenance, fail-closed
+outcomes, and later statistics-owned qualification evidence.
+It contains no realized draw, seed, protected case, or hidden stratum.
+
+`CanonicalChallengeCase` is an immutable representation-neutral realization
+record binding exact physical/candidate/population/plan, a closed generated/
+observed/experimental/industrial/analytic/MMS source, representation,
+query/observation/campaign/intended-slot/prospective-censoring refs, and an
+identity-bearing disclosure class. Later events do not mutate it. A separate
+immutable, exact evidence-use-scoped `CanonicalCaseDisposition` defines closed
+`VALID`, `CENSORED`, `EXCLUDED`, and `GENERATION_FAILURE` shapes. Censoring
+binds an exact scoped evidence unit, closed reason/typed-trigger matrix,
+actor/policy authority, population, plan, campaign-applicability binding,
+query/observation,
+missingness, replacement, intended/realized accounting, audit, and use
+restrictions. Its campaign binding must exactly equal the evidence scope's
+binding, including exact inapplicability for a campaign-free scope. A candidate
+timeout cannot be censored. Post-draw exclusion
+requires preregistered screening and inclusion-probability accounting.
+Fixed/sequential outcome-access branches are exact, adaptive access is gated by
+complete base evidence and matching coverage/full-design refs, and replacement
+decisions must exactly reconcile the plan's NEVER/registered policy,
+state/reason trigger, lineage, and accounting.
+Generation, reference, candidate, measurement, authoring, exclusion, and
+infrastructure failures remain distinct.
+
+**Controlling authority.** Locked distribution architecture §§4–10, 13–19,
+24–26; B-02A ticket; Physical/Generator Creation and Validation owners;
+Evidence and Envelope Standards; scientific canon; MQ-001/MQ-002
+fail-closed classifications; and A3/A4 identity/protection boundaries.
+
+**Alternatives rejected.** A generator-defined physical job/population;
+physical↔candidate digest cycle; optional/ambient causal inputs; unbound
+required physical outputs; implicit
+units/shapes/horizon; unapproved Burgers defaults; one SamplingPlan object
+that mixes P/Q/w or realized draws; mutating a case after reference/censoring;
+one ambiguous `failed` state; treating reference/infrastructure failure as
+candidate failure or score zero; silent retry/easy-case selection; and
+dropping censored attempts from intended accounting; ad hoc stopping or
+extension; treating Q alone as the full finite design; and global censoring of
+a case because one evidence scope failed.
+
+**Affected contracts and later tickets.** All six B-02A object/ref families;
+B-03 generator requests/results and runtime disposition production; B-04
+reference outcomes; B-05 measurements; B-06 Dossier statistics; A4 protected
+draw/seed boundary; B-E1 later dependence/reconstruction evidence.
+
+**Invariant effects.** Complete causal inputs and exact physical meaning;
+envelope/claim pinning; generator/population separation; intended-versus-
+realized accounting; explicit exclusion/censoring/replacement; and no
+candidate punishment for Carbon reference/infrastructure failure.
+
+**Migration and compatibility.** Missing exact B-02A runtime objects are
+`IMPLEMENTATION_LAG`. The absent referenced
+`Physical_System_Representation.md` is inherited `DOCUMENTATION_LAG`; locked
+distribution/canon/current domain owners control the seam. PR #40's viscosity
+issue is recorded but no value, JAX code, dependency, or reference witness is
+adopted.
+
+**Reversibility.** Fields/state taxonomy may be amended in review. After
+ratification, material physical/population/plan/censoring changes are new
+versions and prospective. Historical case/disposition/evidence bindings stay
+exact.
+
+**Unresolved human input.** MQ-001 first physical/candidate identity and
+values; envelope/claim; MQ-002 P/Q/w/estimand/strata/counts/allocations;
+sampling units, dependence/replication, query/observation and fidelity
+allocation, statistical objectives, stopping/extension, duplicate,
+replacement, exclusion/censoring/missingness, denominator, sensitivity, and
+sufficiency rules; source/generator/representation owners. Missing values
+leave production authoring unavailable.
+
+**Maturity ceiling.** Proposed authored schema and failure semantics only. No
+physical value, production plan, generator, case, evidence, qualification,
+or LIVE exam has been created.
+
+## 2026-08-30 — B-02A-D4: Evidence-role isolation, protected case identity, and fixture/LIVE separation
+
+> **Authority timing.** Candidate contract decision only; independent review
+> and explicit human ratification remain pending.
+
+**Selected approach.** Bind analytic, semi-analytic, manufactured-solution,
+numerical, experimental, industrial, and prospectively registered hybrid
+evidence through exact `CaseEvidenceBinding` records. Each carries its own
+authoritative protected case ref, separate optional public projection,
+campaign, evidence-population, artifact, claim/applicability,
+query/observation, B-04 policy, provenance, disclosure, and use restrictions.
+A public projection never substitutes for authoritative case identity. No role
+transfers authority to another because it shares a case.
+
+Require MMS and other verification campaigns to have distinct campaign and
+verification-population identities. MMS may verify implementation but cannot
+be relabeled as target/workload prevalence, physical model validation,
+deployment/context-of-use, product qualification, or LIVE evidence.
+
+Make raw `CanonicalChallengeCaseRef` internal/protected. Define distinct
+protected, internal, and public nominal projections. Public projection uses
+only an A4/security-owned opaque nonreversible handle and a closed, versioned
+fact-binding enum under exact disclosure/issuance refs;
+it exposes no raw case digest, reversible draw/slot ID, seed, entropy, hidden
+stratum, exam order, replacement chain, protected composition, or sensitive
+generator input.
+
+Keep fixture/draft/registered origin in a non-caller-constructible trusted
+loader provenance union with exact registration/authority/provenance refs,
+not authored bytes or a Boolean. A closed graph join makes any fixture node
+fixture-derived, any draft/unresolved/unverified node nonregistered, and a graph
+registered only when every node/evidence pin verifies. Fixture provenance
+propagates and is not cleansed by hashing, copying, renaming, supersession,
+registration, or reconstruction. Later revocation blocks prospective use but
+does not rewrite historical pins. No fixture-authored object/ref/case can
+satisfy A3 LIVE.
+
+**Controlling authority.** B-02A ticket; Science/GTM Integration Plan §4;
+locked distribution architecture §§14–16, 19, 23–26; Data Management;
+Trustless Verification; A3 fixture/LIVE gate; A4 nominal origin/protected
+projection patterns; B-04 ownership.
+
+**Alternatives rejected.** One evidence label with inherited authority;
+relabeling MMS; case identity as evidence qualification; public raw content
+hash or reversible/truncated draw ID; caller-controlled audience redaction;
+embedding seed/entropy/hidden strata; caller Boolean/string fixture or LIVE
+status; an open-ended projection allow-list; public projection as authoritative
+case identity; treating a digest as authenticated origin; and letting B-02A define
+B-04 qualification or A4 opaque-handle cryptography.
+
+**Affected contracts and later tickets.** Canonical case/ref/projections;
+case evidence/censoring records; B-04 truth/reference qualification; B-06
+Dossier; B-07R public research surfaces; A3 LIVE; A4 protected entropy and
+public commitment/handle owners.
+
+**Invariant effects.** Strengthens no-leakage, no-self-qualification,
+evidence-role isolation, MMS non-transfer, fixture non-promotion, and
+public/internal/protected separation. Errors/logs/repr/serialization must not
+echo protected identity.
+
+**Migration and compatibility.** Current A3/A4 mechanisms remain `KEEP`; B-02A
+later composes their public boundaries without importing private helpers. No
+current public API, registry gate, seed scheme, or archive component changes.
+
+**Reversibility.** Review may change projection fields before ratification.
+After ratification, disclosure/handle/evidence-role changes are prospective
+versions; historical disclosure and evidence authority do not expand
+retroactively.
+
+**Unresolved human input.** B-04 evidence qualification; later hybrid role;
+A4/security opaque public-handle design and qualification; disclosure policy;
+rights; independent review; explicit ratification.
+
+**Maturity ceiling.** Identity and prohibition semantics only. No reference
+is qualified, no handle is security-qualified, no fixture is official, and
+no LIVE, public research, product, or production authority exists.
+
+## 2026-08-30 — B-02A-D5: Downstream ownership, later package decision, test contract, and phase stop
+
+> **Authority timing.** Candidate coordination decision only. The branch and
+> draft PR cannot satisfy the contract ratification gate.
+
+**Selected approach.** B-02A supplies only immutable scientific authoring
+objects, exact refs, canonical identity, case/provenance/disclosure seams, and
+the required later implementation test matrix. B-02B owns assembly/compiler/
+R_strategy; B-03 generation; B-04 reference policy; B-05 measurement/scoring;
+B-06 Dossier; B-07R research architecture; B-07S wire protocol; A3 LIVE; A4
+entropy/seeds/protected handle security.
+
+Select no runtime package in this phase. A later separately authorized plan
+must pin the exact normally merged contract commit and then ratify the package
+root, exports, one-way dependency direction, immutable history store, A3 seam,
+code-authority update, wheel surface, and outside-tree tests. The later matrix
+must cover exact types, malformed input, canonical bytes/hash pins, equality,
+immutability, supersession/history, physical/candidate consistency,
+population/R_strategy confusion, query/observation/campaign binding,
+censoring/accounting, MMS, protected disclosure, fixture inability to satisfy
+LIVE, exports/dependencies, clean wheel, and isolated imports.
+
+This phase stops after normal commits, pushing only
+`agent/b-02a-contract-ratification`, opening a draft PR, posting/updating issue
+#42 with `@harshaa765`, and requesting independent SciML/physics, statistics,
+and protocol review. It does not mark ready, merge, enable auto-merge, check a
+DoD item, or begin code/tests.
+
+**Controlling authority.** B-02A ticket/DoD; Wave B dependency board and
+accountable-review routes; B-01E code authority; evidence README; execution
+protocol; AGENTS reservation of human science/security/rights/production
+decisions; and non-blocking lead-notification governance.
+
+**Alternatives rejected.** Selecting a retired or merely empty package;
+putting all objects into A3 registry or A2 schema by convenience; adding
+implementation/tests now; importing later owners upward; changing package,
+lock, dependency, workflow, environment, or code authority in the contract
+PR; treating drafting agents as independent reviewers; making notification or
+silence into approval; checking the first DoD box on file creation; readying
+or merging the PR; and beginning B-02B or another ticket.
+
+**Affected contracts and later tickets.** B-02A implementation plan and test
+surface; package/code-authority/CI integration; all downstream Wave B
+consumers; issue #42 notification; draft PR review route.
+
+**Invariant effects.** Preserves dependency direction, one-ticket scope,
+review independence, exact manifest, unearned maturity, and no implementation
+before ratified contract. Required tests are specified without claiming they
+exist or pass.
+
+**Migration and compatibility.** No migration is authorized. Retired paths
+remain retired. The exact contract-phase manifest is documentation/governance
+only. Later package/storage choices must preserve A2–A9 public surfaces and
+zero undeclared dependency behavior unless separately ratified.
+
+**Reversibility.** This draft can be amended through review by normal commits.
+After normal ratification merge, an implementation plan may proceed only from
+the exact pin. A later contract change is prospective; no branch history is
+rewritten.
+
+**Unresolved human input.** Independent reviewer identities for all three
+roles, their findings, explicit human ratification, normal merge, package/
+storage/A3 decisions, and all reserved scientific/rights/security values.
+
+**Maturity ceiling.** Maximum `SPECIFIED: PROPOSED OWNER-REVIEW CONTRACT
+CANDIDATE`. No B-02A implementation/test maturity or downstream authority is
+earned.
+
 ## 2026-08-30 — B-01E-D1: Canonical development environment and legacy quarantine
 
 > **Authority timing.** Executive-owner direction on 2026-08-30 authorized
