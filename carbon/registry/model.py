@@ -5,7 +5,10 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from enum import Enum
 from types import MappingProxyType
+
+from carbon.registry.digest import is_sha256_digest
 
 LIFECYCLE_STATES = ("draft", "fixture", "live")
 QUALIFICATION_MODES = ("production", "fixture")
@@ -79,6 +82,88 @@ class ChallengeKey:
         validate_version(self.version)
 
 
+class ScientificAuthoringGraphOrigin(str, Enum):
+    """Closed structural origin states understood by A3's LIVE gate."""
+
+    REGISTERED_GRAPH = "REGISTERED_GRAPH"
+    FIXTURE_DERIVED = "FIXTURE_DERIVED"
+    DRAFT_OR_UNRESOLVED = "DRAFT_OR_UNRESOLVED"
+
+
+class ScientificAuthoringReason(str, Enum):
+    """Closed non-sensitive reasons a scientific-authoring graph is ineligible."""
+
+    GRAPH_INCOMPLETE = "graph.incomplete"
+    GRAPH_FIXTURE_DERIVED = "graph.fixture_derived"
+    GRAPH_DRAFT_OR_UNRESOLVED = "graph.draft_or_unresolved"
+    GRAPH_REVOKED = "graph.revoked"
+
+
+@dataclass(frozen=True, slots=True)
+class ScientificAuthoringEligibility:
+    """Exact structural graph result supplied to A3 by a configured verifier.
+
+    This result is necessary but never sufficient for LIVE.  A3's existing
+    qualification, artifact, lifecycle, and human-owned gates remain
+    independently mandatory.
+    """
+
+    challenge_key: ChallengeKey
+    graph_fingerprint: str
+    graph_origin: ScientificAuthoringGraphOrigin
+    complete: bool
+    revoked: bool
+    reasons: tuple[ScientificAuthoringReason, ...]
+
+    def __post_init__(self) -> None:
+        if type(self.challenge_key) is not ChallengeKey:
+            raise TypeError("challenge_key must be an exact ChallengeKey")
+        if not is_sha256_digest(self.graph_fingerprint):
+            raise ValueError("graph_fingerprint must be canonical tagged SHA-256")
+        if type(self.graph_origin) is not ScientificAuthoringGraphOrigin:
+            raise TypeError(
+                "graph_origin must be an exact ScientificAuthoringGraphOrigin"
+            )
+        if type(self.complete) is not bool:
+            raise TypeError("complete must be a boolean")
+        if type(self.revoked) is not bool:
+            raise TypeError("revoked must be a boolean")
+        if type(self.reasons) is not tuple:
+            raise TypeError("reasons must be a tuple")
+        if any(
+            type(reason) is not ScientificAuthoringReason for reason in self.reasons
+        ):
+            raise TypeError("reasons contains a non-authoring reason")
+
+        expected: list[ScientificAuthoringReason] = []
+        if not self.complete:
+            expected.append(ScientificAuthoringReason.GRAPH_INCOMPLETE)
+        if self.graph_origin is ScientificAuthoringGraphOrigin.FIXTURE_DERIVED:
+            expected.append(ScientificAuthoringReason.GRAPH_FIXTURE_DERIVED)
+        elif self.graph_origin is ScientificAuthoringGraphOrigin.DRAFT_OR_UNRESOLVED:
+            expected.append(ScientificAuthoringReason.GRAPH_DRAFT_OR_UNRESOLVED)
+        if self.revoked:
+            expected.append(ScientificAuthoringReason.GRAPH_REVOKED)
+        if self.reasons != tuple(expected):
+            raise ValueError("reasons do not match the exact graph state")
+
+        # Reconstruct at the provider boundary even though ChallengeKey is
+        # immutable; no caller-owned instance is retained as authority state.
+        object.__setattr__(
+            self,
+            "challenge_key",
+            ChallengeKey(
+                self.challenge_key.challenge_id,
+                self.challenge_key.version,
+            ),
+        )
+
+    @property
+    def eligible(self) -> bool:
+        """Return structural eligibility; this does not imply LIVE authority."""
+        return not self.reasons
+
+
 @dataclass(frozen=True, slots=True)
 class ArtifactBinding:
     """Expected digest and trusted-root-relative path for one artifact."""
@@ -128,6 +213,7 @@ class QualificationManifest:
     challenge_version: str | None = None
     mode: str | None = None
     slots: Mapping[str, QualificationEvidence | None] = field(default_factory=dict)
+    scientific_authoring_graph_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         if self.challenge_id is not None:
@@ -136,6 +222,14 @@ class QualificationManifest:
             _require_exact_string(self.challenge_version, "manifest challenge_version")
         if self.mode is not None:
             _require_exact_string(self.mode, "qualification mode")
+        if (
+            self.scientific_authoring_graph_fingerprint is not None
+            and not is_sha256_digest(self.scientific_authoring_graph_fingerprint)
+        ):
+            raise ValueError(
+                "scientific_authoring_graph_fingerprint must be canonical "
+                "tagged SHA-256"
+            )
         if not isinstance(self.slots, Mapping):
             raise TypeError("qualification slots must be a mapping")
 
@@ -177,6 +271,7 @@ class ChallengeRecord:
     receipt_schema_version: str | None = None
     required_backend_profile_id: str | None = None
     allowed_backend_profile_ids: tuple[str, ...] = ()
+    scientific_authoring_graph_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         validate_challenge_id(self.challenge_id)
@@ -214,6 +309,15 @@ class ChallengeRecord:
             or (self.qualification is not None and self.qualification.mode == "fixture")
         ):
             raise ValueError("fixture-labelled records must declare fixture_origin")
+
+        if (
+            self.scientific_authoring_graph_fingerprint is not None
+            and not is_sha256_digest(self.scientific_authoring_graph_fingerprint)
+        ):
+            raise ValueError(
+                "scientific_authoring_graph_fingerprint must be canonical "
+                "tagged SHA-256"
+            )
 
         if self.receipt_schema_version is not None:
             validate_version(self.receipt_schema_version)

@@ -37,9 +37,16 @@ _OPTIONAL_RECORD_FIELDS = {
     "allowed_backend_profile_ids",
     "receipt_schema_version",
     "required_backend_profile_id",
+    "scientific_authoring_graph_fingerprint",
 }
 _ARTIFACT_FIELDS = {"digest", "path"}
-_MANIFEST_FIELDS = {"challenge_id", "challenge_version", "mode", "slots"}
+_MANIFEST_FIELDS = {
+    "challenge_id",
+    "challenge_version",
+    "mode",
+    "scientific_authoring_graph_fingerprint",
+    "slots",
+}
 _EVIDENCE_FIELDS = {
     "artifact_id",
     "backend_profile_ids",
@@ -210,6 +217,10 @@ def _parse_manifest(value: object) -> QualificationManifest | None:
             "/qualification/challenge_version",
         ),
         mode=_optional_string(manifest.get("mode"), "/qualification/mode"),
+        scientific_authoring_graph_fingerprint=_optional_string(
+            manifest.get("scientific_authoring_graph_fingerprint"),
+            "/qualification/scientific_authoring_graph_fingerprint",
+        ),
         slots=_parse_slots(raw_slots),
     )
 
@@ -257,6 +268,10 @@ def _record_from_object(value: object) -> ChallengeRecord:
             ),
             artifacts=_parse_artifacts(record["artifacts"]),
             qualification=_parse_manifest(record["qualification"]),
+            scientific_authoring_graph_fingerprint=_optional_string(
+                record.get("scientific_authoring_graph_fingerprint"),
+                "/scientific_authoring_graph_fingerprint",
+            ),
             receipt_schema_version=_optional_string(
                 record.get("receipt_schema_version"),
                 "/receipt_schema_version",
@@ -299,6 +314,9 @@ def _manifest_object(manifest: QualificationManifest | None) -> object:
         "challenge_id": manifest.challenge_id,
         "challenge_version": manifest.challenge_version,
         "mode": manifest.mode,
+        "scientific_authoring_graph_fingerprint": (
+            manifest.scientific_authoring_graph_fingerprint
+        ),
         "slots": {
             slot: _evidence_object(evidence)
             for slot, evidence in manifest.slots.items()
@@ -317,6 +335,9 @@ def _record_object(record: ChallengeRecord) -> dict[str, object]:
         "challenge_id": record.challenge_id,
         "fixture_origin": record.fixture_origin,
         "qualification": _manifest_object(record.qualification),
+        "scientific_authoring_graph_fingerprint": (
+            record.scientific_authoring_graph_fingerprint
+        ),
         "receipt_schema_version": record.receipt_schema_version,
         "required_backend_profile_id": record.required_backend_profile_id,
         "status": record.status,

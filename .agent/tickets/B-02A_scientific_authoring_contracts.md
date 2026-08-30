@@ -1,12 +1,20 @@
 # Ticket B-02A - Scientific authoring and canonical-case contracts
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** in_progress (agent-selected working contract; implementation candidate)
 **Depends on:** B-01E
 **Build Out:** C3 and Wave B scientific contract objects
 **Master questions:** MQ-001, MQ-002
 **Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §§5-6; `Build_Out_Constitutional_Overlay.md` §8; `.agent/DELEGATED_DECISION_PROTOCOL.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
+**Plan:** `.agent/plans/B-02A_scientific_authoring_contracts.md`
+**Evidence:** `.agent/evidence/wave_b/b-02a.md`
+
+> This status/evidence transition remains prospective branch content until
+> normally merged. Governance PR #61 authorizes bounded implementation from the
+> recorded working contract without affirmative lead approval. The first
+> Definition-of-Done item remains unchecked until its final independent-review
+> and normal-merge clauses are satisfied; no unearned maturity is implied.
 
 ## Goal
 

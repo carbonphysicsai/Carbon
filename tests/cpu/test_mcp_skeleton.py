@@ -71,6 +71,8 @@ from carbon.registry import (
     ChallengeRegistry,
     QualificationEvidence,
     QualificationManifest,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringGraphOrigin,
 )
 from carbon.schema import ValidationIssue, ValidationResult, dry_validate
 
@@ -78,9 +80,31 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = "a9_fixture"
 CHALLENGE_VERSION = "fixture-1.0"
 CHALLENGE_KEY = ChallengeKey(CHALLENGE_ID, CHALLENGE_VERSION)
+TEST_AUTHORING_GRAPH_FINGERPRINT = "sha256:" + "e" * 64
 REQUESTER = RequesterIdentity("fixture-requester-v1")
 OTHER_REQUESTER = RequesterIdentity("fixture-other-requester-v1")
 FIXED_SUBMISSION_ID = "123e4567-e89b-42d3-a456-426614174000"
+
+
+class _RegisteredScientificAuthoringVerifier:
+    """Test-only structural result; it grants no scientific qualification."""
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        return ScientificAuthoringEligibility(
+            challenge_key=challenge_key,
+            graph_fingerprint=expected_graph_fingerprint,
+            graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            complete=True,
+            revoked=False,
+            reasons=(),
+        )
+
+
 PUBLIC_EXPORTS = (
     "ChallengeInfo",
     "DryValidateRequest",
@@ -391,7 +415,11 @@ def _registry(
     artifact_root = tmp_path / f"artifacts-{name}"
     registry_root.mkdir(parents=True)
     artifact_root.mkdir(parents=True)
-    registry = ChallengeRegistry(registry_root, artifact_root)
+    registry = ChallengeRegistry(
+        registry_root,
+        artifact_root,
+        scientific_authoring_verifier=_RegisteredScientificAuthoringVerifier(),
+    )
     artifact_id = "fixture_bundle"
     artifact_path = f"{CHALLENGE_ID}/{CHALLENGE_VERSION}/bundle.bin"
     content = b"A9 conspicuous non-scientific fixture artifact\n"
@@ -416,11 +444,13 @@ def _registry(
         allowed_backbones=("fno",),
         artifacts={artifact_id: ArtifactBinding(artifact_path, digest)},
         qualification=QualificationManifest(
-            CHALLENGE_ID,
-            CHALLENGE_VERSION,
-            "fixture" if fixture else "production",
-            slots,
+            challenge_id=CHALLENGE_ID,
+            challenge_version=CHALLENGE_VERSION,
+            mode="fixture" if fixture else "production",
+            slots=slots,
+            scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
         ),
+        scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
     )
     registry.save(record)
     if lifecycle == "live":

@@ -15,6 +15,7 @@ CARBON_VERSION = "0.9.0"
 ROLE_PACKAGES = (
     "carbon.schema",
     "carbon.registry",
+    "carbon.authoring",
     "carbon.seeding",
     "carbon.scoring",
     "carbon.cards",

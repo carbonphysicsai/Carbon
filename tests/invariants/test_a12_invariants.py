@@ -45,6 +45,8 @@ from carbon.registry import (
     LiveActivationError,
     QualificationEvidence,
     QualificationManifest,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringGraphOrigin,
 )
 from carbon.schema import dry_validate
 from carbon.scoring import (
@@ -88,6 +90,28 @@ pytestmark = pytest.mark.invariant
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCORE_PACK_ROOT = REPOSITORY_ROOT / "tests/fixtures/score_packs"
 SCORE_PACK_PATH = "a5_fixture_v1.json"
+TEST_AUTHORING_GRAPH_FINGERPRINT = "sha256:" + "e" * 64
+
+
+class _RegisteredScientificAuthoringVerifier:
+    """Test-only structural result; it grants no scientific qualification."""
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        return ScientificAuthoringEligibility(
+            challenge_key=challenge_key,
+            graph_fingerprint=expected_graph_fingerprint,
+            graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            complete=True,
+            revoked=False,
+            reasons=(),
+        )
+
+
 NUMERIC_VALUES = (
     ("gate_error", 0.25),
     ("diagnostic_error", 0.5),
@@ -204,7 +228,15 @@ def _registry_with_manifest(
     artifact_root = root / "artifacts"
     registry_root.mkdir(parents=True)
     artifact_root.mkdir(parents=True)
-    registry = ChallengeRegistry(registry_root, artifact_root)
+    registry = ChallengeRegistry(
+        registry_root,
+        artifact_root,
+        scientific_authoring_verifier=(
+            _RegisteredScientificAuthoringVerifier()
+            if not fixture_origin and mode == "production"
+            else None
+        ),
+    )
     artifact_id = "a12_synthetic_evidence"
     artifact_path = f"{challenge_id}/{record_version}/evidence.bin"
     artifact = artifact_root.joinpath(*artifact_path.split("/"))
@@ -235,7 +267,11 @@ def _registry_with_manifest(
                 challenge_version=manifest_version or record_version,
                 mode=mode,
                 slots=slots,
+                scientific_authoring_graph_fingerprint=(
+                    TEST_AUTHORING_GRAPH_FINGERPRINT
+                ),
             ),
+            scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
         )
     )
     return registry, artifact

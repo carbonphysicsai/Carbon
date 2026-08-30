@@ -76,6 +76,8 @@ from carbon.registry import (
     QualificationEvidence,
     QualificationManifest,
     RegistryError,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringGraphOrigin,
 )
 from carbon.scoring import ScoreEngine
 from carbon.scoring.model import (
@@ -88,10 +90,31 @@ from carbon.scoring.model import (
     ScoreStatus,
 )
 
+
+class _RegisteredScientificAuthoringVerifier:
+    """Test-only structural result; it grants no scientific qualification."""
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        return ScientificAuthoringEligibility(
+            challenge_key=challenge_key,
+            graph_fingerprint=expected_graph_fingerprint,
+            graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            complete=True,
+            revoked=False,
+            reasons=(),
+        )
+
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = "a7_fixture"
 CHALLENGE_VERSION = "fixture-1.0"
 CHALLENGE_KEY = ChallengeKey(CHALLENGE_ID, CHALLENGE_VERSION)
+TEST_AUTHORING_GRAPH_FINGERPRINT = "sha256:" + "e" * 64
 REQUESTER = RequesterIdentity("fixture-requester-v1")
 OTHER_REQUESTER = RequesterIdentity("fixture-other-requester-v1")
 GENERATOR_VERSION = "fixture-generator-v1.0"
@@ -315,6 +338,7 @@ def _fixture_registry(tmp_path: Path) -> ChallengeRegistry:
     registry = ChallengeRegistry(
         registry_root,
         artifact_root,
+        scientific_authoring_verifier=_RegisteredScientificAuthoringVerifier(),
     )
     artifact_id = "fixture_bundle"
     artifact_path = f"{CHALLENGE_ID}/{CHALLENGE_VERSION}/fixture/bundle.bin"
@@ -349,7 +373,11 @@ def _fixture_registry(tmp_path: Path) -> ChallengeRegistry:
                 challenge_version=CHALLENGE_VERSION,
                 mode="fixture",
                 slots=slots,
+                scientific_authoring_graph_fingerprint=(
+                    TEST_AUTHORING_GRAPH_FINGERPRINT
+                ),
             ),
+            scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
         )
     )
     assert registry.assess_live_eligibility(
@@ -372,6 +400,7 @@ def _production_registry(
     registry = ChallengeRegistry(
         registry_root,
         artifact_root,
+        scientific_authoring_verifier=_RegisteredScientificAuthoringVerifier(),
     )
     artifact_id = "qualified_bundle"
     artifact_path = f"{CHALLENGE_ID}/{CHALLENGE_VERSION}/qualified/bundle.bin"
@@ -405,7 +434,9 @@ def _production_registry(
             challenge_version=CHALLENGE_VERSION,
             mode="production",
             slots=slots,
+            scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
         ),
+        scientific_authoring_graph_fingerprint=(TEST_AUTHORING_GRAPH_FINGERPRINT),
     )
     registry.save(record)
     registry.activate_live(CHALLENGE_ID, CHALLENGE_VERSION)
@@ -4459,12 +4490,31 @@ import json
 import pathlib
 import sys
 
-blocked = {json.dumps(sorted({
-    "bittensor", "docker", "jax", "numpy", "physicsnemo", "torch",
-    "carbon.audit", "carbon.backbones", "carbon.chain", "carbon.emission",
-    "carbon.evaluation", "carbon.leaderboard", "carbon.logging_utils",
-    "carbon.mcp", "carbon.traineval", "carbon.training", "carbon.validator",
-}))}
+blocked = {
+        json.dumps(
+            sorted(
+                {
+                    "bittensor",
+                    "docker",
+                    "jax",
+                    "numpy",
+                    "physicsnemo",
+                    "torch",
+                    "carbon.audit",
+                    "carbon.backbones",
+                    "carbon.chain",
+                    "carbon.emission",
+                    "carbon.evaluation",
+                    "carbon.leaderboard",
+                    "carbon.logging_utils",
+                    "carbon.mcp",
+                    "carbon.traineval",
+                    "carbon.training",
+                    "carbon.validator",
+                }
+            )
+        )
+    }
 
 def is_blocked(fullname):
     return any(fullname == name or fullname.startswith(name + ".") for name in blocked)

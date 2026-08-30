@@ -10,6 +10,7 @@ from carbon.registry.gate import (
     EligibilityReason,
     LiveActivationError,
     LiveEligibility,
+    ScientificAuthoringVerifier,
 )
 from carbon.registry.model import (
     LIFECYCLE_STATES,
@@ -21,6 +22,9 @@ from carbon.registry.model import (
     ChallengeRecord,
     QualificationEvidence,
     QualificationManifest,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringGraphOrigin,
+    ScientificAuthoringReason,
     validate_canonical_identifier,
     validate_version,
 )
@@ -42,6 +46,10 @@ __all__ = (
     "QualificationEvidence",
     "QualificationManifest",
     "RegistryError",
+    "ScientificAuthoringEligibility",
+    "ScientificAuthoringGraphOrigin",
+    "ScientificAuthoringReason",
+    "ScientificAuthoringVerifier",
     "is_sha256_digest",
     "read_verified_artifact_bytes",
     "serialize_record",
