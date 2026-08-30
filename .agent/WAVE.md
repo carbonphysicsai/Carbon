@@ -5,11 +5,16 @@
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.4
 **Selected ticket:** B-01
-**B-01 status:** closeout candidate proposes `done`; authoritative `in_progress`
-on current `main` until the exact closeout head is independently reviewed and
-normally merged
-**B-01 development:** orientation/evidence merged normally in PR #55; bounded
-documentation closeout on `agent/b-01-closeout`
+**B-01 status:** `done`
+**Correction authority gate:** this status is non-authoritative on the
+correction branch until the
+exact `agent/b-01-closeout-correction` head is independently reviewed with all
+review threads resolved, passes required PR CI, normally merges with the exact
+reviewed tree preserved, and exact-main push CI on that merge succeeds; until
+then the prior merged `main` state remains `in_progress`
+**B-01 development:** orientation/evidence merged normally in PR #55; PR #56
+merged the documentation closeout before its independent review completed and
+therefore requires this bounded status-consistency correction
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -25,10 +30,19 @@ documentation closeout on `agent/b-01-closeout`
 > reviewed B-01 head `82d17a1f2b1f03e27880965d5345bd3fad8811e6`
 > as `1fe980297897faf196e1d1d4fb845846ee08a0b7`; reviewed and merge trees are
 > exactly `138494feaedce3f6e4a338940038d11fb73d383a`, and exact-main push CI
-> `33305214501` succeeded. This documentation-only closeout proposes B-01
-> `done`; that state becomes authoritative only after independent exact-head
-> review and normal merge of the closeout. No later Wave-B ticket is selected
-> or started by this candidate.
+> `33305214501` succeeded. PR #56 then merged closeout head
+> `69dc16a96bc22b6f2e46c6f2bf45c3b9233b8455` as
+> `d03e1e0e23005d2d61381bea3847b248d73d4fd4`, tree
+> `7fdd5feb2559f5311412b14a5c9a21d55ec1733f`; exact-main push CI
+> `33306558958` succeeded. Its independent review completed only after merge
+> and left one valid unresolved P1 because the board said `done` while this
+> wave, the ticket, and the evidence still said authoritative `in_progress`.
+> This bounded correction makes every B-01 status-bearing record uniformly propose
+> `done`. The transition becomes authoritative only after the exact correction
+> head is independently reviewed with zero unresolved review threads, required
+> PR CI passes, the correction normally merges with the exact reviewed tree
+> preserved, and exact-main push CI on that merge succeeds. No later Wave-B
+> ticket is selected or started by this candidate.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -101,10 +115,14 @@ contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
 [`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the selected
-ticket. Its orientation/evidence change merged normally, and this separate
-documentation closeout proposes `done`; authoritative merged `main` remains
-`in_progress` until the closeout itself is independently reviewed and normally
-merged. B-02 and every later ticket remain `todo` and unstarted.
+ticket. Its orientation/evidence change merged normally in PR #55. PR #56
+merged its documentation closeout before review completed; the post-merge
+review exposed a valid status disagreement between this wave, the board, the
+ticket, and the evidence. This correction uniformly proposes B-01 `done` and
+is non-authoritative until its exact head is independently reviewed with zero
+unresolved review threads, passes required PR CI, normally merges with the
+exact reviewed tree preserved, and exact-main push CI on that merge succeeds.
+B-02A and every later ticket remain `todo` and unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

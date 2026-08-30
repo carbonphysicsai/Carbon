@@ -1,9 +1,13 @@
 # Ticket B-01 - Wave B orientation and authority pin
 
 **Wave:** B active in bounded development scope
-**Status:** closeout candidate proposes `done`; authoritative `in_progress` on
-current `main` until the exact closeout head is independently reviewed and
-normally merged
+**Status:** `done`
+**Correction authority gate:** this status is non-authoritative on the
+correction branch until the exact
+`agent/b-01-closeout-correction` head is independently reviewed with all
+review threads resolved, passes required PR CI, normally merges with the exact
+reviewed tree preserved, and exact-main push CI on that merge succeeds; until
+then the prior merged `main` state remains `in_progress`
 **Depends on:** merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation
 **Build Out:** Wave B orientation; launch `B-01`
 **Master questions:** MQ-018
@@ -38,8 +42,17 @@ and reviewed ticket crosswalk. Final orientation head
 review with no blocking finding left and all three review threads resolved.
 PR #55 normally merged it as
 `1fe980297897faf196e1d1d4fb845846ee08a0b7`, preserving that exact tree, and
-exact-main push CI `33305214501` succeeded. This separate documentation
-closeout therefore proposes `done`; B-01 remains authoritatively `in_progress`
-until the closeout itself is independently reviewed and normally merged. The
-closeout changes documentation/evidence only and starts neither B-01E nor
-B-02A nor any later Wave B implementation.
+exact-main push CI `33305214501` succeeded. GitHub then merged the PR #56
+documentation closeout before independent review completed, as two-parent
+commit
+`d03e1e0e23005d2d61381bea3847b248d73d4fd4`, and exact-main push CI
+`33306558958` succeeded. Its independent review completed after merge and left
+one valid unresolved P1: the board said `done` while the wave, this ticket, and
+the evidence still said authoritative `in_progress`. This bounded correction
+uniformly proposes `done` across all four status-bearing records. The proposal
+is non-authoritative until the correction's exact head is independently
+reviewed with zero unresolved review threads, required PR CI passes, the
+correction normally merges with the exact reviewed tree preserved, and
+exact-main push CI on that merge succeeds. The correction changes
+documentation/evidence only and starts neither B-01E nor B-02A nor any later
+Wave B implementation.
