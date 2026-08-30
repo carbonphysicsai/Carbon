@@ -1,7 +1,7 @@
 # Ticket B-02A - Scientific authoring and canonical-case contracts
 
 **Wave:** B candidate
-**Status:** in_progress (contract-ratification candidate; implementation not started)
+**Status:** in_progress (agent-selected working contract; implementation candidate)
 **Depends on:** B-01E
 **Build Out:** C3 and Wave B scientific contract objects
 **Master questions:** MQ-001, MQ-002
@@ -10,10 +10,11 @@
 **Plan:** `.agent/plans/B-02A_scientific_authoring_contracts.md`
 **Evidence:** `.agent/evidence/wave_b/b-02a.md`
 
-> This status transition is proposed branch content until normally merged.
-> Every Definition-of-Done checkbox below remains unchecked. The present phase
-> may propose and review the authoring contract only; it may not implement the
-> B-02A runtime objects or tests.
+> This status/evidence transition remains prospective branch content until
+> normally merged. Governance PR #61 authorizes bounded implementation from the
+> recorded working contract without affirmative lead approval. The first
+> Definition-of-Done item remains unchecked until its final independent-review
+> and normal-merge clauses are satisfied; no unearned maturity is implied.
 
 ## Goal
 

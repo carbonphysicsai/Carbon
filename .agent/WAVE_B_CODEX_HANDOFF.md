@@ -16,7 +16,7 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-01E closeout and B-02A readiness gate
+## 1. B-01E closeout, delegated governance, and B-02A state
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -27,17 +27,19 @@ implementation head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree
 `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree
 preserved. Exact-main push run `33319267255` passed on that merge.
 
-The separate documentation closeout proposes B-01E `done` and B-02A as the
-next selected `todo`, but its branch state is review content only. B-02A and
-every later ticket remain unready until the closeout's exact head is
-independently reviewed with every blocking finding and thread resolved,
-required PR CI passes, it normally merges under separate authorization with
-the reviewed tree preserved, and exact-main closeout CI succeeds. Only then
-may a fresh session derive
-B-02A as selected from exact fetched `origin/main`; B-02A still remains
-unstarted and requires separate current user authorization plus its own
-readiness and branch gate. A closeout branch, draft PR, green PR CI, or
-independent review alone does not satisfy that dependency.
+PR #59 normally merged the B-01E closeout as
+`e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree
+`0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`; exact-main CI `33321131062`
+passed and selected B-02A. Governance PR #61 independently reviewed exact
+head `fb220c14966aa3505d95b199ce168bf31064d1ba`, normally merged as
+`7bdf4971b7d0b3ee8ffde577595a49c6b5456961` with tree
+`109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`, and passed exact-main CI
+`33329693544`. Its `.agent/DELEGATED_DECISION_PROTOCOL.md` controls working-
+contract implementation: record and notify material engineering decisions,
+continue without affirmative lead response, and stop the affected change on
+an observed `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES`. Human-reserved values
+remain fail closed. B-02A is the only active ticket; later tickets remain
+unstarted.
 
 ## 2. Required read order
 
@@ -113,7 +115,9 @@ the domain owner provides a current repository contract.
 
 When two documents disagree, apply `AGENTS.md` section 2. Record one of
 `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`,
-`MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`. Stop on the last class.
+`MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`. For the last class,
+stop and route the affected human-reserved behavior; continue unrelated
+authorized work only where the value remains explicit and fail closed.
 
 ## 4. Current-ticket state and selection
 
@@ -172,21 +176,17 @@ service composition and conformance. B-GATE closes the fixture wave only after
 every named predecessor has merged.
 
 A ticket qualifies as ready only when each dependency shows authoritative
-`done` status with merged evidence, each applicable contract-ratification gate
-has closed, no unresolved reserved-human decision is needed for correct bounded
-implementation, and every deferred human input has an explicit fail-closed
-fixture behavior. Non-reserved material decisions follow the record-and-notify
-rule below. Do not skip a blocked ticket by starting one of its dependents.
+`done` status with merged evidence, its required working contract exists, no
+unresolved reserved-human decision is needed for the affected bounded
+behavior, and every deferred human input has an explicit fail-closed path.
+Non-reserved material decisions follow the record-and-notify rule below. Do
+not skip a blocked ticket by starting one of its dependents.
 
-B-01E's reviewed implementation merge and implementation exact-main CI are
-complete at the identities in section 1. B-02A and every later Wave B ticket
-remain unready until B-01E is authoritatively `done` through the separate
-reviewed, normally merged closeout and successful exact-main closeout CI.
-Checked B-01E Definition-of-Done boxes, a prospective closeout `done` token,
-candidate evidence, a draft closeout pull request, green PR CI, or independent
-review alone do not satisfy that dependency. After the gate, B-02A is only the
-selected `todo`; item 3 still requires current user authorization before its
-own branch or implementation begins.
+B-01E's implementation, closeout, and exact-main CI are complete at the
+identities in section 1. The current authorized B-02A session continues on the
+existing branch and worktree after normally incorporating governance main.
+B-02A's final independent review and normal merge remain pending. No status or
+evidence on this branch authorizes B-02B or another ticket.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -201,7 +201,7 @@ schema; a scientific assumption or evidence interpretation; a security or
 disclosure boundary; a rights or data-use policy; an operational or resource
 policy; Wave or ticket sequencing; or a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE`
 disposition with cross-ticket impact. Routine implementation details within an
-already ratified contract do not require a separate notification.
+already recorded working contract do not require a separate notification.
 
 For each material-decision-affecting pull request:
 

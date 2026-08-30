@@ -4,23 +4,19 @@
 **Version:** 0.5
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserts the owner-directed B-01E infrastructure ticket without changing the Wave B scientific architecture contract. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
-**B-02A candidate start:** PR #59 normally merged the B-01E closeout as `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`, and exact-main run `33321131062` passed. The dedicated B-02A branch proposes `in_progress` only for contract ratification; the status and contract remain non-authoritative until normally merged, and no B-02A implementation is authorized.
+**B-02A candidate start:** PR #59 normally merged the B-01E closeout as `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`, and exact-main run `33321131062` passed. Governance PR #61 then independently reviewed head `fb220c14966aa3505d95b199ce168bf31064d1ba`, normally merged as `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`, and passed exact-main run `33329693544`. The dedicated B-02A branch now proposes `in_progress` for working-contract implementation; final independent SciML/statistics/protocol review, CI, and normal merge remain required before `done`.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
 **Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
 
-Authority comes from the merged active `.agent/WAVE.md` and selected ticket,
-not this file alone or prior role approval. B-01 is authoritatively `done`.
-This documentation-only closeout proposes B-01E `done` and B-02A as the next
-selected `todo`. The proposal remains non-authoritative until the exact
-closeout head is independently reviewed with every blocking finding and
-thread resolved, required PR CI passes, it normally merges under separate
-authorization with the reviewed tree preserved, and exact-main closeout CI
-succeeds. Until that complete gate, B-01E's prior authoritative status remains
-`in_progress` despite any prospective closeout token on a branch or newly
-merged main; B-02A and every later ticket remain `todo` and unstarted. This
-branch does not authorize B-02A implementation.
+Authority comes from the merged active `.agent/WAVE.md`, selected ticket, and
+merged delegated-decision protocol, not this file alone or prior role
+approval. B-01 and B-01E are authoritatively `done`; B-02A is the only selected
+`in_progress` ticket. Its working decisions may be implemented after durable
+record and applicable notification without affirmative lead response. A
+human-reserved value remains unavailable and blocks its affected behavior.
+Every later ticket remains `todo` and unstarted.
 
 ---
 
@@ -90,7 +86,7 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
 | B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
-| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | in_progress | `.agent/evidence/wave_b/b-02a.md` (contract candidate; review/ratification/merge pending) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
+| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | in_progress | `.agent/evidence/wave_b/b-02a.md` (working-contract implementation candidate; final review/merge pending) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | todo | — | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
@@ -240,7 +236,7 @@ from prior multi-role approval. A material decision changes or selects:
 - a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE` disposition with cross-ticket
   impact.
 
-Routine implementation details within an already ratified contract do not need
+Routine implementation details within an already recorded working contract do not need
 a separate lead notification. For every material-decision-affecting pull
 request, record the durable decision in `.agent/DECISIONS.md` or the applicable
 ticket, plan, or specification; include a pull-request section titled
@@ -279,7 +275,10 @@ Before each ticket begins:
 4. classify touched components `KEEP`, `WRAP`, `REPAIR`, `REPLACE`, or stop for `NEW_OWNER_DECISION_REQUIRED`;
 5. run and record the ticket-specific baseline;
 6. create a detailed `.agent/plans/` file for every multi-module ticket before implementation;
-7. obtain contract ratification before code implementation when the ticket defines a new public or security boundary.
+7. create and record the ticket's working contract before implementation when
+   the ticket defines a new public or security boundary; obtain independent
+   exact-head review before normal merge, while human-reserved values remain
+   fail closed.
 
 Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.

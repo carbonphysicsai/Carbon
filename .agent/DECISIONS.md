@@ -2,13 +2,15 @@
 
 ## 2026-08-30 — B-02A-D1: Authored objects, exact refs, canonical bytes, and prospective history
 
-> **Authority timing.** This decision is an owner-review contract candidate on
-> `agent/b-02a-contract-ratification`, based exactly on
-> `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree
-> `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`. It becomes contract authority
-> only after independent SciML/statistics/protocol review, resolution of
-> blocking findings, explicit human ratification, required validation, and
-> normal merge. It does not authorize implementation.
+> **Status: AGENT-SELECTED WORKING DECISION.** This decision was first recorded
+> on `agent/b-02a-contract-ratification` from exact base/tree
+> `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb` /
+> `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`. Governance PR #61 normally
+> merged as `7bdf4971b7d0b3ee8ffde577595a49c6b5456961` and removed the affirmative
+> pre-implementation approval gate for agent-authorized engineering choices.
+> B-02A may implement this working decision now; independent exact-head
+> SciML/statistics/protocol review, blocking-finding resolution, validation,
+> and normal merge remain required for final ticket acceptance.
 
 **Selected approach.** Define five distinct immutable authored-contract
 families plus one immutable, capability-created canonical-case realization
@@ -75,24 +77,26 @@ encoders are pattern-only. Legacy generic loaders remain
 `MIGRATION_REQUIRED` historical material and are not ported. The profile is
 prospective; a later profile preserves all v1 bytes and refs.
 
-**Reversibility.** Review may amend this candidate before ratification. After
-ratification/merge, semantic changes require a new prospective contract and
+**Reversibility.** Review may amend this working decision by normal commit. After
+normal merge, semantic changes require a new prospective contract and
 profile/object version; historical refs remain exact. The engineering bounds
 are reviewable here but cannot be silently tuned after implementation.
 
-**Unresolved human input.** Explicit acceptance/amendment of the profile,
-closed schema registry, and engineering bounds; later immutable history-store
-owner; exact A3 binding; and the implementation package/export decision.
+**Unresolved human input.** No human scientific value is required for this
+engineering identity decision. D6-D8 select package, history, and A3 seams.
+Final technical review may require prospective schema/profile amendments.
 
-**Maturity ceiling.** Proposed contract specification only. `RATIFIED`,
-`IMPLEMENTED`, B-02A implementation `TESTED`, scientific/security/network/
+**Maturity ceiling.** `SPECIFIED: AGENT-SELECTED WORKING DECISION`.
+`IMPLEMENTED` and B-02A implementation `TESTED` remain pending until code and
+evidence exist; scientific/security/network/
 commercial/production qualification, LIVE, frontier, settlement, weight, and
 emission authority remain `NO`.
 
 ## 2026-08-30 — B-02A-D2: Population-role, training-support, rights, and `R_strategy` separation
 
-> **Authority timing.** Candidate contract decision only; it has the same
-> review, ratification, normal-merge, and no-implementation gate as B-02A-D1.
+> **Status: AGENT-SELECTED WORKING DECISION.** It follows the delegated timing
+> stated by B-02A-D1. Implementation may proceed without affirmative lead
+> response; final exact-head independent review and normal merge remain due.
 
 **Selected approach.** Represent target/workload `P`, official proposal `Q`,
 and evidence weighting `w` as exact role-tagged, content-addressed contracts.
@@ -158,8 +162,8 @@ B-01E code authority and grant no package permission. Strategy Schema and
 Miner MCP candidate examples remain unratified compatibility input. No data,
 population, generator, compiler, or archive migration occurs.
 
-**Reversibility.** Pre-ratification review may revise roles and fields. A
-post-ratification material population/support/rights change is prospective,
+**Reversibility.** Working review may revise roles and fields. A
+post-merge material population/support/rights change is prospective,
 versioned, requalified as required, and cannot reinterpret historical
 evidence.
 
@@ -169,14 +173,15 @@ allocations, exclusions, provenance, rights, sources, uses, restrictions, and
 adequacy evidence; B-02B's exact policy/compiler objects. Missing inputs leave
 production authoring unavailable.
 
-**Maturity ceiling.** Proposed type/authority semantics only; no real
+**Maturity ceiling.** Agent-selected working type/authority semantics only; no real
 population, training permission, compiler, official draw, scientific
 qualification, or LIVE authority is selected.
 
 ## 2026-08-30 — B-02A-D3: Physical/candidate contracts, SamplingPlan, canonical case, and disposition/censoring
 
-> **Authority timing.** Candidate contract decision only; implementation and
-> every DoD completion remain prohibited/pending.
+> **Status: AGENT-SELECTED WORKING DECISION.** Bounded B-02A implementation is
+> authorized under the merged delegated protocol. DoD acceptance remains
+> pending implementation evidence, final independent review, and normal merge.
 
 **Selected approach.** Use an acyclic graph: `CandidateOutputContract` binds
 exact `PhysicalSystemSpec`; physical spec does not back-reference the
@@ -264,8 +269,8 @@ distribution/canon/current domain owners control the seam. PR #40's viscosity
 issue is recorded but no value, JAX code, dependency, or reference witness is
 adopted.
 
-**Reversibility.** Fields/state taxonomy may be amended in review. After
-ratification, material physical/population/plan/censoring changes are new
+**Reversibility.** Fields/state taxonomy may be amended in working review. After
+normal merge, material physical/population/plan/censoring changes are new
 versions and prospective. Historical case/disposition/evidence bindings stay
 exact.
 
@@ -277,14 +282,15 @@ replacement, exclusion/censoring/missingness, denominator, sensitivity, and
 sufficiency rules; source/generator/representation owners. Missing values
 leave production authoring unavailable.
 
-**Maturity ceiling.** Proposed authored schema and failure semantics only. No
+**Maturity ceiling.** Agent-selected working authored schema and failure semantics. No
 physical value, production plan, generator, case, evidence, qualification,
 or LIVE exam has been created.
 
 ## 2026-08-30 — B-02A-D4: Evidence-role isolation, protected case identity, and fixture/LIVE separation
 
-> **Authority timing.** Candidate contract decision only; independent review
-> and explicit human ratification remain pending.
+> **Status: AGENT-SELECTED WORKING DECISION.** Implementation may proceed under
+> PR #61 governance. Independent final technical review remains pending; no
+> human-reserved evidence, security, qualification, or LIVE value is supplied.
 
 **Selected approach.** Bind analytic, semi-analytic, manufactured-solution,
 numerical, experimental, industrial, and prospectively registered hybrid
@@ -345,14 +351,15 @@ echo protected identity.
 later composes their public boundaries without importing private helpers. No
 current public API, registry gate, seed scheme, or archive component changes.
 
-**Reversibility.** Review may change projection fields before ratification.
-After ratification, disclosure/handle/evidence-role changes are prospective
+**Reversibility.** Working review may change projection fields. After normal
+merge, disclosure/handle/evidence-role changes are prospective
 versions; historical disclosure and evidence authority do not expand
 retroactively.
 
 **Unresolved human input.** B-04 evidence qualification; later hybrid role;
 A4/security opaque public-handle design and qualification; disclosure policy;
-rights; independent review; explicit ratification.
+rights; and final independent technical review. These values remain fail
+closed while unrelated B-02A implementation proceeds.
 
 **Maturity ceiling.** Identity and prohibition semantics only. No reference
 is qualified, no handle is security-qualified, no fixture is official, and
@@ -360,8 +367,9 @@ no LIVE, public research, product, or production authority exists.
 
 ## 2026-08-30 — B-02A-D5: Downstream ownership, later package decision, test contract, and phase stop
 
-> **Authority timing.** Candidate coordination decision only. The branch and
-> draft PR cannot satisfy the contract ratification gate.
+> **Status: AGENT-SELECTED WORKING DECISION.** The original contract-delivery
+> stop was valid when recorded, then superseded prospectively by governance PR
+> #61. The downstream ownership and test boundaries remain controlling.
 
 **Selected approach.** B-02A supplies only immutable scientific authoring
 objects, exact refs, canonical identity, case/provenance/disclosure seams, and
@@ -370,21 +378,18 @@ R_strategy; B-03 generation; B-04 reference policy; B-05 measurement/scoring;
 B-06 Dossier; B-07R research architecture; B-07S wire protocol; A3 LIVE; A4
 entropy/seeds/protected handle security.
 
-Select no runtime package in this phase. A later separately authorized plan
-must pin the exact normally merged contract commit and then ratify the package
-root, exports, one-way dependency direction, immutable history store, A3 seam,
-code-authority update, wheel surface, and outside-tree tests. The later matrix
-must cover exact types, malformed input, canonical bytes/hash pins, equality,
+The implementation execution plan now selects package, history, and A3 seams
+through delegated decisions D6-D8. The implementation matrix covers exact
+types, malformed input, canonical bytes/hash pins, equality,
 immutability, supersession/history, physical/candidate consistency,
 population/R_strategy confusion, query/observation/campaign binding,
 censoring/accounting, MMS, protected disclosure, fixture inability to satisfy
 LIVE, exports/dependencies, clean wheel, and isolated imports.
 
-This phase stops after normal commits, pushing only
-`agent/b-02a-contract-ratification`, opening a draft PR, posting/updating issue
-#42 with `@harshaa765`, and requesting independent SciML/physics, statistics,
-and protocol review. It does not mark ready, merge, enable auto-merge, check a
-DoD item, or begin code/tests.
+The same branch and draft PR continue through bounded implementation. Issue
+#42 receives D1-D8 working-decision notification. The final candidate requires
+independent SciML/physics, statistics, and protocol review. This session stops
+before B-02A merge and does not begin another ticket.
 
 **Controlling authority.** B-02A ticket/DoD; Wave B dependency board and
 accountable-review routes; B-01E code authority; evidence README; execution
@@ -392,39 +397,200 @@ protocol; AGENTS reservation of human science/security/rights/production
 decisions; and non-blocking lead-notification governance.
 
 **Alternatives rejected.** Selecting a retired or merely empty package;
-putting all objects into A3 registry or A2 schema by convenience; adding
-implementation/tests now; importing later owners upward; changing package,
-lock, dependency, workflow, environment, or code authority in the contract
-PR; treating drafting agents as independent reviewers; making notification or
-silence into approval; checking the first DoD box on file creation; readying
-or merging the PR; and beginning B-02B or another ticket.
+putting all objects into A3 registry or A2 schema by convenience; importing
+later owners upward; changing dependencies, lock, workflow, or environment;
+treating implementing agents as independent reviewers; making notification or
+silence into approval; checking the first DoD box before its review/merge
+clauses; merging B-02A without authority; and beginning another ticket.
 
 **Affected contracts and later tickets.** B-02A implementation plan and test
 surface; package/code-authority/CI integration; all downstream Wave B
 consumers; issue #42 notification; draft PR review route.
 
 **Invariant effects.** Preserves dependency direction, one-ticket scope,
-review independence, exact manifest, unearned maturity, and no implementation
-before ratified contract. Required tests are specified without claiming they
-exist or pass.
+review independence, exact manifest, unearned maturity, and fail-closed human
+authority. Test results are recorded only after they exist.
 
-**Migration and compatibility.** No migration is authorized. Retired paths
-remain retired. The exact contract-phase manifest is documentation/governance
-only. Later package/storage choices must preserve A2–A9 public surfaces and
-zero undeclared dependency behavior unless separately ratified.
+**Migration and compatibility.** No retired/archive migration is authorized.
+D6-D8 add a prospective canonical package, immutable store, and A3 verifier
+seam while preserving A2–A9 authority and zero undeclared dependencies.
 
-**Reversibility.** This draft can be amended through review by normal commits.
-After normal ratification merge, an implementation plan may proceed only from
-the exact pin. A later contract change is prospective; no branch history is
-rewritten.
+**Reversibility.** The working contract and implementation may be amended by
+normal commits and reviewed prospectively. A later semantic change creates a
+new version/ref; no branch or evidence history is rewritten.
 
-**Unresolved human input.** Independent reviewer identities for all three
-roles, their findings, explicit human ratification, normal merge, package/
-storage/A3 decisions, and all reserved scientific/rights/security values.
+**Unresolved human input.** Final reviewer findings, normal merge authority,
+and all reserved scientific/rights/security values. Package/storage/A3
+engineering choices are selected in D6-D8 and remain changeable by an observed
+lead direction or final review finding.
 
-**Maturity ceiling.** Maximum `SPECIFIED: PROPOSED OWNER-REVIEW CONTRACT
-CANDIDATE`. No B-02A implementation/test maturity or downstream authority is
-earned.
+**Maturity ceiling.** `SPECIFIED: AGENT-SELECTED WORKING DECISION` now. Bounded
+implementation/test maturity is earned only by exact evidence; no downstream
+qualification or LIVE authority is earned.
+
+## 2026-08-30 — B-02A-D6: Canonical `carbon.authoring` package and export boundary
+
+> **Status: AGENT-SELECTED WORKING DECISION.** Selected under the normally
+> merged delegated-decision governance at exact main
+> `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree
+> `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`. Lead notification is required;
+> affirmative response is not a pre-implementation gate.
+
+**Selected approach.** Add `carbon/authoring` as a new canonical role package.
+It owns B-02A exact types, canonicalization, loading, graph-origin composition,
+history, and controlled projection/result factories. The package root exposes
+an ordered allow-list of public-safe contracts, refs, enums, errors, and
+operations. Protected case refs, origin issuers, raw storage primitives, and
+capability constructors remain in explicit internal modules and are not root
+convenience exports. Dependency direction is `carbon.authoring` to the standard
+library and minimal public A3 identity/digest primitives only. Add
+`carbon/authoring` to `.agent/CODE_AUTHORITY.toml` and installed-wheel/import
+coverage; `pyproject.toml` stays unchanged because `carbon*` already includes
+the package.
+
+**Controlling authority.** B-01E code authority; B-02A ticket and working
+contract §§4, 12, 14–15; constitutional overlay package guidance; current A3,
+A4, A2, package, wheel, and import-boundary ownership.
+
+**Alternatives rejected.** Retired `carbon/challenges`, `carbon/data`,
+`carbon/physics`, or `carbon/sciml`; overloading A2 `carbon.schema`; placing
+immutable B-02A history in A3 `carbon.registry`; using downstream
+`evaluation`, `qualification`, or `audit`; a flat top-level module; exporting
+protected internals; adding a dependency; or changing package metadata merely
+for discovery.
+
+**Affected contracts and later tickets.** All B-02A public imports; B-02B–B-06
+consumption; B-07R/B-07S safe surfaces; A3/A4 seams; code-authority, wheel, and
+outside-tree tests.
+
+**Invariant effects.** Preserves retired-path quarantine, owner dependency
+direction, exact public/protected disclosure, no undeclared optional-heavy
+imports, and one-ticket scope.
+
+**Migration and compatibility.** Prospective package addition only. No current
+package is renamed or replaced, no legacy/archive code is migrated, and no
+existing top-level Carbon export is changed.
+
+**Reversibility.** Before normal merge, a review or observed `CHANGE` may move
+the package by normal commit. After consumers bind it, relocation requires a
+prospective compatibility/migration change; historical refs remain unaffected.
+
+**Unresolved human input.** None for package placement. Real scientific,
+rights, disclosure-security, and qualification values remain separately
+reserved.
+
+**Maturity ceiling.** Engineering package selection only. It confers no
+scientific, security, network, commercial, production, LIVE, or launch state.
+
+## 2026-08-30 — B-02A-D7: Append-only exact-ref history and immutable origin
+
+> **Status: AGENT-SELECTED WORKING DECISION.** Selected under the same delegated
+> authority and intervention rules as B-02A-D6.
+
+**Selected approach.** Implement a B-02A-owned create-only filesystem store
+indexed by the complete exact ref and bounded canonical bytes. A store write
+uses exclusive creation and rejects conflicting bytes, refs, origin, or
+supersession. Exact historical retrieval never resolves through `latest`,
+alias, object ID alone, or a newer version. Supersession is same kind,
+Challenge, and object ID only; the predecessor must exist and cycles reject.
+Origin is an immutable, separately stored registration bound to the exact ref.
+The effective graph origin is the least-authoritative join: any fixture node
+makes the graph fixture-derived; any draft, missing, revoked-for-new-use, or
+unverified node makes it unresolved. Copying, hashing, superseding, or
+re-registering cannot upgrade origin. Prospective revocation blocks new use
+without deleting or rewriting historical content or origin evidence.
+
+**Controlling authority.** Constitution immutable-evidence doctrine; B-02A
+working contract §§4.4, 12.3–12.4, 13, 15.4–15.5; scientific canon prospective
+change; A3 store analysis showing draft/fixture replacement semantics are not
+B-02A history semantics.
+
+**Alternatives rejected.** Reusing `RegistryStore.save`; mutable latest;
+overwrite-in-place; logical-ID-only lookup; origin embedded in authored bytes;
+caller fixture/registered Booleans; allowing a later registration to cleanse a
+fixture digest; deleting old bytes on supersession/revocation; ambient
+filesystem/network resolution; or an unbounded parser/read.
+
+**Affected contracts and later tickets.** All authored and case refs, loader
+results, graph origin, A3 verifier D8, B-02B–B-06 exact pins, dossier/history
+evidence, and fixture/LIVE tests.
+
+**Invariant effects.** Strengthens immutable history, exact pinning, mutation
+isolation, no placeholder LIVE, structural fixture propagation, and no silent
+reinterpretation.
+
+**Migration and compatibility.** New prospective store only. A3's existing
+store remains unchanged in ownership and continues to serve A3 lifecycle
+records. There is no legacy data migration.
+
+**Reversibility.** Storage layout may change before merge while tests preserve
+exact semantics. After exact refs are stored, layout migrations must preserve
+every canonical byte, ref, immutable origin, and historical lookup.
+
+**Unresolved human input.** Real registration authority, provenance evidence,
+rights, retention policy, and production storage operations remain human-owned
+or later-owned. Their absence leaves origins draft/unresolved; fixture tests
+remain available.
+
+**Maturity ceiling.** Bounded local storage/history implementation only. It is
+not authenticated provenance, security qualification, production operations,
+scientific qualification, or LIVE authority.
+
+## 2026-08-30 — B-02A-D8: A3-owned scientific-authoring verifier seam
+
+> **Status: AGENT-SELECTED WORKING DECISION.** Selected under the same delegated
+> authority and intervention rules as B-02A-D6.
+
+**Selected approach.** A3 defines an exact `ScientificAuthoringVerifier`
+provider protocol and exact eligibility result/reason grammar. Every
+production `assess_live_eligibility`, `can_go_live`, `activate_live`, and
+`is_effectively_live` path requires the configured verifier to return a valid
+exact result for the exact `ChallengeKey`. A missing provider, exception,
+wrong result type, key mismatch, incomplete graph, fixture-derived origin,
+draft/unresolved origin, or prospective revocation is ineligible. B-02A
+implements a store-backed provider that resolves a prospectively bound exact
+authoring graph and reports eligibility only after full origin and Challenge
+agreement. A3 never imports `carbon.authoring`; the dependency remains
+B-02A-to-A3. Fixture-mode diagnostics are explicitly non-production and cannot
+activate LIVE.
+
+**Controlling authority.** A3 owns lifecycle and LIVE; B-02A owns structural
+authoring origin; A4 owns entropy/seeds and future opaque-handle security;
+working contract §§13–14 and the ticket's direct fixture-to-LIVE rejection
+criterion; repository fail-closed provider patterns.
+
+**Alternatives rejected.** A caller `fixture`, `qualified`, or `live` Boolean;
+trusting an artifact digest without graph-origin verification; making B-02A
+activate or qualify a Challenge; importing B-02A from A3; an optional bypass
+for production activation; checking only initial activation but not later
+effective-LIVE reads; or treating fixture-mode readiness as production LIVE.
+
+**Affected contracts and later tickets.** A3 registry constructor and LIVE
+diagnostics; B-02A graph/store adapter; B-06 qualification evidence; A4
+protected identity; every consumer that relies on effective LIVE.
+
+**Invariant effects.** Directly enforces LIVE-requires-human-qualification
+without allowing fixture origin, preserves A3 ownership, fails closed on
+provider faults, and prevents post-activation authoring-origin drift from being
+silently ignored.
+
+**Migration and compatibility.** Existing A3 records and qualification slots
+remain exact. Composition roots/tests must configure an authoring verifier;
+absence is deliberately production-ineligible rather than a legacy allow path.
+No A3 record is silently promoted or rewritten.
+
+**Reversibility.** The provider interface may be amended before merge. After
+adoption, changes must preserve fail-closed activation/revalidation and require
+a prospective interface/version migration.
+
+**Unresolved human input.** Scientific qualification evidence and the decision
+to activate any real Challenge remain A3/human-owned. Real registration and
+security acceptance remain unavailable. The seam itself needs no scientific
+value.
+
+**Maturity ceiling.** Structural eligibility integration only. A successful
+graph-origin check is necessary, never sufficient, for A3 LIVE; all existing
+human qualification slots still control and no real activation is performed.
 
 ## 2026-08-30 — B-01E-D1: Canonical development environment and legacy quarantine
 

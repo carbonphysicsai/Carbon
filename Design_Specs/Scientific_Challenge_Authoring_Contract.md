@@ -1,14 +1,15 @@
 # Scientific Challenge Authoring Contract
 
 **Version:** 0.1
-**Status:** **OWNER-REVIEW CONTRACT CANDIDATE**
+**Status:** **AGENT-SELECTED WORKING CONTRACT**
 **Ticket:** B-02A — Scientific authoring and canonical-case contracts
 **Authority base:** `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`
-**Review required:** independent SciML/physics, statistics, and protocol review; explicit human ratification; normal merge
-**Implementation:** prohibited until the normally merged contract is pinned by exact commit in a separately authorized implementation plan
+**Delegated governance:** PR #61 merge `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`
+**Final review required:** independent SciML/physics, statistics, and protocol review; blocking-finding resolution; exact-head CI; normal merge
+**Implementation:** authorized within B-02A under `.agent/DELEGATED_DECISION_PROTOCOL.md`; no affirmative lead-response or silence gate applies
 
-> **Maturity ceiling.** This document proposes B-02A semantics only. It
-> creates no implementation, implementation test evidence, scientific
+> **Maturity ceiling.** This document specifies the working B-02A semantics.
+> Neither the document nor an implementation/test result creates scientific
 > qualification, security qualification, network authority, commercial
 > validation, production qualification, LIVE authority, product claim,
 > frontier event, launch decision, settlement obligation, chain action,
@@ -21,15 +22,15 @@
 ## 1. Purpose, scope, and normative language
 
 Carbon must author the scientific task before a generator, solver, compiler,
-candidate, scorer, or runtime path can define it by accident. This contract
-proposes the immutable authored objects, exact references, canonical identity,
+candidate, scorer, or runtime path can define it by accident. This working
+contract defines the immutable authored objects, exact references, canonical identity,
 validation rules, population distinctions, canonical-case boundary,
 provenance seams, and downstream ownership needed for that purpose.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**,
-**SHOULD**, **SHOULD NOT**, and **MAY** are normative in this candidate. They
-become governing only after the required independent review, explicit human
-ratification, and normal merge.
+**SHOULD**, **SHOULD NOT**, and **MAY** are normative for the B-02A working
+implementation. Final repository acceptance still requires independent review,
+resolution of blocking findings, exact-head validation, and normal merge.
 
 The contract owns the semantics of exactly these top-level identity object
 families and their exact references. The first five are prospectively authored
@@ -145,7 +146,7 @@ untracked comment.
 
 ## 3. Common exact value vocabulary
 
-The later implementation SHALL expose exact nominal types rather than an
+The B-02A implementation SHALL expose exact nominal types rather than an
 untyped dictionary API. The following vocabulary fixes the schema meaning;
 it does not select scientific values.
 
@@ -181,7 +182,7 @@ pairs as defined in §4 rather than relying on presentation or insertion order.
 | # | Field | Exact type | Rule |
 |---:|---|---|---|
 | 1 | `object_kind` | closed exact literal | One of the six literals in §3.2; exact nominal object type must agree. |
-| 2 | `schema_version` | `VersionToken` | Exact authored schema version; v0.1 proposes `1.0` for the first later implementation profile. |
+| 2 | `schema_version` | `VersionToken` | Exact authored schema version; v0.1 selects `1.0` for this working implementation profile. |
 | 3 | `canonicalization_profile` | exact literal | `carbon_scientific_authoring_canonical_v1`; no implicit default. |
 | 4 | `challenge_key` | exact A3 `ChallengeKey` | Reconstructed from exact built-in strings; no subclass. |
 | 5 | `object_id` | `CanonicalId` | Logical identity within the exact Challenge version. |
@@ -306,10 +307,9 @@ caller-mutable nested state.
 ## 4. Prospective schema-local canonical bytes
 
 Carbon currently has schema-local A4, A5, and A7 identity procedures but no
-public generic serializer suitable for B-02A. The later implementation SHALL
-therefore implement only the following B-02A schema-local profile after this
-candidate is ratified. It SHALL NOT import or relabel another owner's private
-encoder.
+public generic serializer suitable for B-02A. The B-02A implementation SHALL
+therefore implement only the following schema-local profile. It SHALL NOT
+import or relabel another owner's private encoder.
 
 ### 4.1 Profile and document framing
 
@@ -1547,7 +1547,7 @@ protected intended-slot and payload bindings are not public identity.
 
 ### 9.2 Exact identity projections
 
-The later implementation SHALL provide distinct final nominal projection
+The B-02A implementation SHALL provide distinct final nominal projection
 types and controlled factories. Each is a closed versioned record:
 
 | Projection | Exact fields |
@@ -1951,8 +1951,9 @@ rescore or reinterpret historical evidence silently.
 
 The current A3 store remains its owner's lifecycle store. Because its non-LIVE
 draft/fixture records may be replaced under owner rules, it is not silently
-declared B-02A's immutable history store. The later implementation plan must
-ratify the history/supersession store and exact A3 binding.
+declared B-02A's immutable history store. Working decisions B-02A-D7 and
+B-02A-D8 select a separate append-only exact-ref history/origin store and an
+A3-owned fail-closed verifier seam without changing this ownership boundary.
 
 ---
 
@@ -1978,7 +1979,7 @@ Structural origin rules are:
 6. only A3's independently controlled current qualification/LIVE gate may
    assess a complete exact non-fixture graph.
 
-Later tests SHALL prove directly that no fixture-authored
+Tests SHALL prove directly that no fixture-authored
 `PhysicalSystemSpec`, `CandidateOutputContract`,
 `InstanceDistributionContract`, `SamplingPlan`, `TrainingSupportContract`,
 `CanonicalChallengeCase`, or corresponding ref can satisfy A3's LIVE gate or
@@ -2010,10 +2011,10 @@ No layer certifies itself. A generator does not define the population, a
 candidate does not define the official exam, a scorer does not define P/Q, a
 fixture does not define science, and B-02A does not qualify its own objects.
 
-### 14.1 Later implementation package decision
+### 14.1 Implementation package decision
 
-This phase selects no package root. The later exact-pinned implementation plan
-must reconcile:
+Working decision B-02A-D6 selects `carbon.authoring` as a new canonical role
+package after reconciling:
 
 - `.agent/CODE_AUTHORITY.toml` and machine enforcement;
 - ownership versus the existing registry/schema/evaluation/qualification/
@@ -2027,21 +2028,22 @@ must reconcile:
 - clean installed-wheel, outside-tree imports.
 
 `carbon/challenges`, `carbon/data`, and `carbon/physics` remain retired. Empty
-reserved packages are not available merely because they exist. No package,
-dependency, metadata, lock, workflow, code-authority, implementation, or test
-change is authorized by this candidate.
+reserved packages are not available merely because they exist. The bounded
+implementation may add `carbon.authoring`, its code-authority entry, and its
+tests. It adds no dependency and changes no package metadata, lock, workflow,
+environment, archive, or retired namespace.
 
 ---
 
-## 15. Required later B-02A implementation test matrix
+## 15. Required B-02A implementation test matrix
 
-This section records acceptance required of a later separately authorized
-implementation. It is not a test implementation, test result, qualification,
-or authorization to add tests in this phase.
+This section controls the current bounded implementation and final review. A
+listed test becomes evidence only when it runs successfully on the exact
+candidate; no test result creates qualification or LIVE authority.
 
 ### 15.1 Construction and exact nominal types
 
-Later tests SHALL cover every top-level identity object, ref, subordinate record, loader
+Tests SHALL cover every top-level identity object, ref, subordinate record, loader
 result, provenance union, case projection, evidence binding, and disposition:
 
 - exact valid top-level and nested construction;
@@ -2059,7 +2061,7 @@ result, provenance union, case projection, evidence binding, and disposition:
 
 ### 15.2 Malformed identifiers, Unicode, numerics, and field constraints
 
-Later tests SHALL cover:
+Tests SHALL cover:
 
 - empty, overlong, non-ASCII, wrong-case, path-like, control-bearing, or
   otherwise invalid A3 identifiers and versions;
@@ -2075,7 +2077,7 @@ Later tests SHALL cover:
 
 ### 15.3 Canonicalization and hash pins
 
-Later tests SHALL include independent golden encoders/vectors proving:
+Tests SHALL include independent golden encoders/vectors proving:
 
 - exact header, object-kind domain separation, primitive tags, record type,
   strict field-name ordering,
@@ -2106,7 +2108,7 @@ and construction.
 
 ### 15.4 Equality, immutability, and mutation isolation
 
-Later tests SHALL prove:
+Tests SHALL prove:
 
 - exact-type equality and inequality by every identity/content field;
 - logical-ID-only, subclass, coercive, and Python-object-identity equality do
@@ -2120,7 +2122,7 @@ Later tests SHALL prove:
 
 ### 15.5 Supersession and historical identity
 
-Later tests SHALL prove:
+Tests SHALL prove:
 
 - valid same-kind prospective supersession;
 - cross-kind, cross-Challenge, cross-object-ID, missing-predecessor, and cycle
@@ -2134,7 +2136,7 @@ Later tests SHALL prove:
 
 ### 15.6 Physical/candidate cross-contract tests
 
-Later tests SHALL prove:
+Tests SHALL prove:
 
 - complete binding of every applicable physical causal input;
 - exact resolution of every causal/BC/IC/time candidate field ID through the
@@ -2158,7 +2160,7 @@ Later tests SHALL prove:
 
 ### 15.7 Population, support, and `R_strategy` confusion rejection
 
-Later tests SHALL attempt every invalid substitution and prove rejection:
+Tests SHALL attempt every invalid substitution and prove rejection:
 
 - P as Q, P as w, Q as P/prevalence, Q as w, and w as a probability law;
 - sampling frequency/allocation/retained frequency as target prevalence or
@@ -2190,7 +2192,7 @@ Later tests SHALL attempt every invalid substitution and prove rejection:
 
 ### 15.8 Sampling, query/observation, censoring, and realized evidence
 
-Later tests SHALL cover:
+Tests SHALL cover:
 
 - exact query- and observation-population binding;
 - exact evidence-campaign binding, including exact equality between each
@@ -2245,7 +2247,7 @@ Later tests SHALL cover:
 
 ### 15.9 Evidence roles and MMS
 
-Later tests SHALL cover every closed evidence role and prove:
+Tests SHALL cover every closed evidence role and prove:
 
 - two roles on the same canonical case retain distinct campaign/population/
   applicability/authority;
@@ -2261,7 +2263,7 @@ Later tests SHALL cover every closed evidence role and prove:
 
 ### 15.10 Public/protected identity non-disclosure
 
-Later tests SHALL prove that public types, serialization, logs, errors,
+Tests SHALL prove that public types, serialization, logs, errors,
 exceptions, `repr`, equality, copying, generic mapping conversion, and
 introspection expose no:
 
@@ -2285,7 +2287,7 @@ public projection can never satisfy the authoritative case-ref field.
 
 ### 15.11 Fixture inability to satisfy LIVE
 
-Later tests SHALL prove that:
+Tests SHALL prove that:
 
 - provenance comes from a controlled structural origin, not a Boolean or
   label;
@@ -2351,7 +2353,7 @@ content or provenance:
 
 ---
 
-## 17. Unresolved human inputs, ratification gate, and earned maturity
+## 17. Unresolved human inputs, final review gate, and earned maturity
 
 The following remain explicit human/owner inputs:
 
@@ -2371,37 +2373,38 @@ The following remain explicit human/owner inputs:
   exclusivity;
 - B-04/B-05/B-06 reference, measurement, scoring, and qualification decisions;
 - any registered hybrid evidence role;
-- security-owned opaque public case-handle construction;
-- later implementation package, exports, dependency direction, immutable
-  history store, and exact A3 integration seam; and
-- acceptance or amendment of this canonicalization profile and engineering
-  bounds.
+- security-owned opaque public case-handle construction; and
+- scientific, statistics, security, rights, qualification, LIVE, launch,
+  production, settlement, weight, and emission decisions owned outside B-02A.
 
 Missing inputs keep real/production authoring unavailable. They do not permit
 a default from planning prose, a fixture, an open pull request, historical
 code, a generator, shared data, empirical sample frequency, or agent judgment.
+They also do not block unrelated exact schema, fixture, validation,
+canonicalization, history, loader, projection, or fail-closed integration work.
 
-This version can become a ratified contract only after:
+The working contract and implementation become an accepted B-02A repository
+result only after:
 
-1. independent SciML/physics review of the physical/candidate/population/
-   evidence-role semantics;
-2. independent statistics review of P/Q/w, strata, sampling, censoring,
-   replacement, and intended-versus-realized evidence semantics;
-3. independent protocol review of identity, canonicalization, provenance,
-   failure, disclosure, fixture, history, and downstream boundaries;
+1. independent SciML/physics review of the final exact
+   physical/candidate/population/evidence-role implementation and contract;
+2. independent statistics review of the final exact P/Q/w, strata, sampling,
+   censoring, replacement, and intended-versus-realized evidence semantics;
+3. independent protocol review of the final exact identity,
+   canonicalization, provenance, failure, disclosure, fixture, history, A3,
+   package, and downstream boundaries;
 4. resolution of every blocking finding and review thread;
-5. explicit human ratification;
-6. required exact-head CI and documentation validation;
-7. normal merge with the reviewed tree preserved; and
-8. a separately authorized implementation plan that pins the exact merged
-   contract commit and tree before any runtime/test implementation begins.
+5. required exact-head CI and repository validation; and
+6. normal merge with the reviewed tree preserved.
 
-Until all eight steps occur, every B-02A Definition-of-Done box remains
-unchecked and the maximum earned maturity is:
+No affirmative lead response or silence gate is a precondition to bounded
+implementation. An observed `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` pauses
+the affected change. The first B-02A Definition-of-Done checkbox remains
+incomplete until its final-review and normal-merge clauses are satisfied.
+Before implementation evidence exists, the current maturity is:
 
 ```text
-SPECIFIED: PROPOSED OWNER-REVIEW CONTRACT CANDIDATE
-RATIFIED: NO
+SPECIFIED: AGENT-SELECTED WORKING CONTRACT
 IMPLEMENTED: NO
 TESTED (B-02A implementation): NO
 SCIENTIFICALLY_QUALIFIED: NO
