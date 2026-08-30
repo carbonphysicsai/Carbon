@@ -91,13 +91,19 @@ Before substantial implementation, inspect relevant:
 
 - repository structure;
 - `Design_Specs/`;
-- `carbon/` implementation;
-- `poc/` / legacy components;
-- `neurons/` and Bittensor components;
+- current canonical `carbon/` implementation;
 - tests and CI;
 - `.agent/` / `agent_pack/`;
 - schemas, persistence, public APIs;
-- current authority/maturity map.
+- current authority/maturity map;
+- `.agent/CODE_AUTHORITY.toml`; and
+- `docs/history/LEGACY_CODE_INDEX.md`.
+
+Inspect archived PoC, Julia, neuron/Bittensor, or other quarantined executable
+components only when the active ticket explicitly owns their deliberate reuse
+or migration. Use the exact archive ref recorded in the legacy index. Archive
+presence grants no current implementation authority and is not part of normal
+test discovery, packaging, orientation, or ticket acceptance.
 
 If `.agent/ORIENTATION.md` exists, treat it as historical orientation evidence and verify whether it is stale relative to the current constitution.
 

@@ -1,19 +1,25 @@
-# Carbon Wave B Candidate Board
+# Carbon Wave B Board
 
-**Status:** inactive unless the active `.agent/WAVE.md` names Wave B and this exact file as its controlling register. This file does not self-activate.
-**Version:** 0.3
-**Activation gate:** A11 and A12 are merged and closed; `.agent/WAVE_A_REPORT.md` exists; this board, its contract, and its handoff are independently reviewed and normally merged; one prospective, exact-head-reviewed and human-authorized activation change records named owner-role approval plus the exact reviewed commit and SHA-256 hashes over the unchanged repository bytes of those three artifacts in `.agent/DECISIONS.md`, and makes `.agent/WAVE.md` name Wave B and this exact file as its controlling register. The activation change does not mutate the board, contract, or handoff. Before B-01, a separate reviewed closeout records the activation merge commit/tree, exact reviewed head/tree equality, owner acceptance, and post-merge CI. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
+**Version:** 0.5
+**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserts the owner-directed B-01E infrastructure ticket without changing the Wave B scientific architecture contract. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
-**Codex entry point after activation:** `.agent/WAVE_B_CODEX_HANDOFF.md`
+**Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
 **Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
 
-This file alone does not authorize implementation. It makes the Wave B dependency graph reviewable before activation; authority comes only from the active `.agent/WAVE.md` plus the recorded activation evidence.
-
-The documentation-only board/contract candidate may be independently reviewed
-while A11/A12 close. That review does not start B-01 or any implementation
-ticket. Exact Wave B ticket execution still begins only after the activation
-gate above.
+Authority comes from the merged active `.agent/WAVE.md` and selected ticket,
+not this file alone or prior role approval. B-01 is authoritatively `done`.
+This documentation-only closeout proposes B-01E `done` and B-02A as the next
+selected `todo`. The proposal remains non-authoritative until the exact
+closeout head is independently reviewed with every blocking finding and
+thread resolved, required PR CI passes, it normally merges under separate
+authorization with the reviewed tree preserved, and exact-main closeout CI
+succeeds. Until that complete gate, B-01E's prior authoritative status remains
+`in_progress` despite any prospective closeout token on a branch or newly
+merged main; B-02A and every later ticket remain `todo` and unstarted. This
+branch does not authorize B-02A implementation.
 
 ---
 
@@ -81,8 +87,9 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 
 | ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | Master questions | Effort | Target |
 |---|---|---|---|---|---|---|---|---|---|
-| B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | todo | — | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
-| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01 | MQ-001, MQ-002 | L | WB-1 |
+| B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
+| B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
+| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | todo | — | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
@@ -104,9 +111,9 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-E2 | Julia/reference failure contract | todo | — | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | todo | — | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
 | B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | todo | — | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
-| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
+| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
 
-Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. The decomposed board totals roughly **72-120 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **45-76 elapsed engineering days (9-16 working weeks)**. A single lane is approximately **15-24 working weeks**. Scientific/security/rights decisions, review queueing, and later qualification are additional.
+Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. Including the owner-directed B-01E insertion, the decomposed board totals roughly **76-127 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **49-83 elapsed engineering days (10-17 working weeks)**. A single lane is approximately **16-26 working weeks**. These are planning estimates, not calendar commitments; scientific/security/rights decisions, review queueing, and later qualification are additional.
 
 `WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.3 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
 
@@ -115,7 +122,7 @@ Effort uses the launch-plan scale: S is at most one primary-lane day, M is two t
 ## 4. Dependency order
 
 ```text
-B-01 → B-02A
+B-01 → B-01E → B-02A
 B-02A → B-03
 B-02A → B-04
 B-02A → B-07R
@@ -142,6 +149,7 @@ B-03, B-04, and B-02B may proceed in parallel only after their individual contra
 | Retired launch v1.0.1 umbrella | Controlling Wave B decomposition |
 |---|---|
 | `B-01` | B-01 |
+| — owner-directed 2026-08-30 infrastructure insertion | B-01E |
 | `B-02` | B-02A, B-02B, B-02C |
 | `B-03` through `B-06` | B-03 through B-06 |
 | `B-07` | B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G |
@@ -215,6 +223,53 @@ Every applicable Wave B ticket must preserve and test:
 
 ## 7. Ticket execution requirements
 
+### Development decisions and lead notification
+
+Development authorization comes from the active wave and selected ticket, not
+from prior multi-role approval. A material decision changes or selects:
+
+- architecture or domain ownership;
+- a contract or invariant;
+- a public interface or persisted schema;
+- a scientific assumption or evidence interpretation;
+- a security or disclosure boundary;
+- a rights or data-use policy;
+- an operational or resource policy;
+- Wave or ticket sequencing; or
+- a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE` disposition with cross-ticket
+  impact.
+
+Routine implementation details within an already ratified contract do not need
+a separate lead notification. For every material-decision-affecting pull
+request, record the durable decision in `.agent/DECISIONS.md` or the applicable
+ticket, plan, or specification; include a pull-request section titled
+`Lead notification` naming the decision ID or heading, affected ticket and
+files, selected approach, alternatives rejected, invariant/interface/
+sequencing effects, reversibility and migration effect, and notification
+issue/comment; and post or update issue #42 mentioning designated SciML /
+Technical Lead Harshdeep Sharma (`@harshaa765`).
+
+Notification is evidence of delivery, not approval. No affirmative response,
+reaction, approval, or waiting period is required. A lead `REQUEST_CHANGES`
+review or explicit `BLOCKED` direction pauses the affected change but not
+unrelated work. After merge, an adjustment uses a new bounded branch and later
+normally merged repository decision; historical evidence is marked superseded,
+not rewritten. Current merged repository authority controls until then.
+
+The Accountable reviewer column remains technical/domain review and
+notification routing. It creates no affirmative pre-approval or silence gate.
+Independent technical review, resolution of blocking findings, required CI,
+and normal merge remain mandatory.
+
+This non-blocking development rule does not allow an agent to invent or approve
+scientific truth, thresholds, tolerances, population or SamplingPlan claims,
+qualification, security acceptance, rights/legal policy, live economics,
+launch or deployment authority, or production, `LIVE`, frontier, product,
+settlement, chain, weight, or emission authority. An unresolved reserved human
+decision leaves the affected capability stopped, explicit, bounded, and fail
+closed; it does not block unrelated fixture, schema, interface, test, or
+infrastructure development.
+
 Before each ticket begins:
 
 1. read `CONSTITUTION.md`, `AGENTS.md`, `.agent/INVARIANTS.md`, the active `.agent/WAVE.md`, this candidate board, and the ticket;
@@ -229,7 +284,9 @@ Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.
 The implementation change leaves merge fields pending. A separate reviewed
 post-merge closeout records the tree-identical merge, post-merge CI, independent
-review, and Accountable reviewer acceptance before the board changes to `done`.
+review outcome, resolved blocking findings, and lead-notification delivery when
+applicable before the board changes to `done`. An affirmative reviewer or lead
+response is not required.
 
 Ticket completion must separately report:
 

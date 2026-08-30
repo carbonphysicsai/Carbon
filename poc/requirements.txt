@@ -1,8 +1,0 @@
-numpy>=1.26
-pyyaml>=6.0
-pytest>=7.0
-
-# Preferred train backend (full-parameter autograd). Without these,
-# poc falls back to NumPy finite-difference on lift/proj only.
-jax>=0.4.30
-# GPU (optional): pip install -U "jax[cuda12]"

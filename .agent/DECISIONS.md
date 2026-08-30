@@ -1,5 +1,220 @@
 # Agent decisions log
 
+## 2026-08-30 — B-01E-D1: Canonical development environment and legacy quarantine
+
+> **Authority timing.** Executive-owner direction on 2026-08-30 authorized
+> this bounded candidate after B-01's authoritative closeout. The final
+> independently reviewed implementation head
+> `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree
+> `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as
+> `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5`, and exact-main run
+> `33319267255` passed. The separate documentation closeout now proposes
+> B-01E `done` and B-02A as the next selected `todo`; it makes no new material
+> decision. Until that exact closeout head is independently reviewed with
+> blocking findings and threads resolved, passes required PR CI, normally
+> merges under separate authorization with the reviewed tree preserved, and
+> passes exact-main closeout CI, B-01E's prior authoritative status remains
+> `in_progress` despite any prospective closeout token on a branch or newly
+> merged main; B-02A and every later ticket remain `todo` and unstarted.
+
+**Affected scope and sequencing.** Insert B-01E between B-01 and B-02A:
+
+```text
+B-01 → B-01E → B-02A
+```
+
+This changes Wave sequencing, development-environment authority, and
+cross-ticket reuse dispositions only. It does not modify public runtime or
+scientific interfaces and creates no scientific, security, economic, network,
+`LIVE`, frontier, product, settlement, weight, emission, launch, commercial,
+or production authority.
+
+**Selected environment.** Ordinary Carbon evidence uses Linux, Ubuntu 24.04
+LTS with glibc, bash, one repository-pinned CPython 3.11 patch, pinned `uv`,
+and committed `uv.lock`. The dev container pins its base/tooling images.
+Native Windows Python is not a canonical evidence platform; Windows and macOS
+are editor/container hosts. A WSL2 clone should live in the Linux filesystem.
+Local and GitHub acceptance share `./scripts/dev/ci.sh` rather than duplicating
+test semantics. A later Python version or compatibility matrix requires a new
+explicit ticket.
+
+**Dependencies.** The default locked environment includes only core Carbon
+and the `dev` group. `science-jax`, `science-torch`, and `chain` are explicit
+optional groups. JAX, Torch, neuraloperator, PhysicsNeMo, Bittensor, Julia,
+CUDA, NVIDIA, and GPU packages are not ordinary documentation, protocol,
+schema, fixture, or core-engineering prerequisites.
+
+**Selected archive model.** Preserve exact pre-quarantine main commit
+`4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
+`9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, under immutable annotated tag
+`archive/pre-wave-b-legacy-2026-08-30` and browsable branch
+`archive/legacy-prototypes`. Both remote refs must be verified before active-
+main removal and must not be force-updated during B-01E.
+
+**Disposition rule.** B-01 remains historical audit input; its classifications
+are not rewritten into retroactive deletion authority. B-01E applies:
+
+- `KEEP` → `KEEP_MAIN`;
+- `WRAP` → keep only when an authorized active/future ticket needs the source
+  directly, otherwise archive;
+- `REPAIR` → keep only when the near-term owner should repair it in place,
+  otherwise archive;
+- `REPLACE` or explicit historical/excluded → `ARCHIVE_REMOVE_MAIN` after
+  dependency proof; and
+- `NEW_OWNER_DECISION_REQUIRED` → `DEFER_OWNER_DECISION`.
+
+Before removal, each path/component must be proven unnecessary to canonical
+implementation, CPU/invariant tests, packaging, default CI, current fixtures,
+active scripts, and current authority files as executable input. A historical
+text reference does not require executable bytes on main. Authoritative or
+evidentiary documents stay when their authority notices remain correct.
+Mixed directories are decided at file/component granularity. No physical
+value, population, threshold, measurement weight, or qualification rule is
+copied, blessed, or reinterpreted by this decision.
+
+**Code-authority invariant.** A repository-native machine-readable record
+names canonical implementation/test roots, exact archive identities, retired
+runtime namespaces, retired executable paths, and exceptions. A semantic
+test fails closed if canonical code/tests import retired namespaces, packaging
+contains retired modules, default CI invokes archived code, or a retired path
+reappears without an owning migration ticket. Existing A12 invariants are not
+weakened.
+
+**Alternatives rejected.** The owner rejected native host Python as equivalent
+evidence; a default multi-Python matrix; independent local and GitHub setup
+logic; default heavy scientific/network/GPU stacks; deletion without archive
+provenance; wholesale removal based only on directory names; retaining all
+historical executables on active main; and repairing obsolete code merely to
+keep it active.
+
+**Reversibility and retrieval.** Removed bytes remain available by exact
+`git show archive/pre-wave-b-legacy-2026-08-30:<path>` or by inspecting branch
+`archive/legacy-prototypes`. A later owner ticket may deliberately port only a
+justified component under then-current authority. Archive presence alone
+grants no implementation authority. Environment evolution requires an
+explicit reviewed change and regenerated lock.
+
+**Lead notification.** Issue #42 is the durable route and mentions designated
+lead `@harshaa765`. Delivery is non-blocking; a lead `REQUEST_CHANGES` review
+or explicit `BLOCKED` direction pauses the affected change. The exact comment
+and draft PR are recorded in `.agent/evidence/wave_b/b-01e.md` when created.
+
+## 2026-08-29 — Executive Wave B development governance and lead notification
+
+> **Authority timing.** This documentation-only governance candidate changes
+> repository authority only after its exact head is independently reviewed, its
+> required CI is green, and it normally merges. Until that merge, current main
+> remains at Wave A closed in bounded engineering scope, Wave B inactive, B-01
+> `todo` and unauthorized, and no active implementation wave. This candidate
+> does not start B-01.
+
+**Executive authority and designated lead.** Ryan Bequette (`@jbequ5`), acting
+as Carbon's executive owner, has removed prior role approval as a prerequisite
+to begin, continue, or normally merge bounded development authorized by the
+active wave and selected ticket. Harshdeep Sharma (`@harshaa765`) is Carbon's
+designated SciML / Technical Lead. Development authorization comes from the
+current merged `.agent/WAVE.md`, its controlling ticket register, the selected
+ticket, applicable specifications and invariants, and the repository's normal
+branch, test, CI, technical-review, and merge process.
+
+After this governance change normally merges, development requires neither an
+eight-role approval set, an exact-byte approval bundle, a prospective
+activation-approval record, nor a separate activation closeout before B-01.
+The absence of a lead response, reaction, or affirmative approval does not
+block authorized development. This governance change itself activates only
+Wave B's bounded development authority and selects B-01 as the next `todo`
+ticket; B-01 begins only through its own later ticket branch.
+
+**Material development decision.** A material decision changes or selects any
+of the following:
+
+- architecture or domain ownership;
+- a contract or invariant;
+- a public interface or persisted schema;
+- a scientific assumption or evidence interpretation;
+- a security or disclosure boundary;
+- a rights or data-use policy;
+- an operational or resource policy;
+- Wave or ticket sequencing; or
+- a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE` disposition with cross-ticket
+  impact.
+
+Routine implementation details within an already ratified contract do not
+require a separate lead notification.
+
+**Non-blocking lead-notification and amendment model.** For each pull request
+that makes or changes a material decision, the executor must:
+
+1. record the durable decision in this log or the applicable ticket, plan, or
+   specification;
+2. include a pull-request section titled `Lead notification` naming the
+   decision ID or heading, affected ticket and files, selected approach,
+   alternatives rejected, invariant/interface/sequencing effects,
+   reversibility and migration effect, and notification issue/comment; and
+3. post or update a notification in issue #42 mentioning `@harshaa765`.
+
+The notification is evidence of delivery, not approval. No affirmative
+response, reaction, approval, or waiting period is required. The lead may
+adjust a decision before merge through review or an explicit direction. A lead
+`REQUEST_CHANGES` review or explicit `BLOCKED` direction pauses the affected
+change but does not stop unrelated work. A post-merge adjustment uses a new
+bounded branch and a later normally merged repository decision that marks the
+earlier decision superseded; historical evidence is not rewritten. Current
+merged repository authority remains controlling until that superseding change
+normally merges.
+
+The Accountable reviewer assignments in the Wave B board route technical and
+domain review and notification. They do not create an affirmative pre-approval
+or silence gate. Independent technical review, resolution of blocking review
+findings, required CI, and normal merge remain mandatory.
+
+**Reserved human decisions remain reserved.** This decision does not authorize
+an agent to invent or approve physical or scientific truth, thresholds,
+tolerances, Challenge populations or SamplingPlan claims, scientific
+qualification, security acceptance, rights or legal policy, live economics,
+launch readiness, production deployment authority, or any production, `LIVE`,
+frontier, product, settlement, chain, weight, or emission authority. Material
+company decisions that `AGENTS.md` reserves to humans also remain human-owned.
+When correct implementation requires an unresolved reserved decision, the
+affected capability must stop or remain explicit, bounded, and fail closed.
+That blocker does not prevent unrelated fixture, schema, interface, test, or
+infrastructure development.
+
+**Supersession and historical evidence.** All earlier entries below that
+require named or multi-role approval, an exact-byte or hash-bound approval
+bundle, a prospective activation-approval record, or a separate activation
+closeout before B-01 are retained as point-in-time historical provenance but
+are superseded for development authorization after this decision normally
+merges. Those earlier gates are not deemed satisfied, and their historical
+approval evidence is not upgraded. This supersession does not reach later
+scientific qualification, security acceptance, rights/legal, live-economic,
+launch/deployment, Wave closeout, or other reserved-human gates.
+
+Issue #53 remains open while this candidate is reviewed. After normal merge it
+should be closed as `superseded by executive governance decision`, not as a
+completed approval bundle, and its comments remain historical coordination
+evidence. Issues #41, #42, and #43 should then be synchronized separately;
+issue #42 becomes the durable lead-notification route rather than a blocking
+approval queue for development.
+
+```text
+Proposed state after this exact governance change normally merges:
+Current wave: B
+Wave B state: active in bounded development scope
+Controlling register: .agent/WAVE_B.md version 0.4
+Next selected ticket: B-01
+B-01 status: todo
+B-01 development: authorized to begin on its own later branch
+Wave B IMPLEMENTED: NO
+Wave B TESTED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+SECURITY_QUALIFIED: NO
+NETWORK_QUALIFIED: NO
+COMMERCIALLY_VALIDATED: NO
+PRODUCTION_QUALIFIED: NO
+LIVE / launch / frontier / product / settlement / chain / weight / emission authority: NO
+```
+
 ## 2026-08-29 — A12 and Wave A bounded engineering closeout candidate
 
 > **Documentation-only closeout authority gate.** The merged A12 contract and

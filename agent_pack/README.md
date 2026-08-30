@@ -32,33 +32,41 @@ constitutional authority
 
 ---
 
-> **A12 / Wave-A closeout authority gate.** A12-R1 through A12-R12 are ratified
-> and their bounded invariant-judge implementation and tests are on current
-> main. This documentation-only candidate proposes only the administrative
-> transitions A12 `todo` → `done` and Wave A `incomplete` → `closed`, both for
-> the exact bounded engineering scope recorded in `.agent/WAVE_A_REPORT.md`.
-> Those transitions and the checked closeout criteria become repository
-> authority only after this exact candidate head is independently reviewed,
-> explicitly human-authorized, and normally merged. Until then, current-main
-> administrative authority remains A12 `todo` and Wave A incomplete. Wave B is
-> inactive before, during, and after this closeout. This candidate does not
-> activate Wave B, authorize B-01 or launch, or earn any scientific, security,
-> network, commercial, or production qualification.
+> **Wave-B development-governance transition.** Current main
+> `62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+> `0cc4fc8661663b29d954eb617323cc4fefc6c9cb`, records A12 `done` and
+> Wave A closed in bounded engineering scope through PR #52. This
+> documentation-only candidate proposes Wave B as active bounded-development
+> authority, `.agent/WAVE_B.md` v0.4 as its controlling register, and B-01 as
+> the next selected `todo` ticket only after this exact candidate is reviewed,
+> green, and normally merged. This change does not start B-01.
+>
+> The executive governance rule supersedes prior multi-role pre-approval,
+> exact-byte approval-bundle, and separate activation-closeout prerequisites
+> for development. Material decisions must be recorded and the designated
+> SciML / Technical Lead, Harshdeep Sharma (`@harshaa765`), must be notified
+> through issue #42. Notification is non-blocking unless the lead explicitly
+> submits `REQUEST_CHANGES` or directs that the affected change is `BLOCKED`.
+> Scientific truth and qualification, security acceptance, rights, live
+> economics, launch, deployment, production, LIVE, frontier, product,
+> settlement, chain, weight, and emission authority remain human-owned and
+> unearned.
 
 ---
 
 ## Current process rules
 
-- Current board remains **Wave A**. This closeout candidate records it as
-  `closed` only for the bounded engineering scope and only after the authority
-  gate above is satisfied.
-- A-1 and A0–A11 are `done` only in the bounded scopes recorded in
-  `.agent/WAVE.md`. This candidate proposes A12 `done` on the same bounded
-  basis; until its merge, current-main administrative authority remains A12
-  `todo` and Wave A incomplete.
-- Wave B remains inactive. No B ticket is authorized until every separate
-  contract-review, owner-approval, hash-pinning, activation, and post-merge
-  activation-closeout gate is satisfied.
+- A-1 and A0–A12 are `done` only in their recorded bounded scopes. Wave A is
+  closed in bounded engineering scope.
+- Wave B becomes active in bounded development scope only after this exact
+  governance candidate is independently reviewed, green, and normally merged.
+  `.agent/WAVE_B.md` v0.4 then controls, and B-01 is the next selected `todo`
+  ticket. This documentation change does not start B-01.
+- Development requires no prior eight-role approval, exact-byte approval
+  bundle, or separate activation closeout.
+- Material decisions must be recorded and notified to Harshdeep Sharma
+  (`@harshaa765`) through issue #42. Silence is non-blocking; an explicit
+  `REQUEST_CHANGES` or `BLOCKED` direction pauses only the affected change.
 - A12 uses exactly the twelve numbered Build Out section 2 rows as its
   denominator. A11 redaction maps to rows 1/4, fee isolation to row 11, and A8
   non-emission to row 9; none creates an extra invariant.
@@ -82,15 +90,16 @@ constitutional authority
   and after each ticket, and one bounded ticket per branch/worktree by default.
 - Never infer scientific, security, network, commercial, or production
   qualification from implementation or test success.
-- Wave B and later Waves H–N in the Agentic Master Plan remain planning
-  architecture until their exact activation gates are explicitly satisfied.
+- Wave B ticket deliverables remain specified but unimplemented until their
+  own bounded ticket branches begin. Later Waves H–N remain planning
+  architecture until separately authorized by `.agent/WAVE.md`.
 
 ## Current A11 implementation and closeout evidence
 
 A11-R1 through A11-R18 are ratified. PR #46's independently reviewed head
 `e5ed60c4043abb3bfd2af945b5dd45b8e1996fcb`, tree
 `3d6682803422497efc6bff26451c12d9c306f96c`, merged normally as signed
-current-main commit `e2496e92eeae31befdaa430501bb9f00b0e6339e` with ordered
+merge commit `e2496e92eeae31befdaa430501bb9f00b0e6339e` with ordered
 parents prior main `98865dd04c5a4018c8077517cb79aabd6045a468` and that reviewed
 head. The reviewed and merge trees are identical; their diff is empty. The
 prior-main manifest is exactly `.agent/WAVE.md`, the four
@@ -103,7 +112,7 @@ run `33199541335` completed successfully: CPU job `98945235783` reported
 757/776`, `Black 62/68`, removed debt `19/6`, five changed Python files clean,
 and no new debt.
 
-An independent current-main closeout audit passed **66/66 criteria, 0 FAIL**.
+An independent A11 closeout audit passed **66/66 criteria, 0 FAIL**.
 Fresh Python 3.11 Linux validation reported:
 
 ```text
@@ -152,12 +161,11 @@ A11 NETWORK_QUALIFIED: NO
 A11 COMMERCIALLY_VALIDATED: NO
 A11 PRODUCTION_QUALIFIED: NO
 A11 WAVE STATUS: done
-A12: done in this closeout candidate only; current-main administrative status
-remains todo until exact-head review, explicit human authorization, and normal
-merge
-Wave A: closed in this closeout candidate only, bounded engineering scope;
-current-main administrative status remains incomplete until that gate
-Wave B: inactive
+A12: done in its bounded invariant-judge/CI scope
+Wave A: closed in bounded engineering scope
+Wave B: inactive on the exact governance base; proposed active in bounded
+development scope only after this governance candidate normally merges
+B-01: todo and unstarted
 ```
 
 No new owner decision or semantic amendment was introduced by closeout. The
@@ -168,7 +176,7 @@ full historical reconciliation and defect chain remains in
 
 ## Current A12 implementation and closeout evidence
 
-The proposed manifest is exactly, in order:
+The ratified invariant set is exactly, in order:
 
 ```text
 A12-R1   No seed leakage
@@ -191,9 +199,12 @@ head `6695c279728438befd6404fb81c4f7a27e382a67` by normal merge
 `746e56e42c412bc8ba2eeb4d85ed83396e1a084c`, tree
 `651c568631465a4902d69036a06c937104660d37`. PR #51 then merged the exact
 bounded implementation from reviewed head
-`33b4626a1ffe7d0c65336336a870a8f4a73ab92f` as current main
+`33b4626a1ffe7d0c65336336a870a8f4a73ab92f` in PR #51 as merge commit
 `2a8b273a1167588efb4a11159da5224264d5b37a`, tree
-`cb7b23d32e3663bbf00704f1e28c16020bfb9226`.
+`cb7b23d32e3663bbf00704f1e28c16020bfb9226`. PR #52 then normally merged
+the A12/Wave-A closeout as current main
+`62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
+`0cc4fc8661663b29d954eb617323cc4fefc6c9cb`.
 
 The implemented invariant lane has exactly `28` tests: `12` unique dedicated
 tests in A12-R1 through A12-R12 order and `16` infrastructure tests proving
@@ -214,6 +225,11 @@ pass all `24/24` ticket criteria and all `9/9` Build Out section 12 Wave-A
 acceptance bullets; `.agent/WAVE_A_REPORT.md` preserves the evidence and the
 unearned ceilings. No implementation repair or new owner decision was exposed.
 
+Exact-main GitHub Actions run `33255939632`, attempt 2, passed on
+GitHub-hosted Ubuntu: `28` invariant tests, `2310` CPU tests, and quality at
+`Ruff 757/776; Black 62/68`, removed debt `19/6`, zero changed Python files,
+and no new debt.
+
 ```text
 A12 SPECIFIED / RATIFIED: YES
 A12 IMPLEMENTED: YES, exact bounded invariant-judge/CI scope only
@@ -223,25 +239,30 @@ A12 SECURITY_QUALIFIED: NO
 A12 NETWORK_QUALIFIED: NO
 A12 COMMERCIALLY_VALIDATED: NO
 A12 PRODUCTION_QUALIFIED: NO
-A12 WAVE STATUS: done in this closeout candidate; current-main administrative
-authority remains todo until exact-head review, explicit human authorization,
-and normal merge
-Wave A: closed in this closeout candidate, bounded engineering scope only;
-current-main administrative authority remains incomplete until that gate
-Wave B: inactive
+A12 WAVE STATUS: done in its bounded invariant-judge/CI scope
+Wave A: closed in bounded engineering scope
+Wave B: inactive on the exact governance base; proposed active in bounded
+development scope only after this governance candidate normally merges
+B-01: todo and unstarted
 ```
 
 ---
 
 ## Current next move
 
-The current next gate is independent exact-head review, explicit human
-authorization, and normal merge of this documentation-only A12 / Wave-A
-closeout candidate. Do not edit or recommit a reviewed head, mark it ready,
-enable auto-merge, or merge without that explicit authorization. After an
-authorized normal merge there is no active implementation wave. Wave B remains
-inactive and requires its separate reviewed contract, named owner-role
-approval, exact artifact hashes, prospective activation change, and
-post-activation closeout; B-01 is not authorized by Wave-A closure. Every
-official, LIVE, evidence, Challenge-health, frontier, product, settlement,
-chain, weight, and emission path remains fail closed.
+The current next gate is independent review, green exact-head CI, and normal
+merge of this documentation-only Wave-B development-governance candidate.
+Until that merge, current main continues to record Wave B inactive and B-01
+`todo` and unauthorized.
+
+After normal merge, Wave B is active only in bounded development scope,
+`.agent/WAVE_B.md` v0.4 controls, and B-01 remains the next selected `todo`
+ticket, authorized to begin only on its own later branch. No prior approval
+bundle or separate activation closeout is required. Material decisions use the
+non-blocking issue #42 lead-notification route. Issue #53 should then close as
+superseded by executive governance, preserving its comments as historical
+coordination evidence.
+
+Every scientific, security, rights, economic, official, LIVE, launch,
+frontier, product, settlement, chain, weight, emission, and production path
+remains fail closed unless its separate human-owned gate is earned.

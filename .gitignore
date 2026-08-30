@@ -1,0 +1,18 @@
+# Canonical uv environment
+.venv/
+
+# Python caches and build products
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Repository-controlled reports are committed explicitly; local output is not.
+.carbon-artifacts/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
