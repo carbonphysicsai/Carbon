@@ -4,9 +4,13 @@
 **Governance version:** 0.4
 **Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.4
 **Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
-**Current ticket:** derive the selected ticket and status from the current
-`.agent/WAVE.md`; require the matching `.agent/WAVE_B.md` row and ticket file
-to agree. This handoff does not cache or independently select ticket state.
+**Current ticket:** derive the selected ticket and status from the exact fetched
+`origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
+file; require those merged records to agree. A pull-request branch may propose
+a coordinated status transition for review, but it cannot authorize selection
+or implementation of another ticket before that exact tree normally merges and
+its exact-main push CI succeeds. This handoff does not cache or independently
+select ticket state.
 
 This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
@@ -118,10 +122,19 @@ When two documents disagree, apply `AGENTS.md` section 2. Record one of
 Section 1 owns only the initial B-01 `todo` to `in_progress` transition. At the
 start of every session:
 
-1. Read the current wave, wave state, controlling register, selected ticket,
-   and selected-ticket status from `.agent/WAVE.md`. Require the matching row
-   in `.agent/WAVE_B.md` and the selected ticket file to agree. Stop on a
-   disagreement.
+1. Fetch `origin/main` without using `git pull`, record its exact commit and
+   tree, and read the current wave, wave state, controlling register, selected
+   ticket, and selected-ticket status from the files at that exact ref (for
+   example with `git show origin/main:<path>`). Require the matching
+   `origin/main` row in `.agent/WAVE_B.md` and ticket file to agree. Stop on a
+   disagreement. Working-tree or pull-request-branch status fields are
+   candidate review content only: even when they agree on `done`, they cannot
+   select or start a dependent ticket until that exact reviewed tree normally
+   merges and exact-main push CI succeeds. The one narrow exception to stopping
+   is continuation or review of an already-authorized, bounded correction
+   branch whose documented sole purpose is to reconcile that exact merged-main
+   disagreement. Under that exception, do only the correction; the disagreement
+   still prohibits selecting or implementing every other ticket.
 2. If the selected ticket is `in_progress`, continue or review only that ticket
    from its recorded ticket branch. If its recorded local worktree exists,
    verify and use it. If that machine-local worktree is unavailable, fetch the
@@ -130,16 +143,20 @@ start of every session:
    checkout/worktree at that exact head. Creating that local tracking checkout
    is continuation, not a replacement ticket branch. Do not branch from
    `origin/main`, reset/rebase the ticket branch, discard another worktree's
-   uncommitted state, or duplicate the ticket. Stop if the remote branch is
-   absent or its identity cannot be reconciled. Before work, verify the
-   recorded base, current HEAD/tree, evidence, CI, and blocking-review state.
+   uncommitted state, or duplicate the ticket. When item 1's bounded-correction
+   exception applies, continue or review the exact documented correction branch
+   instead and do not return to the superseded ticket branch. Stop if the
+   applicable remote branch is absent or its identity cannot be reconciled.
+   Before work, verify the recorded base, current HEAD/tree, evidence, CI, and
+   blocking-review state.
 3. If the selected ticket is `todo`, verify readiness, then, with current user
    authorization, fetch `origin main`, record its exact SHA/tree, and create
    the dedicated ticket branch/worktree from that exact base. Do not use
    `git pull`.
-4. If the previously selected ticket is authoritatively `done` and no ticket
-   is `in_progress`, use a user-named ready ticket or otherwise the first ready
-   `todo` row in Wave B board order. Record the new selection and status
+4. If the previously selected ticket is authoritatively `done` on the exact
+   fetched `origin/main`, its required post-merge evidence is complete, and no
+   ticket is `in_progress`, use a user-named ready ticket or otherwise the first
+   ready `todo` row in Wave B board order. Record the new selection and status
    consistently in the wave, board, and ticket records on that ticket's branch
    before implementation.
 5. A `blocked` ticket does not permit starting one of its dependents. An

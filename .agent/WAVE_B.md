@@ -2,7 +2,7 @@
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
 **Version:** 0.4
-**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. That merge satisfied B-01's explicit activation dependency. PR #55 later normally merged the independently reviewed B-01 orientation/evidence tree and exact-main CI succeeded. PR #56 merged the documentation closeout before its independent review completed; the post-merge review left one valid unresolved P1 because this board alone said `done`. This bounded correction makes the wave, board, ticket, and evidence uniformly propose B-01 `done`. That proposal is non-authoritative until the exact correction head is independently reviewed with zero unresolved review threads, passes required PR CI, normally merges with the exact reviewed tree preserved, and exact-main push CI on that merge succeeds. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. That merge satisfied B-01's explicit activation dependency. PR #55 later normally merged the independently reviewed B-01 orientation/evidence tree and exact-main CI succeeded. PR #56 merged the documentation closeout before its independent review completed; the post-merge review left one valid unresolved P1 because this board alone said `done`. This bounded correction makes the wave, board, ticket, and evidence uniformly propose B-01 `done`. That proposal is non-authoritative until the exact correction head is independently reviewed with zero unresolved review threads, passes required PR CI, normally merges with the exact reviewed tree preserved, and exact-main push CI on that merge succeeds. The Wave B handoff derives ticket selection from exact fetched `origin/main`, not a pull-request branch's prospective status fields. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -18,7 +18,9 @@ has no authority from a branch or open pull request. It becomes authoritative
 only when the exact correction head satisfies independent review, blocker
 resolution with zero unresolved review threads, required PR CI, normal merge
 with the exact reviewed tree preserved, and successful exact-main push CI on
-that merge. This candidate does not select or start B-02A or any later ticket.
+that merge. The handoff reads exact fetched `origin/main` for selection, so
+this prospective board row cannot advance work. This candidate does not select
+or start B-02A or any later ticket.
 
 ---
 

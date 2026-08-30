@@ -11,7 +11,9 @@ correction branch until the
 exact `agent/b-01-closeout-correction` head is independently reviewed with all
 review threads resolved, passes required PR CI, normally merges with the exact
 reviewed tree preserved, and exact-main push CI on that merge succeeds; until
-then the prior merged `main` state remains `in_progress`
+then the prior merged `main` state remains `in_progress`. The Wave B handoff
+derives ticket selection from exact fetched `origin/main`, never from a
+pull-request branch's prospective status token
 **B-01 development:** orientation/evidence merged normally in PR #55; PR #56
 merged the documentation closeout before its independent review completed and
 therefore requires this bounded status-consistency correction
@@ -41,8 +43,10 @@ therefore requires this bounded status-consistency correction
 > `done`. The transition becomes authoritative only after the exact correction
 > head is independently reviewed with zero unresolved review threads, required
 > PR CI passes, the correction normally merges with the exact reviewed tree
-> preserved, and exact-main push CI on that merge succeeds. No later Wave-B
-> ticket is selected or started by this candidate.
+> preserved, and exact-main push CI on that merge succeeds. The handoff now
+> requires ticket selection from exact fetched `origin/main`, so this branch's
+> prospective `done` tokens cannot advance work. No later Wave-B ticket is
+> selected or started by this candidate.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -122,7 +126,8 @@ ticket, and the evidence. This correction uniformly proposes B-01 `done` and
 is non-authoritative until its exact head is independently reviewed with zero
 unresolved review threads, passes required PR CI, normally merges with the
 exact reviewed tree preserved, and exact-main push CI on that merge succeeds.
-B-02A and every later ticket remain `todo` and unstarted.
+The handoff derives selection from exact fetched `origin/main`, not candidate
+branch status fields. B-02A and every later ticket remain `todo` and unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

@@ -7,7 +7,9 @@ correction branch until the exact
 `agent/b-01-closeout-correction` head is independently reviewed with all
 review threads resolved, passes required PR CI, normally merges with the exact
 reviewed tree preserved, and exact-main push CI on that merge succeeds; until
-then the prior merged `main` state remains `in_progress`
+then the prior merged `main` state remains `in_progress`. The Wave B handoff
+derives ticket selection from exact fetched `origin/main`, never from a
+pull-request branch's prospective status token
 **Depends on:** merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation
 **Build Out:** Wave B orientation; launch `B-01`
 **Master questions:** MQ-018
@@ -54,5 +56,6 @@ is non-authoritative until the correction's exact head is independently
 reviewed with zero unresolved review threads, required PR CI passes, the
 correction normally merges with the exact reviewed tree preserved, and
 exact-main push CI on that merge succeeds. The correction changes
-documentation/evidence only and starts neither B-01E nor B-02A nor any later
-Wave B implementation.
+documentation/evidence only. The handoff derives selection from exact fetched
+`origin/main`, so these prospective branch tokens start neither B-01E nor
+B-02A nor any later Wave B implementation.
