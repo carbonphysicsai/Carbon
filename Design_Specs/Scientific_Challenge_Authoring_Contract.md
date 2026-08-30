@@ -6,7 +6,7 @@
 **Authority base:** `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`
 **Delegated governance:** PR #61 merge `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`
 **Final review required:** independent SciML/physics, statistics, and protocol review; blocking-finding resolution; exact-head CI; normal merge
-**Implementation:** authorized within B-02A under `.agent/DELEGATED_DECISION_PROTOCOL.md`; no affirmative lead-response or silence gate applies
+**Implementation:** bounded PR #60 candidate present under `.agent/DELEGATED_DECISION_PROTOCOL.md`; final exact-head review, CI, and normal merge remain pending; no affirmative lead-response or silence gate applies
 
 > **Maturity ceiling.** This document specifies the working B-02A semantics.
 > Neither the document nor an implementation/test result creates scientific
@@ -45,10 +45,13 @@ under the prospectively authored case schema:
 - `TrainingSupportContract` and `TrainingSupportContractRef`; and
 - `CanonicalChallengeCase` and `CanonicalChallengeCaseRef`.
 
-It also defines the subordinate records required to bind those families. It
-does not implement any type, loader, store, canonicalizer, package, test,
-generator, compiler, reference path, measurement, Score Pack, dossier,
-research service, protected entropy path, or LIVE gate.
+It also defines the subordinate records required to bind those families. This
+document itself confers no runtime or authority. The bounded PR #60 candidate
+implements the B-02A types, exact refs, schema-local canonicalizer, loaders,
+append-only store, `carbon.authoring` package, tests, and the narrow A3-owned
+authoring-graph verification seam described below. It implements no generator,
+compiler, reference policy/runner, measurement, Score Pack, dossier, research
+service, protected entropy path, qualification decision, or LIVE activation.
 
 ### 1.1 Explicit non-goals
 
@@ -66,14 +69,18 @@ This candidate does not:
 - define B-03 generation, B-04 reference qualification, B-05 measurement or
   scoring, B-06 dossier conclusions, B-07R research architecture, or B-07S
   service wire canonicalization;
-- alter A3 Challenge identity, lifecycle, qualification, or LIVE gating;
+- alter A3 Challenge identity or transfer A3 lifecycle, qualification, or LIVE
+  ownership; the only A3 change is the fail-closed exact graph-fingerprint and
+  configured-verifier integration required by B-02A-D8;
 - alter A4 entropy, seed, draw, or commitment authority; or
-- select a runtime package path, including the retired
-  `carbon/challenges`, `carbon/data`, or `carbon/physics` paths.
+- revive or select the retired `carbon/challenges`, `carbon/data`, or
+  `carbon/physics` paths. Working decision B-02A-D6 selects only
+  `carbon.authoring`.
 
 ### 1.2 Fail-closed master questions
 
-MQ-001 and MQ-002 are both `DEFERRED_FAIL_CLOSED` for this contract phase.
+MQ-001 and MQ-002 are both `DEFERRED_FAIL_CLOSED` for this working-contract
+implementation and final-review phase.
 The real scientific values they concern remain
 `NEW_OWNER_DECISION_REQUIRED`, but their absence does not prevent defining
 exact types and authority boundaries. A required unresolved value makes
@@ -100,7 +107,7 @@ All B-02A identities SHALL reuse the public A3 grammar already owned by
   `sha256:` followed by exactly 64 lowercase hexadecimal characters.
 
 B-02A MUST NOT create a second Challenge identity, canonical identifier,
-version-token, SHA-256, or generic serialization grammar. Any later
+version-token, SHA-256, or generic serialization grammar. The current
 implementation SHALL call or wrap the current public A3 validators and SHALL
 reconstruct exact owned values rather than trust subclassed or aliased input.
 
@@ -287,6 +294,63 @@ graph-origin tag, and an exact composition-audit ref. The join is fixed:
    `REGISTERED`, every evidence binding verifies, and the controlled registry
    capability issues the composition result.
 
+For B-02A v1, “complete loaded dependency graph” means an exact composition
+manifest rather than directed ownership by one authored object. The manifest
+contains one distinguished `root_ref` and a sorted, duplicate-free set of all
+other required top-level refs. A controlled resolver MUST load every manifest
+member by exact ref, MUST require every declared top-level dependency to be a
+manifest member, and MUST reject an omitted dependency, an undeclared loaded
+node, a cross-Challenge node, or a node outside the root's connected component
+when dependency edges are considered undirected. Undirected connectivity is
+structural: peer contracts such as training support and an official
+SamplingPlan may connect through their shared candidate/physical pins without
+either contract acquiring semantic ownership of the other. A caller Boolean,
+an unbound extra ref, or root-only reachability cannot establish completeness.
+The exact root and complete sorted member set are fingerprint inputs. This
+check establishes identity/completeness only; it does not establish scientific
+adequacy or qualification.
+
+### 3.4 Exact scientific-authoring graph fingerprint
+
+The v1 fingerprint is computed only from the exact capability-issued
+`AuthoringGraphOrigin` after exact-ref loading, manifest completeness,
+same-Challenge membership, declared-dependency containment, undirected
+connectivity, the closed loaded-graph validator, applicable external-owner
+semantic verification, and controlled structural-origin composition have all
+passed. It MUST NOT be computed from a caller mapping, incomplete load,
+logical identifier, or completeness assertion.
+
+The fingerprint input is the closed canonical record type
+`authoring_graph_origin` with exactly `composition_audit_ref`,
+`dependency_refs`, `graph_origin`, `origin_evidence_refs`, and `root_ref`.
+Dependency and origin-evidence refs use canonical set-like tuples: duplicates
+reject and members sort by complete canonical encoded bytes. Record fields sort
+by UTF-8 field-name bytes. Every top-level ref retains its exact nominal type,
+Challenge key, object kind, logical ID/version, schema version, profile,
+digest, and population-role or disclosure-class discriminator where
+applicable. Owner refs retain exact kind, scope, identity/version, and digest;
+origin-evidence refs use kind `authoring_origin_evidence`, and the audit ref
+uses kind `origin_composition_audit`.
+
+The exact digest is:
+
+```text
+"sha256:" + lowercase_hex(SHA256(
+    b"carbon.scientific-authoring.graph-fingerprint.v1\x00"
+    + encode_value(authoring_graph_origin_record)
+))
+```
+
+`encode_value` is the closed v1 canonical-value encoding without top-level
+document framing. The fingerprint binds the distinguished root, complete
+duplicate-free dependency set, joined graph-origin tag, complete
+origin-evidence set, and composition-audit ref. Challenge identity is embedded
+in every top-level ref rather than inferred from ambient state. Changing any
+bound ref, nominal discriminator, origin, origin evidence, or audit creates a
+different fingerprint. The procedure depends on no Python `repr`, object
+identity, insertion order, locale, path, clock, process state, or ambient
+environment.
+
 Hashing, copying, renaming, re-registering, superseding, or reconstructing
 does not cleanse fixture origin. Neither `DRAFT_OR_UNRESOLVED` nor an absent
 composition result can enter A3's LIVE qualification path.
@@ -455,6 +519,10 @@ Common exact records and refs are:
   object_version: VersionToken, ref_kind: literal K, scope_binding:
   OwnerScopeBinding)`; fields that name an owner-ref kind admit only that
   nominal K even when layouts match;
+- `PinnedOwnerRef<evidence_binding_authority>` is the exact authority identity
+  used only by the non-serializable B-04/history consumption adapter for a
+  `case_evidence_binding`; it is an external registry pin and does not itself
+  confer reference qualification, scientific qualification, or LIVE status;
 - `not_applicable_payload(reason_ref:
   PinnedOwnerRef<applicability_reason>)`;
 - `authoring_graph_origin(composition_audit_ref:
@@ -954,6 +1022,16 @@ exact applicability contract proves inapplicability. An unknown, missing,
 extra, aliased, renamed, unit-incompatible, shape-incompatible, or silently
 defaulted causal input rejects.
 
+Every `BoundaryRegionClause` and `InitialStateClause` whose `applicability` is
+`BOUND` MUST carry a `BOUND` `causal_input_binding` naming exactly one declared
+`PhysicalSystemSpec.causal_inputs.field_id`. An inapplicable clause MUST NOT
+bind a causal input. Within each family, two applicable clauses MUST NOT reuse
+the same physical source. A bound boundary clause's `unit_ref` MUST equal its
+resolved source `ValueFieldContract.unit_ref`. Every initial-state clause's
+`geometry_domain_ref`, including an inapplicable clause, MUST equal the
+enclosing `PhysicalSystemSpec.geometry_domain_ref`. Unknown, missing, reused,
+inapplicable, unit-substituted, or domain-substituted bindings reject.
+
 The spec contains no generator implementation, solver, reference-selection
 policy, measurement, score, seed, official draw, candidate architecture,
 qualification state, or LIVE state.
@@ -966,7 +1044,7 @@ In addition to common fields 1–7, the exact closed fields are:
 |---:|---|---|---|
 | 8 | `physical_system_ref` | exact `PhysicalSystemSpecRef` | Pins the governing physical job. |
 | 9 | `candidate_inputs` | nonempty ordered tuple of `ValueFieldContract` | Authoritative candidate-facing input vocabulary; every referenced candidate input ID resolves here exactly once. |
-| 10 | `causal_input_bindings` | ordered tuple of `CandidateInputBinding` | Total binding from every applicable physical causal input to a declared candidate input. |
+| 10 | `causal_input_bindings` | ordered tuple of `CandidateInputBinding` | Total binding from every declared physical causal input to a declared candidate input. |
 | 11 | `required_outputs` | nonempty ordered tuple of `ValueFieldContract` | Exact candidate outputs, semantic quantities, units, shape, representation, and precision. |
 | 12 | `physical_output_bindings` | nonempty ordered tuple of `CandidateOutputBinding` | Total, exact binding from every required physical quantity to exactly one candidate output. |
 | 13 | `candidate_representation_ref` | exact representation owner ref | Top-level candidate I/O protocol/representation. |
@@ -988,12 +1066,25 @@ candidate `field_id`, and a closed relation:
 
 An adapter may change encoding only. It MUST NOT change physical reality,
 units, causal meaning, geometry, domain, boundary/initial conditions, time,
-horizon, or claim scope. Every applicable physical causal input appears
+horizon, or claim scope. Every declared physical causal input appears
 exactly once as a source binding; duplicate or missing source IDs reject.
+
+For every causal-input, boundary-input, initial-input, and physical-output
+relation, source and target `ValueFieldContract` values MUST be exactly equal
+in `semantic_role_ref`, `unit_ref`, `geometry_binding`, `presence`,
+`admissibility_refs`, and `nonfinite_policy`. `IDENTITY` additionally requires
+exact equality of `representation_ref`, `shape_contract`, and
+`precision_contract`. The binding names independently authored source and
+target `field_id` values; those IDs need not be equal. Apart from those IDs, a
+non-identity input relation may differ only in the three encoding-owned fields
+and MUST bind its exact representation-adapter
+owner ref. A non-identity output relation may differ only in representation or
+shape; `precision_contract` remains exactly equal because an adapter cannot
+weaken, strengthen, or reinterpret an output precision claim.
 
 Every `candidate_field_id` in causal, boundary, initial, or time/horizon
 bindings MUST resolve to exactly one member of `candidate_inputs`. Every
-applicable physical causal input, boundary clause, initial clause, and
+declared physical causal input, applicable boundary clause, applicable initial clause, and
 time/horizon component appears exactly once as a source, and every declared
 candidate input is targeted exactly once across those binding families. V1
 forbids two source bindings from sharing a candidate input ID; its
@@ -1001,6 +1092,16 @@ forbids two source bindings from sharing a candidate input ID; its
 of one source `ValueFieldContract`. Cross-source multiplexing requires a new
 prospective contract/profile version. Orphan, duplicate-target, cross-family
 collision, or unresolved candidate input IDs reject.
+
+Every physical causal input has exactly one `CandidateInputBinding`, regardless
+of conditional runtime presence. Every applicable boundary `region_clause_id`
+and initial `state_clause_id` has exactly one corresponding
+`ConditionInputBinding`; an inapplicable clause has none. The condition binding
+resolves the clause's exact physical causal-input source and targets one
+declared candidate input. Across causal, boundary, initial, and time/horizon
+binding families, every candidate input is targeted exactly once. Duplicate or
+cross-family targets, omitted applicable clauses, extra condition bindings, and
+unknown source or target IDs reject.
 
 V1 requires exact equality of the candidate and physical geometry/domain refs.
 It defines no geometry/domain adapter relation. A later proposal that needs one
@@ -1025,6 +1126,35 @@ Candidate format conformance does not establish physical correctness,
 measurement success, reference adequacy, scientific qualification, or score.
 This object contains no B-02B candidate assembly/compiler behavior and no B-05
 measurement, tolerance, threshold, evidence weight, or Score Pack field.
+
+#### Exact transient-time SciML owner seam
+
+For a transient pair, `SciMLTimeEquivalenceAuthority` MUST implement the
+positional-only operation
+`verify_transient_time_equivalence(TransientTimeEquivalenceRequest) ->
+TransientTimeEquivalenceVerification`. The exact final request contains only
+`physical_system_ref`, `candidate_output_ref`, `physical_time_contract`,
+`candidate_time_horizon_binding`, and `candidate_input_contracts`. These are
+respectively the exact physical/candidate refs, complete exact physical
+`TimeContract`, exact candidate `TimeHorizonBinding`, and complete ordered
+candidate-input tuple. The
+refs share one exact Challenge key; the physical contract is `TRANSIENT`; each
+candidate input is an exact `ValueFieldContract` with a unique ID; and every
+time/horizon candidate field resolves in that tuple.
+
+The exact final result has exactly `request` and `component_bindings`; it echoes
+the complete request and carries exactly three ordered
+`TransientTimeComponentBinding` values: `TIME_COORDINATE`, `HORIZON`, and
+`ENDPOINT`. Each binds one distinct candidate field, its exact semantic-role
+ref, and the corresponding exact time-coordinate, horizon, or endpoint
+equivalence ref from the requested `TimeHorizonBinding`. The three candidate
+IDs MUST cover the binding's complete candidate-field set exactly once.
+Missing authority, wrong or subclassed result, stale or altered request,
+missing/reordered component, repeated/substituted candidate field,
+semantic-role mismatch, or equivalence-ref mismatch fails the affected graph
+closed. This external SciML result supplies a required engineering composition
+decision; it records no physical truth and confers no qualification or LIVE
+authority.
 
 ### 5.4 Burgers example maturity
 
@@ -1184,10 +1314,14 @@ realized stratum assignment. A public field or aggregate MUST NOT reveal
 protected exam composition. Small-cell suppression, aggregation, and release
 rules come from the exact disclosure contract, not ad hoc caller choice.
 
-Each `ExclusionContract` contains exclusion ID, prospective membership rule,
-scientific authority ref, applicable claim/population, and audit semantics.
-An exclusion is not censoring, retry, generator failure, reference failure,
-candidate failure, or infrastructure failure.
+Each `ExclusionContract` contains `exclusion_id`, `membership_rule_ref`,
+`scientific_authority_ref`, `applicable_claim_ref`, and
+`audit_semantics_ref`. Its claim ref MUST be an exact `claim_scope` owner ref
+and MUST equal the enclosing population's `owning_claim_scope_ref`. A same-label
+or differently versioned claim is not interchangeable. Duplicate exact
+exclusions and duplicate exclusion IDs reject. An exclusion is prospective,
+claim-scoped authoring; it is not censoring, retry, generator failure,
+reference failure, candidate failure, or infrastructure failure.
 
 Rights are explicit. Common source, customer relationship, storage, access,
 or commercial optimization does not imply ownership or permission. Unknown
@@ -1373,6 +1507,36 @@ not an `EVIDENCE_WEIGHT_W` substitute. No row may infer unit weights or use raw
 sample frequency as a coefficient. No non-official row may cast its selection
 contract to Q or use Q to acquire official-exam authority.
 
+#### Exact statistics owner seam
+
+`StatisticsDesignAuthority` MUST implement the positional-only operation
+`verify_statistics_design(StatisticsDesignVerificationRequest) ->
+StatisticsDesignVerification`. The exact final request contains only the exact
+fields `sampling_plan_ref`, `sampling_plan`, `primary_population`,
+`selection_population`, `target_population`, `official_proposal`, and
+`evidence_weight`. The latter three are optional resolved exact populations;
+the primary and selection populations are always resolved exactly. The ref
+MUST equal `sampling_plan.to_ref()`;
+primary/selection refs MUST equal their plan pins; and each optional object is
+present if and only if its corresponding plan binding is `BOUND`, with an exact
+matching ref. The complete plan transitively binds the estimand/reporting ref,
+full-design ref, allocations, stopping, replacement, duplicate, inclusion,
+exclusion, censoring, query, observation, campaign, and every other finite-
+design control; these are not separately omittable request fields.
+
+The exact final result contains only fields `request` and `authorization`: the
+exact reconstructed request and one closed `StatisticsDesignAuthorization`.
+It MUST echo the complete request.
+When w is bound, only `EXACT_W_ADMITTED` is compatible. An unweighted
+`OFFICIAL_EVALUATION` plan admits only
+`NO_W_NONAGGREGATING_AUTHORIZED`. An unweighted non-official plan admits
+`NO_W_NONAGGREGATING_AUTHORIZED` or
+`NO_W_NONOFFICIAL_REPORTING_AUTHORIZED`. Missing authority, wrong/subclassed
+result, stale or changed echo, optional-population substitution, or
+role-incompatible authorization fails the affected graph closed. The result
+does not confer scientific qualification, evidence sufficiency, or LIVE
+authority.
+
 `StratifiedAllocationContract` binds exact primary and selection populations,
 their named `StratificationContract` IDs, an exact reporting/design stratum
 crosswalk, and a set-like tuple of `StratumAllocation`. Each allocation has an
@@ -1541,6 +1705,14 @@ physical system, candidate contract, role, plan, campaign, and disclosure
 class. A logical ID, generator assertion, or caller role string cannot replace
 that graph validation.
 
+The primary population and every related population MUST resolve to a
+population whose role is not `EVIDENCE_WEIGHT_W`. An `AllowedConsumer` entry
+naming `CANONICAL_CASE` cannot override this prohibition. w is an evidence or
+reporting coefficient contract bound through the exact SamplingPlan and
+statistics seam; it is never a physical-case, source, or related-case
+population. Using w as either case population rejects before consumer
+authorization is considered.
+
 The immutable case record contains no candidate output, reference result,
 measurement, score, gate, qualification state, or disposition event. Its
 protected intended-slot and payload bindings are not public identity.
@@ -1577,6 +1749,26 @@ hash of the protected case/draw identity unless A4/security separately owns
 and qualifies that derivation. B-02A defines only the projection seam. A
 caller-supplied audience flag MUST NOT redact a raw object; only an exact
 controlled projection factory may produce the public nominal type.
+
+Projection construction MUST use a package-internal `CaseProjectionAuthority`
+backed by an explicit `CaseProjectionRegistryAuthority`. The registry operation
+`verify_case_projection(*, authority_ref, case_ref, projection)` returns an
+exact `CaseProjectionVerificationEcho`. Its request binds the exact
+`projection_issuance` authority ref, exact case ref, and exact nominal
+protected, internal, or public projection; the projection's `issuance_ref`
+MUST equal the authority ref. The echo contains exactly those three fields and
+MUST match their nominal types and complete values.
+
+A Boolean, raw callback, mapping, tuple, subclass, different authority, case,
+projection kind, or one-field-modified projection does not authorize issuance.
+Public, internal, and protected factories first enforce their local case,
+disclosure, and payload bindings and then require this exact pairing echo. A
+raw callable cannot serve as the registry authority, and the package-internal
+adapter is not a public authority-minting API. This trusted in-process seam is
+not a signature, credential, durable receipt, authentication mechanism,
+scientific qualification, security acceptance, or LIVE authority; the A4 or
+protocol owner remains responsible for its protected, durable,
+revocation-aware issuance record.
 
 The raw content-addressed `CanonicalChallengeCaseRef` is therefore internal or
 protected. Content addressing does not imply public disclosure.
@@ -1681,6 +1873,17 @@ Closed evidence roles are:
 `REGISTERED_HYBRID` requires a prospectively reviewed exact owner ref. A
 free-form label or runtime mixture cannot create a hybrid role.
 
+A serialized `case_evidence_binding` remains an authored claim. Consumption or
+registration requires a trusted in-process adapter around a separately owned
+B-04/history authority pinned by
+`PinnedOwnerRef<evidence_binding_authority>`. The authority returns an exact
+immutable echo of the artifact, authoritative case, role, campaign,
+role-population, claim, applicability, query/observation provenance,
+qualification-policy binding, provenance, disclosure, and use restrictions.
+Any one-field substitution rejects. This adapter is not authentication,
+signature verification, B-04 qualification policy, or a durable authority
+implementation; those remain separately owned.
+
 Qualification state is external to the case and binding. Equal case refs,
 physical jobs, equations, representations, generators, or artifacts do not
 transfer authority between evidence roles.
@@ -1740,6 +1943,18 @@ contains only `record_type`, `schema_version`, `canonicalization_profile`, and
 Campaign applicability is scope-local, not presumed. A censoring record whose
 campaign binding differs from its `evidence_scope` rejects; a campaign-free
 scope uses the same exact `NOT_APPLICABLE` binding in both locations.
+
+The exact `population_ref` must be one of the governing SamplingPlan's bound
+primary, selection, P, Q, w, query, or observation refs; an unrelated
+same-Challenge population rejects. `OBSERVATION_*` additionally requires the
+exact bound observation population and nonempty query/observation provenance.
+Any bound query or observation population requires nonempty acquisition
+provenance for every censoring reason, while a scope with neither population
+bound requires that provenance tuple to be empty.
+`MEASUREMENT_*` requires a bound measurement-applicability ref in the exact
+evidence scope. `EXPERIMENT_CORRUPTED` requires a bound evidence campaign.
+Reference and infrastructure reason eligibility remains owned by the
+registered external censoring policy rather than inferred by B-02A.
 
 The v1 reason taxonomy is exactly:
 
@@ -1834,6 +2049,21 @@ author-created `InstanceDistributionContract`. Its fixed record type is
 | 22 | `disclosure_contract` | Exact safe aggregate/protected composition contract. |
 | 23 | `downstream_use_restrictions` | Nonempty set-like tuple of exact restriction refs. |
 
+Construction is two-stage and fail closed. First, a separately owned
+statistics/history authority returns an exact immutable echo of the complete
+intended-unit manifest, SamplingPlan, P/Q/w bindings, estimand/reporting
+contract, accounting and denominator/censoring policies, optional registered
+adjustments, authority identity, and audit refs. That manifest capability alone
+MUST NOT construct `RealizedValidEvidenceRecord`. A second finalization call
+must echo the exact complete disposition records and their recomputed refs plus
+every exact loaded `CensoringRecord` and recomputed censoring ref linked by a
+`CENSORED` disposition. Missing, extra, substituted, stale, tampered, or
+fabricated disposition/censor records reject. The resulting non-serializable
+finalization capability is pinned to that one exact composition; reusing it
+with an altered composition rejects. This is trusted in-process composition,
+not authentication, signature verification, or the separately owned durable
+statistics/history implementation.
+
 The record contains no digest field. Its distinct final
 `RealizedValidEvidenceRecordRef` contains only `record_type`,
 `schema_version`, `canonicalization_profile`, and `content_digest` under §4.1.
@@ -1849,7 +2079,7 @@ missingness adjustment, or confer sufficiency/qualification/LIVE authority.
 
 ## 12. Exact validation and cross-object consistency
 
-Later B-02A constructors, parsers, loaders, and projection factories SHALL
+B-02A constructors, parsers, loaders, and projection factories SHALL
 fail closed. Error types/codes must be stable and non-echoing where input may
 contain protected material.
 
@@ -1979,6 +2209,86 @@ Structural origin rules are:
 6. only A3's independently controlled current qualification/LIVE gate may
    assess a complete exact non-fixture graph.
 
+### 13.1 A3 exact graph pins and verifier seam
+
+A3 `ChallengeRecord` and `QualificationManifest` each carry
+`scientific_authoring_graph_fingerprint: TaggedSha256 | None`. Optionality is
+only a stored-schema compatibility boundary. A legacy or fixture record may
+omit the field or encode `null` and remain parseable; stable serialization
+emits both names under A3's existing sorted-key JSON rules. Unknown fields,
+non-string non-null values, subclasses, uppercase or untagged digests,
+whitespace, and alternate algorithms reject. Parse compatibility does not
+backfill a pin, rewrite history, or confer production compatibility.
+
+Every production assessment, `can_go_live` result, activation, and
+effective-LIVE revalidation requires: (1) the record pin; (2) the qualification
+manifest pin when the independently mandatory manifest is present; (3)
+byte-for-byte equality of those pins; (4) invocation of the configured
+`ScientificAuthoringVerifier` with the exact reconstructed `ChallengeKey` and
+common fingerprint; and (5) an exact result echo reporting an eligible graph.
+If the manifest is absent, the existing qualification gate fails separately.
+If either pin is absent, malformed, or mismatched, A3 fails closed and does not
+ask a verifier to invent one. A legacy record stored as `live` without the pins
+remains parseable but is not effectively LIVE.
+
+The verifier operation is exactly:
+
+```text
+verify_scientific_authoring(
+    challenge_key: ChallengeKey,
+    expected_graph_fingerprint: TaggedSha256,
+    /,
+) -> ScientificAuthoringEligibility
+```
+
+It is a configured registry capability, never a per-request Boolean or
+self-asserted qualification field. The exact final result has
+`challenge_key`, `graph_fingerprint`, `graph_origin`, exact built-in Boolean
+`complete` and `revoked`, and a tuple of closed
+`ScientificAuthoringReason` values. A3 reconstructs the exact result type,
+rejects subclasses/mappings/duck types, and requires exact Challenge-key and
+fingerprint echoes. Results for another Challenge, another graph under the
+same key, or a stale pin are ineligible.
+
+The reason tuple is derived in fixed order: `GRAPH_INCOMPLETE` when incomplete;
+then `GRAPH_FIXTURE_DERIVED` for `FIXTURE_DERIVED`, otherwise
+`GRAPH_DRAFT_OR_UNRESOLVED` for `DRAFT_OR_UNRESOLVED`; then `GRAPH_REVOKED`
+when revoked. The graph is structurally eligible only when complete, origin is
+`REGISTERED_GRAPH`, not revoked, and reasons is empty. A provider cannot choose
+an inconsistent reason tuple. Missing provider, provider exception, malformed
+result, echo mismatch, incomplete/fixture/draft/unresolved/revoked graph, or
+substitution fails closed through stable non-sensitive reasons without echoing
+exception text or untrusted values.
+
+The store-backed B-02A verifier independently reconstructs and validates the
+exact requested graph. Failure before an exact graph exists yields incomplete
+draft/unresolved state without exception detail. If a graph resolves but its
+computed fingerprint differs, the result reports the computed fingerprint in
+incomplete draft/unresolved state; A3's exact echo check then rejects it. This
+blocks substitution even within one Challenge key. The explicit fixture-mode
+diagnostic path neither invokes nor bypasses this production gate, changes
+lifecycle state, nor activates LIVE.
+
+### 13.2 A3 ownership ceiling
+
+The fingerprint/verifier result is a necessary authoring-structure condition,
+never sufficient for LIVE. It creates or satisfies none of A3's independent
+Challenge binding, qualification mode/slots, artifact/digest checks,
+backbone/backend bindings, human qualification decision, lifecycle transition,
+or activation authority. It mutates no registry record and establishes no
+scientific truth, reference/measurement qualification, evidence sufficiency,
+security acceptance, network/commercial/production qualification, or LIVE
+authority.
+
+A3 owns the verifier protocol/result grammar, persisted pins, production gate,
+lifecycle, activation, and effective-LIVE revalidation. B-02A owns authored
+objects, immutable loading/history, exact manifest resolution, structural
+origin composition, and graph-fingerprint computation. A3 imports no
+`carbon.authoring`; the dependency remains one-way from B-02A to A3 public
+identity, digest, and verifier contracts. No label, Boolean, pin alone,
+provider availability, reconstructibility, or matching digest crosses that
+boundary.
+
 Tests SHALL prove directly that no fixture-authored
 `PhysicalSystemSpec`, `CandidateOutputContract`,
 `InstanceDistributionContract`, `SamplingPlan`, `TrainingSupportContract`,
@@ -2003,7 +2313,7 @@ qualification.
 | B-06 | Complete exact authored graph and provenance inputs | D1–D12 dossier evidence, qualification judgments, or manifest conclusions |
 | B-07R | Public-safe projection requirements and population/authority boundaries | Research architecture ratification, service behavior, rights decisions, or prior/practice policy |
 | B-07S | Semantic objects/ref inputs to later wire design | Exact service wire, operation encoding, error schema, lifecycle, bounds, or protocol canonicalization |
-| A3 | Exact current Challenge identity/version/digest primitives and later exact graph bindings | Registry lifecycle, qualification slots, activation, or LIVE gate changes |
+| A3 | Exact current Challenge identity/version/digest primitives, exact authoring-graph fingerprint, and configured verifier input | Registry lifecycle, qualification slots/decisions, activation authority, or any claim that the authoring check alone is sufficient for LIVE |
 | A4 | Protected/public case projection seam | Entropy, seed derivation, official draws, commitments, opaque-handle derivation, or security qualification |
 | Business/rights owners | Exact rights-profile references and fail-closed use | Legal conclusions, ownership, licensing, confidentiality, publication, reuse, or exclusivity decisions |
 
@@ -2029,7 +2339,7 @@ package after reconciling:
 
 `carbon/challenges`, `carbon/data`, and `carbon/physics` remain retired. Empty
 reserved packages are not available merely because they exist. The bounded
-implementation may add `carbon.authoring`, its code-authority entry, and its
+implementation adds `carbon.authoring`, its code-authority entry, and its
 tests. It adds no dependency and changes no package metadata, lock, workflow,
 environment, archive, or retired namespace.
 
@@ -2310,13 +2620,14 @@ record.
 
 ### 15.12 Packaging and dependency direction
 
-After the later package owner and path are ratified, tests SHALL cover:
+For the implemented B-02A-D6 package/path decision, acceptance tests SHALL
+cover:
 
 - exact ordered public exports and absence of protected/private convenience
   types;
 - source import-graph and one-way dependency direction;
-- `.agent/CODE_AUTHORITY.toml` enforcement under its separately authorized
-  implementation change;
+- `.agent/CODE_AUTHORITY.toml` enforcement for the authorized implementation
+  change;
 - absence of retired packages and undeclared/heavy optional dependencies;
 - build of a clean wheel;
 - install of that wheel in a fresh environment;
@@ -2401,12 +2712,13 @@ No affirmative lead response or silence gate is a precondition to bounded
 implementation. An observed `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` pauses
 the affected change. The first B-02A Definition-of-Done checkbox remains
 incomplete until its final-review and normal-merge clauses are satisfied.
-Before implementation evidence exists, the current maturity is:
+The current PR #60 candidate maturity is:
 
 ```text
 SPECIFIED: AGENT-SELECTED WORKING CONTRACT
-IMPLEMENTED: NO
-TESTED (B-02A implementation): NO
+IMPLEMENTED: BOUNDED CANDIDATE; FINAL REVIEW AND NORMAL MERGE PENDING
+TESTED (B-02A implementation): BOUNDED CANDIDATE; EXACT-HEAD CANONICAL CI,
+INDEPENDENT REVIEW, AND NORMAL MERGE PENDING
 SCIENTIFICALLY_QUALIFIED: NO
 SECURITY_QUALIFIED: NO
 NETWORK_QUALIFIED: NO

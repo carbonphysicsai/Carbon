@@ -114,13 +114,14 @@ contract. Its architecture
 contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
-[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). This closeout proposes
-`B-01 done → B-01E done → B-02A next selected/todo`. B-01E owns only the
-canonical development environment and legacy executable quarantine. The
-proposal cannot start B-02A from this branch: the handoff derives state from
-exact fetched `origin/main`, and requires the reviewed closeout merge plus
-successful exact-main closeout CI before the transition becomes authoritative.
-B-02A and every later ticket remain unstarted.
+[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). PR #59 normally merged
+the closeout transition `B-01 done → B-01E done → B-02A next selected/todo`,
+and its exact-main CI passed. B-01E owns only the canonical development
+environment and legacy executable quarantine. PR #61 then normally merged the
+delegated-decision governance described above. This separately authorized
+branch therefore proposes B-02A `in_progress` with a bounded implementation
+candidate; its final exact-head independent review and normal merge remain
+pending. Every later ticket remains unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

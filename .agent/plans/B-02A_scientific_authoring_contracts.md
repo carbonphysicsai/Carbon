@@ -45,6 +45,38 @@ parents:      4d84786ec9335be71c75bb6bcfde17f18a362033
 
 No reset, rebase, force-push, clean, stash, or replacement branch is used.
 
+The implementation candidate was then recorded in five normal, reviewable
+commits without rewriting the preserved history:
+
+```text
+03e4d9fde97ac9ae5badb1348b7a85c6bd9e9bfd
+tree 855a45d26f5a33025bb1a1d58da92fc20d114e8c
+feat(a3): pin scientific authoring graph for live
+
+c10da0df60afc84edf0e73729788507429f9198b
+tree a7d60ec42ac94627f6931c67e8a5918aa99b7ed4
+feat(b-02a): implement scientific authoring contracts
+
+38903cd513ac432ee22d2eaa8c583967a4fd205e
+tree acf2795f7ff4a91bcbf9316103b99d888ab16419
+test(b-02a): expand scientific contract matrix
+
+ccef2b97d1a384f081c9ba4e67ab1fe91644e87c
+tree 7be47b129fb84ec64f86dae2089028df4486ef5a
+style(b-02a): apply repository formatting
+
+d6709507b793f4820c272cbb4ecd8054ff959eb0
+tree 91f81fee6726de6ef786644716259c8f341a1cd3
+fix(b-02a): preserve code-authority import callsite
+```
+
+The first commit is only the minimal A3-owned fail-closed verifier seam and
+regression coverage required by B-02A-D8. It does not transfer authoring,
+qualification, or activation ownership from A3.
+The last commit restores an established authority-scanner callsite name after
+the generalized package-import test added `carbon.authoring`; it changes no
+runtime behavior or package surface.
+
 ## 2. Controlling authority and maturity
 
 The implementation reads and applies the current versions of:
@@ -54,7 +86,7 @@ The implementation reads and applies the current versions of:
 3. `.agent/WAVE_B_CODEX_HANDOFF.md` as historical/current handoff evidence;
 4. `agent_pack/EXECUTION_PROTOCOL.md` and
    `.agent/DELEGATED_DECISION_PROTOCOL.md`;
-5. the B-02A ticket, this plan, evidence, D1-D8, and working contract;
+5. the B-02A ticket, this plan, evidence, D1-D11, and working contract;
 6. `.agent/CODE_AUTHORITY.toml` and the B-01E legacy-quarantine record;
 7. the scientific canon, locked Challenge distribution architecture,
    constitutional overlay, and current physical/generator/evidence/data/
@@ -64,10 +96,11 @@ The implementation reads and applies the current versions of:
    patterns; and
 10. package, wheel, import-boundary, quality, and CI enforcement.
 
-The implementation may earn only bounded `IMPLEMENTED` and `TESTED` status
-for B-02A after exact-head review and normal merge. It cannot earn scientific,
-security, network, commercial, production, LIVE, launch, frontier,
-settlement, weight, or emission authority.
+Bounded `IMPLEMENTED` and `TESTED` candidate evidence exists on the branch.
+Authoritative repository acceptance remains pending exact-head review,
+canonical CI, and normal merge. The ticket cannot earn scientific, security,
+network, commercial, production, LIVE, launch, frontier, settlement, weight,
+or emission authority.
 
 ## 3. MQ and conflict classification
 
@@ -76,7 +109,7 @@ settlement, weight, or emission authority.
 | MQ-001 real physical job/values | `NEW_OWNER_DECISION_REQUIRED`, `DEFERRED_FAIL_CLOSED` | Implement exact types and validation only. No Burgers viscosity or other real value becomes a default. |
 | MQ-002 real P/Q/w/design values | `NEW_OWNER_DECISION_REQUIRED`, `DEFERRED_FAIL_CLOSED` | Implement distinct roles and unavailable production construction. No population, count, allocation, weight, stopping rule, or threshold is selected. |
 | Contract-first timing after PR #61 | `DOCUMENTATION_LAG` in the pre-merge B-02A branch | The merged ticket and delegated protocol control: implement from the working contract; final independent review remains pre-merge. |
-| Missing B-02A code | `IMPLEMENTATION_LAG` | This ticket owns the bounded implementation. |
+| Missing B-02A code at the original base | `IMPLEMENTATION_LAG`, resolved by the candidate | This ticket owns the bounded implementation; final review/merge remain pending. |
 | Retired `carbon/challenges`, `carbon/data`, `carbon/physics` suggestions | `DOCUMENTATION_LAG` | They remain forbidden by code authority. |
 | A3 identity/digest grammar | `NO_CONFLICT` | Reuse public A3 primitives; create no competing Challenge or SHA grammar. |
 | B-02A canonical binary profile | `IMPLEMENTATION_LAG` resolved by D1 | Implement a schema-local, versioned codec; do not reuse registry JSON or owner-private encoders. |
@@ -98,7 +131,7 @@ human-reserved value remains unavailable at the affected production seam.
 | A4 capability, redaction, and projection pattern | `KEEP` as pattern | No A4 private encoder, entropy, seed, or opaque-handle algorithm is imported. |
 | A2/A5/A7/A8/A9 packages | `KEEP` | Downstream/adjacent owners remain unchanged except exact integration tests where required. |
 | Retired/archive implementations | `MIGRATION_REQUIRED`, not selected | No archive inspection, copy, import, or revival. |
-| Current canonical B-02A runtime | `REPAIR: none`, `REPLACE: none` | No current implementation exists. |
+| Current canonical B-02A runtime at the original base | `REPAIR: none`, `REPLACE: none` | No prior implementation existed; the branch adds the first bounded candidate. |
 
 ## 5. Agent-selected implementation decisions
 
@@ -131,6 +164,41 @@ eligible only for a complete registered, non-fixture graph matching the exact
 `ChallengeKey`. A3 imports no B-02A module. Fixture-mode diagnostics remain
 non-production and cannot activate LIVE.
 
+### D9 — exact graph manifest and peer-root connectivity
+
+Bind one complete exact node manifest rather than pretending the six authored
+families form one directed ownership chain. Load `root_ref` and every sorted
+`required_ref`; require all declared dependencies to be contained in that
+manifest; reject omitted, injected, cross-Challenge, and disconnected nodes;
+and require one component when dependency edges are viewed undirected. This
+allows training support and official case/evidence contracts to remain peer
+owners that connect through shared exact candidate/physical dependencies. The
+graph fingerprint binds the exact root, complete ref set, joined origin,
+origin evidence, and composition audit. It does not certify scientific
+adequacy.
+
+### D10 — exact SciML/statistics verification at cyclic semantic joins
+
+Use separate configured exact-result providers for transient physical/candidate
+equivalence and SamplingPlan/full-design/estimand/w compatibility. Provider
+requests bind the complete exact objects and refs; results must be exact
+nominal request echoes with closed authorization branches. Missing, stale,
+wrong-type, Boolean, mapping, or mismatched results fail only the affected
+graph closed. The results remain external composition evidence, so no mutual
+content-addressed plan↔w cycle or scientific value enters authored bytes.
+
+### D11 — external projection, evidence, and accounting authority
+
+Raw projections, evidence bindings, and accounting inputs are authored claims,
+not authority. Internal non-root adapters require exact echo records from
+separately owned provider objects. Realized evidence requires both an exact
+intended-unit manifest authorization and final authorization of the complete
+canonical disposition set plus every loaded censoring record; historical load
+rechecks the same exact composition. No callback, Boolean, label, nominal ref
+alone, or reusable pre-final capability can create authority. Durable
+registries, authentication, signatures, rights, and qualification remain later
+owner inputs.
+
 These decisions are delegated engineering choices. They are notified through
 issue #42; affirmative response is not required. An observed `CHANGE`,
 `BLOCKED`, or `REQUEST_CHANGES` pauses the affected change.
@@ -161,9 +229,10 @@ candidate assembly, generators, reference policy/runners, measurements,
 scoring, dossiers, service protocol, entropy/seeds, opaque-handle derivation,
 real scientific values, and every later-ticket implementation.
 
-## 7. Planned manifest
+## 7. Exact candidate manifest
 
-Governance/evidence updates:
+Relative to authoritative governance main, the bounded candidate changes
+exactly:
 
 ```text
 M .agent/CODE_AUTHORITY.toml
@@ -171,23 +240,61 @@ M .agent/DECISIONS.md
 M .agent/WAVE.md
 M .agent/WAVE_B.md
 M .agent/WAVE_B_CODEX_HANDOFF.md
-M .agent/evidence/wave_b/b-02a.md
-M .agent/plans/B-02A_scientific_authoring_contracts.md
+A .agent/evidence/wave_b/b-02a.md
+A .agent/plans/B-02A_scientific_authoring_contracts.md
 M .agent/tickets/B-02A_scientific_authoring_contracts.md
-M Design_Specs/Scientific_Challenge_Authoring_Contract.md
+A Design_Specs/Scientific_Challenge_Authoring_Contract.md
+A carbon/authoring/__init__.py
+A carbon/authoring/canonical.py
+A carbon/authoring/cases.py
+A carbon/authoring/errors.py
+A carbon/authoring/evidence.py
+A carbon/authoring/graph.py
+A carbon/authoring/history.py
+A carbon/authoring/loading.py
+A carbon/authoring/model.py
+A carbon/authoring/physical.py
+A carbon/authoring/populations.py
+A carbon/authoring/primitives.py
+A carbon/authoring/refs.py
+A carbon/authoring/sampling.py
+A carbon/authoring/training_support.py
+M carbon/registry/__init__.py
+M carbon/registry/gate.py
+M carbon/registry/model.py
+M carbon/registry/store.py
+A tests/cpu/test_b02a_canonicalization.py
+A tests/cpu/test_b02a_contract_matrix.py
+A tests/cpu/test_b02a_contract_models.py
+A tests/cpu/test_b02a_exports_and_boundaries.py
+A tests/cpu/test_b02a_graph_live_integration.py
+A tests/cpu/test_b02a_loading_and_history.py
+A tests/cpu/test_b02a_primitives_and_refs.py
+M tests/cpu/test_mcp_skeleton.py
+M tests/cpu/test_package_installation.py
+M tests/cpu/test_registry.py
+M tests/cpu/test_submission_fsm.py
+M tests/invariants/test_a12_invariants.py
+A tests/invariants/test_b02a_scientific_boundaries.py
 ```
+
+The handoff file is included only because its merged-main text still declared
+B-02A unready and required an affirmative pre-implementation ratification gate,
+an exact current-state contradiction after PR #61. Its historical evidence is
+preserved; only the satisfied gate and delegated-governance interpretation are
+updated.
 
 Implementation/testing is limited to `carbon/authoring`, the minimal A3
 verifier seam under `carbon/registry`, focused `tests/cpu` and
 `tests/invariants` coverage, and package-installation/code-authority tests.
 No dependency, lock, workflow, dev-container, script, README, archive, legacy
-index, or retired namespace change is planned.
+index, or retired namespace changes.
 
 ## 8. Definition-of-Done crosswalk
 
 | DoD area | Implementation evidence required |
 |---|---|
-| Working contract and final review | D1-D8, current contract, exact final candidate, independent SciML/statistics/protocol review, resolved findings, green CI; first checkbox remains incomplete until its normal-merge clause is satisfied. |
+| Working contract and final review | D1-D11, current contract, exact final candidate, independent SciML/statistics/protocol review, resolved findings, green CI; first checkbox remains incomplete until its normal-merge clause is satisfied. |
 | Six objects and refs | Exact final nominal immutable types, role/kind checks, canonical refs, loaders, and tests. |
 | P/Q/w/support/R_strategy separation | Closed enums/matrices, exact expected-role refs, and confusion-rejection tests; no B-02B object. |
 | Population/case/evidence distinctions | Exact bindings, source/state/campaign/censoring types, and negative tests. |
