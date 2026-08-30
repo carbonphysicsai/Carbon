@@ -304,11 +304,18 @@ Likewise, owner-recommended integrated scientific architecture may be ahead of c
 ```bash
 git clone https://github.com/carbonphysicsai/Carbon.git
 cd Carbon
-python -m pip install -e ".[dev]"
-python -m pytest -q
+# Open the repository in the committed Carbon Dev Container / canonical Ubuntu environment.
+./scripts/dev/bootstrap.sh
+./scripts/dev/doctor.sh
+./scripts/dev/ci.sh
 ```
 
-The supported default is the Python 3.11 CPU development lane. Scientific and chain backends are optional and are not qualified by that test result. See [`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md).
+[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) and
+[`docs/development/ENVIRONMENT.md`](./docs/development/ENVIRONMENT.md) govern
+setup. `./scripts/dev/ci.sh` is the normal pre-PR gate; do not reconstruct an
+alternate pip/pytest environment. Optional science and network dependency
+groups are non-default and may be enabled only when the active ticket owns
+them.
 
 ---
 

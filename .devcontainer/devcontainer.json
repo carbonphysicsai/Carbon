@@ -1,0 +1,25 @@
+{
+  "name": "Carbon canonical development environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "..",
+    "args": {
+      "PYTHON_VERSION": "3.11.16"
+    }
+  },
+  "runArgs": [
+    "--platform=linux/amd64"
+  ],
+  "workspaceFolder": "/workspaces/Carbon",
+  "containerUser": "ubuntu",
+  "remoteUser": "ubuntu",
+  "updateRemoteUserUID": false,
+  "postCreateCommand": "./scripts/dev/bootstrap.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/workspaces/Carbon/.venv/bin/python"
+      }
+    }
+  }
+}

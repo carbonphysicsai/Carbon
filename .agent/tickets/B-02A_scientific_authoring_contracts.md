@@ -2,7 +2,7 @@
 
 **Wave:** B candidate
 **Status:** todo
-**Depends on:** B-01
+**Depends on:** B-01E
 **Build Out:** C3 and Wave B scientific contract objects
 **Master questions:** MQ-001, MQ-002
 **Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §§5-6; `Build_Out_Constitutional_Overlay.md` §8

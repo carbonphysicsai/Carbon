@@ -10,58 +10,67 @@ permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Code quality
-    runs-on: ubuntu-latest
+  canonical:
+    name: Canonical environment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
-          python-version: "3.11"
-      - name: Install supported development environment
-        run: python -m pip install -e ".[dev]"
-      - name: Enforce no-new-debt quality ratchet
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Bootstrap locked Carbon environment
+        run: ./scripts/dev/bootstrap.sh
+
+      - name: Run canonical local/CI command
         env:
           QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: >-
-          python scripts/check_quality.py
-          --baseline .ci/quality-baseline.json
-          --base "$QUALITY_BASE_SHA"
-          --report "$RUNNER_TEMP/carbon-quality/current.json"
-      - name: Upload full quality inventory
+          CARBON_ARTIFACT_DIR: .carbon-artifacts
+        run: ./scripts/dev/ci.sh
+
+      - name: Upload quality inventory
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: quality-inventory
-          path: ${{ runner.temp }}/carbon-quality/current.json
+          path: .carbon-artifacts/quality.json
           if-no-files-found: warn
 
-  test:
-    name: CPU tests
-    runs-on: ubuntu-latest
+  dev-image:
+    name: Clean dev-container image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARBON_DEV_IMAGE: carbon-dev:${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: "3.11"
-      - name: Install supported development environment
-        run: python -m pip install -e ".[dev]"
-      - name: Run default CPU tests
-        run: python -m pytest -q
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
 
-  invariant:
-    name: Invariant suite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Build pinned Carbon development image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          python-version: "3.11"
-      - name: Install supported development environment
-        run: python -m pip install -e ".[dev]"
-      - name: Run invariant suite
-        run: python -m pytest tests/invariants -m invariant -q
+          context: .
+          file: .devcontainer/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          no-cache: true
+          pull: true
+          tags: ${{ env.CARBON_DEV_IMAGE }}
 
-# TODO later: docker build test for validator image
+      - name: Start image and run canonical acceptance
+        env:
+          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"

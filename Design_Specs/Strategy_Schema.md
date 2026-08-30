@@ -3,7 +3,7 @@
 **Carbon Subnet**
 **Version:** 1.1 (proposed — extends live `1.0`)
 **Status:** Proposal, pending team review
-**Related:** [`Generator_Creation.md`](./Generator_Creation.md), [`Scoring.md`](./Scoring.md), [`Scoring_Formulas.md`](./Scoring_Formulas.md), [`Miner_MCP.md`](./Miner_MCP.md), `Carbon_Logic/common/strategy_schema.py`, `Carbon_Logic/common/model_card.py`
+**Related:** [`Generator_Creation.md`](./Generator_Creation.md), [`Scoring.md`](./Scoring.md), [`Scoring_Formulas.md`](./Scoring_Formulas.md), [`Miner_MCP.md`](./Miner_MCP.md), current `carbon/schema/strategy.py`, and `docs/history/LEGACY_CODE_INDEX.md` for retired implementation
 
 > **Current A2 reconciliation (ratified):** This document remains unratified
 > future knob-space input; it is not the current wire contract. Strategy v1.0
@@ -34,11 +34,17 @@
 
 **Job:** Define the full knob space a miner can set in a submitted training strategy, so the validator's train+eval loop has something worth searching over.
 
-**Status of `1.0`:** Already live in `Carbon_Logic/common/strategy_schema.py` — backbone choice, five loss terms (boolean `enabled` + `weight`, never a silent-zero hack), training/optim block, backbone config (modes/width/depth), budget. This document proposes `1.1`: it extends that code, it does not replace it.
+**Status of the historical catalog called `1.0` here:** Its executable
+prototype is archived at `archive/pre-wave-b-legacy-2026-08-30`; it is not
+the current four-field Strategy v1 wire contract. This document proposes
+future catalog input and grants no permission to restore the archived code.
 
 **What's new in `1.1`:** a `curriculum` block (named by the team as a wanted knob, not yet implemented anywhere), five new loss terms chosen to map directly onto the two highest-weighted Score Pack legs, a `regularization` block, a `compute_tier` field, and a reconciled backbone list.
 
-**Non-goal:** implementation. This is a design doc for review; changes to `strategy_schema.py`, `poc/schema/strategy_poc_v1.json`, or the fixtures are a follow-up PR once the shape below is agreed.
+**Non-goal:** implementation. This is a design document for review. Any
+future implementation must use the then-current schema authority; historical
+prototype sources are retrievable through `docs/history/LEGACY_CODE_INDEX.md`
+only when an owning ticket explicitly authorizes a deliberate port.
 
 ---
 
@@ -48,7 +54,7 @@ Scoring (`Scoring_Formulas.md`) weights the three legs **physics 0.40 / robustne
 
 ---
 
-## 2. What's already live (`1.0`)
+## 2. Historical proposed catalog (`1.0`, not current runtime authority)
 
 | Block | Fields | Source |
 |---|---|---|
@@ -58,7 +64,10 @@ Scoring (`Scoring_Formulas.md`) weights the three legs **physics 0.40 / robustne
 | `training` | `optimizer`, `learning_rate`, `weight_decay`, `epochs`, `batch_size`, `gradient_clip`, `lr_schedule` | `strategy_schema.py` |
 | `budget` | `max_steps`, `batch_size` | `strategy_schema.py` |
 
-**Two validator-limit sets exist and should not be confused:** `poc/configs/validator_limits.yaml` (`max_wall_s: 600`, PoC smoke-test budget) vs. `strategy_schema.py: VALIDATOR_LIMITS` (`max_wall_s: 7200`, the real Phase 0-1B budget). At 3 concurrent evaluation slots (`Design_Specs/Operations.md`), the 7200s figure gives a throughput ceiling of **3 ÷ 7200s ≈ 1.5 submissions/hour system-wide** — consistent with the "1-2 submissions/hour, fee-gated" target already discussed. Worth stating explicitly so the two configs aren't read as contradictory.
+**Historical limits are not current authority:** the old PoC validator-limit
+file and legacy `strategy_schema.py` remain in the immutable archive. Their
+values are unqualified historical evidence and must not be ported or compared
+as current limits without the later owning ticket and required human decision.
 
 ---
 
@@ -172,8 +181,8 @@ Stated because it's as much a design decision as what's included:
 - [ ] `regularization` block added
 - [ ] `compute_tier` added and wired to the fee mechanism
 - [ ] Backbone list reconciled in `ALLOWED_BACKBONES` and `Carbon_Logic/backbones/registry.py`
-- [ ] New fixtures added under `poc/fixtures/` exercising each new block
-- [ ] `poc/schema/strategy_poc_v1.json` updated if the PoC schema needs to track this (open question — PoC may stay locked to `1.0` deliberately as a smoke-test floor)
+- [ ] New current-authority fixtures added under the owning ticket's canonical fixture root
+- [ ] Any justified historical schema idea deliberately ported from the immutable archive, without restoring PoC authority
 
 ---
 
@@ -185,5 +194,5 @@ Stated because it's as much a design decision as what's included:
 | **`Scoring.md` / `Scoring_Formulas.md`** | What those knobs are scored against — the reason each knob here exists |
 | **`Generator_Creation.md`** | Where the training/eval data each strategy is judged on comes from |
 | **`Miner_MCP.md`** | How a strategy actually reaches the validator, and where the feedback-loop estimator (next design piece) plugs in |
-| **`Carbon_Logic/common/strategy_schema.py`** | The `1.0` implementation this proposal extends |
-| **`Carbon_Logic/common/model_card.py`** | Where a submitted strategy ends up recorded (`card["strategy"]`, content-addressed via `strategy_hash`) |
+| **`carbon/schema/strategy.py`** | The current exact Strategy v1 wire authority; this proposal does not extend it automatically |
+| **`docs/history/LEGACY_CODE_INDEX.md`** | Retrieval index for the retired proposal-era implementation; archive presence grants no authority |

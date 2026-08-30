@@ -1,24 +1,17 @@
 [project]
 name = "carbon"
 version = "0.9.0"
-description = "Decentralized Physics-Informed Neural Operator Subnet for Bittensor"
+description = "Discovery and evidence infrastructure for fast physical models"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11,<3.12"
 dependencies = []
 
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
 [project.optional-dependencies]
-dev = [
-    "black==26.5.1",
-    "pytest==9.1.1",
-    "ruff==0.16.3",
-]
 chain = [
-    "bittensor>=9.0.0",
-]
-validator = [
-    "bittensor>=9.0.0",
-]
-miner = [
     "bittensor>=9.0.0",
 ]
 neuraloperator = [
@@ -29,11 +22,47 @@ physicsnemo = [
     "nvidia-physicsnemo>=2.0,<3",
     "torch>=2.4.0",
 ]
-poc = [
+
+[dependency-groups]
+dev = [
+    "black==26.5.1",
+    "build==1.6.0",
+    "pip==26.2.1",
+    "pytest==9.1.1",
+    "ruff==0.16.3",
+    "setuptools==84.0.0",
+    "wheel==0.48.0",
+]
+science-jax = [
     "jax>=0.4.30",
     "numpy>=1.26",
     "pyyaml>=6.0",
 ]
+science-torch = [
+    "neuraloperator>=2.0,<3",
+    "nvidia-physicsnemo>=2.0,<3",
+    "torch>=2.4.0",
+    "torchvision>=0.25.0",
+]
+chain = [
+    "bittensor>=9.0.0",
+]
+
+[tool.uv]
+required-version = "==0.12.7"
+default-groups = ["dev"]
+environments = [
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -44,11 +73,6 @@ addopts = ["--strict-markers"]
 testpaths = ["tests/cpu"]
 markers = [
     "invariant: constitutional invariant tests introduced by A12 and later tickets",
-    "legacy: retained tests for retired namespaces or superseded prototype behavior",
-    "poc: optional, scientifically unqualified PoC tests requiring carbon[poc]",
-    "poc_integration: slow PoC generator, training, or end-to-end integration tests",
-    "backend_jax: tests that require the optional JAX scientific backend",
-    "gold: opt-in long-budget PoC tests requiring POC_GOLD=1",
 ]
 
 [tool.black]

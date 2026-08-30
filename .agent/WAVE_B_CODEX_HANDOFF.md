@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 0.4
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.4
+**Governance version:** 0.5
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.5
 **Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -16,36 +16,18 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. Initial B-01 start-only gate
+## 1. B-01E insertion and readiness gate
 
-This section governs only the one-time transition of B-01 from `todo` to
-`in_progress`. Apply the conditions below only when current repository
-authority still selects B-01 as `todo`. Continuation or review of an
-already-started ticket, and selection of later tickets, use section 4.
+B-01 is authoritatively `done` on exact main commit
+`4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
+`9f767ea16ffb7185ab64acff2542c7a8dcc2e339`. Executive-owner direction
+inserts B-01E between B-01 and B-02A. B-01E may begin only after a fresh
+`origin/main` verification proves that B-01 completion and a clean base.
 
-1. Wave A is closed in bounded engineering scope.
-2. The merged `.agent/WAVE.md` names Wave B active in bounded development
-   scope.
-3. `.agent/WAVE.md` names `.agent/WAVE_B.md` version 0.4 as the controlling
-   register.
-4. B-01 is the selected `todo` ticket and has not already started.
-5. The worktree starts clean, current remote `origin/main` is fetched and
-   verified, the ticket branch starts from that exact SHA, and Codex records the
-   exact commit and tree.
-6. The proposed work does not invent or approve a decision that `AGENTS.md`
-   reserves to a human.
-
-If one condition fails during an attempted initial B-01 start, report the
-mismatch and stop. Once `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the B-01
-ticket consistently record B-01 as `in_progress`, conditions 4 and 5 are
-historical start evidence rather than continuation requirements. Verify the
-recorded branch, base, current HEAD/tree, worktree changes, evidence record,
-and blocking-review state, then continue only B-01. When the recorded local
-worktree is unavailable, section 4 permits a verified local tracking checkout
-of the exact existing remote ticket branch; that is not a replacement branch.
-Do not create another ticket branch or repeat its orientation work. No
-multi-role approval bundle, exact-byte activation approval, or separate
-activation closeout is required before bounded B-01 development.
+B-02A and every later ticket remain unready until B-01E has normally merged
+its exact reviewed tree, exact-main CI has passed, and a separate reviewed
+closeout has recorded B-01E `done`. A B-01E branch, draft PR, green PR CI, or
+checked implementation criteria do not satisfy that dependency.
 
 ## 2. Required read order
 
@@ -62,16 +44,19 @@ Read the repository versions in this order before B-01 or any later ticket:
 9. the current Wave B governance and ticket records in `.agent/DECISIONS.md`
 10. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 11. the selected `.agent/tickets/B-*.md` file
-12. `.agent/ORIENTATION.md`, treating its prior commit pins as historical
+12. `.agent/CODE_AUTHORITY.toml`,
+    `docs/development/ENVIRONMENT.md`, and
+    `docs/history/LEGACY_CODE_INDEX.md` when present
+13. `.agent/ORIENTATION.md`, treating its prior commit pins as historical
     evidence
-13. every authority file named by the ticket
-14. `Design_Specs/Build_Out.md`
-15. `Design_Specs/Build_Out_Constitutional_Overlay.md`
-16. the relevant sections of
+14. every authority file named by the ticket
+15. `Design_Specs/Build_Out.md`
+16. `Design_Specs/Build_Out_Constitutional_Overlay.md`
+17. the relevant sections of
     `Design_Specs/Agentic_Development_Master_Plan.md`
-17. each Master Open Design Question cited by the ticket
-18. `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` for scientific work
-19. relevant implementation, tests, packaging configuration, and
+18. each Master Open Design Question cited by the ticket
+19. `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` for scientific work
+20. relevant implementation, tests, packaging configuration, and
     `.github/workflows/ci.yml`
 
 After B-07S creates, ratifies, and normally merges
@@ -91,6 +76,9 @@ the domain owner provides a current repository contract.
 |---|---|
 | `.agent/WAVE.md` | Active-wave and current-ticket-selection authority. Read its current wave, state, controlling register, selected ticket, and selected-ticket status; require the matching board and ticket records to agree rather than inferring current state from this handoff or a historical summary. |
 | `.agent/WAVE_B.md` | Controlling Wave B ticket register, dependencies, effort, review routing, and closeout gate. |
+| `.agent/CODE_AUTHORITY.toml` | Machine-readable current implementation/test roots, exact archive identities, and retired runtime/path boundary. |
+| `docs/development/ENVIRONMENT.md` | Sole ordinary developer/evidence environment and command guide after B-01E. |
+| `docs/history/LEGACY_CODE_INDEX.md` | Retrieval map for quarantined executable prototypes. Archive presence grants no current authority. |
 | `SPEC.md` | System/runtime doctrine. It preserves the current v1 service and records the gated migration to the separate Wave B research service. |
 | `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | Proposed behavioral and authority architecture for the local research service. B-07R ratifies it. |
 | `Design_Specs/Miner_MCP.md` | Existing bounded Wave A v1 interface and pointer to the proposed v2 work. |
@@ -180,11 +168,11 @@ implementation, and every deferred human input has an explicit fail-closed
 fixture behavior. Non-reserved material decisions follow the record-and-notify
 rule below. Do not skip a blocked ticket by starting one of its dependents.
 
-B-02A and every later Wave B ticket remain unready until B-01 is
+B-02A and every later Wave B ticket remain unready until B-01E is
 authoritatively `done` with its reviewed tree-identical merge, successful
-post-merge CI, and separate reviewed closeout evidence. Checked B-01
+exact-main CI, and separate reviewed closeout evidence. Checked B-01E
 Definition-of-Done boxes, an `in_progress` record, candidate evidence, or an
-open implementation/orientation pull request do not satisfy that dependency.
+open implementation pull request do not satisfy that dependency.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -237,8 +225,11 @@ Before editing:
 
 1. Verify branch, HEAD, tree, worktree state, dependency commits, and CI state.
 2. Read the ticket and its cited authority in full.
-3. Inspect current code, tests, schemas, persistence, public interfaces, PoC,
-   Julia, MCP, and Landscape components relevant to the ticket.
+3. Inspect current canonical code, tests, schemas, persistence, and public
+   interfaces relevant to the ticket. Consult
+   `docs/history/LEGACY_CODE_INDEX.md` and the immutable archive only when the
+   selected ticket explicitly owns reuse or migration of an archived
+   component. Archive presence grants no current implementation authority.
 4. Classify reuse as `KEEP`, `WRAP`, `REPAIR`, `REPLACE`, or
    `NEW_OWNER_DECISION_REQUIRED`.
 5. Run the relevant pre-change baseline.
@@ -265,8 +256,9 @@ During implementation:
 Before requesting review:
 
 1. Run focused tests and the ticket's subsystem tests.
-2. Run the full CPU suite, invariant suite, quality gate, package/wheel checks,
-   and applicable PoC or Julia checks required by the ticket.
+2. Run `./scripts/dev/ci.sh` in the canonical Carbon environment, then run
+   only additional dependency groups or archived-component checks explicitly
+   owned by the selected ticket.
 3. Run `git diff --check` and inspect the complete diff.
 4. Record exact commands, exit codes, counts, tool versions, base/head hashes,
    artifact hashes, inherited failures, before/after deltas, and maturity claims
@@ -422,7 +414,7 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.4 as the controlling register, and selects <TICKET> with the same
+version 0.5 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
 continue only its recorded ticket branch after verifying the recorded base,
 current remote HEAD/tree, evidence, CI, and review state. Use its existing
@@ -439,9 +431,11 @@ Create a ticket-scoped plan when required. Implement the smallest change that
 satisfies the ticket Definition of Done. Do not invent scientific,
 security, rights, economic, or launch values. Preserve mock/official isolation,
 protected-field non-disclosure, v1 compatibility, and every applicable Carbon
-invariant. Run and report the ticket's focused, subsystem, full CPU, invariant,
-quality, package/wheel, and applicable PoC/Julia checks. Request independent
-review and stop after this ticket. Do not begin a dependent ticket.
+invariant. Run and report `./scripts/dev/ci.sh` plus only ticket-owned optional-
+group checks. Do not request native-Windows diagnostics or archived PoC,
+Julia, JAX, chain, GPU, miner, validator, or other legacy validation unless
+the selected ticket explicitly owns it. Request independent review and stop
+after this ticket. Do not begin a dependent ticket.
 For every material decision, record it, include the required `Lead notification`
 section in the pull request, and notify issue #42 mentioning `@harshaa765`.
 Notification is non-blocking unless the lead submits `REQUEST_CHANGES` or an

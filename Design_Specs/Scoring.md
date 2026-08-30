@@ -788,9 +788,9 @@ no dependencies, and import isolation from A6/later owners.
 | `Design_Specs/Implementation.md` | Historical implementation appendix for scoring. Its prediction/reference-to-engine, YAML, fp32/JAX, 0.40/0.35/0.25, and sigmoid-hard-gate examples are superseded for A5 and are not implementation evidence. |
 | `Design_Specs/Strategy_Schema.md` | Any proposed/unratified legacy scoring tuple is non-authoritative for A5. |
 | `Design_Specs/Build_Out.md` | Sequencing authority only. “YAML schema” means authoring/schema work after this ratification; runtime is strict JSON. Its broad Model Card/InternalResult and EvaluationPin examples do not expand A5. |
-| `poc/configs/scoring_burgers1d.yaml` | Historical PoC authoring/configuration; not the A5 runtime fixture and not qualified science. |
-| `carbon/common/scoring.py`, `poc/eval/score.py`, `neurons/scoring/` | Legacy archaeology with non-current/defaulted/arithmetic behavior; not A5. |
-| `tests/legacy/` and `poc/tests/` scoring tests | Historical evidence only; not default-CPU A5 acceptance. |
+| `poc/configs/scoring_burgers1d.yaml` at the B-01E archive ref | Historical PoC authoring/configuration; not the A5 runtime fixture and not qualified science. |
+| `carbon/common/scoring.py`, `poc/eval/score.py`, `neurons/scoring/` at the B-01E archive ref | Legacy archaeology with non-current/defaulted/arithmetic behavior; not A5. |
+| `tests/legacy/` and `poc/tests/` at the B-01E archive ref | Historical evidence only; not default-CPU A5 acceptance. See `docs/history/LEGACY_CODE_INDEX.md`. |
 
 Specifically superseded and forbidden as A5 implementation targets:
 
