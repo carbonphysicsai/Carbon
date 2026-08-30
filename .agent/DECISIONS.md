@@ -2,11 +2,20 @@
 
 ## 2026-08-30 — B-01E-D1: Canonical development environment and legacy quarantine
 
-> **Authority timing.** Executive-owner direction on 2026-08-30 authorizes
-> this bounded candidate after B-01's authoritative closeout. The resulting
-> repository changes remain candidate state until exact-head review, required
-> CI, and normal merge. B-01E remains `in_progress`; B-02A and every later
-> ticket remain `todo` and unstarted.
+> **Authority timing.** Executive-owner direction on 2026-08-30 authorized
+> this bounded candidate after B-01's authoritative closeout. The final
+> independently reviewed implementation head
+> `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree
+> `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as
+> `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5`, and exact-main run
+> `33319267255` passed. The separate documentation closeout now proposes
+> B-01E `done` and B-02A as the next selected `todo`; it makes no new material
+> decision. Until that exact closeout head is independently reviewed with
+> blocking findings and threads resolved, passes required PR CI, normally
+> merges under separate authorization with the reviewed tree preserved, and
+> passes exact-main closeout CI, B-01E's prior authoritative status remains
+> `in_progress` despite any prospective closeout token on a branch or newly
+> merged main; B-02A and every later ticket remain `todo` and unstarted.
 
 **Affected scope and sequencing.** Insert B-01E between B-01 and B-02A:
 

@@ -3,6 +3,7 @@
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
 **Version:** 0.5
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserts the owner-directed B-01E infrastructure ticket without changing the Wave B scientific architecture contract. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -10,9 +11,15 @@
 
 Authority comes from the merged active `.agent/WAVE.md` and selected ticket,
 not this file alone or prior role approval. B-01 is authoritatively `done`.
-B-01E is the sole selected `in_progress` candidate and remains subject to its
-specifications, invariants, tests, review, merge, exact-main CI, and separate
-closeout. This candidate does not select or start B-02A or any later ticket.
+This documentation-only closeout proposes B-01E `done` and B-02A as the next
+selected `todo`. The proposal remains non-authoritative until the exact
+closeout head is independently reviewed with every blocking finding and
+thread resolved, required PR CI passes, it normally merges under separate
+authorization with the reviewed tree preserved, and exact-main closeout CI
+succeeds. Until that complete gate, B-01E's prior authoritative status remains
+`in_progress` despite any prospective closeout token on a branch or newly
+merged main; B-02A and every later ticket remain `todo` and unstarted. This
+branch does not authorize B-02A implementation.
 
 ---
 
@@ -81,7 +88,7 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | Master questions | Effort | Target |
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
-| B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | in_progress | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
+| B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
 | B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
