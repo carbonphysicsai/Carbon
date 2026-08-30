@@ -21,7 +21,8 @@ Each record must contain:
    inherited failures, and before/after deltas;
 6. invariant and protected-field evidence;
 7. independent reviewer identity/role, exact reviewed head/tree, findings,
-   repairs, rereview state, and separate Accountable reviewer acceptance;
+   repairs, rereview state, Accountable-reviewer routing, and any explicit
+   blocking direction plus its resolution;
 8. separate maturity claims for specification, implementation, testing,
    scientific qualification, security qualification, network qualification,
    commercial validation, and production qualification;
@@ -33,8 +34,11 @@ The implementation merge must preserve the reviewed tree exactly.
 
 After implementation merge and post-merge CI, use a separate documentation
 closeout to fill the merge commit/tree and CI fields, link the completed record
-from the ticket and board, obtain independent closeout review plus Accountable
-reviewer acceptance, and propose `done`. The implementer cannot serve as the
+from the ticket and board, obtain independent closeout review, route the
+candidate to the board's Accountable reviewer, resolve any explicit blocking
+direction, pass required CI, normally merge, and propose `done`. Accountable
+reviewer routing creates no affirmative-response or silence gate under the
+controlling Wave B version 0.4 governance. The implementer cannot serve as the
 independent reviewer.
 
 This directory stores engineering and review evidence. It cannot create

@@ -5,8 +5,11 @@
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.4
 **Selected ticket:** B-01
-**B-01 status:** `in_progress`
-**B-01 development:** bounded orientation/evidence candidate on `agent/b-01-orientation`
+**B-01 status:** closeout candidate proposes `done`; authoritative `in_progress`
+on current `main` until the exact closeout head is independently reviewed and
+normally merged
+**B-01 development:** orientation/evidence merged normally in PR #55; bounded
+documentation closeout on `agent/b-01-closeout`
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -18,9 +21,14 @@
 > **Authority state.** PR #54 normally merged the independently reviewed,
 > green seven-file Wave B governance change as
 > `cce1efec19601d4e460676e9b422cc569b9d66d0`, tree
-> `a270616e2d54401f5c73b408b469d8c9f6a8b1f9`. B-01 began later on its
-> dedicated branch and is now `in_progress`. This status change authorizes no
-> later Wave-B ticket or runtime implementation.
+> `a270616e2d54401f5c73b408b469d8c9f6a8b1f9`. PR #55 then normally merged
+> reviewed B-01 head `82d17a1f2b1f03e27880965d5345bd3fad8811e6`
+> as `1fe980297897faf196e1d1d4fb845846ee08a0b7`; reviewed and merge trees are
+> exactly `138494feaedce3f6e4a338940038d11fb73d383a`, and exact-main push CI
+> `33305214501` succeeded. This documentation-only closeout proposes B-01
+> `done`; that state becomes authoritative only after independent exact-head
+> review and normal merge of the closeout. No later Wave-B ticket is selected
+> or started by this candidate.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -93,8 +101,10 @@ contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
 [`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the selected
-`in_progress` ticket on its dedicated branch. B-02 and every later ticket
-remain `todo` and unstarted.
+ticket. Its orientation/evidence change merged normally, and this separate
+documentation closeout proposes `done`; authoritative merged `main` remains
+`in_progress` until the closeout itself is independently reviewed and normally
+merged. B-02 and every later ticket remain `todo` and unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

@@ -1,7 +1,9 @@
 # Ticket B-01 - Wave B orientation and authority pin
 
 **Wave:** B active in bounded development scope
-**Status:** in_progress
+**Status:** closeout candidate proposes `done`; authoritative `in_progress` on
+current `main` until the exact closeout head is independently reviewed and
+normally merged
 **Depends on:** merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation
 **Build Out:** Wave B orientation; launch `B-01`
 **Master questions:** MQ-018
@@ -30,6 +32,14 @@ Implement B-02 or later work, invent scientific/security/economic values, normal
 [`.agent/ORIENTATION.md`](../ORIENTATION.md) and
 [`.agent/evidence/wave_b/b-01.md`](../evidence/wave_b/b-01.md) contain the
 prospective orientation, canonical conflict ledger, exact commands/results,
-and reviewed ticket crosswalk. Normal merge, exact-head review, post-merge CI,
-and a separate reviewed closeout remain pending; B-01 therefore remains
-`in_progress`.
+and reviewed ticket crosswalk. Final orientation head
+`82d17a1f2b1f03e27880965d5345bd3fad8811e6`, tree
+`138494feaedce3f6e4a338940038d11fb73d383a`, received independent exact-head
+review with no blocking finding left and all three review threads resolved.
+PR #55 normally merged it as
+`1fe980297897faf196e1d1d4fb845846ee08a0b7`, preserving that exact tree, and
+exact-main push CI `33305214501` succeeded. This separate documentation
+closeout therefore proposes `done`; B-01 remains authoritatively `in_progress`
+until the closeout itself is independently reviewed and normally merged. The
+closeout changes documentation/evidence only and starts neither B-01E nor
+B-02A nor any later Wave B implementation.
