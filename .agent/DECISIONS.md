@@ -1,5 +1,95 @@
 # Agent decisions log
 
+## 2026-08-30 — B-01E-D1: Canonical development environment and legacy quarantine
+
+> **Authority timing.** Executive-owner direction on 2026-08-30 authorizes
+> this bounded candidate after B-01's authoritative closeout. The resulting
+> repository changes remain candidate state until exact-head review, required
+> CI, and normal merge. B-01E remains `in_progress`; B-02A and every later
+> ticket remain `todo` and unstarted.
+
+**Affected scope and sequencing.** Insert B-01E between B-01 and B-02A:
+
+```text
+B-01 → B-01E → B-02A
+```
+
+This changes Wave sequencing, development-environment authority, and
+cross-ticket reuse dispositions only. It does not modify public runtime or
+scientific interfaces and creates no scientific, security, economic, network,
+`LIVE`, frontier, product, settlement, weight, emission, launch, commercial,
+or production authority.
+
+**Selected environment.** Ordinary Carbon evidence uses Linux, Ubuntu 24.04
+LTS with glibc, bash, one repository-pinned CPython 3.11 patch, pinned `uv`,
+and committed `uv.lock`. The dev container pins its base/tooling images.
+Native Windows Python is not a canonical evidence platform; Windows and macOS
+are editor/container hosts. A WSL2 clone should live in the Linux filesystem.
+Local and GitHub acceptance share `./scripts/dev/ci.sh` rather than duplicating
+test semantics. A later Python version or compatibility matrix requires a new
+explicit ticket.
+
+**Dependencies.** The default locked environment includes only core Carbon
+and the `dev` group. `science-jax`, `science-torch`, and `chain` are explicit
+optional groups. JAX, Torch, neuraloperator, PhysicsNeMo, Bittensor, Julia,
+CUDA, NVIDIA, and GPU packages are not ordinary documentation, protocol,
+schema, fixture, or core-engineering prerequisites.
+
+**Selected archive model.** Preserve exact pre-quarantine main commit
+`4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
+`9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, under immutable annotated tag
+`archive/pre-wave-b-legacy-2026-08-30` and browsable branch
+`archive/legacy-prototypes`. Both remote refs must be verified before active-
+main removal and must not be force-updated during B-01E.
+
+**Disposition rule.** B-01 remains historical audit input; its classifications
+are not rewritten into retroactive deletion authority. B-01E applies:
+
+- `KEEP` → `KEEP_MAIN`;
+- `WRAP` → keep only when an authorized active/future ticket needs the source
+  directly, otherwise archive;
+- `REPAIR` → keep only when the near-term owner should repair it in place,
+  otherwise archive;
+- `REPLACE` or explicit historical/excluded → `ARCHIVE_REMOVE_MAIN` after
+  dependency proof; and
+- `NEW_OWNER_DECISION_REQUIRED` → `DEFER_OWNER_DECISION`.
+
+Before removal, each path/component must be proven unnecessary to canonical
+implementation, CPU/invariant tests, packaging, default CI, current fixtures,
+active scripts, and current authority files as executable input. A historical
+text reference does not require executable bytes on main. Authoritative or
+evidentiary documents stay when their authority notices remain correct.
+Mixed directories are decided at file/component granularity. No physical
+value, population, threshold, measurement weight, or qualification rule is
+copied, blessed, or reinterpreted by this decision.
+
+**Code-authority invariant.** A repository-native machine-readable record
+names canonical implementation/test roots, exact archive identities, retired
+runtime namespaces, retired executable paths, and exceptions. A semantic
+test fails closed if canonical code/tests import retired namespaces, packaging
+contains retired modules, default CI invokes archived code, or a retired path
+reappears without an owning migration ticket. Existing A12 invariants are not
+weakened.
+
+**Alternatives rejected.** The owner rejected native host Python as equivalent
+evidence; a default multi-Python matrix; independent local and GitHub setup
+logic; default heavy scientific/network/GPU stacks; deletion without archive
+provenance; wholesale removal based only on directory names; retaining all
+historical executables on active main; and repairing obsolete code merely to
+keep it active.
+
+**Reversibility and retrieval.** Removed bytes remain available by exact
+`git show archive/pre-wave-b-legacy-2026-08-30:<path>` or by inspecting branch
+`archive/legacy-prototypes`. A later owner ticket may deliberately port only a
+justified component under then-current authority. Archive presence alone
+grants no implementation authority. Environment evolution requires an
+explicit reviewed change and regenerated lock.
+
+**Lead notification.** Issue #42 is the durable route and mentions designated
+lead `@harshaa765`. Delivery is non-blocking; a lead `REQUEST_CHANGES` review
+or explicit `BLOCKED` direction pauses the affected change. The exact comment
+and draft PR are recorded in `.agent/evidence/wave_b/b-01e.md` when created.
+
 ## 2026-08-29 — Executive Wave B development governance and lead notification
 
 > **Authority timing.** This documentation-only governance candidate changes

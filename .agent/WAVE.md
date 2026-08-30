@@ -3,20 +3,11 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 0.4
-**Selected ticket:** B-01
-**B-01 status:** `done`
-**Correction authority gate:** this status is non-authoritative on the
-correction branch until the
-exact `agent/b-01-closeout-correction` head is independently reviewed with all
-review threads resolved, passes required PR CI, normally merges with the exact
-reviewed tree preserved, and exact-main push CI on that merge succeeds; until
-then the prior merged `main` state remains `in_progress`. The Wave B handoff
-derives ticket selection from exact fetched `origin/main`, never from a
-pull-request branch's prospective status token
-**B-01 development:** orientation/evidence merged normally in PR #55; PR #56
-merged the documentation closeout before its independent review completed and
-therefore requires this bounded status-consistency correction
+**Controlling register:** `.agent/WAVE_B.md` version 0.5
+**Selected ticket:** B-01E
+**B-01E status:** `in_progress`
+**B-01 dependency:** `done`
+**B-02A status:** `todo` / unstarted
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -26,27 +17,20 @@ therefore requires this bounded status-consistency correction
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
 
 > **Authority state.** PR #54 normally merged the independently reviewed,
-> green seven-file Wave B governance change as
-> `cce1efec19601d4e460676e9b422cc569b9d66d0`, tree
-> `a270616e2d54401f5c73b408b469d8c9f6a8b1f9`. PR #55 then normally merged
-> reviewed B-01 head `82d17a1f2b1f03e27880965d5345bd3fad8811e6`
-> as `1fe980297897faf196e1d1d4fb845846ee08a0b7`; reviewed and merge trees are
-> exactly `138494feaedce3f6e4a338940038d11fb73d383a`, and exact-main push CI
-> `33305214501` succeeded. PR #56 then merged closeout head
-> `69dc16a96bc22b6f2e46c6f2bf45c3b9233b8455` as
-> `d03e1e0e23005d2d61381bea3847b248d73d4fd4`, tree
-> `7fdd5feb2559f5311412b14a5c9a21d55ec1733f`; exact-main push CI
-> `33306558958` succeeded. Its independent review completed only after merge
-> and left one valid unresolved P1 because the board said `done` while this
-> wave, the ticket, and the evidence still said authoritative `in_progress`.
-> This bounded correction makes every B-01 status-bearing record uniformly propose
-> `done`. The transition becomes authoritative only after the exact correction
-> head is independently reviewed with zero unresolved review threads, required
-> PR CI passes, the correction normally merges with the exact reviewed tree
-> preserved, and exact-main push CI on that merge succeeds. The handoff now
-> requires ticket selection from exact fetched `origin/main`, so this branch's
-> prospective `done` tokens cannot advance work. No later Wave-B ticket is
-> selected or started by this candidate.
+> green version 0.4 Wave B governance tree. PR #55 normally merged the reviewed
+> B-01 orientation/evidence implementation, and PR #56 merged its initial
+> closeout before review completed. The bounded correction at independently
+> reviewed head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree
+> `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, resolved that status mismatch
+> with zero unresolved review threads and exact-head CI `33308009899` green.
+> It normally merged in PR #57 as
+> `4ee58d56862d0441d5d151d79db1fe3036f1025d`; the merge tree equals the
+> reviewed tree exactly, and exact-main CI `33308165189` passed. B-01 is
+> therefore authoritatively `done`. Executive-owner direction dated
+> 2026-08-30 inserts B-01E as the sole selected `in_progress` ticket. B-02A
+> and every later Wave B ticket remain `todo` and unstarted. B-01E's candidate
+> status becomes authoritative only through its own normal review/merge and
+> later closeout gates.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -113,21 +97,17 @@ planning and sequencing authority until a prospective, reviewed, green, and
 normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
 does not authorize implementation by itself.
 
-Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.4 the
-controlling Wave B dependency board. Its architecture
+Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.4 the initial
+controlling Wave B dependency board. Version 0.5 records the owner-directed
+B-01E insertion without changing the Wave B scientific architecture
+contract. Its architecture
 contract remains version 0.3 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
-[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). B-01 is the selected
-ticket. Its orientation/evidence change merged normally in PR #55. PR #56
-merged its documentation closeout before review completed; the post-merge
-review exposed a valid status disagreement between this wave, the board, the
-ticket, and the evidence. This correction uniformly proposes B-01 `done` and
-is non-authoritative until its exact head is independently reviewed with zero
-unresolved review threads, passes required PR CI, normally merges with the
-exact reviewed tree preserved, and exact-main push CI on that merge succeeds.
-The handoff derives selection from exact fetched `origin/main`, not candidate
-branch status fields. B-02A and every later ticket remain `todo` and unstarted.
+[`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). The current sequence is
+`B-01 done → B-01E selected/in_progress → B-02A todo`. B-01E owns only the
+canonical development environment and legacy executable quarantine. B-02A
+and every later ticket remain `todo` and unstarted.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes
@@ -147,7 +127,12 @@ A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effo
 ## Notes
 
 - Do not mark done without test/file/review evidence.
-- Before/after each ticket: run the required baseline pytest/PoC smoke.
+- During B-01E development, run the explicitly recorded transition evidence.
+  After B-01E merges, ordinary ticket evidence runs through
+  `./scripts/dev/ci.sh` in the canonical Linux environment. Native-Windows
+  diagnostics and archived PoC, Julia, network, JAX, chain, GPU, or other
+  legacy validation are required only when the selected ticket explicitly
+  owns that environment or archived component.
 - Wave-A `done` state and `.agent/WAVE_A_REPORT.md` are authoritative through
   the normally merged PR #52 closeout, only in their bounded engineering scope.
 - Do not convert fixture/stub success into scientific, security, network, commercial, or production qualification claims.

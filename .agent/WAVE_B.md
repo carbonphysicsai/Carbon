@@ -1,26 +1,18 @@
 # Carbon Wave B Board
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 0.4
-**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. That merge satisfied B-01's explicit activation dependency. PR #55 later normally merged the independently reviewed B-01 orientation/evidence tree and exact-main CI succeeded. PR #56 merged the documentation closeout before its independent review completed; the post-merge review left one valid unresolved P1 because this board alone said `done`. This bounded correction makes the wave, board, ticket, and evidence uniformly propose B-01 `done`. That proposal is non-authoritative until the exact correction head is independently reviewed with zero unresolved review threads, passes required PR CI, normally merges with the exact reviewed tree preserved, and exact-main push CI on that merge succeeds. The Wave B handoff derives ticket selection from exact fetched `origin/main`, not a pull-request branch's prospective status fields. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Version:** 0.5
+**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserts the owner-directed B-01E infrastructure ticket without changing the Wave B scientific architecture contract. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
 **Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
 
-Authority comes from the merged active `.agent/WAVE.md` and the selected ticket,
-not this file alone or prior role approval. This version 0.4 governance change
-did not itself start B-01. B-01 began later through its own bounded ticket
-branch and remained subject to the ticket's specifications, dependencies,
-invariants, tests, review, and merge process. The `done` row below is the
-prospective state proposed uniformly by the bounded closeout correction; it
-has no authority from a branch or open pull request. It becomes authoritative
-only when the exact correction head satisfies independent review, blocker
-resolution with zero unresolved review threads, required PR CI, normal merge
-with the exact reviewed tree preserved, and successful exact-main push CI on
-that merge. The handoff reads exact fetched `origin/main` for selection, so
-this prospective board row cannot advance work. This candidate does not select
-or start B-02A or any later ticket.
+Authority comes from the merged active `.agent/WAVE.md` and selected ticket,
+not this file alone or prior role approval. B-01 is authoritatively `done`.
+B-01E is the sole selected `in_progress` candidate and remains subject to its
+specifications, invariants, tests, review, merge, exact-main CI, and separate
+closeout. This candidate does not select or start B-02A or any later ticket.
 
 ---
 
@@ -89,7 +81,8 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | Master questions | Effort | Target |
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
-| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01 | MQ-001, MQ-002 | L | WB-1 |
+| B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | in_progress | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
+| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | todo | — | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | todo | — | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
@@ -111,9 +104,9 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-E2 | Julia/reference failure contract | todo | — | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | todo | — | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
 | B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | todo | — | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
-| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
+| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
 
-Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. The decomposed board totals roughly **72-120 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **45-76 elapsed engineering days (9-16 working weeks)**. A single lane is approximately **15-24 working weeks**. Scientific/security/rights decisions, review queueing, and later qualification are additional.
+Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. Including the owner-directed B-01E insertion, the decomposed board totals roughly **76-127 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **49-83 elapsed engineering days (10-17 working weeks)**. A single lane is approximately **16-26 working weeks**. These are planning estimates, not calendar commitments; scientific/security/rights decisions, review queueing, and later qualification are additional.
 
 `WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.3 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
 
@@ -122,7 +115,7 @@ Effort uses the launch-plan scale: S is at most one primary-lane day, M is two t
 ## 4. Dependency order
 
 ```text
-B-01 → B-02A
+B-01 → B-01E → B-02A
 B-02A → B-03
 B-02A → B-04
 B-02A → B-07R
@@ -149,6 +142,7 @@ B-03, B-04, and B-02B may proceed in parallel only after their individual contra
 | Retired launch v1.0.1 umbrella | Controlling Wave B decomposition |
 |---|---|
 | `B-01` | B-01 |
+| — owner-directed 2026-08-30 infrastructure insertion | B-01E |
 | `B-02` | B-02A, B-02B, B-02C |
 | `B-03` through `B-06` | B-03 through B-06 |
 | `B-07` | B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G |
