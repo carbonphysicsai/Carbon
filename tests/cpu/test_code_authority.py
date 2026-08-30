@@ -92,6 +92,14 @@ def _wheel_contains_namespace(name: str, namespace: str) -> bool:
     )
 
 
+def _contains_executable_material(path: Path) -> bool:
+    if path.is_file() or path.is_symlink():
+        return True
+    return path.is_dir() and any(
+        candidate.is_file() or candidate.is_symlink() for candidate in path.rglob("*")
+    )
+
+
 def test_authority_record_is_closed_and_archive_tag_is_exact() -> None:
     authority = _authority()
     assert set(authority) == {
@@ -152,7 +160,11 @@ def test_authority_lists_are_sorted_unique_and_disjoint() -> None:
 
 def test_retired_executable_paths_are_absent_from_active_main() -> None:
     retired_paths = _authority()["retired"]["executable_paths"]
-    unexpected = [path for path in retired_paths if (REPOSITORY_ROOT / path).exists()]
+    unexpected = [
+        path
+        for path in retired_paths
+        if _contains_executable_material(REPOSITORY_ROOT / path)
+    ]
     assert unexpected == []
 
 

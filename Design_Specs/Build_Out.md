@@ -499,7 +499,14 @@ MCP. Audit its primitives under KEEP → WRAP → REPAIR → REPLACE before any
 Wave-C reuse. PoC green alone does not promote a TrainEval backend, prove
 isolation, or establish scientific/production qualification.
 
-**Layout:** Prefer mapping `poc/` + `Carbon_Logic/` over forced rename. Interfaces > directory cosmetics.
+**Layout (historical P0 guidance):** Prefer mapping `poc/` +
+`Carbon_Logic/` over forced rename. Interfaces > directory cosmetics.
+
+**B-01E active-tree reconciliation (2026-08-30):** B-01 completed that
+component mapping. Superseded executable prototypes now remain retrievable
+from `archive/pre-wave-b-legacy-2026-08-30` and are indexed in
+`docs/history/LEGACY_CODE_INDEX.md`, rather than remaining executable on
+active main. Archive presence grants no current implementation authority.
 
 ---
 

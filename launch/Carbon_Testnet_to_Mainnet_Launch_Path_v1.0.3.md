@@ -493,7 +493,11 @@ Repository sources reviewed at the baseline commit:
 
 - docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md; IMPLEMENTED_VS_SPECIFIED_CURRENT.md; MASTER_OPEN_DESIGN_QUESTIONS.md
 
-- pyproject.toml; .github/workflows/ci.yml; carbon/; neurons/; docker/; k8s/; tests/cpu/
+- pyproject.toml; .github/workflows/ci.yml; current `carbon/`; tests/cpu/;
+  historical `neurons/`, `docker/`, and `k8s/` at
+  `archive/pre-wave-b-legacy-2026-08-30` via
+  `docs/history/LEGACY_CODE_INDEX.md` (archive presence grants no current
+  implementation or launch authority)
 
 Current official Bittensor documentation reviewed:
 
