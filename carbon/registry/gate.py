@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hmac
+import os
 from dataclasses import dataclass, replace
+from typing import Protocol
 
 from carbon.registry.digest import (
     ArtifactAccessError,
@@ -15,6 +17,8 @@ from carbon.registry.model import (
     ChallengeKey,
     ChallengeRecord,
     QualificationEvidence,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringReason,
     validate_canonical_identifier,
 )
 from carbon.registry.store import RegistryError, RegistryStore
@@ -61,6 +65,19 @@ class LiveActivationError(RegistryError):
         )
 
 
+class ScientificAuthoringVerifier(Protocol):
+    """A3-owned one-way seam for exact B-02A structural graph verification."""
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        """Verify the exact graph pinned by key and fingerprint without activation."""
+        ...
+
+
 def _reason(code: str, path: str, message: str) -> EligibilityReason:
     return EligibilityReason(code=code, path=path, message=message)
 
@@ -75,6 +92,117 @@ def _is_placeholder(value: str | None) -> bool:
 
 class ChallengeRegistry(RegistryStore):
     """Configured file store plus exact-version LIVE and compatibility APIs."""
+
+    def __init__(
+        self,
+        registry_root: str | os.PathLike[str],
+        artifact_root: str | os.PathLike[str],
+        *,
+        scientific_authoring_verifier: ScientificAuthoringVerifier | None = None,
+    ) -> None:
+        super().__init__(registry_root, artifact_root)
+        self._scientific_authoring_verifier = scientific_authoring_verifier
+
+    def _assess_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+    ) -> tuple[EligibilityReason, ...]:
+        verifier = self._scientific_authoring_verifier
+        if verifier is None:
+            return (
+                _reason(
+                    "scientific_authoring.verifier_missing",
+                    "/scientific_authoring",
+                    "A scientific-authoring verifier is required for production.",
+                ),
+            )
+
+        provider_key = ChallengeKey(
+            challenge_key.challenge_id,
+            challenge_key.version,
+        )
+        try:
+            result = verifier.verify_scientific_authoring(
+                provider_key,
+                expected_graph_fingerprint,
+            )
+        except Exception:  # noqa: BLE001 - provider failures are non-echoing.
+            return (
+                _reason(
+                    "scientific_authoring.verifier_failed",
+                    "/scientific_authoring",
+                    "Scientific-authoring verification failed closed.",
+                ),
+            )
+
+        if type(result) is not ScientificAuthoringEligibility:
+            return (
+                _reason(
+                    "scientific_authoring.result_invalid",
+                    "/scientific_authoring",
+                    "Scientific-authoring verification returned an invalid result.",
+                ),
+            )
+        try:
+            result = ScientificAuthoringEligibility(
+                challenge_key=result.challenge_key,
+                graph_fingerprint=result.graph_fingerprint,
+                graph_origin=result.graph_origin,
+                complete=result.complete,
+                revoked=result.revoked,
+                reasons=result.reasons,
+            )
+        except Exception:  # noqa: BLE001 - malformed results are non-echoing.
+            return (
+                _reason(
+                    "scientific_authoring.result_invalid",
+                    "/scientific_authoring",
+                    "Scientific-authoring verification returned an invalid result.",
+                ),
+            )
+        if result.challenge_key != provider_key:
+            return (
+                _reason(
+                    "scientific_authoring.challenge_key_mismatch",
+                    "/scientific_authoring/challenge_key",
+                    "Scientific-authoring verification is bound to another Challenge.",
+                ),
+            )
+        if not hmac.compare_digest(
+            result.graph_fingerprint,
+            expected_graph_fingerprint,
+        ):
+            return (
+                _reason(
+                    "scientific_authoring.graph_fingerprint_provider_mismatch",
+                    "/scientific_authoring/graph_fingerprint",
+                    "Scientific-authoring verification resolved another graph.",
+                ),
+            )
+
+        reason_details = {
+            ScientificAuthoringReason.GRAPH_INCOMPLETE: (
+                "scientific_authoring.graph_incomplete",
+                "The scientific-authoring graph is incomplete.",
+            ),
+            ScientificAuthoringReason.GRAPH_FIXTURE_DERIVED: (
+                "scientific_authoring.fixture_derived",
+                "Fixture-derived scientific authoring is blocked from production.",
+            ),
+            ScientificAuthoringReason.GRAPH_DRAFT_OR_UNRESOLVED: (
+                "scientific_authoring.draft_or_unresolved",
+                "Draft or unresolved scientific authoring is blocked from production.",
+            ),
+            ScientificAuthoringReason.GRAPH_REVOKED: (
+                "scientific_authoring.revoked",
+                "Revoked scientific authoring is blocked from new production use.",
+            ),
+        }
+        return tuple(
+            _reason(code, "/scientific_authoring", message)
+            for code, message in (reason_details[reason] for reason in result.reasons)
+        )
 
     def assess_live_eligibility(
         self,
@@ -229,6 +357,51 @@ class ChallengeRegistry(RegistryStore):
                         "Production LIVE requires at least one allowed backbone.",
                     )
                 )
+
+            record_graph_fingerprint = record.scientific_authoring_graph_fingerprint
+            manifest_graph_fingerprint = (
+                manifest.scientific_authoring_graph_fingerprint
+                if manifest is not None
+                else None
+            )
+            if record_graph_fingerprint is None:
+                reasons.append(
+                    _reason(
+                        "scientific_authoring.graph_fingerprint_missing",
+                        "/scientific_authoring_graph_fingerprint",
+                        "Production requires an exact scientific-authoring graph pin.",
+                    )
+                )
+            if manifest is not None and manifest_graph_fingerprint is None:
+                reasons.append(
+                    _reason(
+                        "scientific_authoring.qualification_graph_fingerprint_missing",
+                        ("/qualification/scientific_authoring_graph_fingerprint"),
+                        "Production qualification must bind the exact authoring graph.",
+                    )
+                )
+            if (
+                record_graph_fingerprint is not None
+                and manifest_graph_fingerprint is not None
+            ):
+                if not hmac.compare_digest(
+                    record_graph_fingerprint,
+                    manifest_graph_fingerprint,
+                ):
+                    reasons.append(
+                        _reason(
+                            "scientific_authoring.graph_fingerprint_mismatch",
+                            ("/qualification/scientific_authoring_graph_fingerprint"),
+                            "Qualification is bound to another authoring graph.",
+                        )
+                    )
+                else:
+                    reasons.extend(
+                        self._assess_scientific_authoring(
+                            record.key,
+                            record_graph_fingerprint,
+                        )
+                    )
 
         if manifest is not None:
             # 3. Required slots, always in the canonical eight-slot order.
@@ -399,10 +572,7 @@ class ChallengeRegistry(RegistryStore):
                 reasons.append(
                     _reason(
                         "receipt_schema.binding_mismatch",
-                        (
-                            "/qualification/slots/mcp_readiness/"
-                            "receipt_schema_version"
-                        ),
+                        ("/qualification/slots/mcp_readiness/receipt_schema_version"),
                         "Receipt schema evidence does not match the record binding.",
                     )
                 )
@@ -418,10 +588,7 @@ class ChallengeRegistry(RegistryStore):
                 reasons.append(
                     _reason(
                         "receipt_schema.evidence_placeholder",
-                        (
-                            "/qualification/slots/mcp_readiness/"
-                            "receipt_schema_version"
-                        ),
+                        ("/qualification/slots/mcp_readiness/receipt_schema_version"),
                         "Placeholder receipt evidence is blocked from production.",
                     )
                 )

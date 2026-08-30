@@ -28,6 +28,9 @@ from carbon.registry import (
     QualificationEvidence,
     QualificationManifest,
     RegistryError,
+    ScientificAuthoringEligibility,
+    ScientificAuthoringGraphOrigin,
+    ScientificAuthoringReason,
     is_sha256_digest,
     read_verified_artifact_bytes,
     serialize_record,
@@ -41,6 +44,12 @@ VERSION = "1.0"
 ARTIFACT_ID = "qualification_bundle"
 ARTIFACT_PATH = f"{CHALLENGE_ID}/{VERSION}/qualification/bundle.json"
 ARTIFACT_BYTES = b"synthetic A3 structure-only evidence\n"
+GRAPH_FINGERPRINT = (
+    "sha256:8c2df7376355d0d4e5339f83d9bf780e26e8ec75f76203d922921c9121b4ce01"
+)
+OTHER_GRAPH_FINGERPRINT = (
+    "sha256:b83fbf27cafb4c80ef0fc1a39b9d936a3a826149266cc42b7440fccadbbd4582"
+)
 
 
 class _StringSubclass(str):
@@ -51,14 +60,79 @@ class _IntegerSubclass(int):
     pass
 
 
+class _ChallengeKeySubclass(ChallengeKey):
+    pass
+
+
+class _TrustedScientificAuthoringVerifier:
+    """Test-only structural verifier; it grants no scientific qualification."""
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        assert expected_graph_fingerprint == GRAPH_FINGERPRINT
+        return ScientificAuthoringEligibility(
+            challenge_key=challenge_key,
+            graph_fingerprint=expected_graph_fingerprint,
+            graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            complete=True,
+            revoked=False,
+            reasons=(),
+        )
+
+
+class _StaticScientificAuthoringVerifier:
+    def __init__(self, result: object) -> None:
+        self.result = result
+        self.calls: list[tuple[ChallengeKey, str]] = []
+
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> object:
+        self.calls.append((challenge_key, expected_graph_fingerprint))
+        return self.result
+
+
+class _FailingScientificAuthoringVerifier:
+    def verify_scientific_authoring(
+        self,
+        challenge_key: ChallengeKey,
+        expected_graph_fingerprint: str,
+        /,
+    ) -> ScientificAuthoringEligibility:
+        del challenge_key, expected_graph_fingerprint
+        raise RuntimeError("protected provider detail")
+
+
+class _ScientificAuthoringEligibilitySubclass(ScientificAuthoringEligibility):
+    pass
+
+
 def _digest(value: bytes) -> str:
     return f"sha256:{hashlib.sha256(value).hexdigest()}"
 
 
 def _registry(tmp_path: Path) -> ChallengeRegistry:
+    return _registry_with_verifier(tmp_path, _TrustedScientificAuthoringVerifier())
+
+
+def _registry_with_verifier(
+    tmp_path: Path,
+    verifier: object | None,
+) -> ChallengeRegistry:
     artifact_root = tmp_path / "artifacts"
     artifact_root.mkdir()
-    return ChallengeRegistry(tmp_path / "registry", artifact_root)
+    return ChallengeRegistry(
+        tmp_path / "registry",
+        artifact_root,
+        scientific_authoring_verifier=verifier,  # type: ignore[arg-type]
+    )
 
 
 def _write_artifact(
@@ -85,6 +159,8 @@ def _complete_record(
     artifact_digest: str | None = None,
     write_artifact: bool = True,
     allowed_backbones: tuple[str, ...] = ("fno", "future_operator"),
+    graph_fingerprint: str | None = GRAPH_FINGERPRINT,
+    qualification_graph_fingerprint: str | None = GRAPH_FINGERPRINT,
 ) -> ChallengeRecord:
     if write_artifact:
         target = _write_artifact(registry, path=artifact_path)
@@ -117,8 +193,10 @@ def _complete_record(
             challenge_id=challenge_id,
             challenge_version=version,
             mode=mode,
+            scientific_authoring_graph_fingerprint=(qualification_graph_fingerprint),
             slots=slots,
         ),
+        scientific_authoring_graph_fingerprint=graph_fingerprint,
     )
 
 
@@ -205,7 +283,11 @@ def _activation_worker(
                     raise TimeoutError("activation test was not released")
             super()._atomic_write(record)
 
-    registry = PausingRegistry(registry_root, artifact_root)
+    registry = PausingRegistry(
+        registry_root,
+        artifact_root,
+        scientific_authoring_verifier=_TrustedScientificAuthoringVerifier(),
+    )
     activated = registry.activate_live(CHALLENGE_ID, VERSION)
     results.put(("activation", activated.status))
 
@@ -266,6 +348,370 @@ def test_models_are_frozen_and_nested_maps_are_read_only(tmp_path: Path) -> None
         record.artifacts["other"] = ArtifactBinding()  # type: ignore[index]
 
 
+def test_scientific_authoring_eligibility_is_exact_and_defensively_reconstructed() -> (
+    None
+):
+    source_key = ChallengeKey(CHALLENGE_ID, VERSION)
+    result = ScientificAuthoringEligibility(
+        challenge_key=source_key,
+        graph_fingerprint=GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    assert result.eligible
+    assert result.challenge_key == source_key
+    assert result.challenge_key is not source_key
+    with pytest.raises(FrozenInstanceError):
+        result.complete = False  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    (
+        (
+            "challenge_key",
+            SimpleNamespace(challenge_id=CHALLENGE_ID, version=VERSION),
+            TypeError,
+        ),
+        ("challenge_key", _ChallengeKeySubclass(CHALLENGE_ID, VERSION), TypeError),
+        ("graph_fingerprint", "sha256:not-a-digest", ValueError),
+        ("graph_fingerprint", _StringSubclass(GRAPH_FINGERPRINT), ValueError),
+        ("graph_fingerprint", 1, ValueError),
+        ("graph_origin", "REGISTERED_GRAPH", TypeError),
+        ("complete", 1, TypeError),
+        ("revoked", 0, TypeError),
+        ("reasons", [ScientificAuthoringReason.GRAPH_INCOMPLETE], TypeError),
+        ("reasons", ("graph.incomplete",), TypeError),
+        ("reasons", (ScientificAuthoringReason.GRAPH_REVOKED,), ValueError),
+    ),
+)
+def test_scientific_authoring_eligibility_rejects_inexact_or_inconsistent_state(
+    field: str,
+    value: object,
+    error: type[Exception],
+) -> None:
+    arguments: dict[str, object] = {
+        "challenge_key": ChallengeKey(CHALLENGE_ID, VERSION),
+        "graph_fingerprint": GRAPH_FINGERPRINT,
+        "graph_origin": ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        "complete": True,
+        "revoked": False,
+        "reasons": (),
+    }
+    arguments[field] = value
+    with pytest.raises(error):
+        ScientificAuthoringEligibility(**arguments)  # type: ignore[arg-type]
+
+
+def test_missing_scientific_authoring_verifier_fails_every_production_path(
+    tmp_path: Path,
+) -> None:
+    registry = _registry_with_verifier(tmp_path, None)
+    registry.save(_complete_record(registry))
+
+    assessment = registry.assess_live_eligibility(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in assessment.reasons) == (
+        "scientific_authoring.verifier_missing",
+    )
+    assert not registry.can_go_live(CHALLENGE_ID, VERSION)
+    with pytest.raises(LiveActivationError) as captured:
+        registry.activate_live(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in captured.value.eligibility.reasons) == (
+        "scientific_authoring.verifier_missing",
+    )
+
+    _store_live_directly(registry, registry.load(CHALLENGE_ID, VERSION))
+    assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
+
+
+def test_scientific_authoring_verifier_exception_fails_closed_without_detail(
+    tmp_path: Path,
+) -> None:
+    registry = _registry_with_verifier(
+        tmp_path,
+        _FailingScientificAuthoringVerifier(),
+    )
+    registry.save(_complete_record(registry))
+    assessment = registry.assess_live_eligibility(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in assessment.reasons) == (
+        "scientific_authoring.verifier_failed",
+    )
+    rendered = " ".join(reason.message for reason in assessment.reasons)
+    assert "protected provider detail" not in rendered
+
+
+@pytest.mark.parametrize("subclass_result", (False, True))
+def test_wrong_scientific_authoring_result_exact_type_fails_closed(
+    tmp_path: Path,
+    subclass_result: bool,
+) -> None:
+    if subclass_result:
+        result: object = _ScientificAuthoringEligibilitySubclass(
+            challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+            graph_fingerprint=GRAPH_FINGERPRINT,
+            graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            complete=True,
+            revoked=False,
+            reasons=(),
+        )
+    else:
+        result = SimpleNamespace(eligible=True)
+    registry = _registry_with_verifier(
+        tmp_path,
+        _StaticScientificAuthoringVerifier(result),
+    )
+    registry.save(_complete_record(registry))
+    assert _reason_codes(registry) == ("scientific_authoring.result_invalid",)
+
+
+def test_forged_exact_scientific_authoring_result_is_reconstructed_and_rejected(
+    tmp_path: Path,
+) -> None:
+    result = object.__new__(ScientificAuthoringEligibility)
+    object.__setattr__(
+        result,
+        "challenge_key",
+        ChallengeKey(CHALLENGE_ID, VERSION),
+    )
+    object.__setattr__(result, "graph_fingerprint", GRAPH_FINGERPRINT)
+    object.__setattr__(result, "graph_origin", "REGISTERED_GRAPH")
+    object.__setattr__(result, "complete", True)
+    object.__setattr__(result, "revoked", False)
+    object.__setattr__(result, "reasons", ())
+    registry = _registry_with_verifier(
+        tmp_path,
+        _StaticScientificAuthoringVerifier(result),
+    )
+    registry.save(_complete_record(registry))
+    assert _reason_codes(registry) == ("scientific_authoring.result_invalid",)
+
+
+def test_forged_provider_fingerprint_wrong_type_fails_closed(
+    tmp_path: Path,
+) -> None:
+    result = object.__new__(ScientificAuthoringEligibility)
+    object.__setattr__(result, "challenge_key", ChallengeKey(CHALLENGE_ID, VERSION))
+    object.__setattr__(result, "graph_fingerprint", 1)
+    object.__setattr__(
+        result,
+        "graph_origin",
+        ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+    )
+    object.__setattr__(result, "complete", True)
+    object.__setattr__(result, "revoked", False)
+    object.__setattr__(result, "reasons", ())
+    registry = _registry_with_verifier(
+        tmp_path,
+        _StaticScientificAuthoringVerifier(result),
+    )
+    registry.save(_complete_record(registry))
+    assert _reason_codes(registry) == ("scientific_authoring.result_invalid",)
+
+
+def test_scientific_authoring_result_key_must_match_exact_challenge(
+    tmp_path: Path,
+) -> None:
+    result = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey("other_challenge", VERSION),
+        graph_fingerprint=GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    registry = _registry_with_verifier(
+        tmp_path,
+        _StaticScientificAuthoringVerifier(result),
+    )
+    registry.save(_complete_record(registry))
+    assert _reason_codes(registry) == ("scientific_authoring.challenge_key_mismatch",)
+
+
+def test_scientific_authoring_result_fingerprint_must_match_exact_pin(
+    tmp_path: Path,
+) -> None:
+    result = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+        graph_fingerprint=OTHER_GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    verifier = _StaticScientificAuthoringVerifier(result)
+    registry = _registry_with_verifier(tmp_path, verifier)
+    registry.save(_complete_record(registry))
+
+    assert _reason_codes(registry) == (
+        "scientific_authoring.graph_fingerprint_provider_mismatch",
+    )
+    assert verifier.calls == [(ChallengeKey(CHALLENGE_ID, VERSION), GRAPH_FINGERPRINT)]
+
+
+@pytest.mark.parametrize(
+    ("record_pin", "qualification_pin", "expected_code"),
+    (
+        (
+            None,
+            GRAPH_FINGERPRINT,
+            "scientific_authoring.graph_fingerprint_missing",
+        ),
+        (
+            GRAPH_FINGERPRINT,
+            None,
+            "scientific_authoring.qualification_graph_fingerprint_missing",
+        ),
+        (
+            GRAPH_FINGERPRINT,
+            OTHER_GRAPH_FINGERPRINT,
+            "scientific_authoring.graph_fingerprint_mismatch",
+        ),
+    ),
+)
+def test_scientific_authoring_graph_pins_fail_every_production_path(
+    tmp_path: Path,
+    record_pin: str | None,
+    qualification_pin: str | None,
+    expected_code: str,
+) -> None:
+    registry = _registry(tmp_path)
+    registry.save(
+        _complete_record(
+            registry,
+            graph_fingerprint=record_pin,
+            qualification_graph_fingerprint=qualification_pin,
+        )
+    )
+
+    assert _reason_codes(registry) == (expected_code,)
+    assert not registry.can_go_live(CHALLENGE_ID, VERSION)
+    with pytest.raises(LiveActivationError) as captured:
+        registry.activate_live(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in captured.value.eligibility.reasons) == (
+        expected_code,
+    )
+
+    _store_live_directly(registry, registry.load(CHALLENGE_ID, VERSION))
+    assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
+
+
+def test_same_challenge_key_graph_substitution_fails_stored_live_revalidation(
+    tmp_path: Path,
+) -> None:
+    initial = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+        graph_fingerprint=GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    verifier = _StaticScientificAuthoringVerifier(initial)
+    registry = _registry_with_verifier(tmp_path, verifier)
+    registry.save(_complete_record(registry))
+    assert registry.activate_live(CHALLENGE_ID, VERSION).status == "live"
+
+    verifier.result = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+        graph_fingerprint=OTHER_GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
+    assert _reason_codes(registry) == (
+        "scientific_authoring.graph_fingerprint_provider_mismatch",
+    )
+
+
+@pytest.mark.parametrize(
+    ("graph_origin", "complete", "revoked", "reasons", "expected_code"),
+    (
+        (
+            ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            False,
+            False,
+            (ScientificAuthoringReason.GRAPH_INCOMPLETE,),
+            "scientific_authoring.graph_incomplete",
+        ),
+        (
+            ScientificAuthoringGraphOrigin.FIXTURE_DERIVED,
+            True,
+            False,
+            (ScientificAuthoringReason.GRAPH_FIXTURE_DERIVED,),
+            "scientific_authoring.fixture_derived",
+        ),
+        (
+            ScientificAuthoringGraphOrigin.DRAFT_OR_UNRESOLVED,
+            True,
+            False,
+            (ScientificAuthoringReason.GRAPH_DRAFT_OR_UNRESOLVED,),
+            "scientific_authoring.draft_or_unresolved",
+        ),
+        (
+            ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+            True,
+            True,
+            (ScientificAuthoringReason.GRAPH_REVOKED,),
+            "scientific_authoring.revoked",
+        ),
+    ),
+)
+def test_ineligible_scientific_authoring_graph_states_fail_closed(
+    tmp_path: Path,
+    graph_origin: ScientificAuthoringGraphOrigin,
+    complete: bool,
+    revoked: bool,
+    reasons: tuple[ScientificAuthoringReason, ...],
+    expected_code: str,
+) -> None:
+    result = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+        graph_fingerprint=GRAPH_FINGERPRINT,
+        graph_origin=graph_origin,
+        complete=complete,
+        revoked=revoked,
+        reasons=reasons,
+    )
+    registry = _registry_with_verifier(
+        tmp_path,
+        _StaticScientificAuthoringVerifier(result),
+    )
+    registry.save(_complete_record(registry))
+    assert _reason_codes(registry) == (expected_code,)
+
+
+def test_scientific_authoring_verifier_is_rechecked_on_every_production_path(
+    tmp_path: Path,
+) -> None:
+    result = ScientificAuthoringEligibility(
+        challenge_key=ChallengeKey(CHALLENGE_ID, VERSION),
+        graph_fingerprint=GRAPH_FINGERPRINT,
+        graph_origin=ScientificAuthoringGraphOrigin.REGISTERED_GRAPH,
+        complete=True,
+        revoked=False,
+        reasons=(),
+    )
+    verifier = _StaticScientificAuthoringVerifier(result)
+    registry = _registry_with_verifier(tmp_path, verifier)
+    registry.save(_complete_record(registry))
+
+    assert registry.assess_live_eligibility(CHALLENGE_ID, VERSION).eligible
+    assert registry.can_go_live(CHALLENGE_ID, VERSION)
+    assert registry.activate_live(CHALLENGE_ID, VERSION).status == "live"
+    assert registry.is_effectively_live(CHALLENGE_ID, VERSION)
+    assert (
+        verifier.calls == [(ChallengeKey(CHALLENGE_ID, VERSION), GRAPH_FINGERPRINT)] * 4
+    )
+    assert all(
+        type(key) is ChallengeKey and fingerprint == GRAPH_FINGERPRINT
+        for key, fingerprint in verifier.calls
+    )
+
+
 @pytest.mark.parametrize("missing", ("challenge_id", "version"))
 def test_missing_identity_field_is_rejected(tmp_path: Path, missing: str) -> None:
     registry = _registry(tmp_path)
@@ -298,6 +744,83 @@ def test_fixture_origin_must_be_a_boolean(tmp_path: Path) -> None:
         registry.load(CHALLENGE_ID, VERSION)
     assert captured.value.code == "record.field_type"
     assert captured.value.path == "/fixture_origin"
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "",
+        "0" * 64,
+        "sha256:ABCDEF" + "0" * 58,
+        "sha256:" + "0" * 63,
+        _StringSubclass(GRAPH_FINGERPRINT),
+        1,
+        True,
+    ),
+)
+@pytest.mark.parametrize("target", ("record", "manifest"))
+def test_graph_fingerprint_model_rejects_hostile_values(
+    value: object,
+    target: str,
+) -> None:
+    if target == "record":
+        with pytest.raises(ValueError):
+            ChallengeRecord(
+                CHALLENGE_ID,
+                VERSION,
+                fixture_origin=False,
+                scientific_authoring_graph_fingerprint=value,  # type: ignore[arg-type]
+            )
+    else:
+        with pytest.raises(ValueError):
+            QualificationManifest(
+                scientific_authoring_graph_fingerprint=value,  # type: ignore[arg-type]
+            )
+
+
+@pytest.mark.parametrize("target", ("record", "manifest"))
+@pytest.mark.parametrize("value", (1, True, [], {}))
+def test_graph_fingerprint_json_rejects_non_string_values(
+    tmp_path: Path,
+    target: str,
+    value: object,
+) -> None:
+    registry = _registry(tmp_path)
+    payload = _stored_object(_complete_record(registry))
+    if target == "record":
+        payload["scientific_authoring_graph_fingerprint"] = value
+        expected_path = "/scientific_authoring_graph_fingerprint"
+    else:
+        payload["qualification"]["scientific_authoring_graph_fingerprint"] = value
+        expected_path = "/qualification/scientific_authoring_graph_fingerprint"
+    _write_raw_record(registry, payload)
+
+    with pytest.raises(RegistryError) as captured:
+        registry.load(CHALLENGE_ID, VERSION)
+    if type(value) is int:
+        # The strict JSON decoder rejects every JSON number before field parsing.
+        assert captured.value.code == "json.invalid"
+        assert captured.value.path == ""
+    else:
+        assert captured.value.code == "record.field_type"
+        assert captured.value.path == expected_path
+
+
+def test_graph_fingerprint_serialization_roundtrip_is_exact(tmp_path: Path) -> None:
+    registry = _registry(tmp_path)
+    record = _complete_record(registry)
+    rendered = serialize_record(record)
+    payload = json.loads(rendered)
+
+    assert payload["scientific_authoring_graph_fingerprint"] == GRAPH_FINGERPRINT
+    assert (
+        payload["qualification"]["scientific_authoring_graph_fingerprint"]
+        == GRAPH_FINGERPRINT
+    )
+    _write_raw_record(registry, rendered)
+    loaded = registry.load(CHALLENGE_ID, VERSION)
+    assert loaded == record
+    assert serialize_record(loaded) == rendered
 
 
 @pytest.mark.parametrize(
@@ -1209,11 +1732,15 @@ def test_reason_codes_and_order_are_deterministic(tmp_path: Path) -> None:
         "qualification.fixture_mode_blocked",
     )
     assert codes[4] == "provenance.fixture_origin_blocked"
-    slot_paths = tuple(reason.path for reason in first.reasons[5:13])
+    assert codes[5:7] == (
+        "scientific_authoring.graph_fingerprint_missing",
+        "scientific_authoring.qualification_graph_fingerprint_missing",
+    )
+    slot_paths = tuple(reason.path for reason in first.reasons[7:15])
     assert slot_paths == tuple(
         f"/qualification/slots/{slot}" for slot, _ in REQUIRED_QUALIFICATION_STATES
     )
-    assert tuple(reason.path for reason in first.reasons[13:]) == (
+    assert tuple(reason.path for reason in first.reasons[15:]) == (
         "/artifacts/a_artifact/path",
         "/artifacts/a_artifact/digest",
         "/artifacts/z_artifact/path",
@@ -1277,11 +1804,42 @@ def test_complete_fixture_requires_explicit_fixture_mode(tmp_path: Path) -> None
             mode="fixture",
             fixture_origin=True,
             allowed_backbones=(),
+            graph_fingerprint=None,
+            qualification_graph_fingerprint=None,
         )
     )
     assert not registry.can_go_live(CHALLENGE_ID, VERSION)
     assert registry.can_go_live(CHALLENGE_ID, VERSION, fixture_mode=True)
     assert not registry.is_effectively_live(CHALLENGE_ID, VERSION)
+
+
+def test_fixture_diagnostics_do_not_use_or_bypass_production_verifier(
+    tmp_path: Path,
+) -> None:
+    registry = _registry_with_verifier(
+        tmp_path,
+        _FailingScientificAuthoringVerifier(),
+    )
+    registry.save(
+        _complete_record(
+            registry,
+            status="fixture",
+            mode="fixture",
+            fixture_origin=True,
+            allowed_backbones=(),
+        )
+    )
+    assert registry.assess_live_eligibility(
+        CHALLENGE_ID,
+        VERSION,
+        fixture_mode=True,
+    ).eligible
+    assert not registry.can_go_live(CHALLENGE_ID, VERSION)
+    with pytest.raises(LiveActivationError) as captured:
+        registry.activate_live(CHALLENGE_ID, VERSION)
+    assert tuple(reason.code for reason in captured.value.eligibility.reasons) == (
+        "lifecycle.activation_source_invalid",
+    )
 
 
 def test_fixture_mode_requires_fixture_status(tmp_path: Path) -> None:
