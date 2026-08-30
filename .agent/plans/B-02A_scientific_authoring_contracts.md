@@ -45,7 +45,7 @@ parents:      4d84786ec9335be71c75bb6bcfde17f18a362033
 
 No reset, rebase, force-push, clean, stash, or replacement branch is used.
 
-The implementation candidate was then recorded in five normal, reviewable
+The initial implementation candidate was recorded in five normal, reviewable
 commits without rewriting the preserved history:
 
 ```text
@@ -76,6 +76,16 @@ qualification, or activation ownership from A3.
 The last commit restores an established authority-scanner callsite name after
 the generalized package-import test added `carbon.authoring`; it changes no
 runtime behavior or package surface.
+
+The documentation/evidence candidate was then recorded normally as
+`e72dca4110b763105d49e8e572c7831a3c809063`, tree
+`6c2315f81c8c15840d3c57fc12ea76c17e45b500`. Exact-head GitHub run
+`33337500366` found that A12's fixed crosswalk enumerated the new B-02A
+invariant module as if it were one of A12's 12 dedicated rows. The narrow
+repair `c255e519b01d8c4b0ecf67e3482888c3f99f338f`, tree
+`65e564ba67173f9df9b1fa269aa552e23f57a8da`, scopes that enumeration to
+`test_a12_*` while preserving the all-invariant anti-greenwashing scan and
+adds the required module-level invariant marker to the B-02A suite.
 
 ## 2. Controlling authority and maturity
 
@@ -274,6 +284,7 @@ M tests/cpu/test_mcp_skeleton.py
 M tests/cpu/test_package_installation.py
 M tests/cpu/test_registry.py
 M tests/cpu/test_submission_fsm.py
+M tests/invariants/test_a12_crosswalk.py
 M tests/invariants/test_a12_invariants.py
 A tests/invariants/test_b02a_scientific_boundaries.py
 ```
