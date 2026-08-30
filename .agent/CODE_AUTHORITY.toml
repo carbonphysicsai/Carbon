@@ -13,6 +13,7 @@ authority = "Archive presence grants no current implementation authority."
 implementation_roots = [
     "carbon/__init__.py",
     "carbon/audit",
+    "carbon/authoring",
     "carbon/backbones",
     "carbon/cards",
     "carbon/chain",
