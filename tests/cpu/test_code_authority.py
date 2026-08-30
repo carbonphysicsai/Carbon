@@ -244,6 +244,12 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "pip install" not in workflow
     assert "pytest" not in workflow
     assert "check_quality.py" not in workflow
+    assert (
+        "docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8" in workflow
+    )
+    assert "file: .devcontainer/Dockerfile" in workflow
+    assert "platforms: linux/amd64" in workflow
+    assert "no-cache: true" in workflow
 
 
 def test_default_ci_script_invokes_no_archived_path() -> None:

@@ -172,10 +172,13 @@ Open the repository in the Carbon Dev Container / WSL2 environment.
 The GitHub workflow is intentionally orchestration-only:
 
 ```text
-ubuntu-24.04 runner
+canonical job on an ubuntu-24.04 runner
     -> pinned uv 0.12.7
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/ci.sh
+
+clean-image job on a fresh ubuntu-24.04 runner
+    -> build .devcontainer/Dockerfile for linux/amd64 without cache
 ```
 
 The local path ends in the same repository command:
@@ -188,7 +191,9 @@ Carbon Dev Container
 
 Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.
 The workflow fetches complete history so the quality comparison and immutable
-archive-tag boundary can be verified at the exact candidate head.
+archive-tag boundary can be verified at the exact candidate head. The separate
+clean-image job proves the pinned dev-container definition builds without
+making image-build mechanics part of local test semantics.
 
 ## Supported troubleshooting
 
@@ -232,4 +237,3 @@ docker build --platform linux/amd64 \
 
 A failed image build is an environment/infrastructure failure. It is not a
 scientific failure.
-

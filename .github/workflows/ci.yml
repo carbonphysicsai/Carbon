@@ -43,3 +43,22 @@ jobs:
           name: quality-inventory
           path: .carbon-artifacts/quality.json
           if-no-files-found: warn
+
+  dev-image:
+    name: Clean dev-container image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build pinned Carbon development image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: .devcontainer/Dockerfile
+          platforms: linux/amd64
+          push: false
+          no-cache: true
+          pull: true
+          tags: carbon-dev:${{ github.sha }}
