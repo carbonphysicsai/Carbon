@@ -5,7 +5,7 @@
 **Depends on:** B-01E
 **Build Out:** C3 and Wave B scientific contract objects
 **Master questions:** MQ-001, MQ-002
-**Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §§5-6; `Build_Out_Constitutional_Overlay.md` §8
+**Authority:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §§5-6; `Build_Out_Constitutional_Overlay.md` §8; `.agent/DELEGATED_DECISION_PROTOCOL.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 **Plan:** `.agent/plans/B-02A_scientific_authoring_contracts.md`
 **Evidence:** `.agent/evidence/wave_b/b-02a.md`
@@ -21,11 +21,7 @@ Implement versioned identities and fixture schemas for the physical job before a
 
 ## Definition of Done
 
-- [ ] Before implementation, produce
-      `Design_Specs/Scientific_Challenge_Authoring_Contract.md`, obtain
-      independent SciML/statistics/protocol review and explicit human
-      ratification, and merge that contract normally; record the exact contract
-      commit in the implementation plan.
+- [ ] Produce `Design_Specs/Scientific_Challenge_Authoring_Contract.md` before runtime implementation. Treat it as the ticket's working contract: record material agent-recommended decisions, notify the applicable lead inboxes, and continue implementation under `.agent/DELEGATED_DECISION_PROTOCOL.md` unless an explicit `BLOCKED` / `REQUEST_CHANGES` direction or a genuinely human-reserved value prevents correct bounded work. Independent SciML/statistics/protocol review must cover the final contract/implementation merge candidate before normal merge. No pre-implementation affirmative approval or silence gate applies to agent-authorized engineering decisions.
 - [ ] Define exact immutable references for `PhysicalSystemSpec`,
       `CandidateOutputContract`, `InstanceDistributionContract`,
       `SamplingPlan`, `TrainingSupportContract`, and
@@ -55,7 +51,9 @@ Implement versioned identities and fixture schemas for the physical job before a
 
 ## Human input
 
-SciML and statistics owners supply the first real target population, official envelope, strata, SamplingPlan, evidence weighting, and permitted training support. Missing values leave production authoring unavailable.
+SciML and statistics owners supply the first real target population, official envelope, strata, SamplingPlan, evidence weighting, and permitted training support. Missing values leave production authoring unavailable, but they do not block unrelated schema, fixture, validation, canonicalization, or fail-closed implementation work.
+
+Material engineering decisions made inside this ticket follow `.agent/DELEGATED_DECISION_PROTOCOL.md`: the agent records its recommended approach, implementation location, alternatives, downstream impact, and exact supersession path; issue #42 notifies `@harshaa765` for SciML / Technical Lead decisions; Harsh may use `DEFER_TO_OWNER <decision-id>: <question or recommendation>` to route the decision to owner issue #41.
 
 ## Must not
 
