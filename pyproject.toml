@@ -1,7 +1,7 @@
 [project]
 name = "carbon"
 version = "0.9.0"
-description = "Decentralized Physics-Informed Neural Operator Subnet for Bittensor"
+description = "Discovery and evidence infrastructure for fast physical models"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = []
