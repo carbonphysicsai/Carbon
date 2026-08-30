@@ -1,41 +1,37 @@
 # Codex handoff: Wave B miner research buildout
 
-**Status:** prepared for future execution; inactive while `.agent/WAVE.md` names Wave A
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.3
+**Status:** active for bounded Wave B development only after the version 0.4 governance change normally merges and `.agent/WAVE.md` names Wave B
+**Governance version:** 0.4
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.4
 **Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
-**First ticket after activation:** [`tickets/B-01_orientation.md`](./tickets/B-01_orientation.md)
+**Next selected ticket:** [`tickets/B-01_orientation.md`](./tickets/B-01_orientation.md), status `todo`
 
 This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. Start gate
+## 1. Initial B-01 start gate
 
-Codex must stop before implementation unless all conditions below hold at the
-current checked-out commit:
+Codex must stop before B-01 implementation unless all conditions below hold at
+the current checked-out commit. Later tickets use the dependency/readiness gate
+in section 4:
 
-1. A11 and A12 have merged and their checked Definition of Done supports their
-   board status.
-2. `.agent/WAVE_A_REPORT.md` exists and closes Wave A without an unresolved
-   conditional state.
-3. `.agent/DECISIONS.md` contains a dated activation record that names the
-   approving protocol, science, security, rights, and technical roles and pins
-   the exact reviewed commit plus SHA-256 hashes over the exact repository bytes
-   of the board, contract, and handoff.
-4. `.agent/WAVE.md` names Wave B prospectively, identifies the exact reviewed
-   `.agent/WAVE_B.md` as its controlling register, and identifies B-01 as active.
-5. The current board, contract, and handoff bytes match the SHA-256 values in
-   the activation record. The activation change did not mutate those artifacts
-   after their review.
-6. A separate reviewed post-merge activation closeout in `.agent/DECISIONS.md`
-   records the activation merge commit and tree, proves exact reviewed-head and
-   merged-tree equality, records post-merge CI, and records named human owner
-   acceptance. The closeout does not mutate the board, contract, or handoff.
-7. The worktree starts clean, the branch starts from the verified current remote
-   `origin/main` SHA, and Codex records the exact commit and tree.
+1. Wave A is closed in bounded engineering scope.
+2. The merged `.agent/WAVE.md` names Wave B active in bounded development
+   scope.
+3. `.agent/WAVE.md` names `.agent/WAVE_B.md` version 0.4 as the controlling
+   register.
+4. B-01 is the selected `todo` ticket and has not already started.
+5. The worktree starts clean, current remote `origin/main` is fetched and
+   verified, the ticket branch starts from that exact SHA, and Codex records the
+   exact commit and tree.
+6. The proposed work does not invent or approve a decision that `AGENTS.md`
+   reserves to a human.
 
-If one condition fails, report the mismatch and stop. Reviewing the planning
-package, merging it, or receiving this handoff does not satisfy the gate.
+If one condition fails, report the mismatch and stop. B-01 may begin after this
+governance pull request normally merges, only through its own later ticket
+branch. No multi-role approval bundle, exact-byte activation approval, or
+separate activation closeout is required before B-01 development.
 
 ## 2. Required read order
 
@@ -49,7 +45,7 @@ Read the repository versions in this order before B-01 or any later ticket:
 6. `.agent/WAVE_B.md`
 7. this handoff
 8. `.agent/evidence/wave_b/README.md`
-9. the current Wave B activation and ticket records in `.agent/DECISIONS.md`
+9. the current Wave B governance and ticket records in `.agent/DECISIONS.md`
 10. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 11. the selected `.agent/tickets/B-*.md` file
 12. `.agent/ORIENTATION.md`, treating its prior commit pins as historical
@@ -64,7 +60,7 @@ Read the repository versions in this order before B-01 or any later ticket:
 19. relevant implementation, tests, packaging configuration, and
     `.github/workflows/ci.yml`
 
-After B-07S creates and owners ratify
+After B-07S creates, ratifies, and normally merges
 `Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`, read it before any ticket
 that uses wire-visible v2 behavior.
 
@@ -79,8 +75,8 @@ the domain owner provides a current repository contract.
 
 | File | Role after this planning reconciliation |
 |---|---|
-| `.agent/WAVE.md` | Active-wave authority. It must activate Wave B before B-01 starts. |
-| `.agent/WAVE_B.md` | Proposed Wave B ticket register, dependencies, effort, owners, and closeout gate. |
+| `.agent/WAVE.md` | Active-wave authority. After the version 0.4 governance change normally merges, it authorizes bounded Wave B development and selects B-01 as the next `todo` ticket. |
+| `.agent/WAVE_B.md` | Controlling Wave B ticket register, dependencies, effort, review routing, and closeout gate. |
 | `SPEC.md` | System/runtime doctrine. It preserves the current v1 service and records the gated migration to the separate Wave B research service. |
 | `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | Proposed behavioral and authority architecture for the local research service. B-07R ratifies it. |
 | `Design_Specs/Miner_MCP.md` | Existing bounded Wave A v1 interface and pointer to the proposed v2 work. |
@@ -109,7 +105,8 @@ When two documents disagree, apply `AGENTS.md` section 2. Record one of
 
 ## 4. Ticket selection
 
-Start B-01 after activation. For each later session:
+Start B-01 only after the version 0.4 governance change normally merges. For
+each later session:
 
 1. With current user authorization, fetch `origin main`, record the remote SHA,
    verify it against the intended base, and create the ticket branch/worktree
@@ -131,11 +128,55 @@ every named predecessor has merged.
 
 A ticket qualifies as ready only when each dependency shows authoritative
 `done` status with merged evidence, each applicable contract-ratification gate
-has closed, no owner question changes the implementation semantics, and every
-deferred owner input has an explicit fail-closed fixture behavior. Do not skip a
-blocked ticket by starting one of its dependents.
+has closed, no unresolved reserved-human decision is needed for correct bounded
+implementation, and every deferred human input has an explicit fail-closed
+fixture behavior. Non-reserved material decisions follow the record-and-notify
+rule below. Do not skip a blocked ticket by starting one of its dependents.
 
 ## 5. Per-ticket execution protocol
+
+### Development decisions and lead notification
+
+Development authorization comes from the active wave and selected ticket, not
+prior multi-role approval. A material decision changes or selects architecture
+or domain ownership; a contract or invariant; a public interface or persisted
+schema; a scientific assumption or evidence interpretation; a security or
+disclosure boundary; a rights or data-use policy; an operational or resource
+policy; Wave or ticket sequencing; or a `KEEP`, `WRAP`, `REPAIR`, or `REPLACE`
+disposition with cross-ticket impact. Routine implementation details within an
+already ratified contract do not require a separate notification.
+
+For each material-decision-affecting pull request:
+
+1. record the durable decision in `.agent/DECISIONS.md` or the applicable
+   ticket, plan, or specification;
+2. add a pull-request section titled `Lead notification` that identifies the
+   decision ID or heading, affected ticket, affected files, selected approach,
+   alternatives rejected, invariant/interface/sequencing effects,
+   reversibility and migration effect, and notification issue/comment; and
+3. post or update issue #42 and mention designated SciML / Technical Lead
+   Harshdeep Sharma (`@harshaa765`).
+
+Notification proves delivery, not approval. Do not wait for an affirmative
+response, reaction, approval, or waiting period. A lead `REQUEST_CHANGES`
+review or explicit `BLOCKED` direction pauses the affected pull request but not
+unrelated work. A post-merge adjustment uses a new bounded branch and later
+normally merged repository decision; mark the old decision superseded rather
+than rewriting historical evidence. Current merged authority controls until
+that change merges.
+
+The board's Accountable reviewer column routes technical/domain review and
+notification. It creates no affirmative pre-approval or silence gate.
+Independent technical review, resolution of blocking findings, CI, and normal
+merge remain required.
+
+This rule does not authorize agents to invent or approve scientific truth,
+thresholds, tolerances, population or SamplingPlan claims, qualification,
+security acceptance, rights/legal policy, live economics, launch/deployment,
+or production, `LIVE`, frontier, product, settlement, chain, weight, or
+emission authority. Missing reserved human decisions remain explicit, bounded,
+and fail closed; unrelated fixture, schema, interface, test, or infrastructure
+development may continue.
 
 Before editing:
 
@@ -180,29 +221,35 @@ Before requesting review:
 6. Link the evidence file from the ticket and Wave B board.
 7. Bind independent review to the exact head SHA and tree. Any reviewed-tree
    change invalidates the review. The implementer cannot act as the independent
-   reviewer, and independent technical review does not replace acceptance from
-   the board's Accountable reviewer.
+   reviewer. Resolve blocking technical findings before normal merge. The
+   board's Accountable reviewer assignment routes review and notification but
+   requires no affirmative response unless that reviewer submits a blocking
+   review under the repository's normal process.
 8. Leave later tickets untouched. Update board status only through the
    repository's review, authorization, and merge process.
 
 Use board states with these meanings:
 
-- `todo`: no authorized ticket work has started.
-- `in_progress`: readiness passed and an owner authorized ticket execution.
-- `blocked`: a named dependency, contract, environment, or owner decision
+- `todo`: no ticket work has started.
+- `in_progress`: the active wave selects the readiness-passed ticket and its
+  bounded execution has begun.
+- `blocked`: a named dependency, contract, environment, or reserved human decision
   prevents correct completion.
 - `done`: every Definition-of-Done item has evidence, required reviewers
-  accepted the exact head, the implementation merged with a tree identical to
-  the reviewed head, post-merge CI passed, and a separate reviewed closeout
-  change records the merge commit/tree, CI, evidence link, and Accountable
-  reviewer acceptance in the board.
+  completed exact-head technical review with blocking findings resolved, the
+  implementation merged with a tree identical to the reviewed head, post-merge
+  CI passed, and a separate reviewed closeout change records the merge
+  commit/tree, CI, evidence link, review outcome, and lead-notification delivery
+  when applicable in the board. Affirmative role or lead approval is not
+  required.
 
 Code completion alone cannot produce `done`.
 
 The implementation change prepares the evidence record with merge fields marked
 pending. After merge and post-merge CI, a separate documentation closeout fills
 those fields and proposes the board transition to `done`. The closeout requires
-independent review and the board's Accountable reviewer.
+independent review and resolution of blocking findings; Accountable-reviewer or
+lead silence is not a gate.
 
 ## 6. Miner research boundaries
 
@@ -320,10 +367,11 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. With current
 user authorization, fetch `origin main`, record the exact remote SHA, and create
 the ticket branch/worktree from that SHA without using `git pull`. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
-follow the handoff's authority order. Verify that `.agent/WAVE.md` activates
-Wave B, the exact board/contract/handoff bytes match the activation record, and
-every <TICKET> dependency has merged with evidence. If a check fails, stop and
-report it.
+follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
+names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
+version 0.4 as the controlling register, selects the intended ticket, and that
+every <TICKET> dependency has merged with evidence. Confirm that no reserved
+human decision is being invented. If a check fails, stop and report it.
 
 Create a ticket-scoped branch and plan when required. Implement the smallest
 change that satisfies the ticket Definition of Done. Do not invent scientific,
@@ -332,6 +380,10 @@ protected-field non-disclosure, v1 compatibility, and every applicable Carbon
 invariant. Run and report the ticket's focused, subsystem, full CPU, invariant,
 quality, package/wheel, and applicable PoC/Julia checks. Request independent
 review and stop after this ticket. Do not begin a dependent ticket.
+For every material decision, record it, include the required `Lead notification`
+section in the pull request, and notify issue #42 mentioning `@harshaa765`.
+Notification is non-blocking unless the lead submits `REQUEST_CHANGES` or an
+explicit `BLOCKED` direction for the affected change.
 ```
 
 The current user instruction must authorize each fetch, commit, push, pull

@@ -30,9 +30,9 @@ Do **not** use `agent_pack/.agent/` — that path is retired.
 
 Execute the **currently authorized wave/ticket only**.
 
-For the present board, Wave A remains active until `.agent/WAVE.md` and the current Build Out acceptance checklist are evidence-backed. A later wave described in the Agentic Master Plan is **not permission to start it**.
-
-Current next-ticket authority comes from `.agent/WAVE.md`.
+Wave A is closed in bounded engineering scope. Current wave and next-ticket
+authority come exclusively from `.agent/WAVE.md`; a plan, future board, or
+long-horizon document is not independent permission to start work.
 
 ---
 
@@ -83,7 +83,8 @@ Minimum orientation:
 3. inspect existing code/tests;
 4. classify touched components **KEEP / WRAP / REPAIR / REPLACE**;
 5. identify whether the active work is current-runtime implementation or a future migration seam;
-6. stop if a human scientific/economic/security decision is missing.
+6. identify any unresolved reserved human decision; keep the affected behavior
+   explicit, bounded, and fail closed, and stop rather than invent it.
 
 **Audit-first:** reuse/wrap/repair before create/replace.
 
@@ -108,16 +109,73 @@ orientation/current authority
 4. Implement the minimum coherent change; prefer KEEP/WRAP/REPAIR.
 5. **After edits:** run baseline + ticket-specific + invariant tests.
 6. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
-7. Stop for review/merge unless explicitly allowed to continue.
-8. On repeated failure or unresolved science/architecture/economic/security decision: mark blocked, report, do not invent.
+7. Stop for review and normal merge unless explicitly allowed to continue.
+8. On repeated failure, mark the affected ticket blocked and report it. If a
+   reserved human decision is required for correctness, stop the affected work
+   rather than invent it. Material decisions within development authority use
+   the notification process below.
 
 Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.
 
 ---
 
+## Development decisions and lead notification
+
+Development authorization comes from the active Wave and selected ticket, not
+from prior multi-role approval.
+
+A material development decision must be recorded in `.agent/DECISIONS.md` or
+the applicable ticket, plan, or specification, and Carbon's designated SciML /
+Technical Lead, Harshdeep Sharma (`@harshaa765`), must be notified. Notification
+is evidence of delivery, not approval: no affirmative response, reaction,
+approval, or waiting period is required.
+
+A decision is material when it changes or selects:
+
+- architecture or domain ownership;
+- a contract or invariant;
+- a public interface or persisted schema;
+- scientific assumptions or evidence interpretation;
+- security or disclosure boundaries;
+- rights or data-use policy;
+- operational or resource policy;
+- Wave or ticket sequencing;
+- a KEEP / WRAP / REPAIR / REPLACE disposition with cross-ticket impact.
+
+Routine implementation details within an already ratified contract do not
+require a separate lead notification.
+
+Each material-decision PR must:
+
+1. record the durable decision;
+2. include a `Lead notification` section identifying the decision ID or
+   heading, affected ticket and files, selected approach, alternatives
+   rejected, invariant/interface/sequencing effects, reversibility and
+   migration effect, and the notification issue or comment;
+3. post or update a notification in GitHub issue #42 and mention
+   `@harshaa765`.
+
+The lead may adjust the decision before merge through review or an explicit
+direction, or after merge through a new bounded superseding repository change.
+An explicit `REQUEST_CHANGES` review or `BLOCKED` direction pauses the affected
+change; silence does not. Unrelated work remains governed by its own active
+Wave and ticket. Current merged repository authority remains controlling until
+a superseding change normally merges, and historical evidence must not be
+rewritten.
+
+This non-blocking process does not authorize agents to decide scientific truth,
+thresholds, tolerances, Challenge populations or sampling claims,
+qualification outcomes, security acceptance, legal or commercial rights, live
+economics, production deployment, launch readiness, or other material company
+decisions reserved to humans. An unresolved reserved decision remains explicit,
+bounded, and fail closed. It does not prevent unrelated fixture, schema,
+interface, test, or infrastructure development.
+
+---
+
 ## Constitutional semantics agents must preserve
 
-### Current Wave-A mechanics
+### Durable bounded mechanics inherited from Wave A
 
 - submission FSM includes `CANCELLED`;
 - `FAILED_INFRA` is not a physics fail and retains retry/refund semantics;
@@ -160,7 +218,9 @@ If current runtime specs and the integrated constitution appear to conflict:
    - `IMPLEMENTATION_LAG`
    - `MIGRATION_REQUIRED`
    - `NEW_OWNER_DECISION_REQUIRED`;
-4. if a material behavior decision remains unresolved, stop and request owner decision.
+4. if the choice is material but within development authority, record it and
+   notify the designated lead; if it is reserved to humans and required for
+   correctness, stop the affected work and request the smallest decision.
 
 Do not silently implement the future design into current code and do not preserve stale behavior merely because an old document mentions it.
 
@@ -168,14 +228,18 @@ Do not silently implement the future design into current code and do not preserv
 
 ## Success
 
-For the active Wave-A board, success remains:
+For the active board, success remains:
 
-- current Wave A acceptance criteria green;
-- concrete implementation/test/review evidence recorded;
-- no constitutional invariant regression;
-- `.agent/WAVE_A_REPORT.md` written after all A0–A12 are truly done.
+- the selected ticket's exact acceptance criteria and DoD are green;
+- concrete implementation, test, CI, review, and normal-merge evidence is
+  recorded;
+- material decisions and required lead notifications are durable;
+- no constitutional invariant regresses;
+- ticket and Wave evidence accurately preserve all unearned maturity states.
 
-Later waves have their own evidence gates and may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`, `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`, `COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
+Each capability may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`,
+`SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`,
+`COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
 
 Never infer a later maturity state from an earlier one.
 
