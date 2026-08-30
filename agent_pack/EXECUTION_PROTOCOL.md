@@ -10,6 +10,7 @@ Model choice, API keys, and vendor harness config are **out of band** (see optio
 **Long-horizon plan:** `Design_Specs/Agentic_Development_Master_Plan.md`  
 **Agent constitution:** repo root `AGENTS.md`  
 **Board / tickets (canonical):** repo root `.agent/`
+**Delegated decisions:** `.agent/DELEGATED_DECISION_PROTOCOL.md`
 
 ```text
 Carbon/
@@ -42,9 +43,10 @@ long-horizon document is not independent permission to start work.
 2. `.agent/INVARIANTS.md`
 3. `.agent/WAVE.md`
 4. ticket under `.agent/tickets/`
-5. ticket-referenced domain specifications
-6. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
-7. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
+5. `.agent/DELEGATED_DECISION_PROTOCOL.md`
+6. ticket-referenced domain specifications
+7. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
+8. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
 
 If work touches customer/product/business semantics, also read:
 
@@ -83,8 +85,7 @@ Minimum orientation:
 3. inspect existing code/tests;
 4. classify touched components **KEEP / WRAP / REPAIR / REPLACE**;
 5. identify whether the active work is current-runtime implementation or a future migration seam;
-6. identify any unresolved reserved human decision; keep the affected behavior
-   explicit, bounded, and fail closed, and stop rather than invent it.
+6. identify any unresolved reserved human decision; keep the affected behavior explicit, bounded, and fail closed without blocking unrelated authorized work.
 
 **Audit-first:** reuse/wrap/repair before create/replace.
 
@@ -96,9 +97,12 @@ Minimum orientation:
 orientation/current authority
 → one ticket
 → baseline tests
+→ working contract / material decisions where needed
+→ notify applicable decision inboxes
 → implement minimum DoD
 → ticket + regression tests
-→ review/merge
+→ independent technical review
+→ normal merge
 → board evidence
 → next ticket
 ```
@@ -107,28 +111,23 @@ orientation/current authority
 2. Prefer one branch/worktree per ticket.
 3. **Before edits:** run relevant baseline tests / PoC smoke and record result.
 4. Implement the minimum coherent change; prefer KEEP/WRAP/REPAIR.
-5. **After edits:** run baseline + ticket-specific + invariant tests.
-6. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
-7. Stop for review and normal merge unless explicitly allowed to continue.
-8. On repeated failure, mark the affected ticket blocked and report it. If a
-   reserved human decision is required for correctness, stop the affected work
-   rather than invent it. Material decisions within development authority use
-   the notification process below.
+5. Material engineering decisions inside the authorized ticket follow `.agent/DELEGATED_DECISION_PROTOCOL.md`: select the agent-recommended approach, record it, notify the applicable lead, and continue unless an explicit block applies.
+6. **After edits:** run baseline + ticket-specific + invariant tests.
+7. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
+8. Stop at the ticket's bounded review/merge boundary, not at every material engineering decision. An explicit `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A reserved human decision blocks only the behavior that cannot proceed correctly with a fail-closed seam; unrelated authorized work continues.
+9. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
 
 Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.
 
 ---
 
-## Development decisions and lead notification
+## Development decisions and asynchronous lead oversight
 
-Development authorization comes from the active Wave and selected ticket, not
-from prior multi-role approval.
+Development authorization comes from the active Wave and selected ticket, not from prior multi-role approval.
 
-A material development decision must be recorded in `.agent/DECISIONS.md` or
-the applicable ticket, plan, or specification, and Carbon's designated SciML /
-Technical Lead, Harshdeep Sharma (`@harshaa765`), must be notified. Notification
-is evidence of delivery, not approval: no affirmative response, reaction,
-approval, or waiting period is required.
+A material development decision must be recorded in `.agent/DECISIONS.md` or the applicable ticket, plan, or specification. Decisions in Carbon's SciML / Technical Lead lane must be surfaced in GitHub issue #42 and mention `@harshaa765`. Owner-reserved decisions and decisions explicitly deferred by a lead route to owner issue #41.
+
+Notification is evidence of delivery and visibility, not approval. No affirmative response, reaction, approval, or waiting period is required for agent-authorized engineering work.
 
 A decision is material when it changes or selects:
 
@@ -139,37 +138,45 @@ A decision is material when it changes or selects:
 - security or disclosure boundaries;
 - rights or data-use policy;
 - operational or resource policy;
-- Wave or ticket sequencing;
+- Wave or ticket sequencing; or
 - a KEEP / WRAP / REPAIR / REPLACE disposition with cross-ticket impact.
 
-Routine implementation details within an already ratified contract do not
-require a separate lead notification.
+Routine implementation details inside an already selected working contract do not require a separate notification.
 
-Each material-decision PR must:
+Each material-decision record and notification must include:
 
-1. record the durable decision;
-2. include a `Lead notification` section identifying the decision ID or
-   heading, affected ticket and files, selected approach, alternatives
-   rejected, invariant/interface/sequencing effects, reversibility and
-   migration effect, and the notification issue or comment;
-3. post or update a notification in GitHub issue #42 and mention
-   `@harshaa765`.
+1. the decision ID and affected ticket;
+2. the problem being decided;
+3. the agent-recommended approach;
+4. implementation location, commit and pull request when available;
+5. alternatives rejected and why;
+6. invariant, interface, sequencing and downstream effects;
+7. reversibility and migration cost;
+8. the exact files / decision headings to change or supersede if the lead disagrees;
+9. any unresolved human-reserved input; and
+10. the agent recommendation if unchanged, normally `KEEP`.
 
-The lead may adjust the decision before merge through review or an explicit
-direction, or after merge through a new bounded superseding repository change.
-An explicit `REQUEST_CHANGES` review or `BLOCKED` direction pauses the affected
-change; silence does not. Unrelated work remains governed by its own active
-Wave and ticket. Current merged repository authority remains controlling until
-a superseding change normally merges, and historical evidence must not be
-rewritten.
+Each material-decision PR must include a `Lead notification` section pointing to the applicable inbox comment.
 
-This non-blocking process does not authorize agents to decide scientific truth,
-thresholds, tolerances, Challenge populations or sampling claims,
-qualification outcomes, security acceptance, legal or commercial rights, live
-economics, production deployment, launch readiness, or other material company
-decisions reserved to humans. An unresolved reserved decision remains explicit,
-bounded, and fail closed. It does not prevent unrelated fixture, schema,
-interface, test, or infrastructure development.
+### Lead actions
+
+The lead may respond:
+
+- `KEEP <decision-id>`;
+- `CHANGE <decision-id>: <direction>`;
+- `BLOCKED <decision-id>: <reason>`;
+- a GitHub `REQUEST_CHANGES` review; or
+- `DEFER_TO_OWNER <decision-id>: <question or recommendation>`.
+
+`KEEP` is useful evidence but is not required for development to continue.
+
+`CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` pauses the affected change once observed. Unrelated work remains governed by its own ticket authority.
+
+`DEFER_TO_OWNER` requires Codex to post the complete decision package to issue #41, preserving both the agent recommendation and the lead's recommendation/question. Development continues where the unresolved choice can remain fail-closed. A genuinely owner-reserved value remains unavailable until the owner decides it.
+
+A lead may adjust a decision before merge or after merge through a new bounded superseding repository change. Historical evidence must not be rewritten. Current merged authority controls until a superseding change normally merges.
+
+This delegated process does not authorize agents to decide scientific truth, production thresholds or tolerances, real Challenge populations/SamplingPlans/evidence weights, qualification outcomes, security acceptance, legal/commercial rights, live economics, production deployment, launch readiness, or other decisions explicitly reserved to humans. Missing reserved inputs remain explicit and fail closed. They do not prevent unrelated fixture, schema, interface, test, canonicalization, storage, or infrastructure development.
 
 ---
 
@@ -218,9 +225,8 @@ If current runtime specs and the integrated constitution appear to conflict:
    - `IMPLEMENTATION_LAG`
    - `MIGRATION_REQUIRED`
    - `NEW_OWNER_DECISION_REQUIRED`;
-4. if the choice is material but within development authority, record it and
-   notify the designated lead; if it is reserved to humans and required for
-   correctness, stop the affected work and request the smallest decision.
+4. if the choice is material but within delegated development authority, select the recommended approach, record it, notify the applicable lead, and continue;
+5. if the choice is reserved to humans, route it to the appropriate inbox, keep the affected behavior fail closed, and continue unrelated work; stop the whole ticket only if no correct bounded implementation can proceed without that reserved decision.
 
 Do not silently implement the future design into current code and do not preserve stale behavior merely because an old document mentions it.
 
@@ -231,17 +237,14 @@ Do not silently implement the future design into current code and do not preserv
 For the active board, success remains:
 
 - the selected ticket's exact acceptance criteria and DoD are green;
-- concrete implementation, test, CI, review, and normal-merge evidence is
-  recorded;
+- concrete implementation, test, CI, review, and normal-merge evidence is recorded;
 - material decisions and required lead notifications are durable;
 - no constitutional invariant regresses;
 - ticket and Wave evidence accurately preserve all unearned maturity states.
 
-Each capability may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`,
-`SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`,
-`COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
+Each capability may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`, `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`, `COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
 
-Never infer a later maturity state from an earlier one.
+Never infer a later state from an earlier one.
 
 ---
 
