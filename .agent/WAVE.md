@@ -4,10 +4,10 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 0.5
-**Selected ticket:** B-02A — prospective `todo`; not started
+**Selected ticket:** B-02A — prospective `in_progress`; contract-ratification phase only
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
-**B-02A status:** `todo` / next selected / **NOT STARTED**
+**B-02A status:** prospective `in_progress` / contract candidate / **IMPLEMENTATION NOT STARTED**
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -15,6 +15,19 @@
 **Long-horizon plan:** `Design_Specs/Agentic_Development_Master_Plan.md`  
 **Agent constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
+
+> **B-02A contract-start candidate.** PR #59 normally merged the B-01E
+> closeout as `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree
+> `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`, and exact-main CI
+> `33321131062` passed. From that exact authority base, the separately
+> authorized `agent/b-02a-contract-ratification` branch proposes B-02A
+> `in_progress` only for creation and review of the scientific authoring
+> contract. This status token remains candidate branch content until normally
+> merged. Every B-02A Definition-of-Done checkbox remains unchecked;
+> implementation remains prohibited until the contract is independently
+> reviewed across SciML, statistics, and protocol, explicitly human-ratified,
+> normally merged, and pinned by exact commit in a separately authorized
+> implementation plan.
 
 > **Authority state.** PR #54 normally merged the independently reviewed,
 > green version 0.4 Wave B governance tree. PR #55 normally merged the reviewed
