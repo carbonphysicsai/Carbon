@@ -1,6 +1,6 @@
 # Research Resource Policy Contract
 
-**Version:** 0.1<br>
+**Version:** 0.2<br>
 **Status:** AGENT-SELECTED WORKING CONTRACT<br>
 **Ticket:** B-02C<br>
 **Authority class:** bounded engineering contract only<br>
@@ -12,6 +12,12 @@ This contract defines an exact, immutable, fixture-capable resource-policy
 boundary around the policy-agnostic construction output produced by B-02B. It
 does not authorize production hardware, spending, prices, quotas, queues,
 security acceptance, or execution.
+
+Version 0.2 records an implementation-discovered fail-closed clarification:
+derived content addresses prove byte identity rather than operation
+provenance, so readiness also receives the exact plan/ref and downstream
+services recompute supplied derived values before trusting them. No policy,
+production, operations, economics, security, or scientific authority changed.
 
 The normative ownership law is:
 
@@ -372,6 +378,18 @@ Their fixed messages are respectively “input has the wrong exact type”,
 bound by policy”. The exception path is a bounded trusted schema path, never a
 hostile value.
 
+Content addressing proves byte identity, not semantic provenance. Every
+downstream operation that receives a derived assessment, decision,
+enforcement result, or cancellation record must recompute that value from the
+exact authoritative inputs it also receives and require exact equality before
+using it. A digest-valid value constructed directly by a caller is not trusted
+as evidence that the corresponding upstream operation ran. Generic structural
+encoding/decoding and ref verification never establish semantic provenance.
+Because an observed receipt is B-02C's terminal artifact, its public builder
+returns the exact receipt/ref pair only after all §10 checks, and its public
+validator requires the complete semantic dependency set and recomputes that
+pair. There is no public unguarded receipt-ref issuer.
+
 `ResourcePolicyIssue` is reserved for verified, well-formed inputs. Its closed
 code/message/path registry is:
 
@@ -687,11 +705,13 @@ confusion.
 
 ### 8.2 Fixture decision
 
-`decide_fixture_readiness(...)` consumes an exact `ADMISSIBLE` static
-assessment/ref, its verified policy/ref and complete class bundle, the selected
-exact class pair, and one exact availability-input union. It revalidates the
-selected binding's readiness requirements and all repeated refs/context before
-returning:
+`decide_fixture_readiness(...)` consumes the exact construction plan/ref, an
+exact `ADMISSIBLE` static assessment/ref, its verified policy/ref and complete
+class bundle, the selected exact class pair, and one exact availability-input
+union. It first recomputes the assessment from the plan and exact active
+policy/class/context inputs and requires exact equality. It then revalidates
+the selected binding's readiness requirements and all repeated refs/context
+before returning:
 
 ```text
 FixtureResourceDecision
@@ -1192,6 +1212,7 @@ decide_fixture_readiness(...)
 evaluate_enforcement(...)
 make_cancellation_record(...)
 make_observed_resource_receipt(...)
+validate_observed_resource_receipt(...)
 ```
 
 Exact Python names may be chosen within this contract without changing
@@ -1220,7 +1241,8 @@ At minimum tests cover:
   overflow, unit mismatch, duplicate dimensions, and no clamping/conversion;
 - fixture readiness with required/not-applicable laws, no-input identity, each
   unavailable capacity/funding/queue/evidence-budget cause, and deterministic
-  combined causes;
+  combined causes, including rejection of digest-valid assessments whose
+  copied requirements/tags do not equal the exact supplied plan;
 - point/mode compatibility, exact inclusive limit law, attempted-next versus
   observed totals, continue/prevent-start/prevent-next/stop/fail-closed events;
 - cancellation actor/reason/result/event matrix, work-started,
@@ -1228,7 +1250,9 @@ At minimum tests cover:
 - observed receipt with unstarted/incomplete/complete build, reuse-window
   bounds and exact build binding, replicate applicability, stage, class-bound
   consumption, required observed/unavailable latency and cost, and every
-  stop-cause cross-law;
+  stop-cause cross-law, including rejection of a structurally self-addressed
+  receipt whose class-bound environment or metrics were not produced by the
+  exact semantic builder;
 - exact-type rejection between static assessment, forecast-shaped canary,
   quote-shaped canary, and observed receipt;
 - no scientific threshold lowering, outcome inference, score input, price,

@@ -26,6 +26,7 @@ implementation_roots = [
     "carbon/observability",
     "carbon/qualification",
     "carbon/registry",
+    "carbon/resource_policy",
     "carbon/schema",
     "carbon/scoring",
     "carbon/seeding",

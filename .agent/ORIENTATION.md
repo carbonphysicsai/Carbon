@@ -244,7 +244,7 @@ The repository contains substantial historical reference material but no current
 | Base commit | `cce1efec19601d4e460676e9b422cc569b9d66d0` |
 | Base tree | `a270616e2d54401f5c73b408b469d8c9f6a8b1f9` |
 | Branch | `agent/b-01-orientation` |
-| Worktree | `C:\Users\Ryan_\source\Carbon` |
+| Worktree | dedicated local worktree; absolute host path intentionally not recorded |
 | Initial status | clean |
 | `origin/main` at branch creation | `cce1efec19601d4e460676e9b422cc569b9d66d0` |
 | B-01 ticket blob | `4702fe30305bf25556bedce95420cc07a4704b23` |
