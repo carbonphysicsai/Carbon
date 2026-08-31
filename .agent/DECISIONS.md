@@ -1,5 +1,222 @@
 # Agent decisions log
 
+## 2026-08-31 — B-02B-D1: Construction package and exact A7 Strategy identity reuse
+
+> **B-02B-D1 through B-02B-D8 status: CONDITIONAL AGENT-SELECTED WORKING
+> DECISIONS.** The series becomes bounded engineering authority only if the
+> exact independently reviewed B-02B working-contract tree normally merges and
+> exact-main CI passes. Notification requests `KEEP`, `CHANGE`, `BLOCKED`, or
+> `DEFER_TO_OWNER`; no affirmative response or silence gate applies. Human-
+> reserved science, security acceptance, rights, economics, qualification,
+> LIVE, launch, and production values remain unavailable and fail closed.
+
+**Recommendation and rationale.** Add standard-library-only
+`carbon.construction` above A2/B-02A and consume one explicit public
+`carbon.fees.strategy_identity` seam. Extract, without changing bytes, A7's
+existing accepted-Strategy snapshot and `carbon.strategy.identity.v1` hash
+algorithm into that A7-owned submodule. `StrategyHash` stays the exact class in
+`carbon.fees.model`; A7 private entrypoints remain compatibility delegates.
+This preserves A2's validation-only boundary, A7's persistent-identity
+ownership, every golden hash, and one-way dependency into construction.
+
+**Rejected alternatives.** A second compiler hash; using B-02A document bytes
+as Strategy identity; moving A7 semantics or `StrategyHash` into A2;
+construction importing A7 service/store/fee policy; placing assembly semantics
+in the mutable backbone registry or retired training namespace.
+
+**Downstream impact.** A7 gains a tested explicit submodule but no public root
+surface or behavior change. B-02B compiles only the returned detached accepted
+snapshot and hash, never the caller graph or a caller-provided hash. B-07F may
+compose these exact outputs later; A2, B-02A, and A7 never import construction.
+
+**Reversibility and exact change path.** Module splitting and private shim
+placement are reversible while the public explicit-submodule API, exact
+`StrategyHash` class, hash header/frames, and persisted values remain stable.
+A future identity change requires its owning prospective A7 migration and a
+new identity version; B-02B cannot reinterpret existing hashes.
+
+## 2026-08-31 — B-02B-D2: Exact nominal refs, Challenge binding, and acyclic identity
+
+**Recommendation and rationale.** Give `CandidateAssemblyContract` and
+`ParameterCatalog` distinct long-lived nominal refs using B-02A/A3 field
+grammar. Give `ResolvedTrainingSamplingPolicy` and
+`ResolvedConstructionPlan` digest-only nominal refs. Reuse B-02A canonical
+values under the domain-separated `carbon.construction.canonical.v1` frame.
+Bind full exact `ChallengeKey` out of band because Strategy v1 carries only its
+family id. Keep the graph acyclic: assembly → authoring/pins/components;
+catalog → assembly/support/compiler; policy → catalog/support; plan → all.
+Require a capability-issued B-02A `AuthoringGraphOrigin`, verify exact graph
+membership, and bind its existing scientific-authoring graph fingerprint into
+the plan; raw refs alone do not preserve origin.
+
+**Rejected alternatives.** Adding B-02B kinds to B-02A's closed six-kind
+registry; a global latest registry; version ordering; self/cyclic hashes;
+implicit Challenge version; digest-only trust without exact object/ref
+verification.
+
+**Downstream impact.** B-02C/B-07A/B-07F consume exact immutable refs and
+cannot silently substitute a version. Historical exact bytes remain
+verifiable; `stale` means mismatch, invalid lifecycle, or failed expected pin,
+not merely “not latest.”
+
+**Reversibility and exact change path.** New optional semantics require new
+prospective schema/object/compiler versions. Ref kind, Challenge scope, field
+order, profile, or digest-preimage changes are persisted migrations and must
+not reinterpret historical refs.
+
+## 2026-08-31 — B-02B-D3: Flat surfaces, strict types, defaults, and applicability
+
+**Recommendation and rationale.** Interpret executable Strategy v1 parameters
+only as an exact flat `surface_id -> exact scalar SurfaceValue` dictionary.
+Each `ParameterCatalogEntry` binds input source, unique consumer target, exact
+type/unit/domain, dependencies, applicability, compatibility, semantic owner,
+lifecycle, static resources, and `REQUIRED` or literal `EXPLICIT_DEFAULT`.
+Resolve every surface exactly once to `SELECTED`, `DEFAULTED`, or
+`NOT_APPLICABLE`; a supplied non-applicable value rejects as unused. Materialize
+default origin/value into plan identity.
+
+Applicability is exactly `ALWAYS` or acyclic `WHEN_SURFACE_IN`, evaluated in
+topological order with canonical-id tie-breaking. Entries carry closed
+training-lever and component-slot bindings so the compiler never infers
+`R_strategy` or component meaning from a consumer name.
+
+**Rejected alternatives.** Nested free-form parameter paths; aliases;
+dict/list/null values; bool/int or int/float equivalence; coercion, unit
+conversion, clamping, computed/environment defaults, ignored unknowns, and
+callable compatibility predicates. Duplicate raw JSON names are B-07S parser
+work because they are unobservable after dict materialization.
+
+**Downstream impact.** Catalog construction rejects duplicate surface ids,
+selector aliases, and consumer collisions before lookup-map creation. B-07S
+must reject duplicate wire members. Real values/ranges/units remain unavailable;
+B-02B ships no production/default catalog.
+
+**Reversibility and exact change path.** A later closed record-valued surface
+or nested grammar requires a new catalog/schema/compiler version and complete
+collision/consumption tests. Existing flat catalogs remain exact.
+
+## 2026-08-31 — B-02B-D4: `R_strategy` isolation and context-owned randomness
+
+**Recommendation and rationale.** Materialize one exact
+`ResolvedTrainingSamplingPolicy` (`R_strategy`) and
+`TrainingSamplingPolicyRef` inside the exact B-02A
+`TrainingSupportContractRef`. Permit only registered `SAMPLING`, `CURRICULUM`,
+and `AUGMENTATION` bindings plus abstract purpose ids/role-key labels. Always
+emit an explicit base/no-override policy. Execution contexts, not Strategy or
+plan, own entropy domains, seeds, and realized draws.
+
+**Rejected alternatives.** Treating `R_strategy` as `P`, `Q`, or `w`; custom
+data/loaders/distributions; seed, nonce, RNG, draw/case, EVAL/STRESS,
+reference, measurement, gate, score, or qualification control; implicit policy
+absence; shared practice/official entropy authority.
+
+**Downstream impact.** Data Management and B-02A separation remain exact.
+Practice and official-shaped consumers may share policy semantics while their
+nominal context and A4 authority remain distinct. B-07F is not implemented.
+
+**Reversibility and exact change path.** Adding a policy family requires a new
+registered catalog/compiler version and owning science/security decision. Any
+official-evidence authority requires its separate owner and cannot widen this
+ref in place.
+
+## 2026-08-31 — B-02B-D5: Fixed assembly and closed component compatibility
+
+**Recommendation and rationale.** The Challenge owns one fixed outer assembly
+workflow and closed component slots. Preserve distinct exact roles
+`WARM_START`, `PRECONDITIONER_ACTION`, `COARSE_CORRECTION`,
+`RESIDUAL_CORRECTION`, `SUBDOMAIN_OPERATOR`, and
+`NONLINEAR_INITIAL_GUESS`. Each option binds consumer, I/O interfaces, state,
+side-effect policy, fixed/trainable boundary, implementation/environment/
+dependency pins, applicability/assumption refs, limitations, resources, and
+public falsification refs. Fixture v1 fallback is `FAIL_CLOSED` only.
+
+**Rejected alternatives.** Participant nodes/edges/graphs/code; role aliases;
+choosing raw refs or implementations; dynamic registry lookup; silent or
+participant-selected fallback; treating component labels/tests as scientific
+or product qualification.
+
+**Downstream impact.** B-07F can later reconstruct only registered fixed
+semantics. B-05 gates/scoring remain dependent on protected output evidence,
+not component metadata. Post-launch assembled-system/product qualification
+remains owner-reserved.
+
+**Reversibility and exact change path.** A new role, slot, option, interface,
+or fallback produces a prospective assembly version and exact plan identity.
+Historical assemblies are not mutated.
+
+## 2026-08-31 — B-02B-D6: Policy-free static resource metadata
+
+**Recommendation and rationale.** The assembly owns an exact closed resource-
+dimension registry. Catalog/backbone/component entries may emit
+only closed nonnegative UInt64 `FIXED` or `DISCRETE_LOOKUP` contributions.
+Aggregate by exact `(dimension_id, unit_ref)` with checked addition and bind
+quantities, sources, and impact tags in plan identity. Reject overflow,
+unknown dimensions, missing lookup cases, or conflicting units.
+
+**Rejected alternatives.** Arbitrary formulas/callables; runtime measurement;
+ceilings, fit/admit/deny, price, quota, scheduling, kill rails, forecast
+calibration, success probability, or policy receipts; silent saturation or
+clamping.
+
+**Downstream impact.** B-02C may consume the exact metadata but alone decides
+policy/admission/enforcement and may not rewrite compiler semantics or plan
+identity. MQ-008 qualification remains fail closed.
+
+**Reversibility and exact change path.** New contribution algebra requires a
+new construction schema/compiler version. B-02C policy changes require no
+B-02B identity change when the compiled metadata is unchanged.
+
+## 2026-08-31 — B-02B-D7: Complete plan identity and consumer-neutral parity
+
+**Recommendation and rationale.** Bind StrategyHash, full ChallengeKey,
+B-02A refs, assembly/catalog/compiler, exact backbone/components, all resolved
+surface values and default origins, `R_strategy`, dependency/environment/
+implementation pins, static resources/tags, the exact authoring-origin
+binding, and separate assembly/catalog construction provenance into one
+canonical `ResolvedConstructionPlan`. Exclude consumer mode, entropy, runtime
+policy verdict, evidence, gates, scores, and qualification. Prove two nominal
+fixture consumers receive byte-identical plan/ref values while retaining
+different context types.
+
+**Rejected alternatives.** A partial or ambiguous plan; hidden defaults;
+consumer-specific compilation; practice/official mode in identity; seed/draw
+binding; treating parity as scientific or execution qualification.
+
+**Downstream impact.** B-07F/B-GATE can later prove composition parity without
+duplicating compiler semantics. B-07F remains untouched here; identical bytes
+do not grant shared authority or randomness.
+
+**Reversibility and exact change path.** Any semantic input added or removed
+requires a new plan/compiler schema version. Nominal wrappers may evolve
+without changing plan identity only when they do not alter construction
+semantics.
+
+## 2026-08-31 — B-02B-D8: Hostile-input and all-or-nothing rejection boundary
+
+**Recommendation and rationale.** Snapshot hostile Strategy input once through
+the exact A7 seam, compile only the owned snapshot, and return either one
+complete policy+plan package or `CompileRejected`. `CompileIssue` uses a closed
+code, safe path, and fixed non-echoing message; issues sort deterministically.
+Reject negative zero before B-02A canonical encoding. Reject imports, code,
+executables, graphs, arbitrary dependencies, paths/URIs/network,
+deserialization, custom data, seeds, official controls, and unregistered
+composition. The compiler performs no dynamic I/O or runtime construction.
+
+**Rejected alternatives.** Rereading/mutating caller input; trusting a
+caller-provided StrategyHash; `repr`/value echo; partial outputs; exception-
+driven fallback; dynamic import/registry/filesystem/network/environment
+inspection; best-effort normalization.
+
+**Downstream impact.** Required tests cover mutation/alias/concurrency,
+catalog confusion, stale/cross-Challenge refs, authority escape, component
+role/gate bypass, canonical tamper, wheel/import direction, and unchanged A7
+goldens. MQ-015 production security remains `SECURITY_REVIEW_REQUIRED`.
+
+**Reversibility and exact change path.** Adding a capability or error-visible
+semantic is prospective contract/compiler work with adversarial tests. Human-
+reserved production inputs remain unavailable; a bounded fixture path may
+continue without issue #41 deferral.
+
 ## 2026-08-31 — B-07R-D1: Separate service planes and future transport
 
 > **B-07R-D1 through B-07R-D8 status: CONDITIONAL WORKING ARCHITECTURE

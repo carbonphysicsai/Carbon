@@ -1,17 +1,22 @@
 # Ticket B-02B - Candidate assembly, ParameterCatalog, and Strategy compilation
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** in_progress
 **Depends on:** B-02A, B-07R, A2
 **Build Out:** C2/C9 Wave B semantic construction seam
 **Master questions:** MQ-005, MQ-008, MQ-015, MQ-024
 **Authority:** current A2 contract; `Miner_MCP_Wave_B_Research_Contract.md` §§4-5
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
-> **Next-ticket state:** selected next only after B-07R's conditional
-> completion predicate; remains `todo / NOT STARTED`. Create a fresh dedicated
-> branch/worktree from the then-current exact `origin/main`. This file does not
-> authorize B-02B implementation in the B-07R branch.
+> **Current-ticket state:** B-07R's exact completion predicate passed on PR
+> #62 and exact-main CI. B-02B is selected `in_progress` in its dedicated
+> working-contract worktree. Runtime implementation begins only after the exact
+> reviewed contract normally merges and exact-main CI passes, in a separate
+> dedicated implementation worktree.
+
+**Working contract:** `Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md`<br>
+**Plan:** `.agent/plans/B-02B_strategy_compilation.md`<br>
+**Evidence:** `.agent/evidence/wave_b/b-02b.md`
 
 ## Goal
 

@@ -1,7 +1,7 @@
 # Ticket B-07R - Miner research architecture ratification
 
 **Wave:** B candidate
-**Status:** done (conditional completion record; effective only under the gate below)
+**Status:** done
 **Depends on:** B-01, B-02A
 **Build Out:** C9-C11 Wave B contract gate
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` version 0.4
@@ -9,16 +9,15 @@
 **Plan:** `.agent/plans/B-07R_miner_research_contract.md`
 **Evidence:** `.agent/evidence/wave_b/b-07r.md`
 
-> **Conditional completion gate.** On an unmerged branch this record has no
-> authority and B-07R remains `in_progress`. On `main`, `done` becomes effective
-> only if the exact reviewed B-07R head passes required CI, every valid
-> Greptile finding is repaired, zero Greptile threads remain unresolved, it
-> normally merges with identical tree and exact second parent, and exact-main
-> push CI passes. A documented invalid finding may be closed with rationale;
-> any tree change requires rereview. The immutable PR,
-> checks, merge, Actions metadata, and issue #42 completion comment supply the
-> self-referential identities a tracked file cannot contain. Do not create a
-> recursive closeout PR merely to restate them.
+> **Completion gate satisfied.** PR #62 exact reviewed head
+> `038aa3ffe51aaafe99803553380c396429144977` passed exact-head CI
+> `33347664046` and Greptile 5/5 with zero unresolved threads. It normally
+> merged as `6e2a2640a6bd26755064acb0616382c8dcc0ba37`, preserving reviewed tree
+> `5cf1aaf1fd11ef4775c170dd938c3190fa14145b` with the reviewed head as exact
+> second parent, and exact-main CI `33347826166` passed. Issue #42 completion
+> comment `5472621851` records the external transition. B-07R is `done` only in
+> bounded engineering-architecture scope; B-07S still owns exact protocol
+> mechanics.
 
 ## Goal
 
@@ -46,7 +45,7 @@ scientific/security qualification.
 
 ## Maturity ceiling
 
-After the conditional completion gate, this ticket makes only the bounded
+After the satisfied completion gate, this ticket makes only the bounded
 engineering architecture and authority boundary `SPECIFIED / RATIFIED`.
 B-07S remains required to ratify the exact service protocol. Every runtime
 implementation and scientific, security, network, commercial, production,
