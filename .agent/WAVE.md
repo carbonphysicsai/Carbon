@@ -3,13 +3,12 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 0.6
-**Selected ticket before the B-07R completion predicate:** B-07R — `in_progress`
-**Next selected ticket after that predicate:** B-02B — `todo` / **NOT STARTED**
+**Controlling register:** `.agent/WAVE_B.md` version 0.7
+**Selected ticket:** B-02B — `in_progress`
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
 **B-02A status:** `done` in bounded merged engineering scope
-**B-07R status:** `done` only after the conditional exact-head review/CI, normal-merge, and exact-main-CI predicate; otherwise `in_progress`
+**B-07R status:** `done` in bounded merged engineering-architecture scope
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -27,6 +26,16 @@
 > `5470746417` delivered B-02A-D1 through B-02A-D11. B-02A is `done` only in
 > its bounded contract, implementation, and engineering-test scope.
 
+> **B-07R closed.** PR #62 normally merged exact reviewed head
+> `038aa3ffe51aaafe99803553380c396429144977`, tree
+> `5cf1aaf1fd11ef4775c170dd938c3190fa14145b`, as
+> `6e2a2640a6bd26755064acb0616382c8dcc0ba37` with the same tree. Exact-head
+> CI `33347664046`, Greptile 5/5 with no blocking failure and zero unresolved
+> threads, and exact-main CI `33347826166` passed. Issue #42 completion comment
+> `5472621851` records the external completion predicate. B-07R is `done` only
+> for the bounded working engineering architecture; B-07S still owns exact
+> protocol mechanics.
+
 > **Authority state.** PR #54 activated Wave B governance; PRs #57–#59 closed
 > B-01/B-01E and selected B-02A; PR #60 closed B-02A with the exact evidence
 > above. Governance PR #61 superseded the former affirmative
@@ -34,11 +43,11 @@
 > agent-authorized engineering decisions are selected, recorded, notified,
 > implemented, tested, and independently reviewed before merge. A human-
 > reserved value stops its affected behavior and remains fail closed; it stops
-> the whole ticket only when no correct bounded continuation exists. This
-> branch carries B-07R's conditional completion record. It has no authority
-> until the exact reviewed tree normally merges and exact-main CI passes; until
-> then B-07R remains `in_progress` and B-02B cannot start. After that predicate,
-> B-07R is `done` and B-02B is merely selected next as `todo / NOT STARTED`.
+> the whole ticket only when no correct bounded continuation exists. B-07R's
+> exact completion predicate has passed at the identities above. B-02B is the
+> sole selected `in_progress` ticket; its contract candidate remains
+> prospective until independently reviewed, normally merged, and followed by
+> successful exact-main CI.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -107,9 +116,10 @@ does not authorize implementation by itself.
 
 Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.4 the initial
 controlling Wave B dependency board. Version 0.5 recorded the owner-directed
-B-01E insertion. Version 0.6 records proven B-02A closeout, B-07R's delegated
-engineering ratification and conditional completion mechanism, and B-02B as
-the next `todo / NOT STARTED` ticket only after that predicate. The architecture
+B-01E insertion. Version 0.6 recorded proven B-02A closeout and B-07R's
+delegated engineering ratification and conditional completion mechanism.
+Version 0.7 records that the predicate passed and selects B-02B
+`in_progress`. The architecture
 contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
@@ -118,9 +128,9 @@ the closeout transition `B-01 done → B-01E done → B-02A next selected/todo`,
 and its exact-main CI passed. B-01E owns only the canonical development
 environment and legacy executable quarantine. PR #61 then normally merged the
 delegated-decision governance described above, and PR #60 closed B-02A using
-that model. B-07R's tracked status is conditional on the exact external review,
-merge, and exact-main-CI facts in its evidence record. No B-02B implementation
-is part of this transition.
+that model. B-07R's external review, merge, and exact-main-CI facts are
+recorded above and in its evidence record. The B-02B working-contract branch
+contains no B-02B runtime implementation.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

@@ -1,9 +1,9 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 0.6
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.6
-**Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as merged B-07R architecture only under its conditional completion gate
+**Governance version:** 0.7
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.7
+**Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
@@ -49,13 +49,15 @@ CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved
 threads, and exact-main CI `33342015346` passed. B-02A is `done` only in its
 bounded engineering scope.
 
-Version 0.6 carries B-07R's conditional completion record. Until its exact
-reviewed head passes CI, every valid Greptile finding is repaired, zero
-Greptile threads remain unresolved, it normally merges with tree equality, and
-exact-main CI passes, B-07R remains `in_progress` and B-02B
-cannot start. After that predicate B-07R is `done` and B-02B is selected next
-only as `todo / NOT STARTED`. PR/check/merge/Actions metadata and issue #42
-record the exact completion identities; no recursive closeout PR is required.
+PR #62 normally merged exact reviewed B-07R head
+`038aa3ffe51aaafe99803553380c396429144977` as
+`6e2a2640a6bd26755064acb0616382c8dcc0ba37`, preserving exact tree
+`5cf1aaf1fd11ef4775c170dd938c3190fa14145b`. Exact-head CI `33347664046`,
+Greptile 5/5 with zero unresolved threads, and exact-main CI `33347826166`
+passed; issue #42 comment `5472621851` records completion. B-07R is `done` in
+bounded engineering-architecture scope. Version 0.7 selects B-02B
+`in_progress`; its contract branch remains prospective until exact review,
+normal merge, and exact-main CI.
 
 ## 2. Required read order
 
@@ -198,11 +200,10 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E and B-02A are complete at the identities in section 1. B-07R remains
-`in_progress` until its conditional completion predicate. After that predicate,
-B-02B is selected next as `todo / NOT STARTED`; create a fresh dedicated
-worktree from the then-current exact `origin/main` before any B-02B work. No
-B-02B implementation belongs in the B-07R branch.
+B-01E, B-02A, and B-07R are complete at the identities in section 1. B-02B is
+the sole selected `in_progress` ticket. Continue it only from its recorded
+contract or, after the exact contract merge and exact-main CI, implementation
+worktree. No B-02B implementation belongs in the B-07R or contract branch.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -450,7 +451,7 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.6 as the controlling register, and selects <TICKET> with the same
+version 0.7 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
 continue only its recorded ticket branch after verifying the recorded base,
 current remote HEAD/tree, evidence, CI, and review state. Use its existing
