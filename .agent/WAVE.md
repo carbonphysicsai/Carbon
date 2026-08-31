@@ -3,13 +3,14 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 0.8
-**Selected ticket:** B-02C — `in_progress`
+**Controlling register:** `.agent/WAVE_B.md` version 0.9
+**Selected ticket:** B-03 — `in_progress`
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
 **B-02A status:** `done` in bounded merged engineering scope
 **B-07R status:** `done` in bounded merged engineering-architecture scope
 **B-02B status:** `done` in bounded merged engineering scope
+**B-02C status:** `done` in bounded merged engineering scope
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -56,8 +57,19 @@
 > Greptile 5/5 on exact-head check `99413062552` with no blocking failure and
 > zero unresolved threads, and exact-main CI `33368352662` passed. B-02B is
 > `done` only in its bounded contract, implementation, and engineering-test
-> scope. Version 0.8 selects B-02C `in_progress` for its contract-then-
-> implementation flow.
+> scope.
+
+> **B-02C closed.** PR #66 normally merged repaired exact reviewed head
+> `a30865d2349f1cc6e725f1ea15e923f8d7893e4c`, tree
+> `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`, as
+> `1dc41288e2d0e516de21d05dc168b188791c39f5` with the same tree and ordered
+> parents `319a765860ac6e93018124bd57a84bfd6679672e`,
+> `a30865d2349f1cc6e725f1ea15e923f8d7893e4c`. Repaired exact-head CI
+> `33388174967`, Greptile 5/5 on exact-head check `99475440630` with zero
+> comments, annotations, or unresolved threads, and exact-main CI
+> `33388595061` passed. B-02C is `done` only in its bounded contract,
+> implementation, and engineering-test scope. Version 0.9 selects B-03
+> `in_progress` for its contract-then-implementation flow.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -130,7 +142,8 @@ B-01E insertion. Version 0.6 recorded proven B-02A closeout and B-07R's
 delegated engineering ratification and conditional completion mechanism.
 Version 0.7 records that the B-07R predicate passed and selected B-02B.
 Version 0.8 records B-02B's exact reviewed merge and exact-main CI and selects
-B-02C `in_progress`. The architecture
+B-02C `in_progress`. Version 0.9 records B-02C's repaired exact reviewed
+normal merge and exact-main CI and selects B-03 `in_progress`. The architecture
 contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
@@ -139,11 +152,11 @@ the closeout transition `B-01 done → B-01E done → B-02A next selected/todo`,
 and its exact-main CI passed. B-01E owns only the canonical development
 environment and legacy executable quarantine. PR #61 then normally merged the
 delegated-decision governance described above, and PR #60 closed B-02A using
-that model. B-07R's and B-02B's external review, merge, and exact-main-CI facts
-are recorded above and in their evidence records. B-02C begins with a
-separate working engineering contract; real resource, capacity, funding,
-queue, security, economics, operations, and production values remain
-unavailable.
+that model. B-07R's, B-02B's, and B-02C's external review, merge, and
+exact-main-CI facts are recorded above and in their evidence records. B-03
+begins with a separate working engineering contract; real population, range,
+conformance, qualification, security, operations, production, and LIVE values
+remain unavailable.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes

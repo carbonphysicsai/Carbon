@@ -1,9 +1,417 @@
 # Agent decisions log
 
+## 2026-08-31 — B-03 decision-series status
+
+> **B-03-D1 through B-03-D8 status: CONDITIONAL AGENT-SELECTED WORKING
+> DECISIONS.** The series becomes bounded engineering-contract authority only
+> if the exact independently reviewed B-03 contract tree passes exact-head CI,
+> receives clean exact-head Greptile correctness review with every valid
+> finding repaired and zero unresolved threads, normally merges with exact
+> reviewed-tree preservation, and passes exact-main CI. Any tree change
+> requires rereview. Notification requests `KEEP`, `CHANGE`, `BLOCKED`, or
+> `DEFER_TO_OWNER`; no affirmative response or silence gate applies. An
+> explicit owner deferral routes to issue #41. MQ-002/MQ-003 production and
+> scientific inputs remain `DEFERRED_FAIL_CLOSED`.
+
+## 2026-08-31 — B-03-D1: Generator package ownership and one-way boundary
+
+**Selected approach and agent recommendation.** Implement one
+standard-library-only `carbon.generators` package with the structural Burgers
+fixture under `carbon.generators.burgers`. Depend one way on exact B-02A
+authoring/case/ref seams, A4 fixture-only seeding APIs, and at most registry
+identity/digest primitives. Permit explicit internal imports from
+`carbon.authoring.cases` and `carbon.authoring.refs` for the trusted producer
+without widening the authoring root export surface. Keep trusted requests,
+authorities, grants, artifacts, services, codecs, and raw-ref issuance in
+explicit protected/private modules; the package root exports only the curated
+safe descriptor/environment/configuration/role/outcome/unavailable-input and
+public-projection surface fixed by the contract.
+
+**Rationale.** `Generator_Creation.md` already maps this responsibility to
+`carbon/generators/`, and the plural domain is unambiguous next to the existing
+authoring and seeding owners. B-02A intentionally keeps protected case types
+off its convenience exports while still supplying the exact construction
+boundary B-03 needs. A separate downstream package prevents generation from
+acquiring authoring, entropy, lifecycle, reference, score, or service
+authority.
+
+**Alternatives rejected.** Singular `carbon.generator` or
+`carbon.generation`; putting generator code in `carbon.authoring` or
+`carbon.seeding`; reviving retired `carbon.challenges`, `carbon.data`,
+`carbon.physics`, `poc`, or archived code; importing registry gate/store/LIVE;
+adding future reference, measurement, dossier, service, or empty placeholder
+modules.
+
+**Downstream impact.** Implementation adds the exact package root/modules to
+code authority, installed-wheel/outside-tree inventories, and reverse-import
+and no-leakage invariants. B-04/B-05/B-06/B-07F may later consume the public
+surface but cannot redefine it or reverse dependency direction. No dependency
+or lock-file change is expected.
+
+**Migration cost and exact supersession path.** Moving public nominal types or
+reversing an import edge is a high-cost API/authority change. It requires a
+prospective B-03 contract/schema version, normally merged superseding
+decision, import/wheel/authority/invariant migration tests, and exact-head and
+exact-main review. Package-private file splits remain low cost if exports and
+semantics do not change.
+
+**Reserved inputs.** Production runtime, deployment, network, persistence,
+reference, measurement, scoring, qualification, and LIVE integration remain
+with their owning tickets and human/domain gates. Their absence does not block
+a pure fixture package.
+
+## 2026-08-31 — B-03-D2: Reuse B-02A identity and bind a complete event
+
+**Selected approach and agent recommendation.** Reuse exact B-02A
+`CanonicalChallengeCase`, `.canonical_bytes()`, `.to_ref()`, and existing
+owner-ref kinds for generator, generation event, generation failure,
+distribution conformance, payload, case source, fixture registration,
+provenance, and accounting. Define distinct exact B-03 environment,
+fixed-configuration, request, replay, accounting-directive, pending-attempt,
+final-decision, result, attempt, accounting, conformance, duplicate-comparison,
+and post-accounting fact-set refs plus a non-self-referential
+`GeneratorImplementationManifest`. The manifest digest, not the descriptor
+digest, equals A4 `SeedPin.generator_digest`. Define an acyclic canonical
+`GenerationSourceEvent` before support/censoring/outcome decisions; use the
+externally issued protected attempt commitment's object id/version for every
+attempt-scoped B-02A owner pin. Exact-recompute every object/ref pair and bind
+the event through `CaseSourceBinding(GENERATED, GeneratedCaseSource(...))`.
+
+**Rationale.** B-02A already owns the physical case and its content identity,
+but a case has no explicit generation-role, replay, attempt, or fixture-context
+field. A complete protected event binds those facts without altering case
+identity. Exact recomputation is necessary because a digest-valid owner ref
+proves bytes, not that the authorized B-03 service created or semantically
+validated them.
+
+**Alternatives rejected.** A second B-03 `GeneratorRef`, generic strings,
+parallel case/reference/canonicalizer types, caller-supplied digest-only refs,
+self-issued provenance, mutable latest aliases, extending B-02A's closed
+authored-object/history registry, or putting protected role/attempt fields in
+a public case projection.
+
+**Downstream impact.** Consumers resolve the exact manifest/environment/
+descriptor/configuration/request/event/payload/result object/ref graph and
+retain Challenge equality and full dependency bindings. The source event
+contains no terminal decision/result, so B-04/B-05/B-06 can refer to it without
+cycles or changing historical case bytes. Public consumers receive only an
+externally authorized B-02A projection, never a raw protected case ref.
+
+**Migration cost and exact supersession path.** Changing ref scope, descriptor
+or event field order, canonical profile/header, or case-source binding is a
+high-cost identity change requiring a new prospective B-03 schema/profile,
+normally merged superseding decision, dual-version read/migration tests where
+bytes exist, and immutable preservation of all historical refs.
+
+**Reserved inputs.** Production generator identity registration,
+implementation attestation, environment qualification, durable stores,
+signatures, and public case-projection authority remain unavailable and
+externally owned.
+
+## 2026-08-31 — B-03-D3: Closed role mapping and A4-owned random material
+
+**Selected approach and agent recommendation.** Bind exact B-02A
+`SamplingRole`, resolved `SamplingPlan`/ref, A4 `SeedDomain`, fixed A4
+`RoleKey("generator_sampling")`, and exact A4 `SeedPin` in one closed
+compatibility check. Permit
+only fixture mappings `OFFICIAL_EVALUATION → OFFICIAL_EVAL`,
+`STRESS → OFFICIAL_STRESS`, and `PRACTICE → OFFICIAL_TRAIN`, with the last
+explicitly meaning entropy segregation rather than evidentiary equivalence.
+Accept exact `FixtureOfficialContext`, private UInt64 draw, exact
+`FixtureAuthoringCapability`, and `FixtureOrigin` only through a nominal
+nonserializable `FixtureGenerationGrant`; bind its replay preimage to A4's
+value-only fixture projection/commitment and the exact request commitments
+inside the authority's private issuance record. Treat the request replay ref as
+a capability-issued opaque protected B-03 commitment ref, never a B-02A owner
+ref or a B-03 digest of raw draw material.
+Derive with A4 inside the trusted adapter, permit exactly one ephemeral
+`DerivedSeed.as_backend_bytes()` copy in the private sampler, and return no
+reachable material, context, provider, grant, or draw.
+
+**Rationale.** B-02A and A4 role vocabularies are intentionally different and
+cannot be equated by a caller label. `DerivedSeed` does not itself embody its
+origin/domain after derivation, so accepting it publicly would erase the
+critical fixture provenance proof. A4 already owns entropy acquisition,
+domain separation, pins, and derivation; B-03 needs only a tightly verified
+consumer capability.
+
+**Alternatives rejected.** Public `seed`, `DerivedSeed`, bytes, RNG, callback,
+draw, or free-form role inputs; B-03 seed derivation; ambient `random` or
+process/hash state; treating PRACTICE as official training evidence;
+supporting authoring qualification/verification/evidence-campaign roles
+without an owning contract; caller Booleans for fixture/official mode.
+
+**Downstream impact.** Every request validates Challenge and generator
+version/digest against `SeedPin` before derivation, and one attempt consumes at
+most one derivation. No request/result/event/public/error surface leaks seed,
+provider, context, draw, slot, hidden stratum, mixture, or reversible input.
+No upstream package imports B-03.
+
+**Migration cost and exact supersession path.** Adding a role/domain mapping,
+production context, or externally supplied material changes security and
+scientific boundaries and requires an owning A4/B-03 prospective contract,
+normally merged superseding decision, leakage/threat-model review, migration
+tests, and exact-head/exact-main gates. Existing fixture events remain
+fixture-only.
+
+**Reserved inputs.** Production entropy source, custody, unpredictability,
+provider authentication, domain policy, role authorization, security
+acceptance, and official operations remain A4/security/operations-owned and
+unavailable.
+
+## 2026-08-31 — B-03-D4: Six nominal terminal outcomes
+
+**Selected approach and agent recommendation.** Define exactly
+`VALID_GENERATED`, `REGISTERED_EXCLUSION`, `GENERATOR_NONCONFORMANCE`,
+`INVALID_CONSTRUCTION`, `CENSORED_CASE`, and `INFRASTRUCTURE_FAILURE`.
+Require an exact case/case-ref pair for both valid and censored variants and no
+disposition-facing case for the other four; post-case infrastructure failure
+retains only an audit-protected constructed case/artifact. Normatively map
+valid to B-02A `VALID`, censored to
+`CENSORED` with an exact finalized `CensoringRecord`/ref, registered exclusion
+to attempt-bound no-case `EXCLUDED`, and generator nonconformance to attempt-
+bound `GENERATION_FAILURE`. Invalid construction and infrastructure failure
+have exact B-03 reason/attempt records but fabricate no B-02A disposition.
+
+**Rationale.** These outcomes answer different causal and accounting
+questions. A registered exclusion is not a generator bug; generator
+nonconformance is not malformed authored input; censoring is not
+infrastructure failure; and none of them is adverse scientific candidate
+evidence. A closed nominal union makes invalid substitutions and denominator
+loss observable.
+
+**Alternatives rejected.** Success/failed Boolean, open strings, a generic
+exception result, treating exclusion/censoring as valid cases, converting any
+failure into candidate evidence, adding `REFERENCE_FAILURE`, or caller-settable
+official/production/qualified/LIVE flags.
+
+**Downstream impact.** Attempt and intended-realized accounting partitions
+every unit by the exact six outcomes. B-04 owns reference failure; B-05 owns
+measurement/uncertainty evidence; B-06 owns qualification aggregation.
+Consumers must not infer scientific quality from the terminal kind. Censored
+cases remain non-valid evidence and are never exposed publicly without the
+separate external B-02A projection authority.
+
+A protected `PENDING_SUCCESSOR` invocation output is an orchestration state
+that retains one of these same six provisional outcomes while B-02A execution
+lineage is unresolved; it is not a seventh terminal outcome, disposition, or
+accounting row.
+
+**Migration cost and exact supersession path.** Adding, merging, splitting, or
+reinterpreting a terminal kind changes persisted event/result/accounting
+semantics and requires a prospective B-03 schema and normally merged
+superseding decision with exhaustive variant migration and historical-reader
+tests. Existing outcome bytes retain their meaning.
+
+**Reserved inputs.** Scientific acceptance, evidence use, reference failure,
+measurement failure, qualification, scoring, operational remediation, and
+production incident policy remain externally owned.
+
+## 2026-08-31 — B-03-D5: One derivation per attempt and visible replacement
+
+**Selected approach and agent recommendation.** Make each B-03 invocation one
+protected attempt with distinct intended-slot and intended-evidence-unit
+commitments and at most one A4 derivation. Prohibit internal silent retry.
+Record whether the current attempt is itself a replacement with the exact prior
+pending-attempt/ref and current-lineage ref. Only after the provisional terminal
+outcome does the nominal accounting authority return an exact closed
+`AttemptAccountingDirective`. A direct final directive records an unexecuted
+B-02A replacement decision. A successor directive instead returns a protected
+pending-attempt record and deliberately defers the immutable B-02A replacement,
+censoring/disposition, final attempt, and result records. Only after the exact
+authorized successor invocation exists does a pure finalizer bind that same
+lineage in B-02A, validate `executed=True`, and finalize the predecessor. A
+pre-issued fallback constructs the exact owner-unavailable path if the
+accounting authority fails, so terminalization cannot recurse. The denominator
+binding must equal the registered plan's exact denominator-effect ref whenever
+the registered trigger applies. Separate pure trusted builders derive
+`IntendedUnitAccounting` from complete attempt/link/accounting-decision pairs
+and `GenerationAccountingSummary` from complete intended-unit pairs. Select no
+production retry ceiling.
+
+**Rationale.** Silent replacement changes the sampled population and removes
+difficult units from denominators. Existing B-02A replacement and censoring
+types already own prospective policy semantics; B-03 records their exact
+decisions only after the cause exists rather than creating an implicit retry
+loop or construction cycle. Deferring the predecessor's B-02A record is
+necessary because B-02A canonically defines a bound lineage as an executed
+replacement; it must never remain permanently marked unexecuted after a real
+successor exists. Per-attempt derivation also prevents provider errors from
+consuming an unknown number of draws.
+
+**Alternatives rejected.** `while retry`, a default maximum-attempt count,
+dropping failed units, reusing one attempt/draw after failure, replacing on a
+generator-owned heuristic, inferring intended-unit grouping from equal labels
+or digests without the exact external link decision, or reporting only
+realized valid cases.
+
+**Downstream impact.** Conformance/evidence consumers receive separate
+intended and realized terminal partitions and complete protected lineage.
+Failures, exclusions, and censoring stay visible by cause and protected
+stratum. Public projections omit protected attempt/slot/stratum identities.
+
+**Migration cost and exact supersession path.** Any retry budget, replacement
+trigger, censoring policy, or denominator rule requires its owner's exact
+registered policy plus a prospective B-03/B-02A contract revision, normally
+merged decision, migration/accounting proof, and review. Historical attempted
+units cannot be deleted or relabeled.
+
+**Reserved inputs.** Real replacement/censoring policy, retry ceilings,
+sampling-unit/stratum identity, failure remediation, and evidence-denominator
+rules remain human statistics/SciML/operations-owned.
+
+## 2026-08-31 — B-03-D6: Nominal authority echoes and fact-only conformance
+
+**Selected approach and agent recommendation.** Inject exact nominal
+support/exclusion, censoring, attempt-accounting, near-duplicate, and external-
+distribution authorities. Support returns nominally separate primary-case and
+selection-materialization assessments bound to each population's own support/
+exclusion contracts; primary evidence supplies `ValidCasePayload`, while an
+external terminal resolution selects any effective exclusion. Require exact
+full-request echoes and closed decisions; fail closed on stale, cross-
+Challenge, forged, subclassed, partial, exception, or non-echoing results.
+Detect exact canonical-case duplicates by case-ref equality and physical
+collisions by an attempt-independent protected payload fingerprint under the
+same Challenge/representation/configuration; never compare the deliberately
+attempt-scoped payload owner pins. Every admitted path emits exact
+`GeneratorConformanceFacts` whose case/payload/support fields use
+closed bound/not-applicable/owner-unavailable variants and whose current replay
+identity is always exact-bound, allowing an early
+no-case generation failure to still supply B-02A's required distribution-
+conformance ref. Exact and physical-duplicate plus externally owned near-
+duplicate decisions live in a separate post-result
+`DuplicateConformanceFacts`, never in per-attempt conformance. Post-accounting external fact sets, rather than per-attempt
+facts, consume completed accounting for protected strata/tails and marginal/
+joint/conditional summaries. Deterministic replay comparison uses a distinct
+nominal non-accounting fixture probe from the already-bound private replay
+reservation; it reconstructs audit-only protected payload/event/case bytes
+under the baseline identities and proves exact case-ref equality, but issues no
+second provenance event, generated case, attempt, result, or accounting row.
+
+**Rationale.** B-02A support/exclusion contracts store rule and authority refs
+but do not execute predicates. Raw callbacks or Booleans would let generator
+code invent registered population meaning. Exact equality is available and
+deterministic; semantic nearness and adequacy require externally owned policy
+and evidence.
+
+**Alternatives rejected.** Treating a rule ref as executable; raw callbacks,
+Booleans, duck types, or unverified authority responses; Python `hash` for
+identity; built-in numeric distance/tolerance; a generator-selected support,
+exclusion, diversity, invalid-rate, collision, or conformance threshold; using
+reference agreement as distribution validation.
+
+**Downstream impact.** B-06 and human reviewers may evaluate exact fact
+records under their own thresholds without B-03 conferring a verdict. An
+unavailable near-duplicate policy remains typed unavailable. None of the facts
+is a QualificationManifest or candidate scientific evidence.
+
+**Migration cost and exact supersession path.** A new authority protocol,
+estimand, summary definition, distance, threshold, or acceptance decision
+requires its owning contract and a prospective normally merged B-03 adapter/
+schema decision with parity and adversarial echo tests. Historical facts are
+not reinterpreted.
+
+**Reserved inputs.** Primary/selection support (including official P/Q only
+when the exact plan binds them), exclusion rules, estimands,
+strata/tails, duplicate/near-duplicate policy, conformance thresholds,
+adequacy evidence, and qualification remain SciML/statistics/protocol-owned.
+
+## 2026-08-31 — B-03-D7: Structural fixed-viscosity Burgers fixture only
+
+**Selected approach and agent recommendation.** Implement one immutable
+`BurgersFixtureConfiguration`: id `b03_burgers_structural_fixture`, version
+`1.0`, `PERIODIC_1D`, period `1.0`, grid `8`, mechanical fixture viscosity
+`1.0`, and codec `carbon.b03.burgers.fixture-latent.v1`. The private sampler
+reads the first two big-endian UInt64 words, maps each modulo 2001 into
+`[-1000,1000]`, and combines exact bases `(0,1,1,0,-1,-1,0,0)` and
+`(1,1,0,-1,-1,0,1,0)` divided by `4096.0`. Bind the configuration ref into
+the non-self-referential implementation manifest, descriptor, request, replay,
+event, and protected payload. Leave every production range/law/value and
+scientific adequacy input in the separate closed `HUMAN_INPUT_REQUIRED`
+report. Construct only a physical input case; do not solve the PDE or emit
+truth/reference/candidate output.
+
+**Rationale.** The ticket needs a mechanical fixture to exercise case
+construction and conformance plumbing. Current generator specification
+amendments propose numerical values but do not have authority to select real
+population truth. Structural provenance prevents a deterministic, plausible
+fixture from being mistaken for a production generator.
+
+**Alternatives rejected.** Adopting proposed viscosity/range/tolerance values
+as canonical truth; a random configurable production-looking generator;
+hashing `HUMAN_INPUT` strings into complete production objects; importing a
+solver, NumPy/JAX/Julia, archived PoC code, data files, or network resources;
+emitting reference solutions, scores, or qualification evidence.
+
+**Downstream impact.** Fixture tests obtain deterministic exact case bytes,
+payload refs, and fact records. Real production bindings remain unavailable
+and cannot be upgraded by caller label or config mutation. B-04 later owns
+reference behavior and B-05 measurement behavior.
+
+**Migration cost and exact supersession path.** Any real population,
+configurable physical law, numerical backend, or production generator is a
+new qualified implementation/version requiring owner-supplied values,
+prospective B-03 contract and generator identity, conformance evidence,
+security/operations review, and normal review/merge gates. It cannot reuse or
+upgrade fixture identities.
+
+**Reserved inputs.** Real viscosity, forcing, initial-condition law, domain,
+grid, horizon, ranges, strata, mixture, exclusions, sampling law, physical
+validation, solver/reference, and production environment remain unavailable.
+
+## 2026-08-31 — B-03-D8: Structural fixture provenance and safe disclosure
+
+**Selected approach and agent recommendation.** Preserve exact B-02A
+`FixtureOrigin` as loader metadata (not case-provenance data), retain the exact
+loaded case and complete loaded dependency tuple in a protected
+`GeneratedFixtureArtifact`, and call `compose_authoring_graph_origin`, so every
+generated fixture graph is `FIXTURE_DERIVED` and A3 fails closed with
+`scientific_authoring.fixture_derived`. Retain the protected artifact on a
+post-case infrastructure failure without creating a B-02A disposition or
+public case identity. The public factory accepts the exact `GeneratorResult`,
+derives its fixture marker only from that exact artifact graph origin, and calls the external
+`CaseProjectionAuthority.require_pairing` for any case projection. Expose a closed
+`PublicGenerationProjection` containing only Challenge, public generator id/
+version, fixture-only marker, coarse outcome, and an already-authorized B-02A
+public case projection. Use redacted protected representations and stable,
+non-echoing, cause-free errors.
+
+**Rationale.** A fixture Boolean on a record is insufficient: provenance must
+survive the complete graph and least-authority join. B-02A deliberately
+separates protected case identity from a public projection issued by an
+external `CaseProjectionAuthority`; B-03 cannot self-authorize that
+disclosure. Error, `repr`, serializer, and reachability paths are common seed
+and hidden-population leakage channels.
+
+**Alternatives rejected.** A caller-settable fixture/official/production/LIVE
+flag; `RegisteredOrigin`; creating a `QualificationManifest`; importing or
+calling `activate_live`; exposing canonical case/payload/event refs, seed,
+draw, attempt, slot, stratum, mixture, reversible inputs, provider/context,
+raw exceptions, or automatic projection authority.
+
+**Downstream impact.** A3 LIVE integration tests must load the actual generated
+artifact, compose graph provenance, and observe structural rejection. Public
+and exception allowlists are mechanically tested, including object
+reachability and outside-wheel imports. Fixture evidence cannot be promoted
+in place.
+
+**Migration cost and exact supersession path.** Widening disclosure or
+changing provenance/LIVE behavior is a high-risk security/scientific change
+requiring the owning B-02A/A3 prospective contract, normally merged
+superseding decision, leakage and lifecycle threat review, migration of public
+projections, and exact-head/exact-main gates. Existing fixture artifacts stay
+fixture-derived forever.
+
+**Reserved inputs.** Public identity disclosure, projection authority,
+registered origin, qualification manifests, production provenance, security
+acceptance, privacy policy, and LIVE activation remain externally and
+human-owned.
+
 ## 2026-08-31 — B-02C decision-series status and B-02B completion
 
-> **B-02C-D1 through B-02C-D8 status: CONDITIONAL AGENT-SELECTED WORKING
-> DECISIONS.** The series becomes bounded engineering-contract authority only
+> **B-02C-D1 through B-02C-D8 status: SATISFIED AGENT-SELECTED BOUNDED
+> ENGINEERING DECISIONS.** The series became bounded engineering-contract
+> authority only
 > if the exact independently reviewed B-02C contract tree passes exact-head
 > CI, receives clean exact-head Greptile correctness review with every valid
 > finding repaired and zero unresolved threads, normally merges with exact
@@ -18,8 +426,12 @@ That version 0.1 predicate is satisfied: contract PR #65 reviewed exact head
 `33373378456` and Greptile check `99430113590` at 5/5 with zero unresolved
 threads passed; normal merge `319a765860ac6e93018124bd57a84bfd6679672e`
 preserved the reviewed tree; and exact-main CI run `33374037602` passed. The
-version 0.2 fail-closed clarification carried by the implementation candidate
-is not yet reviewed, ratified, or merged.
+version 0.2 fail-closed clarification then reached repaired reviewed head
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c`, passed exact-head CI
+`33388174967` and Greptile check `99475440630` at 5/5 with zero unresolved
+threads, normally merged as `1dc41288e2d0e516de21d05dc168b188791c39f5`
+with exact tree `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12` preserved, and passed
+exact-main CI `33388595061`.
 
 The earlier B-02B-D1 through B-02B-D8 conditional predicates are satisfied.
 Contract PR #63 normally merged exact reviewed head
@@ -117,8 +529,8 @@ environment bindings against the exact policy/class before evaluation. Prove
 the plan and nested values remain byte-identical before and after every
 B-02C operation.
 
-**Implementation-candidate hardening (version 0.2 clarification, not yet
-merged).** A content address proves exact bytes but does not prove that the
+**Merged implementation hardening (version 0.2 clarification).** A content
+address proves exact bytes but does not prove that the
 owning semantic operation produced them. Readiness accepts the exact plan/ref
 in addition to its assessment pair, and downstream services recompute every
 supplied assessment, decision, enforcement result, and cancellation record
@@ -321,8 +733,9 @@ score/rank/margin, paths/URIs/code/credentials, and monetary/economic fields.
 They permit only the explicit fixture resource-accounting build/reuse/replicate
 ids and digests required by B-02C receipts. Errors are
 bounded, fixed, deterministic, and non-echoing. Contract merge earns only
-bounded `SPECIFIED/RATIFIED`; the separate unmerged implementation candidate
-may earn only bounded `IMPLEMENTED/TESTED/GREPTILE_REVIEWED`.
+bounded `SPECIFIED/RATIFIED`; the exact reviewed and normally merged
+implementation earns only bounded `IMPLEMENTED/TESTED/GREPTILE_REVIEWED/
+MERGED`.
 
 **Rationale.** Real limits and telemetry can disclose official topology, while
 placeholder production/economic branches are easily mistaken for authority.

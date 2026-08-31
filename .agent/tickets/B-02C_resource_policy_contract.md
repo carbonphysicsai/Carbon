@@ -1,14 +1,19 @@
 # Ticket B-02C - Research resource policy contract
 
 **Wave:** B candidate
-**Status:** in_progress
+**Status:** done
 **Depends on:** B-02B, B-07R
 **Build Out:** C9 construction and research resource-policy seam
 **Master questions:** MQ-008, MQ-015, MQ-017, MQ-024
 **Authority:** `Miner_MCP_Wave_B_Research_Contract.md` §§5, 7-8; `Compute_Optimization.md`; `JAX_Optimization.md`
 
-**Current ticket:** selected after the exact B-02B implementation merge and
-exact-main CI recorded in `.agent/evidence/wave_b/b-02b.md`.<br>
+**Closeout:** PR #66 normally merged repaired exact reviewed head
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c` as
+`1dc41288e2d0e516de21d05dc168b188791c39f5`, preserving exact tree
+`eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`; repaired exact-head CI
+`33388174967`, Greptile check `99475440630` at 5/5 with zero unresolved
+threads, and exact-main CI `33388595061` passed. B-02C is complete only in
+bounded engineering scope.<br>
 **Working contract:** `Design_Specs/Research_Resource_Policy_Contract.md`<br>
 **Plan:** `.agent/plans/B-02C_resource_policy_contract.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-02c.md`
@@ -21,7 +26,7 @@ inventing calibrated forecasts, prices, or production rails.
 
 ## Definition of Done
 
-- [ ] Before implementation, produce
+- [x] Before implementation, produce
       `Design_Specs/Research_Resource_Policy_Contract.md`; record material
       engineering decisions; deliver applicable protocol, SRE, security,
       operations, and economics lead/domain notifications; pass applicable
@@ -32,36 +37,36 @@ inventing calibrated forecasts, prices, or production rails.
       invalid finding may be closed with rationale, and every tree change
       requires rereview. No affirmative human/domain response or silence gate
       applies to agent-authorized engineering choices.
-- [ ] Define exact `ResearchResourcePolicy`, `ResearchResourcePolicyRef`,
+- [x] Define exact `ResearchResourcePolicy`, `ResearchResourcePolicyRef`,
       `ResourceClass`, `ResourceClassRef`, static construction dimensions,
       declared ceilings, enforcement points, kill semantics, and observed
       resource-receipt fields.
-- [ ] Consume the immutable policy-agnostic static requirements and impact tags
+- [x] Consume the immutable policy-agnostic static requirements and impact tags
       emitted in `ResolvedConstructionPlan`; determine policy support,
       admissibility, and enforcement without changing the plan hash or compiler
       semantics.
-- [ ] Keep exact static constraints, calibrated forecasts, future binding
+- [x] Keep exact static constraints, calibrated forecasts, future binding
       execution quotes, and observed receipts nominally and epistemically
       separate.
-- [ ] Bind policy meaning to exact Challenge, assembly, compiler, environment,
+- [x] Bind policy meaning to exact Challenge, assembly, compiler, environment,
       hardware/resource class, and practice/official-shaped authority where
       applicable.
-- [ ] Define typed unsupported, over-limit, policy-stale, enforcement,
+- [x] Define typed unsupported, over-limit, policy-stale, enforcement,
       infrastructure, and cancellation outcomes without turning them into
       candidate physics evidence.
-- [ ] Define receipt seams required by a later
+- [x] Define receipt seams required by a later
       `ReconstructionEvidencePolicy`: complete-build identity, frozen-artifact
       reuse window, reconstruction replicate identity, observed cost/latency,
       evidence-stage label, and stop cause. These fields record resource facts
       only; they do not authorize scientific screening, ranking, or promotion.
-- [ ] Define fail-closed, non-scientific seams for validator capacity,
+- [x] Define fail-closed, non-scientific seams for validator capacity,
       reconstruction funding, queueing, and evidence-budget availability.
       Missing operational commitments leave work `EVIDENCE_DEFERRED`; they do
       not lower the registered scientific evidence requirement or create a
       price, quota, score, or candidate-quality inference.
-- [ ] Provide a bounded fixture policy with explicit non-production provenance;
+- [x] Provide a bounded fixture policy with explicit non-production provenance;
       missing real rails leave production execution unavailable.
-- [ ] Add canonicalization, stale/cross-Challenge ref, hostile-limit,
+- [x] Add canonicalization, stale/cross-Challenge ref, hostile-limit,
       enforcement, receipt, forecast/quote-confusion, authority, and
       installed-wheel tests.
 
