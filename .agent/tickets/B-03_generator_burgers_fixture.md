@@ -1,12 +1,19 @@
 # Ticket B-03 - Generator API and Burgers fixture
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** in_progress
 **Depends on:** B-02A
 **Build Out:** C3
 **Master questions:** MQ-002, MQ-003
 **Authority:** `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
+
+**Current ticket:** selected after B-02C PR #66's repaired exact-head review,
+normal exact-tree-preserving merge, and exact-main CI recorded in
+`.agent/evidence/wave_b/b-03.md`.<br>
+**Working contract:** `Design_Specs/Generator_Runtime_Contract.md`<br>
+**Plan:** `.agent/plans/B-03_generator_burgers_fixture.md`<br>
+**Evidence:** `.agent/evidence/wave_b/b-03.md`
 
 ## Goal
 
@@ -26,7 +33,8 @@ Implement the generator interface and a mechanically fixture-only fixed-viscosit
       scientific qualification remain human-owned and fail closed.
 - [ ] Define deterministic generator request/result and typed generation/censoring failures over `CanonicalChallengeCase`.
 - [ ] Bind exact distribution, SamplingPlan, generator, role, and fixture identities.
-- [ ] Implement the Burgers fixture using explicit `HUMAN_INPUT` markers for unratified population/range values.
+- [ ] Implement the Burgers fixture using explicit `HUMAN_INPUT_REQUIRED`
+      availability values for unratified population/range inputs.
 - [ ] Expose fixture conformance evidence hooks for support/exclusion checks,
       realized strata and tail allocation, marginal/joint/conditional summaries,
       duplicate and near-duplicate detection, deterministic replay, rejection

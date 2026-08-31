@@ -1,7 +1,7 @@
 # B-02C plan — research resource policy contract and implementation
 
 **Ticket:** B-02C — Research resource policy contract<br>
-**Status:** `in_progress` in bounded implementation-candidate scope<br>
+**Status:** `done` in bounded merged engineering scope<br>
 **Contract branch:** `agent/b-02c-resource-policy-contract`<br>
 **Contract worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact contract base:** `b10b6e74fb3f8ab8a7427a6763c7db4f41341083`<br>
@@ -12,7 +12,9 @@
 **Implementation worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact implementation base/tree:** `319a765860ac6e93018124bd57a84bfd6679672e` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
 **Code-bearing implementation head/tree:** `c123818bcd2b3acd50a68fa73819154cb48c2795` / `4b8dec2174702f750212f9e519331cec74f72e5b`<br>
+**Final repaired reviewed head/tree:** `a30865d2349f1cc6e725f1ea15e923f8d7893e4c` / `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`<br>
 **Implementation PR:** #66, `B-02C: implement research resource policy`<br>
+**Implementation merge:** `1dc41288e2d0e516de21d05dc168b188791c39f5`<br>
 **Working contract:** `Design_Specs/Research_Resource_Policy_Contract.md`
 
 ## 1. Authority and dependency gate
@@ -109,7 +111,8 @@ After that contract merge and exact-main CI:
    GitHub Linux as final environment evidence when Darwin is rejected.
 8. Open one draft PR titled `B-02C: implement research resource policy`,
    notify issue #42, obtain clean exact-head CI and Greptile review, repair
-   valid findings with rereview after changes, and stop without merging.
+   valid findings with rereview after changes, and normally merge only the
+   exact reviewed tree when explicitly authorized.
 
 The fresh implementation workspace recorded above was created from exact
 fetched `origin/main` only after run `33374037602` passed. Baseline bootstrap,
@@ -117,9 +120,16 @@ doctor, and CI each correctly rejected noncanonical Darwin before running a
 test lane. Exact-head GitHub Linux run `33383520769` passed the canonical and
 clean dev-container lanes on the code-bearing head. Greptile check
 `99461275769` reviewed that same head at 5/5 with zero comments, annotations,
-or review threads. This evidence-only seal is followed by exact-head CI and
-Greptile rereview; canonical GitHub Linux remains the authoritative final
-environment.
+or review threads. A later current-tree privacy repair produced final head
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c`, tree
+`eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`. Exact-head CI run
+`33388174967` passed jobs `99475435562` and `99475435859`; Greptile check
+`99475440630` and summary comment `5477233103` reported 5/5, 30 files, zero
+comments or annotations, and zero unresolved threads. PR #66 normally merged
+that exact reviewed head as `1dc41288e2d0e516de21d05dc168b188791c39f5`
+with ordered parents `319a765860ac6e93018124bd57a84bfd6679672e`,
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c` and exact tree preservation.
+Exact-main CI run `33388595061` passed jobs `99476742291` and `99476742559`.
 
 ## 5. Verification matrix
 
@@ -155,11 +165,11 @@ qualification, and LIVE remain human/domain-owned and unavailable. Missing
 values stop only their affected real behavior. Exact fixture-only types and
 typed fail-closed seams may proceed and cannot be upgraded in place.
 
-## 7. Stop and maturity ceiling
+## 7. Closeout and maturity ceiling
 
-The contract merge may establish only bounded `SPECIFIED` and
-`RATIFIED_ENGINEERING_CONTRACT`. The implementation candidate may establish
-bounded `IMPLEMENTED`, `TESTED`, and `GREPTILE_REVIEWED`; it remains an
-unmerged draft at this session's stop. Scientific, security, operations,
+The exact reviewed implementation normally merged and passed exact-main CI.
+B-02C therefore establishes bounded `SPECIFIED`,
+`RATIFIED_ENGINEERING_CONTRACT`, `IMPLEMENTED`, `TESTED`,
+`GREPTILE_REVIEWED`, and `MERGED`. Scientific, security, operations,
 economics, network, production, qualification, LIVE, launch, frontier,
 settlement, weight, and emission authority remain `NO`.

@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 0.8
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.8
+**Governance version:** 0.9
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.9
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -16,7 +16,7 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-02A/B-07R/B-02B closeout and delegated governance
+## 1. B-02A/B-07R/B-02B/B-02C closeout and delegated governance
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -65,8 +65,19 @@ PR #64 normally merged exact reviewed B-02B head
 `68189e7068715a5d8054f0f7e64dc981ae1c37aa`. Exact-head CI `33362051770`,
 Greptile 5/5 on exact-head check `99413062552` with zero unresolved threads,
 and exact-main CI `33368352662` passed. B-02B is `done` in bounded engineering
-scope. Version 0.8 selects B-02C `in_progress`; its working contract must be
-reviewed, normally merged, and followed by exact-main CI before implementation.
+scope. Version 0.8 selected B-02C.
+
+PR #66 normally merged repaired exact reviewed B-02C head
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c` as
+`1dc41288e2d0e516de21d05dc168b188791c39f5`, preserving exact reviewed tree
+`eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12` and ordered parents
+`319a765860ac6e93018124bd57a84bfd6679672e`,
+`a30865d2349f1cc6e725f1ea15e923f8d7893e4c`. Repaired exact-head CI
+`33388174967`, Greptile 5/5 on exact-head check `99475440630` with zero
+comments, annotations, or unresolved threads, and exact-main CI `33388595061`
+passed. B-02C is `done` in bounded engineering scope. Version 0.9 selects
+B-03 `in_progress`; its working contract must be reviewed, normally merged,
+and followed by exact-main CI before runtime implementation.
 
 ## 2. Required read order
 
@@ -209,11 +220,13 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E, B-02A, B-07R, and B-02B are complete at the identities in section 1.
-B-02C is the sole selected `in_progress` ticket. Continue it only from its
-recorded contract or, after the exact contract merge and exact-main CI,
-implementation worktree. No B-02C implementation belongs in the B-02B or
-B-02C contract branch.
+B-01E, B-02A, B-07R, B-02B, and B-02C are complete at the identities in
+section 1. B-03 is the sole selected `in_progress` ticket. Continue its
+contract only from `agent/b-03-generator-contract`. No B-03 runtime code,
+package-authority change, or test implementation belongs on the contract
+branch. Only after the exact contract tree normally merges and exact-main CI
+passes may a fresh `agent/b-03-generator-burgers-fixture` worktree be created
+from that new exact `origin/main` for implementation.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -461,7 +474,7 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.8 as the controlling register, and selects <TICKET> with the same
+version 0.9 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
 continue only its recorded ticket branch after verifying the recorded base,
 current remote HEAD/tree, evidence, CI, and review state. Use its existing
