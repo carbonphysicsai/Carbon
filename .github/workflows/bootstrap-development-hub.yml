@@ -47,6 +47,65 @@ jobs:
           echo "5fb829b614952f5236af6c6f095b7a4f87109c1dd2ff033cf35cd83e54f8351e  /tmp/carbon-development-hub.tgz" | sha256sum --check -
           tar -xzf /tmp/carbon-development-hub.tgz
 
+      - name: Make the static-first hub self-contained
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          renderer = Path('docs/development_hub/tools/render_hub.py')
+          text = renderer.read_text(encoding='utf-8')
+          text = text.replace(
+              '<a class="button primary" href="#routes">Place a protocol change</a><a class="button" href="interactive.html">Optional app view</a>',
+              '<a class="button primary" href="#routes">Place a protocol change</a>',
+          )
+          text = text.replace(
+              'Open **`index.html`** first. It is static-first and remains readable when a preview blocks JavaScript. `interactive.html` is an optional app view.',
+              'Open **`index.html`** first. It contains the complete hub and remains readable when a preview blocks JavaScript.',
+          )
+          renderer.write_text(text, encoding='utf-8')
+
+          route_test = Path('docs/development_hub/tools/test_routes.js')
+          route_test.write_text(r'''#!/usr/bin/env node
+/* Browser-free smoke test for the static-first Carbon Development Hub. */
+const fs = require('fs');
+const path = require('path');
+
+const root = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const checks = {
+  'home': 'Understand what is changing and why.',
+  'start': 'New to Carbon',
+  'waves': 'Waves A through N',
+  'wave-b': 'Wave B: Science-ready authoring skeletons',
+  'tickets': 'Ticket index',
+  'ticket-b-03': 'B-03',
+  'routes': 'Place a change before implementing it',
+  'change-new-challenge': 'Add a new Challenge',
+  'change-model-architecture': 'Add or change a model architecture',
+  'change-miner-prior': 'Add or change a miner prior',
+  'maturity': 'Eight independent maturity states',
+  'glossary': 'Carbon terms in plain language',
+  'sources': 'Authority and sources'
+};
+let failures = 0;
+for (const [id, expected] of Object.entries(checks)) {
+  const idPattern = new RegExp(`id=["']${id}["']`);
+  if (!idPattern.test(html) || !html.includes(expected)) {
+    console.error(`FAIL #${id}: missing anchor or text ${expected}`);
+    failures += 1;
+  } else {
+    console.log(`PASS #${id}`);
+  }
+}
+if (/<script\b/i.test(html)) {
+  console.error('FAIL index.html: primary hub must not require scripts');
+  failures += 1;
+}
+if (failures) process.exit(1);
+console.log(`Static hub route smoke test passed: ${Object.keys(checks).length} anchors.`);
+''', encoding='utf-8')
+          PY
+
       - name: Apply repository policy integration
         run: python3 repo_integration/bootstrap/install_repo.py
 
