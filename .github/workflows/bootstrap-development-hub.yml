@@ -22,10 +22,28 @@ jobs:
 
       - name: Extract the Development Hub package
         run: |
-          : > /tmp/carbon-development-hub.tgz
-          for part in .agent/hub_bootstrap_b64/part-*; do
-            base64 --decode "$part" >> /tmp/carbon-development-hub.tgz
-          done
+          python3 - <<'PY'
+          import base64
+          import pathlib
+          import re
+
+          output = pathlib.Path('/tmp/carbon-development-hub.tgz')
+          output.write_bytes(b'')
+          allowed = re.compile(rb'^[A-Za-z0-9+/]*={0,2}$')
+
+          with output.open('ab') as destination:
+              for part in sorted(pathlib.Path('.agent/hub_bootstrap_b64').glob('part-*')):
+                  compact = b''.join(part.read_bytes().split())
+                  print(f'{part}: {len(compact)} base64 bytes, remainder {len(compact) % 4}')
+                  if not allowed.fullmatch(compact):
+                      bad = sorted(set(compact) - set(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='))
+                      raise SystemExit(f'invalid characters in {part}: {bad}')
+                  try:
+                      decoded = base64.b64decode(compact, validate=True)
+                  except Exception as exc:
+                      raise SystemExit(f'cannot decode {part}: {exc}') from exc
+                  destination.write(decoded)
+          PY
           echo "5fb829b614952f5236af6c6f095b7a4f87109c1dd2ff033cf35cd83e54f8351e  /tmp/carbon-development-hub.tgz" | sha256sum --check -
           tar -xzf /tmp/carbon-development-hub.tgz
 
