@@ -5,17 +5,17 @@ The validator uses the Python standard library only. Pass ``--repo-root`` when
 running inside the Carbon repository to validate repository-facing links and
 snapshot metadata against the checked-out tree.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import re
 import subprocess
-import sys
 import urllib.parse
+from collections.abc import Iterable
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Iterable
 
 HUB_ROOT = Path(__file__).resolve().parents[1]
 
@@ -87,7 +87,7 @@ def main() -> None:
     events_path = HUB_ROOT / "data" / "change_events.json"
     try:
         data = json.loads(data_path.read_text(encoding="utf-8"))
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         fail(f"JSON parse failed for {data_path.name}: {exc}")
         data = {}
     try:
@@ -95,7 +95,7 @@ def main() -> None:
         if not isinstance(events, list):
             fail("change_events.json must contain a list")
             events = []
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         fail(f"JSON parse failed for {events_path.name}: {exc}")
         events = []
 
@@ -119,9 +119,18 @@ def main() -> None:
     for ticket in tickets:
         for field in ("depends_on", "unlocks"):
             for related in ticket.get(field, []):
-                if related not in known and re.fullmatch(r"[A-Z]+-[A-Z0-9]+", str(related)):
-                    warnings.append(f"{ticket['id']} {field} uncaptured ticket {related}")
-        explainer = HUB_ROOT / "explainers" / "tickets" / (ticket["id"].lower().replace("-", "_") + ".md")
+                if related not in known and re.fullmatch(
+                    r"[A-Z]+-[A-Z0-9]+", str(related)
+                ):
+                    warnings.append(
+                        f"{ticket['id']} {field} uncaptured ticket {related}"
+                    )
+        explainer = (
+            HUB_ROOT
+            / "explainers"
+            / "tickets"
+            / (ticket["id"].lower().replace("-", "_") + ".md")
+        )
         if not explainer.exists():
             fail(f"Missing ticket explainer: {explainer.relative_to(HUB_ROOT)}")
     for wave in waves:
@@ -129,9 +138,30 @@ def main() -> None:
         if not explainer.exists():
             fail(f"Missing wave explainer: {explainer.relative_to(HUB_ROOT)}")
 
-    required_event_fields = {"event_id", "map_ref", "event_type", "status", "summary", "primary_detail"}
-    allowed_event_types = {"decision", "adjustment", "bug", "blocker", "risk", "evidence"}
-    allowed_event_statuses = {"proposed", "active", "blocked", "implemented", "superseded", "closed"}
+    required_event_fields = {
+        "event_id",
+        "map_ref",
+        "event_type",
+        "status",
+        "summary",
+        "primary_detail",
+    }
+    allowed_event_types = {
+        "decision",
+        "adjustment",
+        "bug",
+        "blocker",
+        "risk",
+        "evidence",
+    }
+    allowed_event_statuses = {
+        "proposed",
+        "active",
+        "blocked",
+        "implemented",
+        "superseded",
+        "closed",
+    }
     map_refs = {f"WAVE-{wave_id}" for wave_id in wave_ids}
     map_refs.update(f"WAVE-{ticket['wave']}/{ticket['id']}" for ticket in tickets)
     map_refs.add("SYSTEM/DEVELOPMENT-HUB")
@@ -165,7 +195,7 @@ def main() -> None:
                 fail(f"YAML index is missing {heading}")
         if "\t" in yaml_text:
             fail("YAML index contains tab indentation")
-    except Exception as exc:
+    except OSError as exc:
         fail(f"YAML index read failed: {exc}")
 
     for html_path in HUB_ROOT.rglob("*.html"):
@@ -173,7 +203,7 @@ def main() -> None:
         parsed = LinkParser()
         try:
             parsed.feed(html_text)
-        except Exception as exc:
+        except (AssertionError, ValueError) as exc:
             fail(f"{html_path.relative_to(HUB_ROOT)} HTML parse failed: {exc}")
             continue
         for href in parsed.links:
@@ -195,7 +225,18 @@ def main() -> None:
         index_text = index_path.read_text(encoding="utf-8")
         parsed = LinkParser()
         parsed.feed(index_text)
-        required_ids = {"home", "hub-content", "start", "waves", "tickets", "routes", "events", "maturity", "glossary", "sources"}
+        required_ids = {
+            "home",
+            "hub-content",
+            "start",
+            "waves",
+            "tickets",
+            "routes",
+            "events",
+            "maturity",
+            "glossary",
+            "sources",
+        }
         missing_ids = sorted(required_ids - parsed.ids)
         if missing_ids:
             fail(f"index.html is missing static sections: {missing_ids}")
@@ -211,9 +252,13 @@ def main() -> None:
             if phrase and phrase not in visible:
                 fail(f"index.html static content is missing: {phrase}")
         if len(visible) < 12000:
-            fail("index.html contains too little static content; it may regress to a script-only shell")
+            fail(
+                "index.html contains too little static content; it may regress to a script-only shell"
+            )
         if "<script" in index_text.lower():
-            warnings.append("index.html contains script content; the primary hub should remain usable without it")
+            warnings.append(
+                "index.html contains script content; the primary hub should remain usable without it"
+            )
         if index_text.count('class="card wave-card') != len(waves):
             fail("index.html wave card count does not match hub data")
         if index_text.count('class="card ticket-card') != len(tickets):
@@ -226,21 +271,27 @@ def main() -> None:
     interactive_path = HUB_ROOT / "interactive.html"
     if interactive_path.exists():
         interactive_text = interactive_path.read_text(encoding="utf-8")
-        match = re.search(r"const DATA = (.*?);\nconst \$ =", interactive_text, re.DOTALL)
+        match = re.search(
+            r"const DATA = (.*?);\nconst \$ =", interactive_text, re.DOTALL
+        )
         if not match:
             fail("interactive.html embedded DATA object was not found")
         else:
             try:
                 embedded = json.loads(match.group(1))
                 if embedded != data:
-                    fail("interactive.html embedded DATA does not match hub_data_v2.json")
-            except Exception as exc:
+                    fail(
+                        "interactive.html embedded DATA does not match hub_data_v2.json"
+                    )
+            except json.JSONDecodeError as exc:
                 fail(f"interactive.html embedded DATA parse failed: {exc}")
 
     if args.repo_root:
         repo_root = args.repo_root.resolve()
         if not (repo_root / ".git").exists():
-            warnings.append(f"Repository root {repo_root} has no .git directory; Git SHA reconciliation skipped")
+            warnings.append(
+                f"Repository root {repo_root} has no .git directory; Git SHA reconciliation skipped"
+            )
         else:
             head = git_output(repo_root, "rev-parse", "HEAD")
             if head and data.get("meta", {}).get("commit") != head:
@@ -255,33 +306,51 @@ def main() -> None:
         else:
             wave_text = active_wave.read_text(encoding="utf-8")
             wave_match = re.search(r"\*\*Current wave:\*\*\s*([A-Z])", wave_text)
-            ticket_match = re.search(r"\*\*Selected ticket:\*\*\s*([^\s—]+)\s*—\s*`?([a-z_]+)`?", wave_text)
+            ticket_match = re.search(
+                r"\*\*Selected ticket:\*\*\s*([^\s—]+)\s*—\s*`?([a-z_]+)`?", wave_text
+            )
             if not wave_match:
                 fail("Could not parse current wave from .agent/WAVE.md")
             elif wave_match.group(1) != data.get("current", {}).get("wave"):
-                fail(f"Hub current wave {data.get('current',{}).get('wave')} != repository current wave {wave_match.group(1)}")
+                fail(
+                    f"Hub current wave {data.get('current',{}).get('wave')} != repository current wave {wave_match.group(1)}"
+                )
             if not ticket_match:
                 fail("Could not parse selected ticket from .agent/WAVE.md")
             else:
                 repo_ticket, repo_status = ticket_match.groups()
                 if repo_ticket != data.get("current", {}).get("ticket"):
-                    fail(f"Hub current ticket {data.get('current',{}).get('ticket')} != repository selected ticket {repo_ticket}")
+                    fail(
+                        f"Hub current ticket {data.get('current',{}).get('ticket')} != repository selected ticket {repo_ticket}"
+                    )
                 if repo_status != data.get("current", {}).get("ticket_status"):
-                    fail(f"Hub current ticket status {data.get('current',{}).get('ticket_status')} != repository status {repo_status}")
+                    fail(
+                        f"Hub current ticket status {data.get('current',{}).get('ticket_status')} != repository status {repo_status}"
+                    )
 
         active_wave_id = data.get("current", {}).get("wave")
         board_path = repo_root / ".agent" / f"WAVE_{active_wave_id}.md"
         if not board_path.exists():
-            fail(f"Repository root is missing active board .agent/WAVE_{active_wave_id}.md")
+            fail(
+                f"Repository root is missing active board .agent/WAVE_{active_wave_id}.md"
+            )
         else:
             board_status: dict[str, str] = {}
             for line in board_path.read_text(encoding="utf-8").splitlines():
                 if not line.startswith("|"):
                     continue
                 cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-                if len(cells) >= 3 and re.fullmatch(r"[A-Z]+-[A-Z0-9]+", cells[0]) and cells[2] in {"todo", "in_progress", "done", "blocked"}:
+                if (
+                    len(cells) >= 3
+                    and re.fullmatch(r"[A-Z]+-[A-Z0-9]+", cells[0])
+                    and cells[2] in {"todo", "in_progress", "done", "blocked"}
+                ):
                     board_status[cells[0]] = cells[2]
-            hub_status = {ticket["id"]: ticket["status"] for ticket in tickets if ticket["wave"] == active_wave_id}
+            hub_status = {
+                ticket["id"]: ticket["status"]
+                for ticket in tickets
+                if ticket["wave"] == active_wave_id
+            }
             if set(board_status) != set(hub_status):
                 missing = sorted(set(board_status) - set(hub_status))
                 extra = sorted(set(hub_status) - set(board_status))
@@ -291,7 +360,9 @@ def main() -> None:
                     fail(f"Hub has active-wave tickets absent from board: {extra}")
             for ticket_id in sorted(set(board_status) & set(hub_status)):
                 if board_status[ticket_id] != hub_status[ticket_id]:
-                    fail(f"Hub status {ticket_id}={hub_status[ticket_id]} != board status {board_status[ticket_id]}")
+                    fail(
+                        f"Hub status {ticket_id}={hub_status[ticket_id]} != board status {board_status[ticket_id]}"
+                    )
 
         for ticket in tickets:
             repo_path = ticket.get("repo_path")

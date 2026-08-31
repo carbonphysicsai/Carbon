@@ -12,6 +12,7 @@ hub update. Other implementation, decision, evidence, specification, and
 business changes may use HUB_IMPACT_NONE when they do not change map-visible
 purpose, placement, status, dependencies, boundaries, maturity, or links.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -96,7 +97,9 @@ def main() -> None:
 
     # A hub-only change does not need a second declaration to explain itself.
     if not structural and not relevant:
-        print("No Carbon development records changed; Development Hub impact check passed.")
+        print(
+            "No Carbon development records changed; Development Hub impact check passed."
+        )
         return
 
     if args.pr_body_file:
@@ -119,7 +122,8 @@ def main() -> None:
 
     if structural and not data_changed:
         errors.append(
-            "Wave, ticket, or sequencing structure changed without updating " + DATA_PATH
+            "Wave, ticket, or sequencing structure changed without updating "
+            + DATA_PATH
         )
     if updates and not (data_changed or events_changed):
         errors.append(
@@ -143,7 +147,9 @@ def main() -> None:
         sys.exit(1)
 
     declaration = "HUB_UPDATE_REQUIRED" if updates else "HUB_IMPACT_NONE"
-    print(f"Development Hub impact check passed: {declaration}; {len(files)} changed files.")
+    print(
+        f"Development Hub impact check passed: {declaration}; {len(files)} changed files."
+    )
 
 
 if __name__ == "__main__":

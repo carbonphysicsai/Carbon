@@ -5,15 +5,16 @@ The generated ``index.html`` contains real HTML content and remains useful when
 JavaScript is blocked. The optional ``interactive.html`` is retained as a
 secondary app view, but it is never the only route to the hub's content.
 """
+
 from __future__ import annotations
 
 import argparse
 import html
 import json
 import re
-import tempfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "data" / "hub_data_v2.json"
@@ -38,7 +39,16 @@ def load_json(path: Path) -> Any:
 
 
 def required_data(data: dict[str, Any]) -> None:
-    for key in ("meta", "current", "sources", "waves", "tickets", "maturity", "change_paths", "glossary"):
+    for key in (
+        "meta",
+        "current",
+        "sources",
+        "waves",
+        "tickets",
+        "maturity",
+        "change_paths",
+        "glossary",
+    ):
         if key not in data:
             raise ValueError(f"Missing required top-level key: {key}")
 
@@ -72,7 +82,9 @@ def internal_ticket_links(ids: list[str], known: set[str]) -> str:
     chunks = []
     for item in ids:
         if item in known:
-            chunks.append(f'<a class="chip" href="#{ticket_anchor(item)}">{h(item)}</a>')
+            chunks.append(
+                f'<a class="chip" href="#{ticket_anchor(item)}">{h(item)}</a>'
+            )
         else:
             chunks.append(f'<span class="chip">{h(item)}</span>')
     return "".join(chunks)
@@ -88,10 +100,19 @@ def wave_card(wave: dict[str, Any], ticket_by_id: dict[str, dict[str, Any]]) -> 
             )
         else:
             tickets.append(f'<span class="chip">{h(ticket_id)}</span>')
-    objects = "".join(f"<li><code>{h(item)}</code></li>" for item in wave.get("objects", []))
-    ticket_html = "".join(tickets) or '<span class="muted">No active ticket board in this snapshot.</span>'
+    objects = "".join(
+        f"<li><code>{h(item)}</code></li>" for item in wave.get("objects", [])
+    )
+    ticket_html = (
+        "".join(tickets)
+        or '<span class="muted">No active ticket board in this snapshot.</span>'
+    )
     next_wave = wave.get("next_wave")
-    next_link = f'<a href="#{wave_anchor(next_wave)}">Wave {h(next_wave)}</a>' if next_wave else "End of current plan"
+    next_link = (
+        f'<a href="#{wave_anchor(next_wave)}">Wave {h(next_wave)}</a>'
+        if next_wave
+        else "End of current plan"
+    )
     return f"""
 <details class="card wave-card" id="{wave_anchor(wave['id'])}" {'open' if wave['id'] in ('A','B') else ''}>
   <summary>
@@ -118,9 +139,15 @@ def wave_card(wave: dict[str, Any], ticket_by_id: dict[str, dict[str, Any]]) -> 
 
 def ticket_card(ticket: dict[str, Any], known: set[str], current_ticket: str) -> str:
     current = ticket["id"] == current_ticket
-    stage = ticket.get("current_stage") or "Open the repository records below for the captured stage."
+    stage = (
+        ticket.get("current_stage")
+        or "Open the repository records below for the captured stage."
+    )
     questions = ticket.get("master_questions", [])
-    q_html = "".join(f'<span class="chip">{h(q)}</span>' for q in questions) or '<span class="muted">None listed</span>'
+    q_html = (
+        "".join(f'<span class="chip">{h(q)}</span>' for q in questions)
+        or '<span class="muted">None listed</span>'
+    )
     return f"""
 <details class="card ticket-card {'current' if current else ''}" id="{ticket_anchor(ticket['id'])}" {'open' if current else ''} data-wave="{h(ticket['wave'])}" data-status="{h(ticket['status'])}">
   <summary>
@@ -156,8 +183,17 @@ def ticket_card(ticket: dict[str, Any], known: set[str], current_ticket: str) ->
 
 
 def change_route(route: dict[str, Any]) -> str:
-    waves = "".join(f'<a class="chip" href="#{wave_anchor(w)}">Wave {h(w)}</a>' for w in route.get("waves", []))
-    tickets = "".join(f'<a class="chip" href="#{ticket_anchor(t)}">{h(t)}</a>' for t in route.get("tickets", [])) or '<span class="muted">No current ticket anchor</span>'
+    waves = "".join(
+        f'<a class="chip" href="#{wave_anchor(w)}">Wave {h(w)}</a>'
+        for w in route.get("waves", [])
+    )
+    tickets = (
+        "".join(
+            f'<a class="chip" href="#{ticket_anchor(t)}">{h(t)}</a>'
+            for t in route.get("tickets", [])
+        )
+        or '<span class="muted">No current ticket anchor</span>'
+    )
     decisions = "".join(f"<li>{h(item)}</li>" for item in route.get("decisions", []))
     humans = "".join(f"<li>{h(item)}</li>" for item in route.get("human_reserved", []))
     flow = "".join(f"<li>{h(item)}</li>" for item in route.get("repo_flow", []))
@@ -178,10 +214,14 @@ def change_route(route: dict[str, Any]) -> str:
 def event_card(event: dict[str, Any]) -> str:
     primary = event.get("primary_detail", "")
     if primary.startswith(("http://", "https://")):
-        link = f'<a href="{h(primary)}" target="_blank" rel="noopener">Open detail ↗</a>'
+        link = (
+            f'<a href="{h(primary)}" target="_blank" rel="noopener">Open detail ↗</a>'
+        )
     else:
-        link = f'<code>{h(primary)}</code>'
-    affects = "".join(f'<span class="chip">{h(item)}</span>' for item in event.get("affects", []))
+        link = f"<code>{h(primary)}</code>"
+    affects = "".join(
+        f'<span class="chip">{h(item)}</span>' for item in event.get("affects", [])
+    )
     return f"""
 <article class="event-card">
   <div class="event-top"><span class="ticket-code">{h(event['event_id'])}</span>{status_badge(event['status'])}</div>
@@ -197,20 +237,31 @@ def render_index(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     ticket_by_id = {t["id"]: t for t in data["tickets"]}
     known_tickets = set(ticket_by_id)
     wave_html = "".join(wave_card(w, ticket_by_id) for w in data["waves"])
-    ticket_html = "".join(ticket_card(t, known_tickets, current["ticket"]) for t in data["tickets"])
+    ticket_html = "".join(
+        ticket_card(t, known_tickets, current["ticket"]) for t in data["tickets"]
+    )
     route_html = "".join(change_route(r) for r in data["change_paths"])
-    event_html = "".join(event_card(e) for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True))
+    event_html = "".join(
+        event_card(e)
+        for e in sorted(events, key=lambda x: x.get("date", ""), reverse=True)
+    )
     maturity_html = "".join(
         f'<article class="maturity"><span>{i:02d}</span><h3>{h(m["label"])}</h3><p>{h(m["meaning"])}</p><strong>Proof</strong><p>{h(m["proof"])}</p><strong>Does not imply</strong><p>{h(m["not_implied"])}</p></article>'
         for i, m in enumerate(data["maturity"], 1)
     )
-    glossary_html = "".join(f'<article class="gloss"><h3>{h(g["term"])}</h3><p>{h(g["definition"])}</p></article>' for g in data["glossary"])
+    glossary_html = "".join(
+        f'<article class="gloss"><h3>{h(g["term"])}</h3><p>{h(g["definition"])}</p></article>'
+        for g in data["glossary"]
+    )
     source_html = "".join(
         f'<a class="source" href="{h(item["url"])}" target="_blank" rel="noopener"><strong>{h(item["label"])}</strong><span>Open repository record ↗</span></a>'
         for item in data["sources"].values()
     )
     completed = ", ".join(current.get("completed_b_tickets", []))
-    decision_series = "".join(f'<span class="chip">{h(item)}</span>' for item in current.get("decision_series", []))
+    decision_series = "".join(
+        f'<span class="chip">{h(item)}</span>'
+        for item in current.get("decision_series", [])
+    )
     captured = str(meta["captured_at_utc"]).replace("T", " ").replace("Z", " UTC")
     return f"""<!doctype html>
 <html lang="en">
@@ -279,11 +330,17 @@ def md_links(items: list[dict[str, str]]) -> str:
     return "\n".join(f"- [{item['label']}]({item['url']})" for item in items)
 
 
-def render_wave_md(wave: dict[str, Any], ticket_by_id: dict[str, dict[str, Any]]) -> str:
+def render_wave_md(
+    wave: dict[str, Any], ticket_by_id: dict[str, dict[str, Any]]
+) -> str:
     tickets = []
     for tid in wave.get("ticket_ids", []):
         t = ticket_by_id.get(tid)
-        tickets.append(f"- [{tid}](../tickets/{ticket_filename(tid)}): {t['title']} [{t['status']}]" if t else f"- `{tid}`: no captured ticket explainer")
+        tickets.append(
+            f"- [{tid}](../tickets/{ticket_filename(tid)}): {t['title']} [{t['status']}]"
+            if t
+            else f"- `{tid}`: no captured ticket explainer"
+        )
     objects = "\n".join(f"- `{item}`" for item in wave.get("objects", []))
     return f"""# Wave {wave['id']}: {wave['title']}
 
@@ -327,10 +384,22 @@ def render_wave_md(wave: dict[str, Any], ticket_by_id: dict[str, dict[str, Any]]
 
 
 def render_ticket_md(ticket: dict[str, Any]) -> str:
-    dependencies = ", ".join(ticket.get("depends_on", [])) or "No prior ticket listed in this orientation view."
-    unlocks = ", ".join(ticket.get("unlocks", [])) or "No downstream ticket listed in the captured A/B board."
-    questions = ", ".join(ticket.get("master_questions", [])) or "None listed in this orientation view."
-    stage = ticket.get("current_stage") or "Use the status and evidence links below for the captured state."
+    dependencies = (
+        ", ".join(ticket.get("depends_on", []))
+        or "No prior ticket listed in this orientation view."
+    )
+    unlocks = (
+        ", ".join(ticket.get("unlocks", []))
+        or "No downstream ticket listed in the captured A/B board."
+    )
+    questions = (
+        ", ".join(ticket.get("master_questions", []))
+        or "None listed in this orientation view."
+    )
+    stage = (
+        ticket.get("current_stage")
+        or "Use the status and evidence links below for the captured state."
+    )
     return f"""# {ticket['id']}: {ticket['title']}
 
 **Wave:** {ticket['wave']}  
@@ -376,25 +445,61 @@ def render_ticket_md(ticket: dict[str, Any]) -> str:
 def render_compact_md(data: dict[str, Any]) -> str:
     meta, current = data["meta"], data["current"]
     rows = [
-        "# Carbon Development Hub v2", "", f"**Purpose:** {meta['purpose']}  ",
+        "# Carbon Development Hub v2",
+        "",
+        f"**Purpose:** {meta['purpose']}  ",
         f"**Source snapshot:** `{meta['commit']}` on `{meta['branch']}`, captured {meta['captured_at_utc']}.  ",
-        f"**Current:** Wave {current['wave']}, ticket {current['ticket']}. {current['stage']}", "",
-        "## Layer contract", "", "| Layer | Answers | Detail owner |", "|---|---|---|",
+        f"**Current:** Wave {current['wave']}, ticket {current['ticket']}. {current['stage']}",
+        "",
+        "## Layer contract",
+        "",
+        "| Layer | Answers | Detail owner |",
+        "|---|---|---|",
         "| Hub | What, why, where, status, dependency | This package |",
         "| Wave board | Ticket inventory, sequence, drivers, closeout | `.agent/WAVE*.md` |",
         "| Ticket / contract | Bounded scope, exact semantics, non-goals, DoD | `.agent/tickets/*` and domain specs |",
         "| Decision / PR | Rationale, implementation, review, repairs, tests | `.agent/DECISIONS.md` and GitHub PR |",
-        "| Evidence | Exact proof and maturity ceiling | `.agent/evidence/*` and wave reports |", "", "## Wave spine", "",
-        "| Wave | What and why | Status |", "|---|---|---|",
+        "| Evidence | Exact proof and maturity ceiling | `.agent/evidence/*` and wave reports |",
+        "",
+        "## Wave spine",
+        "",
+        "| Wave | What and why | Status |",
+        "|---|---|---|",
     ]
     for wave in data["waves"]:
-        rows.append(f"| [{wave['id']}](explainers/waves/wave_{wave['id'].lower()}.md) | **{wave['title']}**: {wave['one_line']} | {wave['status']} |")
-    rows += ["", "## Captured ticket map", "", "| Ticket | Purpose | Status |", "|---|---|---|"]
+        rows.append(
+            f"| [{wave['id']}](explainers/waves/wave_{wave['id'].lower()}.md) | **{wave['title']}**: {wave['one_line']} | {wave['status']} |"
+        )
+    rows += [
+        "",
+        "## Captured ticket map",
+        "",
+        "| Ticket | Purpose | Status |",
+        "|---|---|---|",
+    ]
     for ticket in data["tickets"]:
-        rows.append(f"| [{ticket['id']}](explainers/tickets/{ticket_filename(ticket['id'])}) | {ticket['one_line']} | {ticket['status']} |")
+        rows.append(
+            f"| [{ticket['id']}](explainers/tickets/{ticket_filename(ticket['id'])}) | {ticket['one_line']} | {ticket['status']} |"
+        )
     rows += ["", "## Change routes", ""]
-    rows.extend(f"- **{route['title']}**: {route['summary']}" for route in data["change_paths"])
-    rows += ["", "## Repository authority", "", md_links([data["sources"]["constitution"], data["sources"]["current_wave"], data["sources"]["wave_b_board"], data["sources"]["master_plan"], data["sources"]["decision_log"]]), ""]
+    rows.extend(
+        f"- **{route['title']}**: {route['summary']}" for route in data["change_paths"]
+    )
+    rows += [
+        "",
+        "## Repository authority",
+        "",
+        md_links(
+            [
+                data["sources"]["constitution"],
+                data["sources"]["current_wave"],
+                data["sources"]["wave_b_board"],
+                data["sources"]["master_plan"],
+                data["sources"]["decision_log"],
+            ]
+        ),
+        "",
+    ]
     return "\n".join(rows)
 
 
@@ -497,9 +602,38 @@ def render_yaml_index(data: dict[str, Any]) -> str:
     index = {
         "meta": data["meta"],
         "current": data["current"],
-        "waves": [{"id": w["id"], "title": w["title"], "status": w["status"], "explainer": f"explainers/waves/wave_{w['id'].lower()}.md", "tickets": w.get("ticket_ids", [])} for w in data["waves"]],
-        "tickets": [{"id": t["id"], "wave": t["wave"], "title": t["title"], "status": t["status"], "explainer": f"explainers/tickets/{ticket_filename(t['id'])}", "repo_path": t.get("repo_path"), "depends_on": t.get("depends_on", []), "unlocks": t.get("unlocks", [])} for t in data["tickets"]],
-        "change_paths": [{"id": r["id"], "title": r["title"], "waves": r["waves"], "tickets": r["tickets"]} for r in data["change_paths"]],
+        "waves": [
+            {
+                "id": w["id"],
+                "title": w["title"],
+                "status": w["status"],
+                "explainer": f"explainers/waves/wave_{w['id'].lower()}.md",
+                "tickets": w.get("ticket_ids", []),
+            }
+            for w in data["waves"]
+        ],
+        "tickets": [
+            {
+                "id": t["id"],
+                "wave": t["wave"],
+                "title": t["title"],
+                "status": t["status"],
+                "explainer": f"explainers/tickets/{ticket_filename(t['id'])}",
+                "repo_path": t.get("repo_path"),
+                "depends_on": t.get("depends_on", []),
+                "unlocks": t.get("unlocks", []),
+            }
+            for t in data["tickets"]
+        ],
+        "change_paths": [
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "waves": r["waves"],
+                "tickets": r["tickets"],
+            }
+            for r in data["change_paths"]
+        ],
         "event_schema": data.get("event_schema", {}),
     }
     return simple_yaml(index)
@@ -520,18 +654,24 @@ def render_interactive_shell(data: dict[str, Any]) -> str:
     )
     if count != 1:
         raise RuntimeError("Could not refresh embedded DATA in interactive.html")
-    captured = str(data["meta"]["captured_at_utc"]).replace("T", " ").replace("Z", " UTC")
+    captured = (
+        str(data["meta"]["captured_at_utc"]).replace("T", " ").replace("Z", " UTC")
+    )
     snapshot = (
         f'<div class="snapshot"><strong>Snapshot {h(data["meta"]["commit_short"])}</strong>'
         f'{h(data["meta"]["branch"])} · {h(captured)}</div>'
     )
-    source, count = re.subn(r'<div class="snapshot">.*?</div>', snapshot, source, count=1)
+    source, count = re.subn(
+        r'<div class="snapshot">.*?</div>', snapshot, source, count=1
+    )
     if count != 1:
         raise RuntimeError("Could not refresh snapshot label in interactive.html")
     return source
 
 
-def expected_outputs(data: dict[str, Any], events: list[dict[str, Any]]) -> dict[Path, str]:
+def expected_outputs(
+    data: dict[str, Any], events: list[dict[str, Any]]
+) -> dict[Path, str]:
     ticket_by_id = {t["id"]: t for t in data["tickets"]}
     outputs: dict[Path, str] = {
         ROOT / "index.html": render_index(data, events),
@@ -542,9 +682,13 @@ def expected_outputs(data: dict[str, Any], events: list[dict[str, Any]]) -> dict
     if INTERACTIVE_PATH.exists():
         outputs[INTERACTIVE_PATH] = render_interactive_shell(data)
     for wave in data["waves"]:
-        outputs[ROOT / "explainers" / "waves" / f"wave_{wave['id'].lower()}.md"] = render_wave_md(wave, ticket_by_id)
+        outputs[ROOT / "explainers" / "waves" / f"wave_{wave['id'].lower()}.md"] = (
+            render_wave_md(wave, ticket_by_id)
+        )
     for ticket in data["tickets"]:
-        outputs[ROOT / "explainers" / "tickets" / ticket_filename(ticket["id"])] = render_ticket_md(ticket)
+        outputs[ROOT / "explainers" / "tickets" / ticket_filename(ticket["id"])] = (
+            render_ticket_md(ticket)
+        )
     return outputs
 
 
@@ -552,7 +696,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=DATA_PATH)
     parser.add_argument("--events", type=Path, default=EVENTS_PATH)
-    parser.add_argument("--check", action="store_true", help="Fail when generated files differ from source data")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail when generated files differ from source data",
+    )
     args = parser.parse_args()
     data = load_json(args.data.resolve())
     events = load_json(args.events.resolve()) if args.events.exists() else []
@@ -567,9 +715,15 @@ def main() -> None:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
     if stale:
-        raise SystemExit("Generated hub files are stale:\n- " + "\n- ".join(stale) + "\nRun: python tools/render_hub.py")
+        raise SystemExit(
+            "Generated hub files are stale:\n- "
+            + "\n- ".join(stale)
+            + "\nRun: python tools/render_hub.py"
+        )
     action = "Checked" if args.check else "Rendered"
-    print(f"{action} {len(data['waves'])} waves, {len(data['tickets'])} tickets, {len(data['change_paths'])} change routes, and {len(events)} events.")
+    print(
+        f"{action} {len(data['waves'])} waves, {len(data['tickets'])} tickets, {len(data['change_paths'])} change routes, and {len(events)} events."
+    )
 
 
 if __name__ == "__main__":
