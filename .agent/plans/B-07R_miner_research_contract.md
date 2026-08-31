@@ -2,7 +2,7 @@
 
 **Ticket:** B-07R — Miner research architecture ratification
 **Branch:** `agent/b-07r-research-architecture`
-**Worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-07r-research-architecture`
+**Worktree:** dedicated local worktree; absolute host path intentionally not recorded
 **Exact base/current main at start:** `58ea866de52e3853b0b45e3217ee0625302aa663`
 **Base tree:** `61a4463ac459f7fe96545f2746511d6940246f57`
 **Scope:** B-02A evidence/governance closeout plus B-07R contract architecture;

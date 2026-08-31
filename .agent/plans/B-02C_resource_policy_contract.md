@@ -3,13 +3,13 @@
 **Ticket:** B-02C — Research resource policy contract<br>
 **Status:** `in_progress` in bounded implementation-candidate scope<br>
 **Contract branch:** `agent/b-02c-resource-policy-contract`<br>
-**Contract worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-02c-resource-policy-contract`<br>
+**Contract worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact contract base:** `b10b6e74fb3f8ab8a7427a6763c7db4f41341083`<br>
 **Exact base tree:** `45273c527684b94afeb2f01b66a774b5426b6e0e`<br>
 **Exact contract head/tree:** `a0eb5cf946d5aca33aec166a9a7a0d85d0c7602a` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
 **Contract PR / merge:** #65 / `319a765860ac6e93018124bd57a84bfd6679672e`<br>
 **Implementation branch:** `agent/b-02c-resource-policy`<br>
-**Implementation worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-02c-resource-policy`<br>
+**Implementation worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact implementation base/tree:** `319a765860ac6e93018124bd57a84bfd6679672e` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
 **Code-bearing implementation head/tree:** `c123818bcd2b3acd50a68fa73819154cb48c2795` / `4b8dec2174702f750212f9e519331cec74f72e5b`<br>
 **Implementation PR:** #66, `B-02C: implement research resource policy`<br>
