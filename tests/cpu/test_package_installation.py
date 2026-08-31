@@ -16,6 +16,7 @@ ROLE_PACKAGES = (
     "carbon.schema",
     "carbon.registry",
     "carbon.authoring",
+    "carbon.construction",
     "carbon.seeding",
     "carbon.scoring",
     "carbon.cards",
@@ -30,6 +31,20 @@ ROLE_PACKAGES = (
     "carbon.qualification",
 )
 
+B02B_MODULES = (
+    "carbon.fees.strategy_identity",
+    "carbon.construction.errors",
+    "carbon.construction.refs",
+    "carbon.construction.model",
+    "carbon.construction.canonical",
+    "carbon.construction.catalog",
+    "carbon.construction.policy",
+    "carbon.construction.plan",
+    "carbon.construction.compiler",
+)
+
+INSTALLED_MODULES = ("carbon", *ROLE_PACKAGES, *B02B_MODULES)
+
 
 def test_import_carbon() -> None:
     module = importlib.import_module("carbon")
@@ -38,8 +53,21 @@ def test_import_carbon() -> None:
     assert module.__version__ == CARBON_VERSION
 
 
+def test_training_policy_builder_is_not_a_public_bypass() -> None:
+    construction = importlib.import_module("carbon.construction")
+
+    assert not hasattr(construction, "build_training_sampling_policy")
+
+
 @pytest.mark.parametrize("module_name", ROLE_PACKAGES)
 def test_import_a0_role_package(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+
+    assert module.__name__ == module_name
+
+
+@pytest.mark.parametrize("module_name", B02B_MODULES)
+def test_import_b02b_module(module_name: str) -> None:
     module = importlib.import_module(module_name)
 
     assert module.__name__ == module_name
@@ -62,7 +90,7 @@ import importlib
 import importlib.metadata
 import json
 
-module_names = {json.dumps(("carbon", *ROLE_PACKAGES))}
+module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 distribution = importlib.metadata.distribution("carbon")
 print(json.dumps({{
@@ -84,7 +112,7 @@ print(json.dumps({{
     assert payload == {
         "distribution_name": "carbon",
         "distribution_version": CARBON_VERSION,
-        "module_names": ["carbon", *ROLE_PACKAGES],
+        "module_names": list(INSTALLED_MODULES),
     }
 
 
@@ -103,6 +131,8 @@ blocked_roots = {{
     "h5py",
     "jax",
     "neuralop",
+    "neuraloperator",
+    "nvidia",
     "numpy",
     "pandas",
     "physicsnemo",
@@ -112,6 +142,7 @@ blocked_roots = {{
     "scipy",
     "sklearn",
     "torch",
+    "torchvision",
     "tqdm",
     "yaml",
 }}
@@ -127,7 +158,7 @@ class OptionalDependencyBlocker(importlib.abc.MetaPathFinder):
         return None
 
 sys.meta_path.insert(0, OptionalDependencyBlocker())
-module_names = {json.dumps(("carbon", *ROLE_PACKAGES))}
+module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 print(json.dumps([module.__name__ for module in modules]))
 """
@@ -140,4 +171,4 @@ print(json.dumps([module.__name__ for module in modules]))
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == ["carbon", *ROLE_PACKAGES]
+    assert json.loads(result.stdout) == list(INSTALLED_MODULES)
