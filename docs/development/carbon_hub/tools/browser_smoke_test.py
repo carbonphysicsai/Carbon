@@ -732,8 +732,7 @@ def _assert_mobile_navigation(
         viewport,
         javascript_enabled=True,
     )
-    closed = session.evaluate(
-        """(() => {
+    closed = session.evaluate("""(() => {
           const button = document.querySelector('#menuBtn');
           const sidebar = document.querySelector('#sidebar');
           return {
@@ -742,8 +741,7 @@ def _assert_mobile_navigation(
             inert: sidebar.inert,
             visibility: getComputedStyle(sidebar).visibility
           };
-        })()"""
-    )
+        })()""")
     expected_closed = {
         "expanded": "false",
         "hidden": "true",
@@ -756,8 +754,7 @@ def _assert_mobile_navigation(
         )
 
     session.evaluate("document.querySelector('#menuBtn').click()")
-    opened = session.evaluate(
-        """(() => {
+    opened = session.evaluate("""(() => {
           const button = document.querySelector('#menuBtn');
           const sidebar = document.querySelector('#sidebar');
           return {
@@ -767,8 +764,7 @@ def _assert_mobile_navigation(
             visibility: getComputedStyle(sidebar).visibility,
             focusedNav: document.activeElement?.classList.contains('nav-link') || false
           };
-        })()"""
-    )
+        })()""")
     expected_opened = {
         "expanded": "true",
         "hidden": "false",
@@ -785,8 +781,7 @@ def _assert_mobile_navigation(
         "document.dispatchEvent(new KeyboardEvent('keydown', "
         "{key:'Escape', bubbles:true}))"
     )
-    escaped = session.evaluate(
-        """(() => {
+    escaped = session.evaluate("""(() => {
           const button = document.querySelector('#menuBtn');
           const sidebar = document.querySelector('#sidebar');
           return {
@@ -795,8 +790,7 @@ def _assert_mobile_navigation(
             inert: sidebar.inert,
             menuFocused: document.activeElement === button
           };
-        })()"""
-    )
+        })()""")
     expected_escaped = {
         "expanded": "false",
         "hidden": "true",
