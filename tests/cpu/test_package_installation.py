@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import importlib.metadata
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -12,12 +13,14 @@ from pathlib import Path
 import pytest
 
 CARBON_VERSION = "0.9.0"
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ROLE_PACKAGES = (
     "carbon.schema",
     "carbon.registry",
     "carbon.authoring",
     "carbon.construction",
     "carbon.resource_policy",
+    "carbon.generators",
     "carbon.seeding",
     "carbon.scoring",
     "carbon.cards",
@@ -52,7 +55,79 @@ B02C_MODULES = (
     "carbon.resource_policy.service",
 )
 
-INSTALLED_MODULES = ("carbon", *ROLE_PACKAGES, *B02B_MODULES, *B02C_MODULES)
+B03_MODULES = (
+    "carbon.generators.accounting",
+    "carbon.generators.authorities",
+    "carbon.generators.burgers",
+    "carbon.generators.canonical",
+    "carbon.generators.conformance",
+    "carbon.generators.disclosure",
+    "carbon.generators.errors",
+    "carbon.generators.model",
+    "carbon.generators.refs",
+    "carbon.generators.service",
+)
+
+INSTALLED_MODULES = (
+    "carbon",
+    *ROLE_PACKAGES,
+    *B02B_MODULES,
+    *B02C_MODULES,
+    *B03_MODULES,
+)
+
+
+@pytest.fixture(scope="module")
+def installed_wheel_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    root = tmp_path_factory.mktemp("installed-wheel")
+    source = root / "source"
+    source.mkdir()
+    shutil.copy2(REPOSITORY_ROOT / "pyproject.toml", source / "pyproject.toml")
+    shutil.copy2(REPOSITORY_ROOT / "README.md", source / "README.md")
+    shutil.copytree(
+        REPOSITORY_ROOT / "carbon",
+        source / "carbon",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
+    wheelhouse = root / "wheelhouse"
+    build = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "build",
+            "--wheel",
+            "--no-isolation",
+            "--outdir",
+            str(wheelhouse),
+        ],
+        cwd=source,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert build.returncode == 0, f"{build.stdout}\n{build.stderr}"
+    wheels = tuple(wheelhouse.glob("carbon-0.9.0-*.whl"))
+    assert len(wheels) == 1
+
+    installed = root / "installed"
+    install = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "--no-deps",
+            "--no-index",
+            "--target",
+            str(installed),
+            str(wheels[0]),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert install.returncode == 0, f"{install.stdout}\n{install.stderr}"
+    return installed
 
 
 def test_import_carbon() -> None:
@@ -89,23 +164,38 @@ def test_import_b02c_module(module_name: str) -> None:
     assert module.__name__ == module_name
 
 
+@pytest.mark.parametrize("module_name", B03_MODULES)
+def test_import_b03_module(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+
+    assert module.__name__ == module_name
+
+
 def test_distribution_identity() -> None:
     distribution = importlib.metadata.distribution("carbon")
+    requirements = distribution.requires or ()
 
     assert distribution.metadata["Name"] == "carbon"
     assert distribution.version == CARBON_VERSION
+    assert all("extra ==" in requirement.lower() for requirement in requirements)
 
 
-def test_outside_tree_installed_imports(tmp_path: Path) -> None:
-    repository_root = Path(__file__).resolve().parents[2]
-    assert tmp_path != repository_root
-    assert repository_root not in tmp_path.parents
+def test_outside_tree_installed_imports(
+    tmp_path: Path,
+    installed_wheel_root: Path,
+) -> None:
+    assert tmp_path != REPOSITORY_ROOT
+    assert REPOSITORY_ROOT not in tmp_path.parents
 
     script = f"""
 import importlib
 import importlib.metadata
 import json
+import pathlib
+import sys
 
+installed_root = pathlib.Path({json.dumps(str(installed_wheel_root))}).resolve()
+sys.path.insert(0, str(installed_root))
 module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 distribution = importlib.metadata.distribution("carbon")
@@ -113,6 +203,7 @@ print(json.dumps({{
     "distribution_name": distribution.metadata["Name"],
     "distribution_version": distribution.version,
     "module_names": [module.__name__ for module in modules],
+    "module_files": [str(pathlib.Path(module.__file__).resolve()) for module in modules],
 }}))
 """
     result = subprocess.run(
@@ -129,14 +220,23 @@ print(json.dumps({{
         "distribution_name": "carbon",
         "distribution_version": CARBON_VERSION,
         "module_names": list(INSTALLED_MODULES),
+        "module_files": payload["module_files"],
     }
+    assert all(
+        module_file.startswith(f"{installed_wheel_root.resolve()}/carbon")
+        for module_file in payload["module_files"]
+    )
 
 
-def test_core_imports_without_optional_dependencies(tmp_path: Path) -> None:
+def test_core_imports_without_optional_dependencies(
+    tmp_path: Path,
+    installed_wheel_root: Path,
+) -> None:
     script = f"""
 import importlib
 import importlib.abc
 import json
+import pathlib
 import sys
 
 blocked_roots = {{
@@ -174,6 +274,8 @@ class OptionalDependencyBlocker(importlib.abc.MetaPathFinder):
         return None
 
 sys.meta_path.insert(0, OptionalDependencyBlocker())
+installed_root = pathlib.Path({json.dumps(str(installed_wheel_root))}).resolve()
+sys.path.insert(0, str(installed_root))
 module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 print(json.dumps([module.__name__ for module in modules]))

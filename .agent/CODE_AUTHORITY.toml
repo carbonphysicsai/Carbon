@@ -20,6 +20,7 @@ implementation_roots = [
     "carbon/construction",
     "carbon/evaluation",
     "carbon/fees",
+    "carbon/generators",
     "carbon/leaderboard",
     "carbon/logging_utils",
     "carbon/mcp",
