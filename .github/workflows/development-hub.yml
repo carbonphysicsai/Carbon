@@ -1,0 +1,51 @@
+name: Development Hub
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: development-hub-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Static, drift, authority, and PR contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      HUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - name: Checkout exact candidate with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Show tool versions
+        run: |
+          python3 --version
+          node --version
+          google-chrome --version || chromium --version || chromium-browser --version
+
+      - name: Check generated outputs
+        run: python3 docs/development/carbon_hub/tools/render_hub.py --check
+
+      - name: Validate data, authority drift, links, diff coverage, and PR declaration
+        run: python3 docs/development/carbon_hub/tools/validate_hub.py --repo-root .
+
+      - name: Test validator enforcement contracts
+        run: python3 docs/development/carbon_hub/tools/test_validator.py
+
+      - name: Test static anchors and optional interactive routes
+        run: node docs/development/carbon_hub/tools/test_routes.js
+
+      - name: Run real-browser JavaScript-on/off smoke
+        run: python3 docs/development/carbon_hub/tools/browser_smoke_test.py --timeout 30
+
+      - name: Check whitespace
+        run: git diff --check "${HUB_BASE_SHA}...HEAD"

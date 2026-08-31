@@ -20,10 +20,11 @@ Before every new ticket or major wave, read:
 2. `.agent/INVARIANTS.md`;
 3. `.agent/WAVE.md`;
 4. the active ticket under `.agent/tickets/`;
-5. ticket-referenced domain specifications;
-6. `Design_Specs/Build_Out.md`;
-7. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
-8. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
+5. for development tickets, `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`;
+6. ticket-referenced domain specifications;
+7. `Design_Specs/Build_Out.md`;
+8. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
+9. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
 
 Scientific constitutional reference:
 
@@ -290,10 +291,16 @@ Work on one bounded ticket at a time unless explicitly authorized otherwise.
 Before editing:
 
 1. read current authority/ticket;
-2. inspect existing implementation;
-3. identify dependencies/tests;
-4. run relevant baseline tests;
-5. create a plan for multi-module/security/protocol work.
+2. identify one primary Development Hub `map_ref` and classify hub impact;
+3. inspect existing implementation;
+4. identify dependencies/tests;
+5. run relevant baseline tests;
+6. create a plan for multi-module/security/protocol work.
+
+During work, record a concise Development Hub event when a material decision,
+adjustment, bug, blocker, risk, or evidence result changes team understanding,
+purpose, placement, status, dependency, boundary, maturity, or primary links.
+Do not duplicate routine PR detail in the map.
 
 Implement the smallest coherent change satisfying the ticket DoD.
 
@@ -314,6 +321,11 @@ Before declaring completion run:
 3. required baseline/regression suite;
 4. lint/type/static checks required by the repo;
 5. relevant security/leakage/invariant tests.
+
+For development-ticket changes, also reconcile the hub source, regenerate its
+derived outputs, and run the checks in
+`docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`.
+Repository authority remains controlling over the derived hub.
 
 Prefer tests for:
 
@@ -533,6 +545,11 @@ Relevant constitutional invariants exercised.
 
 ### Maturity
 Which states are actually earned: specified / implemented / tested / qualified etc.
+
+### Hub Impact
+Primary `map_ref`; changed hub source/events and regeneration evidence, or the
+specific reason the hub's purpose, placement, status, dependencies, boundaries,
+maturity, and primary links remain accurate.
 
 ### Risks / Follow-up
 Remaining work.
