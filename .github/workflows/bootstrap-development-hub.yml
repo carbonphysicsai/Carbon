@@ -22,7 +22,10 @@ jobs:
 
       - name: Extract the Development Hub package
         run: |
-          cat .agent/hub_bootstrap_b64/part-* | base64 --decode > /tmp/carbon-development-hub.tgz
+          : > /tmp/carbon-development-hub.tgz
+          for part in .agent/hub_bootstrap_b64/part-*; do
+            base64 --decode "$part" >> /tmp/carbon-development-hub.tgz
+          done
           echo "5fb829b614952f5236af6c6f095b7a4f87109c1dd2ff033cf35cd83e54f8351e  /tmp/carbon-development-hub.tgz" | sha256sum --check -
           tar -xzf /tmp/carbon-development-hub.tgz
 
