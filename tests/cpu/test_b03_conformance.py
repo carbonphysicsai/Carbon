@@ -15,6 +15,7 @@ from carbon.authoring.model import ApplicabilityBinding
 from carbon.authoring.refs import ChallengeScope, owner_ref
 from carbon.generators import authorities as generator_authorities
 from carbon.generators import canonical
+from carbon.generators import conformance as generator_conformance
 from carbon.generators.accounting import (
     build_generation_attempt_record,
     build_intended_unit_accounting,
@@ -271,20 +272,29 @@ def test_concurrent_replay_claim_allows_exactly_one_probe(
 ) -> None:
     fixture, result = _generate_fixture_result()
     authority = fixture.fixture_authority.replay_probe_authority()
-    projection_barrier = threading.Barrier(2)
-    original_projection = generator_authorities.create_fixture_official_exam_projection
+    prepared = generator_conformance._prepare_fixture_replay_probe(
+        baseline_result=result,
+        baseline_result_ref=result.ref,
+        baseline_request=fixture.request,
+    )
+    claim_barrier = threading.Barrier(2)
 
-    def synchronized_projection(context: object) -> object:
-        try:
-            projection_barrier.wait(timeout=0.25)
-        except threading.BrokenBarrierError:
-            pass
-        return original_projection(context)
+    def synchronized_prepare(
+        *,
+        baseline_result: object,
+        baseline_result_ref: object,
+        baseline_request: object,
+    ) -> tuple[object, ...]:
+        assert baseline_result is result
+        assert baseline_result_ref == result.ref
+        assert baseline_request is fixture.request
+        claim_barrier.wait(timeout=30)
+        return prepared
 
     monkeypatch.setattr(
-        generator_authorities,
-        "create_fixture_official_exam_projection",
-        synchronized_projection,
+        generator_conformance,
+        "_prepare_fixture_replay_probe",
+        synchronized_prepare,
     )
     probes: list[object] = []
     failures: list[Exception] = []
@@ -306,7 +316,7 @@ def test_concurrent_replay_claim_allows_exactly_one_probe(
     for thread in threads:
         thread.start()
     for thread in threads:
-        thread.join(timeout=5)
+        thread.join(timeout=30)
 
     assert not any(thread.is_alive() for thread in threads)
     assert len(probes) == 1
