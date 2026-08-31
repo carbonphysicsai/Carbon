@@ -8,13 +8,18 @@
 **Authority:** current A2 contract; `Miner_MCP_Wave_B_Research_Contract.md` §§4-5
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
+> **Next-ticket state:** selected next only after B-07R's conditional
+> completion predicate; remains `todo / NOT STARTED`. Create a fresh dedicated
+> branch/worktree from the then-current exact `origin/main`. This file does not
+> authorize B-02B implementation in the B-07R branch.
+
 ## Goal
 
 Turn the ratified inert Strategy v1 envelope into an exact, Challenge-bound construction plan without broadening execution to arbitrary participant code.
 
 ## Definition of Done
 
-- [ ] Before implementation, produce `Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md`, obtain independent protocol/SciML/security review and explicit human ratification, and merge that contract normally; record the exact contract commit in the implementation plan.
+- [ ] Before implementation, produce `Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md`; record material engineering decisions and applicable domain notifications; pass applicable validation and exact-head CI; repair every valid Greptile finding with zero Greptile threads unresolved; and merge the exact reviewed tree normally. A documented invalid finding may be closed with rationale, and any tree change requires rereview. No affirmative human/domain response or silence gate applies to agent-authorized engineering choices. Real scientific values, security acceptance, rights, economics, qualification, LIVE, launch, and production authority remain separately human-owned and fail closed.
 - [ ] Define `CandidateAssemblyContract`, `ParameterCatalog`, catalog entries,
       compiler identity, typed compile rejection,
       `ResolvedTrainingSamplingPolicy`, `TrainingSamplingPolicyRef`, and
@@ -69,12 +74,14 @@ Turn the ratified inert Strategy v1 envelope into an exact, Challenge-bound cons
 
 ## Human input
 
-SciML, protocol, and security approve allowed backbones, hybrid assembly,
-structural components and their physical applicability, parameter
-domains/units, training support, and policy family. B-02C owners approve
-resource policy and operational rails. Fixtures remain non-authoritative.
-The exact product/system qualification identity for hybrid systems remains a
-post-launch owner decision.
+SciML, protocol, and security owners supply or approve the real allowed
+backbones, hybrid assembly, structural components and their physical
+applicability, parameter domains/units, training support, and policy family.
+Until then, affected real capabilities remain unavailable while bounded fixture
+contract engineering may continue under delegated governance. B-02C owners
+supply resource policy and operational rails. Fixtures remain
+non-authoritative. The exact product/system qualification identity for hybrid
+systems remains a post-launch owner decision.
 
 ## Must not
 

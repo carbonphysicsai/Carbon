@@ -1,9 +1,9 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 0.5
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.5
-**Architecture candidate:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.3
+**Governance version:** 0.6
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.6
+**Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as merged B-07R architecture only under its conditional completion gate
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
@@ -16,7 +16,7 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-01E closeout, delegated governance, and B-02A state
+## 1. B-02A closeout, delegated governance, and B-07R/B-02B state
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -38,8 +38,24 @@ head `fb220c14966aa3505d95b199ce168bf31064d1ba`, normally merged as
 contract implementation: record and notify material engineering decisions,
 continue without affirmative lead response, and stop the affected change on
 an observed `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES`. Human-reserved values
-remain fail closed. B-02A is the only active ticket; later tickets remain
-unstarted.
+remain fail closed. At that historical point B-02A was the only active ticket;
+later tickets were unstarted.
+
+PR #60 later normally merged exact reviewed B-02A head
+`f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
+`61a4463ac459f7fe96545f2746511d6940246f57`, as
+`58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head
+CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved
+threads, and exact-main CI `33342015346` passed. B-02A is `done` only in its
+bounded engineering scope.
+
+Version 0.6 carries B-07R's conditional completion record. Until its exact
+reviewed head passes CI, every valid Greptile finding is repaired, zero
+Greptile threads remain unresolved, it normally merges with tree equality, and
+exact-main CI passes, B-07R remains `in_progress` and B-02B
+cannot start. After that predicate B-07R is `done` and B-02B is selected next
+only as `todo / NOT STARTED`. PR/check/merge/Actions metadata and issue #42
+record the exact completion identities; no recursive closeout PR is required.
 
 ## 2. Required read order
 
@@ -92,8 +108,8 @@ the domain owner provides a current repository contract.
 | `docs/development/ENVIRONMENT.md` | Sole ordinary developer/evidence environment and command guide after B-01E. |
 | `docs/history/LEGACY_CODE_INDEX.md` | Retrieval map for quarantined executable prototypes. Archive presence grants no current authority. |
 | `SPEC.md` | System/runtime doctrine. It preserves the current v1 service and records the gated migration to the separate Wave B research service. |
-| `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | Proposed behavioral and authority architecture for the local research service. B-07R ratifies it. |
-| `Design_Specs/Miner_MCP.md` | Existing bounded Wave A v1 interface and pointer to the proposed v2 work. |
+| `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | B-07R agent-selected working behavioral/authority architecture for the local research plane; merged engineering authority only after its conditional completion gate. B-07S owns exact protocol mechanics. |
+| `Design_Specs/Miner_MCP.md` | Existing bounded Wave A v1 interface and pointer to the separate Wave B research architecture. |
 | `Design_Specs/Strategy_Schema.md` | Strategy v1 envelope. B-02B supplies Challenge-bound executable meaning through the catalog, assembly contract, and compiler. |
 | `Design_Specs/Data_Management.md` | Owns TRAIN/EVAL/STRESS data roles, nominal entropy contexts, and the rule that a resolved training policy binds abstract purposes rather than seed authority. |
 | `Design_Specs/Trustless_Verification.md` and `Evidence_and_Envelope_Standards.md` | Own reference qualification, uncertainty-bearing evidence, decision resolution, and the bounded trust-minimized claim. No solver or validator earns truth authority by reputation. |
@@ -121,7 +137,7 @@ authorized work only where the value remains explicit and fail closed.
 
 ## 4. Current-ticket state and selection
 
-Section 1 records the current B-01E closeout and B-02A readiness gate. At the
+Section 1 records the proven B-02A closeout and B-07R conditional gate. At the
 start of every session:
 
 1. Fetch `origin/main` without using `git pull`, record its exact commit and
@@ -171,9 +187,9 @@ start of every session:
 B-07R must ratify the research architecture before dependent implementation.
 B-07S must ratify the exact wire protocol before service-facing code. B-07A
 then implements the shared nominal v2 protocol primitives once; downstream
-domain tickets consume those types, and B-07G alone owns final twelve-operation
-service composition and conformance. B-GATE closes the fixture wave only after
-every named predecessor has merged.
+domain tickets consume those types, and B-07G alone owns final composition and
+conformance for the B-07S-ratified closed operation set. B-GATE closes the
+fixture wave only after every named predecessor has merged.
 
 A ticket qualifies as ready only when each dependency shows authoritative
 `done` status with merged evidence, its required working contract exists, no
@@ -182,11 +198,11 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E's implementation, closeout, and exact-main CI are complete at the
-identities in section 1. The current authorized B-02A session continues on the
-existing branch and worktree after normally incorporating governance main.
-B-02A's final independent review and normal merge remain pending. No status or
-evidence on this branch authorizes B-02B or another ticket.
+B-01E and B-02A are complete at the identities in section 1. B-07R remains
+`in_progress` until its conditional completion predicate. After that predicate,
+B-02B is selected next as `todo / NOT STARTED`; create a fresh dedicated
+worktree from the then-current exact `origin/main` before any B-02B work. No
+B-02B implementation belongs in the B-07R branch.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -224,8 +240,9 @@ that change merges.
 
 The board's Accountable reviewer column routes technical/domain review and
 notification. It creates no affirmative pre-approval or silence gate.
-Independent technical review, resolution of blocking findings, CI, and normal
-merge remain required.
+Independent technical review, repair of every valid finding, zero unresolved
+review threads, CI, and normal merge remain required. A documented invalid
+finding may be closed with rationale.
 
 This rule does not authorize agents to invent or approve scientific truth,
 thresholds, tolerances, population or SamplingPlan claims, qualification,
@@ -296,21 +313,23 @@ Use board states with these meanings:
   bounded execution has begun.
 - `blocked`: a named dependency, contract, environment, or reserved human decision
   prevents correct completion.
-- `done`: every Definition-of-Done item has evidence, required reviewers
-  completed exact-head technical review with blocking findings resolved, the
+- `done`: every Definition-of-Done item has evidence, exact-head technical
+  review repaired every valid finding with zero unresolved review threads, the
   implementation merged with a tree identical to the reviewed head, post-merge
-  CI passed, and a separate reviewed closeout change records the merge
-  commit/tree, CI, evidence link, review outcome, and lead-notification delivery
-  when applicable in the board. Affirmative role or lead approval is not
-  required.
+  CI passed, and the evidence record or its conditional external-metadata
+  pointer records the merge, CI, review outcome, and lead-notification delivery
+  when applicable. Affirmative role or lead approval is not required.
 
 Code completion alone cannot produce `done`.
 
-The implementation change prepares the evidence record with merge fields marked
-pending. After merge and post-merge CI, a separate documentation closeout fills
-those fields and proposes the board transition to `done`. The closeout requires
-independent review and resolution of blocking findings; Accountable-reviewer or
-lead silence is not a gate.
+The implementation change may prepare pending merge fields or a conditional
+completion record. Conditional `done` becomes authoritative only when the exact
+reviewed tree passes required CI/review, normally merges with tree equality and
+exact second-parent identity, and exact-main CI passes. Immutable PR/check/
+merge/Actions metadata and a post-merge issue comment may supply identities the
+tracked commit cannot contain. Do not open a recursive closeout PR merely to
+restate them. Independent correctness review and resolution of blocking
+findings remain required; Accountable-reviewer or lead silence is not a gate.
 
 ## 6. Miner research boundaries
 
@@ -335,22 +354,24 @@ code, imports, executables, dependencies, composition graphs, raw/custom data,
 miner seeds, or official evaluation controls.
 
 Subject to B-07S ratification, the Wave B local topology introduces two distinct
-identities around the unchanged v1 behavior:
+authority planes around the unchanged v1 behavior:
 
-- `carbon_protocol_v1` retains official submission and result authority.
-- `carbon_research_v2` owns research discovery, compilation, practice, prior,
-  record, and resource operations.
+- the existing exact Wave-A service retains official submission/result
+  authority; and
+- a separate local/in-process research plane owns discovery, compilation,
+  practice, prior, record, and resource capabilities.
 
 B-07A implements the B-07S-ratified shared refs, requests, results, resource
 envelopes, errors, and service primitives. Domain tickets own their validation,
 providers, stores, lifecycle, and execution semantics without redefining those
-wire types. B-07G composes the completed dependencies into exactly twelve v2
-operations; it neither exposes nor delegates v1 official operations.
+wire types. B-07S owns exact service/version identifiers and operation names;
+B-07G composes the completed dependencies into the B-07S-ratified closed operation
+set and neither exposes nor delegates v1 official operations.
 
 Do not create a merged alias, network listener, credential system, production
 signing system, or remote charged path in Wave B.
 
-## 7. `get_prior` implementation target
+## 7. Prior-retrieval implementation target
 
 Treat a prior as shared scientific memory, not an answer or score oracle.
 
@@ -362,7 +383,8 @@ epistemic type, applicability, support, stability, replication, caveats, and
 cheap falsification references. Publish negative, null, mixed, and
 `INSUFFICIENT_EVIDENCE` items with positive results.
 
-`get_prior` serves either an exact approved pack reference or one atomically
+The future prior-retrieval capability (exact operation name owned by B-07S)
+serves either an exact authorized pack reference or one atomically
 resolved active-channel snapshot. The same reference returns the same canonical
 bytes to each requester. The service performs no requester-specific private
 query or server-side personalization. Agents combine the pack with private
@@ -389,9 +411,9 @@ exclude the publication receipt and resulting-index reference. The ledger
 compare-and-swap and index activation form one transaction. Any changed state
 requires new authorization.
 
-Wave B fixtures can produce a structurally approved `TEST_ONLY` pack for the
-private fixture provider. Its exact `TestOnlyPriorApprovalReceiptRef` and bytes
-are pinned before B-E4, and the pack and dependent receipts retain
+Wave B fixtures can produce a structurally authorized `TEST_ONLY` pack for the
+private fixture provider. Its exact B-07S-ratified test-only authorization
+receipt reference and bytes are pinned before B-E4, and the pack and dependent receipts retain
 `TEST_ONLY / NOT_UTILITY_QUALIFIED` permanently. A passing preregistered
 gauntlet creates separate evidence about the bounded Wave B mechanism; it does
 not mutate or promote the fixture pack. This fixture gate is not a
@@ -428,7 +450,7 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.5 as the controlling register, and selects <TICKET> with the same
+version 0.6 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
 continue only its recorded ticket branch after verifying the recorded base,
 current remote HEAD/tree, evidence, CI, and review state. Use its existing
@@ -464,7 +486,10 @@ alone.
 ## 10. Wave closeout
 
 B-GATE produces `.agent/WAVE_B_REPORT.md` only after every predecessor satisfies
-its evidence and merge gate. Human reviewers then decide whether Wave B earned
-its bounded `SPECIFIED`, `IMPLEMENTED`, and `TESTED` claims. Fixture success
-cannot confer scientific, security, network, commercial, or production
-qualification. Wave C starts only after `.agent/WAVE.md` changes prospectively.
+its evidence and merge gate. Exact-head correctness review, required CI, normal
+merge, and exact-main CI decide whether bounded engineering evidence supports
+`SPECIFIED`, `IMPLEMENTED`, and `TESTED` claims. Human-reserved scientific,
+security, rights, economic, qualification, LIVE, launch, and production
+authority remains separate and fail closed. Fixture success cannot confer
+scientific, security, network, commercial, or production qualification. Wave C
+starts only after `.agent/WAVE.md` changes prospectively.

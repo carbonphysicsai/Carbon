@@ -183,11 +183,13 @@ GitHub Actions build-push for `ghcr.io/carbon/validator`, `ghcr.io/carbon/sciml-
 **SciML Oracle:** port 8083; `JULIA_NUM_THREADS=16`; julia depot PVC; health `:8083/health`.
 
 **Miner toolkit:** current Wave A v1 calls an unnamespaced process-local
-adapter. After B-07S ratification, the Wave B topology may label that unchanged
-surface `carbon_protocol_v1` and add a local `carbon_research_v2` adapter for
-bounded practice research without credentials or a network listener. Any remote
-endpoint, hotkey authentication, or rented practice worker requires a later
-authorized transport contract.
+adapter. After B-07S ratification, the Wave B topology retains that unchanged
+official plane and adds a separate local research adapter for bounded practice
+without credentials or a network listener. `carbon_protocol_v1` and
+`carbon_research_v2` are descriptive architecture labels only until B-07S
+ratifies exact service/version identifiers. Any remote endpoint, hotkey
+authentication, or rented practice worker requires a later authorized
+transport contract.
 
 ## 2.4 Image Lifecycle
 
@@ -324,13 +326,14 @@ operations: `get_challenge_info`, `get_prior`, `get_mock_scaffold`,
 `dry_validate`, `estimate`, `submit`, and `get_submission_result`. Do not invent
 aliases such as `get_noisy_prior` or `diagnostics`.
 
-After Wave B activation and B-07R/B-07S ratification, the local topology may
-label the unchanged official surface `carbon_protocol_v1` and add
-`carbon_research_v2` for registered discovery, compilation, prior, practice,
-research-record, and resource operations. Agents and clients separately call
-v1 for official `submit` and `get_submission_result`; v2 neither exposes nor
-delegates those operations. Operators must serve exact
-approved PriorPack bytes, never request-time noisy or personalized derivatives.
+After B-07R engineering completion and B-07S exact-protocol ratification, the
+local topology retains the unchanged official plane and adds a separate
+research plane for registered discovery, compilation, prior, practice,
+research-record, and resource capabilities. B-07S owns their exact identifiers
+and operation names. Agents and clients call the unchanged Wave-A plane for
+official submission/results; the research plane neither exposes nor delegates
+them. Operators must serve exact PriorPack bytes authorized for their
+publication class, never request-time noisy or personalized derivatives.
 Do not distribute specialist weights or exact bank recipes as miner guidance.
 Route commercial SKU requests to the product channel.
 

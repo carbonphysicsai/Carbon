@@ -14,16 +14,19 @@ Separate public prior matching, exact static resource analysis, calibrated forec
 ## Definition of Done
 
 - [ ] Preserve current A9 `estimate` exactly as v1 structural-prior alignment.
-- [ ] Consume v2 `inspect_prior_alignment` from B-07D3 as deterministic public pack/catalog matching with no private provider input.
-- [ ] Consume B-07A's B-07S-ratified `inspect_resources` response type without
-      redefining it; implement exact plan-derived dimensions and declared
-      resource constraints.
-- [ ] Consume B-07A's B-07S-ratified `forecast_resources` response type without
-      redefining it; implement model identity, calibration window,
+- [ ] Consume B-07D3's B-07S-ratified deterministic public prior-alignment
+      capability with no private provider input.
+- [ ] Consume B-07A's B-07S-ratified exact static-resource-inspection response
+      type without redefining it; implement exact plan-derived dimensions and
+      declared resource constraints.
+- [ ] Consume B-07A's B-07S-ratified calibrated-resource-forecast response type
+      without redefining it; implement model identity, calibration window,
       hardware/resource scope, uncertainty interval, support state, and
       `UNRESOLVED` fallback. Without approved fixture calibration it always
       returns `UNRESOLVED`.
-- [ ] Define the boundary to future Wave C `quote_execution` and the final observed resource receipt without implementing production prices.
+- [ ] Define the boundary to the future Wave C binding-execution-quote
+      capability and the final observed resource receipt without implementing
+      production prices.
 - [ ] Ensure no resource response reveals protected case count, stress composition, strong-anchor frequency, evaluator topology, or official quality prediction.
 - [ ] Add unsupported-distribution, stale-model, miscalibration, exact/static-vs-forecast, quote-confusion, leakage, forbidden-score, and installed-wheel tests.
 

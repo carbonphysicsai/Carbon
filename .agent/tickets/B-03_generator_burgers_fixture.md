@@ -15,10 +15,15 @@ Implement the generator interface and a mechanically fixture-only fixed-viscosit
 ## Definition of Done
 
 - [ ] Before implementation, produce
-      `Design_Specs/Generator_Runtime_Contract.md`, obtain independent
-      SciML/statistics/protocol review and explicit human ratification, and
-      merge that contract normally; record the exact contract commit in the
-      implementation plan.
+      `Design_Specs/Generator_Runtime_Contract.md`; record material engineering
+      decisions and notify SciML/statistics/protocol owners; pass applicable
+      document validation and exact-head CI; repair every valid Greptile
+      finding with zero Greptile threads unresolved; and normally merge the
+      exact reviewed tree. A documented invalid finding may be closed with
+      rationale, and any tree change requires rereview. Record the exact
+      contract commit in the implementation plan. Notification is not
+      ratification and silence is no gate. Real population/range values and
+      scientific qualification remain human-owned and fail closed.
 - [ ] Define deterministic generator request/result and typed generation/censoring failures over `CanonicalChallengeCase`.
 - [ ] Bind exact distribution, SamplingPlan, generator, role, and fixture identities.
 - [ ] Implement the Burgers fixture using explicit `HUMAN_INPUT` markers for unratified population/range values.

@@ -17,10 +17,16 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
 ## Definition of Done
 
 - [ ] Before implementation, produce
-      `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`, obtain
-      independent SciML/statistics/protocol review and explicit human
-      ratification, and merge that contract normally; record the exact contract
-      commit in the implementation plan.
+      `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`; record
+      material engineering decisions and notify SciML/statistics/protocol
+      owners; pass applicable document validation and exact-head CI; repair
+      every valid Greptile finding with zero Greptile threads unresolved; and
+      normally merge the exact reviewed tree. A documented invalid finding may
+      be closed with rationale, and any tree change requires rereview. Record
+      the exact contract commit in the implementation plan. Notification is
+      not ratification and silence is no gate. Real measurement, uncertainty,
+      and score-policy values and scientific qualification remain human-owned
+      and fail closed.
 - [ ] Define exact `MeasurementContract` identity, scientific property claimed,
       required observables, coordinates/units, numerical operator,
       discretization, sampling/quadrature, normalization, aggregation,

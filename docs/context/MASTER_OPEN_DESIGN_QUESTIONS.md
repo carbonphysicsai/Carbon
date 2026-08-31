@@ -571,11 +571,13 @@ only under a formal privacy budget with measured utility. For any external
 activation, require cutoff plus minimum lag; evidence generated during an
 active window cannot influence the prior consumed in that window.
 
-Wave B may implement private `TEST_ONLY` staging with an exact-hash approval
-receipt carrying `NOT_UTILITY_QUALIFIED`, plus reviewed public-publication
-schemas and negative tests. The frozen TEST_ONLY bytes then enter the
-preregistered B-E4 utility/leakage gauntlet; the staging receipt is not a public
-publication receipt or utility claim. Carbon-derived learned public priors
+Wave B may implement private `TEST_ONLY` staging with an exact-hash delegated
+structural authorization receipt carrying `NOT_UTILITY_QUALIFIED`, plus
+reviewed public-publication schemas and negative tests. That receipt authorizes
+only exact-byte private fixture staging; it is not science, statistics,
+security, rights, utility, or publication acceptance. The frozen TEST_ONLY
+bytes then enter the preregistered B-E4 utility/leakage gauntlet; the staging
+receipt is not a public publication receipt or utility claim. Carbon-derived learned public priors
 require Launch-Bar-grade source evidence, rights, poisoning resistance,
 prospective utility evidence, and security approval. Any output that provides
 protected-realization advantage beyond transferable physics is a leakage

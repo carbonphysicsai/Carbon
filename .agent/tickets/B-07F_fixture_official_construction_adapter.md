@@ -18,9 +18,15 @@ closeout.
 
 - [ ] Before implementation, produce
       `Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md`,
-      obtain independent protocol/SciML/security review and explicit human
-      ratification, and merge that contract normally; record the exact contract
-      commit in the implementation plan.
+      record material engineering decisions, and notify protocol/SciML/security
+      owners; pass applicable document validation and exact-head CI; repair
+      every valid Greptile finding with zero Greptile threads unresolved; and
+      normally merge the exact reviewed tree. A documented invalid finding may
+      be closed with rationale, and any tree change requires rereview. Record
+      the exact contract commit in the implementation plan. Notification is
+      not ratification and silence is no gate. Scientific/security
+      qualification, official data rights, LIVE, and production authority
+      remain human-owned and fail closed.
 - [ ] Implement a new fixture-only resolved-plan consumer rather than changing
       A8's frozen Strategy-insensitive stub semantics.
 - [ ] Inject the consumer behind the existing A7/A8-shaped internal

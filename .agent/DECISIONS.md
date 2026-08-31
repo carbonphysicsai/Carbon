@@ -1,6 +1,174 @@
 # Agent decisions log
 
+## 2026-08-31 — B-07R-D1: Separate service planes and future transport
+
+> **B-07R-D1 through B-07R-D8 status: CONDITIONAL WORKING ARCHITECTURE
+> DECISIONS.** The whole series is effective only after the exact B-07R
+> reviewed tree passes CI, every valid Greptile finding is repaired, zero
+> Greptile threads remain unresolved, it normally merges, and exact-main CI
+> passes. A documented invalid finding may be closed with rationale; any tree
+> change requires rereview. Notification is not qualification.
+
+**Selected approach and rationale.** Preserve the exact Wave-A seven-tool
+official service and add a distinct local/in-process research plane. This
+prevents research aliases or stores from acquiring official authority. B-07S
+chooses exact identifiers/negotiation; Wave C owns remote transport, identity,
+quotas, and quotes.
+
+**Rejected alternatives.** Mutating v1, merging planes, a generic mode flag,
+or preselecting network/authentication behavior in Wave B.
+
+**Affected tickets; migration/change path.** A9, B-07S, B-07A, B-07G, B-07F,
+B-E4, and Wave C. Migration is low before B-07S and high after clients exist.
+Supersede through a normally merged change to research-contract §§6.5/8.1 and
+this record; exact protocol changes belong in the B-07S contract.
+
+**Remaining reserved input.** Production security, transport, identity, and
+economics remain unavailable; local fixture work may continue.
+
+## 2026-08-31 — B-07R-D2: Construction chain and P/Q/w/R_strategy law
+
+**Selected approach and rationale.** Compile Strategy plus the Challenge-bound
+catalog/assembly contract into one resolved plan; keep P, Q, w, and
+`R_strategy` distinct; derive randomness in the authorized execution context.
+This gives executable semantics without miner exam or seed authority.
+
+**Rejected alternatives.** Inert/ignored parameters, arbitrary code/data,
+miner seeds, or using `R_strategy` to control P/Q/w, stress, reference,
+measurement, gates, or score.
+
+**Affected tickets; migration/change path.** B-02A, B-02B, B-02C, B-03, B-05,
+B-07S, B-07C, and B-07F. Migration is medium and prospective. Amend research-
+contract §§4–5 plus B-02B's compiler contract; B-07S owns the wire projection.
+
+**Remaining reserved input.** Real catalogs, components, backbones, training
+sources, units, domains, and policies remain unavailable.
+
+## 2026-08-31 — B-07R-D3: Research lineage and practice/official isolation
+
+**Selected approach and rationale.** Pin each research execution to a task,
+private immutable experiment record, and bounded receipt; practice remains
+non-authoritative, and B-07F later consumes the same plan through unchanged
+fixture-official v1. This preserves reproducibility without a second official
+lifecycle.
+
+**Rejected alternatives.** Uploading all miner history, protected per-case
+returns, a caller mock/official mode, practice-to-A5/A6/A7 conversion, or a
+second official store.
+
+**Affected tickets; migration/change path.** B-07S, B-07A, B-07B, B-07C,
+B-07F, B-07G, and B-GATE. Migration is medium. Amend research-contract §§6–7;
+B-07S owns protocol, B-07B records, B-07C practice, and B-07F v1 consumption.
+
+**Remaining reserved input.** Real practice science, disclosure, rights, and
+security acceptance keep external practice disabled.
+
+## 2026-08-31 — B-07R-D4: Immutable same-bytes prior
+
+**Selected approach and rationale.** Use immutable Challenge-level packs,
+exact history, atomic active resolution, publication-class ceilings, persistent
+disclosure accounting, and identical bytes for every requester; personalize
+only miner-side. This provides shared memory without a private oracle.
+
+**Rejected alternatives.** Request-time private queries/LLM answers, per-miner
+bytes, implicit latest, fixture promotion, or a production v2-backed v1 prior.
+
+**Affected tickets; migration/change path.** B-07S, B-07D1–B-07D3, B-E4,
+Landscape, and Wave C. Migration is medium/high because history is immutable.
+Amend research-contract §9 and later prior contracts; B-07S owns wire mechanics.
+
+**Remaining reserved input.** Estimands, cohorts, lag/cadence/coarsening,
+content, rights, public approvals, and signing custody keep activation closed.
+
+## 2026-08-31 — B-07R-D5: Conditional protected-realization leakage objective
+
+**Selected approach and rationale.** Test incremental transcript-enabled
+inference of protected realizations, stress composition, margins, or ordering
+after controlling for transferable held-out physics. Genuine learning should
+transfer; the protected shortcut is the threat.
+
+**Rejected alternatives.** Minimizing practice/official correlation, isolated
+endpoint review, informal noise, or claiming fixture tests qualify security.
+
+**Affected tickets; migration/change path.** B-07S, B-07C, B-07D2, B-07E,
+B-E4, and Waves C/D. Migration is low before preregistration and high after
+releases. Amend research-contract §§9.6/10/12.2 and B-E4; production changes
+require the later security contract.
+
+**Remaining reserved input.** Identity/privacy basis, adversary model, utility
+and diversity floors, and leakage limit remain human-owned.
+
+## 2026-08-31 — B-07R-D6: Evidence/resource/authority ladder
+
+**Selected approach and rationale.** Keep structural prior alignment, static
+resource analysis, calibrated forecast, operational quote/admission, practice
+measurement, official evidence, score, frontier, and settlement separate; use
+typed deferral/indeterminacy and prohibit score/winner prediction. This prevents
+resource or proxy results from becoming scientific authority.
+
+**Rejected alternatives.** Pre-base quality denial, proxy promotion,
+scientific-zero coercion, score prediction, or inferring frontier/settlement.
+
+**Affected tickets; migration/change path.** B-02C, B-05, B-07E, B-07F, B-E1,
+B-E4, A5, A6, and A10. Migration is high after persistence. Amend research-
+contract §§8.2/11 and owning B-05/B-02C/B-E1 contracts prospectively.
+
+**Remaining reserved input.** Budgets, coverage/stopping, calibration,
+admission/pricing, frontier, and settlement policy stay absent.
+
+## 2026-08-31 — B-07R-D7: B-07S delegation and implementation layering
+
+**Selected approach and rationale.** B-07R fixes capabilities/authority only.
+B-07S exclusively fixes exact objects, names, lifecycle, request/response,
+errors, canonical bytes, bounds, pagination, idempotency, providers, adapter,
+negotiation, and disclosure. B-07A implements shared primitives once, domain
+tickets own semantics, and B-07G composes the ratified closed set.
+
+**Rejected alternatives.** Exact B-07R wire/protocol literals, duplicated domain wire types,
+B-07G semantic ownership, or implementation before B-07S.
+
+**Affected tickets; migration/change path.** B-07S, B-07A–B-07G, B-02B,
+B-02C, A2, and A9. Migration is low now/high after implementation. Architecture
+changes return through research-contract §8.1; exact protocol changes stay in
+B-07S's contract.
+
+**Remaining reserved input.** None for bounded protocol engineering; external
+security/rights/economics remain fail closed.
+
+## 2026-08-31 — B-07R-D8: Delegated engineering ratification
+
+**Selected approach and rationale.** Ratify bounded engineering architecture
+after durable record/notification, applicable validation, exact-head CI,
+repair of every valid Greptile finding with zero Greptile threads unresolved,
+normal exact-tree merge, and exact-main CI. A documented invalid finding may
+be closed with rationale; any tree change requires rereview. Silence is no
+gate. This matches delegated governance while preserving human-reserved
+authority.
+
+**Rejected alternatives.** Multi-human preapproval, notification-as-approval,
+architecture-as-qualification, or a recursive PR solely to restate merge data.
+
+**Affected tickets; migration/change path.** B-07R, B-02B, B-07S, all later
+Wave-B tickets, and B-GATE. Migration is low. Amend this record, contract,
+Wave/board/handoff, ticket, plan, and evidence together by normal merge; keep
+historical evidence and record later supersession.
+
+**Remaining reserved input.** Science/values, security acceptance, rights,
+economics, qualification, LIVE, launch, settlement, weight, emission, and
+production remain unavailable.
+
 ## 2026-08-30 — B-02A-D1: Authored objects, exact refs, canonical bytes, and prospective history
+
+> **B-02A-D1 through B-02A-D11 closeout.** PR #60 normally merged exact
+> reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
+> `61a4463ac459f7fe96545f2746511d6940246f57`, as
+> `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Greptile was
+> 5/5 with no blocking failure and zero unresolved threads; exact-head CI
+> `33341717012` and exact-main CI `33342015346` passed. Any candidate,
+> pending-review, pending-CI, or pending-merge wording preserved inside the
+> historical D1–D11 narratives describes their recording time and is
+> superseded by this bounded engineering closeout. No named domain-review
+> completion or reserved qualification is inferred.
 
 > **Status: IMPLEMENTED WORKING DECISION.** This decision was first recorded
 > on `agent/b-02a-contract-ratification` from exact base/tree

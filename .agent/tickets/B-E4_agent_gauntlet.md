@@ -22,14 +22,14 @@ Demonstrate that representative autonomous research agents can use the fixture r
       ratification of that design.
 - [ ] Run representative planner, code-generating, evolutionary, literature-grounded, and minimalist autoresearch agents from manifest discovery through paired practice and official-shaped submission.
 - [ ] Require no undocumented repository knowledge, human translation, or direct internal API access.
-- [ ] Connect explicitly through B-07G's ordinary `carbon_research_v2`
-      service for research and separately to unchanged `carbon_protocol_v1`
-      for official-shaped submission/result; reject direct domain APIs, aliases,
-      tool collisions, duplicate official stores, or v2 lifecycle ownership.
-- [ ] Run the v2-prior arm through the ordinary `carbon_research_v2` wire on
-      its nominal `FixtureResearchContext` plus `TestOnlyPriorProvider`; require
-      advertised `TEST_ONLY_FIXTURE_PRIOR`, exact pack and
-      `TestOnlyPriorApprovalReceiptRef` pinning across every v2-prior arm run
+- [ ] Connect explicitly through B-07G's exact B-07S-ratified research service
+      and separately to the unchanged Wave-A official service for official-
+      shaped submission/result; reject direct domain APIs, aliases, tool
+      collisions, duplicate official stores, or research lifecycle ownership.
+- [ ] Run the prior arm through the ordinary B-07S-ratified research wire on
+      its nominal private fixture context/provider; require the ratified
+      TEST_ONLY capability and exact pack/test-only-authorization-receipt
+      pinning across every prior-arm run
       and replicate, and retained `TEST_ONLY / NOT_UTILITY_QUALIFIED` ceilings
       with no direct internal API.
 - [ ] Compare matched budgets using no prior, generic prior, v1 directive prior, and v2 prior.

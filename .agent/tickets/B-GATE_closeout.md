@@ -38,7 +38,7 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       `LEARNED_PUBLIC`, no v2-backed projection can enter the public v1
       provider, and no release can bypass the persistent disclosure ledger.
 - [ ] Prove the fixture ledger append and private
-      `TestOnlyPriorApprovalReceipt`/approval-snapshot update are atomic and
+      B-07S-ratified test-only authorization-receipt/snapshot update are atomic and
       exact-ref runs are reproducible. Prove the stronger public publication
       receipt/index graph through schemas and negative tests while public-class
       activation remains unavailable and fail closed.
@@ -69,9 +69,10 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       whole-case interaction tests, reference-disagreement and measurement-
       floor fixtures, manufactured-anchor-overreach fixtures, and the registered
       scientific-stopping, heuristic-deferral, and false-elimination audits.
-- [ ] Prove B-07G exposes exactly the twelve ratified v2 research operations,
-      delegates each to its named domain owner, contains no shadow semantics or
-      stores, and neither exposes nor delegates v1 official operations.
+- [ ] Prove B-07G exposes exactly the B-07S-ratified closed v2 research
+      operation set, delegates each operation to its named domain owner,
+      contains no shadow semantics or stores, and neither exposes nor delegates
+      v1 official operations.
 - [ ] Pass focused, subsystem, full CPU, invariant, quality, packaging, installed-wheel, and applicable PoC/Julia contract checks.
 - [ ] Complete B-E4 only after its preregistered utility rule passes and its
       conditional-leakage and evidence-authority decisions find no protected-
@@ -85,7 +86,15 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       crosswalk, launch-register row, or external document reference without
       ticket-local Definition-of-Done criteria is insufficient.
 - [ ] Produce `.agent/WAVE_B_REPORT.md` with exact commits, tests, reviews, maturity states, evidence artifacts, human inputs, risks, and Wave C blockers.
-- [ ] Obtain independent review, explicit human closeout authorization, and normal merge before any board status changes.
+- [ ] Record material closeout decisions and applicable domain notifications;
+      pass exact-head validation and CI; repair every valid Greptile finding
+      with zero Greptile threads unresolved; and normally merge the exact
+      reviewed tree before the conditional bounded-engineering board status
+      change becomes effective. A documented invalid finding may be closed with
+      rationale, and any tree change requires rereview. Notification is not
+      authorization and silence is no gate. Wave C, scientific/security/rights
+      qualification, LIVE, launch, and production authority remain separately
+      human-owned and fail closed.
 
 ## Must not
 

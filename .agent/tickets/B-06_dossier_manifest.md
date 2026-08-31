@@ -15,10 +15,16 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 ## Definition of Done
 
 - [ ] Before implementation, produce
-      `Design_Specs/Validation_Dossier_Manifest_Contract.md`, obtain independent
-      SciML/statistics/protocol/security review and explicit human ratification,
-      and merge that contract normally; record the exact contract commit in the
-      implementation plan.
+      `Design_Specs/Validation_Dossier_Manifest_Contract.md`; record material
+      engineering decisions and notify SciML/statistics/protocol/security
+      owners; pass applicable document validation and exact-head CI; repair
+      every valid Greptile finding with zero Greptile threads unresolved; and
+      normally merge the exact reviewed tree. A documented invalid finding may
+      be closed with rationale, and any tree change requires rereview. Record
+      the exact contract commit in the implementation plan. Notification is
+      not ratification and silence is no gate. Scientific/security
+      qualification and Challenge activation remain human-owned and fail
+      closed.
 - [ ] Implement D1-D12 Dossier slot identities, evidence refs, status, signer roles, supersession, and exact Challenge binding.
 - [ ] Include population, SamplingPlan, generator conformance, reference, representation, measurement, statistical sufficiency, secrecy, censoring, limitations, and reproducibility sections.
 - [ ] Add explicit evidence slots and typed manifests for manufactured-solution

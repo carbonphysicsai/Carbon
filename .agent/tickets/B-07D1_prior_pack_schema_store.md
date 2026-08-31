@@ -13,12 +13,11 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
 
 ## Definition of Done
 
-- [ ] Consume B-07A's B-07S-ratified shared wire-visible `PriorPackRef`,
-      `PriorPack`, `PriorChannelRef`, `PriorIndexSnapshotRef`,
-      `PriorPublicationReceiptRef`, `TestOnlyPriorApprovalReceiptRef`,
-      `PriorPolicyBundleRef`, `PublicEstimandRef`, and one-lever
-      `PriorGuidanceItem` without redefining them; internal store models cannot
-      alter the wire contract.
+- [ ] Consume B-07A's B-07S-ratified shared wire-visible pack, pack-reference,
+      channel, index-snapshot, public-publication-receipt, private test-only-
+      authorization-receipt, policy-bundle, estimand, and one-lever guidance
+      types without redefining their exact names or shapes; internal store
+      models cannot alter the wire contract.
 - [ ] Require every actionable intervention to target one registered `ParameterCatalog.surface_id`; method artifacts remain non-executable citation/rationale/falsification resources unless catalog-registered.
 - [ ] Define exact intervention anchors, scope semantics, estimands, separate evidence origin and epistemic type, the immutable origin/publication-class ceiling matrix, valid-pair/promotion rules, aggregate-only provenance, and canonical item ordering with no order signal.
 - [ ] Require one or more typed `counterevidence_and_applicability` entries for material
@@ -26,7 +25,15 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
       `NONE_FOUND` only with an exact public search-scope ref and evidence
       cutoff. Bind these entries to the same estimand, scope, provenance,
       coarsening, rights, and disclosure rules as positive guidance.
-- [ ] Implement canonical bytes/hash, immutable private history, exact approved-public lookup rules, publication receipts, and active/superseded/withdrawn lifecycle. Canonical `PriorPack` bytes contain neither their own hash nor `PriorPackRef`; `PriorPackRef.content_hash` is SHA-256 of those canonical bytes and is outside the preimage. Reject self-referential identities. Enforce the acyclic `previous index → receipt → new index` graph, with no receipt-to-resulting-index reference; superseded bytes remain public-exact and withdrawn bytes are no longer served but remain in the private audit store. Preserve the public tombstone/receipt and state explicitly that withdrawal cannot revoke previously retrieved copies. Keep the nominal private `TestOnlyPriorApprovalReceipt` and approval snapshot separate from public publication receipts and indexes.
+- [ ] Implement the exact B-07S-ratified canonical bytes/content address,
+      immutable private history, authorized-public lookup rules, publication
+      receipts, and active/superseded/withdrawn lifecycle. Pack bytes contain
+      neither their own address nor enclosing ref. Reject self-referential
+      identities and enforce the acyclic `previous index → receipt → new index`
+      graph. Superseded bytes remain public-exact; withdrawn bytes stop serving
+      but remain auditable, and withdrawal cannot revoke earlier copies. Keep
+      the nominal private test-only authorization receipt/snapshot separate
+      from public publication receipts and indexes.
 - [ ] Provide only a production signer/key seam and deterministic test-only signer; add no production algorithm, key registry, rotation, revocation, or custody claim.
 - [ ] Implement publication classes `TEST_ONLY`, `BOOTSTRAP_PUBLIC`, and `LEARNED_PUBLIC` with mechanical source eligibility.
 - [ ] Define the exact lossy v2-to-v1 offline compatibility mapping and internal `PriorProjectionReceipt`; no production v2-backed v1 provider exists and projected bytes remain private test artifacts.
@@ -37,7 +44,9 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
 
 ## Human input
 
-Owners approve public vocabulary, estimands, policy bundle, release roles, rights, and any future signing/custody scheme. Missing input leaves external activation unavailable.
+Owners supply or authorize the real public vocabulary, estimands, policy
+bundle, release roles, rights, and any future signing/custody scheme. Missing
+input leaves external activation unavailable.
 
 ## Must not
 
