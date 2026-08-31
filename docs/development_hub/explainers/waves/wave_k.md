@@ -1,6 +1,6 @@
 # Wave K: Generalized agentic construction discovery
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Widen search from training strategies toward construction methods and programs.
 
 ## What this wave is

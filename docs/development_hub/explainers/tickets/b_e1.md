@@ -1,7 +1,7 @@
 # B-E1: Reproducibility, uncertainty, and contested outcomes
 
-**Wave:** B  
-**Status:** TODO  
+**Wave:** B<br>
+**Status:** TODO<br>
 **Target phase:** WB-2/3
 
 ## What this ticket is

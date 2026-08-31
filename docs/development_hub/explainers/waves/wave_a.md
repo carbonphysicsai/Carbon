@@ -1,6 +1,6 @@
 # Wave A: Bounded protocol skeleton
 
-**Status:** CLOSED  
+**Status:** CLOSED<br>
 **Purpose:** Prove Carbon's software authority boundaries before real scientific execution.
 
 ## What this wave is

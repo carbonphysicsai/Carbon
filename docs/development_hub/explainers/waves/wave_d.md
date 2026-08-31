@@ -1,6 +1,6 @@
 # Wave D: Human scientific qualification
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Earn the right to call the first exam LIVE.
 
 ## What this wave is

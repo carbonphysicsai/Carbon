@@ -1,7 +1,7 @@
 # B-E2: Julia and reference failure contract
 
-**Wave:** B  
-**Status:** TODO  
+**Wave:** B<br>
+**Status:** TODO<br>
 **Target phase:** WB-2
 
 ## What this ticket is

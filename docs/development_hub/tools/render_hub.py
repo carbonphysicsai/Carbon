@@ -344,7 +344,7 @@ def render_wave_md(
     objects = "\n".join(f"- `{item}`" for item in wave.get("objects", []))
     return f"""# Wave {wave['id']}: {wave['title']}
 
-**Status:** {wave['status'].upper()}  
+**Status:** {wave['status'].upper()}<br>
 **Purpose:** {wave['one_line']}
 
 ## What this wave is
@@ -402,8 +402,8 @@ def render_ticket_md(ticket: dict[str, Any]) -> str:
     )
     return f"""# {ticket['id']}: {ticket['title']}
 
-**Wave:** {ticket['wave']}  
-**Status:** {ticket['status'].upper()}  
+**Wave:** {ticket['wave']}<br>
+**Status:** {ticket['status'].upper()}<br>
 **Target phase:** {ticket['target']}
 
 ## What this ticket is

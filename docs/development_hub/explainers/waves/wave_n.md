@@ -1,6 +1,6 @@
 # Wave N: Prospective Physics Intelligence
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Prove that accumulated evidence improves future registered decisions.
 
 ## What this wave is

@@ -1,6 +1,6 @@
 # Wave M: Engineering system and product lifecycle
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Qualify exact deployable systems and preserve evidence through change.
 
 ## What this wave is

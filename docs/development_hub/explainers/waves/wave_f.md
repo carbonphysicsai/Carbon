@@ -1,6 +1,6 @@
 # Wave F: Product qualification and specialist systems
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Separate search success from deployable product evidence.
 
 ## What this wave is

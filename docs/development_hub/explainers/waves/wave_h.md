@@ -1,6 +1,6 @@
 # Wave H: Frontier promotion and Challenge portfolio
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Separate ordinary Challenge ranking from verified frontier advance.
 
 ## What this wave is

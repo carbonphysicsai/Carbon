@@ -1,7 +1,7 @@
 # B-E3: Credibility crosswalk and evidence manifest
 
-**Wave:** B  
-**Status:** TODO  
+**Wave:** B<br>
+**Status:** TODO<br>
 **Target phase:** WB-3
 
 ## What this ticket is

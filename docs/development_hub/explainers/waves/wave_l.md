@@ -1,6 +1,6 @@
 # Wave L: Generalized ReconstructionProtocol
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Run construction in an isolated producer-independent reconstruction plane.
 
 ## What this wave is

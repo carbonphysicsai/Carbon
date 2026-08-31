@@ -1,6 +1,6 @@
 # Wave I: Treasury and network settlement
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Settle verified entitlements without rewriting scientific merit.
 
 ## What this wave is

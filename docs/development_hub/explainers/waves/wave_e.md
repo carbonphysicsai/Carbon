@@ -1,6 +1,6 @@
 # Wave E: Landscape and evidence memory
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Learn from authoritative experiments without letting learned memory control the judge.
 
 ## What this wave is

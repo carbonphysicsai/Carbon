@@ -1,7 +1,7 @@
 # B-E4: Agent utility, leakage, poisoning, and aligned-cheating gauntlet
 
-**Wave:** B  
-**Status:** TODO  
+**Wave:** B<br>
+**Status:** TODO<br>
 **Target phase:** WB-5
 
 ## What this ticket is

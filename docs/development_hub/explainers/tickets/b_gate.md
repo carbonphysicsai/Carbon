@@ -1,7 +1,7 @@
 # B-GATE: Wave B integration and closeout gate
 
-**Wave:** B  
-**Status:** TODO  
+**Wave:** B<br>
+**Status:** TODO<br>
 **Target phase:** WB-5
 
 ## What this ticket is

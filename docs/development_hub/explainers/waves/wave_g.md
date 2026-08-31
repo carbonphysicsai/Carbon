@@ -1,6 +1,6 @@
 # Wave G: Commercial, private, and sponsored engagement plane
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Serve real enterprises without moving business authority into the judge.
 
 ## What this wave is

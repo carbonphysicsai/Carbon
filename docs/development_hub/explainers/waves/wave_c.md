@@ -1,6 +1,6 @@
 # Wave C: Real single-Challenge integration
 
-**Status:** PLANNED  
+**Status:** PLANNED<br>
 **Purpose:** Run one real candidate through one real end-to-end scientific path.
 
 ## What this wave is

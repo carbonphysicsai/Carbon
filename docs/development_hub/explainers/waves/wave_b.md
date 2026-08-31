@@ -1,6 +1,6 @@
 # Wave B: Science-ready authoring skeletons
 
-**Status:** ACTIVE  
+**Status:** ACTIVE<br>
 **Purpose:** Make one scientific exam authorable and the miner research loop executable with fixtures.
 
 ## What this wave is
