@@ -1,5 +1,333 @@
 # Agent decisions log
 
+## 2026-08-31 — B-02C decision-series status and B-02B completion
+
+> **B-02C-D1 through B-02C-D8 status: CONDITIONAL AGENT-SELECTED WORKING
+> DECISIONS.** The series becomes bounded engineering-contract authority only
+> if the exact independently reviewed B-02C contract tree passes exact-head
+> CI, receives clean exact-head Greptile correctness review with every valid
+> finding repaired and zero unresolved threads, normally merges with exact
+> tree preservation, and passes exact-main CI. Any tree change requires
+> rereview. Applicable lead/domain notification requests `KEEP`, `CHANGE`,
+> `BLOCKED`, or `DEFER_TO_OWNER`; no affirmative response or silence gate
+> applies. Explicit owner deferrals route to issue #41.
+
+The earlier B-02B-D1 through B-02B-D8 conditional predicates are satisfied.
+Contract PR #63 normally merged exact reviewed head
+`569db72e0768d882c39d895e5f69a816cb8ca227` as
+`1c012468545f448aa758daf7dec17e409bb13bbc`, preserving tree
+`635d06d6cbf0178b87d75fdc4b320d463b47a7c9`; exact-head CI
+`33353607675`, Greptile check `99371479556` at 5/5 with zero unresolved
+threads, and exact-main CI `33353848363` passed. Implementation PR #64 then
+normally merged exact reviewed head
+`68189e7068715a5d8054f0f7e64dc981ae1c37aa` as
+`b10b6e74fb3f8ab8a7427a6763c7db4f41341083`, preserving tree
+`45273c527684b94afeb2f01b66a774b5426b6e0e`; exact-head CI
+`33362051770`, ready-state Greptile check `99413062552` at 5/5 with zero
+unresolved threads, and exact-main CI `33368352662` passed. B-02B is `done`
+only in its recorded bounded engineering scope.
+
+## 2026-08-31 — B-02C-D1: Resource-policy package ownership and no store
+
+**Selected approach and agent recommendation.** Add one standard-library-only
+`carbon.resource_policy` package. Its dependencies point one way into exact
+public `carbon.construction`, reusable `carbon.authoring` canonical/primitives/
+refs, and `carbon.registry.ChallengeKey`; none of those packages may import it.
+Produce canonical bytes and refs but no persistence layer.
+
+**Rationale.** B-02B expressly emits policy-agnostic facts and must not gain a
+policy verdict. No current generic store owns the new nominal types:
+B-02A history is closed to authored objects, A3 registry state is replaceable,
+and the card store is process-local. A separate package also prevents B-07E
+forecast or Wave-C quote authority from entering construction.
+
+**Alternatives rejected.** Extending `carbon.construction`; a generic
+`carbon.resource` namespace; reusing A7 submission limits, A7 execution pins,
+A8 fixture runtime policy, or `carbon.audit`; adding a latest-policy registry
+or backend/store in this ticket.
+
+**Downstream impact.** B-07E, B-07S, B-07F, B-05, and later operations may
+consume exact B-02C values prospectively. Package/code-authority and installed-
+wheel inventories gain one root; dependencies and lock files remain unchanged.
+
+**Migration cost and exact supersession path.** Package-private splits are low
+cost. Moving public nominal types, reversing dependency direction, or adding a
+store is a medium/high persisted API change requiring a new prospective B-02C
+contract/schema version, normally merged superseding decision, migrations for
+stored bytes if any exist, and import/authority/invariant tests. Historical
+refs may not be reinterpreted.
+
+**Reserved inputs.** Persistence operations, retention, authentication,
+security acceptance, deployment, and production operations remain unavailable
+and human/domain-owned; their absence does not block pure fixture code.
+
+## 2026-08-31 — B-02C-D2: Domain-separated identity, scoped refs, and graph
+
+**Selected approach and agent recommendation.** Reuse exact A3/B-02A
+Challenge/id/version/UInt64/finite-Float64/canonical-value/tagged-digest
+grammar under the closed profile `carbon_resource_policy_canonical_v1` and
+header `carbon.resource_policy.canonical.v1\0`. Define exact distinct frozen,
+slotted `ResearchResourcePolicyRef` and `ResourceClassRef`; policy refs are
+Challenge-bound and v1 class refs are also exactly Challenge-bound. Derived
+assessment, decision, cancellation, and receipt refs are distinct exact
+Challenge-bound digest refs. Keep the content graph acyclic.
+
+**Rationale.** Reuse prevents a second generic identity system while a new
+domain/profile avoids widening the closed B-02A or B-02B registries. Exact
+Challenge scope makes every fixture class/provenance mismatch fail closed;
+future reusable hardware identity belongs in a prospective owner contract.
+Staleness is an expected valid exact-ref mismatch, never digest tamper,
+inferred version ordering, or “not latest.”
+
+**Alternatives rejected.** Adding object kinds to upstream closed registries;
+string/generic refs; a premature global class variant; name aliases; semantic version
+ordering; mutable latest lookup; self-referential digests; interchanging refs
+that happen to carry the same fields.
+
+**Downstream impact.** Every consumer must verify exact object/ref pairs,
+Challenge, profile, digest, and expected active pins. B-07S later owns
+wire projection and cannot rename these semantics by alias.
+
+**Migration cost and exact supersession path.** Adding a new optional object
+kind is medium; changing scope, field order, profile, digest preimage, or ref
+meaning is high. Either requires a prospective schema/profile and normally
+merged B-02C superseding decision with dual-version read/migration tests where
+historical bytes exist. Existing digest identities remain immutable.
+
+**Reserved inputs.** Production class registries, signatures, attestation,
+key management, lifecycle activation, and security qualification remain
+unavailable. Fixture provenance is structural and non-authoritative.
+
+## 2026-08-31 — B-02C-D3: Exact immutable B-02B plan consumption
+
+**Selected approach and agent recommendation.** Accept exact
+`ResolvedConstructionPlan` plus `ResolvedConstructionPlanRef`, recompute and
+verify the pair, and consume exact copied B-02B `StaticResourceRequirement`
+and impact-tag tuples. Verify Challenge, assembly, catalog, compiler, and
+environment bindings against the exact policy/class before evaluation. Prove
+the plan and nested values remain byte-identical before and after every
+B-02C operation.
+
+**Rationale.** B-02B owns construction semantics and identity. B-02C owns only
+support, admissibility, enforcement, and resource facts under a selected exact
+policy. Preserving the input means a policy revision can change an assessment
+without changing a Strategy, compiler result, plan, or plan hash.
+
+**Alternatives rejected.** Recompiling or normalizing in B-02C; clamping,
+unit conversion, tag inference, requirement deletion/addition/reordering;
+copying the B-02B codec; accepting a caller-provided digest without the exact
+object; writing policy/class/context into plan identity.
+
+**Downstream impact.** B-07E may forecast from the same immutable plan facts;
+B-07F may later bind execution; B-05 may consume registered receipt facts.
+None can use B-02C to rewrite construction meaning.
+
+**Migration cost and exact supersession path.** New B-02B plan fields or
+semantics require their owning prospective B-02B compiler/schema version.
+B-02C support for that exact version requires a normally merged B-02C
+superseding decision/adapter and parity tests. Historical plan bytes and refs
+remain unchanged.
+
+**Reserved inputs.** Real resource dimensions, units, construction values,
+components, environments, and scientific applicability remain with their
+existing owners and unavailable unless exactly registered.
+
+## 2026-08-31 — B-02C-D4: Four nominal epistemic resource layers
+
+**Selected approach and agent recommendation.** Keep (1) B-02B static
+construction requirements/B-02C static assessment, (2) future B-07E calibrated
+forecast, (3) future Wave-C binding execution quote/admission, and (4) B-02C
+observed receipt as distinct nominal types with fixed authority/layer markers.
+B-02C v1 implements only layers 1 and 4 plus fixture readiness; exact-type
+checks reject cross-layer substitution.
+
+**Rationale.** A deterministic declared requirement, a probabilistic forecast,
+an operational/economic commitment, and a factual observation answer different
+questions. Conflation would permit prediction to authorize spending or a
+receipt to masquerade as scientific evidence.
+
+**Alternatives rejected.** One resource estimate/result union; a shared
+numeric record distinguished by a caller string; deriving admission from
+forecast; treating quote as observed use; treating latency/cost telemetry as
+quality, evidence, score, or price.
+
+**Downstream impact.** B-07E owns forecast model/calibration/support/
+uncertainty. Wave C owns real admission, quote, price, quota, charging, and
+capacity commitments. B-05/B-E1 own scientific evidence sufficiency and use.
+B-07S owns future wire-visible names and envelopes.
+
+**Migration cost and exact supersession path.** Adding later nominal layers is
+medium and prospective in the owning ticket. Altering a B-02C v1 union or
+relabeling historical values is high and requires a new schema/profile plus a
+normally merged cross-owner superseding contract. No adapter may silently
+convert among layers.
+
+**Reserved inputs.** Calibration data/eligibility, operational capacity,
+binding quotes, prices, quotas, funding, and scientific-evidence rules remain
+unavailable and owner-controlled.
+
+## 2026-08-31 — B-02C-D5: Fixture classes, ceilings, contexts, and assessment
+
+**Selected approach and agent recommendation.** Define exact fixture-only
+`ResourceClass` values with Challenge-bound identity, B-02B environment pins,
+supported static dimensions, exact class observation metrics, and structural
+provenance. Bind the complete class-ref set in an exact Challenge-bound
+`ResearchResourcePolicy` with a ceiling for every static dimension, explicitly
+supported impact tags, point/mode-specific runtime limits, per-context readiness
+law, exact assembly/catalog/compiler, and one nominal
+`FixturePracticeResourceContext` or distinct
+`FixtureOfficialShapedResourceContext`. A pure assessment returns typed
+`ADMISSIBLE`, unsupported, over-limit, or valid-ref stale/mismatch outcomes
+with deterministic safe issues; malformed/tampered inputs hard-reject without
+issuing an assessment. Full policy-bundle validation verifies every named
+class before policy-ref issuance or use.
+
+**Rationale.** Missing dimensions/tags must be unsupported rather than
+unlimited, and dormant invalid bindings cannot hide behind a selected class.
+Inclusive exact static/runtime limits test the policy boundary without choosing
+real hardware values. Nominal fixture contexts preserve practice/official-
+shaped separation without granting official authority or contaminating plan
+identity.
+
+**Alternatives rejected.** Host inspection; class-name inference; dynamic
+hardware discovery; real/default classes; implicit unlimited ceilings;
+floats/coercion/clamping/conversion; caller-selected `official=True`; inferring
+support from impact tags; declaring static admissibility to be execution
+permission.
+
+**Downstream impact.** B-07F later consumes an exact policy result only behind
+its own lifecycle and execution authority. B-07E may use the exact class and
+policy as forecast inputs. Fixture official-shaped parity never becomes
+official qualification.
+
+**Migration cost and exact supersession path.** Adding a production provenance
+variant, dimension, context, or new outcome is medium/high and requires owner-
+supplied values, a prospective B-02C schema/policy version, normally merged
+superseding decision, and exact negative/security/compatibility tests. Existing
+fixture objects cannot be upgraded in place.
+
+**Reserved inputs.** Real hardware classes, ceilings, environments,
+enforcement rails, production contexts, operational approval, and security
+acceptance remain human/domain-owned and fail closed.
+
+## 2026-08-31 — B-02C-D6: Capacity, funding, queue, and evidence deferral
+
+**Selected approach and agent recommendation.** Model exact fixture-only
+per-context `REQUIRED | NOT_APPLICABLE(reason)` laws for validator capacity,
+reconstruction funding, queue, and evidence budget. A provided fixture carrier
+uses exact `AVAILABLE | UNAVAILABLE | NOT_APPLICABLE` states; an exact
+`NO_AVAILABILITY_INPUT` union binds omission into decision identity. A separate
+pure readiness operation accepts only an exact admissible static assessment
+and returns `FIXTURE_ADMISSIBLE` or `EVIDENCE_DEFERRED` with every unavailable
+required cause.
+
+**Rationale.** Operational readiness is not static fit or a binding quote.
+Explicit not-applicable states prevent practice fixtures from pretending that
+scientific reconstruction funding exists; explicit unavailability and no-input
+identity prevent optimistic defaults. A separate result allows unrelated
+engineering to proceed without lowering scientific evidence or manufacturing
+economics.
+
+**Alternatives rejected.** Boolean/truthy flags; missing means available;
+partial-cause precedence; queue rank; money/amount fields; sponsor/stake/
+reputation priority; translating deferral into B-05 `INDETERMINATE`, candidate
+failure, or a lower evidence threshold.
+
+**Downstream impact.** B-05/B-E1 retain scientific sufficiency and stopping.
+Wave C later owns commitments, real scheduling, funding, and admission.
+Operations can bind later exact providers without changing plan identity.
+
+**Migration cost and exact supersession path.** Replacing fixture facts with
+real commitments is high and requires exact owner-issued commitment types,
+security/economic/operations review, a prospective schema and normally merged
+superseding decision. New readiness kinds require a new closed version and
+complete missing/combined-cause tests.
+
+**Reserved inputs.** Real validator capacity, funding, queue policy, evidence
+budgets, quotas, prices, and operational commitments remain unavailable and
+human/domain-owned.
+
+## 2026-08-31 — B-02C-D7: Enforcement, cancellation, and resource receipts
+
+**Selected approach and agent recommendation.** Keep enforcement pure: compare
+one exact class metric to one point/mode-specific inclusive runtime limit and
+return an exact continue/prevent-start/prevent-next/stop/fail-closed event;
+launch/kill no process. Immutable stop/cancellation records enforce a complete
+actor × reason × event × resulting-state matrix and bind policy/class/plan/
+context, enforcement point, work-started bit, and observations so far.
+Immutable receipts bind exact assessment/readiness, truthful unstarted/
+incomplete/complete build, bounded frozen-artifact reuse, Challenge-bound
+replicate applicability, class-bound consumption, required observed-or-
+unavailable cost/latency, declared resource stage, stop cause, and exact
+stop/event cross-laws.
+
+**Rationale.** Exact provenance lets later owners audit resource behavior
+without pretending it is execution authority or candidate physics evidence.
+Complete-build, reuse, and replicate identities are computed independently,
+avoiding a receipt cycle and false identities for partial work. Cost means
+measured resource quantity, never currency/price.
+
+**Alternatives rejected.** Raw actor strings or authorized Booleans; side-
+effectful process control; silent clamping/continuation; exception fallback;
+mapping resource failure to candidate failure; partial build labeled complete;
+receipt-driven ranking/screening/score/promotion; monetary receipt fields.
+
+**Downstream impact.** B-07S retains wire cancellation and task-state races;
+A7 retains official lifecycle; B-07F later performs execution integration;
+B-05/B-E1 may consume only explicitly registered factual resource fields and
+retain all scientific evidence semantics.
+
+**Migration cost and exact supersession path.** Connecting a real enforcer,
+official lifecycle, or wire cancellation is high cross-owner work requiring a
+prospective integration contract, exact authority/capability types, normally
+merged decisions in the owning tickets, and race/idempotency/security tests.
+Receipt-field changes require a new schema; historical receipts stay factual.
+
+**Reserved inputs.** Real process authority, monitor trust, cancellation
+issuance, backend failure policy, execution identity, accounting authority,
+and operations/security acceptance remain unavailable.
+
+## 2026-08-31 — B-02C-D8: Fixture, privacy, economics, and maturity ceiling
+
+**Selected approach and agent recommendation.** Ship no default policy/class
+and no production provenance variant. Tests build closed values carrying exact
+fixture registration/source provenance and fixed non-production markers.
+Public models omit protected case/stratum/seed/reference and protected
+evaluator-reconstruction identity, evaluator topology/concurrency/allocation,
+score/rank/margin, paths/URIs/code/credentials, and monetary/economic fields.
+They permit only the explicit fixture resource-accounting build/reuse/replicate
+ids and digests required by B-02C receipts. Errors are
+bounded, fixed, deterministic, and non-echoing. Contract merge earns only
+bounded `SPECIFIED/RATIFIED`; the separate unmerged implementation candidate
+may earn only bounded `IMPLEMENTED/TESTED/GREPTILE_REVIEWED`.
+
+**Rationale.** Real limits and telemetry can disclose official topology, while
+placeholder production/economic branches are easily mistaken for authority.
+Structural fixtures support hostile-input and role-confusion tests without
+creating production defaults or false qualification.
+
+**Alternatives rejected.** Placeholder `PRODUCTION`, `REGISTERED`, or `LIVE`
+variants; fixture-upgrade flags; public raw telemetry/logs; hidden case counts
+or queue positions; price/currency/quota fields; success probability, score,
+gate, frontier, settlement, weight, or emission claims.
+
+**Downstream impact.** B-07S/disclosure owners later decide safe projection;
+security/operations/economics owners must supply and qualify every real rail;
+B-05/B-E1 preserve evidence/science ownership. Fixture success conveys no
+scientific, security, operational, commercial, or production claim.
+
+**Migration cost and exact supersession path.** Production activation is high
+and cannot widen fixture v1 in place. It requires owner-supplied values and
+evidence, privacy/threat/economic review, prospective exact schemas/authority
+types, a normally merged superseding decision, and qualification gates. Any
+wire projection belongs to B-07S; historical fixture bytes remain permanently
+non-production.
+
+**Reserved inputs.** Protected disclosure policy, real topology/allocation,
+security acceptance, operational rails, economics, prices/quotes/quotas,
+rights, qualification, LIVE, launch, production, frontier, settlement, chain,
+weight, and emission authority remain unavailable and human-owned.
+
 ## 2026-08-31 — B-02B-D1: Construction package and exact A7 Strategy identity reuse
 
 > **B-02B-D1 through B-02B-D8 status: CONDITIONAL AGENT-SELECTED WORKING

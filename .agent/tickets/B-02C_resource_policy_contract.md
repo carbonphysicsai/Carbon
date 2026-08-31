@@ -1,11 +1,17 @@
 # Ticket B-02C - Research resource policy contract
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** in_progress
 **Depends on:** B-02B, B-07R
 **Build Out:** C9 construction and research resource-policy seam
 **Master questions:** MQ-008, MQ-015, MQ-017, MQ-024
 **Authority:** `Miner_MCP_Wave_B_Research_Contract.md` §§5, 7-8; `Compute_Optimization.md`; `JAX_Optimization.md`
+
+**Current ticket:** selected after the exact B-02B implementation merge and
+exact-main CI recorded in `.agent/evidence/wave_b/b-02b.md`.<br>
+**Working contract:** `Design_Specs/Research_Resource_Policy_Contract.md`<br>
+**Plan:** `.agent/plans/B-02C_resource_policy_contract.md`<br>
+**Evidence:** `.agent/evidence/wave_b/b-02c.md`
 
 ## Goal
 
@@ -16,11 +22,16 @@ inventing calibrated forecasts, prices, or production rails.
 ## Definition of Done
 
 - [ ] Before implementation, produce
-      `Design_Specs/Research_Resource_Policy_Contract.md`, obtain independent
-      protocol/SRE/security review, operations/economics review of the
-      capacity, funding, queueing, and evidence-budget fields, and explicit
-      human ratification; merge that contract normally and record the exact
-      contract commit in the implementation plan.
+      `Design_Specs/Research_Resource_Policy_Contract.md`; record material
+      engineering decisions; deliver applicable protocol, SRE, security,
+      operations, and economics lead/domain notifications; pass applicable
+      validation and exact-head CI; obtain exact-head Greptile correctness
+      review; repair every valid finding with zero unresolved Greptile threads;
+      normally merge the exact reviewed tree; require exact-main CI; and record
+      the contract merge commit in the implementation plan. A documented
+      invalid finding may be closed with rationale, and every tree change
+      requires rereview. No affirmative human/domain response or silence gate
+      applies to agent-authorized engineering choices.
 - [ ] Define exact `ResearchResourcePolicy`, `ResearchResourcePolicyRef`,
       `ResourceClass`, `ResourceClassRef`, static construction dimensions,
       declared ceilings, enforcement points, kill semantics, and observed
@@ -54,12 +65,16 @@ inventing calibrated forecasts, prices, or production rails.
       enforcement, receipt, forecast/quote-confusion, authority, and
       installed-wheel tests.
 
-## Human input
+## Human input and fail-closed boundary
 
-SRE, protocol, security, operations, and economics owners approve real hardware
-classes, ceilings, enforcement semantics, calibration eligibility, validator
-capacity, reconstruction funding, queueing, evidence-budget availability, and
-future operational rails. Fixture values remain non-authoritative.
+SRE, protocol, security, operations, and economics owners supply or approve
+real hardware classes, ceilings, enforcement rails, calibrated-forecast
+eligibility, validator capacity, reconstruction funding, queueing,
+evidence-budget availability, binding execution-quote/price semantics, quotas,
+security acceptance, and future operational rails. Missing values stop only
+the affected real behavior and leave it unavailable or `EVIDENCE_DEFERRED`;
+bounded fixtures and typed fail-closed seams may proceed. Fixture values remain
+structurally non-authoritative.
 
 ## Must not
 
