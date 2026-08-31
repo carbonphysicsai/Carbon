@@ -1,0 +1,43 @@
+name: Carbon Development Hub
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-development-hub:
+    name: Development Hub alignment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Check generated hub outputs
+        run: python3 docs/development_hub/tools/render_hub.py --check
+
+      - name: Validate hub and repository alignment
+        run: python3 docs/development_hub/tools/validate_hub.py --repo-root .
+
+      - name: Smoke-test interactive routes
+        run: node docs/development_hub/tools/test_routes.js
+
+      - name: Require a Development Hub impact declaration
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HUB_PR_BODY: ${{ github.event.pull_request.body || '' }}
+        run: >-
+          python3 docs/development_hub/tools/check_change_coverage.py
+          --repo-root . --base "$BASE_SHA" --head "$HEAD_SHA"

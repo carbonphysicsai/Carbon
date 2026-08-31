@@ -1,0 +1,44 @@
+name: Bootstrap Development Hub
+
+on:
+  push:
+    branches:
+      - docs/carbon-development-hub-v2
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out bootstrap branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: docs/carbon-development-hub-v2
+          fetch-depth: 0
+
+      - name: Extract the Development Hub package
+        run: |
+          cat .agent/hub_bootstrap/part-* > /tmp/carbon-development-hub.tgz
+          tar -xzf /tmp/carbon-development-hub.tgz
+
+      - name: Apply repository policy integration
+        run: python3 repo_integration/bootstrap/install_repo.py
+
+      - name: Generate and validate the hub
+        run: |
+          python3 docs/development_hub/tools/render_hub.py
+          python3 docs/development_hub/tools/render_hub.py --check
+          python3 docs/development_hub/tools/validate_hub.py --repo-root .
+          node docs/development_hub/tools/test_routes.js
+
+      - name: Commit the installed hub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: install Carbon Development Hub v2"
+          git push origin HEAD:docs/carbon-development-hub-v2
