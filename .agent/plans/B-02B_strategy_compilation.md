@@ -1,6 +1,6 @@
 # B-02B plan — candidate assembly and Strategy compilation
 
-**Status:** in_progress<br>
+**Status:** done in bounded merged engineering scope<br>
 **Contract:** `Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md` v0.1<br>
 **Authority:** agent-selected bounded engineering work under the delegated
 decision protocol<br>
@@ -110,7 +110,11 @@ dependency direction remain exact.
 
 ## 6. Stop and maturity
 
-The implementation candidate may earn `IMPLEMENTED`, `TESTED`, and
-`GREPTILE_REVIEWED` within bounded engineering scope. It remains unmerged until
-separately authorized. `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`,
-`PRODUCTION_QUALIFIED`, and `LIVE` remain `NO`. Do not start B-02C.
+The exact implementation head
+`68189e7068715a5d8054f0f7e64dc981ae1c37aa`, tree
+`45273c527684b94afeb2f01b66a774b5426b6e0e`, earned bounded `IMPLEMENTED`,
+`TESTED`, and `GREPTILE_REVIEWED` and normally merged in PR #64 as
+`b10b6e74fb3f8ab8a7427a6763c7db4f41341083`; exact-main CI `33368352662`
+passed. `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`,
+`PRODUCTION_QUALIFIED`, and `LIVE` remain `NO`. B-02C is the next selected
+ticket and must use its own contract and implementation worktrees.
