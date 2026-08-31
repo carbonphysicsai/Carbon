@@ -11,6 +11,8 @@
 **Implementation branch:** `agent/b-02c-resource-policy`<br>
 **Implementation worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-02c-resource-policy`<br>
 **Exact implementation base/tree:** `319a765860ac6e93018124bd57a84bfd6679672e` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
+**Code-bearing implementation head/tree:** `c123818bcd2b3acd50a68fa73819154cb48c2795` / `4b8dec2174702f750212f9e519331cec74f72e5b`<br>
+**Implementation PR:** #66, `B-02C: implement research resource policy`<br>
 **Working contract:** `Design_Specs/Research_Resource_Policy_Contract.md`
 
 ## 1. Authority and dependency gate
@@ -112,7 +114,12 @@ After that contract merge and exact-main CI:
 The fresh implementation workspace recorded above was created from exact
 fetched `origin/main` only after run `33374037602` passed. Baseline bootstrap,
 doctor, and CI each correctly rejected noncanonical Darwin before running a
-test lane; canonical GitHub Linux remains the authoritative final environment.
+test lane. Exact-head GitHub Linux run `33383520769` passed the canonical and
+clean dev-container lanes on the code-bearing head. Greptile check
+`99461275769` reviewed that same head at 5/5 with zero comments, annotations,
+or review threads. This evidence-only seal is followed by exact-head CI and
+Greptile rereview; canonical GitHub Linux remains the authoritative final
+environment.
 
 ## 5. Verification matrix
 
