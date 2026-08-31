@@ -605,11 +605,26 @@ ResolvedTrainingBinding
   executable_semantics_ref: PinnedOwnerRef<semantic_clause>
 ```
 
-The plan stores `resolved_surfaces` in canonical surface-id order,
-`resolved_components` in canonical slot-id order, and
-`satisfied_compatibility_rule_ids` as a canonical set tuple. Exact resources
-are stored separately, so resolved backbone/component records do not duplicate
-or recompute their quantities.
+The plan stores exactly one `ResolvedSurface` for every catalog entry,
+including `strategy_backbone` and every component-selector surface, in
+canonical surface-id order. It stores exactly one `ResolvedComponentBinding`
+for every applicable component-selector surface and none for a selector that
+resolved `NOT_APPLICABLE`, in canonical slot-id order. The
+`strategy_backbone` record must be `ResolvedSurface.SELECTED` with
+`value.value_type = BACKBONE_SELECTOR`; the
+`ResolvedBackboneBinding.selector_token` must equal its enclosed scalar
+`value.value`. Each applicable component-selector surface must be
+`ResolvedSurface.SELECTED` or `ResolvedSurface.DEFAULTED` with
+`value.value_type = COMPONENT_SELECTOR`; the corresponding component's
+`slot_id` and `selector_surface_id` must equal its owning slot, and its
+`selector_token` must equal that surface's enclosed scalar `value.value`.
+Canonical construction rejects any missing, extra, mistagged, or unequal
+duplicate binding. This deliberate double binding closes identity over both
+the public surface resolution and the full assembly-owned option semantics.
+
+The plan stores `satisfied_compatibility_rule_ids` as a canonical set tuple.
+Exact resources are stored separately, so resolved backbone/component records
+do not duplicate or recompute their quantities.
 
 ---
 
@@ -874,11 +889,15 @@ catalog construction, and cannot be computed from another value or from the
 environment.
 
 Every supplied Strategy parameter must map to exactly one active applicable
-entry and exactly one consumer target. Every applicable catalog entry must
-resolve or reject. Full resolution precedes compatibility evaluation, so input
-insertion order cannot alter semantics. Compatibility uses only a closed exact
-table of allowed value tuples over named surfaces; no callable or free-form
-predicate is accepted.
+entry and exactly one consumer target. Every catalog entry, including the
+top-level backbone and component selectors, emits exactly one
+`ResolvedSurface`; an applicable entry must select/default or reject, while an
+inactive entry emits `NOT_APPLICABLE`. Full resolution precedes compatibility
+and specialized backbone/component binding. The exact equality rules in
+section 3.3 then bind selector resolutions to those specialized records, so
+input insertion order or redundant representation cannot alter semantics.
+Compatibility uses only a closed exact table of allowed value tuples over
+named surfaces; no callable or free-form predicate is accepted.
 
 ### 6.5 Stale and downgrade law
 
