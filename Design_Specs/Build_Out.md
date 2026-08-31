@@ -121,7 +121,7 @@ WAVE B — science-ready skeletons
   C5 MeasurementContract + Score Pack authoring bindings
   C9/C11 separately ratified nominal mock/practice research lane
   B-07R architecture ratification → B-07S exact bounded service protocol
-  B-07A shared v2 nominal primitives → B-07G twelve-operation service integration
+  B-07A shared v2 nominal primitives → B-07G integration of the B-07S-ratified closed operation set
   C10 PriorPack v2 store + private TEST_ONLY staging + public-publication schemas
   ResearchTask + ExperimentRecord + ResearchReceipt fixture lifecycle
   Autoresearch utility / conditional-leakage gauntlet
@@ -154,8 +154,8 @@ A9 Wave A is an in-process control/disclosure boundary, not an execution
 surface. It registers exactly the seven names above under schema `"1.0"`, with
 no aliases and no network server. `light_compare`, `light_train`, and
 `list_my_submissions` are unavailable. The first two names remain retired;
-Wave B practice uses B-07S-ratified `start_research_task` task kinds. The third
-has no Wave-A implementation authority.
+Wave B practice uses the B-07S-ratified task-launch capability and task kinds.
+The third has no Wave-A implementation authority.
 
 The Wave-A `estimate` is a provider-derived structural/prior projection only.
 It performs no execution, imports/calls no A4/A5/A8 path, uses no mock,
@@ -266,13 +266,21 @@ before implementation. A9's separately ratified Wave-A `StructuralEstimate`
 does not cross this gate because it performs no execution and uses no
 A8/A4/A5 surface.
 
-The owner-review candidate for that later ratification is
-`Miner_MCP_Wave_B_Research_Contract.md`. It proposes an explicit
+The B-07R agent-selected working engineering architecture is
+`Miner_MCP_Wave_B_Research_Contract.md` version 0.4. It defines an explicit
 `ChallengeInteractionManifest`, Challenge-bound `ParameterCatalog`, semantic
 compiler, nominal practice tasks, evidence classes, research receipts, and a
-versioned PriorPack. It is planning input only until independently reviewed,
-explicitly human-authorized, normally merged, and activated on the Wave board.
-It does not modify the current A8 or A9 contract.
+versioned PriorPack. It becomes merged Wave-B engineering authority only after
+exact-head CI, repair of every valid Greptile finding with zero Greptile
+threads unresolved, normal merge of the reviewed tree, and exact-main CI. A
+documented invalid finding may be closed with rationale; any tree change
+requires rereview. Domain notification is asynchronous and no affirmative human
+response or silence gate applies to that engineering ratification. Real
+scientific values, security acceptance, rights/legal approval, economics,
+qualification, LIVE, launch, and production remain unavailable until their
+owners act. B-07S, not B-07R, owns exact wire objects, operation names,
+lifecycle, errors, canonical bytes, bounds, pagination, idempotency, providers,
+adapter, negotiation, and disclosure. Neither contract modifies A8 or A9.
 
 The nominal practice runner may use only mock context/data rights. Its
 `MockRunOutcome` is not an A5 `InternalResult`, cannot enter A7's official
@@ -539,10 +547,10 @@ active main. Archive presence grants no current implementation authority.
       while fixture rights and provenance cannot create official or economic
       authority
 - [ ] ResearchTask, ExperimentRecord, ResearchReceipt, and evidence-class boundaries exist
-- [ ] Shared v2 nominal wire primitives are implemented once; the in-process
-      `ResearchMcpService` exposes exactly the twelve ratified research
-      operations, delegates each to its named domain owner, and neither exposes
-      nor delegates v1 official operations
+- [ ] Shared research-protocol nominal wire primitives are implemented once;
+      the in-process service exposes exactly the B-07S-ratified closed
+      operation set, delegates each operation to its named domain owner, and
+      neither exposes nor delegates v1 official operations
 - [ ] Dossier + qualification manifest schemas exist and fixture evidence cannot satisfy LIVE
 - [ ] PriorPack schema/store, TEST_ONLY staging/disclosure ledger, and static
       provider run on fixture evidence with redaction, lineage, atomic private
@@ -581,7 +589,8 @@ failure.
 **C9:** Exact bounded Wave-A control/disclosure per `Miner_MCP.md` and
 A9-R1--A9-R15. Seven tools only; structural estimate never executes;
 practice/research remains Wave B; submit/result remain exact A7/A6 delegation. The
-Wave B contract candidate is `Miner_MCP_Wave_B_Research_Contract.md`; it keeps
+Wave B working engineering architecture is `Miner_MCP_Wave_B_Research_Contract.md`
+version 0.4; it keeps
 the v1 service immutable and separates semantic compilation, prior alignment,
 resource forecasting, quoting, and measured practice.
 **C13:** Fee ledger with §6 semantics.  
@@ -645,7 +654,7 @@ Items noticed in review that improve P0/P1 without changing architecture:
 | Opportunity | Why | Phase |
 |-------------|-----|-------|
 | Free-path rate limits on remote practice tasks | Stop compute DoS of mock runner | P0 soft / P1 |
-| Future authenticated binding execution quote | Miner UX; requires the Wave C transport, identity, quota, and economic contract; remains distinct from Wave B `forecast_resources` and A9 `StructuralEstimate` | P1 |
+| Future authenticated binding execution quote | Miner UX; requires the Wave C transport, identity, quota, and economic contract; remains distinct from the B-07S-ratified Wave B calibrated-resource-forecast capability and A9 `StructuralEstimate` | P1 |
 | Conditional leakage monitor and adaptive-agent campaign | Detect incremental protected-realization inference after controlling for evaluator-held shadow-case physics performance; account across practice, priors, cards, leaderboards, diagnostics, errors, timing, and versions | P1 |
 | CI matrix: CPU-only unit vs GPU integration tags | Agents/CI without GPU | P0 |
 | Hotkey↔submission binding tests | Fee and card authz | P0 |

@@ -9,7 +9,9 @@
 
 ## Goal
 
-Ratify the exact bounded wire and lifecycle contract for the local Wave B research service after the architecture is approved and before any service-facing implementation begins.
+Ratify the exact bounded wire and lifecycle contract for the local Wave B
+research service after B-07R is authoritatively completed under its review/
+merge/CI gate and before any service-facing implementation begins.
 
 ## Definition of Done
 
@@ -31,8 +33,8 @@ Ratify the exact bounded wire and lifecycle contract for the local Wave B resear
       latter may inject `TestOnlyPriorProvider` and advertise
       `TEST_ONLY_FIXTURE_PRIOR`; callers cannot select or relabel context on the
       wire.
-- [ ] Define the exact fixture result binding for
-      `TestOnlyPriorApprovalReceiptRef` and the mandatory
+- [ ] Define the exact fixture result binding for a test-only authorization-
+      receipt reference and the mandatory
       `TEST_ONLY / NOT_UTILITY_QUALIFIED` ceiling without treating that receipt
       as a public `PriorPublicationReceipt`.
 - [ ] Define `PriorPack` canonical bytes without an embedded self-hash or
@@ -46,7 +48,7 @@ Ratify the exact bounded wire and lifecycle contract for the local Wave B resear
       B-07E resource analysis/forecasting, and B-07B task lifecycle/records.
       B-07G owns only service composition, dispatch, and conformance.
 - [ ] Add an operation-by-operation authority, disclosure, failure, and resource test matrix.
-- [ ] Obtain protocol, science, security, rights/counsel, and human owner ratification before B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, or B-07G implementation.
+- [ ] Record the material exact-protocol decisions and applicable domain-lead notifications; pass document validation and exact-head CI; repair every valid Greptile finding with zero Greptile threads unresolved; and normally merge the exact reviewed tree before B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, or B-07G implementation. A documented invalid finding may be closed with rationale, and any tree change requires rereview. Notification is not approval and silence is no gate. Human-reserved scientific values, security acceptance, rights/legal policy, economics, qualification, LIVE, launch, and production authority remains unavailable.
 
 ## Must not
 

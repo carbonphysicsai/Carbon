@@ -15,10 +15,16 @@ Represent how one exact case receives an uncertainty-bearing answer key without 
 ## Definition of Done
 
 - [ ] Before implementation, produce
-      `Design_Specs/Reference_and_TruthAsset_Contract.md`, obtain independent
-      SciML/statistics/protocol review plus methodologically independent
-      reference review and explicit human ratification, and merge that contract
-      normally; record the exact contract commit in the implementation plan.
+      `Design_Specs/Reference_and_TruthAsset_Contract.md`; record material
+      engineering decisions and route SciML/statistics/protocol and
+      methodologically independent reference review; pass applicable document
+      validation and exact-head CI; repair every valid Greptile finding with
+      zero Greptile threads unresolved; and normally merge the exact reviewed
+      tree. A documented invalid finding may be closed with rationale, and any
+      tree change requires rereview. Record the exact contract commit in the
+      implementation plan. Notification is not ratification and silence is no
+      gate. Real reference-policy choices and scientific qualification remain
+      human-owned and fail closed.
 - [ ] Define `ReferencePolicy`, `TruthAsset`, primary/corroborating roles, provenance, uncertainty, applicability, failure, and disagreement contracts.
 - [ ] Define a closed evidence-role model capable of representing analytic or
       semi-analytic primary evidence, manufactured-solution verification

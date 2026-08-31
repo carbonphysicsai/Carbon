@@ -5,8 +5,8 @@
 **Ticket:** B-02A — Scientific authoring and canonical-case contracts
 **Authority base:** `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`
 **Delegated governance:** PR #61 merge `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`
-**Final review required:** independent SciML/physics, statistics, and protocol review; blocking-finding resolution; exact-head CI; normal merge
-**Implementation:** bounded PR #60 candidate present under `.agent/DELEGATED_DECISION_PROTOCOL.md`; final exact-head review, CI, and normal merge remain pending; no affirmative lead-response or silence gate applies
+**Accepted engineering result:** PR #60 exact reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`; Greptile 5/5 with no blocking failure and zero unresolved threads; exact-head CI `33341717012`; normal merge `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree; exact-main CI `33342015346`
+**Implementation:** merged and tested only in the bounded B-02A engineering scope under `.agent/DELEGATED_DECISION_PROTOCOL.md`; no affirmative lead-response or silence gate applied
 
 > **Maturity ceiling.** This document specifies the working B-02A semantics.
 > Neither the document nor an implementation/test result creates scientific
@@ -28,9 +28,9 @@ validation rules, population distinctions, canonical-case boundary,
 provenance seams, and downstream ownership needed for that purpose.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**,
-**SHOULD**, **SHOULD NOT**, and **MAY** are normative for the B-02A working
-implementation. Final repository acceptance still requires independent review,
-resolution of blocking findings, exact-head validation, and normal merge.
+**SHOULD**, **SHOULD NOT**, and **MAY** are normative for the accepted bounded
+B-02A implementation. The exact review, validation, and merge evidence is
+recorded above and in `.agent/evidence/wave_b/b-02a.md`.
 
 The contract owns the semantics of exactly these top-level identity object
 families and their exact references. The first five are prospectively authored
@@ -46,8 +46,8 @@ under the prospectively authored case schema:
 - `CanonicalChallengeCase` and `CanonicalChallengeCaseRef`.
 
 It also defines the subordinate records required to bind those families. This
-document itself confers no runtime or authority. The bounded PR #60 candidate
-implements the B-02A types, exact refs, schema-local canonicalizer, loaders,
+document itself confers no runtime or authority. The merged bounded PR #60
+result implements the B-02A types, exact refs, schema-local canonicalizer, loaders,
 append-only store, `carbon.authoring` package, tests, and the narrow A3-owned
 authoring-graph verification seam described below. It implements no generator,
 compiler, reference policy/runner, measurement, Score Pack, dossier, research
@@ -55,7 +55,7 @@ service, protected entropy path, qualification decision, or LIVE activation.
 
 ### 1.1 Explicit non-goals
 
-This candidate does not:
+This bounded result does not:
 
 - select the first real physical task, governing values, official envelope,
   target population, proposal law, evidence weights, strata, sample counts,
@@ -63,7 +63,7 @@ This candidate does not:
   censoring/replacement policy, or evidence thresholds;
 - adopt fixed-viscosity Burgers, `nu = 5e-3`, a historical viscosity range,
   or any other example as LIVE truth or a default;
-- make open PR #40 or the Wave B Miner MCP owner-review candidate into
+- make open PR #40 or the separate Wave B Miner MCP architecture into
   authority;
 - implement B-02B's compiler or `ResolvedTrainingSamplingPolicy`;
 - define B-03 generation, B-04 reference qualification, B-05 measurement or
@@ -1662,7 +1662,8 @@ the schema but cannot become official through copying or relabeling.
 
 `CanonicalChallengeCase` is one immutable, content-addressed,
 representation-neutral physical-realization record upstream of
-candidate/model-family materialization. B-02A prospectively authors its schema;
+candidate/model-family materialization. B-02A's accepted contract authors its
+prospective schema;
 an actual case record is produced only by a controlled generation,
 observation, experimental, industrial, analytic, or MMS realization capability.
 It is neither a human-authored scientific contract nor a mutable runtime
@@ -2347,9 +2348,9 @@ environment, archive, or retired namespace.
 
 ## 15. Required B-02A implementation test matrix
 
-This section controls the current bounded implementation and final review. A
-listed test becomes evidence only when it runs successfully on the exact
-candidate; no test result creates qualification or LIVE authority.
+This section controls the accepted bounded implementation test matrix. A
+listed test became acceptance evidence only when it ran successfully on the
+exact reviewed head; no test result creates qualification or LIVE authority.
 
 ### 15.1 Construction and exact nominal types
 
@@ -2664,7 +2665,7 @@ content or provenance:
 
 ---
 
-## 17. Unresolved human inputs, final review gate, and earned maturity
+## 17. Unresolved human inputs and earned maturity
 
 The following remain explicit human/owner inputs:
 
@@ -2694,31 +2695,19 @@ code, a generator, shared data, empirical sample frequency, or agent judgment.
 They also do not block unrelated exact schema, fixture, validation,
 canonicalization, history, loader, projection, or fail-closed integration work.
 
-The working contract and implementation become an accepted B-02A repository
-result only after:
-
-1. independent SciML/physics review of the final exact
-   physical/candidate/population/evidence-role implementation and contract;
-2. independent statistics review of the final exact P/Q/w, strata, sampling,
-   censoring, replacement, and intended-versus-realized evidence semantics;
-3. independent protocol review of the final exact identity,
-   canonicalization, provenance, failure, disclosure, fixture, history, A3,
-   package, and downstream boundaries;
-4. resolution of every blocking finding and review thread;
-5. required exact-head CI and repository validation; and
-6. normal merge with the reviewed tree preserved.
-
-No affirmative lead response or silence gate is a precondition to bounded
-implementation. An observed `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` pauses
-the affected change. The first B-02A Definition-of-Done checkbox remains
-incomplete until its final-review and normal-merge clauses are satisfied.
-The current PR #60 candidate maturity is:
+The bounded working contract and implementation were accepted through PR #60.
+Greptile's final exact-head summary was 5/5 with no blocking failure; its sole
+thread is resolved and outdated. Exact-head CI `33341717012` passed, normal
+merge `58ea866de52e3853b0b45e3217ee0625302aa663` preserved reviewed tree
+`61a4463ac459f7fe96545f2746511d6940246f57`, and exact-main CI
+`33342015346` passed. No affirmative lead response or silence gate applied.
+No named domain-review completion is inferred from asynchronous routing.
+The resulting maturity is:
 
 ```text
-SPECIFIED: AGENT-SELECTED WORKING CONTRACT
-IMPLEMENTED: BOUNDED CANDIDATE; FINAL REVIEW AND NORMAL MERGE PENDING
-TESTED (B-02A implementation): BOUNDED CANDIDATE; EXACT-HEAD CANONICAL CI,
-INDEPENDENT REVIEW, AND NORMAL MERGE PENDING
+SPECIFIED / RATIFIED: YES — MERGED BOUNDED WORKING CONTRACT
+IMPLEMENTED: YES — BOUNDED MERGED B-02A ENGINEERING SCOPE ONLY
+TESTED: YES — EXACT REVIEWED HEAD AND EXACT-MAIN CANONICAL CI SCOPE ONLY
 SCIENTIFICALLY_QUALIFIED: NO
 SECURITY_QUALIFIED: NO
 NETWORK_QUALIFIED: NO

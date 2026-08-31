@@ -1,8 +1,8 @@
-# B-02A scientific authoring contracts — implementation execution plan
+# B-02A scientific authoring contracts — historical closed execution plan
 
 **Ticket:** B-02A, `Scientific authoring and canonical-case contracts`
-**Phase:** working-contract implementation and final independent review
-**Status:** `in_progress`; implementation authorized by merged delegated-decision governance
+**Phase:** completed bounded contract, implementation, and engineering review
+**Status:** `done` in bounded engineering scope
 **Original contract base:** `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`
 **Original base tree:** `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`
 **Authoritative governance base:** `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`
@@ -10,6 +10,15 @@
 **Branch:** `agent/b-02a-contract-ratification` (name retained; no replacement branch)
 **Worktree:** dedicated host-local B-02A worktree (absolute path redacted)
 **Working contract:** `Design_Specs/Scientific_Challenge_Authoring_Contract.md` version 0.1, `AGENT-SELECTED WORKING CONTRACT`
+
+> **Closed/supersession banner.** PR #60 normally merged exact reviewed head
+> `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
+> `61a4463ac459f7fe96545f2746511d6940246f57`, as
+> `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Greptile
+> finished 5/5 with no blocking failure and zero unresolved threads; exact-head
+> CI `33341717012` and exact-main CI `33342015346` passed. Present-tense
+> candidate/pending/stop language retained in historical chronology below is
+> superseded by this closeout and does not describe current ticket state.
 
 This plan supersedes only the obsolete contract-ratification stop in the
 earlier version of this file. It preserves the contract analysis, decisions,
@@ -114,9 +123,8 @@ The implementation reads and applies the current versions of:
    patterns; and
 10. package, wheel, import-boundary, quality, and CI enforcement.
 
-Bounded `IMPLEMENTED` and `TESTED` candidate evidence exists on the branch.
-Authoritative repository acceptance remains pending exact-head review,
-canonical CI, and normal merge. The ticket cannot earn scientific, security,
+Bounded `IMPLEMENTED` and `TESTED` evidence was accepted at the exact final
+reviewed head and normal merge recorded above. The ticket did not earn scientific, security,
 network, commercial, production, LIVE, launch, frontier, settlement, weight,
 or emission authority.
 
@@ -126,8 +134,8 @@ or emission authority.
 |---|---|---|
 | MQ-001 real physical job/values | `NEW_OWNER_DECISION_REQUIRED`, `DEFERRED_FAIL_CLOSED` | Implement exact types and validation only. No Burgers viscosity or other real value becomes a default. |
 | MQ-002 real P/Q/w/design values | `NEW_OWNER_DECISION_REQUIRED`, `DEFERRED_FAIL_CLOSED` | Implement distinct roles and unavailable production construction. No population, count, allocation, weight, stopping rule, or threshold is selected. |
-| Contract-first timing after PR #61 | `DOCUMENTATION_LAG` in the pre-merge B-02A branch | The merged ticket and delegated protocol control: implement from the working contract; final independent review remains pre-merge. |
-| Missing B-02A code at the original base | `IMPLEMENTATION_LAG`, resolved by the candidate | This ticket owns the bounded implementation; final review/merge remain pending. |
+| Contract-first timing after PR #61 | `DOCUMENTATION_LAG` in the pre-merge B-02A branch | The merged ticket and delegated protocol controlled implementation; the final exact-head correctness/merge gate is satisfied. |
+| Missing B-02A code at the original base | `IMPLEMENTATION_LAG`, resolved by the merged result | This ticket owns the bounded implementation accepted in PR #60. |
 | Retired `carbon/challenges`, `carbon/data`, `carbon/physics` suggestions | `DOCUMENTATION_LAG` | They remain forbidden by code authority. |
 | A3 identity/digest grammar | `NO_CONFLICT` | Reuse public A3 primitives; create no competing Challenge or SHA grammar. |
 | B-02A canonical binary profile | `IMPLEMENTATION_LAG` resolved by D1 | Implement a schema-local, versioned codec; do not reuse registry JSON or owner-private encoders. |
@@ -358,7 +366,7 @@ A required missing value makes that production object or operation
 unconstructible or explicitly ineligible. It does not block independent exact
 type, fixture, canonicalization, history, loader, and integration work.
 
-## 11. Review route and stop condition
+## 11. Historical review route and satisfied stop condition
 
 After a coherent implementation candidate is committed and pushed, request
 independent review of the exact head/tree across:
@@ -367,6 +375,7 @@ independent review of the exact head/tree across:
 - statistics and evidence-design semantics; and
 - protocol/identity/security-boundary semantics.
 
-Repair valid findings and rerequest exact-head review after material changes.
-Issue #42 notification is lead visibility, not review credit. Stop before
-merging PR #60. Do not begin B-02B or another ticket.
+The implementation session repaired valid findings, rerequested exact-head
+review after changes, delivered issue #42 visibility, and stopped before merge
+without beginning B-02B. PR #60 was later reviewed, validated, and normally
+merged under the exact closeout banner above.

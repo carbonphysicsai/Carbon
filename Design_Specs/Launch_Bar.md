@@ -83,10 +83,13 @@ Effect-candidate libraries cannot be more trustworthy than the labels that feed 
 
 Required before marketing agent mining or public prior surfaces that agents will grind against. Detail: `Miner_MCP.md`, `Build_Out.md`.
 
-- [ ] **Mock isolation:** nominal `start_research_task` practice kinds reject
-      non-mock contexts/packs; no official data rights or seeds on the free path
+- [ ] **Mock isolation:** the B-07S-ratified nominal mock practice-task launch
+      capability rejects non-mock contexts/packs; no official data rights or
+      seeds on the free path
 - [ ] **Free signal imperfect:** mock ranges intentionally incomplete; free metrics **never** enter lean score / Yuma
-- [ ] **Scaffold path:** `get_mock_scaffold` serves a versioned mediocre baseline (not champion weights; not silent prior invert)
+- [ ] **Scaffold path:** the B-07S-ratified mock-scaffold retrieval capability
+      serves a versioned mediocre baseline (not champion weights; not silent
+      prior invert)
 - [ ] **Budgeted EvaluationCard:** miner-visible card withholds fine margins / per-stress breakdowns / seeds
 - [ ] **Fee ≠ score:** exam fee does not enter Score Pack
 - [ ] **Forbidden score inputs:** no prior alignment, resource forecast,

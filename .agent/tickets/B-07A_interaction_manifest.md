@@ -28,6 +28,6 @@ Implement the ratified shared v2 nominal protocol primitives once, then let an a
 
 ## Must not
 
-Implement the final twelve-operation dispatcher, domain providers/stores, or
+Implement the final B-07S-ratified closed-operation dispatcher, domain providers/stores, or
 task lifecycle; list hidden Challenges; infer qualification; alias fixture and
 production manifests; or use the manifest as submission admission.

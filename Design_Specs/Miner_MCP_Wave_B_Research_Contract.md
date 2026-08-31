@@ -1,7 +1,7 @@
 # Carbon Miner Research Interface and Prior Pack Contract
 
-**Status:** OWNER-REVIEW CONTRACT CANDIDATE. This file specifies proposed Wave B behavior. It does not change the ratified Wave A MCP, authorize Wave B implementation, publish a production prior, or qualify a public practice service.
-**Version:** 0.3
+**Status:** **AGENT-SELECTED WORKING ARCHITECTURE CONTRACT** for B-07R engineering. It preserves the Wave-A MCP unchanged and confers no scientific truth or qualification, security acceptance, rights/legal approval, economic authority, LIVE, launch, settlement, weight, emission, or production authority. It becomes the merged Wave-B engineering architecture only when the exact reviewed tree passes CI, every valid Greptile finding is repaired with zero Greptile threads unresolved, it normally merges, and its exact-main CI passes. A documented invalid finding may be closed with rationale; any tree change requires rereview.
+**Version:** 0.4
 **Applies with:** `Miner_MCP.md`, `Physics_Intelligence_System.md`, `Landscape_Agent.md`, `Build_Out.md`, `Build_Out_Constitutional_Overlay.md`, `Launch_Bar.md`, and `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`
 **Sequencing:** `.agent/WAVE_B.md`
 
@@ -32,8 +32,36 @@ public task + legal construction space + evidence-labeled priors
                               ↓
                  frozen official submission
                               ↓
- producer-independent reconstruction + protected fresh exam
+producer-independent reconstruction + protected fresh exam
 ```
+
+The ownership-preserving architecture is:
+
+```text
+ChallengeInteractionManifest
+        ↓
+Strategy + ParameterCatalog + CandidateAssemblyContract
+        ↓
+ResolvedConstructionPlan
+        ↓
+ResearchTask
+        ↓
+nominal practice/research execution
+        ↓
+private ExperimentRecord
+        ↓
+bounded ResearchReceipt
+        ↓
+separate prior / evidence / resource projections
+        ↓
+B-07F fixture-official reconstruction through the unchanged Wave-A v1 service
+```
+
+Each arrow is an explicit reference or consumer boundary, never an authority
+promotion. B-02B owns construction semantics, B-02C resource policy, B-07S the
+exact research protocol, B-07A through B-07G their assigned implementation
+layers, and B-07F the later fixture-official consumer. B-07R fixes this
+architecture and ownership only; it implements no service or wire contract.
 
 ---
 
@@ -238,9 +266,34 @@ An accepted Strategy cannot contain a parameter that the construction backend si
 
 ## 5.4 ResolvedConstructionPlan
 
-The plan is private-to-requester during research and becomes part of the official reconstruction evidence after submission. It contains normalized, fully resolved construction instructions expressed only in the registered catalog vocabulary. When permitted, it binds the exact canonical `ResolvedTrainingSamplingPolicy` denoted `R_strategy` and its `TrainingSamplingPolicyRef`; the execution service derives train seeds and draws rather than accepting them from the miner. It also carries immutable policy-agnostic static resource requirements and impact tags. B-02C evaluates those requirements against a separate `ResearchResourcePolicy` and cannot mutate the plan or compiler semantics. The plan contains no official randomness or evaluation controls.
+The plan is private-to-requester during research and may become part of official
+reconstruction evidence only in a later qualified official flow. In Wave B,
+B-07F may consume it only through fixture-official provenance with no official
+authority. It contains normalized, fully resolved construction instructions
+expressed only in the registered catalog vocabulary. When permitted, it binds
+the exact canonical `ResolvedTrainingSamplingPolicy` denoted `R_strategy` and
+its `TrainingSamplingPolicyRef`; the execution service derives train seeds and
+draws rather than accepting them from the miner. It also carries immutable
+policy-agnostic static resource requirements and impact tags. B-02C evaluates
+those requirements against a separate `ResearchResourcePolicy` and cannot
+mutate the plan or compiler semantics. The plan contains no official
+randomness or evaluation controls.
 
 The plan is not a candidate artifact, score, or proof of successful reconstruction.
+
+The four scientific/data roles remain exact and non-interchangeable:
+
+```text
+P          = target or workload population
+Q          = official proposal / SamplingPlan law
+w          = evidence weighting
+R_strategy = resolved training sampling policy inside Challenge-owned support
+```
+
+`R_strategy` cannot alter `P`, `Q`, `w`, official evaluation, stress,
+reference evidence, measurements, gates, or score. It binds policy semantics,
+not randomness. Each nominal validator or execution context derives its own
+authorized randomness; no miner seed authority exists.
 
 ---
 
@@ -298,14 +351,24 @@ The practice service may also support single-run reconstruction rehearsal and me
 
 ## 6.5 Local-first topology
 
-Wave B should provide a local, reproducible Miner Lab using the same public catalog and compiler identities. A local-only agent adapter exposes the exact v2 discovery and serialization contract without a network listener or credentials; it may be a stdio MCP or equivalent bounded CLI. A bounded in-process practice referee may establish parity and resource receipts. Authenticated remote transport belongs to Wave C.
+Wave B provides a local, reproducible Miner Lab using the same public catalog
+and compiler identities. A local/in-process agent adapter exposes the
+B-07S-ratified research contract without a network listener, credentials,
+authenticated remote transport, or charged execution. It may later be
+expressed as a bounded stdio MCP or equivalent CLI only as B-07S specifies. A
+bounded in-process practice referee may establish parity and resource receipts.
+Remote authentication, transport, identity linkage, quotas, and execution
+quotes belong to Wave C.
 
-The local topology has two distinct service identities: the unchanged
-`carbon_protocol_v1` service owns official submission/result operations, and
-`carbon_research_v2` owns the research operations in §8. Duplicate operation
-names are namespace-qualified; no merged unqualified alias exists. B-E4 agents
-connect to both identities explicitly. The v2 adapter never wraps, mirrors, or
-reimplements the official store or lifecycle.
+The topology has two separate authority planes. The existing exact Wave-A
+seven-tool service retains the sole official submission/result store,
+lifecycle, and error authority. A distinct local research plane owns only
+discovery, compilation, practice, prior, record, and resource capabilities.
+The descriptive labels `carbon_protocol_v1` and `carbon_research_v2` may be
+used in architecture discussion, but they are not ratified wire identifiers;
+B-07S owns exact service/version identifiers, namespace rules, and
+compatibility negotiation. No merged alias exists, and the research adapter
+never wraps, mirrors, or reimplements the official store or lifecycle.
 
 Local agents keep private sweeps and failed experiments locally. Carbon does not require miners to upload their entire research history.
 
@@ -315,7 +378,9 @@ Local agents keep private sweeps and failed experiments locally. Carbon does not
 
 ## 7.1 ResearchTask
 
-A research task is asynchronous and idempotent. It binds:
+A research task is a Challenge-bound, requester-bound unit of local research.
+At the semantic layer it pins the following information; B-07S owns exact
+field names, wire shapes, bounds, and canonical bytes:
 
 ```text
 task identity and requester binding
@@ -329,25 +394,16 @@ PriorPackRef used by the agent, if any
 requested public resource class
 ```
 
-Initial task kinds are:
-
-- `RECONSTRUCTION_REHEARSAL`;
-- `PRACTICE_RUN`;
-- `PAIRED_PRACTICE_COMPARE`;
-- `RESOURCE_CALIBRATION`.
-
-The closed task-state machine is:
-
-```text
-QUEUED -> RUNNING -> SUCCEEDED | FAILED
-   |         |
-   |         -> CANCEL_REQUESTED -> CANCELLED | SUCCEEDED | FAILED
-   -> CANCELLED
-```
-
-`CANCEL_REQUESTED` is an operational state, not a scientific outcome. A queued task cancels immediately. A running task may cross its declared non-cancellable commit point before the cancellation is observed; in that race the actual terminal state wins and is reported. A terminal task never reopens.
-
-Idempotency is scoped to `(requester_binding, task_kind, client_idempotency_key)`. Reuse with the same canonical request bytes returns the same task. Reuse with different canonical request bytes returns `IDEMPOTENCY_CONFLICT`. The provider owns bounded retries only for typed infrastructure failures and records every attempt under the same task; it does not retry strategy, reconstruction, reference, or measurement outcomes as though they were infrastructure. Every terminal state has a bounded receipt. Poll throttling is operational policy and cannot alter scientific evidence.
+The architecture requires asynchronous execution, requester-scoped
+idempotency, immutable lineage, cancellation without scientific relabeling,
+typed separation of infrastructure failure from scientific outcome, and a
+bounded terminal receipt. Reconstruction rehearsal, practice, paired practice,
+and resource calibration are required capability families. B-07S alone fixes
+the exact task-kind literals, lifecycle states and transitions, idempotency
+identity and conflict behavior, cancellation cutoffs and races, retry rules,
+polling bounds, request/result shapes, and error precedence. No lifecycle
+state may itself become scientific evidence, and a terminal record may never
+be silently reopened or rewritten.
 
 ## 7.2 ExperimentRecord
 
@@ -378,85 +434,63 @@ The current Wave A `estimate` operation remains frozen as structural alignment w
 
 ## 8.1 Versioned service migration
 
-Wave B should add a nominal in-process `ResearchMcpService` with schema version
-`"2.0"`. The current `McpService`, its schema `"1.0"`, seven tools, types, and
-errors remain unchanged. Version selection occurs outside the v1 call envelope;
-v1 gains no negotiation field or alias.
+Wave B adds one nominal local/in-process research plane while the current exact
+Wave-A `McpService`, its seven tools, types, errors, lifecycle, and store remain
+unchanged. Version selection and namespace separation occur outside the v1
+call envelope; v1 gains no negotiation field, research alias, or v2-backed
+production provider. The research plane creates no second official submission
+or result path. Network transport, authentication, execution quoting, remote
+process hosting, and production identity linkage remain Wave C.
 
-The proposed exact v2 operation vocabulary is:
+The research plane must express these capability families without merging
+their authority: Challenge and interaction discovery; static prior retrieval
+and alignment; scaffold retrieval; dry validation; semantic Strategy
+compilation; static resource inspection; calibrated resource forecasting; and
+research-task creation, observation, and cancellation. These are architectural
+capabilities, not ratified operation names or a ratified operation count.
 
-```text
-get_challenge_info
-get_interaction_manifest
-get_prior
-get_mock_scaffold
-dry_validate
-compile_strategy
-inspect_prior_alignment
-inspect_resources
-forecast_resources
-start_research_task
-get_research_result
-cancel_research_task
-```
+B-07S owns the complete exact protocol: wire objects; service/version and
+operation names; lifecycle states; request and response shapes; error taxonomy
+and precedence; canonical bytes and hashing; bounds and resource envelopes;
+pagination; idempotency; provider interfaces; local adapter; compatibility and
+version negotiation; and disclosure behavior. It must preserve the authority
+separations in this contract. B-07R does not pre-ratify any wire/protocol
+literal, encoding, state transition, selector, provider signature, or error
+value; domain-semantic objects and enums explicitly fixed elsewhere in this
+contract remain architecture requirements for B-07S to express.
 
-`get_prior` returns PriorPack v2 on the v2 service. The existing v1 operation
-and provider semantics remain exactly frozen; Carbon does not install a
-production v2-backed v1 provider. `start_research_task` carries the closed task kind, so separate
-`light_train` and `light_compare` aliases are not added. The task result
-carries its evidence class and authority ceiling. Agents and clients call the
-separately namespaced, unchanged Wave A v1 service for official submission and
-result retrieval. The v2 service neither exposes nor delegates those
-operations and creates no second official lifecycle or store. Network transport,
-authentication, execution quoting, and remote process hosting remain Wave C.
-
-All v2 requests and results require exact nominal schemas, canonical bytes,
-resource bounds, error precedence, and safe error mappings before
-implementation. Architecture ratification does not substitute for that wire
-contract.
-
-B-07S owns the exact protocol specification. B-07A implements the shared
-wire-visible nominal refs, requests, results, resource envelopes, errors, and
-service primitives from that ratified specification. Domain tickets consume
-those common primitives and own their validation, providers, stores, and
-execution semantics; they do not redefine the wire types. B-07G owns only the
-final in-process service composition, dispatch, and cross-operation
-conformance.
-
-| v2 operation | Domain implementation authority | B-07G integration duty |
-|---|---|---|
-| `get_challenge_info`, `get_interaction_manifest` | B-07A | Dispatch the manifest/discovery provider |
-| `get_prior`, `inspect_prior_alignment` | B-07D3 | Dispatch the exact provider/alignment implementation |
-| `get_mock_scaffold` | B-07C | Dispatch the scaffold provider |
-| `dry_validate` | A2 validation semantics | Adapt and dispatch without reinterpreting A2 |
-| `compile_strategy` | B-02B | Dispatch the canonical compiler |
-| `inspect_resources`, `forecast_resources` | B-07E | Dispatch static analysis and calibrated-forecast seams |
-| `start_research_task`, `get_research_result`, `cancel_research_task` | B-07B lifecycle and records; B-07C practice executor for practice task kinds | Dispatch one lifecycle and inject the registered executor |
-
-No row grants v2 official submission, result, score, or store authority.
+B-07A implements B-07S's shared nominal primitives once. Domain tickets own
+their semantics, validation, providers, stores, and execution: B-07A discovery
+and manifest data; B-07D3 prior retrieval/alignment; B-07C scaffold and
+practice execution; A2 validation; B-02B compilation; B-07E resource analysis
+and forecast; and B-07B task lifecycle and records. B-07G owns only composition,
+dispatch, and cross-capability conformance for the B-07S-ratified closed
+operation set. No layer may expose or delegate official submission, result,
+score, or store authority.
 
 `ResearchResourcePolicyRef` binds the immutable domain contract produced before
 manifest, practice, or forecasting implementation. That contract defines
 resource classes, exact static construction dimensions, declared ceilings,
 enforcement and kill semantics, and observed receipt fields. It does not
 contain calibrated forecast parameters, a price, a quota, or authority to
-execute. `inspect_resources` and `forecast_resources` consume this policy; they
-do not define it.
+execute. Static inspection and calibrated forecasting consume this policy;
+they do not define it.
 
-The future research interface separates:
+The future research interface keeps four results distinct:
 
-| Operation | Output | Authority |
+| Capability | Output | Authority |
 |---|---|---|
-| `inspect_prior_alignment` | Applicable public prior item IDs | Deterministic public matching only |
-| `inspect_resources` | Exact plan-derived dimensions and declared constraints | Static exact analysis only |
-| `forecast_resources` | Non-binding runtime, memory, storage, and reconstruction-risk intervals | Calibrated forecast with model identity and support status |
-| `start_research_task` with practice task kind | Measured public-practice evidence | Non-authoritative scientific practice |
+| prior alignment | Applicable public prior item references | Deterministic public matching only |
+| static resource inspection | Exact plan-derived dimensions and declared constraints | Static exact analysis only |
+| calibrated resource forecast | Non-binding runtime, memory, storage, and reconstruction-risk intervals | Forecast with model identity, uncertainty, and support state |
+| practice research task | Measured public-practice evidence | Non-authoritative scientific practice |
 
-The future Wave C `quote_execution` operation is a separate binding operational/economic contract. It is not implemented or implied by a Wave B forecast.
-
-A forecast declares its model version, calibration window, applicable hardware/resource class, uncertainty, and support state. Unsupported input returns `UNRESOLVED`.
-
-No estimation operation predicts official quality, official score, rank, gate outcome, frontier status, weight, emission, or settlement.
+The future Wave C operational quote/admission capability is a separate binding
+operational/economic contract. A forecast declares its model version,
+calibration window, applicable hardware/resource class, uncertainty, and
+support state; unsupported input is unresolved and fail closed. No research
+capability predicts official quality, score, rank, gate outcome, frontier
+status, weight, emission, settlement, or winner.
 
 ## 8.2 Resource staging cannot become scientific authority
 
@@ -516,26 +550,17 @@ API usage and prior-following are not success metrics.
 
 ## 9.2 PriorPackRef and pack identity
 
-The canonical `PriorPack` bytes bind:
+At the semantic layer, a `PriorPack` identity binds the Challenge; prior
+logical/version identity; canonicalization identity; publication class;
+evidence cutoff, publication, and activation epochs; exact interaction-
+manifest, catalog, and policy-bundle references; and builder version. B-07S
+owns the exact field names, object shapes, canonical encoding, digest algorithm,
+and wire reference representation.
 
-```text
-ChallengeKey
-prior_id and prior_version
-canonicalization_id
-publication_class
-evidence_cutoff_epoch
-publication_epoch
-activation_epoch
-ChallengeInteractionManifestRef
-ParameterCatalogRef
-PriorPolicyBundleRef
-builder version
-```
-
-The canonical pack bytes do not contain their own hash or `PriorPackRef`.
-`PriorPackRef` binds the canonicalization and version identity plus
-`content_hash = SHA-256(canonical PriorPack bytes)`. The content hash is outside
-the hashed preimage; self-referential pack identities are invalid.
+The pack's content address is computed over its B-07S-canonical bytes. Neither
+the address nor its enclosing reference may appear in that hashed preimage;
+self-referential identities are invalid. B-07S owns the exact reference fields
+and digest expression.
 
 `PriorPolicyBundleRef` pins the eligibility, feature-extraction, public-estimand,
 aggregation, band-definition, epistemic-promotion, coarsening/disclosure,
@@ -566,33 +591,26 @@ owner approvals, disclosure-ledger expected and committed states, activation
 epoch, previous index snapshot, and proposed transition digest. It does not
 reference the resulting snapshot. The new index snapshot binds the receipt.
 
-`get_prior` accepts either `EXACT(PriorPackRef)` or
-`ACTIVE(PriorChannelRef)`. Both public selectors enforce publication class,
-exact-hash approval, and withdrawal state. `ACTIVE` atomically reads one index
-snapshot and returns its exact snapshot ref, publication receipt ref, pack ref,
-and canonical bytes. `EXACT` returns canonical bytes for an approved active or
-superseded `BOOTSTRAP_PUBLIC`/`LEARNED_PUBLIC` pack. A withdrawn pack returns
-only its hash-bound audit status and public reason class; its bytes remain in
-the private audit store. Withdrawal stops Carbon from newly serving the bytes
-but cannot make previously retrieved public copies secret or revoke their
-historical receipt. `TEST_ONLY` and unapproved bytes are available only
-through a nominal private test adapter. There is no unversioned implicit
-`latest`. Every research task pins the exact returned pack ref.
+The protocol must support exact-reference retrieval and atomically resolved
+active-channel retrieval without an unversioned implicit latest. Both paths
+enforce publication class, exact-hash authorization, and withdrawal state.
+Active resolution returns the exact snapshot, publication receipt, pack
+reference, and bytes from one index state. Exact retrieval may return an
+authorized active or superseded public pack. Withdrawal stops new byte service
+but cannot make earlier public copies secret or erase their historical receipt.
+Every research task pins the exact returned pack reference. B-07S owns selector
+literals, request/result shapes, error behavior, and pagination.
 
-The Wave B gauntlet constructs the ordinary `carbon_research_v2` protocol with
-a nominal `FixtureResearchContext` and an injected `TestOnlyPriorProvider`.
-That structurally private, local-only service may satisfy an exact-ref
-`get_prior` request for a structurally approved fixture `TEST_ONLY` pack and
-must advertise the explicit `TEST_ONLY_FIXTURE_PRIOR` capability. The exact
-result binds its `TestOnlyPriorApprovalReceiptRef`. The returned pack and every
-dependent receipt retain both `TEST_ONLY` and `NOT_UTILITY_QUALIFIED` ceilings
-permanently. A passing B-E4 creates separate gauntlet evidence and may qualify
-only the bounded Wave B mechanism; it never mutates or reclassifies the fixture
-pack. An external/public research context cannot be constructed
-with that provider and rejects the same pack. No caller-selected mode,
-alternate request schema, direct internal API, or v1 projection is used. B-07S
-owns the exact nominal context/provider, result, and capability types; B-07D3
-owns their enforcement.
+The Wave B gauntlet uses a structurally private, local-only research context
+with an injected fixture prior provider. It may retrieve only an exact-ref,
+structurally authorized `TEST_ONLY` pack, and the result binds a distinct
+test-only authorization receipt. The pack and every dependent receipt retain
+`TEST_ONLY / NOT_UTILITY_QUALIFIED` permanently. A passing B-E4 creates separate
+gauntlet evidence and may qualify only the bounded mechanism; it never mutates
+or reclassifies the fixture pack. An external/public context cannot be
+constructed with that provider and rejects the same pack. No caller-selected
+mode, alternate hidden API, or public v1 projection is used. B-07S owns the
+exact context/provider/result/capability types; B-07D3 owns enforcement.
 
 Every requester receives identical bytes for the same pack reference. The provider performs no server-side personalization, arbitrary private query, LLM answer generation, or paid informational upgrade. Agents personalize locally using their private research records.
 
@@ -634,7 +652,8 @@ entries, or an explicit `NONE_FOUND` statement bound to a public search-scope
 reference and evidence cutoff. Guidance never upgrades the component's
 epistemic status or makes its claimed structure gate evidence.
 
-Each item contains:
+Each item semantically binds the following information. B-07S owns exact wire
+field names/order/encoding and B-07D1 owns domain validation:
 
 ```text
 item_id
@@ -770,7 +789,9 @@ Carbon supplies the shared evidence map. It does not choose the miner's next mov
 
 ## 9.6 Offline publication pipeline
 
-`get_prior` serves only a prebuilt approved artifact. It never queries the card lake, Landscape, official evaluator, or private ExperimentRecords during a miner request.
+The prior-retrieval capability serves only a prebuilt artifact authorized for
+its publication class. It never queries the card lake, Landscape, official
+evaluator, or private ExperimentRecords during a miner request.
 
 A private persistent `PriorDisclosureLedger` is a required publisher input and
 output. It records cumulative disclosure by Challenge, channel, policy,
@@ -791,20 +812,22 @@ claim:
 2. run exact-hash schema, canonicalization, source-eligibility, redaction,
    canary, raw-string, poisoning, duplicate-lineage, joint-cell, and release-
    differencing conformance checks;
-3. obtain science, statistics, security, protocol, and rights approval for
-   fixture testing only, bound to the exact bytes and expected fixture
-   disclosure-ledger state;
-4. atomically append the fixture ledger delta and record a
-   `TestOnlyPriorApprovalReceipt` in a private immutable approval snapshot.
+3. record a delegated, exact-byte structural fixture authorization after the
+   applicable engineering checks and notifications; this is not science,
+   security-acceptance, rights, utility, publication, or release approval;
+4. atomically append the fixture ledger delta and record a test-only prior
+   authorization receipt in a private immutable snapshot; B-07S owns its exact
+   type and wire name.
 
 The receipt and its content-addressed reference are nominally distinct from a
 `PriorPublicationReceipt`. They carry `TEST_ONLY / NOT_UTILITY_QUALIFIED`,
-permit only exact-ref retrieval through `FixtureResearchContext`, and cannot
+permit only exact-ref retrieval through the private fixture context, and cannot
 enter a public channel, public active index, public or production v1 provider,
 external surface, or publication-class promotion. It may be input only to the
 private offline compatibility projector in §9.7; that output remains a private
-test artifact and is never used by the B-E4 v2-prior arm. B-E4 then pins those exact pack and approval
-references for every v2-prior arm run and replicate. A passing B-E4 result
+test artifact and is never used by the B-E4 v2-prior arm. B-E4 then pins those
+exact pack and authorization references for every v2-prior arm run and
+replicate. A passing B-E4 result
 creates separate gauntlet evidence but leaves the pack test-only. A failure or
 indeterminate result also blocks Wave B closeout.
 
@@ -850,7 +873,7 @@ The branches then converge without erasing origin:
    disclosure ledger delta without committing it;
 3. store candidate bytes and run redaction/canary, utility, conditional-
    leakage, poisoning, and version-differencing gauntlets against the exact
-   hash; a Wave B test-only approval receipt cannot satisfy this step;
+   hash; a Wave B test-only authorization receipt cannot satisfy this step;
 4. obtain science, security, protocol, and rights approvals bound to the exact
    hash, source branch, policy, gauntlet evidence, and expected ledger state;
 5. construct the publication receipt against the previous index and proposed
@@ -877,9 +900,9 @@ omitted rather than rewritten into a stronger claim. The resulting
 `PriorProjectionReceipt` pins the source v2 pack, mapping version, omissions,
 and output hash because the frozen v1 type has no fields for that provenance.
 
-The external v2 operation `inspect_prior_alignment` deterministically maps a
-Strategy to public item IDs using only the public pack and catalog. It never
-reads private outcomes.
+The future prior-alignment capability deterministically maps a Strategy to
+public item references using only the public pack and catalog. It never reads
+private outcomes. B-07S owns its exact operation and result vocabulary.
 
 ---
 
@@ -909,17 +932,24 @@ If yes, Carbon reduces granularity, changes cadence, coarsens or withdraws the a
 
 # 11. Evidence and authority classes
 
-Every result declares one of these non-interchangeable classes:
+The architecture preserves this complete authority ladder. Adjacent placement
+does not imply conversion, and B-07S must make the classes nominally distinct:
 
-| Evidence class | Meaning | May enter official score |
-|---|---|---:|
-| `STRUCTURAL_ONLY` | Validation, compilation, or public prior matching | No |
-| `STATIC_EXACT` | Deterministic calculation from public contracts | No |
-| `CALIBRATED_RESOURCE_FORECAST` | Non-binding resource prediction with calibration evidence | No |
-| `PRACTICE_NON_AUTHORITATIVE` | Measured public-practice result | No |
-| `OFFICIAL_EVIDENCE` | Result from the protected registered evaluation path | Only through the registered Score Pack |
+| Layer | Meaning | Authority boundary |
+|---|---|---|
+| structural prior alignment | Deterministic matching of public Strategy/catalog facts to public prior items | No scientific or resource authority |
+| static resource analysis | Exact plan-derived dimensions and declared constraints | No execution, forecast, quote, or scientific authority |
+| calibrated resource forecast | Non-binding resource prediction with calibration identity, uncertainty, and support state | No admission, price, execution, or scientific authority |
+| operational quote/admission | Future binding capacity/economic decision under Wave-C policy | Not a measurement, score, or scientific result |
+| practice measurement | Measured result under a declared public practice scope | `PRACTICE_NON_AUTHORITATIVE`; cannot enter official evidence |
+| official scientific evidence | Producer-independent result from the protected registered evaluation path | May be consumed only by its registered Score Pack |
+| score | Exact registered projection of qualified official evidence | Cannot imply frontier, settlement, weight, or emission |
+| frontier | Separately qualified promotion event under its own evidence and authority | Cannot imply settlement, weight, or emission |
+| settlement | Separately authorized economic/chain consequence | Cannot retroactively create scientific evidence or frontier status |
 
-No type conversion from a lower class to `OFFICIAL_EVIDENCE` exists.
+No implicit or explicit lower-layer conversion to official evidence exists.
+No prior, estimate, proxy, resource result, practice result, score predictor,
+predicted winner, or ranking heuristic may substitute for a registered layer.
 
 ---
 
@@ -974,66 +1004,197 @@ activation policy may remain separately unresolved and fail closed.
 
 ---
 
-# 13. Decisions fixed by this candidate
+# 13. B-07R material architecture decisions
 
-Subject to contract ratification, Wave B fixes these architectural choices:
+These eight decisions are the durable B-07R recommendation series. They become
+the merged Wave-B engineering architecture only under the completion predicate
+in the status header. Notification is not approval, and every reserved input
+listed below remains fail closed.
 
-1. Wave B remains declarative and does not accept arbitrary participant code.
-2. `ParameterCatalog` plus a deterministic compiler gives Strategy parameters executable meaning.
-3. Unknown, ignored, coerced, or silently clamped parameters are rejected.
-4. Practice and official execution remain nominally and authoritatively separate.
-5. Paired practice comparison uses common fresh public cases.
-6. Research tasks are asynchronous, idempotent, lineage-bearing, and receipt-producing.
-7. Existing structural `estimate`, static resource inspection, resource forecast, future execution quote, and practice measurement remain separate operations.
-8. Carbon publishes no official-score predictor.
-9. Priors are immutable Challenge-level artifacts identical for every miner.
-10. Prior personalization happens miner-side.
-11. Prior guidance references public executable levers and reports evidence quality, uncertainty, context, and limitations.
-12. Deterministic coarsening, suppression, lag, and persistent cumulative disclosure accounting precede optional formal privacy noise.
-13. Wave B fixtures retain `TEST_ONLY / NOT_UTILITY_QUALIFIED` permanently,
-    cannot activate `BOOTSTRAP_PUBLIC` or `LEARNED_PUBLIC` guidance, and no
-    v2-backed projection enters the public v1 provider.
-14. Prior, practice, scaffold, forecast, novelty, and information value never enter A5 score or ordinary scientific ranking.
-15. B-07R ratifies architecture; exact wire types, canonicalization, errors, bounds, and lifecycle semantics require the blocking B-07S contract.
-16. Wave B training-data search is limited to registered `R_strategy` sampling,
-    curriculum, and augmentation levers inside Challenge-owned support. Raw or
-    custom datasets, miner seeds, and all official `P`, `Q`, `w`, stress,
-    reference, gate, and scorer controls remain forbidden.
-17. A resolved-plan fixture-official adapter may exercise the unchanged v1
-    lifecycle only under fixture provenance. It does not convert practice or
-    research evidence into official authority and cannot alter the Wave A wire,
-    store, lifecycle, or error contract.
-18. B-07A implements the ratified shared v2 nominal primitives once; domain
-    tickets consume them, and B-07G owns only the final twelve-operation local
-    service composition, dispatch, and conformance.
-19. Challenge-owned structure-preserving components may be exposed as optional,
-    exactly reconstructible catalog surfaces; architecture labels and component
-    claims carry no scientific or score authority.
-20. Resource checks and staged evidence allocation may conserve compute but
-    cannot replace the complete reconstruction and repeat evidence required by
-    the registered decision. Unresolved evidence fails closed.
+## B-07R-D1 — Separate service planes and future transport
+
+- **Agent recommendation:** keep the exact Wave-A seven-tool service as the
+  sole official submission/result plane; add a distinct local/in-process
+  research plane; leave exact identifiers and negotiation to B-07S and remote
+  authentication, transport, identity, quotas, and quotes to Wave C.
+- **Rationale:** official authority cannot leak through a research alias or a
+  duplicated store, while local research needs no production network surface.
+- **Alternatives rejected:** mutate v1; merge both planes; expose a generic
+  mode flag; preselect remote transport or credentials in Wave B.
+- **Affected tickets:** A9, B-07S, B-07A, B-07G, B-07F, B-E4, Wave C.
+- **Migration cost:** low before B-07S; high after wire clients exist because a
+  merged namespace would require client, store, and authority migration.
+- **Exact change path:** supersede by a normally merged change to this file
+  §§6.5/8.1 and this decision; B-07S changes exact protocol details in
+  `Miner_MCP_Wave_B_Service_Protocol.md` without rewriting v1.
+- **Reserved input:** production transport/security/economic acceptance remains
+  unavailable and is not needed for local fixture development.
+
+## B-07R-D2 — Construction chain and P/Q/w/R_strategy law
+
+- **Agent recommendation:** compile `Strategy` plus Challenge-bound
+  `ParameterCatalog` and `CandidateAssemblyContract` into one
+  `ResolvedConstructionPlan`; keep P, Q, w, and `R_strategy` nominally
+  distinct; confine `R_strategy` to registered training support and derive all
+  randomness in the authorized execution context.
+- **Rationale:** executable semantics must be deterministic without allowing a
+  miner to rewrite the exam, evidence law, or seed authority.
+- **Alternatives rejected:** inert or ignored parameters; arbitrary code or
+  data; miner seeds; treating training policy as P, Q, w, stress, reference,
+  measurement, gate, or score control.
+- **Affected tickets:** B-02A, B-02B, B-02C, B-03, B-05, B-07S, B-07C, B-07F.
+- **Migration cost:** medium; post-merge semantic changes require prospective
+  catalog/compiler/plan versions and preservation of historical refs.
+- **Exact change path:** amend §§4–5 and B-02B's future
+  `Candidate_Assembly_and_Strategy_Compiler_Contract.md`; B-07S owns only its
+  exact wire projection.
+- **Reserved input:** real catalog values, backbones, structural components,
+  training sources, units, domains, and policy family remain unavailable.
+
+## B-07R-D3 — Research lineage and practice/official separation
+
+- **Agent recommendation:** every practice or research execution is a pinned
+  `ResearchTask` producing a private immutable `ExperimentRecord` and a bounded
+  `ResearchReceipt`; practice remains non-authoritative, while B-07F later
+  consumes the same resolved-plan identity through unchanged fixture-official
+  v1 authority.
+- **Rationale:** reproducible lineage and honest paired practice are useful
+  without turning research state into official evidence or a second lifecycle.
+- **Alternatives rejected:** upload all miner history; return per-case protected
+  data; caller-selected mock/official mode; reuse practice output in A5/A6/A7;
+  build a second official store.
+- **Affected tickets:** B-07S, B-07A, B-07B, B-07C, B-07F, B-07G, B-GATE.
+- **Migration cost:** medium; lineage fields are prospective, but authority
+  conversion would require invalidating records and consumers.
+- **Exact change path:** amend §§6–7 and the later B-07S protocol; B-07B owns
+  records/lifecycle, B-07C practice, and B-07F fixture-official consumption.
+- **Reserved input:** real practice population, reference, measurements,
+  disclosure, rights, and security acceptance keep external practice disabled.
+
+## B-07R-D4 — Immutable same-bytes prior and miner-local personalization
+
+- **Agent recommendation:** publish only immutable Challenge-level packs with
+  exact historical retrieval, atomic active-index resolution, publication-
+  class ceilings, persistent disclosure accounting, and identical bytes for
+  every requester; personalization occurs only in the miner's local records.
+- **Rationale:** shared scientific memory can improve search without a private
+  request-time oracle, paid information tier, or personalized official truth.
+- **Alternatives rejected:** dynamic private-store queries; server-side LLM
+  answers; per-miner pack bytes; implicit latest; fixture-to-public promotion;
+  production v2 projection into the frozen v1 provider.
+- **Affected tickets:** B-07S, B-07D1, B-07D2, B-07D3, B-E4, Landscape, Wave C.
+- **Migration cost:** medium to high; changing content identity or history
+  requires a prospective version and preservation of every old pack/receipt.
+- **Exact change path:** amend §9 and later prior-policy/publication contracts;
+  B-07S fixes selector, receipt, index, and wire mechanics.
+- **Reserved input:** estimands, cohorts, lag, cadence, coarsening, content,
+  rights, public approvals, and signing custody keep public activation disabled.
+
+## B-07R-D5 — Conditional protected-realization leakage objective
+
+- **Agent recommendation:** test whether the cumulative interaction transcript
+  adds material ability to infer protected realizations, hidden stress
+  composition, exact margins, or unresolved ordering after controlling for
+  transferable held-out physics performance.
+- **Rationale:** Carbon should prevent exam-oracle shortcuts while rewarding
+  genuine learning; deliberately poor practice physics defeats the product.
+- **Alternatives rejected:** optimize for low practice/official correlation;
+  review endpoints independently; rely on random recipe perturbation; claim
+  local fixture tests establish production security.
+- **Affected tickets:** B-07S, B-07C, B-07D2, B-07E, B-E4, Wave C, Wave D.
+- **Migration cost:** low before gauntlet preregistration; high after disclosure
+  budgets or public releases because cumulative history must remain auditable.
+- **Exact change path:** amend §§9.6/10/12.2 and B-E4's preregistered contract;
+  production security changes require the later security owner contract.
+- **Reserved input:** linkage basis, adversary model, privacy policy, utility
+  floor, diversity floor, and leakage limit remain human-owned.
+
+## B-07R-D6 — Evidence/resource/authority ladder
+
+- **Agent recommendation:** preserve the nine layers in §11 from structural
+  prior alignment through settlement; require typed deferral or indeterminacy;
+  prohibit every implicit conversion and every official-score/winner predictor.
+- **Rationale:** resource conservation, hypotheses, practice, and forecasts are
+  useful only if none can masquerade as registered scientific evidence.
+- **Alternatives rejected:** quality-based denial before complete base evidence;
+  score prediction; proxy promotion; treating failure as a scientific zero;
+  inferring frontier or settlement from score.
+- **Affected tickets:** B-02C, B-05, B-07E, B-07F, B-E1, B-E4, A5, A6, A10.
+- **Migration cost:** high after evidence is persisted; any new class or
+  conversion requires prospective schema/policy versions and requalification.
+- **Exact change path:** amend §§8.2/11 and the owning B-05/B-02C/B-E1
+  contracts; no research-service change may alter A5 authority.
+- **Reserved input:** reconstruction budgets, coverage, stopping, forecast
+  calibration, admission, pricing, frontier, and settlement policy stay absent.
+
+## B-07R-D7 — B-07S protocol delegation and implementation layering
+
+- **Agent recommendation:** B-07R fixes capabilities, authority, and ownership
+  only. B-07S exclusively fixes exact wire objects, service/version and
+  operation names, lifecycle, request/response, errors, canonical bytes,
+  bounds, pagination, idempotency, providers, local adapter, negotiation, and
+  disclosure. B-07A implements shared primitives once; domain tickets own
+  semantics; B-07G composes the B-07S-ratified closed set.
+- **Rationale:** one protocol owner prevents schema drift and avoids using an
+  architecture candidate as unreviewed wire authority.
+- **Alternatives rejected:** ratify exact wire/protocol literals in B-07R; let each domain
+  ticket define duplicate types; make B-07G a semantic owner; implement before
+  B-07S.
+- **Affected tickets:** B-07S, B-07A through B-07G, B-02B, B-02C, A2, A9.
+- **Migration cost:** low now; high after implementations because duplicate
+  types and operation aliases would require coordinated client migration.
+- **Exact change path:** amend §8.1 and the B-07S ticket/contract; architectural
+  changes return to B-07R, exact-protocol changes stay in B-07S.
+- **Reserved input:** none for bounded protocol engineering; security/rights/
+  economics needed by remote or public capabilities remain fail closed.
+
+## B-07R-D8 — Delegated engineering ratification and fail-closed maturity
+
+- **Agent recommendation:** accept B-07R engineering after durable record and
+  notification, applicable validation, exact-head CI, repair of every valid
+  Greptile finding with zero Greptile threads unresolved, normal exact-tree
+  merge, and exact-main CI. A documented invalid finding may be closed with
+  rationale; any tree change requires rereview. Silence is no gate. Mark only
+  bounded `SPECIFIED / RATIFIED`; every implementation and qualification state
+  remains `NO`.
+- **Rationale:** current delegated governance permits bounded progress while
+  retaining human ownership of values and high-consequence activation.
+- **Alternatives rejected:** multi-human preapproval; treating notification as
+  approval; claiming qualification from architecture prose; recursively opening
+  a closeout PR solely to restate immutable merge metadata.
+- **Affected tickets:** B-07R, B-02B, B-07S, all later Wave-B implementation,
+  B-GATE.
+- **Migration cost:** low; an observed `CHANGE`, `BLOCKED`, or
+  `REQUEST_CHANGES` is handled by a bounded normally merged successor change.
+- **Exact change path:** amend this decision, `.agent/WAVE*.md`, ticket, plan,
+  and evidence together; preserve historical evidence and record supersession.
+- **Reserved input:** scientific truth/values, security acceptance, rights,
+  economics, qualification, LIVE, launch, settlement, weight, emission, and
+  production authority remain unavailable.
 
 ---
 
-# 14. Human inputs and evidence still required
+# 14. Deferred inputs and explicit fail-closed behavior
 
-These do not block fixture schemas and contract tests. They fail closed for the first external or learned deployment.
+These inputs do not block unrelated bounded architecture, schema, fixture, or
+test work. They do block the named capability, exactly as shown.
 
-| Input | Owner | Master question | Blocks |
-|---|---|---|---|
-| First executable lever catalog, units, ranges, hybrid assembly, backbones, training support, and allowed `R_strategy` sampling/curriculum/augmentation policies | SciML + protocol + security | MQ-015, MQ-024 | Real compiler catalog |
-| Structural-component assumptions, exact implementations, applicability, limitations, and falsification tests | SciML + protocol + security | MQ-005, MQ-015, MQ-024 | Real structural-component catalog entries or guidance |
-| Practice population relationship, honest reference, measurement selection/applicability, intentional omissions, and disclosure | SciML + statistics + security | MQ-002, MQ-003, MQ-004, MQ-005, MQ-016 | External practice release |
-| Runtime ceilings and qualified hardware/resource classes | SRE + security | MQ-008, MQ-015 | Real reconstruction |
-| ReconstructionEvidencePolicy, family-specific complete-base evidence, artifact-reuse window, scientific stopping/extension, typed deferral, heuristic-futility error control, and stability-audit rate | Statistics + SciML + protocol | MQ-007, MQ-008 | Real scientific ranking and later frontier promotion |
-| Validator capacity, reconstruction funding, queueing, and operational evidence budget | SRE + operations + economics | MQ-008, MQ-017 | Operational availability of registered evidence; otherwise `EVIDENCE_DEFERRED` |
-| Resource forecast calibration and unsupported-input rule | SRE + statistics | MQ-017 | Calibrated forecast claim |
-| Prior estimands, cohort, lag, cadence, coarsening, allowed granularity, and search-diversity metric/floor | Landscape + science + statistics + security | MQ-025, MQ-026 | Any external prior activation |
-| Preregistered B-E4 agent profiles, matched budgets, utility estimand/effect floor, uncertainty rule, diversity floor, and conditional-leakage limit on evaluator-held shadow cases | Research + science + statistics + security + protocol | MQ-016, MQ-026 | B-E4 execution and any public prior/agent claim |
-| First curated bootstrap content and citations | SciML + publication owner | MQ-025, MQ-051 | `BOOTSTRAP_PUBLIC` activation |
-| Reuse rights for Strategy and ExperimentRecord aggregates | Business + counsel | MQ-045 | Unrestricted learned ingestion |
-| Named prior publication approvers and future signer/key custody | Governance + security | MQ-018 | External activation/signing |
-| Remote practice quotas, fees, and congestion policy | Operations + economics | MQ-017 | Charged remote service |
+| Deferred input (category + MQ) | Owner/domain | Affected capability | Fail-closed behavior now | Downstream ticket/seam | May unrelated development continue? |
+|---|---|---|---|---|---|
+| Real physical task, P/Q/w, reference, measurement, and qualification values (MQ-001, MQ-002, MQ-004–MQ-008) | SciML + statistics + protocol | Real authoring, exam, evidence, and qualification | Production objects reject or remain unregistered; fixtures confer no truth | B-03 through B-06; Wave D qualification | Yes |
+| Real catalog, hybrid/structural components, TrainingSupport, and `R_strategy` values (MQ-015, MQ-024) | SciML + protocol + security | Real compiler and training reconstruction | Only closed non-authoritative fixtures; unknown values reject | B-02B | Yes |
+| Exact research-protocol object fields, collection/resource-envelope bounds, pagination, polling, lifecycle/idempotency limits, and numeric ceilings (MQ-015–MQ-018, MQ-024–MQ-026) | Protocol + security + SRE | Any service-facing research implementation | No service implementation before the exact B-07S protocol normally merges; architecture and non-wire domain fixture work may continue | B-07S, B-07A, B-07G | Yes |
+| External practice scope, reference, disclosure, rights, and security acceptance (MQ-002–MQ-005, MQ-015, MQ-016, MQ-045) | Science + statistics + security + rights | Public/remote practice | External practice unavailable; local fixture practice only | B-07C, B-E4, Wave C/D | Yes |
+| Runtime ceilings, hardware classes, enforcement, and kill rails (MQ-008, MQ-015, MQ-017, MQ-024) | SRE + security + operations | Real reconstruction execution | Real execution rejected; fixture resource classes only | B-02C | Yes |
+| Capacity, funding, queues, and operational evidence budget (MQ-017) | SRE + operations + economics | Admission of registered evidence work | Return `EVIDENCE_DEFERRED`; never a scientific outcome | B-02C, Wave C quote/admission | Yes |
+| Forecast calibration, support window, uncertainty, and unsupported-input rule (MQ-017) | SRE + statistics | Calibrated resource forecast | Forecast capability returns `UNRESOLVED`; static analysis remains separate | B-07E | Yes |
+| Complete-base evidence, coverage, stopping/extension, futility-error control, and audit rate (MQ-007, MQ-008, MQ-024) | Statistics + SciML + protocol | Scientific ranking and frontier evidence | Return `EVIDENCE_DEFERRED` or `INDETERMINATE`; no promotion | B-05, B-E1 | Yes |
+| Prior estimands, cohorts, lag, cadence, coarsening, granularity, diversity, and first content (MQ-025, MQ-026, MQ-051) | Landscape + science + statistics + publication | Public prior activation | No public active pack; `TEST_ONLY / NOT_UTILITY_QUALIFIED` fixtures only | B-07D1, B-07D2, B-E4 | Yes |
+| Reuse/publication rights, permitted aggregation, named public approvers, and signing custody (MQ-018, MQ-045, MQ-051) | Business + counsel + governance + security | Learned ingestion, publication, and signing | Rights-ineligible data rejected; public activation/signing unavailable | B-07D2, later security/publication seam | Yes |
+| B-E4 agent profiles, budgets, utility estimand/effect rule, diversity floor, and conditional-leakage limit (MQ-016, MQ-026) | Research + science + statistics + security + protocol | Utility/leakage gauntlet and public claims | B-E4 cannot close; descriptive output has no utility/security authority | B-E4 | Yes |
+| Remote identity, authentication, privacy basis, Sybil linkage, false-merge handling, and appeals (MQ-016, MQ-018, MQ-045) | Security + privacy/legal + protocol | Remote research service and cumulative enforcement | No authenticated remote service or cross-requester security claim | Wave C security contract | Yes |
+| Remote quotas, fees, congestion, admission, and quote economics (MQ-017) | Operations + economics | Charged or capacity-binding service | Quote/admission and charging unavailable; forecast is non-binding | Wave C operations/economics | Yes |
+| LIVE, launch, production qualification, frontier, settlement, weight, and emission authority (MQ-018, MQ-051) | Executive/domain owners under Launch Bar | Any production or network consequence | Remain `NO` and mechanically unavailable | B-GATE, Launch Bar, Wave D and later launch | Yes |
 
 ---
 

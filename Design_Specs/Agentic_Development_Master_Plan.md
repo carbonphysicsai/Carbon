@@ -150,8 +150,8 @@ Components:
 - deterministic Strategy compilation into a `ResolvedConstructionPlan`;
 - `ChallengeInteractionManifest` capability discovery;
 - architecture ratification followed by an exact bounded Wave B service-protocol gate;
-- one shared implementation of the ratified v2 nominal primitives followed by
-  twelve-operation `ResearchMcpService` composition and conformance;
+- one shared implementation of the B-07S-ratified nominal primitives followed
+  by composition and conformance for its exact closed operation set;
 - nominal fixture-only practice tasks, paired comparison, research records,
   and receipts;
 - immutable PriorPack models, TEST_ONLY fixture staging, and bootstrap

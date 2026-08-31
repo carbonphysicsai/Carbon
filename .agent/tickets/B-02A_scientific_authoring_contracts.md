@@ -1,7 +1,7 @@
 # Ticket B-02A - Scientific authoring and canonical-case contracts
 
 **Wave:** B candidate
-**Status:** in_progress (agent-selected working contract; implementation candidate)
+**Status:** done (bounded engineering scope only)
 **Depends on:** B-01E
 **Build Out:** C3 and Wave B scientific contract objects
 **Master questions:** MQ-001, MQ-002
@@ -10,11 +10,15 @@
 **Plan:** `.agent/plans/B-02A_scientific_authoring_contracts.md`
 **Evidence:** `.agent/evidence/wave_b/b-02a.md`
 
-> This status/evidence transition remains prospective branch content until
-> normally merged. Governance PR #61 authorizes bounded implementation from the
-> recorded working contract without affirmative lead approval. The first
-> Definition-of-Done item remains unchecked until its final independent-review
-> and normal-merge clauses are satisfied; no unearned maturity is implied.
+> PR #60 normally merged exact reviewed head
+> `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
+> `61a4463ac459f7fe96545f2746511d6940246f57`, as
+> `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head
+> CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved
+> threads, and exact-main CI `33342015346` passed. Issue #42 comment
+> `5470746417` delivered B-02A-D1 through B-02A-D11. This closes only the
+> recorded bounded contract, implementation, and engineering-test scope; all
+> human-reserved qualification and production authority remains unavailable.
 
 ## Goal
 
@@ -22,33 +26,33 @@ Implement versioned identities and fixture schemas for the physical job before a
 
 ## Definition of Done
 
-- [ ] Produce `Design_Specs/Scientific_Challenge_Authoring_Contract.md` before runtime implementation. Treat it as the ticket's working contract: record material agent-recommended decisions, notify the applicable lead inboxes, and continue implementation under `.agent/DELEGATED_DECISION_PROTOCOL.md` unless an explicit `BLOCKED` / `REQUEST_CHANGES` direction or a genuinely human-reserved value prevents correct bounded work. Independent SciML/statistics/protocol review must cover the final contract/implementation merge candidate before normal merge. No pre-implementation affirmative approval or silence gate applies to agent-authorized engineering decisions.
-- [ ] Define exact immutable references for `PhysicalSystemSpec`,
+- [x] Produce `Design_Specs/Scientific_Challenge_Authoring_Contract.md` before runtime implementation; record B-02A-D1 through B-02A-D11, deliver the required lead notification, pass exact-head CI and clean Greptile review with every blocking finding resolved, and normally merge the exact reviewed tree. No pre-implementation affirmative approval or silence gate applies to agent-authorized engineering decisions.
+- [x] Define exact immutable references for `PhysicalSystemSpec`,
       `CandidateOutputContract`, `InstanceDistributionContract`,
       `SamplingPlan`, `TrainingSupportContract`, and
       `CanonicalChallengeCase`.
-- [ ] Keep target population `P(x)`, official proposal/sampling `Q(x)`, evidence weighting `w(x)`, and Challenge-bounded training support semantically separate. Define the training support's membership, invariants, and data-rights semantics. Reserve `R_strategy` for the canonical `ResolvedTrainingSamplingPolicy` object and ref materialized by the later compiler; it cannot redefine `P`, `Q`, or `w`.
-- [ ] Represent target/workload, official sampling/proposal, stress,
+- [x] Keep target population `P(x)`, official proposal/sampling `Q(x)`, evidence weighting `w(x)`, and Challenge-bounded training support semantically separate. Define the training support's membership, invariants, and data-rights semantics. Reserve `R_strategy` for the canonical `ResolvedTrainingSamplingPolicy` object and ref materialized by the later compiler; it cannot redefine `P`, `Q`, or `w`.
+- [x] Represent target/workload, official sampling/proposal, stress,
       practice, product-qualification, deployment, and realized-valid-evidence
       populations as distinct typed identities when applicable. No population
       role may be inferred from a shared support, generator, seed family, case
       representation, or PDE name.
-- [ ] Bind query/observation population, evidence-campaign identity, and
+- [x] Bind query/observation population, evidence-campaign identity, and
       censoring provenance so a verification campaign cannot be relabeled as
       the target or deployment population.
-- [ ] Represent manufactured-solution cases through a distinct verification
+- [x] Represent manufactured-solution cases through a distinct verification
       population or evidence-campaign identity. An MMS identity may support
       implementation verification but cannot satisfy target-population,
       workload-prevalence, physical-validation, context-of-use, or product-
       qualification semantics.
-- [ ] Bind candidate causal inputs, outputs, representation, units, geometry/domain, time semantics, and claim scope without setting unapproved Burgers values as LIVE truth.
-- [ ] Define valid-case, censored-case, excluded-case, and generation-failure states.
-- [ ] Ensure one canonical physical case can bind analytic, manufactured,
+- [x] Bind candidate causal inputs, outputs, representation, units, geometry/domain, time semantics, and claim scope without setting unapproved Burgers values as LIVE truth.
+- [x] Define valid-case, censored-case, excluded-case, and generation-failure states.
+- [x] Ensure one canonical physical case can bind analytic, manufactured,
       numerical, experimental, industrial, and later hybrid reference evidence
       without transferring authority between those evidence roles.
-- [ ] Content-address every contract with explicit canonicalization/version identity.
-- [ ] Add exact-type, malformed-input, hash/pin, equality, supersession, fixture-origin, population-role-confusion, MMS-relabeling, and installed-wheel tests.
-- [ ] Ensure no fixture identity can satisfy the LIVE qualification gate.
+- [x] Content-address every contract with explicit canonicalization/version identity.
+- [x] Add exact-type, malformed-input, hash/pin, equality, supersession, fixture-origin, population-role-confusion, MMS-relabeling, and installed-wheel tests.
+- [x] Ensure no fixture identity can satisfy the LIVE qualification gate.
 
 ## Human input
 

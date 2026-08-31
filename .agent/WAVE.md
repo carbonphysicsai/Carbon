@@ -3,11 +3,13 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 0.5
-**Selected ticket:** B-02A — prospective `in_progress`; working-contract implementation
+**Controlling register:** `.agent/WAVE_B.md` version 0.6
+**Selected ticket before the B-07R completion predicate:** B-07R — `in_progress`
+**Next selected ticket after that predicate:** B-02B — `todo` / **NOT STARTED**
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
-**B-02A status:** prospective `in_progress` / working contract / implementation candidate
+**B-02A status:** `done` in bounded merged engineering scope
+**B-07R status:** `done` only after the conditional exact-head review/CI, normal-merge, and exact-main-CI predicate; otherwise `in_progress`
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
 **Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
 **Repository constitution:** `CONSTITUTION.md`  
@@ -16,31 +18,27 @@
 **Agent constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
 
-> **B-02A working implementation candidate.** PR #59 normally merged the B-01E
-> closeout as `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree
-> `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`, and exact-main CI
-> `33321131062` passed. Governance PR #61 then independently reviewed exact
-> head `fb220c14966aa3505d95b199ce168bf31064d1ba`, normally merged as
-> `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree
-> `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`, and passed exact-main CI
-> `33329693544`. That merged authority makes the v0.1 scientific authoring
-> contract an agent-selected working contract and permits bounded B-02A
-> implementation after durable decisions/lead notification. Final exact-head
-> independent SciML/statistics/protocol review and normal merge remain required.
-> This `in_progress`/implementation evidence is still prospective branch
-> content until PR #60 normally merges; no human-reserved value or maturity is
-> inferred from implementation.
+> **B-02A closed.** PR #60 normally merged exact reviewed head
+> `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
+> `61a4463ac459f7fe96545f2746511d6940246f57`, as
+> `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head
+> CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved
+> threads, and exact-main CI `33342015346` passed. Issue #42 comment
+> `5470746417` delivered B-02A-D1 through B-02A-D11. B-02A is `done` only in
+> its bounded contract, implementation, and engineering-test scope.
 
-> **Authority state.** PR #54 activated Wave B governance. PR #57 closed B-01,
-> PR #58 implemented B-01E, and PR #59 normally merged the independently
-> reviewed B-01E closeout that selected B-02A. Their exact-main CI gates passed.
-> The current session is the fresh authorized B-02A ticket session. Governance
-> PR #61 supersedes the former affirmative pre-implementation contract gate:
+> **Authority state.** PR #54 activated Wave B governance; PRs #57–#59 closed
+> B-01/B-01E and selected B-02A; PR #60 closed B-02A with the exact evidence
+> above. Governance PR #61 superseded the former affirmative
+> pre-implementation contract gate:
 > agent-authorized engineering decisions are selected, recorded, notified,
 > implemented, tested, and independently reviewed before merge. A human-
 > reserved value stops its affected behavior and remains fail closed; it stops
-> the whole ticket only when no correct bounded continuation exists. B-02A is
-> the only active ticket, and every later ticket remains `todo` and untouched.
+> the whole ticket only when no correct bounded continuation exists. This
+> branch carries B-07R's conditional completion record. It has no authority
+> until the exact reviewed tree normally merges and exact-main CI passes; until
+> then B-07R remains `in_progress` and B-02B cannot start. After that predicate,
+> B-07R is `done` and B-02B is merely selected next as `todo / NOT STARTED`.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -108,20 +106,21 @@ normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
 does not authorize implementation by itself.
 
 Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.4 the initial
-controlling Wave B dependency board. Version 0.5 records the owner-directed
-B-01E insertion without changing the Wave B scientific architecture
-contract. Its architecture
-contract remains version 0.3 at
+controlling Wave B dependency board. Version 0.5 recorded the owner-directed
+B-01E insertion. Version 0.6 records proven B-02A closeout, B-07R's delegated
+engineering ratification and conditional completion mechanism, and B-02B as
+the next `todo / NOT STARTED` ticket only after that predicate. The architecture
+contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
 [`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). PR #59 normally merged
 the closeout transition `B-01 done → B-01E done → B-02A next selected/todo`,
 and its exact-main CI passed. B-01E owns only the canonical development
 environment and legacy executable quarantine. PR #61 then normally merged the
-delegated-decision governance described above. This separately authorized
-branch therefore proposes B-02A `in_progress` with a bounded implementation
-candidate; its final exact-head independent review and normal merge remain
-pending. Every later ticket remains unstarted.
+delegated-decision governance described above, and PR #60 closed B-02A using
+that model. B-07R's tracked status is conditional on the exact external review,
+merge, and exact-main-CI facts in its evidence record. No B-02B implementation
+is part of this transition.
 
 No multi-role approval bundle, exact-byte activation approval, or separate
 activation closeout is required before B-01 development. Authorization comes
@@ -130,8 +129,9 @@ and delivered through the non-blocking lead-notification process in
 `.agent/DECISIONS.md`, the Wave B board, and the handoff. Harshdeep Sharma
 (`@harshaa765`) may amend, reject, or supersede such a decision; silence is not
 a gate, while a lead `REQUEST_CHANGES` review or explicit `BLOCKED` direction
-pauses the affected change. B-07R and B-07S remain later architecture and exact
-service-protocol ratification gates. Scientific truth and qualification,
+pauses the affected change. B-07R owns the merged working engineering
+architecture under its completion predicate; B-07S remains the exact service-
+protocol ratification gate. Scientific truth and qualification,
 security acceptance, rights/legal policy, live economics, launch, production,
 `LIVE`, frontier, product, settlement, chain, weight, and emission authority
 remain unearned and human-owned where `AGENTS.md` reserves them.

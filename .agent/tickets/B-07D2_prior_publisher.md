@@ -25,9 +25,10 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
 - [ ] Generate no free text from private or fixture records and expose no exact recipes, effects, counts, identities, raw Strategy keys, lineages, or protected context.
 - [ ] Implement the non-circular fixture staging gate: exact candidate bytes →
       structural/redaction/canary/poisoning/differencing conformance → exact-
-      hash science/statistics/security/protocol/rights fixture-only approvals → one
-      atomic fixture-ledger append plus
-      private `TestOnlyPriorApprovalReceipt`/approval-snapshot update. Preserve
+      hash delegated structural fixture authorization under B-07R-D8 → one
+      atomic fixture-ledger append plus the B-07S-ratified private test-only
+      authorization-receipt/snapshot update. This is not science, security-
+      acceptance, rights, utility, publication, or release approval. Preserve
       `TEST_ONLY / NOT_UTILITY_QUALIFIED`; provide exact-ref eligibility only,
       never public-channel activation.
 - [ ] Specify and test the stronger future public pipeline separately:
@@ -39,8 +40,8 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
       candidate bytes → exact-hash utility/leakage and integrity gauntlets →
       exact-hash approvals → publication receipt → one atomic
       disclosure-ledger commit plus public-index activation. A test-only
-      approval receipt cannot satisfy this gate, and Wave B fixtures cannot
-      execute a public-class activation.
+      authorization receipt cannot satisfy this gate, and Wave B fixtures
+      cannot execute a public-class activation.
 - [ ] Add eligibility, poisoning, duplicate-lineage, joint-cell, canary,
       release-differencing, contrary-evidence suppression, false-`NONE_FOUND`,
       applicability erasure, raw-string, lag/window, ledger/index TOCTOU and
@@ -49,10 +50,12 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
 
 ## Human input
 
-Science, statistics, security, protocol, and rights owners approve exact
-TEST_ONLY fixture bytes for pre-gauntlet use only. Owners later provide
-cohorts, cadence, lag, bands, diversity metric/floor, public approvers, and
-public utility/leakage thresholds. Fixtures cannot choose production values.
+The exact TEST_ONLY bytes receive only delegated structural fixture
+authorization after engineering checks and notification. Science, statistics,
+security, protocol, and rights owners later supply the real cohorts, cadence,
+lag, bands, diversity metric/floor, public approvers, rights, and public
+utility/leakage thresholds. Missing inputs keep public activation unavailable;
+fixtures cannot choose production values.
 
 ## Must not
 

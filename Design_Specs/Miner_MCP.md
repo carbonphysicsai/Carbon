@@ -5,12 +5,16 @@ Version: **2.3**<br>
 Authority: `CONSTITUTION.md`, `.agent/INVARIANTS.md`, `.agent/DECISIONS.md`, and the governing A2, A3, A6, A7, and A8 contracts<br>
 Implementation maturity: **implemented and tested only for the recorded bounded engineering scope; not scientifically qualified, security qualified, network qualified, commercially validated, or production qualified**
 
-> **Wave B contract candidate:**
+> **Wave B working engineering architecture:**
 > [`Miner_MCP_Wave_B_Research_Contract.md`](./Miner_MCP_Wave_B_Research_Contract.md)
-> proposes the separately versioned ParameterCatalog, semantic compilation,
+> version 0.4 defines the separately versioned ParameterCatalog, semantic compilation,
 > practice, research-record, resource-estimation, and PriorPack extension. It
 > does not change this ratified v2.3/Wave-A service or authorize implementation
-> before its own review, human ratification, and Wave activation.
+> before B-07R's exact-head CI, repair of every valid Greptile finding with
+> zero Greptile threads unresolved, normal-merge, and exact-main-CI completion
+> predicate. B-07S owns every exact protocol mechanic. Human-reserved
+> science, security acceptance, rights, economics, qualification, LIVE, launch,
+> and production authority remains unavailable.
 
 This specification replaced the earlier aspirational MCP sketch with the
 ratified bounded Wave-A contract. The exact seven-tool in-process implementation
@@ -47,12 +51,12 @@ contract.
 
 ### Wave B — explicitly deferred
 
-Wave B may define `MockExecutionRequest`, `MockRunOutcome`,
-`MockTrainEvalService.run_mock`, mock packs and resources, execution disclosure,
-and adaptive-loop evidence. The inactive Wave B contract and B-07S own the
-exact v2 vocabulary; measured practice runs through `start_research_task` rather
-than separate `light_compare` or `light_train` wire operations. None of those
-types or behaviors exists in Wave A.
+Wave B may define nominal practice requests/outcomes/services, mock packs and
+resources, execution disclosure, and adaptive-loop evidence. The B-07R
+architecture and B-07S exact protocol own that work; measured practice runs
+through the B-07S-ratified task-launch capability rather than separate
+`light_compare` or `light_train` wire operations. None of those types or
+behaviors exists in Wave A.
 
 A8-R15 remains binding for every execution-dependent claim. Wave A's
 `estimate` tool is a pure structural prior operation; it does not execute a
@@ -641,8 +645,11 @@ Existing A0–A8 regressions are not A9 test evidence.
 ## 12. Deferred full-loop and release posture
 
 The broader discover → prior → scaffold → mock → compare → train → submit →
-inspect loop remains design intent, not Wave-A scope. Before any Wave-B work,
-the owners must separately ratify:
+inspect loop remains outside Wave-A scope. B-07R ratifies its working
+engineering architecture under delegated governance; B-07S separately owns the
+exact service protocol. Human/domain owners still supply or approve the real
+scientific, security, rights, economic, qualification, and production values
+for the capabilities they control. The later work must define:
 
 - the ChallengeInteractionManifest, CandidateAssemblyContract,
   ParameterCatalog, StrategyCompiler, and ResolvedConstructionPlan semantics;

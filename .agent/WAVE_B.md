@@ -1,10 +1,11 @@
 # Carbon Wave B Board
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 0.5
-**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserts the owner-directed B-01E infrastructure ticket without changing the Wave B scientific architecture contract. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07R and B-07S still own behavioral and exact-protocol ratification before service-facing implementation.
+**Version:** 0.6
+**Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 records B-02A closeout, B-07R delegated engineering ratification, conditional same-flow completion, and B-02B as next `todo / NOT STARTED` only after the B-07R predicate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
-**B-02A candidate start:** PR #59 normally merged the B-01E closeout as `e10107644d5fb0c7d69b153c0c3b8a03b93b19bb`, tree `0f6beb5b000e771fd7e050f150e1074ea2a6fb1f`, and exact-main run `33321131062` passed. Governance PR #61 then independently reviewed head `fb220c14966aa3505d95b199ce168bf31064d1ba`, normally merged as `7bdf4971b7d0b3ee8ffde577595a49c6b5456961`, tree `109bb59e117d25cbdfddcc4c4a8fe6e3f3f34cdb`, and passed exact-main run `33329693544`. The dedicated B-02A branch now proposes `in_progress` for working-contract implementation; final independent SciML/statistics/protocol review, CI, and normal merge remain required before `done`.
+**B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
+**B-07R transition:** this version's B-07R `done` and B-02B next-selection fields are conditional branch records. They become authoritative only after the exact reviewed B-07R head passes required CI and clean Greptile review, every valid Greptile finding is repaired, zero Greptile threads remain unresolved, the head normally merges with its tree preserved, and exact-main CI passes. A documented invalid finding may be closed with rationale; any tree change requires rereview. Until then B-07R is `in_progress` and B-02B cannot start. Immutable PR/check/merge/Actions metadata and the issue #42 completion comment record the exact identities without a recursive closeout PR.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -12,11 +13,12 @@
 
 Authority comes from the merged active `.agent/WAVE.md`, selected ticket, and
 merged delegated-decision protocol, not this file alone or prior role
-approval. B-01 and B-01E are authoritatively `done`; B-02A is the only selected
-`in_progress` ticket. Its working decisions may be implemented after durable
-record and applicable notification without affirmative lead response. A
-human-reserved value remains unavailable and blocks its affected behavior.
-Every later ticket remains `todo` and unstarted.
+approval. B-01, B-01E, and B-02A are authoritatively `done`. B-07R remains
+`in_progress` until its conditional completion predicate; afterward B-02B is
+selected next but remains `todo / NOT STARTED`. Working engineering decisions
+may proceed after durable record and applicable notification without
+affirmative lead response. A human-reserved value remains unavailable and
+blocks its affected behavior, not unrelated bounded work.
 
 ---
 
@@ -62,9 +64,10 @@ Wave B does not include real miner training, production reconstruction, authenti
 10. Wave B prior handling is mechanically limited to private `TEST_ONLY`
     staging and reviewed public-publication schemas/negative tests. Public-class
     activation and qualified learned publication remain later and fail closed.
-11. A `TestOnlyPriorApprovalReceipt` carries
-    `TEST_ONLY / NOT_UTILITY_QUALIFIED`, permits only private exact-ref fixture
-    retrieval, and cannot substitute for a public `PriorPublicationReceipt`.
+11. A distinct test-only prior authorization receipt (exact type owned by
+    B-07S) carries `TEST_ONLY / NOT_UTILITY_QUALIFIED`, permits only private
+    exact-ref fixture retrieval, and cannot substitute for a public
+    `PriorPublicationReceipt`.
 12. The catalog may expose Challenge-owned, versioned, reconstructible
     structure-preserving components as optional construction levers. A
     component label or claimed invariant never satisfies a scientific gate;
@@ -86,14 +89,14 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
 | B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
-| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | in_progress | `.agent/evidence/wave_b/b-02a.md` (bounded working-contract implementation/test candidate; final exact-head review/merge pending) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
-| B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | — | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
+| B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | done | `.agent/evidence/wave_b/b-02a.md` (PR #60 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded engineering scope only) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
+| B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | todo | next selected / NOT STARTED only after the B-07R completion predicate | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | todo | — | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | todo | — | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
 | B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | todo | — | Codex + SciML | SciML + statistics + protocol + independent reviewer | B-02A | MQ-004 | L | WB-1/2 |
 | B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | todo | — | Codex + SciML | SciML + statistics + protocol + SRE | B-02C, B-04 | MQ-005, MQ-006, MQ-007, MQ-008 | L | WB-2 |
 | B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | todo | — | Codex | SciML + statistics + protocol + security + independent reviewer | B-02A, B-03, B-04, B-05, A3 | MQ-003 through MQ-008, MQ-018 | M | WB-2/3 |
-| B-07R | Ratify the miner research architecture and authority boundaries | todo | — | Protocol lead + Codex | Protocol + science + security + rights | B-01, B-02A | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-1 |
+| B-07R | Ratify the miner research architecture and authority boundaries | done | `.agent/evidence/wave_b/b-07r.md` (conditional: `in_progress` until exact-head CI + clean Greptile + normal exact-tree merge + exact-main CI) | Protocol lead + Codex | Protocol + science + security + rights | B-01, B-02A | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-1 |
 | B-07S | Ratify the exact v2 wire, lifecycle, error, canonicalization, bound, and local-adapter contract | todo | — | Protocol lead + Codex | Protocol + science + security + rights/counsel | B-07R, B-02A, B-02B, B-02C | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | M | WB-2 |
 | B-07A | Shared v2 protocol primitives, ChallengeInteractionManifest, and public research-capability discovery | todo | — | Codex | Protocol + security | B-02A, B-02B, B-02C, B-05, B-07R, B-07S, A3, A9 | MQ-005, MQ-006, MQ-015, MQ-016, MQ-017, MQ-024 | L | WB-3 |
 | B-07B | ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, and lineage | todo | — | Codex | Protocol + science + security + rights/counsel | B-02B, B-07R, B-07S, B-07A, A11 | MQ-016, MQ-026, MQ-045 | M | WB-3 |
@@ -103,7 +106,7 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-07D3 | Static exact/active provider, historical retrieval, and deterministic prior alignment | todo | — | Codex + Landscape | Protocol + security | B-07D1, B-07D2, B-07S, A9 | MQ-016, MQ-017, MQ-025, MQ-026 | M | WB-4 |
 | B-07E | Static resource analysis, calibrated forecast seam, and receipt separation | todo | — | Codex + SRE | Protocol + SRE + statistics | B-02B, B-02C, B-07A, B-07B, B-07C, B-07D3, B-07S | MQ-008, MQ-017, MQ-024 | M | WB-4 |
 | B-07F | Resolved-plan fixture-official construction adapter behind unchanged v1 lifecycle | todo | — | Codex + SciML | Protocol + science + security | B-02B, B-02C, B-03, B-04, B-05, B-07S, A7, A8, A9 | MQ-004, MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-3/4 |
-| B-07G | ResearchMcpService composition, twelve-operation dispatch, and conformance | todo | — | Codex | Protocol + science + security | B-02B, B-07A, B-07B, B-07C, B-07D3, B-07E, B-07S, A9 | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | L | WB-4/5 |
+| B-07G | Research-service composition, B-07S-ratified closed-operation dispatch, and conformance | todo | — | Codex | Protocol + science + security | B-02B, B-07A, B-07B, B-07C, B-07D3, B-07E, B-07S, A9 | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | L | WB-4/5 |
 | B-E1 | R0/R1/R2 reproducibility, dependence-aware reconstruction × whole-case interval, staged-evidence audit, and typed contested-outcome harness | todo | — | Codex + SciML | Statistics + SciML | B-02A, B-02B, B-02C, B-04, B-05 | MQ-007, MQ-008 | L | WB-2/3 |
 | B-E2 | Julia/reference failure contract | todo | — | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | todo | — | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
@@ -189,9 +192,9 @@ Every applicable Wave B ticket must preserve and test:
 
 - mock, practice, prior, scaffold, forecast, and structural-research outputs cannot enter A5 score or the A7 official lifecycle. A fixture-official result may exercise the unchanged A5/A7/A8-shaped fixture path only through B-07F, with fixture provenance and no LIVE, economic, or scientific authority;
 - no public output contains official seed, draw, case, hidden mixture, exact margin, or protected reference material;
-- the v2 service exposes exactly the twelve ratified research operations,
-  delegates each to one named domain owner, and contains no official-v1
-  operation, lifecycle, or store;
+- the research service exposes exactly the B-07S-ratified closed operation set,
+  delegates each operation to one named domain owner, and contains no
+  official-v1 operation, lifecycle, or store;
 - the same Strategy and compiler identities resolve to the same construction semantics in practice and official-shaped reconstruction;
 - unsupported or unused parameters fail rather than disappear;
 - a structural-component declaration, implementation test, or prior tag cannot
@@ -208,7 +211,7 @@ Every applicable Wave B ticket must preserve and test:
   preserved in every decision-resolution fixture and unresolved evidence
   remains indeterminate;
 - a `TEST_ONLY` prior cannot be externally activated or rendered as bootstrap/learned guidance, and no v2-backed projection can enter the public v1 provider;
-- a test-only approval receipt cannot satisfy a public publication gate, and
+- a test-only authorization receipt cannot satisfy a public publication gate, and
   the exact pack/receipt remains frozen across B-E4 v2-prior replicates;
 - the prior provider serves only approved stored bytes and never performs a private-data query;
 - identical PriorPack reference produces identical bytes for every requester;
@@ -255,8 +258,9 @@ not rewritten. Current merged repository authority controls until then.
 
 The Accountable reviewer column remains technical/domain review and
 notification routing. It creates no affirmative pre-approval or silence gate.
-Independent technical review, resolution of blocking findings, required CI,
-and normal merge remain mandatory.
+Independent technical review, repair of every valid finding, zero unresolved
+review threads, required CI, and normal merge remain mandatory. A documented
+invalid finding may be closed with rationale.
 
 This non-blocking development rule does not allow an agent to invent or approve
 scientific truth, thresholds, tolerances, population or SamplingPlan claims,
@@ -282,11 +286,16 @@ Before each ticket begins:
 
 Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.
-The implementation change leaves merge fields pending. A separate reviewed
-post-merge closeout records the tree-identical merge, post-merge CI, independent
-review outcome, resolved blocking findings, and lead-notification delivery when
-applicable before the board changes to `done`. An affirmative reviewer or lead
-response is not required.
+Ordinarily the implementation change leaves merge fields pending for a later
+governance transition. A ticket change may instead carry a conditional
+completion record that becomes authoritative only after the exact reviewed tree
+passes required CI/review, normally merges with tree equality, and exact-main
+CI passes. Immutable PR/check/merge/Actions metadata and a post-merge issue
+comment may carry identities the tracked commit cannot self-record. Do not
+require a recursive closeout pull request merely to restate those facts. If a
+record cannot carry another non-self-referential identity, fill only that
+identity in the smallest later governance transition; do not reopen
+implementation. An affirmative reviewer or lead response is not required.
 
 Ticket completion must separately report:
 
@@ -326,12 +335,16 @@ No later state is inferred from an earlier one.
   resolved-plan identity as practice while preserving separate rights and the
   unchanged v1 lifecycle;
 - a prior fixture cannot be promoted above `TEST_ONLY`, and no v2-backed projection can enter the public v1 provider;
-- the TEST_ONLY fixture-ledger append and private approval-receipt/snapshot
+- the TEST_ONLY fixture-ledger append and private authorization-receipt/snapshot
   update are atomic and exact-ref reproducibility passes; the stronger public
   receipt/index graph passes schema and negative tests while public-class
   activation remains unavailable and fail closed;
 - the Dossier and qualification manifest remain incomplete/fail closed for LIVE;
 - `.agent/WAVE_B_REPORT.md` records exact evidence and remaining human inputs;
-- independent review and explicit human closeout authorization are recorded.
+- independent correctness review, every valid finding repaired, zero unresolved
+  review threads, normal merge,
+  and exact-main CI are recorded. Human-reserved qualification and activation
+  remain separate and fail closed; no affirmative closeout-response or silence
+  gate applies to bounded engineering completion.
 
 Wave C remains unauthorized until `.agent/WAVE.md` moves prospectively.

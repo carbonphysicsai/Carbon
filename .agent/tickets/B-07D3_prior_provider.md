@@ -9,22 +9,26 @@
 
 ## Goal
 
-Serve only prebuilt approved prior artifacts with deterministic public alignment and no request-time private analytics.
+Serve only prebuilt artifacts authorized for their publication class with
+deterministic public alignment and no request-time private analytics.
 
 ## Definition of Done
 
-- [ ] Implement `get_prior` with exact-ref and active-channel selectors, one atomic index snapshot, publication-receipt binding, exact approved historical retrieval, and run-level pack pinning.
+- [ ] Implement the B-07S-ratified prior-retrieval capability with exact-ref
+      and active-channel selectors, one atomic index snapshot, publication-
+      receipt binding, exact authorized historical retrieval, and run-level
+      pack pinning.
 - [ ] Return identical canonical bytes for every requester of an exact pack and perform no server-side personalization, LLM generation, private-store query, or paid informational upgrade.
-- [ ] Implement `inspect_prior_alignment` using only the public pack, public catalog, and deterministic public matching.
+- [ ] Implement the B-07S-ratified prior-alignment capability using only the public pack, public catalog, and deterministic public matching.
 - [ ] Apply class, approval, and withdrawal checks to both selectors:
       active/superseded approved public bytes may serve; withdrawn returns
       hash-bound audit status only and Carbon stops newly serving the bytes,
       without pretending previously retrieved copies were revoked;
       `TEST_ONLY` and unapproved bytes remain private-test-only.
-- [ ] Implement the B-07S nominal fixture-only provider path: an exact-ref
-      request through `FixtureResearchContext` may return a structurally
-      approved `TEST_ONLY` fixture pack only when its exact
-      `TestOnlyPriorApprovalReceiptRef` resolves. Return and retain
+- [ ] Implement the B-07S-ratified nominal fixture-only provider path: an
+      exact-ref request through its private fixture context may return a
+      structurally authorized `TEST_ONLY` pack only when the exact private
+      test-only authorization receipt resolves. Return and retain
       `TEST_ONLY / NOT_UTILITY_QUALIFIED`; external/public context structurally
       rejects that provider, receipt, and pack. Add no caller mode and no
       alternate direct API.

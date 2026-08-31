@@ -15,12 +15,14 @@
 > **Port B.** Every scored nonzero submission completes the **same mandatory lean pack**; progressive depth is scheduling/prefilter/supplemental, not variable grading.
 >
 > **Wave B miner-research migration.** The implemented Wave A v1 MCP remains
-> unchanged. The proposed Wave B research service uses a separate local v2
-> identity, immutable evidence-labeled PriorPacks, deterministic Strategy
+> unchanged. The B-07R version 0.4 working engineering architecture uses a
+> separate local/in-process research plane, immutable evidence-labeled
+> PriorPacks, deterministic Strategy
 > compilation, and nominal practice paths. It provides no official-score or
 > rank prediction. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` and the
-> Wave B tickets control that migration after their activation and ratification
-> gates.
+> Wave B tickets control that migration; B-07S owns every exact protocol
+> mechanic. Real science, security, rights, economics, qualification, LIVE,
+> launch, and production remain fail closed.
 
 
 **Canonical companions**
@@ -38,7 +40,7 @@
 | [`Design_Specs/Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md) | Compute strategy |
 | [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
 | [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
-| [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | Proposed Wave B research architecture; inactive until the Wave B gates close |
+| [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | B-07R agent-selected working engineering architecture; merged authority only under its exact review/CI/normal-merge/exact-main-CI predicate; no qualification |
 
 ---
 
@@ -520,12 +522,13 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
   `get_challenge_info`, `get_prior`, `get_mock_scaffold`, `dry_validate`,
   `estimate`, `submit`, and `get_submission_result` with bounded existing
   semantics.
-- After Wave B activation and B-07R/B-07S ratification, the separate local
-  topology may label the unchanged v1 surface `carbon_protocol_v1` and add
-  `carbon_research_v2` for manifest discovery, exact PriorPack retrieval,
+- After B-07R engineering ratification and B-07S exact-protocol ratification,
+  the separate local topology retains the unchanged Wave-A official plane and
+  adds a research plane for manifest discovery, exact PriorPack retrieval,
   compilation, prior alignment, resource inspection/forecasting, and
-  asynchronous practice research. The v2 service cannot duplicate official
-  submission or result authority.
+  asynchronous practice research. B-07S owns exact service/version and
+  operation names. The research plane cannot duplicate official submission or
+  result authority.
 - Static resource inspection and calibrated forecasts may help miners plan
   optional local or rented compute. They never predict official score, disclose
   protected evaluator topology, or gate access to submission.
