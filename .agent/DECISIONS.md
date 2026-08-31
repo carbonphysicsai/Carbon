@@ -8232,3 +8232,16 @@ These decisions govern A0 planning; they do not implement A0 or qualify any scie
 | Date | Ticket | Why stop/escalate | Outcome |
 |------|--------|-------------------|---------|
 | | | | |
+
+## 2026-08-31 — O-HUB-01: Carbon Development Hub and mandatory maintenance loop
+
+**Status:** OWNER-DIRECTED PROCESS DECISION.
+
+**Decision.** Carbon maintains `docs/development_hub/` as the team's non-repository-facing orientation and protocol-change navigation layer. It explains what Carbon is building, why each wave and ticket exists, where a change belongs, current status and dependencies, and the repository record that owns detail. Every relevant pull request must classify its hub impact. Map-visible changes and material events update the hub in the same pull request.
+
+**Reason.** New hires and active leads need one readable map before entering detailed tickets, decisions, pull requests, and evidence. The map also gives new Challenges, model architectures, miner priors, bugs, and protocol adjustments a consistent attachment point.
+
+**Authority boundary.** The hub does not activate a wave or ticket, define scientific truth, approve security, change economics, qualify a system, or create production authority. The Constitution, domain specifications, active board, ticket, decisions, code, review, and evidence remain authoritative.
+
+**Implementation.** `.agent/HUB_MAINTENANCE_POLICY.md`, root `AGENTS.md`, `agent_pack/EXECUTION_PROTOCOL.md`, the pull-request template, and the Development Hub CI check define and enforce the maintenance loop.
+

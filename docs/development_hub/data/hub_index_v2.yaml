@@ -1,0 +1,846 @@
+meta:
+  title: Carbon Development Hub
+  version: 2.1
+  captured_at_utc: "2026-08-31T15:15:20Z"
+  repository: "https://github.com/carbonphysicsai/Carbon"
+  branch: main
+  commit: b86daa5d8b0f8b3e86bb82c2661f405747a200df
+  commit_short: b86daa5d
+  purpose: "A human-facing orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns implementation detail."
+  authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
+  rendering: static-first; JavaScript optional
+  board_version: 0.9
+current:
+  wave: B
+  wave_title: Science-ready authoring skeletons
+  wave_status: active in bounded development scope
+  ticket: B-03
+  ticket_title: Generator API and fixed-viscosity Burgers fixture
+  ticket_status: in_progress
+  stage: "Contract merged in PR #67; runtime implementation remains selected."
+  closed_wave: A
+  completed_b_tickets:
+    - B-01
+    - B-01E
+    - B-02A
+    - B-02B
+    - B-02C
+    - B-07R
+  decision_series:
+    - B-03-D1
+    - B-03-D2
+    - B-03-D3
+    - B-03-D4
+    - B-03-D5
+    - B-03-D6
+    - B-03-D7
+    - B-03-D8
+waves:
+  - id: A
+    title: Bounded protocol skeleton
+    status: closed
+    explainer: explainers/waves/wave_a.md
+    tickets:
+      - A-1
+      - A0
+      - A1
+      - A2
+      - A3
+      - A4
+      - A5
+      - A6
+      - A7
+      - A8
+      - A9
+      - A10
+      - A11
+      - A12
+  - id: B
+    title: Science-ready authoring skeletons
+    status: active
+    explainer: explainers/waves/wave_b.md
+    tickets:
+      - B-01
+      - B-01E
+      - B-02A
+      - B-02B
+      - B-02C
+      - B-03
+      - B-04
+      - B-05
+      - B-06
+      - B-07R
+      - B-07S
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D1
+      - B-07D2
+      - B-07D3
+      - B-07E
+      - B-07F
+      - B-07G
+      - B-E1
+      - B-E2
+      - B-E3
+      - B-E4
+      - B-GATE
+  - id: C
+    title: Real single-Challenge integration
+    status: planned
+    explainer: explainers/waves/wave_c.md
+    tickets:
+  - id: D
+    title: Human scientific qualification
+    status: planned
+    explainer: explainers/waves/wave_d.md
+    tickets:
+  - id: E
+    title: Landscape and evidence memory
+    status: planned
+    explainer: explainers/waves/wave_e.md
+    tickets:
+  - id: F
+    title: Product qualification and specialist systems
+    status: planned
+    explainer: explainers/waves/wave_f.md
+    tickets:
+  - id: G
+    title: "Commercial, private, and sponsored engagement plane"
+    status: planned
+    explainer: explainers/waves/wave_g.md
+    tickets:
+  - id: H
+    title: Frontier promotion and Challenge portfolio
+    status: planned
+    explainer: explainers/waves/wave_h.md
+    tickets:
+  - id: I
+    title: Treasury and network settlement
+    status: planned
+    explainer: explainers/waves/wave_i.md
+    tickets:
+  - id: J
+    title: Model-family neutrality
+    status: planned
+    explainer: explainers/waves/wave_j.md
+    tickets:
+  - id: K
+    title: Generalized agentic construction discovery
+    status: planned
+    explainer: explainers/waves/wave_k.md
+    tickets:
+  - id: L
+    title: Generalized ReconstructionProtocol
+    status: planned
+    explainer: explainers/waves/wave_l.md
+    tickets:
+  - id: M
+    title: Engineering system and product lifecycle
+    status: planned
+    explainer: explainers/waves/wave_m.md
+    tickets:
+  - id: N
+    title: Prospective Physics Intelligence
+    status: planned
+    explainer: explainers/waves/wave_n.md
+    tickets:
+tickets:
+  - id: A-1
+    wave: A
+    title: Orientation and repository map
+    status: done
+    explainer: explainers/tickets/a_1.md
+    repo_path: .agent/tickets/A-1_orientation.md
+    depends_on:
+    unlocks:
+      - A0
+  - id: A0
+    wave: A
+    title: Package layout
+    status: done
+    explainer: explainers/tickets/a0.md
+    repo_path: .agent/tickets/A0_repo_layout.md
+    depends_on:
+      - A-1
+    unlocks:
+      - A1
+  - id: A1
+    wave: A
+    title: CI skeleton
+    status: done
+    explainer: explainers/tickets/a1.md
+    repo_path: .agent/tickets/A1_ci_pytest.md
+    depends_on:
+      - A0
+    unlocks:
+      - A2
+  - id: A2
+    wave: A
+    title: Strategy schema and dry validation
+    status: done
+    explainer: explainers/tickets/a2.md
+    repo_path: .agent/tickets/A2_strategy_schema.md
+    depends_on:
+      - A1
+    unlocks:
+      - A3
+      - B-02B
+  - id: A3
+    wave: A
+    title: Challenge registry and LIVE hash gate
+    status: done
+    explainer: explainers/tickets/a3.md
+    repo_path: .agent/tickets/A3_registry.md
+    depends_on:
+      - A2
+    unlocks:
+      - A4
+      - B-06
+      - B-07A
+  - id: A4
+    wave: A
+    title: Seeding domains and leakage tests
+    status: done
+    explainer: explainers/tickets/a4.md
+    repo_path: .agent/tickets/A4_seeding.md
+    depends_on:
+      - A3
+    unlocks:
+      - A5
+      - B-07C
+  - id: A5
+    wave: A
+    title: Scoring engine and fixture Score Pack
+    status: done
+    explainer: explainers/tickets/a5.md
+    repo_path: .agent/tickets/A5_scoring_engine.md
+    depends_on:
+      - A4
+    unlocks:
+      - A6
+  - id: A6
+    wave: A
+    title: Card store and disclosure filter
+    status: done
+    explainer: explainers/tickets/a6.md
+    repo_path: .agent/tickets/A6_card_store.md
+    depends_on:
+      - A5
+    unlocks:
+      - A7
+      - B-07D1
+  - id: A7
+    wave: A
+    title: "Fees, submission identity, and lifecycle FSM"
+    status: done
+    explainer: explainers/tickets/a7.md
+    repo_path: .agent/tickets/A7_fees_fsm.md
+    depends_on:
+      - A6
+    unlocks:
+      - A8
+      - B-07F
+  - id: A8
+    wave: A
+    title: TrainEval fixture stub
+    status: done
+    explainer: explainers/tickets/a8.md
+    repo_path: .agent/tickets/A8_traineval_stub.md
+    depends_on:
+      - A7
+    unlocks:
+      - A9
+      - B-07C
+      - B-07F
+  - id: A9
+    wave: A
+    title: Miner MCP v1 skeleton
+    status: done
+    explainer: explainers/tickets/a9.md
+    repo_path: .agent/tickets/A9_mcp_skeleton.md
+    depends_on:
+      - A8
+    unlocks:
+      - A10
+      - B-07A
+      - B-07C
+      - B-07D1
+      - B-07D3
+      - B-07F
+      - B-07G
+  - id: A10
+    wave: A
+    title: Public leaderboard projection
+    status: done
+    explainer: explainers/tickets/a10.md
+    repo_path: .agent/tickets/A10_leaderboard.md
+    depends_on:
+      - A9
+    unlocks:
+      - A11
+  - id: A11
+    wave: A
+    title: "Observability, redaction, and failure tags"
+    status: done
+    explainer: explainers/tickets/a11.md
+    repo_path: .agent/tickets/A11_logging.md
+    depends_on:
+      - A10
+    unlocks:
+      - A12
+      - B-07B
+      - B-07D1
+  - id: A12
+    wave: A
+    title: Invariant suite and Wave A closeout
+    status: done
+    explainer: explainers/tickets/a12.md
+    repo_path: .agent/tickets/A12_invariant_ci.md
+    depends_on:
+      - A11
+    unlocks:
+      - B-E4
+  - id: B-01
+    wave: B
+    title: Wave B orientation and authority pin
+    status: done
+    explainer: explainers/tickets/b_01.md
+    repo_path: .agent/tickets/B-01_orientation.md
+    depends_on:
+      - Wave A closeout
+    unlocks:
+      - B-01E
+      - B-07R
+      - B-GATE
+  - id: B-01E
+    wave: B
+    title: Canonical development environment and legacy quarantine
+    status: done
+    explainer: explainers/tickets/b_01e.md
+    repo_path: .agent/tickets/B-01E_dev_environment_legacy_quarantine.md
+    depends_on:
+      - B-01
+    unlocks:
+      - B-02A
+      - B-GATE
+  - id: B-02A
+    wave: B
+    title: Scientific Challenge authoring contracts
+    status: done
+    explainer: explainers/tickets/b_02a.md
+    repo_path: .agent/tickets/B-02A_scientific_authoring_contracts.md
+    depends_on:
+      - B-01E
+    unlocks:
+      - B-02B
+      - B-03
+      - B-04
+      - B-06
+      - B-07R
+      - B-07S
+      - B-07A
+      - B-E1
+      - B-GATE
+  - id: B-02B
+    wave: B
+    title: Candidate assembly and strategy compilation
+    status: done
+    explainer: explainers/tickets/b_02b.md
+    repo_path: .agent/tickets/B-02B_strategy_compilation.md
+    depends_on:
+      - B-02A
+      - B-07R
+      - A2
+    unlocks:
+      - B-02C
+      - B-07S
+      - B-07A
+      - B-07B
+      - B-07E
+      - B-07F
+      - B-07G
+      - B-E1
+      - B-GATE
+  - id: B-02C
+    wave: B
+    title: Research resource policy
+    status: done
+    explainer: explainers/tickets/b_02c.md
+    repo_path: .agent/tickets/B-02C_resource_policy_contract.md
+    depends_on:
+      - B-02B
+      - B-07R
+    unlocks:
+      - B-05
+      - B-07S
+      - B-07A
+      - B-07C
+      - B-07E
+      - B-07F
+      - B-E1
+      - B-GATE
+  - id: B-03
+    wave: B
+    title: Generator API and fixed-viscosity Burgers fixture
+    status: in_progress
+    explainer: explainers/tickets/b_03.md
+    repo_path: .agent/tickets/B-03_generator_burgers_fixture.md
+    depends_on:
+      - B-02A
+    unlocks:
+      - B-06
+      - B-07C
+      - B-07F
+      - B-GATE
+  - id: B-04
+    wave: B
+    title: Reference and truth contracts
+    status: todo
+    explainer: explainers/tickets/b_04.md
+    repo_path: .agent/tickets/B-04_reference_truth_contracts.md
+    depends_on:
+      - B-02A
+    unlocks:
+      - B-05
+      - B-06
+      - B-07F
+      - B-E1
+      - B-E2
+      - B-GATE
+  - id: B-05
+    wave: B
+    title: Measurement and Score Pack authoring
+    status: todo
+    explainer: explainers/tickets/b_05.md
+    repo_path: .agent/tickets/B-05_measurement_scorepack_authoring.md
+    depends_on:
+      - B-02C
+      - B-04
+    unlocks:
+      - B-06
+      - B-07A
+      - B-07C
+      - B-07F
+      - B-E1
+      - B-GATE
+  - id: B-06
+    wave: B
+    title: Validation Dossier and qualification manifest
+    status: todo
+    explainer: explainers/tickets/b_06.md
+    repo_path: .agent/tickets/B-06_dossier_manifest.md
+    depends_on:
+      - B-02A
+      - B-03
+      - B-04
+      - B-05
+      - A3
+    unlocks:
+      - B-E3
+      - B-GATE
+  - id: B-07R
+    wave: B
+    title: Miner research architecture ratification
+    status: done
+    explainer: explainers/tickets/b_07r.md
+    repo_path: .agent/tickets/B-07R_miner_research_contract.md
+    depends_on:
+      - B-01
+      - B-02A
+    unlocks:
+      - B-02B
+      - B-02C
+      - B-07S
+      - B-07A
+      - B-07B
+      - B-GATE
+  - id: B-07S
+    wave: B
+    title: Exact v2 research-service protocol
+    status: todo
+    explainer: explainers/tickets/b_07s.md
+    repo_path: .agent/tickets/B-07S_research_service_protocol.md
+    depends_on:
+      - B-07R
+      - B-02A
+      - B-02B
+      - B-02C
+    unlocks:
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D1
+      - B-07D3
+      - B-07E
+      - B-07F
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07A
+    wave: B
+    title: Interaction manifest and shared v2 primitives
+    status: todo
+    explainer: explainers/tickets/b_07a.md
+    repo_path: .agent/tickets/B-07A_interaction_manifest.md
+    depends_on:
+      - B-02A
+      - B-02B
+      - B-02C
+      - B-05
+      - B-07R
+      - B-07S
+      - A3
+      - A9
+    unlocks:
+      - B-07B
+      - B-07C
+      - B-07D1
+      - B-07E
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07B
+    wave: B
+    title: "Research tasks, records, receipts, and lineage"
+    status: todo
+    explainer: explainers/tickets/b_07b.md
+    repo_path: .agent/tickets/B-07B_research_records.md
+    depends_on:
+      - B-02B
+      - B-07R
+      - B-07S
+      - B-07A
+      - A11
+    unlocks:
+      - B-07C
+      - B-07D1
+      - B-07D2
+      - B-07E
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07C
+    wave: B
+    title: Nominal mock and practice service
+    status: todo
+    explainer: explainers/tickets/b_07c.md
+    repo_path: .agent/tickets/B-07C_mock_practice.md
+    depends_on:
+      - B-02C
+      - B-03
+      - B-05
+      - B-07A
+      - B-07B
+      - B-07S
+      - A4
+      - A8
+      - A9
+    unlocks:
+      - B-07E
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07D1
+    wave: B
+    title: PriorPack schema and immutable store
+    status: todo
+    explainer: explainers/tickets/b_07d1.md
+    repo_path: .agent/tickets/B-07D1_prior_pack_schema_store.md
+    depends_on:
+      - B-07A
+      - B-07B
+      - B-07S
+      - A6
+      - A9
+      - A11
+    unlocks:
+      - B-07D2
+      - B-07D3
+      - B-E4
+      - B-GATE
+  - id: B-07D2
+    wave: B
+    title: TEST_ONLY prior publisher and disclosure ledger
+    status: todo
+    explainer: explainers/tickets/b_07d2.md
+    repo_path: .agent/tickets/B-07D2_prior_publisher.md
+    depends_on:
+      - B-07D1
+      - B-07B
+    unlocks:
+      - B-07D3
+      - B-E4
+      - B-GATE
+  - id: B-07D3
+    wave: B
+    title: Exact prior provider and deterministic alignment
+    status: todo
+    explainer: explainers/tickets/b_07d3.md
+    repo_path: .agent/tickets/B-07D3_prior_provider.md
+    depends_on:
+      - B-07D1
+      - B-07D2
+      - B-07S
+      - A9
+    unlocks:
+      - B-07E
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07E
+    wave: B
+    title: Static resource analysis and forecast seam
+    status: todo
+    explainer: explainers/tickets/b_07e.md
+    repo_path: .agent/tickets/B-07E_estimation_resources.md
+    depends_on:
+      - B-02B
+      - B-02C
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D3
+      - B-07S
+    unlocks:
+      - B-07G
+      - B-E4
+      - B-GATE
+  - id: B-07F
+    wave: B
+    title: Fixture-official construction adapter
+    status: todo
+    explainer: explainers/tickets/b_07f.md
+    repo_path: .agent/tickets/B-07F_fixture_official_construction_adapter.md
+    depends_on:
+      - B-02B
+      - B-02C
+      - B-03
+      - B-04
+      - B-05
+      - B-07S
+      - A7
+      - A8
+      - A9
+    unlocks:
+      - B-E4
+      - B-GATE
+  - id: B-07G
+    wave: B
+    title: Research-service composition and conformance
+    status: todo
+    explainer: explainers/tickets/b_07g.md
+    repo_path: .agent/tickets/B-07G_research_service_integration.md
+    depends_on:
+      - B-02B
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D3
+      - B-07E
+      - B-07S
+      - A9
+    unlocks:
+      - B-E4
+      - B-GATE
+  - id: B-E1
+    wave: B
+    title: "Reproducibility, uncertainty, and contested outcomes"
+    status: todo
+    explainer: explainers/tickets/b_e1.md
+    repo_path: .agent/tickets/B-E1_reproducibility.md
+    depends_on:
+      - B-02A
+      - B-02B
+      - B-02C
+      - B-04
+      - B-05
+    unlocks:
+      - B-E4
+      - B-GATE
+  - id: B-E2
+    wave: B
+    title: Julia and reference failure contract
+    status: todo
+    explainer: explainers/tickets/b_e2.md
+    repo_path: .agent/tickets/B-E2_reference_failure.md
+    depends_on:
+      - B-04
+    unlocks:
+      - B-GATE
+  - id: B-E3
+    wave: B
+    title: Credibility crosswalk and evidence manifest
+    status: todo
+    explainer: explainers/tickets/b_e3.md
+    repo_path: .agent/tickets/B-E3_credibility_crosswalk.md
+    depends_on:
+      - B-06
+    unlocks:
+      - B-GATE
+  - id: B-E4
+    wave: B
+    title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
+    status: todo
+    explainer: explainers/tickets/b_e4.md
+    repo_path: .agent/tickets/B-E4_agent_gauntlet.md
+    depends_on:
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D1
+      - B-07D2
+      - B-07D3
+      - B-07E
+      - B-07F
+      - B-07G
+      - B-07S
+      - B-E1
+      - A12
+    unlocks:
+      - B-GATE
+  - id: B-GATE
+    wave: B
+    title: Wave B integration and closeout gate
+    status: todo
+    explainer: explainers/tickets/b_gate.md
+    repo_path: .agent/tickets/B-GATE_closeout.md
+    depends_on:
+      - B-01
+      - B-01E
+      - B-02A
+      - B-02B
+      - B-02C
+      - B-03
+      - B-04
+      - B-05
+      - B-06
+      - B-07R
+      - B-07S
+      - B-07A
+      - B-07B
+      - B-07C
+      - B-07D1
+      - B-07D2
+      - B-07D3
+      - B-07E
+      - B-07F
+      - B-07G
+      - B-E1
+      - B-E2
+      - B-E3
+      - B-E4
+    unlocks:
+change_paths:
+  - id: new-challenge
+    title: Add a new Challenge
+    waves:
+      - B
+      - C
+      - D
+      - H
+    tickets:
+      - B-02A
+      - B-03
+      - B-04
+      - B-05
+      - B-06
+      - B-E1
+      - B-E2
+      - B-E3
+      - B-GATE
+  - id: model-architecture
+    title: Add or change a model architecture
+    waves:
+      - B
+      - C
+      - F
+      - J
+      - K
+      - L
+      - M
+    tickets:
+      - B-02B
+      - B-05
+      - B-07F
+      - B-E1
+      - B-GATE
+  - id: miner-prior
+    title: Add or change a miner prior
+    waves:
+      - B
+      - E
+    tickets:
+      - B-07A
+      - B-07B
+      - B-07D1
+      - B-07D2
+      - B-07D3
+      - B-E4
+      - B-GATE
+  - id: reference-measurement
+    title: "Change reference truth, measurement, or scoring"
+    waves:
+      - B
+      - C
+      - D
+      - H
+    tickets:
+      - B-04
+      - B-05
+      - B-E1
+      - B-E2
+      - B-06
+      - B-E3
+  - id: protocol-change
+    title: Change a protocol contract
+    waves:
+      - A
+      - B
+      - C
+      - H
+      - I
+      - L
+    tickets:
+      - B-07R
+      - B-07S
+      - B-07A
+      - B-07G
+      - B-GATE
+  - id: bug-defect
+    title: Fix a bug or defect
+    waves:
+      - A
+      - B
+      - C
+      - D
+      - E
+      - F
+      - G
+      - H
+      - I
+      - J
+      - K
+      - L
+      - M
+      - N
+    tickets:
+      - B-GATE
+  - id: commercial-private
+    title: Add a commercial or private deployment mode
+    waves:
+      - F
+      - G
+      - M
+    tickets:
+event_schema:
+  map_ref: WAVE-B/B-03
+  event_type: "decision | adjustment | bug | blocker | risk | evidence"
+  event_id: B-03-D9
+  owner_lane: sciml_technical_lead
+  status: "proposed | active | blocked | implemented | superseded | closed"
+  summary: One sentence that tells the team what changed.
+  primary_detail: Repository path or URL
+  affects:
+    - WAVE-B/B-04
+  supersedes: null

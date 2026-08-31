@@ -1,0 +1,11 @@
+map_ref: WAVE-B/B-03
+event_type: decision | adjustment | bug | blocker | risk | evidence
+event_id: B-03-D9
+owner_lane: sciml_technical_lead
+status: proposed | active | blocked | implemented | superseded | closed
+date: 2026-08-31
+summary: One sentence that tells the team what changed.
+primary_detail: Repository path or URL
+affects:
+  - WAVE-B/B-04
+supersedes: null

@@ -251,3 +251,24 @@ Never infer a later state from an earlier one.
 ## Optional executors
 
 Harness-specific config lives under `agent_pack/executors/` only — never as competing authority in the pack root.
+
+---
+
+## Development Hub maintenance
+
+At ticket start, locate the primary `map_ref` in `docs/development_hub/` and compare the orientation summary with the current wave board, active ticket, and owning specifications.
+
+Before merge, the pull request must contain exactly one completed declaration:
+
+```text
+HUB_UPDATE_REQUIRED: <map refs and changed hub source paths>
+```
+
+or
+
+```text
+HUB_IMPACT_NONE: <specific reason purpose, placement, status, dependencies, boundaries, maturity, and primary links remain accurate>
+```
+
+When the hub changes, update its JSON sources, append or supersede the map-level event, regenerate outputs, and run the checks in `.agent/HUB_MAINTENANCE_POLICY.md`. Hub maintenance is documentation closeout. It does not grant protocol or qualification authority.
+

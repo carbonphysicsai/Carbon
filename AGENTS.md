@@ -557,3 +557,21 @@ and
 always choose the second.
 
 > **The search surface may widen. The authority boundary may not.**
+
+---
+
+# Carbon Development Hub maintenance
+
+`docs/development_hub/` is Carbon's required orientation and protocol-change map. It explains what, why, where, status, and dependency. Repository authority still controls how, exact semantics, implementation, review, evidence, and maturity.
+
+For every ticket or material repository change:
+
+1. locate the work's primary hub `map_ref` at ticket start;
+2. compare the hub with `.agent/WAVE.md`, the active board, ticket, and owning specifications;
+3. update map-visible state, dependencies, ownership, boundaries, routing, and primary links in the same pull request when they change;
+4. append or supersede a concise change event for a material decision, adjustment, bug, blocker, risk, or evidence change;
+5. include exactly one pull-request declaration: `HUB_UPDATE_REQUIRED: ...` or `HUB_IMPACT_NONE: ...`;
+6. run the renderer and hub checks before merge.
+
+A wave, ticket, Build Out, or master-plan structural change cannot use `HUB_IMPACT_NONE`. Follow `.agent/HUB_MAINTENANCE_POLICY.md` and the scoped `docs/development_hub/AGENTS.md`. Never place secrets or unearned maturity claims in the hub.
+
