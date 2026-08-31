@@ -17,6 +17,7 @@ ROLE_PACKAGES = (
     "carbon.registry",
     "carbon.authoring",
     "carbon.construction",
+    "carbon.resource_policy",
     "carbon.seeding",
     "carbon.scoring",
     "carbon.cards",
@@ -43,7 +44,15 @@ B02B_MODULES = (
     "carbon.construction.compiler",
 )
 
-INSTALLED_MODULES = ("carbon", *ROLE_PACKAGES, *B02B_MODULES)
+B02C_MODULES = (
+    "carbon.resource_policy.errors",
+    "carbon.resource_policy.refs",
+    "carbon.resource_policy.model",
+    "carbon.resource_policy.canonical",
+    "carbon.resource_policy.service",
+)
+
+INSTALLED_MODULES = ("carbon", *ROLE_PACKAGES, *B02B_MODULES, *B02C_MODULES)
 
 
 def test_import_carbon() -> None:
@@ -68,6 +77,13 @@ def test_import_a0_role_package(module_name: str) -> None:
 
 @pytest.mark.parametrize("module_name", B02B_MODULES)
 def test_import_b02b_module(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+
+    assert module.__name__ == module_name
+
+
+@pytest.mark.parametrize("module_name", B02C_MODULES)
+def test_import_b02c_module(module_name: str) -> None:
     module = importlib.import_module(module_name)
 
     assert module.__name__ == module_name

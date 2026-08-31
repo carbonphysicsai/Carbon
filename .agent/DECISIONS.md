@@ -12,6 +12,15 @@
 > `BLOCKED`, or `DEFER_TO_OWNER`; no affirmative response or silence gate
 > applies. Explicit owner deferrals route to issue #41.
 
+That version 0.1 predicate is satisfied: contract PR #65 reviewed exact head
+`a0eb5cf946d5aca33aec166a9a7a0d85d0c7602a` and tree
+`0079a96700f6804d33fdd29c6ec852fbc70d765c`; exact-head CI run
+`33373378456` and Greptile check `99430113590` at 5/5 with zero unresolved
+threads passed; normal merge `319a765860ac6e93018124bd57a84bfd6679672e`
+preserved the reviewed tree; and exact-main CI run `33374037602` passed. The
+version 0.2 fail-closed clarification carried by the implementation candidate
+is not yet reviewed, ratified, or merged.
+
 The earlier B-02B-D1 through B-02B-D8 conditional predicates are satisfied.
 Contract PR #63 normally merged exact reviewed head
 `569db72e0768d882c39d895e5f69a816cb8ca227` as
@@ -107,6 +116,20 @@ and impact-tag tuples. Verify Challenge, assembly, catalog, compiler, and
 environment bindings against the exact policy/class before evaluation. Prove
 the plan and nested values remain byte-identical before and after every
 B-02C operation.
+
+**Implementation-candidate hardening (version 0.2 clarification, not yet
+merged).** A content address proves exact bytes but does not prove that the
+owning semantic operation produced them. Readiness accepts the exact plan/ref
+in addition to its assessment pair, and downstream services recompute every
+supplied assessment, decision, enforcement result, and cancellation record
+from their exact authoritative inputs before use. This is the fail-closed
+implementation of the selected exact-consumption approach, not a new
+authority or policy value.
+
+The terminal observed-receipt builder returns its exact receipt/ref pair only
+after semantic validation. Its public verifier requires the full dependency
+set and recomputes that pair; unguarded structural receipt-ref issuance is not
+part of the public API.
 
 **Rationale.** B-02B owns construction semantics and identity. B-02C owns only
 support, admissibility, enforcement, and resource facts under a selected exact

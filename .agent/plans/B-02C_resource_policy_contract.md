@@ -1,11 +1,16 @@
 # B-02C plan — research resource policy contract and implementation
 
 **Ticket:** B-02C — Research resource policy contract<br>
-**Status:** `in_progress` in bounded contract-first engineering scope<br>
+**Status:** `in_progress` in bounded implementation-candidate scope<br>
 **Contract branch:** `agent/b-02c-resource-policy-contract`<br>
 **Contract worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-02c-resource-policy-contract`<br>
 **Exact contract base:** `b10b6e74fb3f8ab8a7427a6763c7db4f41341083`<br>
 **Exact base tree:** `45273c527684b94afeb2f01b66a774b5426b6e0e`<br>
+**Exact contract head/tree:** `a0eb5cf946d5aca33aec166a9a7a0d85d0c7602a` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
+**Contract PR / merge:** #65 / `319a765860ac6e93018124bd57a84bfd6679672e`<br>
+**Implementation branch:** `agent/b-02c-resource-policy`<br>
+**Implementation worktree:** `/Users/nickfitzpatrick/Documents/Codex/2026-08-31/files-pasted-by-the-user-continue/work/Carbon-b-02c-resource-policy`<br>
+**Exact implementation base/tree:** `319a765860ac6e93018124bd57a84bfd6679672e` / `0079a96700f6804d33fdd29c6ec852fbc70d765c`<br>
 **Working contract:** `Design_Specs/Research_Resource_Policy_Contract.md`
 
 ## 1. Authority and dependency gate
@@ -40,7 +45,7 @@ It owns no persistence, scheduler, backend, process control, forecast model,
 binding quote/admission, price, scientific evidence, score, or official
 lifecycle transition.
 
-## 3. Contract phase
+## 3. Completed contract phase
 
 1. Reconcile B-02B's proven closeout and select only B-02C.
 2. Replace stale affirmative multi-human approval wording with
@@ -59,12 +64,22 @@ lifecycle transition.
    guard, verify ordered parents and exact tree preservation, then require
    exact-main CI before implementation.
 
-The tracked record is necessarily conditional until immutable GitHub and Git
-metadata satisfy step 7. No recursive closeout PR is required.
+The contract gate is complete. PR #65 reviewed exact head
+`a0eb5cf946d5aca33aec166a9a7a0d85d0c7602a` and tree
+`0079a96700f6804d33fdd29c6ec852fbc70d765c`. Exact-head CI run
+`33373378456` passed both canonical Linux lanes. Greptile check
+`99430113590` and summary comment `5475902051` reported 5/5, 11 files
+reviewed, zero comments or annotations, and zero unresolved threads. The
+normal exact-head-guarded merge is
+`319a765860ac6e93018124bd57a84bfd6679672e`, with ordered parents
+`b10b6e74fb3f8ab8a7427a6763c7db4f41341083` and
+`a0eb5cf946d5aca33aec166a9a7a0d85d0c7602a`; its tree exactly preserves the
+reviewed tree. Exact-main CI run `33374037602` passed both canonical lanes.
+No recursive closeout PR was required.
 
 ## 4. Implementation phase
 
-After the contract merge and its exact-main CI only:
+After that contract merge and exact-main CI:
 
 1. Fetch without pull and create fresh branch `agent/b-02c-resource-policy`
    in its own worktree from exact new `origin/main`; record base SHA/tree.
@@ -75,6 +90,14 @@ After the contract merge and its exact-main CI only:
 4. Implement a closed domain-separated codec, exact ref recomputation, strict
    stale/cross-Challenge/binding checks, pure static assessment, fixture-only
    readiness, pure enforcement, cancellation records, and resource receipts.
+   Treat content addresses as byte identity rather than operation provenance:
+   every downstream service must recompute each supplied derived value from
+   its exact authoritative inputs before use. Readiness therefore also
+   receives the exact plan/ref needed to prove its assessment rather than
+   trusting a caller-constructed digest-valid assessment. The terminal
+   observed-receipt builder returns its exact receipt/ref pair, and its public
+   semantic validator recomputes the pair from the complete dependency set;
+   no unguarded receipt-ref issuer is public.
 5. Update only code/package authority inventories required by the new package;
    make no dependency/lock change unless current evidence proves it necessary.
 6. Add focused B-02C tests and affected B-02B construction/ref/canonical,
@@ -86,6 +109,11 @@ After the contract merge and its exact-main CI only:
    notify issue #42, obtain clean exact-head CI and Greptile review, repair
    valid findings with rereview after changes, and stop without merging.
 
+The fresh implementation workspace recorded above was created from exact
+fetched `origin/main` only after run `33374037602` passed. Baseline bootstrap,
+doctor, and CI each correctly rejected noncanonical Darwin before running a
+test lane; canonical GitHub Linux remains the authoritative final environment.
+
 ## 5. Verification matrix
 
 - exact policy/class/derived ref identity, canonical round trip, digest tamper,
@@ -93,6 +121,8 @@ After the contract merge and its exact-main CI only:
 - exact Challenge, scope, policy, class, assembly, catalog, compiler,
   environment, context, expected-active-ref, plan, and dependency bindings;
 - byte-identical plan/ref before and after all B-02C operations;
+- digest-valid but semantically fabricated assessment, decision, enforcement,
+  and cancellation values rejected by exact downstream recomputation;
 - unsupported class/tag/dimension/unit, structurally missing-ceiling hard
   rejection, exact limit,
   over-limit, hostile UInt64/Boolean/float inputs, duplicates, and overflow;
