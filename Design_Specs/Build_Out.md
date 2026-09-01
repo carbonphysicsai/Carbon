@@ -7,10 +7,10 @@
 
 
 **Audience:** Coding agents, lead engineers, SciML reviewers, contractors.  
-**Version:** 1.4<br>
+**Version:** 1.5<br>
 **Status:** Executable requirements contract  
 **Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`  
-**Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`
+**Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`, `Agentic_Development_Master_Plan.md`, `../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`
 
 ---
 
@@ -92,7 +92,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C12 | Card store | **High** | Internal + budgeted paths | Disclosure tier confirm |
 | C13 | Fees | **High** | Ledger, idempotency, fee≠score | Fee amount |
 | C14 | Leaderboard | **High** | Public fields only | — |
-| C15 | Bittensor | **Med** | Wiring + weight map | Mainnet params |
+| C15 | Bittensor/network | **Med** | Post-Wave-B C0 adapter/auth/identity/localnet, C1 real vertical wiring, and C2 typed temporary testnet policy | SDK/network pinning, security acceptance, reward window, sink identity/custody, quorum/stake/audit, treasury/mainnet values |
 | C16 | Observability | **High** | Logs/metrics | Alert thresholds |
 | C17–18 | Landscape / specialists | **Out P0** | Card schema hooks only in P0; Waves E–F in §18 | See `Landscape_Agent.md`, `Specialist_Bank.md` |
 | C19 | Reference solvers | **Low** | Wrapper + pin skeleton | Convergence evidence |
@@ -126,27 +126,54 @@ WAVE B — science-ready skeletons
   ResearchTask + ExperimentRecord + ResearchReceipt fixture lifecycle
   Autoresearch utility / conditional-leakage gauntlet
 
-WAVE C — vertical integration
-  Real TrainEvalAPI behind nominally separate future qualified official and practice entry points
-  C7 validator: queue → hidden data → run → score → cards
-  MCP e2e: free loop then paid loop
-  C15: actual Bittensor testnet path (not stub-only)
+WAVE C0 — network foundation (begins only after Wave B)
+  NET-0 topology / threat model / Carbon-chain boundary / test policy
+  NET-1 ChainAdapter / metagraph / wallet / UID / classified errors
+  NET-2 hotkey-authenticated application transport / replay protection
+  NET-3 candidate commitment / availability / hotkey binding
+  NET-4A nominal StructuralLocalnetWeightIntent, TestnetWinnerWeightIntent,
+         TreasuryRoutingWeightIntent
+  NET-4B compiler / chain constraints / non-paying sink / readback / receipts
+  NET-5 reproducible localnet E2E
+  NET-6 nodes / runtime / images / secrets / recovery / observability
+  → G2 LOCALNET_READY
+
+WAVE C1 — real scientific vertical
+  Real declarative producer-independent reconstruction backend
+  C7 durable queue → protected exam → measurements → score → signed receipt
+  sandbox/resources/reference/truth/failure separation
+  authenticated Miner MCP E2E + secondary execution/disagreement/free-rider evidence
+
+WAVE C2 — temporary direct-weight testnet integration
+  C-W1 TestnetWeightEligibilityEvent
+  C-W2 winner-only expiry / supersession / explicit no-winner sink
+  C-W3 publication / validator agreement / readback / recovery
+  C-W4 Testnet Alpha Report
+  → G3 TESTNET_ALPHA_DIRECT_WEIGHTS
 
 WAVE D — human qualification (not agent-owned)
   SciML: envelope, dossier Level-1, thresholds, practice incompleteness, scaffold mediocrity
   Protocol: Launch_Bar (+ MCP §2.4), fee value, qualification manifest signed, LIVE flip
 
-POST-P0 (not required for P0; see §18)
+POST-D PARALLEL LANES (see §18)
   WAVE E — Landscape signals          → Landscape_Agent.md
   WAVE F — Specialist bank            → Specialist_Bank.md
   WAVE G — Customer bounds / sponsors → Customer_Bounds_Specialist.md
+
+POST-D LAUNCH-CRITICAL BRANCH
+  WAVE H — frontier promotion / finality
+  WAVE I — treasury routing / scientific-economic ledger / settlement
 ```
 
 **Stub policy:** Wave A may use the fixture-official A8 stub for bounded
 lifecycle/contract CI. Wave B may add nominal practice/research plumbing only
 after its separate request/resource/disclosure contract is ratified. **Synthetic
-stub material must never write emission weights or LIVE leaderboard ranks.**
-Wave C requires a separately qualified real backend before testnet acceptance.
+stub material must never write weights or LIVE leaderboard ranks.** Exact real
+C2 provenance is the only non-LIVE path that may create temporary
+`TESTNET_ONLY`, `NON_SETTLING` integration weights. It cannot create
+production emissions, frontier state, treasury settlement, or mainnet
+authority. Wave C1 requires a real backend; Wave D alone qualifies the first
+scientific Challenge.
 
 ### 4.1 Bounded A9 Wave-A split
 
@@ -491,13 +518,18 @@ Challenge #2 should add a pack, not fork the subnet.
 ```text
 Miner/agent → MCP free loop → optional submit
 Validator  → hidden data → future qualified production TrainEval entry point → gates → Score Pack → cards
-Network    → weights from lean scores only (testnet in P0)
+Network    → Carbon policy event → typed testnet intent → bounded testnet weights
 Public     → leaderboard + budgeted EvaluationCard
 Ops        → priors/scaffolds from verified cards (after Launch_Bar)
 ```
 
-**P0 acceptance includes actual Bittensor testnet path** (scores → weights visible).  
-**Agent Wave C deliverable** includes wiring; **P0 done** ≠ “testnet stub only.”
+**G3 acceptance includes an actual Bittensor testnet path**, not a stub:
+authenticated hotkey → committed candidate → protected exam → scientific
+score → signed receipt → `TestnetWeightEligibilityEvent` →
+`TestnetWinnerWeightIntent` → on-chain testnet weight → readback →
+expiry/supersession → non-paying sink. Raw score magnitude never maps to
+weight magnitude. G3 remains `NON_LIVE`, `NON_SETTLING`,
+`NOT_FRONTIER_QUALIFIED`, and `NOT_MAINNET_ELIGIBLE`.
 
 **Out of P0:** Landscape graph, specialist SKUs, automated cross-surface
 conditional protected-realization leakage monitoring, commercial CAE, mainnet.
@@ -563,12 +595,24 @@ active main. Archive presence grants no current implementation authority.
 
 ### Wave C done when
 
-- [ ] Real TrainEvalAPI behind nominally separate future qualified official and practice entry points
-- [ ] Validator e2e: strategy → score → Model Card + EvaluationCard  
-- [ ] MCP free then paid loop e2e  
-- [ ] Gate fail → non-emitting  
-- [ ] **Testnet:** lean scores → weights observable  
-- [ ] FAILED_INFRA vs FAILED_STRATEGY distinguished  
+Wave C is decomposed; each gate is independent:
+
+- [ ] **C0 / G2:** NET-0 through NET-6 provide the narrow adapter,
+      authenticated transport, commitment/identity binding, typed intents,
+      structural localnet compiler/readback, reproducible harness, and
+      operational foundation.
+- [ ] **C1:** real declarative reconstruction, isolation, protected truth,
+      measurements/scoring, durable orchestration, signed receipts,
+      authenticated Miner MCP E2E, secondary execution/disagreement, and
+      free-rider evidence work end to end.
+- [ ] **C2 / G3:** C-W1 through C-W4 prove the exact candidate-to-chain path,
+      winner-only expiry/supersession, explicit no-winner sink, validator
+      agreement, readback/recovery, and Testnet Alpha Report.
+- [ ] `FAILED_INFRA`, reference failure, contest, indeterminacy, cancellation,
+      identity mismatch, and stale evidence are non-paying and never become a
+      candidate scientific zero or stale winner.
+- [ ] Fixture/mock/practice/estimate/PriorPack/scaffold/partial evidence is
+      mechanically ineligible for a real testnet winner event.
 
 ### Wave D / LIVE done when
 
@@ -576,6 +620,8 @@ active main. Archive presence grants no current implementation authority.
 - [ ] Launch_Bar + MCP §2.4 green  
 - [ ] Human thresholds/envelope/MOCK incompleteness/scaffold accepted  
 - [ ] Registry `live` flip succeeds only with matching hashes  
+- [ ] G3 integration evidence is not counted as Challenge scientific
+      qualification or a frontier event
 
 ---
 
@@ -668,13 +714,16 @@ Do **not** block Wave A on these.
 
 ## 18. Post-P0 waves (company + compounding product)
 
-Phase 0 ends at **Wave D / LIVE** for at least one challenge and a working **testnet** path (Wave C).  
-What follows is **not** required to claim P0 subnet readiness. It *is* required to claim Landscape intelligence, commercial specialists, or sponsored-challenge GTM.
+Wave D may qualify the first exact Challenge only after G3 proves the bounded
+testnet integration path. After D, Waves E/F/G are parallel product/knowledge/
+commercial lanes, while D→H→I is the launch-critical branch to mainnet
+mechanism completion. E/F/G do not block H/I.
 
 **Hard rule:** Post-P0 waves **must not** weaken Phase 0 invariants (gates judge score; stubs never emit; no seed leakage; fee≠score). Landscape never overrides hard gates.
 
 **Prerequisites before public product claims:**
-- Wave C green (real TrainEval + validator e2e + testnet weights observable)
+- Wave C0/C1/C2 green in their recorded bounded scopes, including G3's exact
+  proof chain and maturity ceiling
 - Wave D green for the challenge versions that feed cards into Landscape
 - `Launch_Bar.md` green before L0 “verified card” compounding or public prior-quality claims (`Landscape_Agent.md`)
 
@@ -704,6 +753,20 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
   Customer-side adapt kit voids prior cert until re-qualification
   Authority: Customer_Bounds_Specialist.md, Use_Cases_by_Phase.md
   Human: pricing, contracts, which challenges to host
+
+WAVE H — Frontier promotion and finality (launch-critical after D)
+  FrontierBaseline / FrontierRecord / LeaderReplacementPolicy
+  FrontierPromotionExam / FrontierAdvanceEvent / ChallengeSetEpoch
+  SUPERIOR / NOT_SUPERIOR / INDETERMINATE; appeal and finality
+  A leaderboard lead or C2 event is never a frontier event
+
+WAVE I — Treasury routing and settlement (mainnet-critical)
+  I-00 treasury receiver/custody/economic contract
+  I-01 SettlementObligation + immutable accrual/scientific-economic ledger
+  I-02 TreasuryRoutingWeightIntent + treasury publication
+  I-03 exactly-once miner settlement
+  I-04 validator execution/audit economics
+  I-05 direct-testnet-to-treasury migration + settlement soak
 ```
 
 ### 18.1 Post-P0 acceptance (directional)
@@ -713,11 +776,13 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 | **E** | Card lake + immutable coarsened prior publish path exist; gates still sole score authority; Launch_Bar respected |
 | **F** | At least one regime can run recipe → retrain → **product battery** → closed artifact (fixture or real) |
 | **G** | Bounds schema + fulfillment rules documented and demoed; one trial path without requiring customer secret data |
+| **H** | Fresh comparable evidence produces a final `SUPERIOR`, `NOT_SUPERIOR`, or `INDETERMINATE` decision; only the registered superior case creates one exact frontier event per permitted window |
+| **I** | Treasury routing, immutable obligations, exactly-once miner and validator-service settlement, migration rehearsal, outage/retry/key-rotation recovery, and no-direct-mainnet-fallback evidence pass |
 
 ### 18.2 What stays human
 
 - LIVE thresholds and dossier science (still Wave D discipline per challenge)
-- Mainnet parameters and emission economics
+- Mainnet parameters, custody, settlement amounts, and validator economics
 - Commercial pricing, sponsorship terms, IP licenses
 - Any claim that a specialist is “system certified” for a customer plant
 
@@ -727,9 +792,15 @@ WAVE G — Customer bounds & sponsored challenges (GTM)
 |--------|-----|
 | Feed free-path mock metrics into Landscape as verified truth | Corrupts Port D |
 | Sell eval outcomes or emission weight | Protocol integrity |
+| Treat C2 testnet weights as frontier, settlement, or mainnet evidence | Separate integration, science, and economics gates |
+| Let direct-winner and treasury modes overlap or fall back on mainnet | Duplicate/unauthorized economic authority |
 | Ship specialist without product battery | `Specialist_Bank.md` doctrine |
 | Block Phase 0 on Waves E–G | P0 is subnet readiness, not OpCo scale |
 
 ---
 
-*Build_Out v1.4 — Phase 0 waves A–D + Post-P0 waves E–G. **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface), Launch_Bar (stop-ships), Specialist_Bank (productization). Post-P0 product docs as cited in §18.*
+*Build_Out v1.5 — Waves A–D, post-D parallel E/F/G, and launch-critical H/I.
+**Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring
+(mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface),
+Launch_Bar (stop-ships), Specialist_Bank (productization), and launch v1.0.4
+(G2–G7 network/launch crosswalk).*

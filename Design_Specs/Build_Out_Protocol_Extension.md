@@ -1,14 +1,17 @@
 # Carbon Build-Out Protocol Extension
 
-**Status:** Ratified sequencing extension to `Build_Out.md` v1.4  
-**Purpose:** Integrate `Evaluation_Evidence_and_Validator_Audit.md` without reordering or invalidating the current Wave A board.  
-**Rule:** `Build_Out.md` remains the sequencing authority. This extension is additive and should be folded into the next Build Out revision. If this file conflicts with a current domain owner, the domain owner governs semantics.
+**Status:** Ratified sequencing extension incorporated into `Build_Out.md` v1.5
+**Purpose:** Preserve the detailed `Evaluation_Evidence_and_Validator_Audit.md` integration contract without reordering or invalidating the current Wave B board.
+**Rule:** `Build_Out.md` remains the sequencing authority. Version 1.5 incorporates this extension's post-Wave-B sequencing; this file remains additive design detail. If this file conflicts with a current domain owner, the domain owner governs semantics.
 
 ---
 
 ## 1. Sequencing principle
 
-Do **not** interrupt the current A0 → A12 order. Add the evidence/audit architecture through the existing tickets where natural, then promote real execution/audit work in Waves B/C.
+The completed A0 → A12 order remains historical implementation evidence;
+do not reinterpret or reorder it. Do **not** interrupt or reorder the current
+Wave-B board. Promote real execution/audit and Bittensor work only through a
+separately selected post-Wave-B C0/C1/C2 ticket.
 
 No P0 implementation may use this extension to:
 
@@ -84,7 +87,7 @@ hidden exam material is never copied into `EvaluationCard`.
 ### A8 — TrainEvalAPI stub
 
 The stub should return a structurally valid, mechanically
-**non-emission-capable** execution result. A later receipt/evidence owner may
+**non-production-authoritative** execution result. A later receipt/evidence owner may
 consume that result to create an unmistakably fixture/mock/stub receipt; A8
 does not implement or own the receipt. Stub results and any later stub receipt
 must be mechanically rejected by LIVE/emission paths.
@@ -147,7 +150,30 @@ Extend dossier artifact layout with optional mappings for context of use, verifi
 
 ## 4. Wave C additions
 
-Wave C real vertical integration adds:
+Wave C begins only after Wave B and is split into C0 network foundation, C1
+real scientific vertical, and C2 temporary direct-weight testnet integration.
+This plan does not authorize any of them.
+
+### C0 — network foundation
+
+Reconcile the NET family around:
+
+```text
+NET-0  topology / threat model / chain boundary / temporary test policy
+NET-1  pinned ChainAdapter / metagraph / wallet / UID / chain errors
+NET-2  hotkey-authenticated application transport / replay protection
+NET-3  candidate commitment / availability / hotkey binding
+NET-4A nominal localnet / testnet-winner / treasury-routing intents
+NET-4B compiler / chain constraints / no-winner sink / readback / receipts
+NET-5  reproducible localnet E2E harness
+NET-6  node / runtime / images / secrets / recovery / observability
+```
+
+G2 `LOCALNET_READY` requires the structural/localnet chain and readback. It
+confers no scientific, security, network-economic, LIVE, or production
+qualification.
+
+### C1 — real scientific vertical
 
 ### C-E1 — real signed EvaluationReceipts
 
@@ -159,7 +185,7 @@ Implement durable receipt storage plus Merkle/MMR-style append-only commitment c
 
 ### C-E3 — chain adapter
 
-Implement Bittensor behind protocol interfaces such as:
+Implement Bittensor behind narrow protocol interfaces such as:
 
 ```text
 ChainAdapter
@@ -169,21 +195,63 @@ CommitRevealAdapter
 ChainEventRecorder
 ```
 
-C15 testnet acceptance remains mandatory: real lean scores must become observable Bittensor testnet weights.
+Bittensor identity/discovery and hotkey-authenticated application transport
+wrap the Carbon Miner MCP; they do not become the MCP. Official exam material
+remains inaccessible from miner-facing interfaces.
 
-### C-E4 — scientific vs emission plane integration
+### C-E4 — scientific vs policy and chain-intent plane integration
 
-The canonical scientific result is recorded from qualified evaluation evidence before it is transformed into Bittensor weight publication. The Bittensor weight vector does not overwrite historical scientific evidence.
+The scientific result is recorded before any network decision. Dependency is
+one way:
+
+```text
+Carbon scientific result
+→ Carbon policy event
+→ nominal typed chain intent
+→ ChainAdapter / WeightPublisher
+→ Bittensor
+```
+
+The nominal intents are `StructuralLocalnetWeightIntent`,
+`TestnetWinnerWeightIntent`, and `TreasuryRoutingWeightIntent`. A publisher
+must reject arbitrary score dictionaries, raw scientific result objects,
+hidden measurements, scientific thresholds, payout amounts, and a
+caller-selected authority Boolean. A Bittensor weight vector cannot overwrite
+historical scientific evidence.
 
 ### C-E5 — validator free-riding simulator
 
-Before mainnet planning, add a reproducible simulator/notebook/tool that models evaluator cost, validator stake distribution, copier/free-rider scenarios, audit rate, and honest-evaluator sustainability. Outputs are protocol/economic evidence, not score inputs.
+Before mainnet planning, add a reproducible simulator/notebook/tool that models evaluator cost, validator stake distribution, copier/free-rider scenarios, audit rate, and honest-evaluator sustainability. Outputs are protocol/economic evidence, not score inputs. Reserve distinct `ValidatorAssignment`, `ValidatorExecutionReceipt`, `ValidatorAuditReceipt`, `ValidatorServiceObligation`, and `ValidatorServiceSettlement` so a copier cannot claim Carbon-controlled service compensation without valid evidence. Exact rates and policy remain human/evidence owned.
 
 ### C-E6 — probabilistic audit prototype
 
-After receipt commitment, use future unpredictable randomness to select a subset of testnet evaluations for authorized secondary re-execution. Compare under R0/R1/R2. A disagreement is CONTESTED/NON-EMITTING pending retry, not a miner physics zero.
+After receipt commitment, use future unpredictable randomness to select a subset of testnet evaluations for authorized secondary re-execution. Compare under R0/R1/R2. A disagreement is `CONTESTED` and non-paying pending policy, not a miner physics zero; it routes C2 to the explicit no-winner state.
 
-P0 acceptance may initially exercise this with a small controlled audit rate; the final production rate remains human/protocol-owned.
+The audit rate, quorum, and stake policy remain human/protocol-owned.
+
+### C2 — temporary direct-weight testnet integration
+
+C2 adds:
+
+```text
+C-W1 TestnetWeightEligibilityEvent
+C-W2 winner-only expiry / supersession / explicit non-paying sink
+C-W3 publication / validator agreement / readback / recovery
+C-W4 complete Testnet Alpha Report
+```
+
+Raw score magnitude never maps to weight magnitude. A Challenge-local
+scientific result determines only whether a new eligible leader exists. Only
+exact real C2 provenance may create an expiring `TESTNET_ONLY`, `NON_LIVE`,
+`NON_SETTLING` event and `TestnetWinnerWeightIntent`. Fixture, mock, practice,
+estimate, PriorPack, scaffold, partial, failed, cancelled, deferred,
+indeterminate, contested, identity-unbound, or stale evidence is ineligible.
+
+With an active eligible winner, only the winner participant allocation is
+active and other participants are zero. Without one, an approved non-paying
+sink is active and every participant is zero. The exact window duration and
+sink identity/custody remain owner-owned. G3 remains `NON_LIVE`,
+`NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, and `NOT_MAINNET_ELIGIBLE`.
 
 ---
 
@@ -198,7 +266,33 @@ LIVE qualification must include, where applicable:
 - infra/reference failure-path verification;
 - disclosure review proving receipts/cards/logs do not leak hidden exam material.
 
-Mainnet-readiness review additionally requires validator-economics/free-riding analysis and an explicit audit strategy.
+A successful G3 test weight is not Wave-D evidence. Mainnet-readiness review
+additionally requires Wave-H frontier/finality evidence and Wave-I treasury,
+validator-economics, migration, and settlement evidence.
+
+### 5.1 Post-D launch-critical H/I additions
+
+Wave H alone owns frontier baseline/record, replacement policy, promotion
+exam, `FrontierAdvanceEvent`, `ChallengeSetEpoch`, appeal, and finality. A
+leaderboard lead or C2 event does not create a frontier event.
+
+Wave I is mainnet-critical:
+
+```text
+I-00 treasury receiver / custody / economic contract
+I-01 SettlementObligation + immutable accrual/scientific-economic ledger
+I-02 TreasuryRoutingWeightIntent + treasury publication
+I-03 exactly-once miner settlement
+I-04 validator execution / audit economics
+I-05 direct-testnet-to-treasury migration + settlement soak
+```
+
+G6 requires a rehearsal that stops new direct-winner events, expires/revokes
+existing events under registered policy, confirms the non-paying sink,
+activates treasury routing, verifies accrual, exercises test frontier events
+and obligations, and settles/reconciles without overlap, duplicate benefit,
+science mutation, accounting loss on key rotation, or direct-winner mainnet
+fallback. Waves E/F/G may proceed after D but do not block H/I.
 
 ---
 
@@ -208,8 +302,8 @@ For P0 implementation planning:
 
 - JAX is the first backend targeted for full qualification;
 - PyTorch or other backends remain possible later through `TrainEvalAPI` backend adapters;
-- multiple backends do not become emission-capable merely because adapters exist;
-- each emission-capable backend profile requires its own qualification evidence.
+- multiple backends do not become production-authoritative merely because adapters exist;
+- each production-authoritative backend profile requires its own qualification evidence.
 
 ---
 

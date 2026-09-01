@@ -2,8 +2,9 @@
 
 **Revision:** 1.1 candidate amendment (2026-08-26)
 **Status:** OWNER-RATIFICATION PROPOSAL — the previously ratified architecture remains authoritative; revision 1.1's scientific-repeat and dependence rules require explicit Physics/SciML, statistics, and protocol-owner acceptance.
+**OWNER-NET-01 amendment (2026-09-01):** the network and typed-chain-intent sections are roadmap-ratified after merge; the revision 1.1 scientific-repeat and dependence proposal remains unratified.
 **Scope:** P0 evidence spine, backend qualification, validator accountability, testnet auditability, future proof-readiness  
-**Authority:** This document owns execution evidence, evaluation receipts, reproducibility qualification, validator audit/re-execution, and scientific-vs-emission consensus separation. It does **not** override `Scoring.md`, `Data_Management.md`, `Trustless_Verification.md`, `Miner_MCP.md`, generator qualification specs, or `Launch_Bar.md` in their owned domains.
+**Authority:** This document owns execution evidence, evaluation receipts, reproducibility qualification, validator audit/re-execution, and scientific-vs-chain-intent separation. It does **not** override `Scoring.md`, `Data_Management.md`, `Trustless_Verification.md`, `Miner_MCP.md`, generator qualification specs, or `Launch_Bar.md` in their owned domains.
 
 ---
 
@@ -14,7 +15,7 @@ Carbon must preserve a durable, independently auditable record of **what scienti
 - reproducibility and backend qualification;
 - miner-result provenance;
 - validator accountability and dispute handling;
-- Bittensor testnet/mainnet weight publication;
+- typed Bittensor testnet intents and later treasury-routing support;
 - later customer/product credibility dossiers;
 - future cryptographic proof systems without requiring ZK in P0.
 
@@ -36,8 +37,12 @@ Signed EvaluationReceipt
    ├─ Miner EvaluationCard projection
    ├─ Audit / re-execution input
    ├─ Scientific evidence ledger
-   └─ Emission-plane score input
+   └─ Carbon policy-event eligibility input
 ```
+
+The receipt has no direct emission, chain-intent, frontier, or settlement
+authority. A separately owned Carbon policy must positively admit exact
+receipt provenance before creating its nominal event or intent.
 
 ### 2.1 Private `ExecutionTranscript`
 
@@ -97,7 +102,14 @@ Rules:
 
 1. `exam_commitment` commits to the authorized hidden exam identity/material but MUST NOT expose raw or derived official seeds, draw IDs, or reversible identifiers.
 2. Score fields are only authoritative when produced by the challenge-bound current `Scoring.md` path and a valid receipt status.
-3. `FAILED_INFRA`, incomplete, stub, mock, or non-LIVE receipts are mechanically non-emission-capable.
+3. `FAILED_INFRA`, incomplete, stub, mock, practice, estimate, PriorPack,
+   scaffold, partial, cancelled, deferred, contested, indeterminate,
+   identity-unbound, or stale/superseded receipts are mechanically incapable
+   of production emissions, frontier promotion, treasury settlement, or
+   mainnet authority. A non-LIVE receipt may authorize only a temporary
+   `TESTNET_ONLY`, `NON_SETTLING` integration weight when the exact real Wave-C2
+   provenance policy positively admits it into a
+   `TestnetWeightEligibilityEvent`; no other non-LIVE exception exists.
 4. A receipt is immutable after signing. Corrections create a new receipt linked by `supersedes_receipt_id`; historical receipts remain preserved.
 5. Receipt signing does not imply scientific qualification. It proves provenance of an execution claim, not that the challenge/backend is production-qualified.
 
@@ -159,7 +171,8 @@ Repeated honest evaluation must be stable enough that backend noise does not unp
 - convert an admissible result to scientific failure;
 - materially reorder rankings beyond the qualified uncertainty band.
 
-A result inside the qualified uncertainty band of a mandatory threshold is **CONTESTED / NON-EMITTING pending retry**, not automatically a physics failure.
+A result inside the qualified uncertainty band of a mandatory threshold is
+**CONTESTED / NON-PAYING pending retry**, not automatically a physics failure.
 
 For ranking or promotion, R2 is evaluated over separately realized,
 producer-independent reconstruction replicates and common whole physical cases
@@ -263,11 +276,12 @@ Rules:
 - `Infra*` statuses cannot enter the physics-gate/scientific-failure path;
 - Julia/SciML/reference-solver exceptions produce `ReferenceBackendFailure` or another explicit infra/reference status;
 - infra failure produces retry/refund/quarantine semantics, never an invented hard-gate FAIL;
-- partial metrics from failed infrastructure are non-authoritative and non-emission-capable.
+- partial metrics from failed infrastructure are non-authoritative and cannot
+  originate a Carbon policy event or chain intent.
 
 ---
 
-## 7. Scientific plane vs emission plane
+## 7. Scientific plane vs policy and chain-intent planes
 
 Carbon separates the durable scientific record from Bittensor economic consensus.
 
@@ -283,21 +297,39 @@ submission
 
 The scientific result is defined by Carbon's challenge contract, qualified execution evidence, and dispute policy — not merely by the public Bittensor weight vector.
 
-### 7.2 Emission plane
+### 7.2 Carbon policy and chain-intent plane
 
 ```text
-canonical scientific scores
- → Carbon/Bittensor weight policy
- → commit/reveal where applicable
- → Subtensor/Yuma/YC3
- → emissions
+canonical scientific result
+ → Carbon policy event
+ → nominal typed chain intent
+ → ChainAdapter / WeightPublisher
+ → Bittensor
 ```
 
-Bittensor determines network economic distribution. It does not retroactively redefine the scientific evidence stored for a submission.
+The nominal intent families are `StructuralLocalnetWeightIntent`,
+`TestnetWinnerWeightIntent`, and `TreasuryRoutingWeightIntent`. A publisher
+must reject arbitrary score dictionaries, raw scientific result objects,
+hidden measurements, scientific thresholds, payout amounts, and a
+caller-selected authority Boolean. Bittensor determines network distribution;
+it does not retroactively redefine the scientific evidence stored for a
+submission.
 
-### 7.3 P0 compatibility
+### 7.3 Temporary C2 testnet compatibility
 
-This separation does not require a new blockchain or external consensus system in P0. A P0 implementation may use Carbon-operated/qualified validators as the scientific evaluators while still publishing Bittensor testnet weights exactly as Build Out requires.
+A real Wave C2 may use Carbon-operated validators to prove an expiring
+winner-triggered testnet weight without claiming LIVE, settlement, frontier,
+or mainnet authority. Challenge-local score/rank determines only whether a new
+eligible leader exists; raw score magnitude never determines weight magnitude.
+Only exact admitted C2 provenance may create a `TestnetWeightEligibilityEvent`
+and `TestnetWinnerWeightIntent`.
+
+With an active eligible winner, only the winner participant allocation is
+active and other participants are zero. With no active winner—including
+expiry, contest, indeterminacy, disagreement, unavailability, identity
+mismatch, reference/infrastructure failure, supersession, or invalid chain
+binding—an approved non-paying sink is active and all participants are zero.
+Exact duration and sink identity/custody remain owner/security/economic inputs.
 
 The architectural separation exists so that later validator free-riding, network-mechanism changes, or commercial audit requirements do not destroy the underlying scientific provenance.
 
@@ -321,7 +353,11 @@ Required pre-mainnet analysis:
 - audit/re-execution rate;
 - honest evaluator operating margin;
 - probability that sufficient independent scientific evidence exists;
-- failure cases where economic consensus diverges from Carbon's canonical scientific result.
+- failure cases where economic consensus diverges from Carbon's canonical scientific result;
+- whether `ValidatorAssignment`, `ValidatorExecutionReceipt`,
+  `ValidatorAuditReceipt`, `ValidatorServiceObligation`, and
+  `ValidatorServiceSettlement` prevent a copier from claiming
+  Carbon-controlled execution/audit compensation without valid evidence.
 
 Similarity metrics may be used for telemetry and audit prioritization, never as sole proof of cheating.
 
@@ -349,8 +385,9 @@ Disagreement policy:
 
 ```text
 first material disagreement
- → CONTESTED / NON-EMITTING
- → retry on qualified infrastructure
+ → CONTESTED / NON-PAYING
+ → explicit C2 no-winner sink where testnet publication applies
+→ retry on qualified infrastructure
 
 persistent disagreement
  → quarantine affected backend/challenge/profile
@@ -377,6 +414,13 @@ WeightPublisher
 CommitRevealAdapter
 ChainEventRecorder
 ```
+
+`WeightPublisher` accepts only the correct nominal chain-intent family for its
+registered environment/policy. A structural localnet intent cannot authorize a
+testnet winner; a testnet winner intent cannot authorize treasury routing; and
+a treasury intent requires the Wave-H/I frontier/settlement path. Bittensor
+SDK, metagraph, and extrinsic objects remain downstream of Carbon policy and
+never enter scoring authority.
 
 Bittensor is the first implementation, not the scientific ontology.
 

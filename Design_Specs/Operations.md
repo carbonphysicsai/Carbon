@@ -6,6 +6,14 @@
 > interface. The Wave B board, research contract, and later B-07S protocol
 > control the separate local v2 research service after activation. Wave B adds
 > no network listener, credentials, remote quota, or production signer.
+>
+> **Post-Wave-B network reconciliation:** `OWNER-NET-01` supersedes every
+> direct `lean_eval` → weight/emission shorthand in this target guide. Real
+> Bittensor integration begins only after Wave B. Official evaluation produces
+> a scientific result/receipt; Carbon policy may later create a nominal typed
+> chain intent. C2 is temporary `TESTNET_ONLY`/`NON_SETTLING`; mainnet routes
+> through Wave-H frontier evidence and Wave-I treasury settlement. This guide
+> does not select or implement those future operations.
 
 ## TL;DR
 
@@ -16,13 +24,13 @@
 - Registered reference service (Julia/SciML in the target deployment, port 8083) — Challenge-bound reference solves, adjoints, or symbolic losses
 - Queue, monitoring, alerts, incident response, backups
 - Capacity planning by phase
-- **Job-class isolation:** lean emissions path vs Specialist Bank / product-battery path
+- **Job-class isolation:** official scientific evaluation path vs Specialist Bank / product-battery path
 
 **Job classes (ops-critical)**
 
-| `job_class` | Trigger | Queue | Emissions? |
+| `job_class` | Trigger | Queue | Scientific/economic authority |
 |-------------|---------|-------|------------|
-| **`lean_eval`** | Full miner submission | Default validator queue | **Yes** |
+| **`lean_eval`** | Full miner submission | Default validator queue | Scientific result/receipt only; no automatic weight, frontier, or settlement |
 | **`practice_research`** | Optional miner research task | Separate local/practice worker and quota | No |
 | **`bank_retrain`** | Specialist opportunity promote | Bank workers / isolated pool | No |
 | **`product_battery`** | After bank lean re-gate | Bank / off-peak / sponsored PB capacity | No |
@@ -40,12 +48,12 @@
 **Daily operator loop**
 - Morning: pod health, registered reference-service health, **lean** queue depth, overnight submission count, bank/PB backlog if live
 - Mid-day: GPU util / OOM, stuck lean submissions (>2 h), SciML latency
-- Evening: reward snapshot, queue trend, backup verification
+- Evening: scientific-result and policy/chain-state snapshot, queue trend, backup verification
 
 **Key services**
 | Service | Port | Failure impact |
 |---------|------|----------------|
-| Validator (lean) | 8080/8081 | No scoring / emissions |
+| Validator (lean) | 8080/8081 | No new scientific results; any downstream policy/chain publication handles absence separately and fail closed |
 | Registered reference service | 8083 | Affected Challenges pause or return typed reference/infrastructure failure; no fallback score |
 | Queue processor | — | Lean backlog → latency |
 | Bank / PB workers (when live) | — | No commercial graduation; lean continues |
@@ -68,7 +76,7 @@ Carbon plans four compute classes. Operators must keep practice, official lean,
 bank retraining, and product-battery work separate.
 
 ```text
-lean_eval  ──► emissions, Model Cards → Landscape D1
+lean_eval  ──► scientific result + receipts/cards; later Carbon policy eligibility
 practice_research ──► miner-owned research evidence only
 bank_retrain ──► controlled specialist candidate
 product_battery ──► INV / deep ROLL / ADV / LAT / ART ──► ship or promotion_fail (D11)
@@ -377,7 +385,7 @@ Image scan/sign; secret rotation; no stress/PB seeds in logs or miner APIs; netw
 
 # 12. CAPACITY PLANNING
 
-1. Size **lean** fleet to challenge throughput targets and emission latency.  
+1. Size the **lean** fleet to registered evaluation-throughput and scientific-result latency targets. Future chain-publication and settlement SLOs remain separate and owner-approved.
 2. After Bank live, add isolated **10–20%** GPU headroom for bank_retrain/PB — not multiplied into per-submission unit cost.  
 3. Sponsored T3/T4 may fund dedicated PB capacity (`Compute_Optimization.md`).
 

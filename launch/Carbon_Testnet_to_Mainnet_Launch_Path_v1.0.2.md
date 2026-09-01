@@ -1,8 +1,13 @@
 # Carbon Testnet-to-Mainnet Launch Path
 
+> **SUPERSEDED / HISTORICAL.** Version 1.0.4 is the sole current launch plan.
+> This version's optional direct-weight mainnet beta, network-in-parallel-with-
+> Wave-B language, and old G2–G7 taxonomy are retained only as history and do
+> not authorize current work or launch.
+
 **Executable roadmap mapped to Carbon Waves A-I**
 
-**Status:** Working control document; not launch approval
+**Status:** SUPERSEDED / HISTORICAL — not current launch authority
 
 **Version:** 1.0.2
 
