@@ -7,12 +7,11 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -1012,9 +1011,7 @@ def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None
 
 def test_hub_acceptance_enforces_decision_console_contract() -> None:
     command = "python3 docs/development/carbon_hub/tools/test_decisions.py"
-    hub_script = (REPOSITORY_ROOT / "scripts/dev/ci_hub.sh").read_text(
-        encoding="utf-8"
-    )
+    hub_script = (REPOSITORY_ROOT / "scripts/dev/ci_hub.sh").read_text(encoding="utf-8")
 
     assert command in hub_script
 
