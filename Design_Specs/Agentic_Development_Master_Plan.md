@@ -1,7 +1,7 @@
 # Carbon Agentic Development Master Plan
 
 **Status:** OWNER-CANONICAL long-horizon development plan.  
-**Purpose:** connect the implemented bounded A0–A10 foundation, the remaining A11–A12 Wave-A work, Waves B–G in `Build_Out.md`, and Carbon's longer-term generalized agentic construction, frontier, treasury, commercial, qualification, and Physics Intelligence architecture.
+**Purpose:** connect the bounded implemented foundation, active Wave B, post-Wave-B C0/C1/C2 network and real-vertical work, post-D parallel E/F/G lanes, the H/I launch-critical branch, and Carbon's longer-term generalized construction, qualification, commercial, and Physics Intelligence architecture.
 **Authority:** this document owns long-horizon sequencing and dependency interpretation. `Design_Specs/Build_Out.md` remains the detailed current implementation sequencing authority for the active P0 waves.  
 **Non-permission rule:** later waves are not authorized for implementation merely because they are described here.
 
@@ -29,7 +29,10 @@ Security doctrine:
 
 The canonical `.agent/WAVE.md` records the authoritative ticket evidence.
 
-At this reconciliation:
+At the historical constitutional reconciliation, the table below recorded the
+Wave-A state. Current selection authority is `.agent/WAVE.md`; as of the
+`OWNER-NET-01` planning base, Wave B is active with B-04 selected
+`in_progress`, and this master-plan update does not change that selection.
 
 | Ticket | State | Constitutional interpretation |
 |---|---|---|
@@ -48,7 +51,9 @@ At this reconciliation:
 | A11 | todo | logs/metrics/redaction/failure tags |
 | A12 | todo | invariant suite / Wave-A closeout |
 
-No A0–A10 component is superseded merely by broader design. Future work wraps/extends/migrates explicitly.
+No bounded component is superseded merely by broader design. Future work
+wraps/extends/migrates explicitly. Described C/H/I work is planned only and is
+not implementation permission.
 
 ---
 
@@ -190,23 +195,48 @@ remote research transport remain Wave C.
 
 ---
 
-# 5. Wave C — real single-Challenge vertical integration
+# 5. Wave C — post-Wave-B network and real single-Challenge integration
 
 Goal:
 
-> execute one real candidate through one qualified end-to-end scientific path.
+> prove localnet/network foundations, execute one real candidate through one
+> protected scientific path, then prove temporary direct testnet weights
+> without claiming scientific qualification, frontier, settlement, or
+> mainnet authority.
+
+Real Bittensor integration begins only after Wave B.
+
+## C0 — network foundation → G2 `LOCALNET_READY`
+
+```text
+NET-0  topology / threat model / chain boundary / temporary test policy
+NET-1  pinned ChainAdapter / metagraph / wallet / UID / chain errors
+NET-2  hotkey-authenticated application transport / replay protection
+NET-3  candidate commitment / availability / hotkey binding
+NET-4A StructuralLocalnetWeightIntent / TestnetWinnerWeightIntent /
+       TreasuryRoutingWeightIntent
+NET-4B compiler / constraints / no-winner sink / readback / receipts
+NET-5  reproducible localnet E2E harness
+NET-6  node / runtime / images / secrets / recovery / observability
+```
+
+Bittensor identity/discovery and authenticated transport wrap the Carbon Miner
+MCP. Scientific/evaluation modules remain SDK-independent behind a narrow
+adapter. G2 is structural/local integration only.
+
+## C1 — real scientific vertical
 
 Required chain:
 
 ```text
 registered Challenge
-→ qualified population / SamplingPlan
-→ qualified generator + truth
+→ exact real-path population / SamplingPlan identity
+→ real generator + protected truth path
 → producer-independent reconstruction
 → protected evaluation
 → MeasurementContracts
 → Score Pack
-→ ExperimentRecord
+→ signed EvaluationReceipt / ExperimentRecord
 ```
 
 Required implementation work:
@@ -216,9 +246,35 @@ Required implementation work:
 - resource controls;
 - validator orchestration;
 - backend/reference adapters;
-- evidence receipts/provenance;
-- MCP end-to-end paid path;
-- testnet-capable Bittensor transport without claiming final frontier economics.
+- signed evidence receipts/provenance and append-only commitments;
+- authenticated MCP end-to-end research/submission/result path;
+- secondary execution, validator-disagreement handling, and free-rider
+  simulation; and
+- Carbon policy-event/typed-intent integration without final frontier
+  economics.
+
+## C2 — temporary direct-weight testnet → G3
+`TESTNET_ALPHA_DIRECT_WEIGHTS`
+
+```text
+C-W1 TestnetWeightEligibilityEvent
+C-W2 winner-only expiry / supersession / explicit non-paying sink
+C-W3 publication / validator agreement / readback / recovery
+C-W4 complete Testnet Alpha Report
+```
+
+A Challenge-local result decides only whether a new eligible leader exists;
+raw score magnitude never sets weight magnitude. Only exact real C2
+provenance may create an expiring `TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`
+event and `TestnetWinnerWeightIntent`. With no active eligible winner, the
+approved non-paying sink is active and participant miners are zero. Exact
+window duration and sink identity/custody remain human/security/economic-owned.
+
+G3 proof is hotkey → authenticated MCP → committed candidate → orchestration
+→ protected exam → score → signed receipt → testnet event → typed intent →
+on-chain weight → readback → expiry/supersession → no-winner sink. Its ceiling
+is `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, and
+`NOT_MAINNET_ELIGIBLE`.
 
 STOP-SHIP if:
 
@@ -227,7 +283,14 @@ STOP-SHIP if:
   the qualified physical reference;
 - task omits a causal input;
 - all realistic strategies are scientifically inadmissible;
-- winner flips under ordinary reconstruction/evaluation variance.
+- winner flips under ordinary reconstruction/evaluation variance;
+- hidden material reaches miner-facing transport;
+- candidate bytes/hotkey/UID/receipt identity are not exactly bound;
+- fixture/mock/practice/estimate/PriorPack/scaffold/partial/failed/contested
+  evidence can enter C2;
+- no-winner behavior can preserve a stale participant reward; or
+- a publisher can accept raw scientific results, score dictionaries, or a
+  caller-selected authority Boolean.
 
 ---
 
@@ -255,6 +318,9 @@ First authoritative Burgers direction remains fixed-viscosity unless science rev
 ---
 
 # 7. Wave E — Landscape and evidence memory
+
+Waves E, F, and G are parallel lanes that may proceed after Wave D. They do
+not block the D→H→I launch-critical branch.
 
 Goal:
 
@@ -355,6 +421,9 @@ Business payment never changes the scientific ruler.
 
 # 10. Wave H — frontier promotion and Challenge portfolio
 
+Wave H follows Wave D on the launch-critical branch; Waves E/F/G are not
+predecessor gates.
+
 Goal:
 
 > distinguish ordinary Challenge ranking from verified frontier advance.
@@ -378,7 +447,9 @@ Required semantics:
 - decision states include `SUPERIOR`, `NOT_SUPERIOR`, `INDETERMINATE`;
 - unresolved equivalence does not create an arbitrary paid winner;
 - at most one paid frontier event per Challenge/window under the registered policy;
-- incumbency itself earns no new performance reward.
+- incumbency itself earns no new performance reward;
+- a leaderboard lead, G3 direct-testnet event, or testnet weight cannot create
+  a `FrontierAdvanceEvent`.
 
 ---
 
@@ -391,20 +462,42 @@ Goal:
 Objects:
 
 ```text
+TreasuryReceiverSet / TreasuryVault custody boundary
+TreasuryAccrualLedger
 SettlementObligation
-TreasuryLedgerEntry
+TreasuryRoutingWeightIntent
 PayoutIdentity
 SponsorRewardPolicy
+ValidatorAssignment
+ValidatorExecutionReceipt / ValidatorAuditReceipt
+ValidatorServiceObligation / ValidatorServiceSettlement
 ```
 
-Candidate architecture:
+Wave I is mainnet-critical and decomposes as:
 
 ```text
-Bittensor transport / miner-side emissions
-→ Carbon treasury neuron / vault pattern
-→ scientific-economic ledger
-→ event-bound settlement
+I-00 treasury receiver / custody / economic contract
+I-01 SettlementObligation + immutable accrual/scientific-economic ledger
+I-02 TreasuryRoutingWeightIntent + treasury publication
+I-03 exactly-once miner settlement
+I-04 validator execution / audit economics
+I-05 direct-testnet-to-treasury migration + settlement soak
 ```
+
+Production routing is:
+
+```text
+validator weight publication
+→ TreasuryReceiverSet
+→ TreasuryVault / custody boundary
+→ TreasuryAccrualLedger
+→ SettlementObligation
+→ per-Challenge payout
+```
+
+The chain vector contains no raw candidate score, hidden measurement,
+Challenge-specific score magnitude, scientific threshold, or payout amount.
+Exact custody and economic values remain owner/security/economic inputs.
 
 Must prove on localnet/testnet before production:
 
@@ -413,7 +506,13 @@ Must prove on localnet/testnet before production:
 - no duplicate payout;
 - treasury outage preserves scientific event state;
 - payout requires exact Challenge/frontier/event identity;
-- governance cannot silently alter scientific merit.
+- governance cannot silently alter scientific merit;
+- validators cannot claim Carbon-controlled execution/audit compensation
+  without valid assignment/receipt evidence;
+- direct-winner and treasury modes never overlap or double-benefit one event;
+- UID/key rotation preserves accounting and retries remain exactly once;
+- rollback returns to a non-paying state; and
+- mainnet has no automatic fallback to direct-winner weights.
 
 ---
 
@@ -625,6 +724,20 @@ For every ticket:
 
 # 20. Closing architecture
 
+Launch sequencing is:
+
+```text
+WAVE B unchanged
+→ C0 → G2
+→ C1 → C2 → G3
+→ D → G4
+→ H → I → G6
+→ G7 treasury-routed mainnet mechanism
+```
+
+Waves E/F/G may proceed after D in parallel and do not gate H/I. G5 may be
+reached with economic activation off.
+
 ```text
 DEFINE THE PHYSICAL JOB
         ↓
@@ -644,7 +757,11 @@ COMMON FRONTIER PROMOTION WHEN REQUIRED
         ↓
 VERIFIED FRONTIER ADVANCE
         ↓
-SEPARATE TREASURY SETTLEMENT
+SETTLEMENT OBLIGATION
+        ↓
+TREASURY-ROUTING WEIGHT INTENT
+        ↓
+EXACTLY-ONCE PER-CHALLENGE TREASURY SETTLEMENT
         ↓
 PRODUCT QUALIFICATION / LIFECYCLE
         ↓

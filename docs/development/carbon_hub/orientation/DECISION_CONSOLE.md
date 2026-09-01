@@ -19,7 +19,7 @@ Hub application. GitHub's repository file view does not execute the app.
 ### Needs Me
 
 `NEEDS_REVIEW` means Harsh should inspect a material working decision. The card
-shows the Wave/ticket placement, the question, why it matters, the agent
+shows the stable Wave/ticket or system placement, the question, why it matters, the agent
 recommendation, what keeping or changing it affects, and the exact durable
 response location.
 

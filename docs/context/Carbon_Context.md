@@ -1,5 +1,5 @@
 # Carbon Context
-**Status:** v1 — team review
+**Status:** v1.1 — team-review context reconciled to `OWNER-NET-01`
 
 ## Mission
 Carbon is a competitive scientific-computing system, initially a Bittensor subnet, for discovering and independently evaluating neural-operator training strategies. Miners submit methods; validators independently retrain them on hidden procedural data under a pinned challenge contract. Mandatory physics gates establish admissibility; surviving strategies are ranked on physics fidelity, robustness, and accuracy.
@@ -7,7 +7,11 @@ Carbon is a competitive scientific-computing system, initially a Bittensor subne
 Carbon's durable asset is the verified record of which training methods survive difficult scientific exams. That record can improve future search and, through a separate qualification path, produce envelope-qualified engineering surrogates. The durable record is not only a leaderboard: it is an evidence chain linking strategy identity, challenge/version, qualified execution environment, scientific result, and later product qualification.
 
 ## Core loop
-`miner/agent → free research loop → strategy submission → shared hidden exam → independent retraining → binary gates → weighted-geometric lean score → signed EvaluationReceipt → EvaluationCard + Model Card → Bittensor emission mapping → later Landscape → specialist candidate → fresh retrain + Product Battery → qualified artifact`
+`miner/agent → free research loop → strategy submission → shared hidden exam → independent retraining → binary gates → weighted-geometric scientific result → signed EvaluationReceipt → Carbon policy event → typed chain intent → Bittensor adapter/publication → later Landscape → specialist candidate → fresh retrain + Product Battery → qualified artifact`
+
+C2 may use that boundary for a temporary expiring testnet winner intent only.
+Mainnet instead requires frontier promotion → `FrontierAdvanceEvent` →
+`SettlementObligation` → treasury routing and per-Challenge settlement.
 
 ## Trust boundary
 **Public:** challenge/envelope/exclusions, generator logic, scoring mathematics, gate definitions, versions/hashes, validation dossier, protocol rules, and public-safe commitments/provenance.
@@ -30,9 +34,11 @@ Carbon distinguishes three layers:
 - **R1 numerical reproducibility:** floating outputs/metrics agree within a backend-qualified, human-approved tolerance.
 - **R2 decision reproducibility:** backend noise must not unpredictably flip mandatory gates or materially reorder authoritative outcomes beyond the qualified uncertainty band.
 
-Universal bit-for-bit equality across arbitrary heterogeneous accelerators is not a Carbon protocol requirement. P0 targets a narrow qualified hardware/software cohort and a JAX-first TrainEval backend. Other backends require separate qualification before becoming emission-capable.
+Universal bit-for-bit equality across arbitrary heterogeneous accelerators is not a Carbon protocol requirement. P0 targets a narrow qualified hardware/software cohort and a JAX-first TrainEval backend. Other backends require separate qualification before becoming production-authoritative. Exact real C2 provenance may prove temporary `TESTNET_ONLY`, `NON_SETTLING` integration before Wave-D scientific qualification; it cannot create frontier or mainnet authority.
 
-A result inside the qualified uncertainty band of a mandatory threshold is contested/non-emitting pending retry; validator/backend disagreement is not silently converted into a miner physics failure.
+A result inside the qualified uncertainty band of a mandatory threshold is
+contested/non-paying pending retry; validator/backend disagreement is not
+silently converted into a miner physics failure.
 
 ## Scientific credibility
 The operating envelope is the claim boundary. Before LIVE, a generator earns a reproducible dossier using evidence appropriate to its physics: analytic/manufactured truth, converged numerical references, multi-code agreement, industrial goldens, conservation, coverage, and model-form uncertainty as applicable.
@@ -51,19 +57,25 @@ Official `train ≠ eval ≠ stress`. Validators grading one submission use the 
 
 A4 defines a typed `BeaconProvider` boundary, exact 32-byte `OfficialEntropy`, and RFC 5869 HKDF-SHA-256 domain separation. The production provider, observation timing, finality/reorg handling, fallback, and any chain, drand, or hybrid composition remain unresolved owner decisions. Bittensor weight commit/reveal and Carbon exam randomness are distinct protocol concerns.
 
-## Scientific plane and emission plane
+## Scientific, network-policy, and settlement planes
 Carbon separates the durable scientific result from Bittensor economic consensus.
 
 **Scientific plane:** submission → qualified evaluation → signed receipt(s) → reproducibility/dispute handling → canonical scientific result.
 
-**Emission plane:** canonical scientific scores → Carbon/Bittensor weight policy → commit/reveal as applicable → Subtensor/Yuma/YC3 → emissions.
+**Network-policy plane:** scientific result → Carbon policy event → nominal
+`StructuralLocalnetWeightIntent`, `TestnetWinnerWeightIntent`, or
+`TreasuryRoutingWeightIntent` → adapter/publisher → Bittensor.
+
+**Mainnet settlement plane:** qualified Challenge evidence → fresh frontier
+promotion → `FrontierAdvanceEvent` → `SettlementObligation` → treasury
+settlement. Raw score magnitude never maps to weight magnitude.
 
 Bittensor is Carbon's first economic network implementation. The public weight vector does not retroactively redefine historical scientific evidence.
 
 Validator evaluation free-riding/weight copying is therefore treated as a protocol/economic sustainability threat rather than the definition of scientific truth. Weight similarity alone is telemetry, not proof of cheating. Mainnet planning requires explicit honest-evaluator economics and free-rider scenario analysis.
 
 ## Validator audits
-After a primary receipt commitment is immutable, future unpredictable randomness may select a subset of evaluations for authorized qualified secondary re-execution. Audits compare R0/R1/R2 evidence. Material disagreement makes the evaluation contested/non-emitting pending retry and may quarantine a backend/challenge combination; it does not automatically assign a miner physics zero.
+After a primary receipt commitment is immutable, future unpredictable randomness may select a subset of evaluations for authorized qualified secondary re-execution. Audits compare R0/R1/R2 evidence. Material disagreement makes the evaluation contested/non-paying pending retry, routes any C2 publication to the no-winner sink, and may quarantine a backend/challenge combination; it does not automatically assign a miner physics zero.
 
 Audit allocation may improve validator accountability and evidence quality but never enters the miner scientific score.
 
@@ -71,10 +83,10 @@ Audit allocation may improve validator accountability and evidence quality but n
 Infrastructure/reference failures are structurally separate from scientific or strategy failures. Julia/SciML/reference exceptions, node failures, queue loss, policy OOM kills, and equivalent infra failures produce typed infra/reference statuses and retry/refund/quarantine semantics. They do not synthesize hard-gate failures.
 
 ## Miner interface
-The implemented Wave A MCP provides the bounded seven-operation in-process control/disclosure surface, including official-shaped fixture submission and result retrieval but no execution-bearing practice loop. The proposed inactive Wave B research service adds local, nominally separate, declared-incomplete practice and paired comparison. Practice never sees the official realized exam, grants emissions, or becomes grading authority. EvaluationCard remains budgeted to support repair without becoming a grader oracle.
+The implemented Wave A MCP provides the bounded seven-operation in-process control/disclosure surface, including official-shaped fixture submission and result retrieval but no execution-bearing practice loop. Current Wave B is active under `.agent/WAVE.md`; B-04 is selected and its runtime remains governed there. Wave-B research contracts add local, nominally separate, declared-incomplete practice and paired comparison without network authority. Practice never sees the official realized exam, creates a testnet/treasury intent, or becomes grading authority. EvaluationCard remains budgeted to support repair without becoming a grader oracle.
 
 ## Chain boundary
-Scientific modules should depend on narrow chain/metagraph/weight/beacon interfaces rather than deeply embedding Bittensor SDK objects where practical. Bittensor is the first adapter. This preserves testability and Carbon's scientific provenance if network implementation details evolve.
+Scientific modules should depend on narrow chain/metagraph/weight/beacon interfaces rather than deeply embedding Bittensor SDK objects where practical. Bittensor identity/discovery and hotkey-authenticated application transport wrap the Carbon Miner MCP; Bittensor is not the MCP. The adapter accepts nominal typed intents, not score dictionaries, raw scientific results, or caller-selected authority Booleans. This preserves testability and Carbon's scientific provenance if network implementation details evolve.
 
 ## Landscape
 Landscape is build-ordered, not assumed live at P0. It learns from verified Model Cards and later promotion outcomes, fits symbolic hypotheses and effect candidates, improves search guidance, and ranks opportunities. It never overrides gates. Association evidence remains decision support; causal language requires a registered identification design and epistemic promotion.
@@ -85,7 +97,7 @@ Leaderboard rank is not product qualification. A winning strategy may seed a can
 The same evidence spine should later support qualified strategy/model packages with operating envelope, credibility evidence, reproduction profile, known limitations, provenance lineage, and requalification triggers. This allows Carbon to serve as a neutral discovery/qualification/evidence rail rather than requiring every downstream engineering platform to be vertically replaced.
 
 ## P0
-P0 proves one complete vertical through hidden evaluation, scoring/cards, signed evidence structure, and actual Bittensor testnet weights. Additional Phase-0 PDEs are independently qualified packs. Landscape, specialists, mainnet, production validator-audit economics, and ZK proofs are not implied by P0 completion.
+G3 proves one complete real candidate-to-chain vertical through hidden evaluation, scoring/cards, signed evidence, temporary winner-triggered Bittensor testnet weights, readback, expiry/supersession, and the explicit no-winner sink. It remains `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, and `NOT_MAINNET_ELIGIBLE`. Wave D separately qualifies the first exact Challenge; H/I separately qualify frontier and treasury settlement. Landscape, specialists, mainnet, production validator-audit economics, and ZK proofs are not implied by G3.
 
 P0 is **proof-ready but proof-free**: canonical commitments should preserve future option value for narrow proofs over committed outputs/gate verdicts, but proof-of-training/ZK is not a P0 requirement.
 

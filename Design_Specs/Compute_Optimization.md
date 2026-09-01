@@ -8,7 +8,7 @@
 
 | Class | When | Cost model |
 |-------|------|------------|
-| **`lean_eval`** | Every full submission | Default unit cost; emissions path; staged ordering may stop on a conclusive mandatory failure, while every nonzero score completes the same registered pack |
+| **`lean_eval`** | Every full submission | Default unit cost; official scientific-evaluation path; staged ordering may stop on a conclusive mandatory failure, while every nonzero score completes the same registered pack |
 | **`practice_research`** | Optional miner research | Separate local/practice budget and rights; never official admission, priority, or score |
 | **`frontier_promotion`** | Only nominated contender versus incumbent | Common fresh cases plus the registered repeated-reconstruction evidence needed for `SUPERIOR`; unresolved evidence does not settle |
 | **`bank_retrain`** | Specialist promotion | Occasional; same train stack, fresh seeds |
@@ -21,7 +21,7 @@
 2. **Kernel** — low-rank spectral weights, fused FFT+GEMM, adaptive modes
 3. **System** — staged mandatory-check ordering, fair queue admission, sponsored capacity, hard GPU-second budgets, practice isolation, **PB isolation**
 
-**Principle:** expose efficiency knobs in `strategy.json` so the network *searches* efficiency; validators ship high-ROI backends; **lean physics gates remain mandatory** for emissions weight; **product battery** remains mandatory for commercial full SKUs — on a **separate** budget.
+**Principle:** expose efficiency knobs in `strategy.json` so the network *searches* efficiency; validators ship high-ROI backends; **lean physics gates remain mandatory** for official scientific results; downstream policy events, chain intents, frontier promotion, and settlement remain separately governed; **product battery** remains mandatory for commercial full SKUs — on a **separate** budget.
 
 **Build priority:** multi-fidelity + conclusive mandatory-failure early stop + low-rank kernels + fair lean scheduling first; broad custom kernel libraries later.
 

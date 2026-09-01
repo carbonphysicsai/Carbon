@@ -9,7 +9,7 @@
 ## Sequence
 
 - **Predecessor:** Wave D
-- **Successor:** Wave F
+- **Successor:** Only a prospectively authorized successor
 
 ## What and why
 
@@ -21,7 +21,7 @@ Carbon should compound what it learns across experiments, but learned patterns c
 
 Landscape produces traceable hypotheses and decision support while registered contracts retain scientific authority.
 
-Safer search orientation, evidence reuse where rights permit, and later prospective Physics Intelligence tests.
+Safer search orientation, evidence reuse where rights permit, and later prospective Physics Intelligence tests. This post-D lane does not gate H or I.
 
 ## Authority ceiling
 
@@ -45,6 +45,6 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

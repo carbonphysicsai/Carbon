@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -73,7 +74,11 @@ def main() -> int:
             fail(f"{decision_id} has unknown attention state {item['attention']!r}")
         if item["audience"] != "harsh":
             fail(f"{decision_id} must currently target audience 'harsh'")
-        if not str(item["map_ref"]).startswith("WAVE-"):
+        map_ref = str(item["map_ref"])
+        if not re.fullmatch(
+            r"(?:WAVE-[A-N](?:/[A-Z0-9-]+)?|SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*)",
+            map_ref,
+        ):
             fail(f"{decision_id} has invalid primary map_ref")
         if not isinstance(item["affects"], list):
             fail(f"{decision_id}.affects must be a list")

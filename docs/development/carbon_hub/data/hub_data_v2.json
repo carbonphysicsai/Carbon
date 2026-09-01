@@ -2,10 +2,10 @@
   "meta": {
     "title": "Carbon Development Hub",
     "version": "2.1",
-    "captured_at_utc": "2026-09-01T14:32:12Z",
+    "captured_at_utc": "2026-09-01T20:33:39Z",
     "repository": "https://github.com/carbonphysicsai/Carbon",
     "branch": "main",
-    "authority_snapshot_commit": "83cc2a628d13ce60fd854168b126d935076ec30a",
+    "authority_snapshot_commit": "d0cff7f611aaf9598ebe16999cb20941f48655b8",
     "hub_build_commit": null,
     "purpose": "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.",
     "authority_notice": "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -93,55 +93,95 @@
   "sources": {
     "constitution": {
       "label": "Repository constitution",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/CONSTITUTION.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/CONSTITUTION.md"
     },
     "invariants": {
       "label": "Always-on agent invariants",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/INVARIANTS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/INVARIANTS.md"
     },
     "build_out": {
       "label": "Current Build Out",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Build_Out.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Build_Out.md"
     },
     "constitutional_overlay": {
       "label": "Build Out Constitutional Overlay",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Build_Out_Constitutional_Overlay.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Build_Out_Constitutional_Overlay.md"
+    },
+    "protocol_extension": {
+      "label": "Build Out Protocol Extension",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Build_Out_Protocol_Extension.md"
     },
     "scientific_canon": {
       "label": "Scientific Reference Canon v4",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
     },
     "master_plan": {
       "label": "Agentic Development Master Plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Agentic_Development_Master_Plan.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
+    },
+    "launch_plan": {
+      "label": "Current testnet-to-mainnet launch path",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
+    },
+    "open_questions": {
+      "label": "Master open design questions",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md"
+    },
+    "governance_ticket": {
+      "label": "GOV-NET-01 roadmap ticket",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+    },
+    "governance_plan": {
+      "label": "GOV-NET-01 delivery plan",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+    },
+    "governance_evidence": {
+      "label": "GOV-NET-01 stable evidence",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/evidence/governance/gov-net-01.md"
+    },
+    "maturity_ledger": {
+      "label": "Current implemented-vs-specified ledger",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md"
     },
     "current_wave": {
       "label": "Current wave register",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE.md"
     },
     "wave_a_report": {
       "label": "Wave A closeout report",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_A_REPORT.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE_A_REPORT.md"
     },
     "controlling_board": {
       "label": "Current controlling board",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_B.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE_B.md"
+    },
+    "b_01f_ticket": {
+      "label": "B-01F delivery hardening ticket",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/tickets/B-01F_development_throughput_hardening.md"
+    },
+    "b_01f_evidence": {
+      "label": "B-01F stable evidence",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/evidence/wave_b/b-01f.md"
+    },
+    "b_01g_ticket": {
+      "label": "B-01G non-blocking tooling ticket",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/tickets/B-01G_static_schema_codegen_proof.md"
     },
     "code_authority": {
       "label": "Current executable-code authority map",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/CODE_AUTHORITY.toml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/CODE_AUTHORITY.toml"
     },
     "generator_package": {
       "label": "Bounded generator package public surface",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/carbon/generators/__init__.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/carbon/generators/__init__.py"
     },
     "decision_log": {
       "label": "Agent decisions log",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/DECISIONS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/DECISIONS.md"
     },
     "delegated_decisions": {
       "label": "Delegated decision protocol",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/DELEGATED_DECISION_PROTOCOL.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/DELEGATED_DECISION_PROTOCOL.md"
     },
     "harsh_inbox": {
       "label": "SciML / Technical Lead Decision Inbox #42",
@@ -153,23 +193,31 @@
     },
     "operations": {
       "label": "Operations and deployment guide",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Operations.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Operations.md"
     },
     "commercial_model": {
       "label": "Commercial Operating Model",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Business/Commercial_Operating_Model.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Commercial_Operating_Model.md"
     },
     "business_canon": {
       "label": "Business Canon",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Business/Business_Canon.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Business_Canon.md"
     },
     "hub_validation_workflow": {
       "label": "Development Hub validation workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.github/workflows/development-hub.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.github/workflows/development-hub.yml"
+    },
+    "ci_workflow": {
+      "label": "Canonical CI and stable Merge gate workflow",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.github/workflows/ci.yml"
+    },
+    "main_ruleset": {
+      "label": "Main branch ruleset artifact",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.github/rulesets/main.v1.json"
     },
     "hub_publication_workflow": {
       "label": "Development Hub publication workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.github/workflows/development-hub-pages.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.github/workflows/development-hub-pages.yml"
     }
   },
   "authority_source_checks": [
@@ -269,7 +317,83 @@
         "> **B-04-D1 through B-04-D10 status: RATIFIED BOUNDED ENGINEERING-CONTRACT",
         "## 2026-09-01 — B-04-D1: Keep the canonical evaluation package and one-way ownership",
         "## 2026-09-01 — B-04-D10: Preserve B-02A censoring and downstream owner boundaries",
-        "Every real reference choice and qualification remains reserved and fail"
+        "Every real reference choice and qualification remains reserved and fail",
+        "## 2026-09-01 — OWNER-NET-01: post-Wave-B Bittensor wiring and treasury-before-mainnet roadmap",
+        "Mainnet economic activation requires the Wave-H/I treasury path.",
+        "`StructuralLocalnetWeightIntent`, `TestnetWinnerWeightIntent`, and",
+        "OWNER_DIRECTION / RATIFIED_ROADMAP: YES after merge under current governance"
+      ]
+    },
+    {
+      "id": "post-wave-b-roadmap-ticket",
+      "path": ".agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md",
+      "required_markers": [
+        "**Lane:** repository planning and governance; outside the active Wave-B implementation board",
+        "**Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`",
+        "The repository's active implementation selection remains B-04 throughout.",
+        "BITTENSOR_IMPLEMENTED: NO"
+      ]
+    },
+    {
+      "id": "build-out-v1-5-roadmap",
+      "path": "Design_Specs/Build_Out.md",
+      "required_markers": [
+        "**Version:** 1.5<br>",
+        "Wave C0/C1/C2 green",
+        "G3 TESTNET_ALPHA_DIRECT_WEIGHTS",
+        "I-02 TreasuryRoutingWeightIntent + treasury publication",
+        "I-05 direct-testnet-to-treasury migration + settlement soak"
+      ]
+    },
+    {
+      "id": "protocol-extension-v1-5-roadmap",
+      "path": "Design_Specs/Build_Out_Protocol_Extension.md",
+      "required_markers": [
+        "**Status:** Ratified sequencing extension incorporated into `Build_Out.md` v1.5",
+        "Wave C begins only after Wave B and is split into C0 network foundation, C1",
+        "The nominal intents are `StructuralLocalnetWeightIntent`,",
+        "G6 requires a rehearsal that stops new direct-winner events"
+      ]
+    },
+    {
+      "id": "master-plan-post-wave-b-roadmap",
+      "path": "Design_Specs/Agentic_Development_Master_Plan.md",
+      "required_markers": [
+        "## C0 — network foundation → G2 `LOCALNET_READY`",
+        "## C2 — temporary direct-weight testnet → G3",
+        "Wave H follows Wave D on the launch-critical branch; Waves E/F/G are not",
+        "→ H → I → G6"
+      ]
+    },
+    {
+      "id": "current-launch-roadmap",
+      "path": "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md",
+      "required_markers": [
+        "**Version:** 1.0.4",
+        "**Decision:** `OWNER-NET-01`",
+        "G3 TESTNET_ALPHA_DIRECT_WEIGHTS",
+        "G6 TREASURY_SETTLEMENT_QUALIFIED",
+        "G7 MAINNET_MECHANISM_COMPLETE"
+      ]
+    },
+    {
+      "id": "post-wave-b-maturity-ceiling",
+      "path": "docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md",
+      "required_markers": [
+        "| C0 NET foundation / `ChainAdapter` / authenticated transport | roadmap specified | No | No | future Wave C0 after Wave B; no ticket selected |",
+        "| `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |",
+        "Bittensor integration, testnet weights, network qualification,",
+        "not reordered and no future implementation ticket is selected.**"
+      ]
+    },
+    {
+      "id": "post-wave-b-open-questions",
+      "path": "docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md",
+      "required_markers": [
+        "## MQ-055 — Temporary direct-testnet winner and no-winner policy",
+        "## MQ-061 — Direct-testnet-to-treasury migration and custody",
+        "## MQ-062 — Testnet Alpha Report and mainnet evidence package",
+        "historical proposed MQ-059/MQ-060 questions."
       ]
     },
     {
@@ -354,7 +478,8 @@
       "Business/",
       "Design_Specs/",
       "docs/context/",
-      "docs/publications/"
+      "docs/publications/",
+      "launch/"
     ],
     "rules": [
       {
@@ -456,10 +581,45 @@
         "map_ref": "SYSTEM/SCIENTIFIC-CANON"
       },
       {
+        "id": "master-open-design-questions",
+        "match_type": "exact",
+        "path": "docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/GOVERNANCE"
+      },
+      {
+        "id": "architecture-rationale",
+        "match_type": "exact",
+        "path": "docs/context/Architecture_Rationale.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/PROTOCOL-AUTHORITY"
+      },
+      {
+        "id": "carbon-context",
+        "match_type": "exact",
+        "path": "docs/context/Carbon_Context.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/PROTOCOL-AUTHORITY"
+      },
+      {
+        "id": "context-decisions",
+        "match_type": "exact",
+        "path": "docs/context/Decisions.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/GOVERNANCE"
+      },
+      {
         "id": "maturity-map",
         "match_type": "exact",
         "path": "docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md",
         "impact_class": "map_structural",
+        "map_ref": "SYSTEM/MATURITY"
+      },
+      {
+        "id": "defensibility-register",
+        "match_type": "exact",
+        "path": "docs/context/DEFENSIBILITY_REGISTER.md",
+        "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/MATURITY"
       },
       {
@@ -473,6 +633,13 @@
         "id": "build-out-overlay",
         "match_type": "exact",
         "path": "Design_Specs/Build_Out_Constitutional_Overlay.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "build-out-protocol-extension",
+        "match_type": "exact",
+        "path": "Design_Specs/Build_Out_Protocol_Extension.md",
         "impact_class": "map_structural",
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
@@ -570,6 +737,27 @@
         "map_ref": "SYSTEM/GOVERNANCE"
       },
       {
+        "id": "gov-net-01-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "gov-net-01-plan",
+        "match_type": "exact",
+        "path": ".agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "gov-net-01-evidence",
+        "match_type": "exact",
+        "path": ".agent/evidence/governance/gov-net-01.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
         "id": "ticket-record",
         "match_type": "ticket_record",
         "path": ".agent/tickets/",
@@ -597,6 +785,13 @@
         "path": "Design_Specs/",
         "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/PROTOCOL-AUTHORITY"
+      },
+      {
+        "id": "launch-roadmap",
+        "match_type": "prefix",
+        "path": "launch/",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
         "id": "business-canon",
@@ -745,44 +940,48 @@
       "repo_links": [
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE_B.md"
         },
         {
           "label": "Current wave register",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE.md"
         },
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
     {
       "id": "C",
-      "title": "Real single-Challenge integration",
+      "title": "Network foundation and real testnet vertical",
       "status": "planned",
       "predecessor": "B",
       "successor": "D",
-      "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
-      "one_line": "Run one real candidate through one real end-to-end scientific path.",
-      "what": "Wave C replaces fixture-only seams with one real vertical integration: a registered Challenge, qualified population and SamplingPlan, real reconstruction, protected evaluation, measurements, a Score Pack, and evidence provenance.",
-      "why": "Contracts and fixtures can expose architectural mistakes, but Carbon must prove that one real candidate survives the full operating path under real resource, sandbox, reference, and validator constraints.",
-      "success": "One candidate moves through the registered Challenge, producer-independent reconstruction, protected evaluation, and ExperimentRecord chain with real adapters and testnet-capable transport.",
-      "unlocks": "Wave D can make the human scientific judgments required to activate the first LIVE exam.",
-      "does_not": "Wave C does not itself authorize LIVE status, broad Challenge coverage, final frontier economics, or mainnet settlement.",
+      "authority_ceiling": "SPECIFIED as post-Wave-B planning context only; no C0/C1/C2 ticket is selected. G3 remains NON_LIVE, NON_SETTLING, NOT_FRONTIER_QUALIFIED, and NOT_MAINNET_ELIGIBLE.",
+      "one_line": "Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights.",
+      "what": "Wave C is decomposed into C0 network foundation (NET-0 through NET-6), C1 real scientific vertical, and C2 temporary winner-triggered testnet integration (C-W1 through C-W4). Bittensor wraps the Miner MCP; Carbon retains Challenge, evaluation, score, leader, frontier, and settlement authority.",
+      "why": "Carbon must prove both the chain boundary and one real protected scientific path without letting SDK objects, raw scores, fixtures, stale winners, or incomplete evidence acquire economic authority.",
+      "success": "G2 proves the localnet adapter, authenticated transport, candidate commitment, structural intent, publication, and readback chain. G3 then proves hotkey-authenticated MCP request through committed candidate, protected exam, signed EvaluationReceipt, TestnetWeightEligibilityEvent, TestnetWinnerWeightIntent, on-chain readback, expiry or supersession, and the explicit no-winner sink.",
+      "unlocks": "Wave D can qualify the first exact Challenge without mistaking successful testnet publication for scientific qualification.",
+      "does_not": "Wave C does not authorize LIVE science, Wave-D qualification, FrontierAdvanceEvent creation, treasury settlement, direct-winner mainnet weights, or mainnet activation.",
       "objects": [
-        "Production TrainEval adapter",
-        "Sandbox execution",
+        "ChainAdapter and metagraph identity",
+        "Authenticated application transport",
+        "Candidate commitment and hotkey binding",
+        "StructuralLocalnetWeightIntent",
+        "Real reconstruction and sandbox execution",
         "Validator orchestration",
-        "Reference adapters",
-        "Evidence receipts",
-        "Testnet transport"
+        "Signed EvaluationReceipt",
+        "TestnetWeightEligibilityEvent",
+        "TestnetWinnerWeightIntent",
+        "Non-paying no-winner sink"
       ],
       "ticket_ids": [],
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -791,14 +990,14 @@
       "title": "Human scientific qualification",
       "status": "planned",
       "predecessor": "C",
-      "successor": "E",
+      "successor": "H",
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
-      "one_line": "Earn the right to call the first exam LIVE.",
+      "one_line": "Qualify the first exact Challenge without inferring science from testnet weights.",
       "what": "Wave D collects the human-owned scientific decisions that software cannot invent: physical envelope, population adequacy, truth hierarchy, measurement qualification, thresholds, uncertainty policy, disclosure, and exact activation.",
       "why": "Passing engineering tests cannot prove that the exam measures the intended physical claim or resolves the decision at the required scientific standard.",
-      "success": "The responsible scientific owners approve the exact Challenge and Launch Bar inputs, then authorize the first LIVE activation prospectively.",
-      "unlocks": "Carbon can operate a scientifically qualified Challenge and later distinguish ordinary ranking from frontier promotion.",
-      "does_not": "One LIVE Challenge does not prove a broad portfolio, product qualification, commercial repeatability, or settlement correctness.",
+      "success": "G4 binds the exact Challenge, population, SamplingPlan, reference and truth assets, measurements, uncertainty, Score Pack, backend profile, security controls, leakage evidence, independent review, and Launch Bar evidence approved by the responsible owners.",
+      "unlocks": "Wave H becomes the launch-critical successor for frontier promotion and finality; Waves E, F, and G may proceed independently in parallel after D.",
+      "does_not": "G3 testnet weights do not prove Wave-D success, and one qualified Challenge does not create a FrontierAdvanceEvent, product qualification, commercial repeatability, or settlement correctness.",
       "objects": [
         "Qualified population",
         "Qualified reference hierarchy",
@@ -811,7 +1010,7 @@
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -820,13 +1019,13 @@
       "title": "Landscape and evidence memory",
       "status": "planned",
       "predecessor": "D",
-      "successor": "F",
+      "successor": null,
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
       "one_line": "Learn from authoritative experiments without letting learned memory control the judge.",
       "what": "Wave E ingests structured ExperimentRecords and models relationships among methods, contexts, and outcomes so Carbon can propose better experiments, priors, scheduling, and Challenge changes.",
       "why": "Carbon should compound what it learns across experiments, but learned patterns cannot rewrite a live exam after results become visible.",
       "success": "Landscape produces traceable hypotheses and decision support while registered contracts retain scientific authority.",
-      "unlocks": "Safer search orientation, evidence reuse where rights permit, and later prospective Physics Intelligence tests.",
+      "unlocks": "Safer search orientation, evidence reuse where rights permit, and later prospective Physics Intelligence tests. This post-D lane does not gate H or I.",
       "does_not": "Landscape cannot define truth, alter current Score Packs, reveal protected exam structure, or revise a current frontier result.",
       "objects": [
         "ExperimentRecord ingestion",
@@ -839,7 +1038,7 @@
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -847,14 +1046,14 @@
       "id": "F",
       "title": "Product qualification and specialist systems",
       "status": "planned",
-      "predecessor": "E",
-      "successor": "G",
+      "predecessor": "D",
+      "successor": null,
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
       "one_line": "Separate search success from deployable product evidence.",
       "what": "Wave F qualifies an exact model artifact, runtime, deployment context, limitations, answerability policy, and requalification triggers using a Product Qualification Pack and Product Battery.",
       "why": "A candidate can rank well in a Challenge and still lack enough evidence for a customer deployment or a specialist product.",
       "success": "Carbon can state what one exact artifact can support, in which context, with which limitations and lifecycle obligations.",
-      "unlocks": "Qualified model programs, deployment, specialist banks, and recurring requalification work.",
+      "unlocks": "Qualified model programs, deployment, specialist banks, and recurring requalification work. This post-D lane does not gate H or I.",
       "does_not": "Challenge rank does not automatically qualify a product, and component evidence does not automatically qualify a composed system.",
       "objects": [
         "ProductQualificationPack",
@@ -867,7 +1066,7 @@
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -875,14 +1074,14 @@
       "id": "G",
       "title": "Commercial, private, and sponsored engagement plane",
       "status": "planned",
-      "predecessor": "F",
-      "successor": "H",
+      "predecessor": "D",
+      "successor": null,
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
       "one_line": "Serve real enterprises without moving business authority into the judge.",
       "what": "Wave G connects the business canon to scientific execution through engagement, rights, privacy, reference-access, deliverable, acceptance, and economics records.",
       "why": "Customers need private deployment, clear rights, bounded deliverables, and commercial acceptance without gaining the power to change scientific evidence rules.",
       "success": "Carbon can structure enterprise work with explicit rights, privacy, truth access, deliverables, payment, and lifecycle controls.",
-      "unlocks": "Evidence Audits, Sponsored Discovery, qualification, lifecycle, private/VPC delivery, and later enterprise platform workflows.",
+      "unlocks": "Evidence Audits, Sponsored Discovery, qualification, lifecycle, private/VPC delivery, and later enterprise platform workflows. This post-D lane does not gate H or I.",
       "does_not": "A designed product is not a live capability. Carbon cannot sell an unqualified privacy mode or let payment alter the scientific ruler.",
       "objects": [
         "CommercialEngagementSpec",
@@ -896,74 +1095,83 @@
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         },
         {
           "label": "Commercial Operating Model",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Business/Commercial_Operating_Model.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Commercial_Operating_Model.md"
         },
         {
           "label": "Business Canon",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Business/Business_Canon.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Business_Canon.md"
         }
       ]
     },
     {
       "id": "H",
-      "title": "Frontier promotion and Challenge portfolio",
+      "title": "Frontier promotion and finality",
       "status": "planned",
-      "predecessor": "G",
+      "predecessor": "D",
       "successor": "I",
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
       "one_line": "Separate ordinary Challenge ranking from verified frontier advance.",
-      "what": "Wave H introduces persistent frontier records, promotion exams, Challenge-set epochs, and explicit SUPERIOR, NOT_SUPERIOR, and INDETERMINATE outcomes.",
+      "what": "Wave H introduces FrontierBaseline, FrontierRecord, LeaderReplacementPolicy, FrontierPromotionExam, FrontierAdvanceEvent, ChallengeSetEpoch, appeal, and finality while preserving explicit SUPERIOR, NOT_SUPERIOR, and INDETERMINATE outcomes.",
       "why": "A local ranking or floating-point improvement does not prove that a contender moved the scientific frontier on comparable fresh evidence.",
-      "success": "Carbon promotes a contender only through the registered promotion policy and records one exact frontier event when the evidence resolves it.",
+      "success": "Carbon promotes a contender only through the registered fresh promotion policy, records one exact finalizable frontier event when the evidence resolves it, and preserves the registered one-event-per-Challenge-settlement-window direction.",
       "unlocks": "Event-bound economic settlement and a governed portfolio of Challenges.",
       "does_not": "Incumbency does not earn perpetual rewards, unresolved evidence does not create a winner, and scores remain non-comparable across Challenges by default.",
       "objects": [
         "FrontierBaseline",
         "FrontierRecord",
+        "LeaderReplacementPolicy",
         "FrontierPromotionExam",
         "FrontierAdvanceEvent",
-        "ChallengeSetEpoch"
+        "ChallengeSetEpoch",
+        "Appeal and finality record"
       ],
       "ticket_ids": [],
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
     {
       "id": "I",
-      "title": "Treasury and network settlement",
+      "title": "Mainnet-critical treasury and network settlement",
       "status": "planned",
       "predecessor": "H",
       "successor": "J",
       "authority_ceiling": "SPECIFIED as long-horizon planning context only; not implementation permission and not evidence of implementation, testing, or qualification.",
-      "one_line": "Settle verified entitlements without rewriting scientific merit.",
-      "what": "Wave I turns verified scientific events into exact settlement obligations and treasury ledger entries, with explicit payout identities and sponsor reward policies.",
-      "why": "Economic settlement needs its own failure handling, identity, custody, and duplicate-prevention rules. Validator weight normalization cannot stand in for scientific accounting.",
-      "success": "Localnet and testnet evidence shows that settlement preserves event identity, avoids duplicate or unintended redistribution, and survives treasury outages without changing science.",
-      "unlocks": "Production network settlement after legal, economic, governance, security, and launch approval.",
-      "does_not": "Treasury cannot create, erase, or change a scientific frontier event.",
+      "one_line": "Route mainnet network allocation to treasury receivers and settle exact per-Challenge obligations without rewriting scientific merit.",
+      "what": "Wave I owns I-00 treasury receiver/custody/economic contract, I-01 immutable accrual and scientific-economic ledger plus SettlementObligation, I-02 TreasuryRoutingWeightIntent publication, I-03 exactly-once miner settlement, I-04 validator execution and audit economics, and I-05 direct-testnet-to-treasury migration and settlement soak.",
+      "why": "Mainnet economic activation requires a treasury receiver path, exact event-bound accounting, non-duplicating retries, and evidence that validators execute or audit assigned scientific work instead of merely copying a treasury vector.",
+      "success": "G6 demonstrates frontier-to-obligation-to-settlement evidence, validator-service incentives and audit controls, no-overlap migration, non-paying rollback, custody and recovery review, and localnet/testnet settlement soak. G7 then requires separate explicit mainnet activation authority.",
+      "unlocks": "Treasury-routed mainnet economic activation only after legal, economic, governance, security, operational, and launch approval.",
+      "does_not": "Treasury or chain failure cannot create, erase, or change scientific merit; mainnet has no automatic fallback to direct-winner weights.",
       "objects": [
+        "TreasuryReceiverSet",
+        "TreasuryRoutingWeightIntent",
         "SettlementObligation",
-        "TreasuryLedgerEntry",
-        "PayoutIdentity",
-        "SponsorRewardPolicy"
+        "TreasuryAccrualLedger",
+        "ValidatorAssignment",
+        "ValidatorExecutionReceipt",
+        "ValidatorAuditReceipt",
+        "ValidatorServiceObligation",
+        "ValidatorServiceSettlement",
+        "Exactly-once settlement record",
+        "Migration rehearsal evidence"
       ],
       "ticket_ids": [],
       "repo_links": [
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md"
         },
         {
           "label": "Repository constitution",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/CONSTITUTION.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/CONSTITUTION.md"
         }
       ]
     },
@@ -2270,31 +2478,31 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/tickets/B-04_reference_truth_contracts.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/tickets/B-04_reference_truth_contracts.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/WAVE_B.md"
         },
         {
           "label": "Reference and TruthAsset contract",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Reference_and_TruthAsset_Contract.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Reference_and_TruthAsset_Contract.md"
         },
         {
           "label": "B-04 contract plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/plans/B-04_reference_truth_contracts.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/plans/B-04_reference_truth_contracts.md"
         },
         {
           "label": "B-04 evidence record",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/evidence/wave_b/b-04.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/evidence/wave_b/b-04.md"
         },
         {
           "label": "B-04 decision series",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/DECISIONS.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/DECISIONS.md"
         },
         {
           "label": "Reserved evaluation package boundary",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/carbon/evaluation/__init__.py"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/carbon/evaluation/__init__.py"
         },
         {
           "label": "Harshdeep decision inbox",

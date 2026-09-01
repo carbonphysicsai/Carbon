@@ -1,5 +1,205 @@
 # Agent decisions log
 
+## 2026-09-01 — OWNER-NET-01: post-Wave-B Bittensor wiring and treasury-before-mainnet roadmap
+
+**Exact decision base.** This prospective roadmap decision is authored from
+`origin/main` commit `7161fe3c4a04821b7f676ab006bd5d313d0442d2`,
+tree `619e366dead2288ccfd312f54ad09f17f86a1c62`, under
+`GOV-NET-01`. It leaves B-04 selected `in_progress`, preserves the current
+Wave-B implementation order and completion predicates, and creates no
+implementation authority for Waves C, H, or I.
+
+**Owner-selected launch-critical sequence.** Real Bittensor integration begins
+after Wave B:
+
+```text
+Wave B unchanged
+→ Wave C0 Bittensor/network foundation
+→ G2 LOCALNET_READY
+→ Wave C1 real scientific vertical
+→ Wave C2 temporary winner-triggered direct testnet weights
+→ G3 TESTNET_ALPHA_DIRECT_WEIGHTS
+→ Wave D first exact scientifically qualified Challenge
+→ G4 QUALIFIED_TESTNET
+→ Wave H frontier promotion and finality
+→ Wave I treasury routing, scientific-economic ledger, and settlement
+→ G6 TREASURY_SETTLEMENT_QUALIFIED
+→ G7 MAINNET_MECHANISM_COMPLETE
+```
+
+G5 `MAINNET_DEPLOYABLE` may establish infrastructure, key, custody, operator,
+and release readiness while economic activation stays off. Waves E, F, and G
+may begin after Wave D in parallel and do not block H/I. A direct
+score-to-weight mainnet beta is no longer an authorized preferred branch.
+Mainnet economic activation requires the Wave-H/I treasury path.
+
+**Ownership boundary.** Bittensor owns hotkey/coldkey identity, UID
+registration, metagraph discovery, validator/miner presence, stake/network
+state, chain transactions, weight publication, and eventual emissions rails.
+Carbon owns Challenge identity, Miner MCP semantics, candidate commitments,
+research protocol, official evaluation and hidden exam, producer-independent
+reconstruction, reference/truth, measurements, scientific score, leader
+determination, frontier promotion, economic entitlement, and per-Challenge
+settlement. This extends the compatible A0 adapter decision and B-07R-D1/D6
+service-boundary decisions; it does not reopen them.
+
+The permitted dependency direction is:
+
+```text
+Carbon scientific result
+→ Carbon policy event
+→ nominal typed chain intent
+→ ChainAdapter / WeightPublisher
+→ Bittensor
+```
+
+A Bittensor SDK/metagraph/extrinsic object may not enter scientific scoring
+authority. The future publisher may not accept arbitrary score dictionaries,
+raw scientific result objects, or a caller-selected authority Boolean such as
+`emission_capable=True`.
+
+**Miner and validator wiring.** Bittensor identity/discovery and
+hotkey-authenticated application transport wrap the Carbon Miner MCP; they do
+not replace or redefine the MCP. Miner-facing surfaces remain practice,
+research, submit, and result only; official exam material remains
+inaccessible. The validator path is authenticated intake → commitment and
+identity verification → durable queue/state → producer-independent
+reconstruction → protected official exam → MeasurementContracts → Score Pack
+→ signed EvaluationReceipt → Carbon policy decision → typed chain intent.
+Validator orchestration hosts and coordinates the exam without defining
+scientific merit.
+
+**Wave-C decomposition.** C0 reconciles the future NET family as NET-0
+topology/threat model/policy; NET-1 pinned ChainAdapter, metagraph,
+wallet/UID, and classified errors; NET-2 authenticated transport and replay
+protection; NET-3 candidate commitment, availability, and hotkey binding;
+NET-4A nominal localnet/testnet/treasury intents; NET-4B bounded compiler,
+chain constraints, no-winner sink, readback, and receipts; NET-5 reproducible
+localnet E2E; and NET-6 node/runtime/images/secrets/recovery/observability.
+C1 owns the real declarative scientific vertical, isolation, protected truth,
+measurements/scoring, receipts, orchestration, authenticated MCP E2E,
+secondary execution/disagreement, and free-riding simulation. C2 owns C-W1
+`TestnetWeightEligibilityEvent`; C-W2 winner-only expiry, supersession, and
+no-winner policy; C-W3 chain publication, agreement, readback, and recovery;
+and C-W4 the complete Testnet Alpha Report.
+
+**Temporary testnet policy.** Raw score magnitude never maps to Bittensor
+weight magnitude. A Challenge-local score/rank determines only whether a new
+eligible leader exists. For the initial one-Challenge testnet, a new eligible
+leader creates a bounded, expiring `TestnetWeightEligibilityEvent`. The event
+binds at least network identity, netuid/mechanism, Challenge identity/version,
+candidate and method identity, miner hotkey/UID, source EvaluationReceipt
+commitment, test-policy version, previous leader, valid-from chain/tempo, and
+valid-through chain/tempo or equivalent expiry. It is explicitly `NON_LIVE`,
+`NON_SETTLING`, and `TESTNET_ONLY`.
+
+An active eligible winner activates only the winner participant allocation
+and zeroes other participant miners. With no active winner, an approved
+non-paying sink allocation is active and every participant miner is zero.
+No eligible leader, expiry, contest, indeterminacy, validator disagreement,
+candidate unavailability, identity mismatch, reference or infrastructure
+failure, supersession, or invalid chain binding must move to that non-paying
+state; omitted or invalid weights are not the policy. The exact sink chain
+identity/custody and reward-window duration remain owner-selected inputs.
+
+The sink must be registered and bound to the exact network,
+netuid/mechanism, and test-policy version; auditable and readback-verifiable;
+incapable of conferring participant, miner, or validator benefit, scientific
+merit, frontier standing, settlement entitlement, or redistribution to
+participants; and fail-closed/non-paying through expiry, recovery, and
+invalid-readback handling. Those are required properties, not a selected
+production identity or custody topology.
+
+Only exact real C2 provenance may create the event. Fixture, mock, practice,
+estimate, PriorPack, scaffold, partial reconstruction, failed infrastructure,
+failed reference, cancelled/deferred work, indeterminate/contested comparison,
+unbound candidate bytes, wrong hotkey/UID, and stale/superseded receipt
+identities are ineligible. The nominal intent families are
+`StructuralLocalnetWeightIntent`, `TestnetWinnerWeightIntent`, and
+`TreasuryRoutingWeightIntent`; none can substitute for another.
+
+Before Wave D, G3 proves network integration only and remains
+`NOT_FRONTIER_QUALIFIED` and `NOT_MAINNET_ELIGIBLE`. After Wave D, qualified
+Challenge ranking may feed the same temporary testnet policy, but it still cannot create a
+`FrontierAdvanceEvent`. Multiple Challenges may share direct testnet
+allocation only under a registered fixed `TESTNET_ONLY` per-Challenge slice,
+or after treasury settlement exists. Cross-Challenge allocation never derives
+from score magnitude.
+
+**Frontier, treasury, and validator economics.** Wave H alone owns
+`FrontierBaseline`, `FrontierRecord`, `LeaderReplacementPolicy`,
+`FrontierPromotionExam`, `FrontierAdvanceEvent`, `ChallengeSetEpoch`, appeals,
+and finality, preserving `SUPERIOR`, `NOT_SUPERIOR`, and `INDETERMINATE` plus
+the registered one-event-per-Challenge-settlement-window direction. Wave I is
+mainnet-critical: I-00 treasury receiver/custody/economic contract; I-01
+immutable accrual/scientific-economic ledger and `SettlementObligation`; I-02
+`TreasuryRoutingWeightIntent` and treasury publication; I-03 exactly-once
+miner settlement; I-04 validator execution/audit economics; and I-05
+direct-testnet-to-treasury migration plus settlement soak.
+
+Production chain vectors contain no raw candidate score, hidden measurement,
+Challenge-specific score magnitude, scientific threshold, or winner payout
+amount. The scientific-economic path is qualified Challenge evidence → fresh
+frontier promotion → `FrontierAdvanceEvent` → `SettlementObligation` →
+treasury settlement. The roadmap reserves `ValidatorAssignment`,
+`ValidatorExecutionReceipt`, `ValidatorAuditReceipt`,
+`ValidatorServiceObligation`, and `ValidatorServiceSettlement` so a copier
+cannot claim Carbon-controlled validator-service compensation without valid
+execution/audit evidence.
+
+**Migration rehearsal.** Before mainnet, stop new direct-winner events; let
+active events expire or revoke them under registered policy; confirm the
+no-winner sink; activate treasury-routing weights; verify accrual; exercise
+test frontier events and obligations; settle and reconcile. Evidence must
+show no direct/treasury overlap, no double benefit, science survives treasury
+outage, retries do not duplicate payouts, UID/key rotation preserves
+accounting, chain failure cannot rewrite merit, rollback is non-paying, and
+there is no automatic mainnet fallback to direct-winner weights.
+
+**Superseded lower-authority statements.** The following are prospectively
+superseded rather than erased: network implementation in parallel with Wave B;
+raw/lean score magnitude → weight/emission magnitude; a generic `WeightIntent`
+or raw-score publisher; optional direct-weight mainnet beta / old
+`G6 MAINNET_BETA`; Wave H gated by E/F/G; omission/invalid weights as
+no-winner behavior; treasury settlement as optional before mainnet; and an
+absolute “all non-LIVE receipts can never cause any test weight” shorthand.
+The last is narrowed only for exact real C2 `TESTNET_ONLY`, `NON_SETTLING`
+integration; non-LIVE evidence remains incapable of production emissions,
+frontier authority, settlement, or mainnet activation.
+
+**Alternatives rejected.** Start network code before Wave B closes; make
+Bittensor the MCP; import SDK objects into scoring; publish raw scores;
+continue paying a stale winner when no eligible winner exists; accept fixture
+or incomplete provenance; derive cross-Challenge allocations from scores;
+let a testnet event create frontier state; activate mainnet direct-winner
+weights; or compensate validators without execution/audit evidence.
+
+**Reserved inputs and evidence.** Exact reward-window duration; exact sink
+identity/custody; validator quorum, stake, assignment, and audit rate;
+treasury custody/topology; payout/compensation values; operational SLOs;
+security acceptance; Challenge qualification; and chain deployment/activation
+remain human/evidence owned and fail closed. No value is invented here.
+
+**Implementation, review, and reversibility.** The decision is implemented as
+planning/governance only by `GOV-NET-01` and the authority paths in its exact
+manifest. The issue #42 lead notification and PR/final receipt are dynamic
+external evidence. A later prospective reviewed decision may revise the
+roadmap; it may not rewrite this history or infer implementation from it.
+
+```text
+SPECIFIED: YES
+OWNER_DIRECTION / RATIFIED_ROADMAP: YES after merge under current governance
+BITTENSOR_IMPLEMENTED: NO
+TESTNET_WEIGHTS_IMPLEMENTED: NO
+NETWORK_QUALIFIED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+TREASURY_IMPLEMENTED: NO
+ECONOMICALLY_QUALIFIED: NO
+LIVE: NO
+MAINNET: NO
+PRODUCTION_QUALIFIED: NO
+```
+
 ## 2026-09-01 — OWNER-DX-01: Carbon development throughput hardening
 
 **Affected ticket and sequence.** Insert B-01F after PR #72's merged B-04

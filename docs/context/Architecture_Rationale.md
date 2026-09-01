@@ -59,15 +59,22 @@ The first trust proof benefits more from a measured, reproducible execution envi
 ## Why infrastructure failures are type-separated from science
 A solver crash, node failure, OOM policy kill, queue loss, or reference-service exception says nothing about whether the submitted strategy violates physics. Encoding infrastructure outcomes in distinct result types prevents accidental conversion of operational failures into authoritative scientific zeros.
 
-## Why scientific consensus and emission consensus are separate
+## Why scientific results, network policy, and settlement are separate
 Bittensor is Carbon's economic coordination layer, not the definition of physical truth. The durable scientific record should survive changes in weight-setting mechanics, validator incentives, or even future network implementations.
 
-Carbon therefore records the canonical scientific result from qualified evaluation evidence first, then maps that result into Bittensor weights/emissions. Economic consensus cannot silently rewrite historical scientific evidence.
+Carbon therefore records the scientific result first, then creates a
+Carbon-owned policy event, then a nominal typed chain intent, and only then
+publishes through a narrow adapter. During C2, Challenge-local result/rank may
+decide whether a new eligible test leader exists; score magnitude never sets
+weight magnitude. Mainnet scientific-economic authority follows fresh
+frontier promotion → `FrontierAdvanceEvent` → `SettlementObligation` →
+treasury settlement. Economic consensus cannot silently rewrite historical
+scientific evidence.
 
 ## Why validator free-riding is an explicit threat
 Independent scientific evaluation is expensive. If a validator can cheaply follow public consensus instead of executing the exam, honest evaluation becomes a public-good problem. Carbon should design for a nonzero copier/free-rider population rather than assuming perfect validator participation.
 
-The correct response is not to label correlated weights as cheating. Honest validators share an exam and should correlate. Carbon instead measures whether enough real execution evidence exists, whether honest evaluator economics remain sustainable, and whether network emissions remain aligned with the canonical scientific result.
+The correct response is not to label correlated weights as cheating. Honest validators share an exam and should correlate. Carbon instead measures whether enough real execution evidence exists, whether honest evaluator economics remain sustainable, and whether a copier can claim Carbon-controlled validator-service compensation without valid assignment, execution, or audit evidence. Treasury routing therefore needs separately evidenced `ValidatorAssignment`, `ValidatorExecutionReceipt`, `ValidatorAuditReceipt`, `ValidatorServiceObligation`, and `ValidatorServiceSettlement` policies.
 
 ## Why probabilistic re-execution audits
 Re-running every expensive evaluation on every validator wastes compute. Running none provides weak execution assurance. Random post-commit re-execution creates a middle ground: validators cannot know which evaluations will be checked when they sign the first receipt, while Carbon spends duplicate compute only on a sampled subset.
@@ -79,6 +86,46 @@ Scientific provenance loses value if historical records can be silently edited. 
 
 ## Why Bittensor is behind an adapter
 Scientific challenge logic should not be coupled to SDK-specific metagraph, commit/reveal, or extrinsic objects. A narrow chain adapter protects Carbon's scientific core from network API churn, improves testing, and preserves the option to use the evidence protocol in other deployment contexts.
+
+The adapter consumes only the nominal intent appropriate to its registered
+mode: `StructuralLocalnetWeightIntent`, `TestnetWinnerWeightIntent`, or
+`TreasuryRoutingWeightIntent`. It rejects raw score dictionaries, scientific
+result objects, hidden measurements, payout values, and caller-selected
+authority Booleans. A structural test cannot become testnet or production
+authority by configuration.
+
+## Why Bittensor wraps the Miner MCP
+Bittensor supplies hotkey/UID identity, discovery, network presence, and the
+authenticated application-transport context. Carbon's Miner MCP owns the
+practice, research, submit, and result semantics. Keeping those roles separate
+lets Carbon test and reuse the application protocol without making SDK objects
+the application ontology, and it preserves the rule that the official exam is
+not miner-facing.
+
+## Why the direct-weight path is testnet-only
+Carbon must prove real chain weight setting before claiming network
+integration, but that proof arrives before frontier and settlement machinery.
+C2 therefore uses an expiring winner-triggered event and intent marked
+`TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`, and
+`NOT_FRONTIER_QUALIFIED`. It demonstrates authenticated candidate-to-chain
+wiring; it does not prove Wave-D science or create lasting economic merit.
+
+## Why no winner is an explicit non-paying state
+Omitting a weight update can leave the previous participant economically
+active. Expiry, contest, indeterminacy, validator disagreement, unavailable
+candidate, identity mismatch, reference/infrastructure failure, supersession,
+or bad chain binding must instead route to an approved non-paying sink while
+participant miners are zero. The policy is structural; the exact sink
+identity/custody remains a network/economic/security decision.
+
+## Why mainnet routes through treasury
+Direct scientific-winner weights collapse scientific comparison, normalized
+chain allocation, custody, and payout into one mechanism and cannot represent
+per-Challenge obligations cleanly. Treasury routing keeps the production
+chain vector free of raw scores, hidden measurements, thresholds, and payout
+amounts. A frozen scientific event creates an immutable settlement obligation;
+custody and payout execution can retry, fail, or be audited without changing
+the scientific record.
 
 ## Why CI is constitutional
 Carbon is agent-assisted software with security- and science-critical invariants. Ordinary unit tests are not sufficient if a future change can make the suite green by weakening the invariant itself. Dedicated trust-boundary tests make no-seed-leakage, mock isolation, score semantics, stub non-emission, infra/science separation, and qualification gating mechanically difficult to regress.

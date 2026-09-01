@@ -269,6 +269,13 @@ No event for a mere floating-point lead, incompatible evidence, unresolved ties,
 
 **Architect recommendation:** use a prospectively frozen `ChallengeSetEpoch` with active Challenge membership and equal **notional** slot `1/N` for v1. Scores remain Challenge-local and non-comparable. Unused/withheld slots do not silently redistribute to other Challenges.
 
+The initial C2 direct-weight testnet defaults to one Challenge. Before multiple
+Challenges share direct testnet allocation, Carbon must either already use
+treasury settlement or register fixed `TESTNET_ONLY` per-Challenge slices and
+allocate each slice only to that Challenge's active test winner. Raw score
+magnitude never determines cross-Challenge allocation. Production allocation
+remains owned by `ChallengeSetEpoch` plus treasury/economic policy.
+
 Do not confuse equal opportunity with equal computational cost or equal scientific difficulty.
 
 **Owner:** Protocol/economics.  
@@ -433,13 +440,21 @@ No coding agent is an approver. No treasury signer can create scientific merit. 
 **Source aliases:** DQ-010.  
 **Question:** What holds network-side funds and what authorizes release?
 
-**Architect recommendation:** use an Enigma-style **treasury neuron / vault** as the leading v1 design, with custody and scientific entitlement separated. The treasury receives/holds eligible network-side funds and settles only exact registered `SettlementObligation`s bound to `FrontierAdvanceEvent` identity.
+**Ratified structural disposition:** mainnet network allocation routes first to
+a registered `TreasuryReceiverSet`, then through a separately governed
+vault/custody boundary and immutable accrual ledger. Release settles only
+exact registered `SettlementObligation`s bound to `FrontierAdvanceEvent`
+identity. Treasury and scientific entitlement stay separate.
 
-Production should use a controller/vault split and threshold/multisig or equivalent hardened authorization rather than one hot operational key.
+The exact receiver count, controller/vault split, on-chain/off-chain custody
+topology, threshold/multisig scheme, signers, recovery powers, and key design
+remain human/security/economic-owner decisions; the former “treasury neuron”
+shorthand is not a selected custody implementation.
 
 **Owner:** Protocol/economics/security.  
 **Proof required:** localnet/testnet custody, duplicate-prevention, accounting, key-compromise exercises.  
-**Status:** `SECURITY_REVIEW_REQUIRED`.
+**Status:** receiver/obligation direction `RATIFIED_ROADMAP`; exact custody
+`SECURITY_REVIEW_REQUIRED`.
 
 ---
 
@@ -1009,6 +1024,225 @@ A successful PDF compile is not release approval.
 
 ---
 
+# L. Post-Wave-B Bittensor launch and settlement
+
+## MQ-052 — Launch taxonomy and direct-weight mainnet beta
+
+**Source aliases:** launch v1.0.3 proposed MQ-052.
+**Question:** Which launch gates are canonical, and may Carbon activate a
+direct-winner mainnet beta?
+
+**Ratified disposition:** use G2 `LOCALNET_READY`, G3
+`TESTNET_ALPHA_DIRECT_WEIGHTS`, G4 `QUALIFIED_TESTNET`, G5
+`MAINNET_DEPLOYABLE`, G6 `TREASURY_SETTLEMENT_QUALIFIED`, and G7
+`MAINNET_MECHANISM_COMPLETE`. G5 may be deployment-ready with economics off.
+The optional direct-score/direct-winner mainnet beta is superseded. Mainnet
+economic activation requires treasury routing and per-Challenge settlement.
+
+**Owner:** Carbon owner + protocol/economic owners.
+**Decision evidence:** `OWNER-NET-01`; current launch path v1.0.4.
+**Status:** `RATIFIED_ROADMAP`; implementation and qualification remain
+unearned.
+
+---
+
+## MQ-053 — H/I sequencing after Wave D
+
+**Source aliases:** launch v1.0.3 proposed MQ-053.
+**Question:** Which post-D waves are launch-critical?
+
+**Ratified disposition:** D → H → I is the launch-critical branch. Waves E,
+F, and G may proceed in parallel after D and do not block H/I. H owns
+frontier/finality; I is mainnet-critical for treasury routing and settlement.
+
+**Owner:** Carbon owner.
+**Decision evidence:** `OWNER-NET-01`.
+**Status:** `RATIFIED_ROADMAP`; no future-wave implementation is selected.
+
+---
+
+## MQ-054 — Chain and application authority boundary
+
+**Source aliases:** launch v1.0.3 proposed MQ-054.
+**Question:** What does Bittensor own, and how does it connect to Carbon?
+
+**Ratified structural disposition:** Bittensor owns network identity,
+UID/metagraph/stake state, chain transactions, weight publication, and
+eventual emissions rails. Carbon owns the Challenge, MCP semantics,
+commitments, research, official evaluation, hidden exam, reconstruction,
+truth, measurement, score, leader, frontier, entitlement, and settlement.
+Authenticated Bittensor transport wraps the Miner MCP. Carbon policy emits
+nominal typed intents through a narrow adapter; SDK objects never define
+scientific merit.
+
+**Still open:** exact SDK version/pinning, topology, threat-model acceptance,
+transport profile, replay window, and privileged-action controls.
+**Owner:** Network/security + protocol.
+**Proof required:** NET-0 through NET-6 localnet evidence and security review.
+**Status:** structural direction `RATIFIED_ROADMAP`; implementation details
+`SECURITY_REVIEW_REQUIRED`.
+
+---
+
+## MQ-055 — Temporary direct-testnet winner and no-winner policy
+
+**Source aliases:** launch v1.0.3 proposed MQ-055.
+**Question:** How can testnet prove real weight setting without turning scores
+into production economic authority or leaving a stale winner paid?
+
+**Ratified structural disposition:** a new eligible Challenge-local leader may
+create one expiring `TestnetWeightEligibilityEvent` from exact real C2
+provenance. `TestnetWinnerWeightIntent` activates only the winner participant
+allocation and zeroes other participants. With no active eligible winner, an
+approved non-paying sink is active and every participant is zero. Raw score
+magnitude does not determine weight magnitude. The event and intent are
+`TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, and
+`NOT_MAINNET_ELIGIBLE`. The sink must be bound
+to the exact network/mechanism/test-policy version, auditable and
+readback-verifiable, non-benefiting to participants/miners/validators,
+non-redistributive, and fail-closed/non-paying through recovery.
+
+**Still open:** exact reward-window duration and exact sink chain
+identity/custody. Neither may be invented by an implementation ticket.
+**Owner:** Protocol/economics + network/security.
+**Proof required:** C-W1 through C-W4, expiry/supersession/no-winner tests,
+validator agreement, chain readback, recovery, and Testnet Alpha Report.
+**Status:** structural direction `RATIFIED_ROADMAP`; values
+`EVIDENCE_REQUIRED` / `SECURITY_REVIEW_REQUIRED`.
+
+---
+
+## MQ-056 — Testnet identity, quorum, stake, and key controls
+
+**Source aliases:** launch v1.0.3 proposed MQ-056.
+**Question:** Which network identity, validator agreement, stake, wallet, key,
+rotation, and custody controls make chain intents acceptable?
+
+**Architect recommendation:** bind every candidate/receipt/event/intent to the
+exact hotkey/UID/network/netuid/mechanism identity and use explicit replay,
+rotation, quorum, classified-error, readback, and recovery policy. Do not
+infer any numeric quorum, stake floor, timing, or key topology here.
+
+**Owner:** Network/security + economics.
+**Proof required:** threat model, testnet exercises, key-rotation and
+disagreement evidence, dedicated security acceptance.
+**Status:** `SECURITY_REVIEW_REQUIRED`; quorum/stake values
+`EVIDENCE_REQUIRED`.
+
+---
+
+## MQ-057 — Validator execution, audit, and service economics
+
+**Source aliases:** launch v1.0.3 proposed MQ-057.
+**Question:** How does Carbon ensure validators execute or audit expensive
+scientific work instead of copying a treasury weight vector?
+
+**Architect recommendation:** separate `ValidatorAssignment`,
+`ValidatorExecutionReceipt`, `ValidatorAuditReceipt`,
+`ValidatorServiceObligation`, and `ValidatorServiceSettlement`. A copier may
+not claim Carbon-controlled service compensation without valid execution or
+audit evidence. Weight similarity alone is not proof of misconduct.
+
+**Still open:** assignment policy, validator quorum/stake, audit rate,
+compensation formula, dispute treatment, and sustainable cost envelope.
+**Owner:** Protocol/economics + security.
+**Proof required:** free-rider simulation, secondary-execution experiments,
+audit evidence, and settlement reconciliation.
+**Status:** `EVIDENCE_REQUIRED`; security-sensitive elements require review.
+
+---
+
+## MQ-058 — Network and settlement operational SLOs
+
+**Source aliases:** launch v1.0.3 proposed MQ-058.
+**Question:** What availability, latency, recovery, readback, reorg, receipt,
+and incident objectives are required at each launch gate?
+
+**Architect recommendation:** measure each SLO on localnet/testnet and bind the
+accepted values to the exact release/network profile. Do not treat chain
+defaults or a successful demo as an SLO.
+
+**Owner:** Operations/network/security.
+**Proof required:** soak, failure injection, recovery drills, observability,
+and owner-approved SLO register.
+**Status:** `EVIDENCE_REQUIRED` / `SECURITY_REVIEW_REQUIRED`.
+
+---
+
+## MQ-059 — Strong-anchor audit operating policy
+
+**Source aliases:** launch v1.0.3 proposed MQ-059.
+**Question:** What strong-anchor audit frequency, budget, latency, custody,
+and unavailable-anchor behavior are required for qualified operation?
+
+**Still open:** every numeric or operational value, the custody design, and
+the fail-closed response when an approved anchor is unavailable. This roadmap
+does not infer them from the testnet weight path.
+**Owner:** Science + operations + finance/security as applicable.
+**Proof required:** Wave-D exact Challenge evidence, representative anchor
+experiments, cost/latency evidence, custody review, and owner acceptance.
+**Status:** `EVIDENCE_REQUIRED` / `SECURITY_REVIEW_REQUIRED`.
+
+---
+
+## MQ-060 — Incentive Alignment Dossier attack suite and pass rule
+
+**Source aliases:** launch v1.0.3 proposed MQ-060.
+**Question:** What minimum attack suite, evidence, and pass rule constitute an
+acceptable Incentive Alignment Dossier?
+
+**Still open:** attack coverage, scenario parameters, statistical acceptance,
+independent-review requirements, and the human/security pass decision.
+**Owner:** Security + science + protocol.
+**Proof required:** registered attack suite, adversarial simulations,
+independent review, and explicit acceptance against the selected release.
+**Status:** `EVIDENCE_REQUIRED` / `SECURITY_REVIEW_REQUIRED`.
+
+---
+
+## MQ-061 — Direct-testnet-to-treasury migration and custody
+
+**Source aliases:** `OWNER-NET-01`; launch v1.0.4; MQ-019 and MQ-020.
+**Question:** How does Carbon migrate without overlap, duplicate benefit, or a
+fallback to direct-winner mainnet weights?
+
+**Ratified structural disposition:** stop new direct-winner events; let active
+events expire or revoke them under registered policy; confirm the non-paying
+sink; activate `TreasuryRoutingWeightIntent`; verify accrual; exercise test
+frontier events and obligations; settle and reconcile. Rollback must be
+non-paying and mainnet must have no automatic direct-winner fallback.
+
+**Still open:** exact `TreasuryReceiverSet` membership/count, chain
+identities, implementation, vault/custody topology, signers, governance,
+settlement amounts, and recovery policy. The structural receiver-set path is
+ratified; those exact selections are not.
+**Owner:** Treasury/economics + security + governance.
+**Proof required:** I-00 through I-05 migration rehearsal and settlement soak,
+including outage, retry, UID/key rotation, no-overlap, and exactly-once tests.
+**Status:** structure `RATIFIED_ROADMAP`; custody
+`SECURITY_REVIEW_REQUIRED`; values `EVIDENCE_REQUIRED`.
+
+---
+
+## MQ-062 — Testnet Alpha Report and mainnet evidence package
+
+**Source aliases:** `OWNER-NET-01`; launch v1.0.4.
+**Question:** Which evidence is required to move from G3 to G4, G5, G6, and
+G7 without collapsing integration, science, security, and economics?
+
+**Architect recommendation:** C-W4 must bind the exact G3 proof chain and
+record the `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, and
+`NOT_MAINNET_ELIGIBLE` ceiling. G4 separately binds the complete Wave-D
+Challenge/Launch-Bar evidence. G5 binds deployment readiness with economics
+possibly off. G6 binds H/I frontier, treasury, validator-economics, migration,
+and settlement-soak evidence. G7 requires explicit owner launch authority.
+
+**Owner:** Network + science + security + economics + launch owner by gate.
+**Proof required:** exact gate dossiers and independent review.
+**Status:** `EVIDENCE_REQUIRED`; no gate is earned by this roadmap.
+
+---
+
 # 1. Priority closure sequence
 
 ## Gate 1 — before first authoritative Challenge / LIVE planning
@@ -1017,7 +1251,9 @@ A successful PDF compile is not release approval.
 
 ## Gate 2 — before frontier rewards / production settlement
 
-`MQ-009` through `MQ-012`, plus `MQ-018` through `MQ-020`.
+`MQ-009` through `MQ-012`, plus `MQ-018` through `MQ-020` and `MQ-052`
+through `MQ-062` as applicable to the intended gate. Ratified structural
+directions do not close their explicitly evidence/security-owned subquestions.
 
 ## Gate 3 — before claiming the subnet is a superior business scaling layer
 
@@ -1132,6 +1368,24 @@ This crosswalk ensures no previously registered question disappears merely becau
 | DQ-028 | MQ-049 |
 | DQ-029 | MQ-037 |
 | DQ-030 | MQ-051 |
+
+## `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md`
+
+| Source | Master |
+|---|---|
+| proposed MQ-052 | MQ-052 |
+| proposed MQ-053 | MQ-053 |
+| proposed MQ-054 | MQ-054 |
+| proposed MQ-055 | MQ-055 |
+| proposed MQ-056 | MQ-056 |
+| proposed MQ-057 | MQ-057 |
+| proposed MQ-058 | MQ-058 |
+| proposed MQ-059 | MQ-059 |
+| proposed MQ-060 | MQ-060 |
+
+Roadmap-only migration and evidence-package questions introduced by
+`OWNER-NET-01` are canonical MQ-061 and MQ-062; they are not aliases for the
+historical proposed MQ-059/MQ-060 questions.
 
 ---
 

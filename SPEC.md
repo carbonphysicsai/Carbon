@@ -23,6 +23,15 @@
 > Wave B tickets control that migration; B-07S owns every exact protocol
 > mechanic. Real science, security, rights, economics, qualification, LIVE,
 > launch, and production remain fail closed.
+>
+> **Post-Wave-B network and economic migration.** `OWNER-NET-01` begins real
+> Bittensor integration only after Wave B. Bittensor identity/discovery and
+> hotkey-authenticated transport wrap the Carbon Miner MCP; SDK objects remain
+> downstream of Carbon scientific authority. Temporary C2 testnet weights are
+> winner-triggered, expiring, `TESTNET_ONLY`, `NON_LIVE`, and `NON_SETTLING`;
+> raw score magnitude never maps to weight magnitude. Mainnet economic
+> activation requires Wave-H frontier evidence and Wave-I treasury routing and
+> per-Challenge settlement. See launch path v1.0.4.
 
 
 **Canonical companions**
@@ -41,12 +50,13 @@
 | [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
 | [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
 | [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | B-07R agent-selected working engineering architecture; merged authority only under its exact review/CI/normal-merge/exact-main-CI predicate; no qualification |
+| [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`](./launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md) | Current post-Wave-B C0/C1/C2 → D → H → I launch crosswalk; planning only |
 
 ---
 
 ## 1. Executive summary
 
-Carbon coordinates miners and agents to discover training strategies for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators retrain and evaluate those strategies on hidden, procedurally generated data under hard physics gates. Emissions follow that independent score — not self-reported metrics.
+Carbon coordinates miners and agents to discover training strategies for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators retrain and evaluate those strategies on hidden, procedurally generated data under hard physics gates. The independent scientific result—not self-reported metrics—determines Challenge-local leader and later frontier eligibility. Network publication and settlement remain separately governed.
 
 **Target qualified loop:** Miners submit declarative training strategies
 containing a registered backbone and Challenge-bound parameter choices.
@@ -82,7 +92,7 @@ Envelope-qualified solution maps (problem setup → physical fields) for jobs en
 
 | Path | What it grades | Outcome |
 |------|----------------|--------|
-| **Miner → validator (lean)** | Physics gates, stress, short rollout, Model Card | Emissions / leaderboard — **search stays cheap** |
+| **Miner → validator (lean)** | Physics gates, stress, short rollout, Model Card | Challenge-local scientific result / leaderboard; later policy events may create temporary testnet integration or frontier eligibility |
 | **Promotion → commercial (Specialist Bank)** | Effect-based recipe → controlled retrain → **product battery** (inverse-design bakeoff, deep rollout/plant suite, adversarial stress, latency, ONNX, escalation notes) | **Commercial SKU** — shelf credibility |
 
 Leaderboard rank ≠ shelf product. No commercial full specialist ships without the product battery. No pay-to-compete.
@@ -153,7 +163,8 @@ SPECIALIST BANK (Port D execution)
   └─ Dual egress: coarsened public evidence | closed commercial SKU
 
 INCENTIVES
-  ├─ Lean scores only → weights / emissions (winner-heavy decay)
+  ├─ C2: eligible-leader event → expiring TESTNET_ONLY winner intent
+  ├─ Mainnet: FrontierAdvanceEvent → SettlementObligation → treasury routing
   └─ Landscape similarity never a score term
 ```
 
@@ -173,7 +184,7 @@ Competition scoring **never** depends on purchasing the commercial path.
 3. **Route**  
    - A: orient agent search with versioned, evidence-labeled hypotheses while protecting realized exam information
    - B: spend validator GPU where it matters (under Port B floor rules)  
-   - C: aim emissions at unsaturated high-upside regimes  
+   - C: propose future Challenge-set/economic allocation under registered policy
    - D: queue regimes with dense replicated effect-candidate or experimentally
      supported evidence for **gauntlet productization**
 4. **Bank** only what re-trains and passes job-shaped tests.  
@@ -218,7 +229,7 @@ Full design including proprietary-data handling: [`Trustless_Verification.md`](.
 
 ### Philosophy
 
-- **Validator authority:** Every emissions path is a full lean exam on hidden data with hard gates.
+- **Validator authority:** Every official score-bearing path is a full lean exam on hidden data with hard gates. Only exact real C2 provenance may create a temporary non-settling testnet event; production economics require later frontier/treasury authority.
 - **Miner autonomy:** Local iteration is encouraged, never required.
 - **Zero-friction submit:** Strategy JSON can be submitted with **no** local training.
 - **Information boundary:** Publish the registered physics target, strategy
@@ -235,11 +246,11 @@ rank, gate margins, or winner status.
 
 ### Three tiers (local → official)
 
-| Tier | Compute | Anchored to | Purpose | Emissions? |
+| Tier | Compute | Anchored to | Purpose | Economic authority? |
 |------|---------|-------------|---------|------------|
 | **Static research** | Near zero | Public manifest, exact PriorPack, compiler, and resource models | Check validity, prior alignment, and resource feasibility without executing or predicting score | No |
 | **Practice research** | Bounded optional compute | Fresh public practice cases under a declared incomplete PracticeMeasurementPack | Test one or more hypotheses with paired common-case evidence | No |
-| **Full submission** | Network-paid eval | Full hidden validator data | Official score | **Yes — only path** |
+| **Full submission** | Network-paid eval | Full hidden validator data | Official score | **Eligible evidence only**; no automatic weight/frontier/settlement authority |
 
 **Key rule:** A miner can submit at any time with zero local training. Paid or heavy local train is optional enhancement, not a gate to compete.
 
@@ -299,13 +310,24 @@ Lean labels are the **trust root** for Landscape ingest. Unfinished gates or sco
 - **Product / specialist tier:** KPI conformal or ensemble bands where `product_jobs` include UQ or safety-margin claims.
 - **Turbulence / chemistry model-form UQ:** Part of **regime gate margins** when those challenges are live (1A/1B+), separate from “every PoC card must ship 95% conformal fields.”
 
-### Emissions mapping
+### Scientific-result to network-policy mapping
 
 ```text
-weight = lean_score * exp(-blocks_since_win / half_life)
+scientific result
+→ Carbon policy event
+→ nominal typed chain intent
+→ ChainAdapter / WeightPublisher
+→ Bittensor
 ```
 
-Emissions follow **lean validator outcomes only**. Product-battery status does not mint emissions and is not required to compete.
+The former raw/lean-score-magnitude-to-weight formula is superseded. During
+C2, Challenge-local score/rank determines only whether a new eligible leader
+exists; an expiring `TestnetWeightEligibilityEvent` may create a
+`TestnetWinnerWeightIntent`, and an explicit non-paying sink applies when no
+active winner exists. Mainnet uses `FrontierAdvanceEvent` →
+`SettlementObligation` → `TreasuryRoutingWeightIntent` → per-Challenge
+settlement. Product-battery status does not create scientific or economic
+merit and is not required to compete.
 
 ---
 
@@ -509,8 +531,12 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 
 ## 12. Incentives and tokenomics
 
-- **ChallengeWinnerTracker** on **lean scores** with winner-heavy exponential decay.
-- Participation dust optional; future breakthrough bounties and decaying top stipends; treasury for unclaimed allocations.
+- A Challenge-local eligible-leader tracker may nominate the temporary C2
+  testnet event; it does not map score magnitude to weight magnitude.
+- Participation dust, reward-window duration, exact no-winner sink, bounties,
+  and settlement values remain future human/economic policy. Mainnet routes
+  network allocation to treasury receivers rather than direct scientific
+  winners.
 - **Forbidden as direct score terms:** Landscape similarity, prior distance, product-battery status.
 
 ---
@@ -545,7 +571,7 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 
 ## 15. Security and correctness invariants
 
-- **Shared exam identity:** all emission-capable evals for a `(challenge_id, scoring_version, generator_version)` pin the same official exam identity (pack hashes + seed domain). Validators do not invent private alternate exams for scoring.
+- **Shared exam identity:** all official score-bearing evaluations for a `(challenge_id, scoring_version, generator_version)` pin the same official exam identity (pack hashes + seed domain). Validators do not invent private alternate exams for scoring. Weight or treasury publication never changes that scientific identity.
 - **Public physics / hidden realization:** the declared envelope, generator code, and validation dossier are public; official realization draws and seeds remain hidden.
 - **Port B:** every scored nonzero submission completes the **same mandatory lean pack**; progressive depth must not change the graded identity of the lean exam.
 

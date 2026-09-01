@@ -1,6 +1,6 @@
 # Carbon Build Invariants (Agent Must Enforce)
 
-Aligned with `CONSTITUTION.md`, `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`, `Design_Specs/Build_Out.md` v1.4, and `Design_Specs/Build_Out_Constitutional_Overlay.md`. **Never violate.**
+Aligned with `CONSTITUTION.md`, `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`, `Design_Specs/Build_Out.md` v1.5, and `Design_Specs/Build_Out_Constitutional_Overlay.md`. **Never violate.**
 
 ## Current enforceable implementation invariants
 

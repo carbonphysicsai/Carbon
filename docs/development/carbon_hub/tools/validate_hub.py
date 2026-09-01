@@ -27,6 +27,22 @@ from typing import Any
 
 HUB_RELATIVE = Path("docs/development/carbon_hub")
 EXPECTED_WAVES = list("ABCDEFGHIJKLMN")
+EXPECTED_WAVE_LINKS = {
+    "A": (None, "B"),
+    "B": ("A", "C"),
+    "C": ("B", "D"),
+    "D": ("C", "H"),
+    "E": ("D", None),
+    "F": ("D", None),
+    "G": ("D", None),
+    "H": ("D", "I"),
+    "I": ("H", "J"),
+    "J": ("I", "K"),
+    "K": ("J", "L"),
+    "L": ("K", "M"),
+    "M": ("L", "N"),
+    "N": ("M", None),
+}
 HISTORICAL_WAVE_A_TICKET_IDS_V1 = [
     "A-1",
     "A0",
@@ -183,6 +199,7 @@ REQUIRED_AUTHORITY_ROOTS = {
     "Design_Specs/",
     "docs/context/",
     "docs/publications/",
+    "launch/",
 }
 MATURITY_EARNED_STATES = {"earned", "unearned"}
 REQUIRED_IMPACT_RULE_IDS = {
@@ -200,6 +217,7 @@ REQUIRED_IMPACT_RULE_IDS = {
     "publication-detail",
     "protocol-detail",
     "hub-validation-workflow",
+    "launch-roadmap",
 }
 REQUIRED_DELIVERY_FIELDS = (
     "DELIVERY_MODE",
@@ -1441,10 +1459,9 @@ class Validator:
                 continue
             if wave.get("status") not in WAVE_STATUSES:
                 self.fail(f"{label}.status has invalid value {wave.get('status')!r}")
-            expected_predecessor = EXPECTED_WAVES[index - 1] if index else None
-            expected_successor = (
-                EXPECTED_WAVES[index + 1] if index + 1 < len(EXPECTED_WAVES) else None
-            )
+            expected_predecessor, expected_successor = EXPECTED_WAVE_LINKS[
+                str(wave.get("id"))
+            ]
             if wave.get("predecessor") != expected_predecessor:
                 self.fail(
                     f"{label}.predecessor must be {expected_predecessor!r}; "

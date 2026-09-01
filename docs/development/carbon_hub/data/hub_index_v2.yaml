@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-01T14:32:12Z"
+  captured_at_utc: "2026-09-01T20:33:39Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "83cc2a628d13ce60fd854168b126d935076ec30a"
+  authority_snapshot_commit: "d0cff7f611aaf9598ebe16999cb20941f48655b8"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -135,7 +135,7 @@ waves:
       - "B-GATE"
   -
     id: "C"
-    title: "Real single-Challenge integration"
+    title: "Network foundation and real testnet vertical"
     status: "planned"
     explainer: "explainers/waves/wave_c.md"
     tickets:
@@ -170,14 +170,14 @@ waves:
       []
   -
     id: "H"
-    title: "Frontier promotion and Challenge portfolio"
+    title: "Frontier promotion and finality"
     status: "planned"
     explainer: "explainers/waves/wave_h.md"
     tickets:
       []
   -
     id: "I"
-    title: "Treasury and network settlement"
+    title: "Mainnet-critical treasury and network settlement"
     status: "planned"
     explainer: "explainers/waves/wave_i.md"
     tickets:
@@ -1360,6 +1360,29 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "WAVE-B/B-01F"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "decision"
+    event_id: "OWNER-NET-01"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "WAVE-B"
+      - "WAVE-C"
+      - "WAVE-D"
+      - "WAVE-E"
+      - "WAVE-F"
+      - "WAVE-G"
+      - "WAVE-H"
+      - "WAVE-I"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

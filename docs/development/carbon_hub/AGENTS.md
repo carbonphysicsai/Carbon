@@ -67,7 +67,7 @@ update its record in `data/decisions.json` in the same development change.
 Every decision record must:
 
 - use the exact repository decision ID;
-- bind to one primary Wave/ticket `map_ref`;
+- bind to one primary stable `WAVE-*` or `SYSTEM/*` `map_ref`;
 - explain the question, why it matters, the agent recommendation, and the
   consequences of keeping or changing it;
 - point to the exact durable GitHub response location and technical detail;
