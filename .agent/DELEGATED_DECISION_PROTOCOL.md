@@ -21,7 +21,11 @@ authorized ticket
 -> agent selects and records recommended decision
 -> agent notifies the applicable decision inbox
 -> agent implements and tests
--> independent technical review before merge
+-> exact-head scope-required checks and Merge gate
+-> exact-head Greptile Review
+-> repair valid findings and reach zero unresolved threads
+-> normal exact-expected-head merge
+-> reviewed-tree and exact-main verification
 -> lead may KEEP, MODIFY, SUPERSEDE, BLOCK, or DEFER_TO_OWNER
 ```
 
@@ -170,17 +174,45 @@ Owner silence is not approval, but it also does not block agent-authorized engin
 
 ## 7. Review and merge
 
-Independent technical review remains required where the ticket or board requires it. Review is primarily a pre-merge correctness gate, not a universal pre-implementation gate.
+Greptile is Carbon's routine independent correctness review before merge.
+Human and domain-lead review remains asynchronous oversight unless current
+authority explicitly reserves the affected value or acceptance decision to a
+human. Human silence is not a gate. Review is primarily a pre-merge
+correctness gate, not a universal pre-implementation gate.
 
 A reviewer may identify defects while development is in progress. The executor repairs valid findings on the same ticket branch and requests rereview where needed.
 
-A reviewed tree must still satisfy the repository's exact-head, CI, evidence, and normal-merge requirements. This protocol does not weaken merge evidence or maturity accounting.
+A reviewed tree must satisfy the exact-head predicate in
+`.agent/DELIVERY_PROTOCOL.md`: every scope-required check and `Merge gate`
+succeeds on the unchanged exact head; Greptile succeeds on that same head;
+every valid finding is repaired; unresolved Greptile thread count is zero; no
+applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` remains; and the base is
+reconciled. Use a normal merge commit with an exact expected-head guard. Do not
+squash, rebase-merge, or enable auto-merge.
+
+Unless owner direction explicitly says to stop before merge, the authorized
+end-to-end ticket session continues through that normal merge, ordered-parent
+and reviewed-tree verification, fetched exact-main `Merge gate`, bounded
+closeout, and selection of the next ready ticket. Another owner prompt is not
+required solely to merge a clean reviewed ticket.
+
+This protocol does not weaken merge evidence or maturity accounting. Dynamic
+review/check/merge identities belong in the external completion receipt, not
+an evidence-only commit.
 
 ## 8. Contract-first tickets
 
-When a ticket asks for a contract or design before implementation, the executor should write the working contract first, record the material decisions, notify the applicable leads, then implement against that working contract in the same authorized ticket unless the ticket explicitly names a human-reserved decision whose value is required for correctness.
+When a ticket asks for a contract or design before implementation, the executor
+should write the working contract first, record the material decisions, notify
+the applicable leads, then implement against that working contract in the same
+ticket branch and pull request unless a separate-contract exception in
+`.agent/DELIVERY_PROTOCOL.md` is recorded. Ticket size alone is not an
+exception.
 
-The contract may evolve during implementation. Material changes receive new decision records or supersession notes and renewed notification. Independent review must cover the final merge candidate as required by the ticket.
+The contract may evolve during implementation. Material changes receive new
+decision records or supersession notes and renewed notification. Greptile and
+all ticket-required review must cover the final contract, implementation,
+tests, and stable evidence together.
 
 A working contract is not the same as scientific qualification, security acceptance, LIVE authority, launch approval, or production qualification.
 

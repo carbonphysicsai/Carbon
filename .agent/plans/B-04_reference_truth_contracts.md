@@ -1,7 +1,8 @@
 # B-04 plan — reference and TruthAsset contracts
 
 **Ticket:** B-04 — ReferencePolicy, TruthAsset, and reference runners<br>
-**Status:** `in_progress` in contract phase on this candidate branch<br>
+**Status:** `in_progress`; contract phase complete and ratified, runtime phase
+paused behind B-01F<br>
 **Branch:** `agent/b-04-reference-truth-contract`<br>
 **Worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact base commit:** `74ef837deed20b8fb9f0a5137086b15fc82bf820`<br>
@@ -9,12 +10,12 @@
 **Working contract:** `Design_Specs/Reference_and_TruthAsset_Contract.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-04.md`
 
-The branch transition is candidate review content. Merged main remains the
-selection authority until this exact contract tree normally merges and its
-exact-main push CI succeeds. No B-04 implementation is authorized in this
-session.
+This plan records the completed PR #72 contract phase. Its external completion
+receipt records the final reviewed-tree, checks, merge topology, and exact-main
+facts. `OWNER-DX-01` now pauses runtime behind B-01F without altering the
+contract. No B-04 implementation is authorized in the B-01F session.
 
-## 1. Startup, dependency, and closeout gate
+## 1. Completed contract startup and closeout gate
 
 1. Fetch `origin` without pull and record exact main commit/tree.
 2. Require B-03 merge `d5d1372f1311132ed9d60e10e36c4fb7d43a2473`
@@ -32,6 +33,12 @@ session.
    is used only if an explicit owner deferral appears.
 6. Preserve the existing B-03 branch/worktree. Do not reset, rebase, amend,
    clean, force-push, remove, or reuse it.
+
+PR #72's external completion receipt verifies exact-head canonical,
+clean-container, Hub, and Greptile success; normal merge with exact reviewed-
+tree preservation; and exact-main canonical, clean-container, and Hub success.
+The contract gate is satisfied without copying those dynamic identities into
+the tracked tree.
 
 ## 2. Authority and disposition
 
@@ -97,7 +104,7 @@ Apply `KEEP → WRAP → REPAIR → REPLACE` to the exact current repository:
    injection as explicit downstream consumers/owners. B-04 owns only its
    bounded minimal deterministic fixture execution and failure tests.
 
-## 4. Development Hub reconciliation
+## 4. Completed Development Hub reconciliation
 
 Merged Development Hub v2.1 makes `WAVE-B/B-04` a primary mapped reference.
 Use the required two-commit history:
@@ -116,7 +123,7 @@ The final manifest therefore expands beyond eleven paths only as required by
 the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
 `WAVE-B/B-03` and `WAVE-B/B-04`.
 
-## 5. Validation and independent review
+## 5. Completed contract validation and independent review
 
 - Record the canonical-environment guard on Darwin as an expected rejection,
   not a test pass.
@@ -135,19 +142,23 @@ the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
   correctness review, and zero unresolved review threads. Every tree change
   requires fresh CI and review.
 
-## 6. Stop boundary
+## 6. B-01F pause and runtime resumption boundary
 
-Stop with the contract PR open, ready, mergeable, reviewed, and unmerged. Do
-not implement a runtime, reference method, solver, fixture runner, Julia
-service, Cole–Hopf routine, store, transport, measurement, score, Dossier, or
-later-ticket interface. B-04 implementation remains prohibited until the
-contract tree normally merges and exact-main CI succeeds.
+The contract PR is merged and ratified. Runtime remains paused until B-01F's
+exact final candidate passes scope-required exact-head checks and `Merge gate`,
+exact-head Greptile with every valid finding repaired and zero unresolved
+threads, normal exact-expected-head merge with reviewed-tree preservation, and
+exact-main `Merge gate`. Only then create a fresh
+`agent/b-04-reference-truth` branch from the verified exact main. Do not
+implement a runtime, reference method, solver, fixture runner, Julia service,
+Cole–Hopf routine, store, transport, measurement, score, Dossier, or later-
+ticket interface in B-01F.
 
 ```text
-SPECIFIED: CANDIDATE — BOUNDED ENGINEERING CONTRACT
-RATIFIED_ENGINEERING_CONTRACT: NO — NORMAL MERGE AND EXACT-MAIN CI PENDING
+SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
+RATIFIED_ENGINEERING_CONTRACT: YES
 IMPLEMENTED: NO
-TESTED: DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
+TESTED: CONTRACT/DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
 REFERENCE_QUALIFIED: NO
 OPERATIONS_APPROVED: NO
 SECURITY_QUALIFIED: NO

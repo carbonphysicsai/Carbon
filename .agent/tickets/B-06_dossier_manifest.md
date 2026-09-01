@@ -14,17 +14,19 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 
 ## Definition of Done
 
-- [ ] Before implementation, produce
-      `Design_Specs/Validation_Dossier_Manifest_Contract.md`; record material
-      engineering decisions and notify SciML/statistics/protocol/security
-      owners; pass applicable document validation and exact-head CI; repair
-      every valid Greptile finding with zero Greptile threads unresolved; and
+- [ ] Begin the single-ticket PR with the working
+      `Design_Specs/Validation_Dossier_Manifest_Contract.md`, material
+      decisions, plan, and SciML/statistics/protocol/security notification;
+      implement coherent vertical slices against that contract; then review
+      the final contract, implementation, tests, and stable evidence together.
+      Require applicable validation, exact-head `Merge gate` and Greptile,
+      repair every valid finding with zero Greptile threads unresolved, and
       normally merge the exact reviewed tree. A documented invalid finding may
-      be closed with rationale, and any tree change requires rereview. Record
-      the exact contract commit in the implementation plan. Notification is
-      not ratification and silence is no gate. Scientific/security
-      qualification and Challenge activation remain human-owned and fail
-      closed.
+      be closed with rationale, any tree change requires rereview, and a
+      separate contract PR requires an exception in
+      `.agent/DELIVERY_PROTOCOL.md`. Notification is not ratification and
+      silence is no gate. Scientific/security qualification and Challenge
+      activation remain human-owned and fail closed.
 - [ ] Implement D1-D12 Dossier slot identities, evidence refs, status, signer roles, supersession, and exact Challenge binding.
 - [ ] Include population, SamplingPlan, generator conformance, reference, representation, measurement, statistical sufficiency, secrecy, censoring, limitations, and reproducibility sections.
 - [ ] Add explicit evidence slots and typed manifests for manufactured-solution

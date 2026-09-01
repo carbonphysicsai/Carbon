@@ -2,13 +2,32 @@
 
 <!-- What changed, why, and which bounded authority permits it? -->
 
-## Validation
+## Delivery mode
 
-<!-- List exact commands and results. Do not infer qualification from tests. -->
+DELIVERY_MODE: SINGLE_TICKET_PR
+SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE | <authorized reason>
 
-## Authority and maturity ceiling
+## Exact candidate
 
-<!-- State what remains unavailable or fail closed. -->
+BASE:
+FINAL_HEAD:
+FINAL_TREE:
+
+## Canonical validation
+
+CHANGE_SCOPE:
+CANONICAL_LOCAL_VALIDATION:
+MERGE_GATE:
+GREPTILE:
+UNRESOLVED_THREADS:
+BLOCKING_DIRECTION:
+
+<!-- List exact commands/results. Native-host output is not canonical. -->
+
+## Completion receipt
+
+DYNAMIC_COMPLETION_EVIDENCE: EXTERNAL
+COMPLETION_RECEIPT_LOCATION:
 
 ## Lead notification
 
@@ -22,3 +41,14 @@ placeholder with a specific map reference, source file, or no-impact reason.
 HUB_UPDATE_REQUIRED: <map refs and changed hub source files>
 
 HUB_IMPACT_NONE: <specific reason the hub's purpose, placement, status, dependencies, boundaries, maturity, routes, and primary links remain accurate>
+
+## Maturity ceiling
+
+<!-- State what remains unavailable or fail closed. -->
+
+## Throughput observations
+
+CODE_BEARING_COMMITS:
+POST_FREEZE_TREE_CHANGES:
+FULL_CI_RUNS:
+AVOIDABLE_RERUN_REASON:
