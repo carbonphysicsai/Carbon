@@ -1,0 +1,12 @@
+map_ref: WAVE-B/B-03
+event_type: decision
+# decision | adjustment | bug | blocker | risk | evidence
+event_id: B-03-D9
+owner_lane: sciml_technical_lead
+status: proposed
+# proposed | active | blocked | implemented | superseded | closed
+summary: One sentence that tells the team what changed.
+primary_detail: .agent/DECISIONS.md#decision-heading
+affects:
+  - WAVE-B/B-04
+supersedes: null

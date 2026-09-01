@@ -11,6 +11,7 @@ Model choice, API keys, and vendor harness config are **out of band** (see optio
 **Agent constitution:** repo root `AGENTS.md`  
 **Board / tickets (canonical):** repo root `.agent/`
 **Delegated decisions:** `.agent/DELEGATED_DECISION_PROTOCOL.md`
+**Development Hub maintenance:** `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`
 
 ```text
 Carbon/
@@ -19,6 +20,7 @@ Carbon/
 ├── .agent/           ← WAVE, ORIENTATION, DECISIONS, INVARIANTS, tickets/, plans/
 ├── agent_pack/       ← this protocol, PLANS template, optional executors/
 ├── Design_Specs/
+├── docs/development/carbon_hub/ ← derived orientation and change-routing surface
 ├── docs/context/
 └── Business/
 ```
@@ -43,10 +45,11 @@ long-horizon document is not independent permission to start work.
 2. `.agent/INVARIANTS.md`
 3. `.agent/WAVE.md`
 4. ticket under `.agent/tickets/`
-5. `.agent/DELEGATED_DECISION_PROTOCOL.md`
-6. ticket-referenced domain specifications
-7. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
-8. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
+5. `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`
+6. `.agent/DELEGATED_DECISION_PROTOCOL.md`
+7. ticket-referenced domain specifications
+8. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
+9. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
 
 If work touches customer/product/business semantics, also read:
 
@@ -86,6 +89,7 @@ Minimum orientation:
 4. classify touched components **KEEP / WRAP / REPAIR / REPLACE**;
 5. identify whether the active work is current-runtime implementation or a future migration seam;
 6. identify any unresolved reserved human decision; keep the affected behavior explicit, bounded, and fail closed without blocking unrelated authorized work.
+7. identify one primary Development Hub `map_ref` and classify whether the work changes hub purpose, placement, status, dependencies, boundaries, maturity, routes, or primary links.
 
 **Audit-first:** reuse/wrap/repair before create/replace.
 
@@ -95,27 +99,31 @@ Minimum orientation:
 
 ```text
 orientation/current authority
+→ select primary map_ref and classify hub impact
 → one ticket
 → baseline tests
 → working contract / material decisions where needed
+→ concise hub events when team understanding changes
 → notify applicable decision inboxes
 → implement minimum DoD
-→ ticket + regression tests
+→ ticket + regression + hub validation
 → independent technical review
 → normal merge
 → board evidence
+→ hub reconciliation
 → next ticket
 ```
 
 1. Open next `todo` ticket under `.agent/tickets/` in `.agent/WAVE.md` order unless owner authorizes otherwise.
 2. Prefer one branch/worktree per ticket.
-3. **Before edits:** run relevant baseline tests / PoC smoke and record result.
+3. **Before edits:** record the primary hub `map_ref`, classify hub impact, run relevant baseline tests / PoC smoke, and record result.
 4. Implement the minimum coherent change; prefer KEEP/WRAP/REPAIR.
 5. Material engineering decisions inside the authorized ticket follow `.agent/DELEGATED_DECISION_PROTOCOL.md`: select the agent-recommended approach, record it, notify the applicable lead, and continue unless an explicit block applies.
-6. **After edits:** run baseline + ticket-specific + invariant tests.
-7. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
-8. Stop at the ticket's bounded review/merge boundary, not at every material engineering decision. An explicit `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A reserved human decision blocks only the behavior that cannot proceed correctly with a fail-closed seam; unrelated authorized work continues.
-9. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
+6. During work, add concise map events for material decisions, adjustments, bugs, blockers, risks, or evidence results that change team understanding; routine implementation detail remains in the PR.
+7. **After edits:** run baseline + ticket-specific + invariant tests; reconcile hub source, regenerate derived outputs, and run hub drift/validation checks when required.
+8. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
+9. Stop at the ticket's bounded review/merge boundary, not at every material engineering decision. An explicit `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A reserved human decision blocks only the behavior that cannot proceed correctly with a fail-closed seam; unrelated authorized work continues.
+10. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
 
 Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.
 
@@ -239,12 +247,16 @@ For the active board, success remains:
 - the selected ticket's exact acceptance criteria and DoD are green;
 - concrete implementation, test, CI, review, and normal-merge evidence is recorded;
 - material decisions and required lead notifications are durable;
+- the PR contains exactly one completed hub-impact declaration and the hub's captured map state remains accurate;
 - no constitutional invariant regresses;
 - ticket and Wave evidence accurately preserve all unearned maturity states.
 
 Each capability may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`, `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`, `COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
 
 Never infer a later state from an earlier one.
+
+The Development Hub is derived navigation only. It cannot activate a wave or
+ticket, grant maturity, or replace repository authority.
 
 ---
 

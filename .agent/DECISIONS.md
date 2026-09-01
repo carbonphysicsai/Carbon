@@ -1,5 +1,78 @@
 # Agent decisions log
 
+## 2026-08-31 — HUB-D1: Static-first Development Hub and maintenance gate
+
+**Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`
+
+**Status:** agent-selected engineering-governance decision for independent
+review; no scientific or production authority.
+
+**Problem.** Carbon's wave, ticket, decision, evidence, and recurring-change
+routes are distributed across authoritative repository records. The supplied
+v2 orientation package also used an empty JavaScript shell, so restricted
+previews showed a blank page. Without a repository maintenance contract, any
+copied map would predictably drift.
+
+**Selected approach and agent recommendation.** Integrate a public-safe,
+data-first Development Hub under `docs/development/carbon_hub/`. Make complete
+semantic, zero-script `index.html` the primary surface; retain the richer
+application only as optional `interactive.html`. Treat JSON event/map records
+as editable source and deterministically generate the HTML, Markdown, YAML,
+and explainer outputs. Add scoped and root executor instructions, exactly-one
+PR impact declaration, read-only drift/authority/event validation, real-browser
+JavaScript-on/off smoke coverage, and optional Pages publication for authorized
+repository maintainers. Keep one primary `map_ref` per material event and
+preserve history through prospective `supersedes` records. The workflow does
+not itself enforce owner approval; any required reviewer on the `github-pages`
+environment is separate human-controlled repository configuration.
+
+**Rationale.** Static-first output fixes the observed blank-page failure while
+remaining usable through `file://`, restricted previews, and simple static
+hosting. Data-first generation makes a 14-wave/39-ticket map reviewable.
+Ticket-start placement, closeout reconciliation, PR declaration, and CI give
+the hub a bounded maintenance path without moving implementation authority out
+of repository tickets, contracts, decisions, reviews, tests, and evidence.
+
+**Alternatives rejected.** Copying the v2 ZIP unchanged would preserve the
+blank-page defect and undeclared Python dependencies. Keeping a manually
+edited map without drift enforcement would not meet the living-navigation
+contract. Removing the interactive application would discard a useful
+optional search/filter surface. Automatically enabling public Pages, changing
+repository variables, or adding secrets would exceed this task and owner
+authority.
+
+**Implementation location.** `docs/development/carbon_hub/`, root `README.md`
+and `AGENTS.md`, `agent_pack/EXECUTION_PROTOCOL.md`, the root PR template, and
+the two Development Hub workflows. Map events `HUB-BUG-001`, `HUB-ADJ-001`,
+and `HUB-ADJ-002` record the blank-page repair, maintenance integration, and
+review-driven validation-protocol repair.
+
+**Downstream effects.** Development PRs must select a primary map location,
+classify hub impact, update source/events only when a material map trigger
+applies, regenerate, validate, and complete exactly one impact declaration.
+Map-structural changes require semantic source plus an event; mapped-detail
+changes may use a specific no-impact declaration when orientation meaning is
+unchanged; unmapped authority paths fail until an explicit owner is recorded.
+
+**Reversibility and migration cost.** Documentation and CI changes are
+revertible as one bounded integration. Stable IDs and event history should not
+be rewritten; a future schema or routing change uses a versioned renderer and
+superseding event. Changing the primary static-first contract requires a
+prospective decision, browser/accessibility regression evidence, and migration
+of generated outputs and CI.
+
+**Reserved inputs and authority ceiling.** This decision sets no physical
+value, qualification result, security acceptance, rights policy, live
+economics, launch, production, `LIVE`, frontier, settlement, network, weight,
+or emission state. Pages remains disabled unless an authorized maintainer
+manually dispatches the workflow or `CARBON_HUB_PUBLISH=true` enables automatic
+publication; enabling Pages makes the hub public. The workflow does not itself
+enforce owner approval, and this integration changes no repository setting.
+Future internal-only content requires an access-controlled host.
+
+**Lead notification.** The durable SciML / Technical Lead route is issue #42
+and must receive the complete implementation/PR package with `@harshaa765`.
+
 ## 2026-08-31 — B-03 decision-series status
 
 > **B-03-D1 through B-03-D8 status: RATIFIED BOUNDED ENGINEERING-CONTRACT

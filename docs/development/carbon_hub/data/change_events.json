@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0",
+  "events": [
+    {
+      "map_ref": "WAVE-B/B-03",
+      "event_type": "evidence",
+      "event_id": "B-03-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #67 merged the B-03 working engineering contract and exact-main CI passed; runtime implementation remained selected and unstarted in the captured repository state.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/67",
+      "affects": [
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "bug",
+      "event_id": "HUB-BUG-001",
+      "owner_lane": "documentation_maintenance",
+      "status": "closed",
+      "summary": "The v2 primary page was an empty JavaScript shell and appeared blank when inline scripts were suppressed; v2.1 replaces it with complete static semantic HTML.",
+      "primary_detail": "docs/development/carbon_hub/index.html",
+      "affects": [
+        "SYSTEM/DEVELOPMENT-HUB/INTERACTIVE",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "adjustment",
+      "event_id": "HUB-ADJ-001",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The hub is integrated as a data-first repository surface with deterministic generation, maintenance instructions, drift validation, PR impact declaration, and owner-controlled publication support.",
+      "primary_detail": "docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/PR-MAINTENANCE",
+        "SYSTEM/CI",
+        "SYSTEM/PUBLICATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+      "event_type": "adjustment",
+      "event_id": "HUB-ADJ-002",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval.",
+      "primary_detail": "docs/development/carbon_hub/tools/validate_hub.py",
+      "affects": [
+        "WAVE-B/B-03",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/CI",
+        "SYSTEM/PR-MAINTENANCE",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/PUBLICATION",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/PUBLICATION-AUTHORITY"
+      ],
+      "supersedes": "HUB-ADJ-001"
+    },
+    {
+      "map_ref": "WAVE-B/B-03",
+      "event_type": "evidence",
+      "event_id": "B-03-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #69 merged the exact reviewed bounded B-03 generator implementation into main; the Hub is repinned to a snapshot containing it while B-03 remains in_progress and post-merge exact-main and closeout evidence are not yet recorded in the authority files.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/69",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-03-E1"
+    }
+  ]
+}
