@@ -91,6 +91,9 @@ def main() -> int:
     ):
         if marker not in page:
             fail(f"decisions.html missing marker {marker!r}")
+    hub = (ROOT / "index.html").read_text(encoding="utf-8")
+    if 'href="decisions.html#needs-me"' not in hub:
+        fail("primary Hub must link to Decisions → Needs Me")
     print(f"Decision Console: {len(decisions)} decisions, {len(ids)} unique IDs, focused checks passed.")
     return 0
 
