@@ -55,7 +55,7 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `d7b2e817f43202948bbe831cb9c9693382a3cf81`, reconciled 2026-09-01T09:18:02Z.
+Current authority snapshot: `83cc2a628d13ce60fd854168b126d935076ec30a`, reconciled 2026-09-01T14:32:12Z.
 
 ### Link-pin and dependency conventions
 

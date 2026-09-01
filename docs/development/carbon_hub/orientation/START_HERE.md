@@ -50,26 +50,26 @@ settlement, weight, or emission claim.
 
 ## Repository sources
 
-- [Repository constitution](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/CONSTITUTION.md)
-- [Always-on agent invariants](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/INVARIANTS.md)
-- [Current Build Out](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Design_Specs/Build_Out.md)
-- [Build Out Constitutional Overlay](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Design_Specs/Build_Out_Constitutional_Overlay.md)
-- [Scientific Reference Canon v4](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Design_Specs/Agentic_Development_Master_Plan.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/WAVE.md)
-- [Wave A closeout report](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/WAVE_A_REPORT.md)
-- [Current controlling board](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/WAVE_B.md)
-- [Current executable-code authority map](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/CODE_AUTHORITY.toml)
-- [Bounded generator package public surface](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/carbon/generators/__init__.py)
-- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/DECISIONS.md)
-- [Delegated decision protocol](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/DELEGATED_DECISION_PROTOCOL.md)
+- [Repository constitution](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/CONSTITUTION.md)
+- [Always-on agent invariants](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/INVARIANTS.md)
+- [Current Build Out](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Build_Out.md)
+- [Build Out Constitutional Overlay](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Build_Out_Constitutional_Overlay.md)
+- [Scientific Reference Canon v4](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE.md)
+- [Wave A closeout report](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_A_REPORT.md)
+- [Current controlling board](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/WAVE_B.md)
+- [Current executable-code authority map](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/CODE_AUTHORITY.toml)
+- [Bounded generator package public surface](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/carbon/generators/__init__.py)
+- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/DECISIONS.md)
+- [Delegated decision protocol](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.agent/DELEGATED_DECISION_PROTOCOL.md)
 - [SciML / Technical Lead Decision Inbox #42](https://github.com/carbonphysicsai/Carbon/issues/42)
 - [Carbon Owner Decision Inbox #41](https://github.com/carbonphysicsai/Carbon/issues/41)
-- [Operations and deployment guide](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Design_Specs/Operations.md)
-- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Business/Commercial_Operating_Model.md)
-- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/Business/Business_Canon.md)
-- [Development Hub validation workflow](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.github/workflows/development-hub.yml)
-- [Development Hub publication workflow](https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.github/workflows/development-hub-pages.yml)
+- [Operations and deployment guide](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Design_Specs/Operations.md)
+- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Business/Commercial_Operating_Model.md)
+- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/Business/Business_Canon.md)
+- [Development Hub validation workflow](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.github/workflows/development-hub.yml)
+- [Development Hub publication workflow](https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.github/workflows/development-hub-pages.yml)
 
-Authority snapshot: `d7b2e817` on `main`,
-captured 2026-09-01T09:18:02Z.
+Authority snapshot: `83cc2a62` on `main`,
+captured 2026-09-01T14:32:12Z.

@@ -138,6 +138,21 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": "B-04-E1"
+    },
+    {
+      "map_ref": "SYSTEM/PUBLICATION",
+      "event_type": "adjustment",
+      "event_id": "HUB-ADJ-003",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/83cc2a628d13ce60fd854168b126d935076ec30a/.github/workflows/development-hub-pages.yml",
+      "affects": [
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B/B-01F"
+      ],
+      "supersedes": null
     }
   ]
 }
