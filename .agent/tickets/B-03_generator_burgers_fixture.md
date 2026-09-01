@@ -1,16 +1,18 @@
 # Ticket B-03 - Generator API and Burgers fixture
 
-**Wave:** B candidate
-**Status:** in_progress
+**Wave:** B
+**Status:** done — bounded merged engineering scope only
 **Depends on:** B-02A
 **Build Out:** C3
 **Master questions:** MQ-002, MQ-003
 **Authority:** `Design_Specs/Generator_Creation.md`, `Design_Specs/Generator_Validation.md`, `Design_Specs/Evidence_and_Envelope_Standards.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
-**Current ticket:** selected after B-02C PR #66's repaired exact-head review,
-normal exact-tree-preserving merge, and exact-main CI recorded in
-`.agent/evidence/wave_b/b-03.md`.<br>
+**Closeout:** PR #69 normally merged exact reviewed head
+`702bf274b1a0c4bfefa075d8da08d3e7217a53d1` as
+`d5d1372f1311132ed9d60e10e36c4fb7d43a2473`, preserving reviewed/merge tree
+`65dc9f5da4368482ad8ece155a63ff24ef46bf24`; exact-head CI, Greptile, and
+exact-main CI are recorded in `.agent/evidence/wave_b/b-03.md`.<br>
 **Working contract:** `Design_Specs/Generator_Runtime_Contract.md`<br>
 **Plan:** `.agent/plans/B-03_generator_burgers_fixture.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-03.md`
@@ -62,3 +64,23 @@ Use determinism as scientific validation, silently redefine the population,
 hide generator failure through retries, insert a production threshold, treat a
 fixture generator as truth, or use reference agreement as proof of distribution
 conformance.
+
+## Final bounded maturity
+
+```text
+SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT ONLY
+RATIFIED_ENGINEERING_CONTRACT: YES
+IMPLEMENTED: YES — BOUNDED MERGED IMPLEMENTATION
+TESTED: YES — EXACT-HEAD AND EXACT-MAIN CI
+GREPTILE_REVIEWED: YES — EXACT REVIEWED HEAD
+MERGED: YES
+GENERATOR_CONFORMANCE_QUALIFIED: NO
+OPERATIONS_APPROVED: NO
+ECONOMICS_APPROVED: NO
+SECURITY_QUALIFIED: NO
+NETWORK_QUALIFIED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+COMMERCIALLY_VALIDATED: NO
+PRODUCTION_QUALIFIED: NO
+LIVE: NO
+```

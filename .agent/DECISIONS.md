@@ -1,5 +1,597 @@
 # Agent decisions log
 
+## 2026-09-01 — B-04 decision-series status
+
+> **B-04-D1 through B-04-D10 status: CANDIDATE BOUNDED ENGINEERING-CONTRACT
+> DECISIONS.** They become ratified engineering authority only if the exact
+> reviewed contract tree passes required CI and Greptile review, normally
+> merges, preserves its reviewed meaning, and passes exact-main CI. Until then,
+> current merged governance still selects B-03 and B-04 implementation is
+> unauthorized. Notification is delivery, not approval; silence creates no
+> gate. Every real reference choice and qualification remains reserved and fail
+> closed.
+
+## 2026-09-01 — B-04-D1: Keep the canonical evaluation package and one-way ownership
+
+**Recommendation.** `KEEP + WRAP` the existing reserved `carbon.evaluation`
+namespace as B-04's future package boundary. A later implementation may depend
+one way on explicit `carbon.authoring` canonical/cases/evidence/errors/model/
+primitives/refs submodule seams, `carbon.registry.model.ChallengeKey`, and the
+Python standard library. It must not use the registry root, lifecycle, store,
+gate, or artifact-I/O APIs. It must
+not import B-03 generators, scoring, TrainEval, cards, fees, MCP, leaderboard,
+qualification, retired namespaces, optional numerical dependencies, or dynamic
+I/O. This contract PR adds no production module and does not freeze the later
+module split.
+
+**Rationale.** `carbon.evaluation` is already a canonical code-authority root,
+an installed-wheel import seam, a B-01 `KEEP` boundary, and the repository's
+recorded owner for reference, measurement, uncertainty, Dossier, and later
+orchestration work. Its current one-line package marker proves location only,
+not B-04 capability. B-03's invariant suite also requires every other Carbon
+package to avoid reverse-importing generators.
+
+**Rejected alternatives.** A new `carbon.reference` or `carbon.references`
+top-level package would duplicate the existing owner and require an unnecessary
+authority migration. Putting truth under `carbon.generators` would let a
+generator certify itself. Putting it under scoring, TrainEval, registry,
+qualification, Julia, or a retired namespace would collapse separate owners.
+
+**Interfaces and invariants.** Future B-04 types live below
+`carbon.evaluation`; exact `CanonicalChallengeCase` composition crosses by
+B-02A value/ref, never by a generator import. Reference code cannot construct
+score input, mutate lifecycle/registry state, activate qualification, or use a
+generic runtime/service boundary. The future package must define a curated
+`__all__` exposing only audience-safe policy/role/outcome/projection contracts;
+B-04-D11 freezes its exact names and order before runtime code. Until then no
+exact root-export claim exists. Protected case refs, requests, resolution
+records, grants, runs, comparisons, artifacts, assets, and admission
+capabilities remain submodule-only.
+
+**Downstream.** B-05 may add separately owned measurement behavior under the
+same top-level namespace; B-06 owns Dossier/qualification; B-07F consumes only
+fixture reference assets; B-E2 exercises implementations and failures.
+
+**Reversibility and migration.** The documentation choice is cheap to revise
+before implementation. Moving implemented canonical objects later would be a
+high-cost identity/import/history migration and requires a prospective
+decision. Retired Julia/PoC paths remain quarantined until wrapped.
+
+**Exact change path.** Authority commit A changes the coordinated eleven-file
+B-03 closeout/B-04 transition: Wave, board, handoff, decisions, B-03 ticket/
+plan/evidence, B-04 ticket/plan/evidence, and
+`Design_Specs/Reference_and_TruthAsset_Contract.md`. Development Hub source and
+generated output follow separately in commit H under the merged maintenance
+rule.
+
+**Reserved inputs.** Exact future module layout, runtime dependencies,
+provider/service topology, resource values, security, operations, and every
+real reference method remain unavailable.
+
+## 2026-09-01 — B-04-D2: Requirements for B-04 canonical identity, refs, and prospective history
+
+**Recommendation.** Reserve the closed B-04 v1 top-level identity/ref inventory
+for precomputed source manifest, policy and entry, policy composition,
+primary/witness request, resolution, nominal primary/witness grant, run,
+comparison, reference artifact, fixture asset, admission-grant issuance,
+admission grant/decision, and `TruthAsset`. Fix schema
+version `1.0`, profile `carbon_reference_truth_canonical_v1`, and domain header
+`carbon.reference-truth.canonical.v1\x00`. Inherit B-02A's exact primitive,
+NFC/control/surrogate, Int64/UInt64, finite/positive-zero Float64, strict
+ordering/duplicate, unknown-tag, and decoder-ceiling semantics without
+widening its top-level registry. Material meaning changes create a prospective
+version/supersession; history is never reinterpreted.
+
+This decision establishes canonical requirements and reserved ref names, not
+implemented bytes. Before the first runtime model, a separately recorded and
+notified B-04-D11 decision must freeze every v1 record's complete field
+order/type registry, exact outcome/reason compatibility matrices, and the
+exact ordered `carbon.evaluation.__all__` tuple. Only then may implementation
+claim exact canonical identity or root export surface.
+
+**Rationale.** A policy or asset must bind the exact Challenge, case, physical
+job, population, role, implementation, environment, method/configuration,
+artifact, applicability, uncertainty, provenance, and qualification meaning.
+Syntactic IDs or a successful process cannot carry that graph.
+
+**Rejected alternatives.** Generic dictionaries/JSON dumps, authoring-registry
+widening, generator-profile reuse, caller-supplied hashes, mutable aliases,
+implicit defaults, schema coercion, and latest-version lookup all permit
+identity confusion or silent historical change.
+
+**Prospective/runtime graph rule.** A policy entry or composition binds only
+prospective scope, source/method/environment constraints, expected artifact
+schema, and required evidence policies. A request adds the exact case,
+answer-key target, and role-specific primary/witness execution target. On an
+issued path a grant adds the authorized implementation/environment/
+configuration, then the resolution record points backward to that completed
+grant ref; a non-issued resolution carries typed grant absence. A run points
+backward to the request, grant, and resolution and adds the terminal outcome,
+realized artifact digest, provenance, and resource receipt. A resolver's
+pre-existing issuer/capability identity is never the later resolution-record
+ref. An entry or composition never binds its future request, run, or realized
+artifact, so the content-addressed graph is acyclic.
+
+**Interfaces and invariants.** Fixed field order; exact built-in types;
+subclass, Boolean-as-integer, non-finite, missing/extra/duplicate/trailing,
+oversized, and over-deep input rejection; deterministic set ordering; explicit
+resource bounds; constant-time digest comparison; defensive reconstruction;
+no hostile `repr`, `str`, pickle, reflection, mapping, URI, path, or callable.
+A ref proves shape and content identity only, not authority.
+
+**Downstream.** B-05/B-06 consume stable refs; B-E2 tests stale/cross-binding
+responses; future registry integration adds only a prospective Challenge
+binding.
+
+**Reversibility and migration.** New schema versions are additive and
+prospective. Re-encoding historical objects or changing a digest meaning is
+forbidden; migration issues new refs and preserves the old graph.
+
+**Exact change path.** The contract's identity/canonicalization sections and
+the later `carbon.evaluation` implementation boundary.
+
+**Reserved inputs.** The inherited 16,777,216-byte document, 65,535-byte
+payload, 65,535-item, and depth-64 maxima are hostile-input engineering decoder
+ceilings, not production policy. Tighter service limits, storage, retention,
+signatures, authentication, cache, and migration policy remain owner inputs.
+
+## 2026-09-01 — B-04-D3: Separate evidence kind, authority function, and source class
+
+**Recommendation.** Reuse B-02A's exact payload-bearing
+`EvidenceRoleBinding` as the evidence-kind axis, including the mandatory
+`hybrid_role_ref` only for `REGISTERED_HYBRID`. Add
+an orthogonal closed B-04 authority-function axis (`PRIMARY`,
+`CORROBORATING_WITNESS`, `VERIFICATION_ANCHOR`, `VALIDATION_ANCHOR`,
+`REGISTERED_COMPONENT`) and a closed source-class axis (`DIRECT_REGISTERED_SOURCE`,
+`EXPERIMENTAL_DATASET_OR_INSTRUMENT`,
+`INDUSTRIAL_OR_CUSTOMER_HOSTED_REFERENCE`,
+`QUALIFIED_SURROGATE_OR_ACCELERATOR`). A separate target-level composition
+kind is `SINGLE_ENTRY` or `REGISTERED_HYBRID_POLICY`; a hybrid is an ordered
+composition of at least two distinct `REGISTERED_COMPONENT` entries whose
+closed composition authority is `PRIMARY` or `CORROBORATING_WITNESS`. Every
+prospective entry binds exactly one value on all three axes. Named roles are
+exact profiles over the tuple, so an industrial primary, surrogate witness, or
+experimental validation anchor is expressible. Compared primary/witness
+targets have disjoint entry refs. Labels never self-authorize.
+
+Every target is closed within one exact policy version. The policy's ordered
+entry, composition, and registered-witness-target inventories and every
+expanded target are duplicate-free by canonical semantic identity. Single
+targets occur exactly once in that policy's entry tuple; composition targets
+occur exactly once in its composition tuple; and each distinct composition
+member occurs exactly once in both its member tuple and the same policy's entry
+tuple. All cross-bind the same Challenge and scientific scope. Expanded
+primary and compared-witness entry sets are disjoint; external, duplicate,
+cross-policy, cross-version, cross-scope, or role-mismatched refs reject.
+
+**Rationale.** Analytic, semi-analytic, manufactured, numerical, experimental,
+industrial, and hybrid describe evidence form, not primary/witness authority.
+The three-axis model preserves what each source supports and cannot support;
+separate composition preserves how several registered components jointly act.
+
+B-02A `REGISTERED_HYBRID(hybrid_role_ref)` remains the exact evidence binding
+of one B-04 entry and cannot create B-04 `REGISTERED_HYBRID_POLICY`. Conversely,
+a B-04 composition does not synthesize a B-02A hybrid role or owner ref. A
+single-member composition rejects and must use `SINGLE_ENTRY`; D11 freezes the
+payload/cross-binding compatibility rules.
+
+**Rejected alternatives.** One scalar “reference rank,” a mixed enum that
+places authority and delivery classes in one slot, source-category authority,
+source-count voting, `primary=True`, arbitrary strings, and a generic hybrid
+list would allow relabeling or unsupported promotion.
+
+**Interfaces and invariants.** Witnesses cannot replace/promote themselves;
+agreement cannot qualify a source; a generator-under-test is never a reference
+role; MMS normally supports verification/convergence only and cannot stand in
+for target-population relevance, physical validation, customer context,
+engineering qualification, or product fitness. Primary and witness requests
+bind closed single-entry or composition execution targets; a witness also
+cross-binds the policy's primary answer-key target. Only `PRIMARY` and
+`CORROBORATING_WITNESS` targets use the nominal answer-key runners.
+Computational composition members are `REGISTERED_COMPONENT`; anchor entries
+are evidence-only unless a distinct prospective entry assigns and qualifies a
+primary/witness function. Any anchor adapter has a non-answer-key boundary.
+
+**Downstream.** B-05 consumes evidence meaning without widening it; B-06
+records non-substitution; B-E2 and B-E3 test/render role boundaries.
+
+**Reversibility and migration.** Adding a role requires a versioned contract
+and policy migration. Historical combined “analytic or manufactured” and
+“reference rank” wording is `DOCUMENTATION_LAG`, not a reason to collapse the
+model.
+
+**Exact change path.** Contract role model, B-04 ticket/plan/evidence, and
+future B-04 model/canonical modules under `carbon.evaluation`.
+
+**Reserved inputs.** The actual primary/witness/anchor assignment, industrial
+or customer rights, and hybrid composition are `NEW_OWNER_DECISION_REQUIRED`.
+
+## 2026-09-01 — B-04-D4: Policy-issued nominal primary and witness runner grants
+
+**Recommendation.** Define separate nominal primary and witness requests,
+grants, runners, and outcomes. Trusted policy resolution issues a grant bound
+to the exact case, policy, answer-key target, role-specific single-entry or
+composition execution target, role, implementation, environment,
+method/configuration, representation, request/idempotency, resource, and
+disclosure identities. The runner validates that exact grant before its
+provider boundary. There is no generic `truth_mode`.
+
+Resolution produces an exact content-addressed record with one closed
+outcome: primary grant issued, witness grant issued, policy incomplete, role
+unavailable, not applicable, unsupported, applicability unresolved,
+qualification unavailable, resource authorization unavailable, or
+identity/provenance failure. On an issued path the resolver constructs the
+one-use nominal grant from its pre-existing issuance identity and then records
+that completed grant ref; every other record contains typed grant absence and
+no fabricated run. A closed subordinate reason distinguishes missing
+primary, incomplete entry, unregistered role, case applicability/support,
+unavailable applicability assessment, qualification, resource policy versus
+capacity, identity, and provenance, with exact outcome/reason compatibility
+reserved for B-04-D11.
+
+Resolution reason precedence is total, in this exact order:
+`RESOLUTION_IDENTITY_MISMATCH`, `RESOLUTION_PROVENANCE_INVALID`,
+`POLICY_PRIMARY_MISSING`, `POLICY_ENTRY_INCOMPLETE`, `ROLE_NOT_REGISTERED`,
+`CASE_NOT_APPLICABLE`, `CASE_UNSUPPORTED`,
+`APPLICABILITY_ASSESSMENT_UNAVAILABLE`,
+`QUALIFICATION_BINDING_UNAVAILABLE`, `RESOURCE_POLICY_UNAVAILABLE`,
+`RESOURCE_CAPACITY_UNAVAILABLE`, then
+`RESOLUTION_REQUIREMENTS_SATISFIED`.
+
+**Rationale.** A caller-selectable mode, solver, or tolerance lets execution
+choose scientific authority. Nominal types make primary/witness confusion and
+unregistered method selection mechanically rejectable.
+
+**Rejected alternatives.** `run(mode, solver, tolerance, payload)`, arbitrary
+PDE strings, callables, code, paths, URIs, package requests, executable names,
+fixture/production flags, cache bypass, and caller-selected fallback/retry.
+
+**Interfaces and invariants.** A runner computes only its registered role; it
+does not choose cases, population, fidelity, qualification, comparison,
+measurement, score, or disclosure. Process success, language, library, solver
+name, cost, speed, and nominal tolerance grant no authority.
+
+Only exact primary or witness entries/compositions enter these runner
+interfaces. Composition members remain registered components.
+Verification/validation anchors require separately owned nominal evidence
+adapters and cannot alias an answer-key runner. The resolver's issuance
+identity is a pre-existing issuer/capability identity and token, never the
+resolution-record ref, so a record-to-grant cycle is impossible.
+
+**Downstream.** The later B-04 implementation supplies the minimal standard-
+library deterministic primary/witness fixture runners and fixture assets that
+B-07F consumes. B-E2 owns Julia/service adapters and expanded runtime, timeout,
+version-mismatch, transport, process, and failure injection. C-04 later owns
+protected real adapters.
+
+**Reversibility and migration.** New runner families require new nominal types
+and policy versions, not aliases or enum members accepted by existing calls.
+
+**Exact change path.** Contract runner section and later B-04 protected runner
+interfaces under `carbon.evaluation`.
+
+**Reserved inputs.** Solver choice, method/configuration, grid, timestep,
+tolerance, precision, hardware, timeout, retry, resource, and service topology
+remain unavailable.
+
+## 2026-09-01 — B-04-D5: Total run/comparison outcomes and failure attribution
+
+**Recommendation.** A run records exactly one of `SUPPORTED`,
+`UNCERTAINTY_UNRESOLVED`, `CONDITIONING_UNRESOLVED`,
+`APPLICABILITY_UNRESOLVED`, `NOT_APPLICABLE`, `UNSUPPORTED`,
+`NUMERICAL_FAILURE`, `MALFORMED_OR_PROVENANCE_FAILURE`,
+`INFRASTRUCTURE_FAILURE`, or `CANCELLED`. A separate comparison records
+`AGREEMENT_WITHIN_REGISTERED_POLICY`, `CONTESTED_DISAGREEMENT`, or
+`COMPARISON_INDETERMINATE`. Neither runner self-declares comparison or
+independence.
+
+Each non-supported post-grant run also binds one closed subordinate reason
+covering not-applicable/unsupported, uncertainty/conditioning, invalid
+request/grant, numerical nonconvergence/invalidity, malformed result,
+provenance/version/identity mismatch, dependency/transport/process failure,
+capacity/resource limit, timeout, or trusted cancellation. Run-reason
+precedence is total in this exact order: `REQUEST_OR_GRANT_INVALID`,
+`VERSION_OR_IDENTITY_MISMATCH`, `PROVENANCE_INVALID`,
+`TRUSTED_CANCELLATION`, `TIMEOUT`, `RESOURCE_LIMIT`, `CAPACITY_UNAVAILABLE`,
+`DEPENDENCY_UNAVAILABLE`, `TRANSPORT_FAILURE`, `PROCESS_FAILURE`,
+`PROVIDER_RESULT_MALFORMED`, `NUMERICAL_NONCONVERGENCE`,
+`NUMERICAL_INVALID_RESULT`, `POLICY_ENTRY_NOT_APPLICABLE`,
+`POLICY_ENTRY_UNSUPPORTED`, `APPLICABILITY_ASSESSMENT_UNAVAILABLE`,
+`CONDITIONING_EVIDENCE_UNRESOLVED`, `UNCERTAINTY_EVIDENCE_UNRESOLVED`, then
+`SUPPORTED` with no failure reason. One atomic terminal claim applies. Missing
+primary or another pre-run failure stays in the separate resolution record.
+
+Comparison uses the closed subordinate reasons
+`COMPARISON_REQUIREMENTS_SATISFIED`,
+`PRIMARY_OR_WITNESS_NOT_SUPPORTED`, `COMPARISON_INPUT_IDENTITY_MISMATCH`,
+`COMPARISON_PROVENANCE_INVALID`, `COMPARISON_APPLICABILITY_MISMATCH`,
+`COMPARISON_METHOD_UNAVAILABLE`, `COMPARISON_UNCERTAINTY_UNRESOLVED`,
+`COMPARISON_DEPENDENCE_UNRESOLVED`, and
+`REGISTERED_DISAGREEMENT_EXCEEDED`. Their total precedence is input identity,
+provenance, unsupported input, applicability mismatch, method availability,
+uncertainty, dependence, registered disagreement, then
+`COMPARISON_REQUIREMENTS_SATISFIED`. The record binds the exact primary
+answer-key target and disjoint witness target as well as both runs.
+
+**Rationale.** Total typed outcomes preserve missing, uncertain, contested,
+scientific-method, malformed, and operational states without fabricating
+candidate evidence or a partial answer.
+
+**Rejected alternatives.** `None`, Boolean success, exception-text taxonomy,
+one generic failure, failed `TruthAsset`, partial-result success, disagreement
+averaging, candidate zero, failed gate, easier-case replacement, or settlement
+event.
+
+**Interfaces and invariants.** Every record binds exact request/grant/case/
+policy/answer-key target/role-specific execution target/implementation/
+environment/artifact/applicability/conditioning/uncertainty/provenance/
+resource facts, including ordered component identities for a composition.
+Failures expose fixed, typed,
+non-echoing, unchained errors and no partial solution payload. Ambiguity
+defaults to infrastructure, never candidate science.
+
+**Downstream.** B-02A may consume eligible reference-trigger facts under its
+own censoring policy; B-05 rejects non-supported material; B-E2 proves the
+runtime matrix; A7/A5 remain unchanged.
+
+The exact eligibility map preserves B-02A's five reasons: contested maps to
+disputed; numerical failure to numerical; timeout to timeout; an exact
+capacity/limit fact maps to resource limit; a missing resource policy maps to
+unavailable; remaining unavailable/inapplicable/malformed/operational facts
+map to unavailable; cancellation has no automatic censoring eligibility.
+Only an exact terminal record/ref is eligible. Bare absence of the admission-
+grant issuer or configured admission authority, and malformed issuer input,
+supplies no B-02A trigger unless a separately registered infrastructure
+failure ref exists. Because the issuer performs no substantive admission
+checks, contested comparison remains a decision-level disputed fact rather
+than being collapsed into issuance unavailability.
+
+**Reversibility and migration.** A new terminal meaning requires a contract
+version and exhaustive consumer update; unknown values fail closed.
+
+**Exact change path.** Contract outcome/comparison/failure sections and future
+B-04 outcome records.
+
+**Reserved inputs.** Real comparison method, acceptable discrepancy,
+cancellation/retry mechanics, and owner failure policy remain unavailable.
+
+## 2026-09-01 — B-04-D6: Positive-only TruthAsset admission and distinct fixture assets
+
+**Recommendation.** Treat a structurally valid output as a
+`ReferenceArtifact`. Only a separately configured admission authority may
+construct a `TruthAsset`, and only from an exact `SUPPORTED` run plus every
+eligible artifact, comparison, and qualification binding required by the same
+policy. `SUPPORTED` plus artifact absence/ineligibility is an exact rejection,
+not an asset. Failed,
+uncertain, contested, unsupported, and infrastructure states remain outcomes,
+not assets. Fixture output uses a distinct nominal `FixtureReferenceAsset`
+that cannot be admitted or relabeled as `TruthAsset`.
+
+Before admission, a distinct trusted grant issuer performs only exact
+canonical/cross-binding, issuer-scope, and intended-authority capability
+checks over one structurally bound attempted graph. It emits a
+content-addressed `TruthAssetAdmissionGrantIssuanceRecord`; a positive record
+authorizes a one-use `TruthAssetAdmissionGrant` that binds backward to it, and
+the record contains no grant ref. The issuer does not decide run/artifact,
+comparison, qualification, provenance/rights, or use/disclosure sufficiency.
+The separate authority decides those substantive questions and then emits a
+content-addressed
+`TruthAssetAdmissionDecisionRecord` with `ADMITTED`, `REJECTED`, `UNAVAILABLE`,
+or `INDETERMINATE`; only `ADMITTED` can construct an asset, and the asset binds
+the exact issuance, grant, and decision refs. The issuer and admission
+authority are distinct; runners, adapters, generators, callers, artifacts, and
+the admission authority cannot issue their own admission grant, and the issuer
+cannot decide admission.
+
+Issuance reason precedence is exactly
+`ADMISSION_GRAPH_CROSS_BINDING_MISMATCH`,
+`ADMISSION_GRANT_SCOPE_UNAVAILABLE`,
+`ADMISSION_AUTHORITY_BINDING_UNAVAILABLE`, then
+`ADMISSION_GRANT_REQUIREMENTS_SATISFIED`. Substantive admission precedence is
+exactly `GRANT_INVALID_OR_CONSUMED`, `POLICY_OR_IDENTITY_MISMATCH`,
+`RUN_NOT_SUPPORTED`, `ARTIFACT_ABSENT_OR_INELIGIBLE`,
+`REQUIRED_COMPARISON_CONTESTED`,
+`REQUIRED_COMPARISON_INDETERMINATE`, `QUALIFICATION_UNAVAILABLE`,
+`PROVENANCE_OR_RIGHTS_INVALID`, `USE_OR_DISCLOSURE_UNAVAILABLE`, then
+`ADMISSION_REQUIREMENTS_SATISFIED`.
+Each sequence selects one closed reason before its success state; D11 fixes
+compatibility, not implementation-dependent order.
+
+Malformed/noncanonical/unreconstructable issuer input returns a fixed
+non-echoing boundary error with no record or grant. Only reconstructable
+cross-binding mismatches receive the closed issuance reason. Bare absence of
+the issuer or configured admission authority creates no self-issued terminal
+ref or B-02A eligibility; a separately registered infrastructure observer/ref
+is required. An available admission authority alone records substantive
+decisions over the complete submitted attempt graph, including typed artifact
+absence.
+
+**Rationale.** This preserves the difference between solver output and an
+authority-bounded answer key. It also resolves documentation shorthand that
+could imply `TruthAsset` itself carries a failure state.
+
+**Rejected alternatives.** Constructor Booleans, asset-presence success,
+self-admission by a runner, Dossier-field completeness, fixture provenance
+plus `is_live=False`, failed/empty `TruthAsset`, and subclass/wrapper promotion.
+
+**Interfaces and invariants.** Admission consumes an exact positive authority
+echo and binds Challenge/case/policy/answer-key target/primary execution
+target/role/run/comparison/implementation/
+environment/artifact/applicability/conditioning/uncertainty/correlation/
+provenance/rights/disclosure/qualification/limitations plus the exact issuance
+record, grant, and decision record. A `TruthAsset` creates no score, LIVE,
+frontier, product, network, or economic authority.
+
+**Downstream.** B-06 later owns qualification evidence and signer slots; B-05
+may consume only admitted refs; B-07F consumes fixture assets; B-E2 cannot fake
+admission.
+
+**Reversibility and migration.** Positive-only semantics are intentionally
+strict. Widening admission later requires a high-cost security/science review
+and prospective schema version; existing failures remain non-assets.
+
+**Exact change path.** Contract artifact/admission sections and future B-04
+admission/fixture models.
+
+**Reserved inputs.** Admission criteria, authorities, qualification evidence,
+signatures, keys, and production asset eligibility are `EVIDENCE_REQUIRED` /
+`NEW_OWNER_DECISION_REQUIRED`.
+
+## 2026-09-01 — B-04-D7: Explicit support, applicability, conditioning, and uncertainty
+
+**Recommendation.** Bind case-level support/applicability and conditioning
+status to exact policy evidence. Bind uncertainty to its quantity, units,
+representation, method, implementation/environment, coverage meaning,
+applicability, component/dependence disclosures, evidence refs, limitations,
+and downstream-use restrictions. Set no numeric floor or acceptance threshold.
+
+**Rationale.** An envelope label, converged run, small residual, solver
+tolerance, mesh size, or witness difference is not by itself applicability,
+conditioning, or uncertainty evidence.
+
+**Rejected alternatives.** Omitted applicability, universal support, tolerance
+as uncertainty, fixed default floor, independent component summation,
+quadrature without evidence, or transfer across a PDE/regime/geometry/BC/
+implementation/environment/precision/hardware path.
+
+**Interfaces and invariants.** Unsupported/not-applicable cases remain visible;
+no silent replacement or fallback. Named uncertainty components do not imply
+independence. Missing assessment is typed unavailable/unresolved.
+
+**Downstream.** B-05 owns measurement floors, propagation and decision use;
+B-06 qualifies applicability/coverage/dependence; B-E1 tests joint decision
+resolution.
+
+**Reversibility and migration.** Changing a support or uncertainty meaning
+creates a new policy/object version and may invalidate later evidence; history
+remains immutable.
+
+**Exact change path.** Contract support/uncertainty sections and later B-04
+assessment/uncertainty records.
+
+**Reserved inputs.** Every real support boundary, conditioning/sensitivity
+method, uncertainty representation/value/floor/coverage/dependence, and
+acceptance rule remains reserved.
+
+## 2026-09-01 — B-04-D8: Correlation disclosure, contested disagreement, and no fallback
+
+**Recommendation.** Record material shared/distinct equations, closures,
+discretizations, meshes, transforms, libraries, generated/copied code,
+calibration/data, personnel, floating-point/runtime, and hardware paths for
+every comparison. Preserve disagreement as contested or indeterminate; never
+average incompatible sources. Missing/failed primary remains typed unavailable.
+A future fallback is legal only when the same immutable prospective policy
+names and qualifies it; this contract registers none.
+
+**Rationale.** “Independent implementation” and multi-code agreement can hide
+common bias. An implicit witness or stale cache fallback changes the answer-key
+contract after failure.
+
+**Rejected alternatives.** Majority vote, average/median truth, source
+reputation, zero-covariance assumption, correlated agreement as qualification,
+fallback by convenience/cost/availability, mock/fixture/candidate/generator
+output, or stale cached output.
+
+**Interfaces and invariants.** Neither runner self-certifies independence.
+Agreement cannot promote an unqualified source. Disagreement cannot become
+candidate failure. A fallback, if later approved, must have exact role,
+applicability, uncertainty, provenance, comparison, and historical bindings.
+
+**Downstream.** B-06 owns Dossier evidence and limitations; B-05/B-E1 own
+dependence-aware scientific use; B-E2 tests disagreement and failure.
+
+**Reversibility and migration.** New evidence can prospectively strengthen or
+narrow a role but cannot rewrite a historical comparison. Adding fallback
+requires a new policy version and requalification.
+
+**Exact change path.** Contract independence/disagreement/no-fallback sections
+and later B-04 comparison/policy records.
+
+**Reserved inputs.** Independence findings, correlation adequacy,
+disagreement threshold/resolution, fallback source/order, and qualification
+are owner decisions.
+
+## 2026-09-01 — B-04-D9: Complete provenance, cache identity, and protected disclosure
+
+**Recommendation.** Bind every meaning-bearing Challenge/case/policy/
+answer-key target/role-specific execution target/composition member/role/
+source/implementation/dependency/method/configuration/precision/environment/
+hardware/artifact/applicability/conditioning/uncertainty/provenance/rights/
+qualification/disclosure identity into a run and any cache key. Revalidate the
+complete graph on a cache hit. Keep requests, runs, comparisons, artifacts,
+and assets internal/protected by default; public projection is positive
+allow-list reconstruction only.
+
+**Rationale.** Precomputed bytes are meaningful only under the exact contract
+that produced them. Hashing or redacting a protected value does not
+automatically make it public-safe.
+
+**Rejected alternatives.** Case-plus-solver cache keys, mutable tags, latest
+environment, path/URI identity, stale/partial hits, generic serialization,
+serialize-then-redact, exception/log diagnostics, and public raw solution or
+case refs.
+
+**Interfaces and invariants.** Cross-case/role/policy/environment/configuration
+substitution rejects. Unknown/partial/stale/revoked cache state fails closed.
+No public error/log/card/MCP/prior/practice/leaderboard surface exposes
+protected cases, answers, seeds/draws, exact discrepancies/margins,
+conditioning internals, topology, paths, credentials, or customer material.
+
+**Downstream.** B-06 later owns retained qualification evidence; B-07F gets
+fixture-only projections; C-04 and operations own real cache/service behavior.
+
+**Reversibility and migration.** Public projection can grow only by explicit
+versioned allow-list review. Cache-key meaning cannot change in place.
+
+**Exact change path.** Contract provenance/cache/disclosure sections and later
+B-04 canonical/disclosure code.
+
+**Reserved inputs.** Cache implementation/retention, public fields, access,
+rights, privacy, authentication, network, process isolation, secrets,
+operations, and resource limits remain unavailable.
+
+## 2026-09-01 — B-04-D10: Preserve B-02A censoring and downstream owner boundaries
+
+**Recommendation.** B-04 supplies exact reference facts for B-02A's existing
+reference censoring reasons but does not create a second case state,
+disposition, replacement, or accounting object. B-05 consumes only admitted
+asset refs and uncertainty; B-06 owns Dossier/qualification; B-07F consumes
+fixture assets behind the unchanged v1 fixture lifecycle; B-E2 implements
+Julia/service adapters and expanded runtime-failure fixtures. A3 integration,
+if later required, is prospective.
+
+**Rationale.** Existing B-02A and B-03 boundaries already separate canonical
+case generation, intended/realized accounting, and reference-trigger
+censoring. Downstream tickets have explicit owners; B-04 should not absorb
+their behavior.
+
+**Rejected alternatives.** A B-04 case lifecycle, generator retry, direct A5
+scalar, mandatory-gate mapping, Dossier signoff, A3 LIVE mutation, fixture
+official promotion, transport, artifact store, leaderboard, frontier, product,
+or settlement behavior.
+
+**Interfaces and invariants.** Reference/infrastructure failure is never
+candidate physics failure, score zero, rank loss, or economic event. B-02A
+continues to own `CensoringRecord` and SamplingPlan/denominator semantics.
+Only exact closed B-04 terminal record/reason refs may be proposed; bare
+component absence is not a censoring fact. Raw run success cannot enter B-05.
+Fixtures cannot enter LIVE.
+
+**Downstream.** B-05, B-06, B-07F, B-E1, B-E2, B-E3, C-04, and later A3
+integration consume only their named seams after their own authorization.
+
+**Reversibility and migration.** The one-way seams are extendable
+prospectively. Collapsing owners later would be a high-cost migration requiring
+new identities, compatibility tests, and evidence review.
+
+**Exact change path.** Contract downstream/censoring sections; B-04 ticket,
+plan, evidence, and Wave-B candidate transition. No downstream ticket file or
+runtime is changed.
+
+**Reserved inputs.** Measurement/score/Dossier values, exact LIVE activation,
+security/operations, real fixture composition, network, product, frontier,
+economics, settlement, weight, and emission authority remain unavailable.
+
 ## 2026-08-31 — HUB-D1: Static-first Development Hub and maintenance gate
 
 **Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`

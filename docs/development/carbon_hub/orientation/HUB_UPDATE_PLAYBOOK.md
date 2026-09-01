@@ -52,7 +52,7 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `a785799d6de2715ed3993a744ac16b7c7a572638`, reconciled 2026-09-01T01:58:16Z.
+Current authority snapshot: `79143d13e1e69e6f8e32ac066828b47fe5f9b060`, reconciled 2026-09-01T03:53:59Z.
 
 ## Repository-path impact classes
 
@@ -72,15 +72,15 @@ Current authority snapshot: `a785799d6de2715ed3993a744ac16b7c7a572638`, reconcil
 ## Event attachment schema
 
 ```yaml
-map_ref: WAVE-B/B-03
+map_ref: WAVE-B/B-04
 event_type: decision | adjustment | bug | blocker | risk | evidence
-event_id: B-03-D9
+event_id: B-04-D11
 owner_lane: sciml_technical_lead
 status: proposed | active | blocked | implemented | superseded | closed
 summary: One sentence that tells the team what changed.
 primary_detail: Repository path or URL
 affects:
-- WAVE-B/B-04
+- WAVE-B/B-05
 supersedes: null
 
 ```

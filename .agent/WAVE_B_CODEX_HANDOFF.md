@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 0.9
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 0.9
+**Governance version:** 1.0
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.0
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -16,7 +16,7 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-02A/B-07R/B-02B/B-02C closeout and delegated governance
+## 1. B-02A/B-07R/B-02B/B-02C/B-03 closeout and delegated governance
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -75,9 +75,22 @@ PR #66 normally merged repaired exact reviewed B-02C head
 `a30865d2349f1cc6e725f1ea15e923f8d7893e4c`. Repaired exact-head CI
 `33388174967`, Greptile 5/5 on exact-head check `99475440630` with zero
 comments, annotations, or unresolved threads, and exact-main CI `33388595061`
-passed. B-02C is `done` in bounded engineering scope. Version 0.9 selects
-B-03 `in_progress`; its working contract must be reviewed, normally merged,
-and followed by exact-main CI before runtime implementation.
+passed. B-02C is `done` in bounded engineering scope. Version 0.9 selected
+B-03.
+
+PR #69 normally merged exact reviewed B-03 head
+`702bf274b1a0c4bfefa075d8da08d3e7217a53d1` as
+`d5d1372f1311132ed9d60e10e36c4fb7d43a2473`, preserving exact reviewed tree
+`65dc9f5da4368482ad8ece155a63ff24ef46bf24` and ordered parents
+`b86daa5d8b0f8b3e86bb82c2661f405747a200df`,
+`702bf274b1a0c4bfefa075d8da08d3e7217a53d1`. Exact-head CI
+`33452836347`, Greptile check `99686337091` with all 36 files reviewed and
+zero comments or unresolved threads, and exact-main push CI `33460078744`
+passed. Issue #42 closeout comment `5487728238` records completion. B-03 is
+`done` only in bounded merged engineering scope. Version 1.0 selects B-04
+`in_progress` for working-contract authoring only. B-04 implementation remains
+prohibited until the exact contract tree normally merges and exact-main CI
+succeeds.
 
 ## 2. Required read order
 
@@ -220,13 +233,14 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E, B-02A, B-07R, B-02B, and B-02C are complete at the identities in
-section 1. B-03 is the sole selected `in_progress` ticket. Continue its
-contract only from `agent/b-03-generator-contract`. No B-03 runtime code,
-package-authority change, or test implementation belongs on the contract
-branch. Only after the exact contract tree normally merges and exact-main CI
-passes may a fresh `agent/b-03-generator-burgers-fixture` worktree be created
-from that new exact `origin/main` for implementation.
+B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are complete at the identities in
+section 1. B-04 is the sole selected `in_progress` ticket in contract phase.
+Continue its contract only from `agent/b-04-reference-truth-contract`. No
+B-04 runtime, solver, fixture runner, Julia service, Cole–Hopf routine,
+artifact store, transport, measurement, scoring, Dossier, package-authority,
+or test implementation belongs on the contract branch. Only after the exact
+contract tree normally merges and exact-main CI passes may a fresh B-04
+implementation branch/worktree be created from that new exact `origin/main`.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -474,7 +488,7 @@ In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
 CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
 follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
 names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 0.9 as the controlling register, and selects <TICKET> with the same
+version 1.0 as the controlling register, and selects <TICKET> with the same
 status recorded by the board and ticket file. If <TICKET> is `in_progress`,
 continue only its recorded ticket branch after verifying the recorded base,
 current remote HEAD/tree, evidence, CI, and review state. Use its existing
