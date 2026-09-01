@@ -85,7 +85,7 @@ valid.
 | `./scripts/dev/bootstrap.sh` | Installs the exact repository Python through pinned uv and synchronizes the locked groups. |
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
-| `./scripts/dev/ci.sh` | Runs doctor, invariants, CPU tests, quality, package/wheel/outside-tree import checks, the code-authority boundary, and diff hygiene. |
+| `./scripts/dev/ci.sh` | Runs delivery scope and repository hygiene, doctor, the quality and diff-hygiene preflight, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
 | `./scripts/dev/canonical.sh --focused <target>` | Runs focused pytest targets in the exact canonical environment. |
 | `./scripts/dev/canonical.sh --full` | Runs the complete canonical `ci.sh` acceptance. |
 | `./scripts/dev/canonical.sh --interactive` | Opens a profile-free interactive shell in the exact canonical environment, preserving the locked project/tool path. |

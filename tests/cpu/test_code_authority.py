@@ -1010,12 +1010,39 @@ def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None
         assert required in wrapper
 
 
+def test_hub_lanes_enforce_decision_console_contract() -> None:
+    command = "python3 docs/development/carbon_hub/tools/test_decisions.py"
+    hub_script = (REPOSITORY_ROOT / "scripts/dev/ci_hub.sh").read_text(
+        encoding="utf-8"
+    )
+    hub_workflow = (
+        REPOSITORY_ROOT / ".github/workflows/development-hub.yml"
+    ).read_text(encoding="utf-8")
+
+    assert command in hub_script
+    assert f"run: {command}" in hub_workflow
+
+
 def test_default_ci_script_invokes_no_archived_path() -> None:
     ci_source = (REPOSITORY_ROOT / "scripts" / "dev" / "ci.sh").read_text(
         encoding="utf-8"
     )
+    required_in_order = (
+        'echo "==> delivery scope and repository hygiene"',
+        'echo "==> environment doctor"',
+        'echo "==> quality ratchet"',
+        'echo "==> committed and local Git diff hygiene"',
+        'echo "==> invariant lane"',
+        'echo "==> default CPU lane"',
+        'echo "==> package, wheel, and outside-tree lane"',
+        'echo "==> canonical/legacy authority boundary"',
+        'echo "==> terminal committed and local Git diff hygiene"',
+    )
+    positions = tuple(ci_source.index(fragment) for fragment in required_in_order)
     retired_paths = _authority()["retired"]["executable_paths"]
     violations = [path for path in retired_paths if path in ci_source]
+    assert positions == tuple(sorted(positions))
+    assert ci_source.count("scripts/dev/check_diff_hygiene.py") == 2
     assert violations == []
     assert "tests/invariants" in ci_source
     assert "./scripts/dev/test.sh" in ci_source

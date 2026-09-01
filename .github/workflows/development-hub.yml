@@ -68,6 +68,9 @@ jobs:
       - name: Check generated outputs
         run: python3 docs/development/carbon_hub/tools/render_hub.py --check
 
+      - name: Test Decision Console contract
+        run: python3 docs/development/carbon_hub/tools/test_decisions.py
+
       - name: Refresh live pull request declaration and identity
         if: github.event_name == 'pull_request'
         id: refresh_pr

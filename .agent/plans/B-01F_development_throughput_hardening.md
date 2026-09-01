@@ -96,6 +96,7 @@ agent_pack/EXECUTION_PROTOCOL.md
 agent_pack/PLANS.md
 agent_pack/README.md
 docs/development/ENVIRONMENT.md
+docs/development/carbon_hub/data/decisions.json
 docs/development/carbon_hub/tools/render_hub.py
 docs/development/carbon_hub/tools/test_validator.py
 docs/development/carbon_hub/tools/validate_hub.py
