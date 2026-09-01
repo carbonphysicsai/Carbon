@@ -90,6 +90,7 @@ The fixed non-semantic-Hub manifest is:
 .github/rulesets/main.v1.json
 .github/workflows/ci.yml
 .github/workflows/development-hub.yml
+.github/workflows/development-hub-pages.yml
 AGENTS.md
 agent_pack/CODEX_TICKET_LAUNCHER.md
 agent_pack/EXECUTION_PROTOCOL.md
@@ -144,6 +145,18 @@ matching bootstrap and doctor while still rejecting every other version. It
 also explicitly normalizes root-owned uv, uvx, and managed Python executables
 to non-writable mode and retains opt-in, label-only identity diagnostics. The
 exact trust predicate remains fail closed.
+
+Protected main then advanced through seven direct Development Hub Pages
+workflow commits. Their net change automatically published on every Hub push
+and removed the full Hub validator from the publication payload check, which
+conflicts with the already-recorded HUB-D1 publication boundary. The
+reconciled candidate therefore includes
+`.github/workflows/development-hub-pages.yml` in the fixed manifest and
+restores the authority-snapshot-pinned workflow: manual authorized-maintainer
+dispatch remains available, automatic publication still requires
+`CARBON_HUB_PUBLISH=true`, and both deterministic rendering and Hub validation
+precede deployment. This preserves existing authority rather than creating a
+new publication decision.
 
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`
