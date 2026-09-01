@@ -1,19 +1,17 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, current through main
-`62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
-`0cc4fc8661663b29d954eb617323cc4fefc6c9cb`, the signed normal merge of A12 /
-Wave-A closeout PR #52 on 2026-08-29.
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through planning base
+main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
+`619e366dead2288ccfd312f54ad09f17f86a1c62`, plus the prospective
+`OWNER-NET-01` roadmap candidate only where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
-> **Wave-B development-governance transition.** Current main records A12
-> `done`, Wave A closed in bounded engineering scope, Wave B inactive, and
-> B-01 `todo` and unauthorized. This documentation-only candidate proposes
-> Wave B active in bounded development scope only after this exact governance
-> change is independently reviewed, green, and normally merged. B-01 remains
-> unstarted and becomes the next authorized `todo` ticket only after that
-> merge; no Wave B implementation exists yet.
+> **Current development state.** `.agent/WAVE.md` records Wave B active in
+> bounded development scope with B-04 selected `in_progress`; B-04 runtime and
+> the B-01F conditional completion predicate remain exactly governed there.
+> `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
+> reorders Wave B nor starts/selects C, H, or I work.
 >
 > Prior multi-role approval, exact-byte approval-bundle, and separate
 > activation-closeout prerequisites are superseded for development by the
@@ -124,11 +122,9 @@ done
 
 A12: done in its bounded invariant-judge/CI scope
 Wave A: closed in bounded engineering scope
-Wave B: inactive on the exact governance base; proposed active in bounded
-development scope only after this governance candidate normally merges
-B-01: todo and unstarted
-Wave B implemented: NO
-Wave B tested: NO
+Historical A11-closeout context only: Wave B was then inactive and B-01 was
+todo/unstarted. This is not the current selection; see the ledger header and
+`.agent/WAVE.md` for current Wave B / B-04 authority.
 ```
 
 The exact A11 implementation is reviewed head
@@ -169,11 +165,9 @@ A12 PRODUCTION_QUALIFIED: NO
 
 A12 WAVE STATUS: done in its bounded invariant-judge/CI scope
 Wave A: closed in bounded engineering scope
-Wave B: inactive on the exact governance base; proposed active in bounded
-development scope only after this governance candidate normally merges
-B-01: todo and unstarted
-Wave B implemented: NO
-Wave B tested: NO
+Historical A12-closeout context only: Wave B was then inactive and B-01 was
+todo/unstarted. This is not the current selection; see the ledger header and
+`.agent/WAVE.md` for current Wave B / B-04 authority.
 ```
 
 The exact denominator is the twelve numbered cross-cutting invariants in
@@ -365,12 +359,19 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
+| C0 NET foundation / `ChainAdapter` / authenticated transport | roadmap specified | No | No | future Wave C0 after Wave B; no ticket selected |
+| `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
+| `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
+| explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |
 | `FrontierRecord` / baseline | Yes | No canonical production path | No | future Wave H |
 | common frontier-promotion exam | Yes | No | No | future Wave H |
 | `FrontierAdvanceEvent` | Yes | No | No | future Wave H |
 | frozen `ChallengeSetEpoch` portfolio | Yes | No | No | future Wave H |
 | `SettlementObligation` | Yes | No | No | future Wave I |
-| treasury-neuron settlement | candidate architecture | No | No | localnet/testnet qualification required |
+| `TreasuryRoutingWeightIntent` / receiver/accrual ledger | roadmap specified; custody open | No | No | future Wave I; mainnet-critical |
+| exactly-once miner settlement | roadmap specified | No | No | future I-03; migration/soak required |
+| validator assignment/execution/audit/service settlement | concepts reserved | No | No | policy/rates/quorum/stake/audit evidence open |
+| direct-testnet-to-treasury migration | rehearsal specified | No | No | future I-05; no overlap/fallback/double-benefit proof required |
 | sponsor-funded event-bound rewards | Yes business/design | No production path | No | future commercial/network integration |
 
 ---
@@ -435,16 +436,12 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Carbon current main
-> `62f52065b6695fc5f0e1e77562da4b3774eaaf3e`, tree
-> `0cc4fc8661663b29d954eb617323cc4fefc6c9cb`, has an integrated
-> constitutional architecture and a tested bounded A0–A12 software foundation.
-> PR #52 records A12 done and Wave A closed in bounded engineering scope. This
-> governance candidate proposes Wave B active only after its exact reviewed,
-> green, normal merge, with `.agent/WAVE_B.md` v0.4 controlling and B-01 still
-> `todo` and unstarted. No Wave B implementation or testing exists yet.
-> Development no longer requires the prior approval bundle or separate
-> activation closeout; material decisions require non-blocking lead
-> notification. Every scientific, security, network, rights, commercial,
-> production, LIVE, launch, frontier, product, settlement, chain, weight, and
-> emission maturity state remains unearned.**
+> **At planning base `7161fe3c4a04821b7f676ab006bd5d313d0442d2`,
+> tree `619e366dead2288ccfd312f54ad09f17f86a1c62`, Carbon has an
+> integrated constitutional architecture, a tested bounded foundation, and
+> active Wave-B governance with B-04 selected `in_progress`. `OWNER-NET-01`
+> prospectively specifies only the post-Wave-B C0/C1/C2 → D → H → I launch
+> path. Bittensor integration, testnet weights, network qualification,
+> scientific qualification, treasury, economic qualification, LIVE, mainnet,
+> and production qualification all remain unimplemented/unearned. Wave B is
+> not reordered and no future implementation ticket is selected.**

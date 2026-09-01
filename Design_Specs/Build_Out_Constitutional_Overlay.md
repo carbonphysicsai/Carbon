@@ -1,7 +1,9 @@
 # Carbon Build-Out Constitutional Overlay
 
-**Status:** OWNER-CANONICAL migration guard for current `Build_Out.md` v1.4.  
-**Purpose:** preserve the validity of A0–A7 and the active A8–A12 plan while preventing current sequencing language from reintroducing scientific/economic assumptions superseded by the integrated constitution.  
+**Status:** OWNER-CANONICAL migration guard for current `Build_Out.md` v1.5.
+**Purpose:** preserve the completed bounded A0–A12 history and the active
+Wave-B board while preventing sequencing language from reintroducing
+scientific/economic assumptions superseded by the integrated constitution.
 **Authority:** `Build_Out.md` remains detailed sequencing authority. This overlay governs interpretation when its shorthand conflicts with `CONSTITUTION.md` or `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`.
 
 ---
@@ -1967,6 +1969,43 @@ ScoreResult
 ```
 
 This target may not be implemented piecemeal inside A8–A12 without an authorized frontier/treasury wave.
+
+## 10.1 Temporary C2 testnet integration is not an economic exception
+
+After Wave B, an authorized Wave C2 may prove real testnet weight publication
+without changing the target constitution. The only permitted temporary path
+is:
+
+```text
+exact real-path scientific result
+→ Challenge-local eligible-leader transition
+→ TestnetWeightEligibilityEvent
+→ TestnetWinnerWeightIntent
+→ bounded, expiring testnet weight
+```
+
+That path is `TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`,
+`NOT_FRONTIER_QUALIFIED`, and `NOT_MAINNET_ELIGIBLE`. It uses an explicit
+non-paying no-winner sink; exact reward duration and sink identity/custody are
+human/security/economic inputs. Raw score magnitude never maps to weight
+magnitude. Fixture, mock, practice, estimate, PriorPack, scaffold, partial,
+failed, cancelled, deferred, indeterminate, contested, identity-unbound, or
+stale evidence is ineligible.
+
+The future nominal intent families are separate:
+
+```text
+StructuralLocalnetWeightIntent
+TestnetWinnerWeightIntent
+TreasuryRoutingWeightIntent
+```
+
+A publisher may not accept arbitrary score dictionaries, raw scientific
+results, or a caller-selected authority Boolean. C2 cannot create a
+`FrontierAdvanceEvent` or settlement entitlement. Mainnet economic activation
+requires authorized Wave-H frontier/finality and Wave-I treasury routing and
+per-Challenge settlement. Waves E/F/G may proceed after D but do not block the
+D→H→I launch-critical branch.
 
 ---
 

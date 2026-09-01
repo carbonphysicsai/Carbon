@@ -155,6 +155,31 @@
       "supersedes": null
     },
     {
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "event_type": "decision",
+      "event_id": "OWNER-NET-01",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/.agent/DECISIONS.md",
+      "affects": [
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/PROTOCOL-AUTHORITY",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-C",
+        "WAVE-D",
+        "WAVE-E",
+        "WAVE-F",
+        "WAVE-G",
+        "WAVE-H",
+        "WAVE-I"
+      ],
+      "supersedes": null
+    },
+    {
       "map_ref": "WAVE-B/B-04",
       "event_type": "decision",
       "event_id": "B-04-D11",

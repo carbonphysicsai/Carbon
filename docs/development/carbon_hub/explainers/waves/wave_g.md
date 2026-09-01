@@ -8,8 +8,8 @@
 
 ## Sequence
 
-- **Predecessor:** Wave F
-- **Successor:** Wave H
+- **Predecessor:** Wave D
+- **Successor:** Only a prospectively authorized successor
 
 ## What and why
 
@@ -21,7 +21,7 @@ Customers need private deployment, clear rights, bounded deliverables, and comme
 
 Carbon can structure enterprise work with explicit rights, privacy, truth access, deliverables, payment, and lifecycle controls.
 
-Evidence Audits, Sponsored Discovery, qualification, lifecycle, private/VPC delivery, and later enterprise platform workflows.
+Evidence Audits, Sponsored Discovery, qualification, lifecycle, private/VPC delivery, and later enterprise platform workflows. This post-D lane does not gate H or I.
 
 ## Authority ceiling
 
@@ -46,8 +46,8 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md)
-- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Business/Commercial_Operating_Model.md)
-- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Business/Business_Canon.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Commercial_Operating_Model.md)
+- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Business/Business_Canon.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

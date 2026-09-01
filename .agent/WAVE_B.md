@@ -36,7 +36,9 @@ session starts no B-05 work.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
-**Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md` §6.2 incorporates this board's decomposition and conditional effort rebaseline. This board remains the controlling ticket register.
+**Program crosswalk:** `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`
+preserves this board unchanged and begins its Bittensor roadmap only after
+Wave B. This board remains the controlling ticket register.
 
 Authority comes from the merged active `.agent/WAVE.md`, selected ticket, and
 merged delegated-decision protocol, not this file alone or prior role
@@ -151,7 +153,7 @@ and do not include future non-blocking B-01G. B-01F hardens delivery rather than
 rebaselining scientific-ticket duration; a later launch-planning update may
 revise estimates prospectively.
 
-`WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.3 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
+`WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.4 preserves the Wave-B decomposition and records the post-Wave-B network path; calendar dates remain unresolved until staffing is approved.
 
 ---
 

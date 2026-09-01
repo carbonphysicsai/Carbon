@@ -26,7 +26,7 @@ unchecked and no B-05 work has started
 **B-02B status:** `done` in bounded merged engineering scope
 **B-02C status:** `done` in bounded merged engineering scope
 **Executor:** any (Codex / Hermes / human / …) — see `agent_pack/EXECUTION_PROTOCOL.md`  
-**Build_Out:** **v1.4** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`  
+**Build_Out:** **v1.5** §12 Wave A + `Design_Specs/Build_Out_Constitutional_Overlay.md`
 **Repository constitution:** `CONSTITUTION.md`  
 **Scientific canon:** `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`  
 **Long-horizon plan:** `Design_Specs/Agentic_Development_Master_Plan.md`  
@@ -254,7 +254,11 @@ security acceptance, rights/legal policy, live economics, launch, production,
 `LIVE`, frontier, product, settlement, chain, weight, and emission authority
 remain unearned and human-owned where `AGENTS.md` reserves them.
 
-A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effort rebaseline, is available at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.3.md); it does not replace this live ticket board or authorize launch.
+The current program-level post-Wave-B testnet-to-mainnet roadmap is available
+at [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md).
+It begins real Bittensor integration only after Wave B and does not replace
+this live ticket board, change the selected B-04 sequence/status, select a
+future ticket, or authorize implementation or launch.
 
 ## Notes
 

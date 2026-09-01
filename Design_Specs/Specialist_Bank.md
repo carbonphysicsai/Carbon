@@ -659,4 +659,4 @@ That is the Landscape → Specialist system: evidence-ranked regimes, candidate 
 
 ---
 
-*Canonical reference for Specialist Bank construction, dual threshold, **grounded verification gauntlet**, dual egress, and phase customer mapping. Implementation must enforce: lean-only emissions path; approved coarsened evidence-labeled miner guidance; closed commercial SKUs; **no teacher-checkpoint distillation**; **full SKU ⇒ product battery pass**—as specified here, in `Use_Cases_by_Phase.md`, and in `Landscape_Agent.md`.*
+*Canonical reference for Specialist Bank construction, dual threshold, **grounded verification gauntlet**, dual egress, and phase customer mapping. Implementation must enforce: lean-only scientific scoring, with downstream network policy and treasury settlement separately governed; approved coarsened evidence-labeled miner guidance; closed commercial SKUs; **no teacher-checkpoint distillation**; **full SKU ⇒ product battery pass**—as specified here, in `Use_Cases_by_Phase.md`, and in `Landscape_Agent.md`.*

@@ -369,6 +369,35 @@
       "affects": ["WAVE-B/B-01G", "WAVE-B/B-04"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5492051391",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/73"
+    },
+    {
+      "decision_id": "OWNER-NET-01",
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "wave": "POST-B",
+      "ticket": "GOV-NET-01",
+      "title": "Post-Wave-B Bittensor and treasury-before-mainnet roadmap",
+      "attention": "FOR_AWARENESS",
+      "status": "OWNER_RATIFIED_ROADMAP",
+      "audience": "harsh",
+      "question": "Should Carbon preserve Wave B, begin real Bittensor integration only afterward, prove temporary direct weights on testnet, and require frontier-backed treasury settlement before mainnet economic activation?",
+      "recommendation": "KEEP OWNER-NET-01's C0/C1/C2, D-to-H-to-I, typed-intent, no-winner-sink, validator-evidence, and treasury-before-mainnet roadmap.",
+      "why": "The roadmap proves network integration without letting Bittensor objects, raw score magnitude, stale winners, test fixtures, or direct mainnet winner weights acquire scientific or production economic authority.",
+      "if_kept": "Wave B remains unchanged; G3 stays non-LIVE and non-settling; Wave D qualifies the first Challenge; Wave H alone creates frontier events; and Wave I must qualify treasury routing and settlement before mainnet activation.",
+      "if_changed": "Launch taxonomy, network/science boundaries, typed intents, no-winner behavior, frontier sequencing, treasury custody and settlement, validator economics, migration evidence, and affected authority documents require a prospective owner-reviewed supersession.",
+      "affects": [
+        "WAVE-C",
+        "WAVE-D",
+        "WAVE-E",
+        "WAVE-F",
+        "WAVE-G",
+        "WAVE-H",
+        "WAVE-I",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5500028528",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/76"
     }
   ]
 }

@@ -24,7 +24,7 @@
 - Preserve miner intent; defaults only when fields omitted
 - Prefer `lax.scan` / boolean masks over Python branches
 - Correctness > speed: gates always fp32; determinism is a launch requirement
-- Product-battery GPU must not starve lean emissions path
+- Product-battery GPU must not starve the official lean evaluation path
 
 **Later:** multi-fidelity curricula; Phase 3–4 grad accumulation + checkpointing; Phase 4 sharding.
 

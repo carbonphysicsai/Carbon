@@ -4,12 +4,12 @@
 
 **Map ref:** `WAVE-D`
 
-**Purpose:** Earn the right to call the first exam LIVE.
+**Purpose:** Qualify the first exact Challenge without inferring science from testnet weights.
 
 ## Sequence
 
 - **Predecessor:** Wave C
-- **Successor:** Wave E
+- **Successor:** Wave H
 
 ## What and why
 
@@ -19,9 +19,9 @@ Passing engineering tests cannot prove that the exam measures the intended physi
 
 ## Success and unlocks
 
-The responsible scientific owners approve the exact Challenge and Launch Bar inputs, then authorize the first LIVE activation prospectively.
+G4 binds the exact Challenge, population, SamplingPlan, reference and truth assets, measurements, uncertainty, Score Pack, backend profile, security controls, leakage evidence, independent review, and Launch Bar evidence approved by the responsible owners.
 
-Carbon can operate a scientifically qualified Challenge and later distinguish ordinary ranking from frontier promotion.
+Wave H becomes the launch-critical successor for frontier promotion and finality; Waves E, F, and G may proceed independently in parallel after D.
 
 ## Authority ceiling
 
@@ -29,7 +29,7 @@ Planning and compatibility context only; this wave is not active implementation 
 
 ## Still unavailable
 
-One LIVE Challenge does not prove a broad portfolio, product qualification, commercial repeatability, or settlement correctness.
+G3 testnet weights do not prove Wave-D success, and one qualified Challenge does not create a FrontierAdvanceEvent, product qualification, commercial repeatability, or settlement correctness.
 
 ## Key objects
 
@@ -46,6 +46,6 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

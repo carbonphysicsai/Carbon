@@ -141,12 +141,39 @@ implementation or test evidence.
 | Surface | Status | Next proof |
 |---|---|---|
 | Bittensor can supply external optimizer/research market | CANON | Testnet demonstration |
+| Real Bittensor integration starts after Wave B | CANON roadmap | Wave-B closeout followed by separately selected C0 ticket |
+| Bittensor identity/auth transport wraps Carbon Miner MCP | CANON roadmap / SECURITY | NET-0 threat model, NET-1/2 implementation, replay/auth review |
+| Scientific result → Carbon event → nominal intent → publisher | CANON roadmap | C0 typed-intent/compiler tests; reject raw scores/results/authority Booleans |
+| C2 temporary winner-triggered direct testnet weight | DESIGN | Exact real candidate-to-chain G3 proof and C-W4 Testnet Alpha Report |
+| C2 provenance excludes fixture/mock/practice/partial/failed/contested/stale evidence | CANON roadmap | Positive/negative provenance-admission tests |
+| No active test winner becomes explicit non-paying sink | CANON roadmap / SECURITY | Expiry/supersession/disagreement/failure/readback/recovery tests; exact sink identity/custody approval |
+| G3 is non-LIVE/non-settling/not-frontier/not-mainnet | CANON roadmap | Claim/maturity checks and independent report review |
+| Multiple direct-testnet Challenges avoid score-magnitude comparison | CANON roadmap | One-Challenge default or fixed registered `TESTNET_ONLY` slice accounting proof |
+| Mainnet routes network allocation to treasury receivers, not direct scientific winners | CANON roadmap / UNDER_DEFINED | I-00 custody/economic contract and security review |
+| Direct-testnet-to-treasury migration has no overlap/double benefit/fallback | DESIGN / EXPERIMENT | I-05 rehearsal and settlement soak |
+| Validator service compensation requires assignment/execution/audit evidence | DESIGN / EXPERIMENT | Free-rider simulation, receipt/obligation implementation, audit-economics proof |
 | Network search improves economics/performance vs centralized alternatives | EXPERIMENT | Controlled comparison |
 | Commercial work creates useful network demand | DESIGN | First sponsored network-backed program |
 | OpCo revenue automatically benefits Alpha | OUTSIDE | Do not claim |
 | Sponsor rewards can augment participant economics | CANON | Custody/settlement implementation |
 | Alpha-native services improve product utility | UNDER_DEFINED | Product/economic experiments |
 | Sufficient high-quality participant liquidity exists | EXPERIMENT | Participation/quality evidence |
+
+Roadmap maturity is exact:
+
+```text
+SPECIFIED: YES
+OWNER_DIRECTION / RATIFIED_ROADMAP: YES after merge under current governance
+BITTENSOR_IMPLEMENTED: NO
+TESTNET_WEIGHTS_IMPLEMENTED: NO
+NETWORK_QUALIFIED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+TREASURY_IMPLEMENTED: NO
+ECONOMICALLY_QUALIFIED: NO
+LIVE: NO
+MAINNET: NO
+PRODUCTION_QUALIFIED: NO
+```
 
 ## Commercial product and business
 

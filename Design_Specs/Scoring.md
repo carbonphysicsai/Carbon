@@ -45,7 +45,7 @@ The A5 boundary is deliberately narrow:
 | A6 | Exact-result persistence and the bounded EvaluationCard disclosure allow-list/budget; the rich Model Card/evidence record remains later-owned. |
 | A7 | Submission/strategy identity, fees, idempotency, FSM, retry/refund, and concrete evaluation binding. |
 | A8 or later metric operators | Model execution, predictions, references, relative-error generation, raw percentile computation, and authoritative `ScoreInput` construction. |
-| Later evidence/operations/economic owners | Receipts/signatures, transcripts, audit, logging, tie-breaking/decay, score-to-weight mapping, Bittensor writes. |
+| Later evidence/operations/economic owners | Receipts/signatures, transcripts, audit, logging, Challenge-local leader/frontier policy, nominal chain-intent construction, treasury settlement, and Bittensor writes. Raw score magnitude is not a weight-magnitude policy. |
 
 Any example elsewhere that gives `ScoreEngine` predictions, references,
 arrays, raw percentiles, infrastructure status, or miner-supplied metrics is
@@ -689,8 +689,8 @@ This remains true even when all mandatory gates pass and the combined score is
 non-zero. When a mandatory gate actually fails, the additional zero-score
 invariant also applies.
 
-A production-origin loader/result, LIVE Score Pack, emission-authoritative
-score, score-to-weight mapping, or network write is outside A5. It requires
+A production-origin loader/result, LIVE Score Pack, production-authoritative
+result, downstream policy event/typed chain intent, or network write is outside A5. It requires
 separate later specification/implementation, exact qualification evidence,
 security/operations review, and human authorization.
 

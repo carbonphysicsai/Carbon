@@ -55,7 +55,12 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `bcb8a618b26135a911039630315bd9a00cfd5e48`, reconciled 2026-09-01T20:27:46Z.
+Current authority snapshot: `d0cff7f611aaf9598ebe16999cb20941f48655b8`, reconciled 2026-09-01T20:33:39Z.
+
+The current long-horizon dependency graph is intentionally not fully linear:
+Wave D feeds the launch-critical D → H → I branch, while E, F, and G are
+independent post-D lanes with no successor edge into H or I. Do not restore a
+linear D → E → F → G → H chain when regenerating the Hub.
 
 ### Link-pin and dependency conventions
 
