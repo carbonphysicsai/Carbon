@@ -1,7 +1,7 @@
 # B-03 plan — generator runtime contract and Burgers fixture
 
 **Ticket:** B-03 — Generator API and fixed-viscosity Burgers fixture
-**Status:** `in_progress` in implementation phase
+**Status:** `done` in bounded merged engineering scope
 **Contract branch:** `agent/b-03-generator-contract`
 **Contract worktree:** dedicated local worktree; absolute host path intentionally not recorded
 **Exact contract base:** `1dc41288e2d0e516de21d05dc168b188791c39f5`
@@ -160,11 +160,39 @@ Greptile rereview.
 - structural fixture-origin propagation and A3 LIVE rejection; and
 - standard-library wheel/import/code-authority/one-way dependency boundaries.
 
-## 6. Stop and maturity ceiling
+## 6. Closeout and maturity ceiling
 
-The contract merge may establish only bounded `SPECIFIED` and
-`RATIFIED_ENGINEERING_CONTRACT`. The implementation candidate may establish
-bounded `IMPLEMENTED`, `TESTED`, and `GREPTILE_REVIEWED`, but remains unmerged
-at this session's stop. Scientific, security, operations, production,
-qualification, reference-truth, LIVE, launch, frontier, product, economics,
-settlement, chain, weight, and emission authority remain `NO`.
+PR #69 normally merged exact reviewed head
+`702bf274b1a0c4bfefa075d8da08d3e7217a53d1`, tree
+`65dc9f5da4368482ad8ece155a63ff24ef46bf24`, as
+`d5d1372f1311132ed9d60e10e36c4fb7d43a2473` with ordered parents
+`b86daa5d8b0f8b3e86bb82c2661f405747a200df` and
+`702bf274b1a0c4bfefa075d8da08d3e7217a53d1`. The merge tree is exactly the
+reviewed tree. Exact-head run `33452836347` passed canonical job
+`99686330212` and clean-container job `99686330328`; Greptile check
+`99686337091`, summary `5486024114`, reviewed all 36 files with zero comments
+or unresolved threads. Exact-main push run `33460078744` passed canonical job
+`99708199542` and clean-container job `99708199446`. Issue #42 closeout comment
+`5487728238` records the immutable evidence.
+
+```text
+SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT ONLY
+RATIFIED_ENGINEERING_CONTRACT: YES
+IMPLEMENTED: YES — BOUNDED MERGED IMPLEMENTATION
+TESTED: YES — EXACT-HEAD AND EXACT-MAIN CI
+GREPTILE_REVIEWED: YES — EXACT REVIEWED HEAD
+MERGED: YES
+GENERATOR_CONFORMANCE_QUALIFIED: NO
+OPERATIONS_APPROVED: NO
+ECONOMICS_APPROVED: NO
+SECURITY_QUALIFIED: NO
+NETWORK_QUALIFIED: NO
+SCIENTIFICALLY_QUALIFIED: NO
+COMMERCIALLY_VALIDATED: NO
+PRODUCTION_QUALIFIED: NO
+LIVE: NO
+```
+
+Every real population, range, method, threshold, adequacy, qualification,
+security, operations, production, economics, and LIVE input remains reserved
+and unavailable.

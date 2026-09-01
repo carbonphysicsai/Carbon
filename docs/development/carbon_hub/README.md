@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 39 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 5 map-level change events
+- 6 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-03** (`in_progress`). PR #69's bounded B-03 implementation is present in the captured authority snapshot. The controlling Wave-B board and ticket still record B-03 as in_progress, so the Hub does not relabel the ticket done or infer any qualification.
+Wave **B**, ticket **B-04** (`in_progress`). Version 1.0 records B-03 done in bounded merged engineering scope and selects B-04 in_progress for working-contract authoring only. The B-04 contract in this snapshot is a candidate; normal merge and exact-main CI remain pending, and no B-04 implementation is authorized.
 
 ## Maintain
 
