@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -12,7 +13,36 @@ SCRIPT_ROOT = REPOSITORY_ROOT / "scripts/dev"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
 from check_merge_gate import JOB_NAMES, REQUIRED_JOBS, gate_failures
-from classify_changes import ChangeScope, classify_paths
+from classify_changes import ChangeScope, changed_paths, classify_paths
+
+
+def _git(repository: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *arguments],
+        cwd=repository,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _init_repository(repository: Path) -> str:
+    repository.mkdir()
+    for arguments in (
+        ("init", "--quiet"),
+        ("config", "user.name", "Carbon Test"),
+        ("config", "user.email", "carbon-test@example.invalid"),
+        ("config", "commit.gpgsign", "false"),
+    ):
+        process = _git(repository, *arguments)
+        assert process.returncode == 0, process.stderr
+    runtime = repository / "carbon/runtime.py"
+    runtime.parent.mkdir()
+    runtime.write_text("VALUE = 1\n", encoding="utf-8")
+    assert _git(repository, "add", "--all").returncode == 0
+    commit = _git(repository, "commit", "--quiet", "-m", "base")
+    assert commit.returncode == 0, commit.stderr
+    return _git(repository, "rev-parse", "HEAD").stdout.strip()
 
 
 @pytest.mark.parametrize(
@@ -81,6 +111,27 @@ def test_unknown_and_empty_manifests_fail_closed_to_runtime() -> None:
     empty = classify_paths([])
     assert empty.scope is ChangeScope.RUNTIME_FULL
     assert empty.unknown_paths == ("<empty-manifest>",)
+
+
+def test_staged_and_committed_cross_scope_rename_keeps_runtime_source(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    base = _init_repository(repository)
+    destination = repository / ".agent/tickets/moved-runtime.py"
+    destination.parent.mkdir(parents=True)
+    moved = _git(repository, "mv", "carbon/runtime.py", ".agent/tickets/moved-runtime.py")
+    assert moved.returncode == 0, moved.stderr
+
+    staged = changed_paths(repository, base)
+    assert staged == (".agent/tickets/moved-runtime.py", "carbon/runtime.py")
+    assert classify_paths(staged).scope is ChangeScope.RUNTIME_FULL
+
+    commit = _git(repository, "commit", "--quiet", "-m", "move runtime authority")
+    assert commit.returncode == 0, commit.stderr
+    committed = changed_paths(repository, base)
+    assert committed == (".agent/tickets/moved-runtime.py", "carbon/runtime.py")
+    assert classify_paths(committed).scope is ChangeScope.RUNTIME_FULL
 
 
 @pytest.mark.parametrize(

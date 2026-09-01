@@ -36,12 +36,13 @@ FORBIDDEN_COMMIT_INTENT = (
     "record merge evidence",
     "retrigger validation",
 )
-_FORBIDDEN_COMMIT_SUBJECT_RE = re.compile(
-    r"^(?:(?:[a-z0-9]+(?:-[a-z0-9]+)*):\s*)?"
-    r"(?P<intent>"
-    + "|".join(re.escape(value) for value in FORBIDDEN_COMMIT_INTENT)
-    + r")"
-    r"[.!]?$",
+_COMMIT_SUBJECT_PREFIX_RE = re.compile(
+    r"^(?:(?:fixup|squash)!\s+|"
+    r"[a-z0-9][a-z0-9_-]*(?:\([^\r\n)]+\))?!?:\s+)",
+    re.IGNORECASE,
+)
+_COMPLETION_ONLY_QUALIFIER_RE = re.compile(
+    r"^(?:after|at|before|following|for|from|in|of|on|once|pending|to|under|via|when)\b",
     re.IGNORECASE,
 )
 COMMIT_RULES = frozenset({"message", "empty", "evidence-only"})
@@ -70,11 +71,8 @@ _OBVIOUS_HOST_RE = re.compile(
     re.IGNORECASE,
 )
 _LOCAL_HOST_RE = re.compile(
-    r"(?P<value>(?<![@\w.-])(?:"
-    r"[A-Za-z0-9-]*(?:host|machine|desktop|laptop|macbook)[A-Za-z0-9-]*"
-    r"|[A-Za-z][A-Za-z0-9-]*[0-9][A-Za-z0-9-]*"
-    r"|[A-Za-z0-9]+-[A-Za-z0-9-]+"
-    r")\.local\b)",
+    r"(?P<value>(?<![@\w.-])"
+    r"[\w](?:[\w-]*[\w])?(?:\.[\w](?:[\w-]*[\w])?)*\.local\b)",
     re.IGNORECASE,
 )
 _LABELED_HOST_RE = re.compile(
@@ -266,6 +264,7 @@ def _changed_paths(repository: Path, merge_base: str, head: str) -> set[str]:
         _git_output(
             repository,
             "diff",
+            "--no-renames",
             "--name-only",
             "--diff-filter=ACMRTUXB",
             "-z",
@@ -280,6 +279,7 @@ def _changed_paths(repository: Path, merge_base: str, head: str) -> set[str]:
                 repository,
                 "diff",
                 "--cached",
+                "--no-renames",
                 "--name-only",
                 "--diff-filter=ACMRTUXB",
                 "-z",
@@ -292,6 +292,7 @@ def _changed_paths(repository: Path, merge_base: str, head: str) -> set[str]:
             _git_output(
                 repository,
                 "diff",
+                "--no-renames",
                 "--name-only",
                 "--diff-filter=ACMRTUXB",
                 "-z",
@@ -435,6 +436,40 @@ def _commit_record(repository: Path, commit: str) -> tuple[str, str, str, str, s
     return tuple(fields)  # type: ignore[return-value]
 
 
+def _completion_only_intent(subject: str) -> str | None:
+    """Return a normalized forbidden intent when it leads the whole subject.
+
+    Conventional prefixes and ticket prefixes do not turn an external-fact-only
+    update into a substantive commit.  External-evidence qualifiers after the
+    forbidden intent (for example, ``for final head``) are likewise completion
+    metadata.  An arbitrary continuation is not rejected: ``record successful
+    CI regression protections`` describes implementation rather than merely
+    recording a dynamic fact.
+    """
+
+    normalized = " ".join(subject.casefold().split())
+    while True:
+        match = _COMMIT_SUBJECT_PREFIX_RE.match(normalized)
+        if match is None:
+            break
+        normalized = normalized[match.end() :].lstrip()
+    for intent in FORBIDDEN_COMMIT_INTENT:
+        if normalized == intent:
+            return intent
+        if not normalized.startswith(intent):
+            continue
+        suffix = normalized[len(intent) :]
+        punctuation = suffix.strip()
+        if punctuation and all(
+            character in ".!?:;,-—–" for character in punctuation
+        ):
+            return intent
+        qualifier = suffix.lstrip(" \t.!?:;,-—–")
+        if _COMPLETION_ONLY_QUALIFIER_RE.match(qualifier):
+            return intent
+    return None
+
+
 def _commit_paths(repository: Path, commit: str) -> tuple[str, ...]:
     parent_line = (
         _git_output(repository, "rev-list", "--parents", "-n", "1", commit)
@@ -443,10 +478,20 @@ def _commit_paths(repository: Path, commit: str) -> tuple[str, ...]:
     )
     parts = parent_line.split()
     arguments = (
-        ("diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-z", commit)
+        (
+            "diff-tree",
+            "--root",
+            "--no-renames",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "-z",
+            commit,
+        )
         if len(parts) == 1
         else (
             "diff",
+            "--no-renames",
             "--name-only",
             "--diff-filter=ACDMRTUXB",
             "-z",
@@ -496,15 +541,15 @@ def _commit_findings(
             )
         )
     subject = next((line.strip() for line in message.splitlines() if line.strip()), "")
-    intent_match = _FORBIDDEN_COMMIT_SUBJECT_RE.fullmatch(subject)
-    if intent_match and not allowlist.allows_commit(commit, "message"):
+    completion_intent = _completion_only_intent(subject)
+    if completion_intent and not allowlist.allows_commit(commit, "message"):
         findings.add(
             Finding(
                 f"commit:{commit}",
                 "message",
                 1,
                 "forbidden completion-only commit intent",
-                intent_match.group("intent").casefold(),
+                completion_intent,
             )
         )
     if _commit_tree_is_empty(repository, commit) and not allowlist.allows_commit(

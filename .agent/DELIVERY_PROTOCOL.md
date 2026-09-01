@@ -204,6 +204,7 @@ exact final head/tree
 + normal expected-head merge
 + ordered-parent and reviewed-tree equality
 + exact-main Merge gate
++ completed normalized external receipt posted
 ```
 
 This avoids a recursive closeout pull request while preserving every

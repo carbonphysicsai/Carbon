@@ -12,8 +12,8 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   preflight:
@@ -99,6 +99,9 @@ jobs:
         env:
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
+          # Ubuntu runners provide Docker; make wrapper integration fail instead
+          # of silently skipping when that required service is unavailable.
+          CARBON_REQUIRE_DOCKER_TESTS: "1"
         run: ./scripts/dev/ci.sh
       - name: Upload quality inventory
         if: always()
@@ -192,6 +195,7 @@ jobs:
       - name: Run exact-head Hub acceptance
         env:
           HUB_DIFF_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          HUB_EXPECTED_CHANGE_SCOPE: ${{ needs.preflight.outputs.change_scope }}
           HUB_LIVE_PR_PATH: ${{ steps.live-pr.outputs.path }}
           HUB_REQUIRE_LIVE_PR: ${{ steps.live-pr.outputs.required }}
         run: ./scripts/dev/ci_hub.sh
@@ -223,6 +227,7 @@ jobs:
       - name: Run derived-documentation acceptance
         env:
           HUB_DIFF_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          HUB_EXPECTED_CHANGE_SCOPE: ${{ needs.preflight.outputs.change_scope }}
           HUB_LIVE_PR_PATH: ${{ steps.live-pr.outputs.path }}
           HUB_REQUIRE_LIVE_PR: ${{ steps.live-pr.outputs.required }}
         run: ./scripts/dev/ci_derived_documentation.sh
@@ -234,19 +239,82 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Check out the candidate gate implementation
+      # Repository-local trust hardening: execute the protected base's gate and
+      # classifier implementations over an exact candidate checkout. The
+      # workflow YAML and reported job results remain candidate-controlled;
+      # eliminating that trust requires external/default-branch infrastructure.
+      - name: Check out exact protected-base gate and classifier implementations
+        if: needs.preflight.outputs.base_sha != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha || github.sha }}
+          ref: ${{ needs.preflight.outputs.base_sha }}
           fetch-depth: 1
           persist-credentials: false
+          path: .carbon-gate-base
+      - name: Check out the exact candidate scope input with history
+        if: needs.preflight.outputs.candidate_sha != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: .carbon-gate-candidate
       - name: Require every classified acceptance job
-        run: >-
-          python3 scripts/dev/check_merge_gate.py
-          --scope "${{ needs.preflight.outputs.change_scope }}"
-          --preflight "${{ needs.preflight.result }}"
-          --canonical "${{ needs.canonical.result }}"
-          --dev-image "${{ needs.dev-image.result }}"
-          --contract-authority "${{ needs.contract-authority.result }}"
-          --hub-validation "${{ needs.hub-validation.result }}"
-          --derived-documentation "${{ needs.derived-documentation.result }}"
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
+          PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          BOOTSTRAP_BASE_SHA: 79293d5b65efef8553c0583ba6cf9bc5d0922ff6
+        run: |
+          set -euo pipefail
+          [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          actual_candidate="$(git -C .carbon-gate-candidate rev-parse --verify HEAD^{commit})"
+          [[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]
+
+          gate=.carbon-gate-base/scripts/dev/check_merge_gate.py
+          classifier=.carbon-gate-base/scripts/dev/classify_changes.py
+          if [[ -f "${gate}" && -f "${classifier}" ]]; then
+            actual_base="$(git -C .carbon-gate-base rev-parse --verify HEAD^{commit})"
+            [[ "${actual_base}" == "${BASE_SHA}" ]]
+            echo "Using exact protected-base Merge gate implementation."
+            echo "Using exact protected-base change classifier."
+          elif [[ "${BASE_SHA}" == "${BOOTSTRAP_BASE_SHA}" && -f .carbon-gate-candidate/scripts/dev/check_merge_gate.py && -f .carbon-gate-candidate/scripts/dev/classify_changes.py ]]; then
+            gate=.carbon-gate-candidate/scripts/dev/check_merge_gate.py
+            classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
+            echo "Using the one-time B-01F bootstrap Merge gate implementation."
+            echo "Using the one-time B-01F bootstrap change classifier."
+          else
+            echo "No protected-base gate/classifier pair is available for base ${BASE_SHA:-missing}." >&2
+            exit 2
+          fi
+
+          scope_output="${RUNNER_TEMP}/carbon-gate-scope.txt"
+          : > "${scope_output}"
+          python3 "${classifier}" \
+            --repository .carbon-gate-candidate \
+            --base "${BASE_SHA}" \
+            --github-output "${scope_output}"
+          derived_scope=
+          while IFS='=' read -r key value; do
+            if [[ "${key}" == "change_scope" ]]; then
+              [[ -z "${derived_scope}" ]] || { echo "Duplicate derived change scope." >&2; exit 2; }
+              derived_scope="${value}"
+            fi
+          done < "${scope_output}"
+          case "${derived_scope}" in
+            RUNTIME_FULL|CONTRACT_AUTHORITY|DERIVED_DOCUMENTATION) ;;
+            *) echo "Protected classifier returned invalid scope: ${derived_scope:-missing}." >&2; exit 2 ;;
+          esac
+          if [[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]; then
+            echo "Preflight scope ${PREFLIGHT_SCOPE:-missing} disagrees with protected scope ${derived_scope}." >&2
+            exit 2
+          fi
+          python3 "${gate}" \
+            --scope "${derived_scope}" \
+            --preflight "${{ needs.preflight.result }}" \
+            --canonical "${{ needs.canonical.result }}" \
+            --dev-image "${{ needs.dev-image.result }}" \
+            --contract-authority "${{ needs.contract-authority.result }}" \
+            --hub-validation "${{ needs.hub-validation.result }}" \
+            --derived-documentation "${{ needs.derived-documentation.result }}"

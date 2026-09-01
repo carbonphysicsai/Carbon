@@ -59,15 +59,24 @@ qualification.
    ```
 
 6. Work normally. The project interpreter is `.venv/bin/python`.
-7. Before a PR, run the canonical wrapper:
+7. Before a PR, return to a WSL host shell at the same checkout and run the
+   canonical wrapper so it can create the read-only-source validation
+   container:
 
    ```bash
    ./scripts/dev/canonical.sh --full
    ```
 
-Inside the exact Dev Container the wrapper executes directly. On another host
-it uses the pinned `linux/amd64` image. If `doctor.sh` and `ci.sh` pass there,
-the ordinary Carbon environment and engineering gates are valid.
+   A live read/write Dev Container remains suitable for interactive work, but
+   noninteractive wrapper validation there fails closed unless it is already
+   the wrapper-created isolated checkout.
+
+Validation executes directly only in the exact image's wrapper-created,
+isolated checkout, where Git metadata is read-only. On another host it uses
+the pinned `linux/amd64` image. Interactive mode is the explicit exception
+that uses a guarded read/write live checkout. If bootstrap, doctor, and
+`ci.sh` pass there, the ordinary Carbon environment and engineering gates are
+valid.
 
 ## Repository commands
 
@@ -79,7 +88,7 @@ the ordinary Carbon environment and engineering gates are valid.
 | `./scripts/dev/ci.sh` | Runs doctor, invariants, CPU tests, quality, package/wheel/outside-tree import checks, the code-authority boundary, and diff hygiene. |
 | `./scripts/dev/canonical.sh --focused <target>` | Runs focused pytest targets in the exact canonical environment. |
 | `./scripts/dev/canonical.sh --full` | Runs the complete canonical `ci.sh` acceptance. |
-| `./scripts/dev/canonical.sh --interactive` | Opens an interactive shell in the exact canonical environment. |
+| `./scripts/dev/canonical.sh --interactive` | Opens a profile-free interactive shell in the exact canonical environment, preserving the locked project/tool path. |
 | `./scripts/dev/canonical.sh --dry-run ...` | Prints the direct or Docker command without executing it. |
 | `./scripts/dev/shell.sh` | Opens Bash with Carbon's project environment selected. |
 
@@ -89,18 +98,33 @@ Ticket-owned checks may be added after `ci.sh`; they do not replace it.
 ## Canonical wrapper behavior
 
 `canonical.sh` is the single supported bridge from macOS, Windows/WSL2, or a
-noncanonical Linux host. It executes directly only when the complete pinned
-marker, Ubuntu release, architecture, non-root user, uv, and Python identities
-match. Otherwise it builds/reuses the digest-pinned Carbon image for
-`linux/amd64`, bind-mounts the current worktree read/write, and runs the target
-as `ubuntu` (`1000:1000`). Uncommitted tracked and untracked files therefore
-remain visible to focused and full checks.
+noncanonical Linux host. Direct execution requires container provenance
+(`/.dockerenv`), the root-owned image marker, trusted absolute system/tool
+executables, the complete pinned Ubuntu and architecture identity, and the
+non-root `ubuntu` user. Validation also requires the wrapper-created isolation
+marker and read-only Git metadata.
+Otherwise the wrapper unconditionally performs a cache-enabled build of the
+digest-pinned Carbon image for `linux/amd64`, verifies the built image
+contract, and runs the resulting immutable image ID as `ubuntu` (`1000:1000`).
 
-For linked Git worktrees, the wrapper also mounts the common Git metadata at
-its exact location, so `HEAD`, the shared object database, refs, and index are
-available without copying or rewriting `.git`. A named `.venv` volume is
-isolated by worktree identity, while the uv download cache is safely reused.
-Neither cache creates root-owned files in the host checkout.
+Focused, full, and arbitrary noninteractive commands bind the host worktree
+read-only at `/carbon-source`, copy its tracked and untracked content except
+`.git` and `.venv` into the image-owned writable checkout, and mount the host
+checkout's `.git` plus any linked-worktree common Git directory read-only.
+Uncommitted files remain visible to validation without container writes
+changing host files or shared refs. The wrapper runs `bootstrap.sh` and
+`doctor.sh` before every requested command. `--interactive` is deliberately
+different: it mounts the live checkout and shared Git metadata read/write, and
+fails before startup unless UID/GID 1000 can write both. Bootstrap and doctor
+run with the exact trusted system path; requested commands receive exactly the
+fresh project `.venv/bin` followed by that path.
+
+For linked Git worktrees, the common Git metadata remains available at its
+exact location. Noninteractive validation never reuses executable virtual-
+environment state: each ephemeral writable checkout creates a fresh `.venv`.
+Interactive mode alone uses a named `.venv` volume isolated by worktree
+identity. The uv download cache is safely reused in every mode; neither cache
+nor virtual environment creates files in the host checkout.
 
 Docker execution fails closed when the client or daemon is unavailable. A
 `--dry-run` is intentionally available without Docker so command construction
@@ -112,8 +136,9 @@ evidence.
 Delivery preflight runs `scripts/dev/check_delivery_hygiene.py` before costly
 acceptance jobs. It scans changed tracked text, introduced author/committer
 identities, and introduced commit intent. `--all-tree` adds a complete tracked
-text scan. Actual workstation paths, `.local` identities/hostnames, empty or
-evidence-only commits, and completion/retrigger-only commit messages fail.
+text scan. Actual workstation paths, standalone `.local` identities/hostnames,
+empty or evidence-only commits, and completion/retrigger-only commit messages
+fail.
 Placeholders such as `/home/<user>/...`, `/Users/<username>/...`, and
 `C:\Users\<username>\...` remain valid.
 
@@ -230,6 +255,7 @@ RUNTIME_FULL
     -> pinned uv 0.12.7
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/ci.sh
+    -> require Docker-backed normal-checkout and linked-worktree wrapper tests
     -> clean-image job on a fresh ubuntu-24.04 runner
     -> build and load .devcontainer/Dockerfile for linux/amd64 without cache
     -> start the exact image as ubuntu (UID/GID 1000)
@@ -255,12 +281,22 @@ every scope
     -> always-present final job named "Merge gate"
 ```
 
+The Merge gate checks out the exact candidate with full history, reclassifies
+it with the exact protected base's classifier, requires equality with the
+preflight scope, and executes the protected base's gate. The exact pre-B-01F
+base has a one-SHA candidate-classifier/gate bootstrap fallback because those
+files do not yet exist there. This is repository-local hardening, not a claim
+that candidate workflow tampering is eliminated: the workflow YAML and job
+results remain candidate-controlled until an external or default-branch
+required-workflow mechanism owns them.
+
 The noncanonical local path ends in the same repository command:
 
 ```text
 ./scripts/dev/canonical.sh --full
-    -> exact Dev Container: execute ./scripts/dev/ci.sh directly
-    -> other host: pinned image -> bootstrap -> ./scripts/dev/ci.sh
+    -> cached pinned-image build -> verify immutable image ID
+    -> read-only source + writable validation copy + read-only Git metadata
+    -> bootstrap -> doctor -> ./scripts/dev/ci.sh
 ```
 
 Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.

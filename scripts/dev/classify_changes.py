@@ -228,6 +228,7 @@ def changed_paths(repository: Path, base_reference: str) -> tuple[str, ...]:
     commands = (
         (
             "diff",
+            "--no-renames",
             "--name-only",
             "--diff-filter=ACDMRTUXB",
             "-z",
@@ -238,6 +239,7 @@ def changed_paths(repository: Path, base_reference: str) -> tuple[str, ...]:
         (
             "diff",
             "--cached",
+            "--no-renames",
             "--name-only",
             "--diff-filter=ACDMRTUXB",
             "-z",
@@ -245,6 +247,7 @@ def changed_paths(repository: Path, base_reference: str) -> tuple[str, ...]:
         ),
         (
             "diff",
+            "--no-renames",
             "--name-only",
             "--diff-filter=ACDMRTUXB",
             "-z",

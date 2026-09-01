@@ -737,6 +737,82 @@ def test_committed_diff_hygiene_rejects_clean_worktree_whitespace_defect(
     assert "trailing whitespace" in output
 
 
+def test_diff_hygiene_checks_both_sides_of_staged_and_committed_rename(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    _initialize_git_repository(repository)
+    (repository / "tracked.txt").write_text(
+        "existing trailing whitespace \n",
+        encoding="utf-8",
+    )
+    assert _git_at(repository, "add", "tracked.txt").returncode == 0
+    assert (
+        _git_at(
+            repository,
+            "commit",
+            "--quiet",
+            "--message",
+            "establish historical fixture",
+        ).returncode
+        == 0
+    )
+    base = _git_at(repository, "rev-parse", "HEAD").stdout.strip()
+    destination = repository / ".agent/evidence/wave_b/tracked.txt"
+    destination.parent.mkdir(parents=True)
+    moved = _git_at(
+        repository,
+        "mv",
+        "tracked.txt",
+        ".agent/evidence/wave_b/tracked.txt",
+    )
+    assert moved.returncode == 0, moved.stderr
+
+    staged = subprocess.run(
+        [
+            sys.executable,
+            str(DIFF_HYGIENE_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    staged_output = f"{staged.stdout}\n{staged.stderr}"
+    assert staged.returncode == 1, staged_output
+    assert "staged changes" in staged_output
+    assert ".agent/evidence/wave_b/tracked.txt" in staged_output
+
+    committed = _git_at(
+        repository,
+        "commit",
+        "--quiet",
+        "--message",
+        "move historical fixture",
+    )
+    assert committed.returncode == 0, committed.stderr
+    committed_check = subprocess.run(
+        [
+            sys.executable,
+            str(DIFF_HYGIENE_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    committed_output = f"{committed_check.stdout}\n{committed_check.stderr}"
+    assert committed_check.returncode == 1, committed_output
+    assert "the committed merge-base-to-HEAD range" in committed_output
+    assert ".agent/evidence/wave_b/tracked.txt" in committed_output
+
+
 def test_diff_hygiene_rejects_unresolvable_comparison_base(tmp_path: Path) -> None:
     repository = tmp_path / "repository"
     _initialize_git_repository(repository)
@@ -834,7 +910,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/ci_contract_authority.sh",
         "./scripts/dev/ci_hub.sh",
         "./scripts/dev/ci_derived_documentation.sh",
-        "python3 scripts/dev/check_merge_gate.py",
+        'python3 "${gate}"',
     )
     assert all(command in workflow for command in required_repository_commands)
     assert "runs-on: ubuntu-24.04" in workflow
@@ -864,9 +940,24 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
     assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 5
-    assert workflow.count("fetch-depth: 0") == 6
-    assert workflow.count("persist-credentials: false") == 7
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 6
+    assert workflow.count("fetch-depth: 0") == 7
+    assert workflow.count("persist-credentials: false") == 8
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
+    assert "github.event.pull_request.number || github.sha" in workflow
+    assert 'CARBON_REQUIRE_DOCKER_TESTS: "1"' in workflow
+    assert workflow.count("HUB_EXPECTED_CHANGE_SCOPE:") == 2
+    assert "ref: ${{ needs.preflight.outputs.base_sha }}" in workflow
+    assert "path: .carbon-gate-candidate" in workflow
+    assert ".carbon-gate-base/scripts/dev/classify_changes.py" in workflow
+    assert "one-time B-01F bootstrap change classifier" in workflow
+    assert '--repository .carbon-gate-candidate' in workflow
+    assert '[[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]' in workflow
+    assert '[[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]' in workflow
+    assert '--scope "${derived_scope}"' in workflow
+    assert '--scope "${{ needs.preflight.outputs.change_scope }}"' not in workflow
+    assert "Using exact protected-base Merge gate implementation" in workflow
+    assert "one-time B-01F bootstrap Merge gate implementation" in workflow
     assert "if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'" in workflow
     assert (
         "if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'" in workflow
@@ -907,6 +998,10 @@ def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None
         "--full",
         "--interactive",
         "--git-common-dir",
+        "-f /.dockerenv",
+        "/etc/carbon-canonical-environment",
+        "target=/carbon-source,readonly",
+        "GIT_OPTIONAL_LOCKS=0",
         "target=/workspaces/Carbon/.venv",
         "target=/home/ubuntu/.cache/uv",
         "Docker is unavailable",

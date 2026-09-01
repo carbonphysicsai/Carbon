@@ -38,11 +38,15 @@ RUN mkdir -p /home/ubuntu/.cache/uv /workspaces/Carbon/.venv \
     && ln -s "${python_path}" /usr/local/bin/python \
     && [ "$(id -u "${USERNAME}")" = "${USER_UID}" ] \
     && [ "$(id -g "${USERNAME}")" = "${USER_GID}" ] \
-    && chown -R "${USERNAME}:${USERNAME}" /home/ubuntu /opt/uv-python /workspaces/Carbon
+    && chown -R "${USERNAME}:${USERNAME}" /home/ubuntu /workspaces/Carbon \
+    && printf '%s\n' "${CARBON_CANONICAL_DEV_ENV}" > /etc/carbon-canonical-environment \
+    && chown root:root /etc/carbon-canonical-environment \
+    && chmod 0444 /etc/carbon-canonical-environment
 
 LABEL org.opencontainers.image.title="Carbon canonical development environment" \
       org.opencontainers.image.description="Ubuntu 24.04, glibc, CPython 3.11.16, uv 0.12.7; canonical development evidence only" \
-      org.opencontainers.image.source="https://github.com/carbonphysicsai/Carbon"
+      org.opencontainers.image.source="https://github.com/carbonphysicsai/Carbon" \
+      org.opencontainers.image.carbon.canonical-marker="ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
 
 WORKDIR /workspaces/Carbon
 USER ubuntu

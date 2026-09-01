@@ -98,10 +98,27 @@ def test_explicit_placeholders_and_nearby_prose_are_not_false_positives() -> Non
         "home/alice\n"
         "MacBook Pro compatibility is not claimed.\n"
         "dev@example.com\n"
-        "threading.local is a program attribute, not a host\n"
         "a config.locality setting and a local variable"
     )
     assert _scan(text) == ()
+
+
+def test_all_standalone_local_hosts_require_an_exact_allowance() -> None:
+    for value in ("alice.local", "josé.local", "lab.segment.local"):
+        assert any(item.kind == "workstation hostname" for item in _scan(value))
+
+    allowed = checker.Allowlist(
+        text=frozenset({("fixture.txt", "threading.local")})
+    )
+    assert (
+        checker.scan_text(
+            "threading.local is a program attribute",
+            path="fixture.txt",
+            source="fixture",
+            allowlist=allowed,
+        )
+        == ()
+    )
 
 
 def test_exact_text_allowlist_does_not_widen_path_or_value() -> None:
@@ -196,16 +213,19 @@ def test_substantive_subject_that_mentions_forbidden_phrase_is_allowed(
 ) -> None:
     repository = tmp_path / "repository"
     base = _init(repository)
-    (repository / "tracked.txt").write_text("real change\n", encoding="utf-8")
-    assert _git(repository, "add", "tracked.txt").returncode == 0
-    commit = _git(
-        repository,
-        "commit",
-        "--quiet",
-        "-m",
+    subjects = (
         "Prevent retrigger validation commits with live metadata",
+        "record successful CI regression protections",
+        "feat: record merge evidence rejection logic",
     )
-    assert commit.returncode == 0, commit.stderr
+    for index, subject in enumerate(subjects, start=1):
+        (repository / "tracked.txt").write_text(
+            f"real change {index}\n",
+            encoding="utf-8",
+        )
+        assert _git(repository, "add", "tracked.txt").returncode == 0
+        commit = _git(repository, "commit", "--quiet", "-m", subject)
+        assert commit.returncode == 0, commit.stderr
 
     assert checker.check_delivery_hygiene(repository, base) == ()
 
@@ -226,6 +246,62 @@ def test_ticket_prefixed_completion_only_subject_is_rejected(tmp_path: Path) -> 
 
     kinds = {item.kind for item in checker.check_delivery_hygiene(repository, base)}
     assert "forbidden completion-only commit intent" in kinds
+
+
+def test_qualified_completion_only_subjects_on_authority_paths_are_rejected(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    base = _init(repository)
+    authority = repository / ".agent/WAVE.md"
+    authority.parent.mkdir(parents=True)
+    subjects = (
+        "docs: record successful CI for final head",
+        "docs(B-01F): record merge evidence after normal merge",
+        "chore: B-01F: retrigger validation for the current PR",
+        "record final review evidence on exact head",
+        "evidence seal from retained run",
+        "docs: record successful CI!",
+        "B-01F: evidence seal...",
+    )
+    for index, subject in enumerate(subjects, start=1):
+        authority.write_text(f"stable authority revision {index}\n", encoding="utf-8")
+        assert _git(repository, "add", ".agent/WAVE.md").returncode == 0
+        commit = _git(repository, "commit", "--quiet", "-m", subject)
+        assert commit.returncode == 0, commit.stderr
+
+    findings = checker.check_delivery_hygiene(repository, base)
+    completion_findings = [
+        item
+        for item in findings
+        if item.kind == "forbidden completion-only commit intent"
+    ]
+    assert len(completion_findings) == len(subjects)
+
+
+def test_cross_scope_rename_is_not_misread_as_evidence_only(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    base = _init(repository)
+    destination = repository / ".agent/evidence/wave_b/moved.txt"
+    destination.parent.mkdir(parents=True)
+    moved = _git(
+        repository,
+        "mv",
+        "tracked.txt",
+        ".agent/evidence/wave_b/moved.txt",
+    )
+    assert moved.returncode == 0, moved.stderr
+    assert checker.check_delivery_hygiene(repository, base) == ()
+
+    commit = _git(repository, "commit", "--quiet", "-m", "move stable fixture")
+    assert commit.returncode == 0, commit.stderr
+    commit_sha = _git(repository, "rev-parse", "HEAD").stdout.strip()
+    assert checker._commit_paths(repository, commit_sha) == (
+        ".agent/evidence/wave_b/moved.txt",
+        "tracked.txt",
+    )
+    findings = checker.check_delivery_hygiene(repository, base)
+    assert not any(item.kind == "evidence-only introduced commit" for item in findings)
 
 
 def test_commit_allowlist_requires_full_sha_rule_and_reason(tmp_path: Path) -> None:

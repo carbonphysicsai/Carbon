@@ -102,7 +102,9 @@ docs/development/carbon_hub/tools/validate_hub.py
 scripts/dev/apply_github_ruleset.py
 scripts/dev/canonical.sh
 scripts/dev/check_delivery_hygiene.py
+scripts/dev/check_diff_hygiene.py
 scripts/dev/check_merge_gate.py
+scripts/dev/ci.sh
 scripts/dev/ci_contract_authority.sh
 scripts/dev/ci_derived_documentation.sh
 scripts/dev/ci_hub.sh
