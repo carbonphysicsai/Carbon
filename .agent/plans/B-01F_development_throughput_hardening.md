@@ -100,6 +100,7 @@ docs/development/carbon_hub/tools/render_hub.py
 docs/development/carbon_hub/tools/test_validator.py
 docs/development/carbon_hub/tools/validate_hub.py
 scripts/dev/apply_github_ruleset.py
+scripts/dev/bootstrap.sh
 scripts/dev/canonical.sh
 scripts/dev/check_delivery_hygiene.py
 scripts/dev/check_diff_hygiene.py
@@ -117,6 +118,13 @@ tests/cpu/test_code_authority.py
 tests/cpu/test_delivery_hygiene.py
 tests/cpu/test_github_ruleset.py
 ```
+
+Exact-head clean-image validation exposed that bootstrap redundantly attempted
+to rewrite the image's root-owned managed interpreter. The repaired candidate
+therefore adds `scripts/dev/bootstrap.sh` to this fixed list so bootstrap can
+reuse an exact trusted interpreter and install only when one is absent. This
+bounded recovery does not change the canonical environment identity or the
+B-04 exclusion.
 
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`

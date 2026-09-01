@@ -12,6 +12,7 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 WRAPPER = REPOSITORY_ROOT / "scripts/dev/canonical.sh"
+BOOTSTRAP = REPOSITORY_ROOT / "scripts/dev/bootstrap.sh"
 DOCKERFILE = REPOSITORY_ROOT / ".devcontainer/Dockerfile"
 
 
@@ -152,6 +153,105 @@ def test_image_keeps_direct_identity_marker_and_runtime_root_owned() -> None:
     assert "chmod 0444 /etc/carbon-canonical-environment" in source
     chown_line = next(line for line in source.splitlines() if "chown -R" in line)
     assert "/opt/uv-python" not in chown_line
+
+    bootstrap = BOOTSTRAP.read_text(encoding="utf-8")
+    assert 'python_path="/usr/local/bin/python3"' in bootstrap
+    assert 'is_trusted_root_executable "${python_path}"' in bootstrap
+    assert '"cpython|${python_version}"' in bootstrap
+    assert (
+        "claims a Carbon canonical identity without its root-owned marker" in bootstrap
+    )
+
+
+@pytest.mark.parametrize("interpreter_present", (True, False))
+def test_bootstrap_installs_only_when_exact_interpreter_is_absent(
+    tmp_path: Path, interpreter_present: bool
+) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    call_log = tmp_path / "uv-calls.txt"
+    installed_marker = tmp_path / "installed"
+    interpreter = tmp_path / "python3.11"
+    interpreter.write_text(
+        """#!/bin/sh
+if [ "$1" = "-I" ] && [ "$2" = "-c" ]; then
+  printf '%s\\n' 'cpython|3.11.16'
+  exit 0
+fi
+exit 97
+""",
+        encoding="utf-8",
+    )
+    interpreter.chmod(0o755)
+
+    uname = fake_bin / "uname"
+    uname.write_text(
+        """#!/bin/sh
+[ "$1" = "-s" ] || exit 97
+printf '%s\\n' Linux
+""",
+        encoding="utf-8",
+    )
+    uname.chmod(0o755)
+
+    uv = fake_bin / "uv"
+    uv.write_text(
+        """#!/bin/sh
+set -eu
+printf '%s\\n' "$*" >> "$CARBON_BOOTSTRAP_TEST_LOG"
+case "$1" in
+  --version)
+    printf '%s\\n' 'uv 0.12.7'
+    ;;
+  python)
+    case "$2" in
+      find)
+        if [ "$CARBON_BOOTSTRAP_INTERPRETER_PRESENT" = "1" ] || [ -f "$CARBON_BOOTSTRAP_INSTALLED_MARKER" ]; then
+          printf '%s\\n' "$CARBON_BOOTSTRAP_INTERPRETER"
+        else
+          exit 1
+        fi
+        ;;
+      install)
+        : > "$CARBON_BOOTSTRAP_INSTALLED_MARKER"
+        ;;
+      *) exit 97 ;;
+    esac
+    ;;
+  sync) ;;
+  *) exit 97 ;;
+esac
+""",
+        encoding="utf-8",
+    )
+    uv.chmod(0o755)
+
+    environment = os.environ.copy()
+    environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
+    environment.pop("CARBON_CANONICAL_DEV_ENV", None)
+    environment.pop("OS", None)
+    environment["CARBON_BOOTSTRAP_TEST_LOG"] = str(call_log)
+    environment["CARBON_BOOTSTRAP_INSTALLED_MARKER"] = str(installed_marker)
+    environment["CARBON_BOOTSTRAP_INTERPRETER"] = str(interpreter)
+    environment["CARBON_BOOTSTRAP_INTERPRETER_PRESENT"] = (
+        "1" if interpreter_present else "0"
+    )
+    process = subprocess.run(
+        [str(BOOTSTRAP)],
+        cwd=REPOSITORY_ROOT,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 0, process.stdout + process.stderr
+    calls = call_log.read_text(encoding="utf-8").splitlines()
+    assert calls[0] == "--version"
+    assert calls.count("python find --no-project --no-python-downloads 3.11.16") == (
+        1 if interpreter_present else 2
+    )
+    assert calls.count("python install 3.11.16") == (0 if interpreter_present else 1)
+    assert calls[-1] == (f"sync --python {interpreter} --locked --group dev")
 
 
 def test_noncanonical_execution_fails_closed_without_docker(tmp_path: Path) -> None:
