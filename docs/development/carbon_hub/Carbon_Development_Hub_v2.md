@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `83cc2a628d13ce60fd854168b126d935076ec30a` on `main`, captured 2026-09-01T14:32:12Z.
+**Authority snapshot:** `d0cff7f611aaf9598ebe16999cb20941f48655b8` on `main`, captured 2026-09-01T20:33:39Z.
 **Current:** Wave B, ticket B-04. Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.
 
 ## Wave spine
@@ -11,13 +11,13 @@
 |---|---|---|
 | [A](explainers/waves/wave_a.md) | Prove Carbon's software authority boundaries before real scientific execution. | closed |
 | [B](explainers/waves/wave_b.md) | Make one scientific exam authorable and the miner research loop executable with fixtures. | active |
-| [C](explainers/waves/wave_c.md) | Run one real candidate through one real end-to-end scientific path. | planned |
-| [D](explainers/waves/wave_d.md) | Earn the right to call the first exam LIVE. | planned |
+| [C](explainers/waves/wave_c.md) | Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights. | planned |
+| [D](explainers/waves/wave_d.md) | Qualify the first exact Challenge without inferring science from testnet weights. | planned |
 | [E](explainers/waves/wave_e.md) | Learn from authoritative experiments without letting learned memory control the judge. | planned |
 | [F](explainers/waves/wave_f.md) | Separate search success from deployable product evidence. | planned |
 | [G](explainers/waves/wave_g.md) | Serve real enterprises without moving business authority into the judge. | planned |
 | [H](explainers/waves/wave_h.md) | Separate ordinary Challenge ranking from verified frontier advance. | planned |
-| [I](explainers/waves/wave_i.md) | Settle verified entitlements without rewriting scientific merit. | planned |
+| [I](explainers/waves/wave_i.md) | Route mainnet network allocation to treasury receivers and settle exact per-Challenge obligations without rewriting scientific merit. | planned |
 | [J](explainers/waves/wave_j.md) | Evaluate the registered physical job across qualified model families. | planned |
 | [K](explainers/waves/wave_k.md) | Widen search from training strategies toward construction methods and programs. | planned |
 | [L](explainers/waves/wave_l.md) | Run construction in an isolated producer-independent reconstruction plane. | planned |
@@ -90,6 +90,7 @@
 - `B-04-E1` — `WAVE-B/B-04` — B-03 completed its exact reviewed merge and exact-main closeout, and Wave B board version 1.0 selects B-04 for working-contract authoring only.
 - `OWNER-DX-01` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-01 records B-01F done under its conditional completion predicate, queues B-01G as non-blocking todo, and keeps B-04 selected in_progress with its bounded engineering contract ratified while runtime remains unimplemented.
 - `HUB-ADJ-003` — `SYSTEM/PUBLICATION` — The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.
+- `OWNER-NET-01` — `SYSTEM/DEVELOPMENT-SEQUENCING` — OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work.
 
 ## Authority boundary
 

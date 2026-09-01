@@ -8,8 +8,8 @@
 
 ## Sequence
 
-- **Predecessor:** Wave E
-- **Successor:** Wave G
+- **Predecessor:** Wave D
+- **Successor:** Only a prospectively authorized successor
 
 ## What and why
 
@@ -21,7 +21,7 @@ A candidate can rank well in a Challenge and still lack enough evidence for a cu
 
 Carbon can state what one exact artifact can support, in which context, with which limitations and lifecycle obligations.
 
-Qualified model programs, deployment, specialist banks, and recurring requalification work.
+Qualified model programs, deployment, specialist banks, and recurring requalification work. This post-D lane does not gate H or I.
 
 ## Authority ceiling
 
@@ -45,6 +45,6 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

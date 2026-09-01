@@ -176,6 +176,34 @@ class ValidatorContractTests(unittest.TestCase):
             )
         )
 
+    def test_wave_dependency_graph_preserves_post_d_parallel_lanes(self) -> None:
+        data = self.load_hub_data()
+        actual = {
+            str(wave["id"]): (wave["predecessor"], wave["successor"])
+            for wave in data["waves"]
+        }
+        self.assertEqual(actual, validate_hub.EXPECTED_WAVE_LINKS)
+
+    def test_legacy_linear_post_d_wave_graph_is_rejected(self) -> None:
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = self.load_hub_data()
+        validator.events = json.loads(
+            (
+                REPO_ROOT
+                / "docs/development/carbon_hub/data/change_events.json"
+            ).read_text(encoding="utf-8")
+        )["events"]
+        wave_d = next(wave for wave in validator.data["waves"] if wave["id"] == "D")
+        wave_d["successor"] = "E"
+        validator.validate_model()
+        self.assertTrue(
+            any(
+                "waves[3].successor must be 'H'" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
+
     def test_vague_pr_declaration_is_rejected(self) -> None:
         validator = validate_hub.Validator(Path("."))
         validator.github_event = {"pull_request": {"body": "HUB_UPDATE_REQUIRED: done"}}
@@ -1796,6 +1824,46 @@ class ValidatorContractTests(unittest.TestCase):
                 "mapped_detail",
                 "SYSTEM/PUBLICATION-AUTHORITY",
             ),
+            "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md": (
+                "map_structural",
+                "SYSTEM/DEVELOPMENT-SEQUENCING",
+            ),
+            ".agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md": (
+                "map_structural",
+                "SYSTEM/DEVELOPMENT-SEQUENCING",
+            ),
+            ".agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md": (
+                "mapped_detail",
+                "SYSTEM/DEVELOPMENT-SEQUENCING",
+            ),
+            ".agent/evidence/governance/gov-net-01.md": (
+                "mapped_detail",
+                "SYSTEM/DEVELOPMENT-SEQUENCING",
+            ),
+            "Design_Specs/Build_Out_Protocol_Extension.md": (
+                "map_structural",
+                "SYSTEM/DEVELOPMENT-SEQUENCING",
+            ),
+            "docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md": (
+                "map_structural",
+                "SYSTEM/GOVERNANCE",
+            ),
+            "docs/context/Architecture_Rationale.md": (
+                "mapped_detail",
+                "SYSTEM/PROTOCOL-AUTHORITY",
+            ),
+            "docs/context/Carbon_Context.md": (
+                "mapped_detail",
+                "SYSTEM/PROTOCOL-AUTHORITY",
+            ),
+            "docs/context/DEFENSIBILITY_REGISTER.md": (
+                "mapped_detail",
+                "SYSTEM/MATURITY",
+            ),
+            "docs/context/Decisions.md": (
+                "mapped_detail",
+                "SYSTEM/GOVERNANCE",
+            ),
             "SPEC.md": ("mapped_detail", "SYSTEM/PROTOCOL-AUTHORITY"),
             "docs/history/LEGACY_CODE_INDEX.md": (
                 "mapped_detail",
@@ -1819,6 +1887,22 @@ class ValidatorContractTests(unittest.TestCase):
         self.assertTrue(
             any(
                 "authority_roots is missing required protected roots: .agent/" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
+
+    def test_impact_policy_cannot_remove_launch_authority_root(self) -> None:
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = self.load_hub_data()
+        validator.data["impact_policy"]["authority_roots"].remove("launch/")
+
+        validator.validate_impact_policy()
+
+        self.assertTrue(
+            any(
+                "authority_roots is missing required protected roots: launch/"
+                in error
                 for error in validator.errors
             ),
             validator.errors,
