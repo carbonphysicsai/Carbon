@@ -34,11 +34,13 @@ Editable data source:
 data/hub_data_v2.json
 data/change_events.json
 data/change_event_template.yaml
+data/decisions.json
 ```
 
 Presentation/generation source:
 
 ```text
+decisions.html
 tools/render_hub.py
 tools/templates/interactive_template.html
 ```
@@ -58,6 +60,11 @@ explainers/waves/*.md
 explainers/tickets/*.md
 ```
 
+The Decision Console is deliberately lightweight. `decisions.html` reads the
+public-safe `data/decisions.json` index directly and hands responses back to the
+canonical GitHub decision location. It does not authenticate, write to GitHub,
+or replace `.agent/DECISIONS.md` or issue #42.
+
 ## Required update points
 
 Reconcile hub source at ticket start and again before closeout. Update it when
@@ -72,9 +79,52 @@ merged repository authority changes any of the following:
 - material decision, adjustment, bug, blocker, risk, or evidence result;
 - primary repository ticket, contract, decision, PR, or evidence link.
 
+When a material technical/SciML decision is posted to issue #42, also create or
+update its Decision Console record. The record should let Harsh understand the
+question without reading the whole issue thread, while sending him to the exact
+GitHub comment for the durable response.
+
+Each Decision Console record must include:
+
+- exact `decision_id` and primary `map_ref`;
+- Wave and ticket;
+- plain-language question and why it matters;
+- agent recommendation;
+- what keeping or changing the decision implies;
+- affected downstream map references;
+- exact GitHub response URL and technical-detail URL;
+- exactly one attention state:
+  - `NEEDS_REVIEW` — Harsh should inspect it; delegated work may continue unless otherwise blocked;
+  - `HUMAN_REQUIRED` — a genuinely human-reserved decision blocks the affected behavior;
+  - `FOR_AWARENESS` — material visibility only; no response required;
+  - `OWNER_DEFERRED` — Harsh explicitly deferred it to the Carbon owner;
+  - `RESOLVED` — a durable response or superseding decision resolved the attention item.
+
+Never promote an ordinary non-blocking notification into `NEEDS_REVIEW` or
+`HUMAN_REQUIRED` just to make the queue look active. Attention state must be
+supported by the repository record.
+
 Do not add an event for routine code movement, implementation detail already
 bounded by the ticket, or a link that is not supported by repository evidence.
 Historical events remain immutable; use `supersedes` prospectively.
+
+## Harsh response path
+
+The Hub is the decision UX. GitHub is the durable response surface.
+
+For a decision in issue #42, the console exposes these canonical commands:
+
+```text
+KEEP <decision-id>
+CHANGE <decision-id>: <direction>
+BLOCKED <decision-id>: <reason>
+DEFER_TO_OWNER <decision-id>: <question or recommendation>
+```
+
+The console may copy these commands and open the exact response location, but
+it must not claim a response has occurred until GitHub contains the durable
+record. A later agent pass may then move the item to `RESOLVED` or
+`OWNER_DEFERRED` as supported by that record.
 
 ## PR declaration
 
@@ -109,7 +159,7 @@ without treating unrelated appended evidence detail as a structural rewrite.
 
 ## Validation and closeout
 
-Run from repository root:
+For normal Hub structural changes, run from repository root:
 
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
@@ -119,6 +169,17 @@ node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py
 git diff --check
 ```
+
+For a focused Decision Console or decision-data-only update, run only:
+
+```bash
+python docs/development/carbon_hub/tools/test_decisions.py
+git diff --check
+```
+
+Escalate to the full Hub suite only if the change also modifies the core Hub
+renderer, generated map state, authority snapshot, routing, or validation
+contract. This keeps routine decision-index maintenance lightweight.
 
 The primary page must stay static-first, complete with JavaScript disabled,
 usable by `file://`, responsive, keyboard-visible, reduced-motion aware, and

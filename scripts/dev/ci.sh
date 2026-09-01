@@ -27,17 +27,22 @@ fi
 echo "==> environment doctor"
 ./scripts/dev/doctor.sh
 
-echo "==> invariant lane"
-"${python_bin}" -m pytest tests/invariants -m invariant -q
-
-echo "==> default CPU lane"
-./scripts/dev/test.sh
-
 echo "==> quality ratchet"
 "${python_bin}" scripts/check_quality.py \
   --baseline .ci/quality-baseline.json \
   --base "${quality_base}" \
   --report "${artifact_dir}/quality.json"
+
+echo "==> committed and local Git diff hygiene"
+"${python_bin}" scripts/dev/check_diff_hygiene.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+
+echo "==> invariant lane"
+"${python_bin}" -m pytest tests/invariants -m invariant -q
+
+echo "==> default CPU lane"
+./scripts/dev/test.sh
 
 echo "==> package, wheel, and outside-tree lane"
 "${python_bin}" -m pytest \
@@ -49,7 +54,7 @@ echo "==> package, wheel, and outside-tree lane"
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 
-echo "==> committed and local Git diff hygiene"
+echo "==> terminal committed and local Git diff hygiene"
 "${python_bin}" scripts/dev/check_diff_hygiene.py \
   --repository "${repo_root}" \
   --base "${quality_base}"

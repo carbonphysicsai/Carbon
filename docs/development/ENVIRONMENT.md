@@ -75,7 +75,7 @@ engineering gates are valid.
 | `./scripts/dev/bootstrap.sh` | Installs the exact repository Python through pinned uv and synchronizes the locked groups. |
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
-| `./scripts/dev/ci.sh` | Runs doctor, invariants, CPU tests, quality, package/wheel/outside-tree import checks, the code-authority boundary, and diff hygiene. |
+| `./scripts/dev/ci.sh` | Runs doctor, the quality and diff-hygiene preflight, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
 | `./scripts/dev/shell.sh` | Opens Bash with Carbon's project environment selected. |
 
 Do not replace these commands with ticket-specific remembered sequences.
