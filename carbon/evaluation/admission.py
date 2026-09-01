@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 from dataclasses import InitVar, dataclass
 from types import MappingProxyType
-from typing import ClassVar, Protocol, runtime_checkable
+from typing import ClassVar, Protocol, TypeVar, runtime_checkable
 
 from carbon.authoring.evidence import EvidenceRoleBinding
 from carbon.authoring.refs import CanonicalChallengeCaseRef
@@ -27,6 +27,7 @@ from .enums import (
     ReferenceSourceClass,
     TruthAssetAdmissionOutcome,
     TruthAssetAdmissionReason,
+    _registered_enum_member,
     outcome_reason_compatible,
 )
 from .errors import (
@@ -42,6 +43,7 @@ from .model import (
     DependencyDisclosure,
     OptionalBinding,
     PinnedReferenceIdentity,
+    ProtectedReferenceValue,
     ReferenceAuthorityTarget,
     ReferenceProvenance,
     ReferenceScopeBinding,
@@ -78,6 +80,7 @@ from .runners import PrimaryReferenceRunner, WitnessReferenceRunner
 _ISSUANCE_RECORD_TOKEN = object()
 _GRANT_TOKEN = object()
 _DECISION_TOKEN = object()
+_RecordT = TypeVar("_RecordT")
 
 
 _ADMISSION_ISSUANCE_OUTCOMES = MappingProxyType(
@@ -117,6 +120,11 @@ def select_admission_grant_issuance_terminal(
         nonempty=True,
         unique=True,
     )
+    if any(
+        not _registered_enum_member(item, AdmissionGrantIssuanceReason)
+        for item in reasons
+    ):
+        raise invalid("/reason")
     observed = set(reasons)
     reason = next(
         item for item in ADMISSION_ISSUANCE_REASON_PRECEDENCE if item in observed
@@ -136,13 +144,17 @@ def select_truth_asset_admission_terminal(
         nonempty=True,
         unique=True,
     )
+    if any(
+        not _registered_enum_member(item, TruthAssetAdmissionReason) for item in reasons
+    ):
+        raise invalid("/reason")
     observed = set(reasons)
     reason = next(item for item in ADMISSION_REASON_PRECEDENCE if item in observed)
     return _ADMISSION_OUTCOMES[reason], reason
 
 
 @dataclass(frozen=True, slots=True, repr=False)
-class AdmissionGrantIssuanceEcho:
+class AdmissionGrantIssuanceEcho(ProtectedReferenceValue):
     """Exact bounded echo from a separately configured structural issuer."""
 
     outcome: AdmissionGrantIssuanceOutcome
@@ -175,7 +187,7 @@ class TruthAssetAdmissionGrantIssuer(Protocol):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
-class TruthAssetAdmissionEcho:
+class TruthAssetAdmissionEcho(ProtectedReferenceValue):
     """Exact bounded echo from a separately configured admission authority."""
 
     outcome: TruthAssetAdmissionOutcome
@@ -212,22 +224,43 @@ def _copy_admission_attempt(value: object) -> AdmissionAttemptBinding:
     """Reconstruct every admission-attempt layer from exact validated values."""
 
     attempt = exact(value, AdmissionAttemptBinding, "/attempt_binding")
-    return AdmissionAttemptBinding(
-        admission_authority_ref=attempt.admission_authority_ref,
-        answer_key_authority_target=attempt.answer_key_authority_target,
-        artifact_binding=attempt.artifact_binding,
-        case_ref=attempt.case_ref,
-        comparison_refs=attempt.comparison_refs,
-        decision_profile_ref=attempt.decision_profile_ref,
-        disclosure_policy_ref=attempt.disclosure_policy_ref,
-        primary_execution_target=attempt.primary_execution_target,
-        provenance_policy_ref=attempt.provenance_policy_ref,
-        qualification_binding=attempt.qualification_binding,
-        rights_profile_ref=attempt.rights_profile_ref,
-        run_ref=attempt.run_ref,
-        use_restrictions=attempt.use_restrictions,
-        witness_targets=attempt.witness_targets,
-    )
+    try:
+        return AdmissionAttemptBinding(
+            admission_authority_ref=attempt.admission_authority_ref,
+            answer_key_authority_target=attempt.answer_key_authority_target,
+            artifact_binding=attempt.artifact_binding,
+            case_ref=attempt.case_ref,
+            comparison_refs=attempt.comparison_refs,
+            decision_profile_ref=attempt.decision_profile_ref,
+            disclosure_policy_ref=attempt.disclosure_policy_ref,
+            primary_execution_target=attempt.primary_execution_target,
+            provenance_policy_ref=attempt.provenance_policy_ref,
+            qualification_binding=attempt.qualification_binding,
+            rights_profile_ref=attempt.rights_profile_ref,
+            run_ref=attempt.run_ref,
+            use_restrictions=attempt.use_restrictions,
+            witness_targets=attempt.witness_targets,
+        )
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid("/attempt_binding", ReferenceInputCode.WRONG_TYPE) from None
+
+
+def _copy_canonical_record(
+    value: object,
+    expected: type[_RecordT],
+    path: str,
+) -> _RecordT:
+    """Deep-copy one exact top record without leaking hostile carrier failures."""
+
+    checked = exact(value, expected, path)
+    try:
+        from .canonical import canonical_bytes, decode_canonical_bytes
+
+        return decode_canonical_bytes(canonical_bytes(checked), expected)
+    except Exception:  # noqa: BLE001 - normalize partial/tampered exact carriers.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -288,6 +321,28 @@ def _new_issuance_record(**fields: object) -> TruthAssetAdmissionGrantIssuanceRe
     )  # type: ignore[arg-type]
 
 
+def _copy_issuance_record(
+    value: object,
+    path: str,
+) -> TruthAssetAdmissionGrantIssuanceRecord:
+    supplied = exact(value, TruthAssetAdmissionGrantIssuanceRecord, path)
+    try:
+        return _new_issuance_record(
+            attempt_binding=supplied.attempt_binding,
+            challenge_key=supplied.challenge_key,
+            issuance_id=supplied.issuance_id,
+            issuance_token=supplied.issuance_token,
+            issuance_version=supplied.issuance_version,
+            issuer_ref=supplied.issuer_ref,
+            outcome=supplied.outcome,
+            reason=supplied.reason,
+        )
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def _create_admission_one_use_state():
     """Create the private atomic issuance/grant state for this fixture runtime."""
 
@@ -296,6 +351,46 @@ def _create_admission_one_use_state():
     consumed_issuances: set[TruthAssetAdmissionGrantIssuanceRecordRef] = set()
     available_grants: dict[TruthAssetAdmissionGrantRef, object] = {}
     consumed_grants: set[TruthAssetAdmissionGrantRef] = set()
+    issuance_operations: dict[tuple[AdmissionAttemptBinding, str, str], object] = {}
+    completed_issuance_operations: set[tuple[AdmissionAttemptBinding, str, str]] = set()
+    grant_inspections: dict[TruthAssetAdmissionGrantRef, object] = {}
+
+    def reserve_issuance_operation(
+        attempt: AdmissionAttemptBinding,
+        issuance_id: str,
+        issuance_version: str,
+    ) -> tuple[tuple[AdmissionAttemptBinding, str, str], object]:
+        key = (attempt, issuance_id, issuance_version)
+        token = object()
+        with lock:
+            if key in issuance_operations or key in completed_issuance_operations:
+                raise invalid(
+                    "/issuance_record_ref",
+                    ReferenceInputCode.STALE_BINDING,
+                )
+            issuance_operations[key] = token
+        return key, token
+
+    def complete_issuance_operation(
+        key: tuple[AdmissionAttemptBinding, str, str],
+        token: object,
+    ) -> None:
+        with lock:
+            if issuance_operations.get(key) is not token:
+                raise invalid(
+                    "/issuance_record_ref",
+                    ReferenceInputCode.STALE_BINDING,
+                )
+            issuance_operations.pop(key)
+            completed_issuance_operations.add(key)
+
+    def release_issuance_operation(
+        key: tuple[AdmissionAttemptBinding, str, str],
+        token: object,
+    ) -> None:
+        with lock:
+            if issuance_operations.get(key) is token:
+                issuance_operations.pop(key)
 
     def register_issuance(
         issuance: TruthAssetAdmissionGrantIssuanceRecord,
@@ -325,29 +420,67 @@ def _create_admission_one_use_state():
             consumed_issuances.add(issuance_ref)
             available_grants[grant_ref] = issuer
 
+    def reserve_grant_inspection(
+        grant: TruthAssetAdmissionGrant,
+    ) -> tuple[TruthAssetAdmissionGrantRef, object]:
+        grant_ref = grant.to_ref()
+        token = object()
+        with lock:
+            if grant_ref not in available_grants or grant_ref in grant_inspections:
+                raise invalid("/grant_ref", ReferenceInputCode.STALE_BINDING)
+            grant_inspections[grant_ref] = token
+        return grant_ref, token
+
+    def release_grant_inspection(
+        grant_ref: TruthAssetAdmissionGrantRef,
+        token: object,
+    ) -> None:
+        with lock:
+            if grant_inspections.get(grant_ref) is token:
+                grant_inspections.pop(grant_ref)
+
     def consume_grant(
         grant: TruthAssetAdmissionGrant,
         authority: object,
-    ) -> tuple[TruthAssetAdmissionGrantRef, bool]:
+        token: object,
+    ) -> TruthAssetAdmissionGrantRef:
         grant_ref = grant.to_ref()
         with lock:
-            if grant_ref not in available_grants:
-                return grant_ref, False
+            if (
+                grant_ref not in available_grants
+                or grant_inspections.get(grant_ref) is not token
+            ):
+                raise invalid("/grant_ref", ReferenceInputCode.STALE_BINDING)
             if available_grants[grant_ref] is authority:
                 raise invalid(
                     "/admission_authority_ref",
                     ReferenceInputCode.STALE_BINDING,
                 )
             available_grants.pop(grant_ref)
+            grant_inspections.pop(grant_ref)
             consumed_grants.add(grant_ref)
-        return grant_ref, True
+        return grant_ref
 
-    return register_issuance, register_grant, consume_grant
+    return (
+        reserve_issuance_operation,
+        complete_issuance_operation,
+        release_issuance_operation,
+        register_issuance,
+        register_grant,
+        reserve_grant_inspection,
+        release_grant_inspection,
+        consume_grant,
+    )
 
 
 (
+    _reserve_issuance_operation,
+    _complete_issuance_operation,
+    _release_issuance_operation,
     _register_authorized_issuance,
     _register_authorized_grant,
+    _reserve_grant_inspection,
+    _release_grant_inspection,
     _consume_authorized_grant,
 ) = _create_admission_one_use_state()
 del _create_admission_one_use_state
@@ -362,9 +495,39 @@ def issue_truth_asset_admission_grant_record(
 ) -> TruthAssetAdmissionGrantIssuanceRecord | None:
     """Return no record when no issuer exists; never fabricate a terminal event."""
 
-    checked_attempt = exact(attempt, AdmissionAttemptBinding, "/attempt_binding")
+    supplied_attempt = exact(attempt, AdmissionAttemptBinding, "/attempt_binding")
     if issuer is None:
         return None
+    checked_attempt = _copy_admission_attempt(supplied_attempt)
+    checked_issuance_id = identifier(issuance_id, "/issuance_id")
+    checked_issuance_version = version(issuance_version, "/issuance_version")
+    operation_key, operation_token = _reserve_issuance_operation(
+        checked_attempt,
+        checked_issuance_id,
+        checked_issuance_version,
+    )
+    try:
+        record = _issue_truth_asset_admission_grant_record(
+            issuer,
+            checked_attempt,
+            checked_issuance_id,
+            checked_issuance_version,
+        )
+    except BaseException:
+        _release_issuance_operation(operation_key, operation_token)
+        raise
+    _complete_issuance_operation(operation_key, operation_token)
+    return record
+
+
+def _issue_truth_asset_admission_grant_record(
+    issuer: TruthAssetAdmissionGrantIssuer,
+    checked_attempt: AdmissionAttemptBinding,
+    checked_issuance_id: str,
+    checked_issuance_version: str,
+) -> TruthAssetAdmissionGrantIssuanceRecord:
+    """Execute one already reserved structural-issuance operation."""
+
     try:
         is_runner = isinstance(issuer, (PrimaryReferenceRunner, WitnessReferenceRunner))
         if is_runner:
@@ -373,7 +536,8 @@ def issue_truth_asset_admission_grant_record(
                 path="/issuer_ref",
             )
         has_authority_role = isinstance(issuer, TruthAssetAdmissionAuthority)
-        is_issuer = isinstance(issuer, TruthAssetAdmissionGrantIssuer)
+        issuer_ref_value = issuer.issuer_ref
+        evaluate_grant_issuance = issuer.evaluate_grant_issuance
     except ReferenceServiceError:
         raise
     except Exception:  # noqa: BLE001 - sanitize structural capability inspection.
@@ -381,19 +545,19 @@ def issue_truth_asset_admission_grant_record(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
             path="/issuer_ref",
         ) from None
-    if not is_issuer or has_authority_role:
+    if has_authority_role or not callable(evaluate_grant_issuance):
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
             path="/issuer_ref",
         )
     try:
         issuer_ref = pinned_identity(
-            issuer.issuer_ref,
+            issuer_ref_value,
             ReferenceIdentityKind.ADMISSION_ISSUER,
             "/issuer_ref",
             challenge_key=checked_attempt.challenge_key,
         )
-        echo = issuer.evaluate_grant_issuance(checked_attempt)
+        echo = evaluate_grant_issuance(_copy_admission_attempt(checked_attempt))
     except Exception:  # noqa: BLE001 - sanitize the configured capability boundary.
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
@@ -404,15 +568,24 @@ def issue_truth_asset_admission_grant_record(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
             path="/outcome",
         )
+    try:
+        echo_outcome = echo.outcome
+        echo_reason = echo.reason
+        echo_issuance_token = echo.issuance_token
+    except Exception:  # noqa: BLE001 - sanitize a hostile exact-type echo.
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
+            path="/outcome",
+        ) from None
     record = _new_issuance_record(
         attempt_binding=checked_attempt,
         challenge_key=checked_attempt.challenge_key,
-        issuance_id=issuance_id,
-        issuance_token=echo.issuance_token,
-        issuance_version=issuance_version,
+        issuance_id=checked_issuance_id,
+        issuance_token=echo_issuance_token,
+        issuance_version=checked_issuance_version,
         issuer_ref=issuer_ref,
-        outcome=echo.outcome,
-        reason=echo.reason,
+        outcome=echo_outcome,
+        reason=echo_reason,
     )
     if record.outcome is AdmissionGrantIssuanceOutcome.ADMISSION_GRANT_AUTHORIZED:
         _register_authorized_issuance(record, issuer)
@@ -478,6 +651,28 @@ def _new_admission_grant(**fields: object) -> TruthAssetAdmissionGrant:
     return TruthAssetAdmissionGrant(**fields, _token=_GRANT_TOKEN)  # type: ignore[arg-type]
 
 
+def _copy_admission_grant(
+    value: object,
+    path: str,
+) -> TruthAssetAdmissionGrant:
+    supplied = exact(value, TruthAssetAdmissionGrant, path)
+    try:
+        return _new_admission_grant(
+            attempt_binding=supplied.attempt_binding,
+            capability_ref=supplied.capability_ref,
+            challenge_key=supplied.challenge_key,
+            grant_id=supplied.grant_id,
+            grant_version=supplied.grant_version,
+            issuance_record_ref=supplied.issuance_record_ref,
+            issuance_token=supplied.issuance_token,
+            issuer_ref=supplied.issuer_ref,
+        )
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def create_truth_asset_admission_grant(
     issuance: TruthAssetAdmissionGrantIssuanceRecord,
     *,
@@ -485,9 +680,8 @@ def create_truth_asset_admission_grant(
     grant_id: str,
     grant_version: str,
 ) -> TruthAssetAdmissionGrant:
-    checked = exact(
+    checked = _copy_issuance_record(
         issuance,
-        TruthAssetAdmissionGrantIssuanceRecord,
         "/issuance_record_ref",
     )
     if (
@@ -602,6 +796,30 @@ def _new_admission_decision(**fields: object) -> TruthAssetAdmissionDecisionReco
     )  # type: ignore[arg-type]
 
 
+def _copy_admission_decision(
+    value: object,
+    path: str,
+) -> TruthAssetAdmissionDecisionRecord:
+    supplied = exact(value, TruthAssetAdmissionDecisionRecord, path)
+    try:
+        return _new_admission_decision(
+            admission_authority_ref=supplied.admission_authority_ref,
+            attempt_binding=supplied.attempt_binding,
+            challenge_key=supplied.challenge_key,
+            consumed_grant_receipt_ref=supplied.consumed_grant_receipt_ref,
+            decision_id=supplied.decision_id,
+            decision_version=supplied.decision_version,
+            grant_ref=supplied.grant_ref,
+            issuance_record_ref=supplied.issuance_record_ref,
+            outcome=supplied.outcome,
+            reason=supplied.reason,
+        )
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def _validate_admission_graph(
     attempt: AdmissionAttemptBinding,
     policy: ReferencePolicy,
@@ -694,6 +912,43 @@ def _validate_admission_graph(
     return tuple(item for item in ADMISSION_REASON_PRECEDENCE if item in observed)
 
 
+def _validated_admission_authority(
+    authority: TruthAssetAdmissionAuthority,
+    attempt: AdmissionAttemptBinding,
+) -> tuple[PinnedReferenceIdentity, object]:
+    """Snapshot the nominal authority interface before irreversible claim."""
+
+    try:
+        has_issuer_role = isinstance(authority, TruthAssetAdmissionGrantIssuer)
+        authority_ref_value = authority.admission_authority_ref
+        evaluate_admission = authority.evaluate_admission
+    except Exception:  # noqa: BLE001 - sanitize structural capability inspection.
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/admission_authority_ref",
+        ) from None
+    if has_issuer_role or not callable(evaluate_admission):
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/admission_authority_ref",
+        )
+    try:
+        authority_ref = pinned_identity(
+            authority_ref_value,
+            ReferenceIdentityKind.ADMISSION_AUTHORITY,
+            "/admission_authority_ref",
+            challenge_key=attempt.challenge_key,
+        )
+        if authority_ref != attempt.admission_authority_ref:
+            raise ValueError
+    except Exception:  # noqa: BLE001 - sanitize the configured capability boundary.
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/admission_authority_ref",
+        ) from None
+    return authority_ref, evaluate_admission
+
+
 def _decide_truth_asset_admission_record(
     authority: TruthAssetAdmissionAuthority | None,
     issuance: TruthAssetAdmissionGrantIssuanceRecord,
@@ -710,32 +965,34 @@ def _decide_truth_asset_admission_record(
 
     if authority is None:
         return None
-    try:
-        is_authority = isinstance(authority, TruthAssetAdmissionAuthority)
-        has_issuer_role = isinstance(authority, TruthAssetAdmissionGrantIssuer)
-    except Exception:  # noqa: BLE001 - sanitize structural capability inspection.
-        raise ReferenceServiceError(
-            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
-            path="/admission_authority_ref",
-        ) from None
-    if not is_authority or has_issuer_role:
-        raise ReferenceServiceError(
-            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
-            path="/admission_authority_ref",
-        )
-    checked_issuance = exact(
+    checked_decision_id = identifier(decision_id, "/decision_id")
+    checked_decision_version = version(decision_version, "/decision_version")
+    checked_issuance = _copy_issuance_record(
         issuance,
-        TruthAssetAdmissionGrantIssuanceRecord,
         "/issuance_record_ref",
     )
-    checked_grant = exact(grant, TruthAssetAdmissionGrant, "/grant_ref")
-    checked_policy = exact(policy, ReferencePolicy, "/policy_ref")
-    checked_run = exact(run, ReferenceRunRecord, "/run_ref")
-    checked_comparisons = exact_tuple(
+    checked_grant = _copy_admission_grant(grant, "/grant_ref")
+    checked_policy = _copy_canonical_record(policy, ReferencePolicy, "/policy_ref")
+    checked_run = _copy_canonical_record(run, ReferenceRunRecord, "/run_ref")
+    supplied_comparisons = exact_tuple(
         comparisons,
         ReferenceComparisonRecord,
         "/comparison_refs",
-        unique=True,
+    )
+    checked_comparisons = tuple(
+        _copy_canonical_record(
+            comparison,
+            ReferenceComparisonRecord,
+            "/comparison_refs",
+        )
+        for comparison in supplied_comparisons
+    )
+    if len(set(checked_comparisons)) != len(checked_comparisons):
+        raise invalid("/comparison_refs", ReferenceInputCode.DUPLICATE_IDENTITY)
+    checked_artifact = (
+        None
+        if artifact is None
+        else _copy_canonical_record(artifact, ReferenceArtifact, "/artifact_ref")
     )
     if (
         checked_grant.issuance_record_ref != checked_issuance.to_ref()
@@ -744,42 +1001,36 @@ def _decide_truth_asset_admission_record(
         or checked_grant.issuer_ref != checked_issuance.issuer_ref
     ):
         raise invalid("/grant_ref", ReferenceInputCode.STALE_BINDING)
-    attempt = checked_grant.attempt_binding
+    attempt = _copy_admission_attempt(checked_grant.attempt_binding)
     structural_failures = _validate_admission_graph(
         attempt,
         checked_policy,
         checked_run,
-        artifact,
+        checked_artifact,
         checked_comparisons,
     )
+    inspection_ref, inspection_token = _reserve_grant_inspection(checked_grant)
     try:
-        authority_ref = pinned_identity(
-            authority.admission_authority_ref,
-            ReferenceIdentityKind.ADMISSION_AUTHORITY,
-            "/admission_authority_ref",
-            challenge_key=attempt.challenge_key,
+        authority_ref, evaluate_admission = _validated_admission_authority(
+            authority,
+            attempt,
         )
-        if authority_ref != attempt.admission_authority_ref:
-            raise ValueError
-    except Exception:  # noqa: BLE001 - sanitize the configured capability boundary.
-        raise ReferenceServiceError(
-            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
-            path="/admission_authority_ref",
-        ) from None
-    consumed_ref, grant_was_available = _consume_authorized_grant(
-        checked_grant,
-        authority,
-    )
-    if not grant_was_available:
-        observed = {
-            *structural_failures,
-            TruthAssetAdmissionReason.GRANT_INVALID_OR_CONSUMED,
-        }
-        structural_failures = tuple(
-            item for item in ADMISSION_REASON_PRECEDENCE if item in observed
+        # B-04 grants are at-most-once across the external authority boundary.
+        # The reversible inspection reservation becomes permanent immediately
+        # before the saved callback is invoked; no post-call rollback exists.
+        consumed_ref = _consume_authorized_grant(
+            checked_grant,
+            authority,
+            inspection_token,
         )
+    except BaseException:
+        _release_grant_inspection(inspection_ref, inspection_token)
+        raise
     try:
-        echo = authority.evaluate_admission(attempt, checked_grant.to_ref())
+        echo = evaluate_admission(
+            _copy_admission_attempt(attempt),
+            checked_grant.to_ref(),
+        )
     except Exception:  # noqa: BLE001 - sanitize the configured capability boundary.
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
@@ -790,12 +1041,26 @@ def _decide_truth_asset_admission_record(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
             path="/outcome",
         )
-    if structural_failures:
+    try:
+        echo_outcome = echo.outcome
+        echo_reason = echo.reason
+        echo_receipt_ref = echo.consumed_grant_receipt_ref
+    except Exception:  # noqa: BLE001 - sanitize a hostile exact-type echo.
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/outcome",
+        ) from None
+    if not outcome_reason_compatible(echo_outcome, echo_reason):
+        raise invalid("/reason", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
+    if echo_reason is TruthAssetAdmissionReason.GRANT_INVALID_OR_CONSUMED:
+        # This authority-owned fact has the highest D11 precedence even when
+        # lower-priority local structural failures are also observable.
+        pass
+    elif structural_failures:
         expected = select_truth_asset_admission_terminal(structural_failures)
-        if (echo.outcome, echo.reason) != expected:
+        if (echo_outcome, echo_reason) != expected:
             raise invalid("/outcome", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
-    elif echo.reason in {
-        TruthAssetAdmissionReason.GRANT_INVALID_OR_CONSUMED,
+    elif echo_reason in {
         TruthAssetAdmissionReason.POLICY_OR_IDENTITY_MISMATCH,
         TruthAssetAdmissionReason.RUN_NOT_SUPPORTED,
         TruthAssetAdmissionReason.ARTIFACT_ABSENT_OR_INELIGIBLE,
@@ -805,23 +1070,36 @@ def _decide_truth_asset_admission_record(
         raise invalid("/reason", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
     if consumed_ref != checked_grant.to_ref():
         raise invalid("/grant_ref", ReferenceInputCode.STALE_BINDING)
-    receipt = pinned_identity(
-        echo.consumed_grant_receipt_ref,
-        ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
-        "/consumed_grant_receipt_ref",
-        challenge_key=attempt.challenge_key,
-    )
+    try:
+        receipt = pinned_identity(
+            echo_receipt_ref,
+            ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
+            "/consumed_grant_receipt_ref",
+            challenge_key=attempt.challenge_key,
+        )
+    except ReferenceValidationError as error:
+        if error.code != ReferenceInputCode.WRONG_TYPE.value:
+            raise
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/outcome",
+        ) from None
+    except Exception:  # noqa: BLE001 - sanitize hostile nested provider data.
+        raise ReferenceServiceError(
+            ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+            path="/outcome",
+        ) from None
     return _new_admission_decision(
         admission_authority_ref=authority_ref,
         attempt_binding=attempt,
         challenge_key=attempt.challenge_key,
         consumed_grant_receipt_ref=receipt,
-        decision_id=decision_id,
-        decision_version=decision_version,
+        decision_id=checked_decision_id,
+        decision_version=checked_decision_version,
         grant_ref=checked_grant.to_ref(),
         issuance_record_ref=checked_issuance.to_ref(),
-        outcome=echo.outcome,
-        reason=echo.reason,
+        outcome=echo_outcome,
+        reason=echo_reason,
     )
 
 
@@ -1188,9 +1466,8 @@ def _validated_truth_asset_fields(
 ) -> dict[str, object]:
     """Return normalized fields only after validating the complete ADMITTED graph."""
 
-    checked = exact(
+    checked = _copy_admission_decision(
         decision,
-        TruthAssetAdmissionDecisionRecord,
         "/admission_decision_ref",
     )
     if (
@@ -1199,18 +1476,45 @@ def _validated_truth_asset_fields(
         is not TruthAssetAdmissionReason.ADMISSION_REQUIREMENTS_SATISFIED
     ):
         raise invalid("/outcome", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
-    checked_issuance = exact(
+    checked_issuance = _copy_issuance_record(
         issuance,
-        TruthAssetAdmissionGrantIssuanceRecord,
         "/admission_issuance_record_ref",
     )
-    checked_grant = exact(
+    checked_grant = _copy_admission_grant(
         grant,
-        TruthAssetAdmissionGrant,
         "/admission_grant_ref",
     )
-    checked_artifact = exact(artifact, ReferenceArtifact, "/artifact_ref")
-    checked_run = exact(run, ReferenceRunRecord, "/run_ref")
+    checked_artifact = _copy_canonical_record(
+        artifact,
+        ReferenceArtifact,
+        "/artifact_ref",
+    )
+    checked_run = _copy_canonical_record(run, ReferenceRunRecord, "/run_ref")
+    if supersedes is None:
+        checked_supersedes = OptionalBinding.absent()
+    else:
+        supplied_supersedes = exact(supersedes, OptionalBinding, "/supersedes")
+        try:
+            supplied_supersedes = OptionalBinding(
+                supplied_supersedes.tag,
+                supplied_supersedes.value,
+            )
+            checked_supersedes = (
+                OptionalBinding.present(
+                    reference_ref(
+                        supplied_supersedes.value,
+                        TruthAssetRef,
+                        "/supersedes",
+                        challenge_key=checked_run.challenge_key,
+                    )
+                )
+                if supplied_supersedes.is_present
+                else OptionalBinding.absent()
+            )
+        except ReferenceValidationError:
+            raise
+        except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+            raise invalid("/supersedes", ReferenceInputCode.WRONG_TYPE) from None
     if (
         checked_issuance.outcome
         is not AdmissionGrantIssuanceOutcome.ADMISSION_GRANT_AUTHORIZED
@@ -1291,7 +1595,7 @@ def _validated_truth_asset_fields(
         "run_ref": checked_run.to_ref(),
         "scope_binding": checked_run.scope_binding,
         "source_class": checked_run.source_class,
-        "supersedes": supersedes or OptionalBinding.absent(),
+        "supersedes": checked_supersedes,
         "truth_asset_id": truth_asset_id,
         "truth_asset_version": truth_asset_version,
         "uncertainty_binding": checked_run.uncertainty_binding,
@@ -1331,14 +1635,56 @@ def _build_positive_admission_operations():
         decision_id: str,
         decision_version: str,
     ) -> TruthAssetAdmissionDecisionRecord | None:
+        if authority is None:
+            return _decide_truth_asset_admission_record(
+                None,
+                issuance,
+                grant,
+                policy=policy,
+                run=run,
+                artifact=artifact,
+                comparisons=comparisons,
+                decision_id=decision_id,
+                decision_version=decision_version,
+            )
+        checked_issuance = _copy_issuance_record(
+            issuance,
+            "/issuance_record_ref",
+        )
+        checked_grant = _copy_admission_grant(grant, "/grant_ref")
+        checked_policy = _copy_canonical_record(policy, ReferencePolicy, "/policy_ref")
+        checked_run = _copy_canonical_record(run, ReferenceRunRecord, "/run_ref")
+        checked_artifact = (
+            None
+            if artifact is None
+            else _copy_canonical_record(artifact, ReferenceArtifact, "/artifact_ref")
+        )
+        supplied_comparisons = exact_tuple(
+            comparisons,
+            ReferenceComparisonRecord,
+            "/comparison_refs",
+        )
+        checked_comparisons = tuple(
+            _copy_canonical_record(
+                comparison,
+                ReferenceComparisonRecord,
+                "/comparison_refs",
+            )
+            for comparison in supplied_comparisons
+        )
+        if len(set(checked_comparisons)) != len(checked_comparisons):
+            raise invalid(
+                "/comparison_refs",
+                ReferenceInputCode.DUPLICATE_IDENTITY,
+            )
         decision = _decide_truth_asset_admission_record(
             authority,
-            issuance,
-            grant,
-            policy=policy,
-            run=run,
-            artifact=artifact,
-            comparisons=comparisons,
+            checked_issuance,
+            checked_grant,
+            policy=checked_policy,
+            run=checked_run,
+            artifact=checked_artifact,
+            comparisons=checked_comparisons,
             decision_id=decision_id,
             decision_version=decision_version,
         )
@@ -1349,25 +1695,14 @@ def _build_positive_admission_operations():
             return decision
         from .canonical import canonical_bytes
 
-        checked_decision = exact(
+        checked_decision = _copy_admission_decision(
             decision,
-            TruthAssetAdmissionDecisionRecord,
             "/admission_decision_ref",
         )
-        checked_artifact = exact(artifact, ReferenceArtifact, "/artifact_ref")
-        checked_issuance = exact(
-            issuance,
-            TruthAssetAdmissionGrantIssuanceRecord,
-            "/admission_issuance_record_ref",
-        )
-        checked_grant = exact(grant, TruthAssetAdmissionGrant, "/admission_grant_ref")
-        checked_policy = exact(policy, ReferencePolicy, "/policy_ref")
-        checked_run = exact(run, ReferenceRunRecord, "/run_ref")
-        checked_comparisons = exact_tuple(
-            comparisons,
-            ReferenceComparisonRecord,
-            "/comparison_refs",
-            unique=True,
+        checked_artifact = exact(
+            checked_artifact,
+            ReferenceArtifact,
+            "/artifact_ref",
         )
         graph = _PositiveAdmissionGraph(
             canonical_bytes(checked_decision),
@@ -1401,9 +1736,8 @@ def _build_positive_admission_operations():
     ) -> TruthAsset:
         """Atomically consume one exact positive graph to construct one asset."""
 
-        checked_decision = exact(
+        checked_decision = _copy_admission_decision(
             decision,
-            TruthAssetAdmissionDecisionRecord,
             "/admission_decision_ref",
         )
         decision_ref = checked_decision.to_ref()
@@ -1414,18 +1748,20 @@ def _build_positive_admission_operations():
                     "/admission_decision_ref",
                     ReferenceInputCode.STALE_BINDING,
                 )
-            checked_issuance = exact(
+            checked_issuance = _copy_issuance_record(
                 issuance,
-                TruthAssetAdmissionGrantIssuanceRecord,
                 "/admission_issuance_record_ref",
             )
-            checked_grant = exact(
+            checked_grant = _copy_admission_grant(
                 grant,
-                TruthAssetAdmissionGrant,
                 "/admission_grant_ref",
             )
-            checked_artifact = exact(artifact, ReferenceArtifact, "/artifact_ref")
-            checked_run = exact(run, ReferenceRunRecord, "/run_ref")
+            checked_artifact = _copy_canonical_record(
+                artifact,
+                ReferenceArtifact,
+                "/artifact_ref",
+            )
+            checked_run = _copy_canonical_record(run, ReferenceRunRecord, "/run_ref")
             from .canonical import canonical_bytes, decode_canonical_bytes
 
             if (

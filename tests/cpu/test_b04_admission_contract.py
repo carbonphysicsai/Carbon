@@ -193,6 +193,12 @@ def test_admission_selectors_reject_empty_open_or_duplicate_inputs(selector) -> 
     with pytest.raises(ReferenceValidationError) as captured:
         selector((reason, reason))
     assert captured.value.code == ReferenceInputCode.DUPLICATE_IDENTITY.value
+    pseudo_reason = str.__new__(type(reason), reason.value)
+    assert pseudo_reason is not reason
+    with pytest.raises(ReferenceValidationError) as captured:
+        selector((pseudo_reason,))
+    assert captured.value.code == ReferenceInputCode.INVALID_VALUE.value
+    assert captured.value.path == "/reason"
 
 
 def test_absent_issuer_or_authority_fabricates_no_terminal_record() -> None:
@@ -528,40 +534,35 @@ def test_fixture_artifact_is_rejected_after_structural_grant_issuance() -> None:
         == ReferenceInputCode.STALE_BINDING.value
     )
     assert mismatched_decision_authority.value.path == "/admission_authority_ref"
-    replay_receipt_ref = _identity(
-        challenge,
-        ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
-        "replay_receipt",
-    )
 
     class ReplayAuthority:
+        admission_calls = 0
+
         @property
         def admission_authority_ref(self):
             return authority_ref
 
         def evaluate_admission(self, observed_attempt, grant_ref):
-            assert observed_attempt == attempt
-            assert grant_ref == grant.to_ref()
-            return TruthAssetAdmissionEcho(
-                TruthAssetAdmissionOutcome.REJECTED,
-                TruthAssetAdmissionReason.GRANT_INVALID_OR_CONSUMED,
-                replay_receipt_ref,
-            )
+            del observed_attempt, grant_ref
+            self.admission_calls += 1
+            raise AssertionError("consumed-grant authority callback must not run")
 
-    replayed_grant = decide_truth_asset_admission(
-        ReplayAuthority(),
-        decode_canonical_bytes(canonical_bytes(issuance), type(issuance)),
-        decode_canonical_bytes(canonical_bytes(grant), type(grant)),
-        policy=graph.policy,
-        run=graph.primary_run,
-        artifact=graph.primary_artifact,
-        comparisons=(graph.comparison,),
-        decision_id="b04_replayed_admission_decision",
-        decision_version="1.0",
-    )
-    assert replayed_grant is not None
-    assert replayed_grant.outcome is TruthAssetAdmissionOutcome.REJECTED
-    assert replayed_grant.reason is TruthAssetAdmissionReason.GRANT_INVALID_OR_CONSUMED
+    replay_authority = ReplayAuthority()
+    with pytest.raises(ReferenceValidationError) as replayed_grant:
+        decide_truth_asset_admission(
+            replay_authority,
+            decode_canonical_bytes(canonical_bytes(issuance), type(issuance)),
+            decode_canonical_bytes(canonical_bytes(grant), type(grant)),
+            policy=graph.policy,
+            run=graph.primary_run,
+            artifact=graph.primary_artifact,
+            comparisons=(graph.comparison,),
+            decision_id="b04_replayed_admission_decision",
+            decision_version="1.0",
+        )
+    assert replayed_grant.value.code == ReferenceInputCode.STALE_BINDING.value
+    assert replayed_grant.value.path == "/grant_ref"
+    assert replay_authority.admission_calls == 0
     for record in (issuance, grant, decision):
         reconstructed = decode_canonical_bytes(canonical_bytes(record), type(record))
         assert reconstructed == record
@@ -593,9 +594,11 @@ def test_fixture_artifact_is_rejected_after_structural_grant_issuance() -> None:
 
     class MalformedAuthority:
         admission_calls = 0
+        ref_reads = 0
 
         @property
         def admission_authority_ref(self):
+            self.ref_reads += 1
             raise RuntimeError("untrusted authority detail")
 
         def evaluate_admission(self, observed_attempt, grant_ref):
@@ -605,7 +608,7 @@ def test_fixture_artifact_is_rejected_after_structural_grant_issuance() -> None:
 
     malformed = MalformedAuthority()
     malformed_decision = None
-    with pytest.raises(ReferenceServiceError) as malformed_authority:
+    with pytest.raises(ReferenceValidationError) as malformed_authority:
         malformed_decision = decide_truth_asset_admission(
             malformed,
             issuance,
@@ -618,10 +621,9 @@ def test_fixture_artifact_is_rejected_after_structural_grant_issuance() -> None:
             decision_version="1.0",
         )
     assert malformed_decision is None
-    assert (
-        malformed_authority.value.code
-        == ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE.value
-    )
+    assert malformed_authority.value.code == ReferenceInputCode.STALE_BINDING.value
+    assert malformed_authority.value.path == "/grant_ref"
+    assert malformed.ref_reads == 0
     assert malformed.admission_calls == 0
 
 
@@ -841,6 +843,30 @@ def test_one_provider_cannot_issue_and_decide_its_own_admission() -> None:
 def test_admission_one_use_state_is_not_caller_replaceable() -> None:
     assert not hasattr(admission_module, "AdmissionGrantLedger")
     assert "ledger" not in inspect.signature(decide_truth_asset_admission).parameters
+
+
+def test_admission_provider_echoes_are_redacted_and_not_pickleable() -> None:
+    graph = build_b04_fixture_reference_graph()
+    issuance_echo = AdmissionGrantIssuanceEcho(
+        AdmissionGrantIssuanceOutcome.ADMISSION_GRANT_AUTHORIZED,
+        AdmissionGrantIssuanceReason.ADMISSION_GRANT_REQUIREMENTS_SATISFIED,
+        "b04-secret-one-use-token",
+    )
+    admission_echo = TruthAssetAdmissionEcho(
+        TruthAssetAdmissionOutcome.ADMITTED,
+        TruthAssetAdmissionReason.ADMISSION_REQUIREMENTS_SATISFIED,
+        _identity(
+            graph.challenge_key,
+            ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
+            "protected-provider-echo-receipt",
+        ),
+    )
+
+    for value in (issuance_echo, admission_echo):
+        assert repr(value) == f"{type(value).__name__}(<protected>)"
+        assert str(value) == repr(value)
+        with pytest.raises(TypeError):
+            pickle.dumps(value)
 
 
 @pytest.mark.parametrize(

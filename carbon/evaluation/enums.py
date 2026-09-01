@@ -474,30 +474,66 @@ ADMISSION_REASON_PRECEDENCE = (
 )
 
 
+def _registered_enum_member(value: object, family: type[Enum]) -> bool:
+    """Reject exact-type pseudo-members as well as values from other families."""
+
+    return type(value) is family and any(value is member for member in family)
+
+
+def _registered_reason(
+    reason: object,
+    family: type[Enum],
+    allowed: tuple[Enum, ...],
+) -> bool:
+    return _registered_enum_member(reason, family) and any(
+        reason is member for member in allowed
+    )
+
+
 def outcome_reason_compatible(outcome: object, reason: object | None) -> bool:
     """Return compatibility only for one exact closed outcome family."""
 
     if type(outcome) is ResolutionOutcome:
-        return type(reason) is ResolutionReason and reason in (
-            RESOLUTION_OUTCOME_REASON_COMPATIBILITY[outcome]
+        return _registered_enum_member(
+            outcome, ResolutionOutcome
+        ) and _registered_reason(
+            reason,
+            ResolutionReason,
+            RESOLUTION_OUTCOME_REASON_COMPATIBILITY[outcome],
         )
     if type(outcome) is ReferenceRunOutcome:
+        if not _registered_enum_member(outcome, ReferenceRunOutcome):
+            return False
         if outcome is ReferenceRunOutcome.SUPPORTED:
             return reason is None
-        return type(reason) is ReferenceFailureReason and reason in (
-            RUN_OUTCOME_REASON_COMPATIBILITY[outcome]
+        return _registered_reason(
+            reason,
+            ReferenceFailureReason,
+            RUN_OUTCOME_REASON_COMPATIBILITY[outcome],
         )
     if type(outcome) is ReferenceComparisonOutcome:
-        return type(reason) is ReferenceComparisonReason and reason in (
-            COMPARISON_OUTCOME_REASON_COMPATIBILITY[outcome]
+        return _registered_enum_member(
+            outcome, ReferenceComparisonOutcome
+        ) and _registered_reason(
+            reason,
+            ReferenceComparisonReason,
+            COMPARISON_OUTCOME_REASON_COMPATIBILITY[outcome],
         )
     if type(outcome) is AdmissionGrantIssuanceOutcome:
-        return type(reason) is AdmissionGrantIssuanceReason and reason in (
-            ADMISSION_ISSUANCE_OUTCOME_REASON_COMPATIBILITY[outcome]
+        return _registered_enum_member(
+            outcome, AdmissionGrantIssuanceOutcome
+        ) and _registered_reason(
+            reason,
+            AdmissionGrantIssuanceReason,
+            ADMISSION_ISSUANCE_OUTCOME_REASON_COMPATIBILITY[outcome],
         )
     if type(outcome) is TruthAssetAdmissionOutcome:
-        return type(reason) is TruthAssetAdmissionReason and reason in (
-            ADMISSION_OUTCOME_REASON_COMPATIBILITY[outcome]
+        return _registered_enum_member(
+            outcome, TruthAssetAdmissionOutcome
+        ) and _registered_reason(
+            reason,
+            TruthAssetAdmissionReason,
+            ADMISSION_OUTCOME_REASON_COMPATIBILITY[outcome],
         )
     return False
 

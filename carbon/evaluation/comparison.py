@@ -31,6 +31,7 @@ from .enums import (
     ReferenceIdentityKind,
     ReferenceRunOutcome,
     UncertaintyStatus,
+    _registered_enum_member,
 )
 from .errors import ReferenceInputCode
 from .execution import (
@@ -93,6 +94,11 @@ def select_comparison_terminal(
         raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if any(type(item) is not ReferenceComparisonReason for item in observed_reasons):
         raise _reject("/reason", ReferenceInputCode.WRONG_TYPE)
+    if any(
+        not _registered_enum_member(item, ReferenceComparisonReason)
+        for item in observed_reasons
+    ):
+        raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if len(set(observed_reasons)) != len(observed_reasons):
         raise _reject("/reason", ReferenceInputCode.DUPLICATE_IDENTITY)
     observed = set(observed_reasons)
@@ -344,6 +350,8 @@ class ReferenceComparisonRecord(ReferenceTruthRecord):
 def _model_enum(value: object, expected: type, path: str):
     if type(value) is not expected:
         raise _reject(path, ReferenceInputCode.WRONG_TYPE)
+    if not _registered_enum_member(value, expected):
+        raise _reject(path, ReferenceInputCode.INVALID_VALUE)
     return value
 
 

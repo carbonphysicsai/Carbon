@@ -45,6 +45,7 @@ from .enums import (
     ResolutionReason,
     SupportApplicabilityStatus,
     UncertaintyStatus,
+    _registered_enum_member,
 )
 from .errors import ReferenceInputCode, ReferenceValidationError
 from .model import (
@@ -88,6 +89,13 @@ def _exact(value: object, expected: type[_T], path: str) -> _T:
     if type(value) is not expected:
         raise _reject(path, ReferenceInputCode.WRONG_TYPE)
     return value
+
+
+def _exact_enum(value: object, expected: type[_T], path: str) -> _T:
+    result = _exact(value, expected, path)
+    if not _registered_enum_member(result, expected):
+        raise _reject(path, ReferenceInputCode.INVALID_VALUE)
+    return result
 
 
 def _copy(value: object, expected: type[_T], path: str) -> _T:
@@ -614,7 +622,7 @@ def _validate_grant_common(grant: object, object_kind: str) -> ChallengeKey:
     object.__setattr__(
         grant,
         "authority_function",
-        _exact(
+        _exact_enum(
             grant.authority_function, ReferenceAuthorityFunction, "/authority_function"
         ),
     )
@@ -766,7 +774,7 @@ def _validate_grant_common(grant: object, object_kind: str) -> ChallengeKey:
     object.__setattr__(
         grant,
         "source_class",
-        _exact(grant.source_class, ReferenceSourceClass, "/source_class"),
+        _exact_enum(grant.source_class, ReferenceSourceClass, "/source_class"),
     )
     direct = _target_entry_refs(grant.execution_target)
     if direct and grant.component_entry_refs != direct:
@@ -818,6 +826,10 @@ def select_resolution_terminal(
         raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if any(type(item) is not ResolutionReason for item in observed_reasons):
         raise _reject("/reason", ReferenceInputCode.WRONG_TYPE)
+    if any(
+        not _registered_enum_member(item, ResolutionReason) for item in observed_reasons
+    ):
+        raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if len(set(observed_reasons)) != len(observed_reasons):
         raise _reject("/reason", ReferenceInputCode.DUPLICATE_IDENTITY)
     observed = set(observed_reasons)
@@ -862,8 +874,8 @@ class ReferenceResolutionRecord(ReferenceTruthRecord):
         if type(self) is not ReferenceResolutionRecord:
             raise _reject("/record", ReferenceInputCode.WRONG_TYPE)
         challenge = _challenge(self.challenge_key)
-        outcome = _exact(self.outcome, ResolutionOutcome, "/outcome")
-        reason = _exact(self.reason, ResolutionReason, "/reason")
+        outcome = _exact_enum(self.outcome, ResolutionOutcome, "/outcome")
+        reason = _exact_enum(self.reason, ResolutionReason, "/reason")
         expected = _RESOLUTION_OUTCOMES[reason]
         if expected is None:
             if outcome not in (
@@ -894,7 +906,7 @@ class ReferenceResolutionRecord(ReferenceTruthRecord):
         object.__setattr__(
             self,
             "authority_function",
-            _exact(
+            _exact_enum(
                 self.authority_function,
                 ReferenceAuthorityFunction,
                 "/authority_function",
@@ -986,7 +998,7 @@ class ReferenceResolutionRecord(ReferenceTruthRecord):
         object.__setattr__(
             self,
             "source_class",
-            _exact(self.source_class, ReferenceSourceClass, "/source_class"),
+            _exact_enum(self.source_class, ReferenceSourceClass, "/source_class"),
         )
         _validate_resolution_bindings(self)
 
@@ -1371,6 +1383,11 @@ def select_run_terminal(
         raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if any(type(item) is not ReferenceFailureReason for item in observed_reasons):
         raise _reject("/reason", ReferenceInputCode.WRONG_TYPE)
+    if any(
+        not _registered_enum_member(item, ReferenceFailureReason)
+        for item in observed_reasons
+    ):
+        raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
     if len(set(observed_reasons)) != len(observed_reasons):
         raise _reject("/reason", ReferenceInputCode.DUPLICATE_IDENTITY)
     observed = set(observed_reasons)
@@ -1420,7 +1437,7 @@ class ReferenceRunRecord(ReferenceTruthRecord):
         if type(self) is not ReferenceRunRecord:
             raise _reject("/record", ReferenceInputCode.WRONG_TYPE)
         challenge = _challenge(self.challenge_key)
-        outcome = _exact(self.outcome, ReferenceRunOutcome, "/outcome")
+        outcome = _exact_enum(self.outcome, ReferenceRunOutcome, "/outcome")
         reason_binding = _copy(self.reason, OptionalBinding, "/reason")
         if outcome is ReferenceRunOutcome.SUPPORTED:
             if reason_binding.is_present:
@@ -1472,7 +1489,7 @@ class ReferenceRunRecord(ReferenceTruthRecord):
         object.__setattr__(
             self,
             "authority_function",
-            _exact(
+            _exact_enum(
                 self.authority_function,
                 ReferenceAuthorityFunction,
                 "/authority_function",
@@ -1578,7 +1595,7 @@ class ReferenceRunRecord(ReferenceTruthRecord):
         object.__setattr__(
             self,
             "source_class",
-            _exact(self.source_class, ReferenceSourceClass, "/source_class"),
+            _exact_enum(self.source_class, ReferenceSourceClass, "/source_class"),
         )
         object.__setattr__(self, "uncertainty_binding", uncertainty)
         _validate_run_matrix(self)

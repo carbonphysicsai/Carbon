@@ -28,6 +28,7 @@ from .enums import (
     ReferenceSourceClass,
     SupportApplicabilityStatus,
     UncertaintyStatus,
+    _registered_enum_member,
 )
 from .errors import (
     ReferenceDisclosureCode,
@@ -113,7 +114,10 @@ class ReferenceDisclosureVerificationEcho(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not ReferenceDisclosureVerificationEcho:
             raise TypeError("disclosure verification echo has the wrong exact type")
-        if type(self.projection_kind) is not _ReferenceProjectionKind:
+        if not _registered_enum_member(
+            self.projection_kind,
+            _ReferenceProjectionKind,
+        ):
             raise TypeError("projection kind has the wrong exact type")
         expected_ref = (
             ReferencePolicyRef
@@ -258,7 +262,7 @@ class ReferenceDisclosureAuthority(ProtectedReferenceValue):
         projection_kind: _ReferenceProjectionKind,
         source_ref: ReferencePolicyRef | ReferenceRunRecordRef,
     ) -> None:
-        if type(projection_kind) is not _ReferenceProjectionKind:
+        if not _registered_enum_member(projection_kind, _ReferenceProjectionKind):
             raise TypeError("projection kind has the wrong exact type")
         expected_ref = (
             ReferencePolicyRef
@@ -345,9 +349,15 @@ class PublicReferencePolicyProjection:
             or self.schema_version != REFERENCE_TRUTH_SCHEMA_VERSION
         ):
             raise TypeError("public policy projection schema is invalid")
-        if type(self.answer_key_target_kind) is not ReferenceAuthorityTargetKind:
+        if not _registered_enum_member(
+            self.answer_key_target_kind,
+            ReferenceAuthorityTargetKind,
+        ):
             raise TypeError("answer-key target kind has the wrong exact type")
-        if type(self.composition_kind) is not ReferenceCompositionKind:
+        if not _registered_enum_member(
+            self.composition_kind,
+            ReferenceCompositionKind,
+        ):
             raise TypeError("composition kind has the wrong exact type")
         expected_composition = (
             ReferenceCompositionKind.SINGLE_ENTRY
@@ -457,13 +467,16 @@ class PublicReferenceOutcomeProjection:
                 "uncertainty status",
             ),
         ):
-            if type(value) is not expected:
+            if not _registered_enum_member(value, expected):
                 raise TypeError(f"{message} has the wrong exact type")
         if self.outcome is ReferenceRunOutcome.SUPPORTED:
             if self.reason is not None:
                 raise ValueError("supported public outcome cannot carry a reason")
         else:
-            if type(self.reason) is not ReferenceFailureReason:
+            if not _registered_enum_member(
+                self.reason,
+                ReferenceFailureReason,
+            ):
                 raise TypeError("failure reason has the wrong exact type")
             selected_outcome, _ = select_run_terminal((self.reason,))
             if selected_outcome is not self.outcome:

@@ -164,6 +164,12 @@ def _enum(enum_type: type[Enum]) -> _FieldCodec:
     return _FieldCodec("enum", enum_type)
 
 
+def _registered_enum_member(value: object, enum_type: type[Enum]) -> bool:
+    """Require identity in the closed family before reading member metadata."""
+
+    return type(value) is enum_type and any(value is member for member in enum_type)
+
+
 def _owner(expected_kind: str) -> _FieldCodec:
     if type(expected_kind) is not str or not expected_kind:
         raise TypeError("owner kind must be nonempty text")
@@ -376,6 +382,16 @@ def _decoding_error(path: str = "") -> ReferenceCanonicalDecodingError:
 def _encode_authoring(value: object, expected_type: type) -> CanonicalValue:
     if type(value) is not expected_type:
         raise _encoding_error()
+    from carbon.authoring.evidence import EvidenceRoleBinding
+    from carbon.authoring.model import EvidenceRole
+
+    if expected_type is EvidenceRoleBinding:
+        try:
+            role = object.__getattribute__(value, "role")
+        except (AttributeError, TypeError):
+            raise _encoding_error() from None
+        if not _registered_enum_member(role, EvidenceRole):
+            raise _encoding_error()
     from carbon.authoring.model import _canonical_value
 
     try:
@@ -414,7 +430,7 @@ def _encode_field(value: object, codec: _FieldCodec) -> CanonicalValue:
             return CanonicalRecord("empty_payload", ())
         if kind == "challenge_key":
             return challenge_key_to_canonical(value)
-        if kind == "enum" and type(value) is codec.argument:
+        if kind == "enum" and _registered_enum_member(value, codec.argument):
             return CanonicalUnion(value.name, CanonicalRecord("empty_payload", ()))
         if kind == "owner_ref" and is_owner_ref(value):
             if value.ref_kind != codec.argument:

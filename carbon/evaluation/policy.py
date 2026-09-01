@@ -35,6 +35,7 @@ from .enums import (
     ReferenceSourceClass,
     ReferenceWitnessTargetKind,
     ResolutionReason,
+    _registered_enum_member,
 )
 from .errors import ReferenceInputCode, ReferenceValidationError, reject
 from .model import (
@@ -71,7 +72,10 @@ def _exact(value: object, expected: type[T], path: str) -> T:
 
 
 def _exact_enum(value: object, expected: type[T], path: str) -> T:
-    return _exact(value, expected, path)
+    result = _exact(value, expected, path)
+    if not _registered_enum_member(result, expected):
+        raise _invalid(path)
+    return result
 
 
 def _identifier(value: object, path: str) -> str:

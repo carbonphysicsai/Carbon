@@ -56,6 +56,7 @@ from .enums import (
     SupportApplicabilityStatus,
     UncertaintyComponentKind,
     UncertaintyStatus,
+    _registered_enum_member,
 )
 from .errors import ReferenceInputCode, ReferenceValidationError
 from .refs import (
@@ -88,7 +89,10 @@ def exact(value: object, expected: type[T], path: str) -> T:
 
 
 def exact_enum(value: object, expected: type[T], path: str) -> T:
-    return exact(value, expected, path)
+    result = exact(value, expected, path)
+    if not _registered_enum_member(result, expected):
+        raise invalid(path)
+    return result
 
 
 def exact_tuple(
@@ -110,7 +114,7 @@ def exact_tuple(
     if unique:
         try:
             distinct = len(set(copied))
-        except TypeError:
+        except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
             raise invalid(path) from None
         if distinct != len(copied):
             raise invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
@@ -319,16 +323,21 @@ def pinned_identity(
     challenge_key: ChallengeKey,
 ) -> PinnedReferenceIdentity:
     result = exact(value, PinnedReferenceIdentity, path)
-    _require_same_challenge(result.challenge_key, challenge_key, path)
-    if result.identity_kind is not expected_kind:
-        raise invalid(path, ReferenceInputCode.ROLE_MISMATCH)
-    return PinnedReferenceIdentity(
-        result.challenge_key,
-        result.content_digest,
-        result.identity_id,
-        result.identity_kind,
-        result.identity_version,
-    )
+    try:
+        _require_same_challenge(result.challenge_key, challenge_key, path)
+        if result.identity_kind is not expected_kind:
+            raise invalid(path, ReferenceInputCode.ROLE_MISMATCH)
+        return PinnedReferenceIdentity(
+            result.challenge_key,
+            result.content_digest,
+            result.identity_id,
+            result.identity_kind,
+            result.identity_version,
+        )
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
 
 
 def evidence_role_binding(
@@ -340,7 +349,10 @@ def evidence_role_binding(
 ) -> EvidenceRoleBinding:
     binding = exact(value, EvidenceRoleBinding, path)
     try:
-        reconstructed = EvidenceRoleBinding(binding.role, binding.hybrid_role_ref)
+        role = exact_enum(binding.role, EvidenceRole, path)
+        reconstructed = EvidenceRoleBinding(role, binding.hybrid_role_ref)
+    except ReferenceValidationError:
+        raise
     except (AuthoringError, TypeError, ValueError):
         raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     if reconstructed.role is EvidenceRole.REGISTERED_HYBRID:
