@@ -614,15 +614,259 @@ class ValidatorContractTests(unittest.TestCase):
             validator.errors,
         )
 
-    def test_separate_contract_delivery_mode_uses_normalized_enum(self) -> None:
+    def test_separate_contract_delivery_mode_accepts_all_closed_reasons(self) -> None:
+        head = self.run_git(REPO_ROOT, "rev-parse", "HEAD")
+        tree = self.run_git(REPO_ROOT, "rev-parse", "HEAD^{tree}")
+        reasons = (
+            "CONTRACT_ONLY_TICKET",
+            "CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT",
+            "CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE",
+        )
+        for reason in reasons:
+            with self.subTest(reason=reason):
+                body = delivery_body(head, head, tree).replace(
+                    "DELIVERY_MODE: SINGLE_TICKET_PR\n"
+                    "SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE",
+                    "DELIVERY_MODE: SEPARATE_CONTRACT_PR\n"
+                    f"SEPARATE_CONTRACT_PR_REASON: {reason}",
+                )
+                validator = validate_hub.Validator(REPO_ROOT)
+                validator.data = self.load_hub_data()
+                validator.github_event = {
+                    "pull_request": {
+                        "body": body,
+                        "head": {"sha": head},
+                        "base": {"sha": head},
+                    }
+                }
+                validator.validate_delivery_declaration()
+                self.assertEqual(validator.errors, [])
+
+    def test_authoritative_sequencing_accepts_tracked_explicit_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.init_git_fixture(root)
+            authority = root / ".agent/WAVE.md"
+            authority.parent.mkdir(parents=True)
+            authority.write_text(
+                "# Fixture current wave\r\n\r\n"
+                "SEPARATE_CONTRACT_PR_EXCEPTION: Concurrent downstream consumers "
+                "require the immutable contract first.\r\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", ".agent/WAVE.md")
+            self.run_git(root, "commit", "-m", "record sequencing exception")
+            head = self.run_git(root, "rev-parse", "HEAD")
+            tree = self.run_git(root, "rev-parse", "HEAD^{tree}")
+            reason = (
+                "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | DETAILS: "
+                "concurrent  downstream consumers require the immutable contract first."
+            )
+            body = delivery_body(head, head, tree).replace(
+                "DELIVERY_MODE: SINGLE_TICKET_PR\n"
+                "SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE",
+                "DELIVERY_MODE: SEPARATE_CONTRACT_PR\n"
+                f"SEPARATE_CONTRACT_PR_REASON: {reason}",
+            )
+            validator = validate_hub.Validator(root)
+            validator.github_event = {
+                "pull_request": {
+                    "body": body,
+                    "head": {"sha": head},
+                    "base": {"sha": head},
+                }
+            }
+            validator.validate_delivery_declaration()
+            self.assertEqual(validator.errors, [])
+
+            incomplete = validate_hub.Validator(root)
+            incomplete.validate_separate_contract_reason(
+                "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | DETAILS: "
+                "Concurrent downstream consumers require the immutable contract"
+            )
+            self.assertTrue(
+                any("normalize-equal" in error for error in incomplete.errors),
+                incomplete.errors,
+            )
+
+            authority.write_text(
+                "# Fixture current wave\n\n"
+                "SEPARATE_CONTRACT_PR_EXCEPTION: Concurrent **downstream** "
+                "consumers require the immutable contract first.\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", ".agent/WAVE.md")
+            self.run_git(root, "commit", "-m", "record invalid marked-up exception")
+            marked_up_marker = validate_hub.Validator(root)
+            marked_up_marker.validate_separate_contract_reason(
+                "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | DETAILS: "
+                "Concurrent downstream consumers require the immutable contract first."
+            )
+            self.assertTrue(
+                any(
+                    "marker values must be plain prose" in error
+                    for error in marked_up_marker.errors
+                ),
+                marked_up_marker.errors,
+            )
+
+    def test_separate_contract_rejects_arbitrary_and_ticket_size_reasons(
+        self,
+    ) -> None:
+        head = self.run_git(REPO_ROOT, "rev-parse", "HEAD")
+        tree = self.run_git(REPO_ROOT, "rev-parse", "HEAD^{tree}")
+        cases = (
+            ("Any arbitrary reason with enough words", "must be CONTRACT_ONLY_TICKET"),
+            ("This ticket is too large for one pull request", "ticket size"),
+            ("Ticket-size makes this pull request separate", "ticket size"),
+            ("Ticket_size makes this pull request separate", "ticket size"),
+            ("Ticket–size makes this pull request separate", "ticket size"),
+            ("Ticket‑size makes this pull request separate", "ticket size"),
+            ("The ticket's size requires another pull request", "ticket size"),
+            ("An oversized ticket requires another pull request", "ticket size"),
+            ("The ticket **size** requires another pull request", "ticket size"),
+            ("The ticket `size` requires another pull request", "ticket size"),
+            ("A large **ticket** requires another pull request", "ticket size"),
+            ("Ticket&nbsp;size requires another pull request", "ticket size"),
+            ("Ticket&#x2011;size requires another pull request", "ticket size"),
+            (
+                (
+                    "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE_B.md | "
+                    "DETAILS: ticket size alone is not one."
+                ),
+                "ticket size",
+            ),
+        )
+        for reason, expected in cases:
+            with self.subTest(reason=reason):
+                body = delivery_body(head, head, tree).replace(
+                    "DELIVERY_MODE: SINGLE_TICKET_PR\n"
+                    "SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE",
+                    "DELIVERY_MODE: SEPARATE_CONTRACT_PR\n"
+                    f"SEPARATE_CONTRACT_PR_REASON: {reason}",
+                )
+                validator = validate_hub.Validator(REPO_ROOT)
+                validator.data = self.load_hub_data()
+                validator.github_event = {
+                    "pull_request": {
+                        "body": body,
+                        "head": {"sha": head},
+                        "base": {"sha": head},
+                    }
+                }
+                validator.validate_delivery_declaration()
+                self.assertTrue(
+                    any(expected in error for error in validator.errors),
+                    validator.errors,
+                )
+
+    def test_authoritative_sequencing_reason_fails_closed(self) -> None:
+        cases = (
+            (
+                (
+                    "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/./WAVE.md | "
+                    "DETAILS: runtime work waits for the recorded delivery gate"
+                ),
+                "normalized repository-relative path",
+            ),
+            (
+                (
+                    "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | "
+                    "DETAILS: This arbitrary exception is never recorded."
+                ),
+                "normalize-equal",
+            ),
+            (
+                (
+                    "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | "
+                    "DETAILS: Current wave"
+                ),
+                "at least four words",
+            ),
+        )
+        for reason, expected in cases:
+            with self.subTest(reason=reason):
+                validator = validate_hub.Validator(REPO_ROOT)
+                validator.data = self.load_hub_data()
+                validator.validate_separate_contract_reason(reason)
+                self.assertTrue(
+                    any(expected in error for error in validator.errors),
+                    validator.errors,
+                )
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.init_git_fixture(root)
+            tracked = root / "tracked.txt"
+            tracked.write_text("fixture\n", encoding="utf-8")
+            self.run_git(root, "add", "tracked.txt")
+            self.run_git(root, "commit", "-m", "fixture")
+            authority = root / "Design_Specs/Build_Out.md"
+            authority.parent.mkdir(parents=True)
+            authority.write_text(
+                "A separate immutable contract is required before implementation.\n",
+                encoding="utf-8",
+            )
+            validator = validate_hub.Validator(root)
+            validator.validate_separate_contract_reason(
+                "AUTHORITATIVE_SEQUENCING | AUTHORITY: "
+                "Design_Specs/Build_Out.md | DETAILS: A separate immutable "
+                "contract is required before implementation."
+            )
+            self.assertTrue(
+                any("must name a tracked" in error for error in validator.errors),
+                validator.errors,
+            )
+
+            authority.write_text("Baseline sequencing authority.\n", encoding="utf-8")
+            self.run_git(root, "add", "Design_Specs/Build_Out.md")
+            self.run_git(root, "commit", "-m", "track sequencing authority")
+            authority.write_text(
+                "Baseline sequencing authority.\n"
+                "SEPARATE_CONTRACT_PR_EXCEPTION: A separate immutable contract "
+                "is required before implementation.\n",
+                encoding="utf-8",
+            )
+            worktree_only = validate_hub.Validator(root)
+            worktree_only.validate_separate_contract_reason(
+                "AUTHORITATIVE_SEQUENCING | AUTHORITY: "
+                "Design_Specs/Build_Out.md | DETAILS: A separate immutable "
+                "contract is required before implementation."
+            )
+            self.assertTrue(
+                any("normalize-equal" in error for error in worktree_only.errors),
+                worktree_only.errors,
+            )
+
+    def test_authoritative_sequencing_rejects_markup_metacharacters(self) -> None:
+        values = (
+            "The <runtime> contract requires separate sequencing.",
+            "The runtime > contract requires separate sequencing.",
+            "The runtime & contract requires separate sequencing.",
+            "The *runtime* contract requires separate sequencing.",
+            "The `runtime` contract requires separate sequencing.",
+            "The runtime_contract requires separate sequencing.",
+            "Ticket <em>size</em> requires another pull request.",
+        )
+        for details in values:
+            with self.subTest(details=details):
+                validator = validate_hub.Validator(REPO_ROOT)
+                validator.data = self.load_hub_data()
+                validator.validate_separate_contract_reason(
+                    "AUTHORITATIVE_SEQUENCING | AUTHORITY: .agent/WAVE.md | "
+                    f"DETAILS: {details}"
+                )
+                self.assertTrue(
+                    any("plain prose" in error for error in validator.errors),
+                    validator.errors,
+                )
+
+    def test_single_ticket_rejects_separate_contract_reason_code(self) -> None:
         head = self.run_git(REPO_ROOT, "rev-parse", "HEAD")
         tree = self.run_git(REPO_ROOT, "rev-parse", "HEAD^{tree}")
         body = delivery_body(head, head, tree).replace(
-            "DELIVERY_MODE: SINGLE_TICKET_PR\n"
             "SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE",
-            "DELIVERY_MODE: SEPARATE_CONTRACT_PR\n"
-            "SEPARATE_CONTRACT_PR_REASON: Contract-only ticket under recorded "
-            "delivery authority",
+            "SEPARATE_CONTRACT_PR_REASON: CONTRACT_ONLY_TICKET",
         )
         validator = validate_hub.Validator(REPO_ROOT)
         validator.github_event = {
@@ -633,7 +877,13 @@ class ValidatorContractTests(unittest.TestCase):
             }
         }
         validator.validate_delivery_declaration()
-        self.assertEqual(validator.errors, [])
+        self.assertTrue(
+            any(
+                "requires SEPARATE_CONTRACT_PR_REASON" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
 
     def test_throughput_counts_and_rerun_reason_are_machine_validated(self) -> None:
         head = self.run_git(REPO_ROOT, "rev-parse", "HEAD")
@@ -1404,6 +1654,51 @@ class ValidatorContractTests(unittest.TestCase):
             any("controlling_board_fingerprint" in error for error in validator.errors),
             validator.errors,
         )
+
+    def test_board_ignores_ticket_ids_in_semicolon_nonblocking_clauses(self) -> None:
+        board = """**Version:** 1.1
+
+| ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | MQs | Effort | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| B-01F | Delivery hardening | done | evidence | Codex | Tech lead | B-01E, ratified B-04 engineering contract | MQ-018 | L | WB-1/2 |
+| B-01G | Codegen proof | todo | — | Codex | Tech lead | B-01F; non-blocking for B-04 | MQ-018 | S | future tooling |
+| B-GATE | Closeout | todo | — | Codex | Tech lead | B-01F, B-04; B-01G explicitly non-blocking | MQ-018 | M | WB-5 |
+"""
+        validator = validate_hub.Validator(REPO_ROOT)
+        version, rows = validator.parse_ticket_board(board, "fixture board")
+        self.assertEqual(version, "1.1")
+        self.assertEqual(rows["B-01F"]["depends_on"], ["B-01E", "B-04"])
+        self.assertEqual(rows["B-01G"]["depends_on"], ["B-01F"])
+        self.assertEqual(rows["B-GATE"]["depends_on"], ["B-01F", "B-04"])
+        self.assertEqual(
+            rows["B-01G"]["dependency_context"],
+            "B-01F; non-blocking for B-04",
+        )
+        self.assertEqual(validator.errors, [])
+
+    def test_selected_source_matches_leading_board_dependency_clause(self) -> None:
+        rows = [
+            ("B-02A", "done", "owner-a", "reviewer-a", []),
+            ("B-01F", "done", "owner-b", "reviewer-b", []),
+            (
+                "B-04",
+                "in_progress",
+                "owner-c",
+                "reviewer-c",
+                ["B-02A", "B-01F"],
+            ),
+        ]
+        validator, view = self.authority_fixture(
+            wave="B", predecessor="A", selected="B-04", rows=rows
+        )
+        view["board_rows"]["B-04"][
+            "dependency_context"
+        ] = "B-02A; runtime additionally requires B-01F"
+        view["selected_source"] = (
+            "# B-04\n\n**Status:** in_progress\n**Depends on:** B-02A\n"
+        )
+        validator.validate_authority_view(view, "fixture B-04 runtime gate")
+        self.assertEqual(validator.errors, [])
 
     def test_living_board_accepts_next_wave_b_ticket_selection(self) -> None:
         rows = [

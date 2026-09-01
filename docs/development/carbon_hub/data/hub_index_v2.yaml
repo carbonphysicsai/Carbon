@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-01T03:53:59Z"
+  captured_at_utc: "2026-09-01T09:18:02Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "79143d13e1e69e6f8e32ac066828b47fe5f9b060"
+  authority_snapshot_commit: "d7b2e817f43202948bbe831cb9c9693382a3cf81"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -16,13 +16,14 @@ current:
   ticket_title: "Reference and truth contracts"
   ticket_status: "in_progress"
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "1.0"
-  controlling_board_fingerprint: "d705d4847bb1cc77d5a6a5dac3b01efdca50e9bbcdbcf8f43f33a9abbfca1328"
-  stage: "Version 1.0 records B-03 done in bounded merged engineering scope and selects B-04 in_progress for working-contract authoring only. The B-04 contract in this snapshot is a candidate; normal merge and exact-main CI remain pending, and no B-04 implementation is authorized."
+  controlling_register_version: "1.1"
+  controlling_board_fingerprint: "6272bfd9f4ee36d01bd1784ece3fc8d0d0c6a84ed45a968f290cfb28315ac471"
+  stage: "Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
     - "B-01E"
+    - "B-01F"
     - "B-02A"
     - "B-02B"
     - "B-02C"
@@ -30,6 +31,7 @@ current:
     - "B-07R"
   recent_dependencies:
     - "B-02A"
+    - "B-01F"
   other_completed_wave_context:
     - "B-01"
     - "B-01E"
@@ -38,6 +40,7 @@ current:
     - "B-03"
     - "B-07R"
   downstream_handoffs:
+    - "B-01F"
     - "B-05"
     - "B-06"
     - "B-07F"
@@ -45,12 +48,12 @@ current:
     - "B-E2"
     - "B-GATE"
   parallel_context:
-    []
+    - "B-01G remains todo as a future non-blocking tooling proof and is not a prerequisite for current runtime work."
   next_selected_ticket: null
   fail_closed:
+    - "B-01F's prepared done state and B-04 runtime selection remain inert until the exact reviewed normal merge, exact-main Merge gate, and completed external receipt satisfy the conditional completion predicate."
     - "Every real primary or witness method, support boundary, conditioning rule, uncertainty value, comparison threshold, resource policy, right, and qualification input remains HUMAN_INPUT_REQUIRED or otherwise unavailable."
     - "B-04-D11 must freeze the exact v1 record schema, outcome/reason matrices, and carbon.evaluation root-export tuple before any runtime model is authorized."
-    - "B-04 implementation remains prohibited until this exact contract tree normally merges and exact-main CI succeeds."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
     specified: "earned"
@@ -61,8 +64,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "The B-04 bounded engineering contract is specified only as a candidate in this captured authority snapshot. It is not ratified, implemented, or runtime-tested; every reference, scientific, security, network, commercial, and production qualification state remains unearned."
-  decision_series_status: "B-04-D1 through B-04-D10 are candidate bounded engineering-contract decisions. They remain unratified until the exact reviewed contract tree normally merges and exact-main CI succeeds. B-04-D11 and every runtime/reference implementation remain future work; no human-reserved input or qualification authority is supplied."
+  maturity_summary: "The B-04 bounded engineering contract is ratified and specified. Runtime implementation and testing remain unearned; B-01F's conditional completion predicate governs when runtime selection becomes effective. Every reference, scientific, security, network, commercial, and production qualification state remains unearned."
+  decision_series_status: "B-04-D1 through B-04-D10 are ratified bounded engineering-contract decisions. OWNER-DX-01 pauses runtime behind B-01F without amending them. B-04-D11 and every runtime/reference implementation remain future work; no human-reserved input or qualification authority is supplied."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -105,6 +108,8 @@ waves:
     tickets:
       - "B-01"
       - "B-01E"
+      - "B-01F"
+      - "B-01G"
       - "B-02A"
       - "B-02B"
       - "B-02C"
@@ -537,8 +542,43 @@ tickets:
     depends_on_context:
       []
     unlocks:
+      - "B-01F"
       - "B-02A"
       - "B-GATE"
+    unlocks_context:
+      []
+  -
+    id: "B-01F"
+    wave: "B"
+    title: "Development throughput hardening"
+    status: "done"
+    explainer: "explainers/tickets/b_01f.md"
+    repo_path: ".agent/tickets/B-01F_development_throughput_hardening.md"
+    depends_on:
+      - "B-01E"
+      - "B-04"
+    depends_on_context:
+      - "B-01E's canonical development substrate"
+      - "B-04's ratified bounded engineering contract; B-01F precedes only its runtime phase"
+    unlocks:
+      - "B-01G"
+      - "B-04"
+      - "B-GATE"
+    unlocks_context:
+      []
+  -
+    id: "B-01G"
+    wave: "B"
+    title: "Static schema codegen proof"
+    status: "todo"
+    explainer: "explainers/tickets/b_01g.md"
+    repo_path: ".agent/tickets/B-01G_static_schema_codegen_proof.md"
+    depends_on:
+      - "B-01F"
+    depends_on_context:
+      - "B-01F delivery hardening; explicitly non-blocking for B-04"
+    unlocks:
+      []
     unlocks_context:
       []
   -
@@ -639,9 +679,12 @@ tickets:
     repo_path: ".agent/tickets/B-04_reference_truth_contracts.md"
     depends_on:
       - "B-02A"
+      - "B-01F"
     depends_on_context:
-      []
+      - "B-02A directly precedes the bounded engineering contract"
+      - "B-01F conditionally gates resumption of the runtime phase after contract ratification"
     unlocks:
+      - "B-01F"
       - "B-05"
       - "B-06"
       - "B-07F"
@@ -1036,6 +1079,7 @@ tickets:
     depends_on:
       - "B-01"
       - "B-01E"
+      - "B-01F"
       - "B-02A"
       - "B-02B"
       - "B-02C"
@@ -1281,6 +1325,29 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/MATURITY"
     supersedes: "B-03-E2"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-DX-01"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "OWNER-DX-01 records B-01F done under its conditional completion predicate, queues B-01G as non-blocking todo, and keeps B-04 selected in_progress with its bounded engineering contract ratified while runtime remains unimplemented."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/d7b2e817f43202948bbe831cb9c9693382a3cf81/.agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/CI"
+      - "SYSTEM/PR-MAINTENANCE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/MATURITY"
+      - "WAVE-B"
+      - "WAVE-B/B-01E"
+      - "WAVE-B/B-01F"
+      - "WAVE-B/B-01G"
+      - "WAVE-B/B-04"
+      - "WAVE-B/B-GATE"
+    supersedes: "B-04-E1"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

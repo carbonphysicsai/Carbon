@@ -107,9 +107,7 @@ def test_all_standalone_local_hosts_require_an_exact_allowance() -> None:
     for value in ("alice.local", "josé.local", "lab.segment.local"):
         assert any(item.kind == "workstation hostname" for item in _scan(value))
 
-    allowed = checker.Allowlist(
-        text=frozenset({("fixture.txt", "threading.local")})
-    )
+    allowed = checker.Allowlist(text=frozenset({("fixture.txt", "threading.local")}))
     assert (
         checker.scan_text(
             "threading.local is a program attribute",

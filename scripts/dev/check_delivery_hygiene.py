@@ -37,8 +37,7 @@ FORBIDDEN_COMMIT_INTENT = (
     "retrigger validation",
 )
 _COMMIT_SUBJECT_PREFIX_RE = re.compile(
-    r"^(?:(?:fixup|squash)!\s+|"
-    r"[a-z0-9][a-z0-9_-]*(?:\([^\r\n)]+\))?!?:\s+)",
+    r"^(?:(?:fixup|squash)!\s+|" r"[a-z0-9][a-z0-9_-]*(?:\([^\r\n)]+\))?!?:\s+)",
     re.IGNORECASE,
 )
 _COMPLETION_ONLY_QUALIFIER_RE = re.compile(
@@ -460,9 +459,7 @@ def _completion_only_intent(subject: str) -> str | None:
             continue
         suffix = normalized[len(intent) :]
         punctuation = suffix.strip()
-        if punctuation and all(
-            character in ".!?:;,-—–" for character in punctuation
-        ):
+        if punctuation and all(character in ".!?:;,-—–" for character in punctuation):
             return intent
         qualifier = suffix.lstrip(" \t.!?:;,-—–")
         if _COMPLETION_ONLY_QUALIFIER_RE.match(qualifier):

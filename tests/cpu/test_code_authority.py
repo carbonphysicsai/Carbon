@@ -7,11 +7,12 @@ import importlib.util
 import json
 import subprocess
 import sys
-import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -951,7 +952,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "path: .carbon-gate-candidate" in workflow
     assert ".carbon-gate-base/scripts/dev/classify_changes.py" in workflow
     assert "one-time B-01F bootstrap change classifier" in workflow
-    assert '--repository .carbon-gate-candidate' in workflow
+    assert "--repository .carbon-gate-candidate" in workflow
     assert '[[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]' in workflow
     assert '[[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]' in workflow
     assert '--scope "${derived_scope}"' in workflow

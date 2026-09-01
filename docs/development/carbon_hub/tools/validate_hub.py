@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import hashlib
+import html
 import importlib.util
 import io
 import json
@@ -244,6 +245,26 @@ DELIVERY_CHANGE_SCOPES = {
     "CONTRACT_AUTHORITY",
     "DERIVED_DOCUMENTATION",
 }
+SEPARATE_CONTRACT_REASON_CODES = {
+    "CONTRACT_ONLY_TICKET",
+    "CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT",
+    "CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE",
+}
+ALWAYS_CURRENT_SEQUENCING_AUTHORITIES = {
+    ".agent/WAVE.md",
+    "Design_Specs/Agentic_Development_Master_Plan.md",
+    "Design_Specs/Build_Out.md",
+}
+AUTHORITATIVE_SEQUENCING_REASON = re.compile(
+    r"^AUTHORITATIVE_SEQUENCING \| AUTHORITY: ([A-Za-z0-9._/-]+) " r"\| DETAILS: (.+)$"
+)
+TICKET_SIZE_REASON = re.compile(
+    r"\b(?:ticket(?: s)? size|size of (?:the )?ticket|"
+    r"(?:large|big|oversized?) ticket|"
+    r"ticket (?:is )?(?:too )?(?:large|big|oversized?)|"
+    r"too (?:large|big) (?:a )?ticket)\b"
+)
+SEQUENCING_DETAILS_FORBIDDEN = re.compile(r"[<>&*`_]")
 
 
 class SimpleYamlError(ValueError):
@@ -423,6 +444,11 @@ def _unique(values: Iterable[Any]) -> bool:
 
 def _clean_markdown(value: str) -> str:
     return " ".join(value.replace("`", "").replace("**", "").split())
+
+
+def _normalize_delivery_prose(value: str) -> str:
+    rendered = _clean_markdown(html.unescape(value)).casefold()
+    return " ".join(re.sub(r"[\W_]+", " ", rendered).split())
 
 
 def _inside(root: Path, candidate: Path) -> bool:
@@ -2144,8 +2170,14 @@ class Validator:
                     f"{source_label} row {ticket_id} has invalid status {status!r}"
                 )
             dependency_text = _clean_markdown(raw_record["Depends on"])
+            blocking_dependency_text = "; ".join(
+                clause
+                for clause in dependency_text.split(";")
+                if not re.search(r"\bnon[- ]blocking\b", clause, flags=re.IGNORECASE)
+            )
             dependencies = [
-                match.group(1) for match in ticket_pattern.finditer(dependency_text)
+                match.group(1)
+                for match in ticket_pattern.finditer(blocking_dependency_text)
             ]
             rows[ticket_id] = {
                 "id": ticket_id,
@@ -2573,14 +2605,21 @@ class Validator:
             r"\b[A-N](?:-[A-Z0-9]+|[0-9]+)\b",
             source_fields.get("depends_on", "").upper(),
         )
+        board_dependency_context = str(
+            board_rows[authoritative_ticket].get("dependency_context", "")
+        )
+        board_source_dependencies = re.findall(
+            r"\b[A-N](?:-[A-Z0-9]+|[0-9]+)\b",
+            board_dependency_context.split(";", 1)[0].upper(),
+        )
         if (
             source_fields.get("depends_on")
-            and source_dependencies != board_rows[authoritative_ticket]["depends_on"]
+            and source_dependencies != board_source_dependencies
         ):
             self.fail(
                 f"{source_label}: selected ticket source dependencies are "
-                f"{source_dependencies!r}; controlling board says "
-                f"{board_rows[authoritative_ticket]['depends_on']!r}"
+                f"{source_dependencies!r}; the controlling board's leading "
+                f"dependency clause says {board_source_dependencies!r}"
             )
         for source_field, board_field in (("owner", "owner"), ("reviewer", "reviewer")):
             source_value = source_fields.get(source_field, "")
@@ -3602,13 +3641,8 @@ class Validator:
                 "SINGLE_TICKET_PR requires SEPARATE_CONTRACT_PR_REASON: "
                 "NOT_APPLICABLE"
             )
-        elif mode == "SEPARATE_CONTRACT_PR" and (
-            separate_reason == "NOT_APPLICABLE"
-            or (separate_reason is not None and len(separate_reason.split()) < 4)
-        ):
-            self.fail(
-                "SEPARATE_CONTRACT_PR requires a concrete authorized exception reason"
-            )
+        elif mode == "SEPARATE_CONTRACT_PR" and separate_reason is not None:
+            self.validate_separate_contract_reason(separate_reason)
 
         for field in ("BASE", "FINAL_HEAD", "FINAL_TREE"):
             value = fields.get(field)
@@ -3695,6 +3729,119 @@ class Validator:
             or len(re.findall(r"[A-Za-z0-9]+", rerun_reason)) < 4
         ):
             self.fail("AVOIDABLE_RERUN_REASON must be a completed, specific reason")
+
+    def current_sequencing_authority_paths(self) -> set[str]:
+        """Return the closed set eligible to authorize exceptional PR sequencing."""
+        paths = set(ALWAYS_CURRENT_SEQUENCING_AUTHORITIES)
+        current = self.data.get("current", {})
+        if isinstance(current, dict):
+            register = current.get("controlling_register")
+            if isinstance(register, str):
+                paths.add(register)
+            selected_id = current.get("ticket")
+            for ticket in self.data.get("tickets", []):
+                if (
+                    isinstance(ticket, dict)
+                    and ticket.get("id") == selected_id
+                    and isinstance(ticket.get("repo_path"), str)
+                ):
+                    paths.add(str(ticket["repo_path"]))
+                    break
+        return paths
+
+    def validate_separate_contract_reason(self, reason: str) -> None:
+        """Validate one closed separate-contract exception declaration."""
+        normalized_size_reason = _normalize_delivery_prose(reason)
+        if TICKET_SIZE_REASON.search(normalized_size_reason):
+            self.fail("SEPARATE_CONTRACT_PR_REASON cannot use ticket size as rationale")
+            return
+        if reason in SEPARATE_CONTRACT_REASON_CODES:
+            return
+        match = AUTHORITATIVE_SEQUENCING_REASON.fullmatch(reason)
+        if match is None:
+            self.fail(
+                "SEPARATE_CONTRACT_PR_REASON must be CONTRACT_ONLY_TICKET, "
+                "CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT, "
+                "CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE, or the exact "
+                "AUTHORITATIVE_SEQUENCING authority/details form"
+            )
+            return
+
+        authority_path, details = match.groups()
+        if SEQUENCING_DETAILS_FORBIDDEN.search(details):
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING DETAILS must be plain prose without "
+                "Markdown or HTML metacharacters"
+            )
+            return
+        pure = PurePosixPath(authority_path)
+        if (
+            pure.is_absolute()
+            or ".." in pure.parts
+            or authority_path != pure.as_posix()
+        ):
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING AUTHORITY must be a normalized "
+                "repository-relative path"
+            )
+            return
+        if authority_path not in self.current_sequencing_authority_paths():
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING AUTHORITY must name a current "
+                "sequencing authority file"
+            )
+            return
+        tracked = self.git(
+            "ls-files", "--error-unmatch", "--", authority_path, allow_failure=True
+        )
+        if tracked.returncode != 0 or tracked.stdout.splitlines() != [authority_path]:
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING AUTHORITY must name a tracked current "
+                "sequencing authority file"
+            )
+            return
+        target = (self.repo_root / Path(*pure.parts)).resolve()
+        if not _inside(self.repo_root, target) or not target.is_file():
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING AUTHORITY is missing or escapes the "
+                "repository"
+            )
+            return
+        normalized_details = _normalize_delivery_prose(details)
+        if len(normalized_details.split()) < 4:
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING DETAILS must contain at least four words"
+            )
+            return
+        authority_blob = self.git("show", f"HEAD:{authority_path}", allow_failure=True)
+        if authority_blob.returncode != 0:
+            self.fail(
+                "Cannot read AUTHORITATIVE_SEQUENCING AUTHORITY from candidate "
+                f"HEAD: {authority_path}"
+            )
+            return
+        exception_markers = re.findall(
+            r"^[ \t]*SEPARATE_CONTRACT_PR_EXCEPTION[ \t]*:[ \t]*" r"(.+?)[ \t]*\r?$",
+            authority_blob.stdout,
+            flags=re.MULTILINE,
+        )
+        if any(
+            SEQUENCING_DETAILS_FORBIDDEN.search(marker) for marker in exception_markers
+        ):
+            self.fail(
+                "SEPARATE_CONTRACT_PR_EXCEPTION marker values must be plain prose "
+                "without Markdown or HTML metacharacters"
+            )
+            return
+        normalized_markers = {
+            _normalize_delivery_prose(marker) for marker in exception_markers
+        }
+        if normalized_details not in normalized_markers:
+            self.fail(
+                "AUTHORITATIVE_SEQUENCING DETAILS must normalize-equal one "
+                "complete SEPARATE_CONTRACT_PR_EXCEPTION marker in the named "
+                "current sequencing authority file at candidate HEAD"
+            )
 
     def validate_structural_diff(self) -> None:
         if self.changed_paths is None:

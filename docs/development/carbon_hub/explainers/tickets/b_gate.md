@@ -20,7 +20,7 @@ The bounded evidence required to close Wave B and hand the program to Wave C.
 
 ## Placement and handoff
 
-- **Depends on:** B-01, B-01E, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4
+- **Depends on:** B-01, B-01E, B-01F, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4
 - **Feeds:** No downstream ticket captured.
 - **Driver:** Codex
 - **Review route:** Tech lead + science + protocol + security + rights

@@ -120,7 +120,9 @@ def test_staged_and_committed_cross_scope_rename_keeps_runtime_source(
     base = _init_repository(repository)
     destination = repository / ".agent/tickets/moved-runtime.py"
     destination.parent.mkdir(parents=True)
-    moved = _git(repository, "mv", "carbon/runtime.py", ".agent/tickets/moved-runtime.py")
+    moved = _git(
+        repository, "mv", "carbon/runtime.py", ".agent/tickets/moved-runtime.py"
+    )
     assert moved.returncode == 0, moved.stderr
 
     staged = changed_paths(repository, base)

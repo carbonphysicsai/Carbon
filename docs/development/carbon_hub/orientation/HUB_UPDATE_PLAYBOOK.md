@@ -42,9 +42,12 @@ Link those records instead.
 5. Update `data/hub_data_v2.json` and append a concise record to
    `data/change_events.json` when a material map trigger applies.
 6. Commit the Hub source and generated outputs as commit `H`, after `A`. All
-   pinned detail links use `A`; diff/event coverage uses the independent PR or
-   push comparison base supplied as `HUB_DIFF_BASE_SHA`.
-7. Run `python tools/render_hub.py`.
+   current-role source, active-wave, selected-ticket, and new-event links use
+   `A`; immutable historical wave, ticket, and event links keep the exact
+   ancestor snapshot they originally recorded. Diff/event coverage uses the
+   independent PR or push comparison base supplied as `HUB_DIFF_BASE_SHA`.
+7. Run `python tools/render_hub.py`. The renderer compares complete bytes and
+   writes only outputs whose rendered content changed.
 8. Run `python tools/render_hub.py --check`.
 9. Run `python tools/validate_hub.py --repo-root ../../..` from this directory,
    or pass the repository root explicitly.
@@ -52,7 +55,25 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `79143d13e1e69e6f8e32ac066828b47fe5f9b060`, reconciled 2026-09-01T03:53:59Z.
+Current authority snapshot: `d7b2e817f43202948bbe831cb9c9693382a3cf81`, reconciled 2026-09-01T09:18:02Z.
+
+### Link-pin and dependency conventions
+
+- Repin `sources`, the active wave, the selected ticket, and every link used by
+  an `authority_source_checks` assertion to the current authority snapshot.
+  Preserve frozen former-wave, former-selection, historical-ticket, and prior-
+  event blob links at their immutable ancestor snapshots. Changing one valid
+  historical ancestor pin to another is itself semantic; advancing the current
+  snapshot while an unchanged former-current link stays frozen is not.
+- In a board `Depends on` cell, split clauses at semicolons. A clause containing
+  `non-blocking` contributes context but no dependency IDs; every other clause
+  contributes its ticket IDs. The selected ticket's own `Depends on` field
+  mirrors the board's leading direct-dependency clause, while later blocking
+  clauses may record phase gates such as a runtime prerequisite.
+- Generated-output fan-out follows rendered meaning. Update the overview,
+  affected wave/ticket pages, and required indexes or routes whose bytes truly
+  change. Do not rewrite unrelated explainers, and do not impose a numeric cap
+  that could hide a legitimate cross-cutting update.
 
 ## Repository-path impact classes
 

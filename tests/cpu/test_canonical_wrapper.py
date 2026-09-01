@@ -107,10 +107,7 @@ def test_focused_and_interactive_modes_construct_expected_commands() -> None:
     assert "/usr/bin/bash --noprofile --norc -i" in interactive.stdout
     assert "--interactive --tty" in interactive.stdout
     readable_interactive = _readable_dry_run(interactive.stdout)
-    assert (
-        f"source={REPOSITORY_ROOT},target=/workspaces/Carbon"
-        in readable_interactive
-    )
+    assert f"source={REPOSITORY_ROOT},target=/workspaces/Carbon" in readable_interactive
     assert "target=/carbon-source" not in readable_interactive
     assert "target=/workspaces/Carbon/.venv" in readable_interactive
     assert "carbon-canonical-venv-" in readable_interactive
@@ -142,9 +139,9 @@ def test_wrapper_source_has_exact_direct_identity_and_docker_fail_closed() -> No
         assert marker in source
     trusted_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     assert source.count(f'export PATH="{trusted_path}"') == 2
-    assert source.count(
-        f'export PATH="/workspaces/Carbon/.venv/bin:{trusted_path}"'
-    ) == 2
+    assert (
+        source.count(f'export PATH="/workspaces/Carbon/.venv/bin:{trusted_path}"') == 2
+    )
     assert 'export PATH="/workspaces/Carbon/.venv/bin:${PATH}"' not in source
 
 
@@ -238,7 +235,7 @@ def test_docker_backed_normal_checkout_isolated_from_host() -> None:
         capture_output=True,
         text=True,
     ).stdout
-    command = r'''
+    command = r"""
 set -euo pipefail
 [[ -d .git ]]
 [[ "$(git rev-parse --is-inside-work-tree)" == "true" ]]
@@ -254,7 +251,7 @@ if git update-ref "$1" HEAD 2>/dev/null; then
   echo "read-only normal-checkout Git metadata accepted a ref write" >&2
   exit 91
 fi
-'''
+"""
     environment = os.environ.copy()
     environment.pop("CARBON_CANONICAL_DEV_ENV", None)
     process = subprocess.run(
@@ -316,7 +313,7 @@ def test_docker_backed_linked_worktree_isolated_copy_and_direct_identity(
             capture_output=True,
             text=True,
         ).stdout
-        command = r'''
+        command = r"""
 set -euo pipefail
 [[ -f .git ]]
 [[ "$(git rev-parse --is-inside-work-tree)" == "true" ]]
@@ -337,7 +334,7 @@ if git update-ref "$1" HEAD 2>/dev/null; then
   echo "read-only shared Git metadata accepted a ref write" >&2
   exit 91
 fi
-'''
+"""
         environment = os.environ.copy()
         environment.pop("CARBON_CANONICAL_DEV_ENV", None)
         process = subprocess.run(
