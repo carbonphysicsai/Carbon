@@ -48,9 +48,10 @@ A ticket candidate may coordinate its bounded `done` state and the next-ticket
 selection. The transition becomes authoritative only after the exact reviewed
 tree passes scope-required exact-head checks and `Merge gate`, Greptile Review
 passes on the same head with every valid finding repaired and zero unresolved
-threads, normal merge preserves exact second-parent/tree identity, and exact-
-main `Merge gate` passes. Do not require a recursive closeout pull request or
-an evidence-only commit merely to restate those facts.
+threads, normal merge preserves exact second-parent/tree identity, exact-
+main `Merge gate` passes, and the completed normalized external receipt is
+posted. Do not require a recursive closeout pull request or an evidence-only
+commit merely to restate those facts.
 
 PR-body and issue-comment edits do not change the reviewed Git tree. Correct a
 stale declaration and validate the current live body/head without an empty

@@ -122,8 +122,10 @@ orientation/current authority
 2. Use one branch/worktree and one pull request per ticket by default. Put the
    working contract, decisions, plan, and ticket-start state in the first
    commit; add coherent vertical implementation/test slices later; review the
-   whole final tree together. A separate contract PR requires one of the
-   exceptions in `.agent/DELIVERY_PROTOCOL.md`; ticket size alone is not one.
+   whole final tree together. A separate contract PR requires one exact reason
+   code or file-backed `AUTHORITATIVE_SEQUENCING` declaration from
+   `.agent/DELIVERY_PROTOCOL.md`; arbitrary prose and ticket-size rationales
+   fail closed.
 3. **Before edits:** record the primary hub `map_ref`, classify hub impact, run relevant baseline tests / PoC smoke, and record result.
 4. Implement the minimum coherent change; prefer KEEP/WRAP/REPAIR.
 5. Material engineering decisions inside the authorized ticket follow `.agent/DELEGATED_DECISION_PROTOCOL.md`: select the agent-recommended approach, record it, notify the applicable lead, and continue unless an explicit block applies.
@@ -134,14 +136,16 @@ orientation/current authority
 9. Update `.agent/WAVE.md` status/evidence only after the exact completion
    predicate is satisfied. A conditional closeout in the reviewed tree remains
    inert until exact-head checks/`Merge gate`/Greptile, normal reviewed-tree-
-   preserving merge, and exact-main `Merge gate` all pass.
+   preserving merge, and exact-main `Merge gate` all pass and the completed
+   normalized external receipt is posted.
 10. Unless owner direction explicitly says to stop before merge, continue an
     end-to-end ticket through normal exact-expected-head merge, exact-main
-    verification, closeout, and next ready-ticket selection. Do not ask for
-    another owner prompt solely to merge an unchanged, green, reviewed ticket.
-    An explicit `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected
-    change. A reserved human decision blocks only the behavior that cannot
-    proceed correctly with a fail-closed seam; unrelated work continues.
+    verification, posting of the completed normalized external receipt,
+    closeout, and next ready-ticket selection. Do not ask for another owner
+    prompt solely to merge an unchanged, green, reviewed ticket. An explicit
+    `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A
+    reserved human decision blocks only the behavior that cannot proceed
+    correctly with a fail-closed seam; unrelated work continues.
 11. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
 
 Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.

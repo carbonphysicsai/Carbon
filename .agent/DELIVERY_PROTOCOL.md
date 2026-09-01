@@ -52,17 +52,33 @@ The working contract may evolve during implementation. Record material changes
 prospectively, notify the applicable lead, and bind final review to the whole
 candidate tree.
 
-A separate contract pull request is permitted only when:
+A separate contract pull request is permitted only with one closed machine
+reason in `SEPARATE_CONTRACT_PR_REASON`:
 
-- the selected ticket is contract-only;
-- a concurrent downstream ticket truly requires a merged immutable contract;
-- an established cross-domain public-interface freeze requires it; or
-- current authoritative sequencing records another concrete reason.
+- `CONTRACT_ONLY_TICKET` — the selected ticket itself is contract-only;
+- `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT` — real concurrent downstream work
+  requires a merged immutable contract;
+- `CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE` — an established cross-domain public
+  interface must freeze before implementation; or
+- `AUTHORITATIVE_SEQUENCING | AUTHORITY: <path> | DETAILS: <reason>` — a
+  different concrete exception is stated by a tracked current sequencing
+  authority file.
 
-Ticket size alone is not a reason. A retained exception separates merge
-topology, not substantive gates: all applicable scientific, statistical,
-security, protocol, rights, operational, review, and maturity boundaries still
-apply.
+For `AUTHORITATIVE_SEQUENCING`, `<path>` must be a normalized repository-
+relative path to `.agent/WAVE.md`, the current controlling board, the selected
+ticket, `Design_Specs/Build_Out.md`, or
+`Design_Specs/Agentic_Development_Master_Plan.md`. The normalized `<reason>`
+must contain at least four words and normalize-equal the value of one complete
+`SEPARATE_CONTRACT_PR_EXCEPTION: <specific reason>` machine line in that exact
+file at candidate `HEAD`.
+
+Unrelated prose does not authorize an exception. An arbitrary explanation,
+working-tree-only marker, stale or untracked file, or ticket-size rationale is
+invalid. `SINGLE_TICKET_PR` requires exactly `NOT_APPLICABLE` instead.
+
+A retained exception separates merge topology, not substantive gates: all
+applicable scientific, statistical, security, protocol, rights, operational,
+review, and maturity boundaries still apply.
 
 Use one ticket branch/worktree and one ticket pull request unless an exception
 above is recorded. Use normal merge commits only. Do not squash, rebase-merge,

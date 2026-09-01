@@ -26,6 +26,8 @@ authorized ticket
 -> repair valid findings and reach zero unresolved threads
 -> normal exact-expected-head merge
 -> reviewed-tree and exact-main verification
+-> completed normalized external receipt posted
+-> bounded closeout and next ready ticket
 -> lead may KEEP, MODIFY, SUPERSEDE, BLOCK, or DEFER_TO_OWNER
 ```
 
@@ -192,9 +194,10 @@ squash, rebase-merge, or enable auto-merge.
 
 Unless owner direction explicitly says to stop before merge, the authorized
 end-to-end ticket session continues through that normal merge, ordered-parent
-and reviewed-tree verification, fetched exact-main `Merge gate`, bounded
-closeout, and selection of the next ready ticket. Another owner prompt is not
-required solely to merge a clean reviewed ticket.
+and reviewed-tree verification, fetched exact-main `Merge gate`, posting of the
+completed normalized external receipt, bounded closeout, and selection of the
+next ready ticket. Another owner prompt is not required solely to merge a clean
+reviewed ticket.
 
 This protocol does not weaken merge evidence or maturity accounting. Dynamic
 review/check/merge identities belong in the external completion receipt, not

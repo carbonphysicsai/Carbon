@@ -34,6 +34,7 @@ working contract and decisions
 → valid-finding repair and zero unresolved threads
 → normal exact-expected-head merge
 → ordered-parent/reviewed-tree/exact-main verification
+→ completed normalized external receipt posted
 → bounded closeout and next ready ticket
 ```
 
@@ -47,10 +48,11 @@ remains unavailable and fail closed.
 
 Unless owner direction explicitly says to stop before merge, an end-to-end
 ticket session normally merges an unchanged clean reviewed candidate with an
-exact expected-head guard, verifies exact main, closes the bounded ticket, and
-continues to the next ready ticket without another owner prompt solely for the
-merge. Normal merge commits are required; squash, rebase-merge, auto-merge, and
-routine bypasses are prohibited.
+exact expected-head guard, verifies exact main, posts the completed normalized
+external receipt, closes the bounded ticket, and continues to the next ready
+ticket without another owner prompt solely for the merge. Normal merge commits
+are required; squash, rebase-merge, auto-merge, and routine bypasses are
+prohibited.
 
 **Delivery and evidence model.** One pull request per ticket is the default:
 working contract/decisions/plan first, coherent vertical implementation/test
@@ -88,8 +90,8 @@ Hub validation/rendering, PR declarations, and developer commands change.
 Carbon runtime and domain canonical bytes do not. Runtime-bearing changes keep
 full acceptance; explicit contract and derived-document scopes receive only
 their appropriate gates; unknown paths fail closed. B-04 resumes only after
-B-01F's exact reviewed normal merge and exact-main `Merge gate`. B-01G does not
-block it.
+B-01F's exact reviewed normal merge, exact-main `Merge gate`, and posting of the
+completed normalized external receipt. B-01G does not block it.
 
 **Reversibility and migration.** Delivery scripts, classifiers, workflows, and
 protocol prose are prospectively reversible through a later normally reviewed

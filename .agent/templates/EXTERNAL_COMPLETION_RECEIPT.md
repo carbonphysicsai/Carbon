@@ -7,7 +7,7 @@ artifact. Do not commit a filled copy merely to store dynamic identities.
 ```text
 TICKET:
 DELIVERY_MODE: SINGLE_TICKET_PR | SEPARATE_CONTRACT_PR
-SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE | <authorized reason>
+SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE
 
 STARTING_BASE:
 STARTING_BASE_TREE:
@@ -51,6 +51,12 @@ NEXT_SELECTED_TICKET:
 NEXT_TICKET_STARTING_MAIN:
 NEXT_TICKET_STARTING_TREE:
 ```
+
+For `SEPARATE_CONTRACT_PR`, replace `NOT_APPLICABLE` with exactly
+`CONTRACT_ONLY_TICKET`, `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT`,
+`CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE`, or
+`AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words equal to a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>`.
+Ticket size is categorically invalid.
 
 Every SHA, tree, run, check, job, comment, and thread-count field must be read
 from the live system after it exists. Use `PENDING` before completion and never

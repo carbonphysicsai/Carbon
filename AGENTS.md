@@ -294,10 +294,11 @@ Use one pull request per ticket by default. Write the working contract,
 durable decisions, plan, and ticket-start state first; add coherent vertical
 implementation slices and their tests in later commits; and submit the
 contract, implementation, tests, and stable evidence together for final-tree
-review. A separate contract pull request is permitted only for a contract-only
-ticket, a real concurrent downstream immutable-contract need, an established
-cross-domain public-interface freeze, or another concrete reason recorded by
-current sequencing. Ticket size alone is not a reason. A working contract may
+review. A separate contract pull request requires the exact
+`CONTRACT_ONLY_TICKET`, `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT`, or
+`CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE` reason code, or the file-backed
+`AUTHORITATIVE_SEQUENCING` form defined in `.agent/DELIVERY_PROTOCOL.md`.
+Arbitrary prose and ticket-size rationales fail closed. A working contract may
 evolve prospectively during implementation.
 
 Before editing:
@@ -331,6 +332,7 @@ working contract and decisions
 → repair valid findings and reach zero unresolved threads
 → normal exact-expected-head merge
 → reviewed-tree and exact-main verification
+→ completed normalized external receipt posted
 → bounded closeout and next ready ticket
 ```
 
@@ -339,7 +341,9 @@ and domain-lead review is asynchronous oversight unless repository authority
 explicitly reserves a value or acceptance decision to a human. Human silence
 is not a gate. Unless owner direction explicitly says to stop before merge, an
 end-to-end ticket session must not ask for another owner prompt solely to merge
-an unchanged, green, reviewed candidate. Follow `.agent/DELIVERY_PROTOCOL.md`.
+an unchanged, green, reviewed candidate. The completed normalized external
+receipt must be posted before bounded closeout or next-ticket advance. Follow
+`.agent/DELIVERY_PROTOCOL.md`.
 
 ---
 
@@ -394,7 +398,8 @@ review/merge predicate is satisfied. A prepared conditional closeout and next-
 ticket transition becomes effective only after exact-head required checks and
 `Merge gate`, exact-head Greptile with all valid findings repaired and zero
 unresolved threads, normal expected-head merge with reviewed-tree
-preservation, and exact-main `Merge gate`.
+preservation, exact-main `Merge gate`, and posting of the completed normalized
+external receipt.
 
 ---
 

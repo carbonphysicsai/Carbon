@@ -5,7 +5,16 @@
 ## Delivery mode
 
 DELIVERY_MODE: SINGLE_TICKET_PR
-SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE | <authorized reason>
+SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE
+
+<!--
+For SEPARATE_CONTRACT_PR, replace NOT_APPLICABLE with exactly one:
+CONTRACT_ONLY_TICKET
+CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT
+CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE
+AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words that equals a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>
+Ticket size is never a valid reason.
+-->
 
 ## Exact candidate
 
