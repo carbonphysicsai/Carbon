@@ -75,16 +75,16 @@ and must receive the complete implementation/PR package with `@harshaa765`.
 
 ## 2026-08-31 — B-03 decision-series status
 
-> **B-03-D1 through B-03-D8 status: CONDITIONAL AGENT-SELECTED WORKING
-> DECISIONS.** The series becomes bounded engineering-contract authority only
-> if the exact independently reviewed B-03 contract tree passes exact-head CI,
-> receives clean exact-head Greptile correctness review with every valid
-> finding repaired and zero unresolved threads, normally merges with exact
-> reviewed-tree preservation, and passes exact-main CI. Any tree change
-> requires rereview. Notification requests `KEEP`, `CHANGE`, `BLOCKED`, or
-> `DEFER_TO_OWNER`; no affirmative response or silence gate applies. An
-> explicit owner deferral routes to issue #41. MQ-002/MQ-003 production and
-> scientific inputs remain `DEFERRED_FAIL_CLOSED`.
+> **B-03-D1 through B-03-D8 status: RATIFIED BOUNDED ENGINEERING-CONTRACT
+> DECISIONS.** Contract PR #67 passed exact-head CI and clean 5/5 Greptile
+> correctness review with zero unresolved threads, normally merged the exact
+> reviewed tree as `b86daa5d8b0f8b3e86bb82c2661f405747a200df`, and passed
+> exact-main CI. This reconciliation does not expand the decisions beyond the
+> bounded engineering contract. Any implementation-tree change still requires
+> exact-head CI and Greptile review. Notification requested `KEEP`, `CHANGE`,
+> `BLOCKED`, or `DEFER_TO_OWNER`; no affirmative response or silence gate
+> applied, and no owner deferral arose. MQ-002/MQ-003 production and scientific
+> inputs remain `DEFERRED_FAIL_CLOSED`.
 
 ## 2026-08-31 — B-03-D1: Generator package ownership and one-way boundary
 
