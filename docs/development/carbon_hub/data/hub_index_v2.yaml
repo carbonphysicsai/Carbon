@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-01T20:33:39Z"
+  captured_at_utc: "2026-09-01T22:16:47Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "d0cff7f611aaf9598ebe16999cb20941f48655b8"
+  authority_snapshot_commit: "90e5ab645b638914b1395bc64d69a73e154bd605"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
