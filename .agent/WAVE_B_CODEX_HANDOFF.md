@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.1
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.1
+**Governance version:** 1.2
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.2
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -104,6 +104,16 @@ B-01F candidate passes exact-head `Merge gate` and Greptile with zero
 unresolved threads; normally merges with reviewed-tree preservation; passes
 exact-main `Merge gate`; and has its completed normalized external receipt
 posted. Until then B-04 runtime is paused.
+
+PR #73 has now satisfied that predicate. Its normalized receipt is PR #73
+comment `5497405775`: reviewed head
+`56093b3abe9e62e89d8aa0b5bf034e02d7d0ad97` normally merged as
+`7161fe3c4a04821b7f676ab006bd5d313d0442d2` with exact tree
+`619e366dead2288ccfd312f54ad09f17f86a1c62`; exact-main run `33532472507`
+and `Merge gate` check `99944337076` succeeded. B-04 is the selected
+`in_progress` ticket in bounded runtime implementation. B-04-D11 records the
+exact v1 executable schema before the first model; no qualification or later-
+ticket authority follows.
 
 ## 2. Required read order
 
@@ -252,17 +262,16 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are complete at the identities in
-section 1. B-04's bounded engineering contract is ratified, but its runtime is
-paused behind B-01F. Version 1.1's B-01F `done` and B-04 runtime selection are
-effective only after the exact B-01F reviewed candidate normally merges with
-tree preservation, exact-main `Merge gate` succeeds, and the completed
-normalized external receipt is posted. Then create a fresh
-`agent/b-04-reference-truth` branch/worktree from that verified exact main. No
-B-04 runtime, solver, fixture runner, Julia service, Cole–Hopf routine,
-artifact store, transport, measurement, scoring, Dossier, package-authority,
-or test implementation belongs in B-01F. B-01G remains `todo` and does not
-block B-04.
+B-01E, B-02A, B-07R, B-02B, B-02C, B-03, and B-01F are complete at the
+identities in section 1. B-04's bounded engineering contract is ratified and
+PR #73's normalized receipt satisfies the runtime-resumption predicate.
+Version 1.2 selects B-04 runtime from exact main
+`7161fe3c4a04821b7f676ab006bd5d313d0442d2`; B-04-D11 must be recorded and
+notified before the first model. The fresh branch is
+`agent/b-04-reference-truth`. No Julia service, Cole–Hopf routine, production
+solver, artifact store, transport, measurement, scoring, Dossier,
+qualification, or later-ticket implementation belongs in B-04. B-01G remains
+`todo` and does not block it.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 

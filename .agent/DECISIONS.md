@@ -703,6 +703,850 @@ runtime is changed.
 security/operations, real fixture composition, network, product, frontier,
 economics, settlement, weight, and emission authority remain unavailable.
 
+## 2026-09-02 — B-04-D11: Freeze the exact v1 executable reference schema
+
+**Status.** Implemented working engineering decision for B-04 runtime v1. It
+is non-gating lead notification, not scientific approval, reference
+qualification, or permission to supply a human-reserved value.
+
+**Recommendation.** Implement the ratified B-04 contract with the exact closed
+schema below. `carbon.evaluation` owns a distinct `1.0` profile, wraps only
+the named B-02A canonical primitives and refs, and keeps every authority-
+bearing object protected below the package root. The schema uses exact nominal
+records and unions instead of dictionaries, caller serialization, implicit
+defaults, or open registries.
+
+**Canonical framing and primitive profile.** The only v1 standalone framing is:
+
+```text
+schema_version            = "1.0"
+canonicalization_profile  = "carbon_reference_truth_canonical_v1"
+document_header           = b"carbon.reference-truth.canonical.v1\x00"
+content_digest            = "sha256:" + lowercase_hex(SHA256(document_bytes))
+```
+
+`document_bytes` is `document_header || encode_value(record)` using the exact
+B-02A primitive tags and validators. Every standalone record contains the
+identity fields `canonicalization_profile: TEXT`, `challenge_key:
+ChallengeKey`, `object_kind: TEXT`, and `schema_version: TEXT`. Every nominal
+ref is the B-02A `CanonicalNominalRef` shape with the strict UTF-8-sorted field
+tuple `(canonicalization_profile: TEXT, challenge_key: ChallengeKey,
+content_digest: TEXT, record_type: TEXT, schema_version: TEXT)`. All record
+field names are encoded once in strict ascending UTF-8 byte order; each exact
+schema tuple below is the complete field-name/type registry before that
+deterministic sort. Missing, extra, duplicate, aliased, or out-of-order decoded
+fields reject. The inherited hard ceilings remain 16,777,216 document bytes,
+65,535 bytes for one TEXT/BYTES value, 65,535 tuple/record items, and depth 64.
+All exact-type, subclass, Boolean-as-integer, NFC/control/surrogate,
+Int64/UInt64, finite positive-zero Float64, set-order, trailing-byte, unknown-
+tag, constant-time digest, defensive-reconstruction, and pickle prohibitions
+remain unchanged.
+
+**Exact type notation.** `OwnerRef<K>` and `TopRef<T>` mean one exact B-02A
+nominal ref of the named kind/type. `B04Ref<T>` means one exact nominal ref
+from the registry below. `ORDERED<T>` preserves caller-independent semantic
+order and rejects duplicate identities. `SET<T>` sorts by canonical bytes and
+rejects semantic duplicates. `OPTIONAL<T>` is exactly `ABSENT(empty_payload)`
+or `PRESENT(T)`. `BOUND_OR_ABSENT<T,R>` is exactly `BOUND(T)` or
+`ABSENT(R)`. No other union tag exists.
+
+The closed subordinate-record registry is:
+
+```text
+PinnedReferenceIdentity = (
+  challenge_key: ChallengeKey,
+  content_digest: TEXT,
+  identity_id: TEXT,
+  identity_kind: ReferenceIdentityKind,
+  identity_version: TEXT,
+)
+
+ReferenceScopeBinding = (
+  candidate_output_contract_ref: TopRef<CandidateOutputContract>,
+  claim_scope_ref: OwnerRef<claim_scope>,
+  evidence_campaign_ref: OwnerRef<evidence_campaign>,
+  evidence_population_refs: ORDERED<TopRef<InstanceDistributionContract>>,
+  physical_system_ref: TopRef<PhysicalSystemSpec>,
+  proposal_population_ref: TopRef<InstanceDistributionContract>,
+  reference_fidelity_allocation_ref: OwnerRef<reference_fidelity_allocation>,
+  sampling_plan_ref: TopRef<SamplingPlan>,
+  target_population_ref: TopRef<InstanceDistributionContract>,
+  truth_target_ref: OwnerRef<intended_estimand_or_reporting>,
+)
+
+ReferenceAuthorityTarget =
+  SINGLE_PRIMARY_ENTRY(B04Ref<ReferencePolicyEntry>) |
+  QUALIFIED_PRIMARY_COMPOSITION(B04Ref<ReferenceComposition>)
+
+ReferenceWitnessTarget =
+  SINGLE_WITNESS_ENTRY(B04Ref<ReferencePolicyEntry>) |
+  QUALIFIED_WITNESS_COMPOSITION(B04Ref<ReferenceComposition>)
+
+ReferenceExecutionTarget =
+  PRIMARY(ReferenceAuthorityTarget) | WITNESS(ReferenceWitnessTarget)
+
+ReferenceRequestBinding =
+  PRIMARY(B04Ref<PrimaryReferenceRequest>) |
+  WITNESS(B04Ref<WitnessReferenceRequest>)
+
+ReferenceGrantBinding =
+  PRIMARY(B04Ref<PrimaryRunGrant>) |
+  WITNESS(B04Ref<WitnessRunGrant>) |
+  ABSENT(ResolutionReason)
+
+ArtifactContentBinding = (
+  artifact_content_digest: TEXT,
+  artifact_descriptor_ref: PinnedReferenceIdentity<ARTIFACT_DESCRIPTOR>,
+  artifact_origin: ReferenceArtifactOrigin,
+)
+
+RunArtifactBinding =
+  BOUND(ArtifactContentBinding) | ABSENT(ReferenceFailureReason)
+
+AdmissionArtifactBinding =
+  BOUND(B04Ref<ReferenceArtifact>) |
+  ABSENT(AdmissionArtifactAbsenceReason)
+
+QualificationBinding =
+  BOUND(OwnerRef<qualification_evidence_bundle>) |
+  ABSENT(QualificationAbsenceReason)
+
+SupportApplicabilityAssessment = (
+  applicability_evidence_refs: SET<OwnerRef<applicability_evidence>>,
+  limitations: SET<OwnerRef<restriction>>,
+  method_ref: PinnedReferenceIdentity<APPLICABILITY_METHOD>,
+  status: SupportApplicabilityStatus,
+  support_boundary_ref: OwnerRef<support_boundary>,
+)
+
+ConditioningAssessment = (
+  evidence_refs: SET<OwnerRef<sensitivity_analysis>>,
+  limitations: SET<OwnerRef<restriction>>,
+  method_ref: PinnedReferenceIdentity<CONDITIONING_METHOD>,
+  status: ConditioningStatus,
+)
+
+UncertaintyRepresentation = (
+  component_kinds: SET<UncertaintyComponentKind>,
+  coverage_ref: OwnerRef<coverage_qualification>,
+  dependence_policy_ref: OwnerRef<replication_dependence_policy>,
+  estimand_ref: OwnerRef<estimand_scope>,
+  evidence_refs: SET<OwnerRef<audit_evidence>>,
+  limitations: SET<OwnerRef<restriction>>,
+  method_ref: PinnedReferenceIdentity<UNCERTAINTY_METHOD>,
+  representation_ref: PinnedReferenceIdentity<UNCERTAINTY_REPRESENTATION>,
+  status: UncertaintyStatus,
+  units_ref: PinnedReferenceIdentity<UNITS>,
+  use_restrictions: SET<OwnerRef<permitted_use>>,
+)
+
+DependencyDisclosure = (
+  category: DependencyCategory,
+  evidence_refs: SET<OwnerRef<provenance>>,
+  relation: DependencyRelation,
+)
+
+ReferenceProvenance = (
+  dependency_disclosures: ORDERED<DependencyDisclosure>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_campaign_ref: OwnerRef<evidence_campaign>,
+  generated_or_copied_code_refs: SET<OwnerRef<provenance>>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  provenance_refs: SET<OwnerRef<provenance>>,
+  reviewer_authority_refs: SET<OwnerRef<authority_evidence>>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  source_ref: PinnedReferenceIdentity<SOURCE>,
+)
+
+RealizedComponentBinding = (
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  entry_ref: B04Ref<ReferencePolicyEntry>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+)
+
+AdmissionAttemptBinding = (
+  admission_authority_ref: PinnedReferenceIdentity<ADMISSION_AUTHORITY>,
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  artifact_binding: AdmissionArtifactBinding,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  comparison_refs: ORDERED<B04Ref<ReferenceComparisonRecord>>,
+  decision_profile_ref: PinnedReferenceIdentity<ADMISSION_PROFILE>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  primary_execution_target: ReferenceAuthorityTarget,
+  provenance_policy_ref: OwnerRef<provenance>,
+  qualification_binding: QualificationBinding,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  run_ref: B04Ref<ReferenceRunRecord>,
+  use_restrictions: SET<OwnerRef<permitted_use>>,
+  witness_targets: ORDERED<ReferenceWitnessTarget>,
+)
+```
+
+`ReferenceIdentityKind` is the exact closed set `SOURCE`, `IMPLEMENTATION`,
+`ENVIRONMENT`, `METHOD`, `CONFIGURATION`, `REPRESENTATION`,
+`ARTIFACT_SCHEMA`, `ARTIFACT_DESCRIPTOR`, `COMBINATION_METHOD`, `PRECISION`,
+`HARDWARE`, `PLATFORM`, `DEPENDENCY_SET`, `DETERMINISTIC_MODE`,
+`RESOURCE_AUTHORIZATION`, `RESOURCE_RECEIPT`, `RESOLVER`, `RUN_ISSUER`,
+`ADMISSION_ISSUER`, `ADMISSION_AUTHORITY`, `ADMISSION_PROFILE`,
+`COMPARISON_METHOD`, `APPLICABILITY_METHOD`, `CONDITIONING_METHOD`,
+`UNCERTAINTY_METHOD`, `UNCERTAINTY_REPRESENTATION`, `DIAGNOSTICS`, `UNITS`,
+and `CONSUMED_GRANT_RECEIPT`. Each field that names one kind rejects every
+other kind.
+
+`DependencyCategory` is the exact ordered inventory `MODEL_ASSUMPTIONS`,
+`DISCRETIZATION`, `MESH_OR_GRID`, `TRANSFORM_OR_ADAPTER`,
+`LIBRARY_OR_CODE_LINEAGE`, `CALIBRATION_OR_DATA`, `PERSONNEL_OR_ORGANIZATION`,
+`FLOATING_POINT_OR_RUNTIME`, `HARDWARE_OR_RESOURCE`, and
+`REVIEW_OR_DESIGN_LINEAGE`. A provenance value contains each category exactly
+once in that order. `DependencyRelation` is `SHARED`, `DISTINCT`,
+`UNDISCLOSED`, or `NOT_APPLICABLE`; these are evidence facts, never an
+independence verdict. `UncertaintyComponentKind` is `ALEATORY`, `NUMERICAL`,
+`MODEL_FORM`, `MEASUREMENT`, `RECONSTRUCTION`, `REPRESENTATION`, `EXECUTION`,
+or `OTHER_REGISTERED`. `UncertaintyStatus` is `RESOLVED` or `UNRESOLVED`.
+`AdmissionArtifactAbsenceReason` is `MISSING`, `MALFORMED`, `STALE_PROVENANCE`,
+`WRONG_CHALLENGE`, `WRONG_POLICY`, `WRONG_ROLE`, `INELIGIBLE_APPLICABILITY`, or
+`FIXTURE_ONLY`. `QualificationAbsenceReason` is `UNAVAILABLE` or
+`OUT_OF_SCOPE`. `ReferenceArtifactOrigin` is `REGISTERED_REFERENCE` or
+`FIXTURE_ONLY`. `ReferenceAuthorityTargetKind` is `SINGLE_PRIMARY_ENTRY` or
+`QUALIFIED_PRIMARY_COMPOSITION`; `ReferenceWitnessTargetKind` is
+`SINGLE_WITNESS_ENTRY` or `QUALIFIED_WITNESS_COMPOSITION`. These literals add
+structural names only; they select no scientific threshold, method, or value.
+
+**Exact standalone record families and fields.** The following 17 kinds are
+the complete v1 top-level registry. In each tuple the four common identity
+fields described above are included explicitly; the encoder applies the one
+UTF-8 field ordering rule after type validation.
+
+```text
+precomputed_reference_source_manifest = (
+  artifact_schema_ref: PinnedReferenceIdentity<ARTIFACT_SCHEMA>,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  manifest_id: TEXT,
+  manifest_version: TEXT,
+  object_kind: TEXT,
+  provenance_binding: ReferenceProvenance,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+  source_corpus_digest: TEXT,
+  source_ref: PinnedReferenceIdentity<SOURCE>,
+  supersedes: OPTIONAL<B04Ref<PrecomputedReferenceSourceManifest>>,
+)
+
+reference_policy_entry = (
+  applicability_policy_ref: OwnerRef<applicability>,
+  artifact_schema_ref: PinnedReferenceIdentity<ARTIFACT_SCHEMA>,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  conditioning_policy_ref: OwnerRef<sensitivity_analysis>,
+  correlation_policy_ref: OwnerRef<replication_dependence_policy>,
+  dependency_constraints_ref: PinnedReferenceIdentity<DEPENDENCY_SET>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  entry_id: TEXT,
+  entry_version: TEXT,
+  environment_constraints_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_role_binding: EvidenceRoleBinding,
+  expected_representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  implementation_constraints_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  method_constraints_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  policy_id: TEXT,
+  policy_version: TEXT,
+  precomputed_source_manifest_ref: OPTIONAL<B04Ref<PrecomputedReferenceSourceManifest>>,
+  provenance_policy_ref: OwnerRef<provenance>,
+  qualification_policy_ref: OwnerRef<reference_qualification_policy>,
+  resource_policy_ref: OwnerRef<reference_resource_limit>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+  source_ref: PinnedReferenceIdentity<SOURCE>,
+  support_boundary_ref: OwnerRef<support_boundary>,
+  uncertainty_policy_ref: OwnerRef<statistics_objective>,
+)
+
+reference_composition = (
+  applicability_policy_ref: OwnerRef<applicability>,
+  artifact_schema_ref: PinnedReferenceIdentity<ARTIFACT_SCHEMA>,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  combination_environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  combination_implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  combination_method_ref: PinnedReferenceIdentity<COMBINATION_METHOD>,
+  composition_id: TEXT,
+  composition_kind: ReferenceCompositionKind,
+  composition_version: TEXT,
+  conditioning_policy_ref: OwnerRef<sensitivity_analysis>,
+  correlation_policy_ref: OwnerRef<replication_dependence_policy>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  expected_representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  member_entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  object_kind: TEXT,
+  policy_id: TEXT,
+  policy_version: TEXT,
+  provenance_policy_ref: OwnerRef<provenance>,
+  qualification_policy_ref: OwnerRef<reference_qualification_policy>,
+  resource_policy_ref: OwnerRef<reference_resource_limit>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  uncertainty_policy_ref: OwnerRef<statistics_objective>,
+)
+
+reference_policy = (
+  answer_key_authority_target: BOUND_OR_ABSENT<ReferenceAuthorityTarget,ResolutionReason>,
+  applicability_policy_ref: OwnerRef<applicability>,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  comparison_policy_ref: OwnerRef<semantic_equivalence>,
+  composition_refs: ORDERED<B04Ref<ReferenceComposition>>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  fallback_policy_ref: OwnerRef<restriction>,
+  history_binding_ref: OwnerRef<authoring_registration>,
+  object_kind: TEXT,
+  policy_id: TEXT,
+  policy_version: TEXT,
+  provenance_policy_ref: OwnerRef<provenance>,
+  qualification_policy_ref: OwnerRef<reference_qualification_policy>,
+  registered_witness_targets: ORDERED<ReferenceWitnessTarget>,
+  resource_policy_ref: OwnerRef<reference_resource_limit>,
+  revocation_binding_ref: OPTIONAL<OwnerRef<authoring_revocation>>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  supersedes: OPTIONAL<B04Ref<ReferencePolicy>>,
+  uncertainty_policy_ref: OwnerRef<statistics_objective>,
+)
+
+primary_reference_request = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  execution_target: ReferenceAuthorityTarget,
+  idempotency_ref: PinnedReferenceIdentity<DETERMINISTIC_MODE>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  request_id: TEXT,
+  request_version: TEXT,
+  requested_resource_policy_ref: OwnerRef<reference_resource_limit>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+)
+
+witness_reference_request = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  execution_target: ReferenceWitnessTarget,
+  idempotency_ref: PinnedReferenceIdentity<DETERMINISTIC_MODE>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  request_id: TEXT,
+  request_version: TEXT,
+  requested_resource_policy_ref: OwnerRef<reference_resource_limit>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+)
+
+primary_run_grant = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  capability_ref: PinnedReferenceIdentity<RUN_ISSUER>,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  component_entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_role_binding: EvidenceRoleBinding,
+  execution_target: ReferenceAuthorityTarget,
+  grant_id: TEXT,
+  grant_version: TEXT,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  issuance_token: TEXT,
+  issuer_ref: PinnedReferenceIdentity<RUN_ISSUER>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  request_ref: B04Ref<PrimaryReferenceRequest>,
+  resource_authorization_ref: PinnedReferenceIdentity<RESOURCE_AUTHORIZATION>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+)
+
+witness_run_grant = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  capability_ref: PinnedReferenceIdentity<RUN_ISSUER>,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  component_entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_role_binding: EvidenceRoleBinding,
+  execution_target: ReferenceWitnessTarget,
+  grant_id: TEXT,
+  grant_version: TEXT,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  issuance_token: TEXT,
+  issuer_ref: PinnedReferenceIdentity<RUN_ISSUER>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  request_ref: B04Ref<WitnessReferenceRequest>,
+  resource_authorization_ref: PinnedReferenceIdentity<RESOURCE_AUTHORIZATION>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+)
+
+reference_resolution_record = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  applicability_assessment: SupportApplicabilityAssessment,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  evidence_role_binding: EvidenceRoleBinding,
+  execution_target: ReferenceExecutionTarget,
+  grant_binding: ReferenceGrantBinding,
+  object_kind: TEXT,
+  outcome: ResolutionOutcome,
+  policy_ref: B04Ref<ReferencePolicy>,
+  qualification_binding: QualificationBinding,
+  reason: ResolutionReason,
+  request_binding: ReferenceRequestBinding,
+  resolution_id: TEXT,
+  resolution_version: TEXT,
+  resolver_ref: PinnedReferenceIdentity<RESOLVER>,
+  resource_policy_ref: OwnerRef<reference_resource_limit>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+)
+
+reference_run_record = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  applicability_assessment: SupportApplicabilityAssessment,
+  artifact_binding: RunArtifactBinding,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  component_bindings: ORDERED<RealizedComponentBinding>,
+  conditioning_assessment: ConditioningAssessment,
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  diagnostics_ref: PinnedReferenceIdentity<DIAGNOSTICS>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_role_binding: EvidenceRoleBinding,
+  execution_target: ReferenceExecutionTarget,
+  grant_binding: ReferenceGrantBinding,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  outcome: ReferenceRunOutcome,
+  policy_ref: B04Ref<ReferencePolicy>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+  provenance_binding: ReferenceProvenance,
+  reason: OPTIONAL<ReferenceFailureReason>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  request_binding: ReferenceRequestBinding,
+  resolution_ref: B04Ref<ReferenceResolutionRecord>,
+  resource_receipt_ref: PinnedReferenceIdentity<RESOURCE_RECEIPT>,
+  run_id: TEXT,
+  run_version: TEXT,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+  uncertainty_binding: UncertaintyRepresentation,
+)
+
+reference_comparison_record = (
+  answer_key_authority_target: ReferenceAuthorityTarget,
+  applicability_evidence_refs: SET<OwnerRef<applicability_evidence>>,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  comparison_id: TEXT,
+  comparison_method_ref: PinnedReferenceIdentity<COMPARISON_METHOD>,
+  comparison_policy_ref: OwnerRef<semantic_equivalence>,
+  comparison_version: TEXT,
+  dependency_disclosures: ORDERED<DependencyDisclosure>,
+  evidence_refs: SET<OwnerRef<audit_evidence>>,
+  object_kind: TEXT,
+  outcome: ReferenceComparisonOutcome,
+  policy_ref: B04Ref<ReferencePolicy>,
+  primary_entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  primary_run_ref: B04Ref<ReferenceRunRecord>,
+  reason: ReferenceComparisonReason,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  uncertainty_treatment_ref: PinnedReferenceIdentity<UNCERTAINTY_METHOD>,
+  witness_entry_refs: ORDERED<B04Ref<ReferencePolicyEntry>>,
+  witness_run_ref: B04Ref<ReferenceRunRecord>,
+  witness_target: ReferenceWitnessTarget,
+)
+
+reference_artifact = (
+  applicability_assessment: SupportApplicabilityAssessment,
+  artifact_content_digest: TEXT,
+  artifact_descriptor_ref: PinnedReferenceIdentity<ARTIFACT_DESCRIPTOR>,
+  artifact_id: TEXT,
+  artifact_origin: ReferenceArtifactOrigin,
+  artifact_version: TEXT,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  conditioning_assessment: ConditioningAssessment,
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  execution_target: ReferenceExecutionTarget,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+  provenance_binding: ReferenceProvenance,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  run_ref: B04Ref<ReferenceRunRecord>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  uncertainty_binding: UncertaintyRepresentation,
+)
+
+fixture_reference_asset = (
+  artifact_ref: B04Ref<ReferenceArtifact>,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  fixture_asset_id: TEXT,
+  fixture_asset_version: TEXT,
+  fixture_provenance_ref: OwnerRef<fixture_registration>,
+  live_eligible: BOOL(false only),
+  object_kind: TEXT,
+  payload_bytes: BYTES,
+  policy_ref: B04Ref<ReferencePolicy>,
+  run_ref: B04Ref<ReferenceRunRecord>,
+  schema_version: TEXT,
+  scientific_qualification_eligible: BOOL(false only),
+)
+
+truth_asset_admission_grant_issuance_record = (
+  attempt_binding: AdmissionAttemptBinding,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  issuance_id: TEXT,
+  issuance_token: TEXT,
+  issuance_version: TEXT,
+  issuer_ref: PinnedReferenceIdentity<ADMISSION_ISSUER>,
+  object_kind: TEXT,
+  outcome: AdmissionGrantIssuanceOutcome,
+  reason: AdmissionGrantIssuanceReason,
+  schema_version: TEXT,
+)
+
+truth_asset_admission_grant = (
+  attempt_binding: AdmissionAttemptBinding,
+  canonicalization_profile: TEXT,
+  capability_ref: PinnedReferenceIdentity<ADMISSION_ISSUER>,
+  challenge_key: ChallengeKey,
+  grant_id: TEXT,
+  grant_version: TEXT,
+  issuance_record_ref: B04Ref<TruthAssetAdmissionGrantIssuanceRecord>,
+  issuance_token: TEXT,
+  issuer_ref: PinnedReferenceIdentity<ADMISSION_ISSUER>,
+  object_kind: TEXT,
+  schema_version: TEXT,
+)
+
+truth_asset_admission_decision_record = (
+  admission_authority_ref: PinnedReferenceIdentity<ADMISSION_AUTHORITY>,
+  attempt_binding: AdmissionAttemptBinding,
+  canonicalization_profile: TEXT,
+  challenge_key: ChallengeKey,
+  consumed_grant_receipt_ref: PinnedReferenceIdentity<CONSUMED_GRANT_RECEIPT>,
+  decision_id: TEXT,
+  decision_version: TEXT,
+  grant_ref: B04Ref<TruthAssetAdmissionGrant>,
+  issuance_record_ref: B04Ref<TruthAssetAdmissionGrantIssuanceRecord>,
+  object_kind: TEXT,
+  outcome: TruthAssetAdmissionOutcome,
+  reason: TruthAssetAdmissionReason,
+  schema_version: TEXT,
+)
+
+truth_asset = (
+  admission_decision_ref: B04Ref<TruthAssetAdmissionDecisionRecord>,
+  admission_grant_ref: B04Ref<TruthAssetAdmissionGrant>,
+  admission_issuance_record_ref: B04Ref<TruthAssetAdmissionGrantIssuanceRecord>,
+  applicability_assessment: SupportApplicabilityAssessment,
+  artifact_ref: B04Ref<ReferenceArtifact>,
+  authority_function: ReferenceAuthorityFunction,
+  canonicalization_profile: TEXT,
+  case_ref: TopRef<CanonicalChallengeCase>,
+  challenge_key: ChallengeKey,
+  comparison_refs: ORDERED<B04Ref<ReferenceComparisonRecord>>,
+  conditioning_assessment: ConditioningAssessment,
+  configuration_ref: PinnedReferenceIdentity<CONFIGURATION>,
+  dependency_disclosures: ORDERED<DependencyDisclosure>,
+  disclosure_policy_ref: OwnerRef<disclosure_policy>,
+  environment_ref: PinnedReferenceIdentity<ENVIRONMENT>,
+  evidence_role_binding: EvidenceRoleBinding,
+  execution_target: ReferenceAuthorityTarget,
+  hardware_ref: PinnedReferenceIdentity<HARDWARE>,
+  implementation_ref: PinnedReferenceIdentity<IMPLEMENTATION>,
+  known_limitations: SET<OwnerRef<restriction>>,
+  method_ref: PinnedReferenceIdentity<METHOD>,
+  object_kind: TEXT,
+  policy_ref: B04Ref<ReferencePolicy>,
+  precision_ref: PinnedReferenceIdentity<PRECISION>,
+  provenance_binding: ReferenceProvenance,
+  qualification_evidence_ref: OwnerRef<qualification_evidence_bundle>,
+  representation_ref: PinnedReferenceIdentity<REPRESENTATION>,
+  rights_profile_ref: OwnerRef<rights_profile>,
+  run_ref: B04Ref<ReferenceRunRecord>,
+  schema_version: TEXT,
+  scope_binding: ReferenceScopeBinding,
+  source_class: ReferenceSourceClass,
+  supersedes: OPTIONAL<B04Ref<TruthAsset>>,
+  truth_asset_id: TEXT,
+  truth_asset_version: TEXT,
+  uncertainty_binding: UncertaintyRepresentation,
+  use_restrictions: SET<OwnerRef<permitted_use>>,
+)
+```
+
+The exact ref-family registry is one-to-one, in the same order:
+
+```text
+precomputed_reference_source_manifest -> PrecomputedReferenceSourceManifestRef
+reference_policy                       -> ReferencePolicyRef
+reference_policy_entry                 -> ReferencePolicyEntryRef
+reference_composition                  -> ReferenceCompositionRef
+primary_reference_request              -> PrimaryReferenceRequestRef
+witness_reference_request              -> WitnessReferenceRequestRef
+primary_run_grant                      -> PrimaryRunGrantRef
+witness_run_grant                      -> WitnessRunGrantRef
+reference_resolution_record            -> ReferenceResolutionRecordRef
+reference_run_record                   -> ReferenceRunRecordRef
+reference_comparison_record             -> ReferenceComparisonRecordRef
+reference_artifact                      -> ReferenceArtifactRef
+fixture_reference_asset                 -> FixtureReferenceAssetRef
+truth_asset_admission_grant_issuance_record -> TruthAssetAdmissionGrantIssuanceRecordRef
+truth_asset_admission_grant             -> TruthAssetAdmissionGrantRef
+truth_asset_admission_decision_record   -> TruthAssetAdmissionDecisionRecordRef
+truth_asset                             -> TruthAssetRef
+```
+
+**Closed outcome/reason matrices.** These are exhaustive. A pair absent from a
+row rejects.
+
+| Resolution outcome | Exact permitted reason(s) |
+|---|---|
+| `PRIMARY_GRANT_ISSUED` | `RESOLUTION_REQUIREMENTS_SATISFIED` |
+| `WITNESS_GRANT_ISSUED` | `RESOLUTION_REQUIREMENTS_SATISFIED` |
+| `POLICY_INCOMPLETE` | `POLICY_PRIMARY_MISSING`, `POLICY_ENTRY_INCOMPLETE` |
+| `ROLE_UNAVAILABLE` | `ROLE_NOT_REGISTERED` |
+| `NOT_APPLICABLE` | `CASE_NOT_APPLICABLE` |
+| `UNSUPPORTED` | `CASE_UNSUPPORTED` |
+| `APPLICABILITY_UNRESOLVED` | `APPLICABILITY_ASSESSMENT_UNAVAILABLE` |
+| `QUALIFICATION_UNAVAILABLE` | `QUALIFICATION_BINDING_UNAVAILABLE` |
+| `RESOURCE_AUTHORIZATION_UNAVAILABLE` | `RESOURCE_POLICY_UNAVAILABLE`, `RESOURCE_CAPACITY_UNAVAILABLE` |
+| `IDENTITY_OR_PROVENANCE_FAILURE` | `RESOLUTION_IDENTITY_MISMATCH`, `RESOLUTION_PROVENANCE_INVALID` |
+
+| Run outcome | Exact permitted reason(s) |
+|---|---|
+| `SUPPORTED` | reason must be `ABSENT` |
+| `UNCERTAINTY_UNRESOLVED` | `UNCERTAINTY_EVIDENCE_UNRESOLVED` |
+| `CONDITIONING_UNRESOLVED` | `CONDITIONING_EVIDENCE_UNRESOLVED` |
+| `APPLICABILITY_UNRESOLVED` | `APPLICABILITY_ASSESSMENT_UNAVAILABLE` |
+| `NOT_APPLICABLE` | `POLICY_ENTRY_NOT_APPLICABLE` |
+| `UNSUPPORTED` | `POLICY_ENTRY_UNSUPPORTED` |
+| `NUMERICAL_FAILURE` | `NUMERICAL_NONCONVERGENCE`, `NUMERICAL_INVALID_RESULT` |
+| `MALFORMED_OR_PROVENANCE_FAILURE` | `REQUEST_OR_GRANT_INVALID`, `PROVIDER_RESULT_MALFORMED`, `PROVENANCE_INVALID`, `VERSION_OR_IDENTITY_MISMATCH` |
+| `INFRASTRUCTURE_FAILURE` | `DEPENDENCY_UNAVAILABLE`, `TRANSPORT_FAILURE`, `PROCESS_FAILURE`, `CAPACITY_UNAVAILABLE`, `RESOURCE_LIMIT`, `TIMEOUT` |
+| `CANCELLED` | `TRUSTED_CANCELLATION` |
+
+| Comparison outcome | Exact permitted reason(s) |
+|---|---|
+| `AGREEMENT_WITHIN_REGISTERED_POLICY` | `COMPARISON_REQUIREMENTS_SATISFIED` |
+| `CONTESTED_DISAGREEMENT` | `REGISTERED_DISAGREEMENT_EXCEEDED` |
+| `COMPARISON_INDETERMINATE` | `PRIMARY_OR_WITNESS_NOT_SUPPORTED`, `COMPARISON_INPUT_IDENTITY_MISMATCH`, `COMPARISON_PROVENANCE_INVALID`, `COMPARISON_APPLICABILITY_MISMATCH`, `COMPARISON_METHOD_UNAVAILABLE`, `COMPARISON_UNCERTAINTY_UNRESOLVED`, `COMPARISON_DEPENDENCE_UNRESOLVED` |
+
+| Grant-issuance outcome | Exact permitted reason(s) |
+|---|---|
+| `ADMISSION_GRANT_AUTHORIZED` | `ADMISSION_GRANT_REQUIREMENTS_SATISFIED` |
+| `ADMISSION_GRANT_UNAVAILABLE` | `ADMISSION_GRAPH_CROSS_BINDING_MISMATCH`, `ADMISSION_GRANT_SCOPE_UNAVAILABLE`, `ADMISSION_AUTHORITY_BINDING_UNAVAILABLE` |
+
+| Admission outcome | Exact permitted reason(s) |
+|---|---|
+| `ADMITTED` | `ADMISSION_REQUIREMENTS_SATISFIED` |
+| `REJECTED` | `GRANT_INVALID_OR_CONSUMED`, `POLICY_OR_IDENTITY_MISMATCH`, `RUN_NOT_SUPPORTED`, `ARTIFACT_ABSENT_OR_INELIGIBLE`, `PROVENANCE_OR_RIGHTS_INVALID` |
+| `UNAVAILABLE` | `QUALIFICATION_UNAVAILABLE`, `USE_OR_DISCLOSURE_UNAVAILABLE` |
+| `INDETERMINATE` | `REQUIRED_COMPARISON_CONTESTED`, `REQUIRED_COMPARISON_INDETERMINATE` |
+
+The precedence orders remain exactly B-04-D4 through B-04-D6 and the ratified
+contract; a provider or caller cannot select a lower-precedence fact.
+
+**Applicability and absence matrices.** These rules are exhaustive:
+
+- A grant-issued resolution has `BOUND` grant of the matching nominal request
+  family. Every other resolution has `ABSENT(record.reason)`. A primary result
+  can never bind a witness grant, or conversely.
+- `SUPPORTED` has `BOUND(ArtifactContentBinding)`, applicability
+  `SUPPORTED_AND_APPLICABLE`, conditioning
+  `ASSESSED_WITHIN_REGISTERED_SCOPE`, and uncertainty `RESOLVED`. Every other
+  run has `ABSENT(record.reason)` artifact binding. `NOT_APPLICABLE`,
+  `UNSUPPORTED`, `APPLICABILITY_UNRESOLVED`, `CONDITIONING_UNRESOLVED`, and
+  `UNCERTAINTY_UNRESOLVED` respectively require applicability
+  `NOT_APPLICABLE`, applicability `UNSUPPORTED`, applicability
+  `ASSESSMENT_UNAVAILABLE`, conditioning other than
+  `ASSESSED_WITHIN_REGISTERED_SCOPE`, and uncertainty `UNRESOLVED`.
+  Numerical, malformed/provenance, infrastructure, and cancellation outcomes
+  may retain any observed assessment status, but never a bound artifact.
+- `ReferenceArtifact` is constructible only from an exact supported run whose
+  bound descriptor/digest/origin matches. `FixtureReferenceAsset` is
+  constructible only from a matching `FIXTURE_ONLY` artifact and fixes both
+  eligibility Booleans to false. A fixture artifact is admission-ineligible.
+- An authorized issuance record permits exactly one grant bound backward to
+  that record; an unavailable issuance permits none. Issuer absence produces
+  no issuance record. Authority absence produces no admission decision.
+- `ADMITTED` requires a bound non-fixture artifact, supported primary run,
+  every required comparison in agreement, bound qualification, matching
+  provenance/rights/use/disclosure, and a valid unconsumed grant. Every other
+  admission outcome produces no asset. `TruthAsset` is constructible only
+  from the complete matching `ADMITTED` graph. Structural issuance is never
+  substantive admission.
+- Primary and witness expanded entry inventories are nonempty, internally
+  duplicate-free, and disjoint. A single target occurs exactly once in its
+  policy inventory; every composition has at least two ordered distinct
+  `REGISTERED_COMPONENT` entries and occurs exactly once. All Challenge,
+  policy-id/version, scope, role, representation, and profile bindings match.
+- MMS/`MANUFACTURED_SOLUTION` evidence is permitted only with
+  `VERIFICATION_ANCHOR`; it rejects as primary, witness, validation anchor, or
+  registered answer-key component. No agreement, implementation label,
+  language, tolerance, or solver name transfers authority.
+
+**Exact ordered package-root surface.** `carbon.evaluation.__all__` is exactly:
+
+```text
+AdmissionGrantIssuanceOutcome
+AdmissionGrantIssuanceReason
+ConditioningStatus
+PublicReferenceOutcomeProjection
+PublicReferencePolicyProjection
+ReferenceAuthorityFunction
+ReferenceAuthorityTargetKind
+ReferenceComparisonOutcome
+ReferenceComparisonReason
+ReferenceCompositionKind
+ReferenceFailureReason
+ReferenceRunOutcome
+ReferenceSourceClass
+ReferenceWitnessTargetKind
+ResolutionOutcome
+ResolutionReason
+SupportApplicabilityStatus
+TruthAssetAdmissionOutcome
+TruthAssetAdmissionReason
+UncertaintyStatus
+create_public_reference_outcome_projection
+create_public_reference_policy_projection
+```
+
+The list order above is normative. All 17 refs and records; policy entries and
+compositions; raw policy, target, identity, scope, provenance, applicability,
+conditioning, uncertainty, correlation, request, grant, resolution, runner,
+run, comparison, artifact, fixture, issuance, admission, and `TruthAsset`
+types; runner/admission capabilities; canonical codecs/factories; fixture
+runners/payloads; protected diagnostics; and graph validators are excluded
+from the package root and remain available only from their named protected
+submodules. Public projection factories require a positive disclosure-policy
+binding and copy only allow-listed opaque facts; they do not expose protected
+case refs, solution bytes, discrepancies, configuration, provenance internals,
+or reversible handles.
+
+**Rationale.** This is the smallest self-contained executable schema that
+preserves D1-D10's monotonic graph, separate evidence/authority/source axes,
+nominal runner families, typed absence, positive admission, complete
+provenance and correlation disclosure, and protected/public split. Closed
+`PinnedReferenceIdentity` kinds avoid inventing dozens of scientifically
+meaningful owner-ref classes while preventing one identity from substituting
+for another. Owner refs retain all human/scientific meaning and remain fail
+closed.
+
+**Rejected alternatives.** Reusing B-02A or B-03 top-level registries; a
+generic mapping, JSON schema, dataclass reflection, open union, arbitrary
+string role/method/status; one combined reference type; raw optional grants or
+artifacts; artifact-bearing failures; result-to-artifact forward refs; policy
+refs to future requests/runs; a generic runner mode; source-rank authority;
+witness fallback/promotion; disagreement averaging; fixture-to-truth wrapping;
+and root-exporting protected records all violate the ratified contract.
+
+**Reversibility and migration cost.** Before durable B-04 bytes this freeze is
+cheap to replace; after merge, any field, type, order, literal, compatibility
+pair, ref mapping, or public-root change is a new prospective profile/schema
+and a high-cost producer/consumer migration. Historical v1 bytes and refs are
+never reinterpreted. New subordinate or top-level kinds require a later
+decision and new version; they cannot be appended to v1 dynamically.
+
+**Downstream impact.** B-05 may consume only admitted `TruthAssetRef` and its
+separately owned measurement inputs. B-06 owns substantive qualification and
+may configure a real admission authority later. B-07F consumes only protected
+fixture-asset seams. B-E2 may add nominal Julia/service adapters and expanded
+failure injection without changing v1 meaning. B-02A receives only eligible
+closed terminal refs through its existing censoring owner. No downstream
+runtime is implemented by this decision.
+
+**Human-reserved inputs.** Every real primary/witness/anchor assignment,
+support boundary, implementation, method/configuration, mesh, timestep,
+tolerance, precision, conditioning criterion, uncertainty value or floor,
+coverage meaning, disagreement threshold, correlation/independence judgment,
+fallback, rights/access, resource limit, qualification evidence, admission
+authority, security/operations policy, production representation, and LIVE
+activation remains unavailable. Fixture literals exercise structure only and
+cannot fill these bindings for a real Challenge.
+
+**Exact change path.** This decision is recorded before the first runtime
+model. The implementation is restricted to `carbon/evaluation/`, B-04 CPU and
+invariant tests, the B-04 ticket/plan/evidence and conditional Wave records,
+and required Development Hub source/generated projections. Existing
+`carbon.authoring` seams are kept and wrapped; `carbon.generators`, scoring,
+registry lifecycle/I/O, seeding, B-05, B-06, B-07F, B-E2, Julia, and historical
+runtime paths are not imported or modified. Issue #42 receives the non-gating
+lead notification mentioning `@harshaa765`; the Decision Console records the
+durable response and implementation PR URLs.
+
 ## 2026-08-31 — HUB-D1: Static-first Development Hub and maintenance gate
 
 **Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`

@@ -3,16 +3,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.1
+**Controlling register:** `.agent/WAVE_B.md` version 1.2
 **Selected ticket:** B-04 — `in_progress`
-**Selected phase:** runtime implementation only after B-01F's conditional
-completion gate; paused before that gate
-**B-01F status:** `done` only after its exact reviewed normal merge, exact-main
-`Merge gate`, and posted completed external receipt; before that predicate it
-is the owner-directed `in_progress` insertion
+**Selected phase:** bounded runtime implementation; B-01F's conditional
+completion predicate is satisfied
+**B-01F status:** `done` in bounded merged development-system scope
 **B-01G status:** `todo`; non-blocking for B-04
-**B-04 contract:** ratified bounded engineering contract; implementation and
-all qualification remain unearned
+**B-04 contract:** ratified bounded engineering contract; B-04-D11 exact v1
+schema recorded before runtime; implementation in progress and all
+qualification unearned
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -94,18 +93,22 @@ all qualification remain unearned
 > exact-main CI succeeded. PR #72's external receipt now establishes that
 > historical contract gate.
 
-> **B-04 contract ratified; B-01F inserted.** PR #72's external completion
+> **B-04 contract ratified; B-01F completed.** PR #72's external completion
 > receipt establishes the exact reviewed contract, required exact-head checks
 > and Greptile, normal reviewed-tree-preserving merge, and exact-main checks.
 > B-04 retains `SPECIFIED: YES`, `RATIFIED_ENGINEERING_CONTRACT: YES`, and
 > `IMPLEMENTED: NO`; every qualification and `LIVE` state remains `NO`.
-> `OWNER-DX-01` temporarily inserts B-01F before B-04 runtime without amending
-> the contract and queues B-01G as non-blocking `todo`. This candidate's B-01F
-> `done` and B-04 runtime selection become effective only after the exact B-01F
-> final head/tree passes scope-required checks, `Merge gate`, and Greptile;
-> normally merges with reviewed-tree preservation; and passes exact-main
-> `Merge gate`; and its completed normalized external receipt is posted.
-> Until then B-04 runtime remains paused.
+> `OWNER-DX-01` inserted B-01F before B-04 runtime without amending the
+> contract and queued B-01G as non-blocking `todo`. PR #73 normally merged
+> exact reviewed B-01F head `56093b3abe9e62e89d8aa0b5bf034e02d7d0ad97`
+> as `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, preserving exact tree
+> `619e366dead2288ccfd312f54ad09f17f86a1c62`. Exact-main run `33532472507`,
+> `Merge gate` check `99944337076`, and the normalized completion receipt at
+> PR #73 comment `5497405775` passed. The receipt selects B-04 runtime from
+> that exact main. Version 1.2 records the satisfied predicate and active
+> bounded implementation; B-04-D11 freezes its exact v1 executable schema
+> before the first runtime model. Every qualification and `LIVE` state remains
+> unavailable.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through

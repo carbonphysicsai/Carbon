@@ -1,19 +1,19 @@
 # B-04 plan — reference and TruthAsset contracts
 
 **Ticket:** B-04 — ReferencePolicy, TruthAsset, and reference runners<br>
-**Status:** `in_progress`; contract phase complete and ratified, runtime phase
-paused behind B-01F<br>
-**Branch:** `agent/b-04-reference-truth-contract`<br>
+**Status:** `in_progress`; contract phase complete and ratified, bounded
+runtime implementation active<br>
+**Branch:** `agent/b-04-reference-truth`<br>
 **Worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
-**Exact base commit:** `74ef837deed20b8fb9f0a5137086b15fc82bf820`<br>
-**Exact base tree:** `325022d9b43b119235af50214152ad269fa3cb6a`<br>
+**Exact base commit:** `7161fe3c4a04821b7f676ab006bd5d313d0442d2`<br>
+**Exact base tree:** `619e366dead2288ccfd312f54ad09f17f86a1c62`<br>
 **Working contract:** `Design_Specs/Reference_and_TruthAsset_Contract.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-04.md`
 
-This plan records the completed PR #72 contract phase. Its external completion
-receipt records the final reviewed-tree, checks, merge topology, and exact-main
-facts. `OWNER-DX-01` now pauses runtime behind B-01F without altering the
-contract. No B-04 implementation is authorized in the B-01F session.
+This plan retains the completed PR #72 contract phase and begins bounded
+runtime implementation after PR #73 satisfied `OWNER-DX-01`. The B-01F
+receipt at PR #73 comment `5497405775` selects B-04 from the exact base above.
+B-04-D11 freezes the executable v1 schema before the first runtime model.
 
 ## 1. Completed contract startup and closeout gate
 
@@ -142,17 +142,18 @@ the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
   correctness review, and zero unresolved review threads. Every tree change
   requires fresh CI and review.
 
-## 6. B-01F pause and runtime resumption boundary
+## 6. Satisfied B-01F gate and bounded runtime plan
 
-The contract PR is merged and ratified. Runtime remains paused until B-01F's
-exact final candidate passes scope-required exact-head checks and `Merge gate`,
-exact-head Greptile with every valid finding repaired and zero unresolved
-threads, normal exact-expected-head merge with reviewed-tree preservation, and
-exact-main `Merge gate`. Only then create a fresh
-`agent/b-04-reference-truth` branch from the verified exact main. Do not
-implement a runtime, reference method, solver, fixture runner, Julia service,
-Cole–Hopf routine, store, transport, measurement, score, Dossier, or later-
-ticket interface in B-01F.
+PR #73 satisfied the exact B-01F predicate and selected this branch from the
+base recorded above. Before any runtime model, record and notify B-04-D11 with
+the complete v1 executable schema, compatibility matrices, and root surface.
+Then implement the closed nominal policy/ref/canonical, execution/comparison,
+artifact/admission, fixture-runner, and disclosure slices under
+`carbon.evaluation`; add focused CPU and invariant tests; run affected B-02A,
+B-03, A3, A4, A5, package, authority, and full acceptance; complete two
+independent read-only audits; and deliver one reviewed runtime PR. Julia,
+Cole–Hopf, real solvers, stores, transport, measurement, score, Dossier,
+qualification, and later-ticket interfaces remain excluded.
 
 ```text
 SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT

@@ -2,8 +2,8 @@
 
 **Wave:** B active in bounded development scope
 **Status:** in_progress
-**Phase:** bounded engineering contract ratified; runtime implementation paused
-behind B-01F
+**Phase:** bounded engineering contract ratified; bounded runtime
+implementation active after the satisfied B-01F predicate
 **Depends on:** B-02A
 **Build Out:** C19 and truth/reference authoring
 **Master questions:** MQ-004
@@ -18,9 +18,11 @@ PR #72 normally merged the exact reviewed contract tree and exact-main
 canonical, clean-container, and Development Hub checks succeeded. The B-04
 contract is ratified engineering authority. Owner decision `OWNER-DX-01`
 inserts B-01F before runtime implementation without reopening or demoting that
-contract. B-04 runtime may begin only after B-01F's exact reviewed candidate
-normally merges with reviewed-tree preservation and exact-main `Merge gate`
-succeeds.
+contract. PR #73's normalized receipt at comment `5497405775` records that
+B-01F's exact reviewed candidate normally merged with reviewed-tree
+preservation and exact-main `Merge gate` succeeded. B-04 runtime starts from
+exact main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
+`619e366dead2288ccfd312f54ad09f17f86a1c62`.
 
 ## Goal
 
@@ -103,12 +105,13 @@ reputation, cost, or nominal tolerance.
 ## Runtime resumption gate
 
 The unchecked items above remain B-04 runtime Definition-of-Done requirements.
-They are neither undone nor implemented by B-01F. After B-01F satisfies its
-exact reviewed normal-merge and exact-main `Merge gate`, start B-04 runtime
-from that exact main on a fresh `agent/b-04-reference-truth` branch/worktree.
-Until then no runtime, solver, fixture runner, Julia service, Cole–Hopf method,
-artifact store, transport, measurement, scoring, Dossier, or later-ticket
-interface is authorized.
+They are neither undone nor implemented by B-01F. B-01F has satisfied its
+exact reviewed normal-merge, exact-main `Merge gate`, and receipt predicate;
+this fresh `agent/b-04-reference-truth` branch starts from that exact main.
+B-04-D11 must be recorded and notified before the first runtime model. No
+Julia service, Cole–Hopf method, production solver, artifact store, transport,
+measurement, scoring, Dossier, qualification, or later-ticket interface is
+authorized.
 
 ```text
 SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
