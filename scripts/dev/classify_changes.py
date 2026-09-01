@@ -54,6 +54,7 @@ _RUNTIME_EXACT = frozenset(
         ".agent/CODE_AUTHORITY.toml",
         ".dockerignore",
         ".python-version",
+        "docs/DEVELOPMENT.md",
         "docs/development/ENVIRONMENT.md",
         "MANIFEST.in",
         "Pipfile",

@@ -55,6 +55,7 @@ def _init_repository(repository: Path) -> str:
         ("pyproject.toml", ChangeScope.RUNTIME_FULL),
         ("requirements-dev.txt", ChangeScope.RUNTIME_FULL),
         (".agent/CODE_AUTHORITY.toml", ChangeScope.RUNTIME_FULL),
+        ("docs/DEVELOPMENT.md", ChangeScope.RUNTIME_FULL),
         ("docs/development/ENVIRONMENT.md", ChangeScope.RUNTIME_FULL),
         ("Design_Specs/Scoring.md", ChangeScope.CONTRACT_AUTHORITY),
         (".agent/tickets/B-04.md", ChangeScope.CONTRACT_AUTHORITY),
@@ -91,7 +92,10 @@ def _init_repository(repository: Path) -> str:
     ),
 )
 def test_representative_manifests(path: str, scope: ChangeScope) -> None:
-    assert classify_paths([path]).scope is scope
+    classification = classify_paths([path])
+    assert classification.scope is scope
+    if path != "unclassified/new-area/file.txt":
+        assert classification.unknown_paths == ()
 
 
 def test_runtime_and_contract_paths_dominate_weaker_scopes() -> None:
