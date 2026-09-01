@@ -189,8 +189,7 @@ class ValidatorContractTests(unittest.TestCase):
         validator.data = self.load_hub_data()
         validator.events = json.loads(
             (
-                REPO_ROOT
-                / "docs/development/carbon_hub/data/change_events.json"
+                REPO_ROOT / "docs/development/carbon_hub/data/change_events.json"
             ).read_text(encoding="utf-8")
         )["events"]
         wave_d = next(wave for wave in validator.data["waves"] if wave["id"] == "D")
@@ -198,8 +197,7 @@ class ValidatorContractTests(unittest.TestCase):
         validator.validate_model()
         self.assertTrue(
             any(
-                "waves[3].successor must be 'H'" in error
-                for error in validator.errors
+                "waves[3].successor must be 'H'" in error for error in validator.errors
             ),
             validator.errors,
         )
@@ -1901,8 +1899,7 @@ class ValidatorContractTests(unittest.TestCase):
 
         self.assertTrue(
             any(
-                "authority_roots is missing required protected roots: launch/"
-                in error
+                "authority_roots is missing required protected roots: launch/" in error
                 for error in validator.errors
             ),
             validator.errors,
