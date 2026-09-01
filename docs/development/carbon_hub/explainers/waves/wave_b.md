@@ -57,8 +57,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-02B](../tickets/b_02b.md): Candidate assembly and strategy compilation [done]
 - [B-02C](../tickets/b_02c.md): Research resource policy [done]
 - [B-03](../tickets/b_03.md): Generator API and fixed-viscosity Burgers fixture [done]
-- [B-04](../tickets/b_04.md): Reference and truth contracts [in_progress]
-- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [todo]
+- [B-04](../tickets/b_04.md): Reference and truth contracts [done]
+- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [in_progress]
 - [B-06](../tickets/b_06.md): Validation Dossier and qualification manifest [todo]
 - [B-07R](../tickets/b_07r.md): Miner research architecture ratification [done]
 - [B-07S](../tickets/b_07s.md): Exact v2 research-service protocol [todo]
@@ -79,8 +79,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/7da4a35c3a91caa910d8b366af9af1d76fad237b/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/7da4a35c3a91caa910d8b366af9af1d76fad237b/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/7da4a35c3a91caa910d8b366af9af1d76fad237b/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/bcb8a618b26135a911039630315bd9a00cfd5e48/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/bcb8a618b26135a911039630315bd9a00cfd5e48/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/bcb8a618b26135a911039630315bd9a00cfd5e48/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

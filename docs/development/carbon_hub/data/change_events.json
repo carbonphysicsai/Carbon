@@ -161,7 +161,7 @@
       "owner_lane": "sciml_technical_lead",
       "status": "active",
       "summary": "B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7da4a35c3a91caa910d8b366af9af1d76fad237b/.agent/DECISIONS.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/534afd85e0aeb5a156e3ef24a8958b8cab0ace05/.agent/DECISIONS.md",
       "affects": [
         "WAVE-B/B-01F",
         "WAVE-B/B-05",
@@ -177,6 +177,34 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "OWNER-DX-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-04",
+      "event_type": "evidence",
+      "event_id": "B-04-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/bcb8a618b26135a911039630315bd9a00cfd5e48/.agent/evidence/wave_b/b-04.md",
+      "affects": [
+        "WAVE-B/B-01F",
+        "WAVE-B/B-01G",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-04-D11"
     }
   ]
 }

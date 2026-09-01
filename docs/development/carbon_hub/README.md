@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 41 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 9 map-level change events
+- 10 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-04** (`in_progress`). PR #73 satisfied B-01F's exact completion predicate. Version 1.2 records B-04 in_progress in bounded runtime implementation from exact main, with B-04-D11's complete v1 schema freeze recorded and notified before the first runtime model.
+Wave **B**, ticket **B-05** (`in_progress`). Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
 
 ## Maintain
 

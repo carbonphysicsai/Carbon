@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `7da4a35c3a91caa910d8b366af9af1d76fad237b` on `main`, captured 2026-09-01T17:28:29Z.
-**Current:** Wave B, ticket B-04. PR #73 satisfied B-01F's exact completion predicate. Version 1.2 records B-04 in_progress in bounded runtime implementation from exact main, with B-04-D11's complete v1 schema freeze recorded and notified before the first runtime model.
+**Authority snapshot:** `bcb8a618b26135a911039630315bd9a00cfd5e48` on `main`, captured 2026-09-01T20:27:46Z.
+**Current:** Wave B, ticket B-05. Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
 
 ## Wave spine
 
@@ -50,8 +50,8 @@
 | [B-02B](explainers/tickets/b_02b.md) | Define CandidateAssemblyContract, ParameterCatalog, optional structural components, StrategyCompiler, and ResolvedConstructionPlan. | done |
 | [B-02C](explainers/tickets/b_02c.md) | Define resource classes, ceilings, reconstruction-stage receipt seams, enforcement outcomes, and non-scientific resource receipts. | done |
 | [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | done |
-| [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | in_progress |
-| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | todo |
+| [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | done |
+| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | in_progress |
 | [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | todo |
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
 | [B-07S](explainers/tickets/b_07s.md) | Ratify the exact v2 operation set, wire types, lifecycle, errors, canonicalization, bounds, and local-adapter contract. | todo |
@@ -91,6 +91,7 @@
 - `OWNER-DX-01` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-01 records B-01F done under its conditional completion predicate, queues B-01G as non-blocking todo, and keeps B-04 selected in_progress with its bounded engineering contract ratified while runtime remains unimplemented.
 - `HUB-ADJ-003` — `SYSTEM/PUBLICATION` — The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.
 - `B-04-D11` — `WAVE-B/B-04` — B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation.
+- `B-04-E2` — `WAVE-B/B-04` — B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.
 
 ## Authority boundary
 
