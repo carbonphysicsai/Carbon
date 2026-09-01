@@ -122,13 +122,14 @@ def test_wrapper_source_has_exact_direct_identity_and_docker_fail_closed() -> No
         '"1000"',
         '"ubuntu"',
         '"24.04"',
-        '"uv 0.12.7"',
+        '"0.12.7"',
         '"Python 3.11.16"',
         "-f /.dockerenv",
         "/etc/carbon-canonical-environment",
         "/usr/local/bin/uv",
         "/usr/local/bin/python3",
         "is_trusted_root_executable",
+        "has_exact_uv_version",
         "CARBON_CANONICAL_IDENTITY_DIAGNOSTICS",
         "CARBON_CANONICAL_VALIDATION_COPY",
         "refuses writable shared Git metadata",
@@ -145,6 +146,40 @@ def test_wrapper_source_has_exact_direct_identity_and_docker_fail_closed() -> No
         source.count(f'export PATH="/workspaces/Carbon/.venv/bin:{trusted_path}"') == 2
     )
     assert 'export PATH="/workspaces/Carbon/.venv/bin:${PATH}"' not in source
+    assert 'local version="${identity#uv }"' in source
+    assert 'version="${version%% *}"' in source
+    assert '"${identity}" == uv\\ * && "${version}" == "0.12.7"' in source
+
+
+def test_exact_uv_parser_accepts_build_metadata_only_for_pinned_version() -> None:
+    source = WRAPPER.read_text(encoding="utf-8")
+    start = source.index("has_exact_uv_version() {")
+    end = source.index("\n}\n\nis_exact_canonical_environment()", start) + 3
+    function_source = source[start:end]
+    cases = (
+        ("uv 0.12.7", True),
+        ("uv 0.12.7 (abcdef0 2026-08-31)", True),
+        ("uv 0.12.6 (abcdef0 2026-08-31)", False),
+        ("uv 0.12.70", False),
+        ("not-uv 0.12.7", False),
+        ("", False),
+    )
+    for identity, expected in cases:
+        process = subprocess.run(
+            [
+                "bash",
+                "--noprofile",
+                "--norc",
+                "-c",
+                f'{function_source}\nhas_exact_uv_version "$1"',
+                "uv-version-parser",
+                identity,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert (process.returncode == 0) is expected, (identity, process.stderr)
 
 
 def test_image_keeps_direct_identity_marker_and_runtime_root_owned() -> None:

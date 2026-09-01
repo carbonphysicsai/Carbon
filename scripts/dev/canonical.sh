@@ -50,6 +50,13 @@ report_identity_miss() {
   return 0
 }
 
+has_exact_uv_version() {
+  local identity="$1"
+  local version="${identity#uv }"
+  version="${version%% *}"
+  [[ "${identity}" == uv\ * && "${version}" == "0.12.7" ]]
+}
+
 is_exact_canonical_environment() {
   [[ -f /.dockerenv ]] \
     || { report_identity_miss "/.dockerenv is missing"; return 1; }
@@ -78,7 +85,7 @@ is_exact_canonical_environment() {
     source /etc/os-release
     [[ "${ID:-}" == "ubuntu" && "${VERSION_ID:-}" == "24.04" ]]
   ) || { report_identity_miss "OS release differs"; return 1; }
-  [[ "$(/usr/local/bin/uv --version 2>/dev/null || true)" == "uv 0.12.7" ]] \
+  has_exact_uv_version "$(/usr/local/bin/uv --version 2>/dev/null || true)" \
     || { report_identity_miss "uv version differs"; return 1; }
   [[ "$(/usr/local/bin/python3 --version 2>/dev/null || true)" == "Python 3.11.16" ]] \
     || { report_identity_miss "Python version differs"; return 1; }

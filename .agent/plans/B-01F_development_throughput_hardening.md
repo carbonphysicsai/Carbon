@@ -134,13 +134,14 @@ global `git status | grep -q` probe under `pipefail` with an exact path-scoped
 status capture and gives every remaining shell assertion a distinct
 diagnostic. No canonical trust predicate or runtime acceptance is relaxed.
 
-That diagnostic then proved the nested wrapper was rejecting exact identity,
-not Git isolation. Every identity predicate except trusted executable mode was
-already proven by the container prelude, bootstrap, doctor, and labeled
-assertions. The final bounded repair explicitly normalizes the root-owned uv,
-uvx, and managed Python executables to non-writable mode in the image and adds
-opt-in, label-only identity diagnostics. The exact trust predicate remains
-unchanged and fail closed.
+That diagnostic then proved the nested wrapper was rejecting uv's version
+string, not Git isolation: the pinned uv binary appends build metadata while
+the direct predicate compared the entire output to `uv 0.12.7`. The final
+bounded repair parses and compares the exact `0.12.7` semantic-version token,
+matching bootstrap and doctor while still rejecting every other version. It
+also explicitly normalizes root-owned uv, uvx, and managed Python executables
+to non-writable mode and retains opt-in, label-only identity diagnostics. The
+exact trust predicate remains fail closed.
 
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`
