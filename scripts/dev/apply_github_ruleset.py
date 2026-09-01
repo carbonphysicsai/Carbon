@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import re
 import subprocess
@@ -54,14 +53,6 @@ EXPECTED_REPOSITORY_SETTINGS = {
     "allow_rebase_merge": False,
     "allow_auto_merge": False,
 }
-RULESET_WRITE_FIELDS = (
-    "name",
-    "target",
-    "enforcement",
-    "bypass_actors",
-    "conditions",
-    "rules",
-)
 
 
 class RulesetError(RuntimeError):
@@ -101,8 +92,6 @@ class GhClient:
         if process.returncode != 0:
             detail = process.stderr.strip() or process.stdout.strip() or "no output"
             raise RulesetError(f"GitHub API {method} {endpoint} failed: {detail}")
-        if method == "DELETE" and not process.stdout.strip():
-            return None
         try:
             return json.loads(process.stdout)
         except json.JSONDecodeError as exc:
@@ -133,13 +122,6 @@ class RulesetPlan:
     expected_main: str | None
     merge_gate_sha: str | None
     pr_number: int | None = None
-
-
-@dataclass(frozen=True)
-class _ApplySnapshot:
-    ruleset_id: int | None
-    ruleset_payload: dict[str, Any] | None
-    repository_settings: dict[str, bool]
 
 
 def _require_mapping(value: Any, label: str) -> dict[str, Any]:
@@ -274,25 +256,18 @@ def _selected_mapping(value: Mapping[str, Any], keys: Sequence[str]) -> dict[str
     return {key: value.get(key) for key in keys}
 
 
-def _ruleset_write_payload(value: Mapping[str, Any], label: str) -> dict[str, Any]:
-    missing = [field for field in RULESET_WRITE_FIELDS if field not in value]
-    if missing:
-        raise RulesetError(f"{label} is missing writable fields: {missing}")
-    return copy.deepcopy({field: value[field] for field in RULESET_WRITE_FIELDS})
-
-
-def _repository_settings_snapshot(
+def _repository_settings_values(
     value: Mapping[str, Any], desired: Mapping[str, Any]
 ) -> dict[str, bool]:
-    snapshot: dict[str, bool] = {}
+    selected: dict[str, bool] = {}
     for field in desired:
         current = value.get(field)
         if type(current) is not bool:
             raise RulesetError(
                 f"live repository setting {field} is missing or is not boolean"
             )
-        snapshot[field] = current
-    return snapshot
+        selected[field] = current
+    return selected
 
 
 def _integration_sort_key(value: Any) -> tuple[int, int, str]:
@@ -423,40 +398,6 @@ def _find_managed_ruleset(
         raise RulesetError("managed ruleset summary has no numeric id")
     detail = client.request(_repo_endpoint(repository, f"/rulesets/{ruleset_id}"))
     return ruleset_id, _require_mapping(detail, "managed ruleset detail")
-
-
-def _find_exact_repository_ruleset(
-    client: GhClient, repository: str, ruleset_id: int
-) -> dict[str, Any] | None:
-    summaries = _paginated_list(
-        client,
-        _repo_endpoint(repository, "/rulesets?includes_parents=true"),
-        "GitHub ruleset listing",
-    )
-    matches = [
-        item
-        for item in summaries
-        if isinstance(item, dict)
-        and type(item.get("id")) is int
-        and item["id"] == ruleset_id
-    ]
-    if len(matches) > 1:
-        raise RulesetError(f"multiple rulesets report exact id {ruleset_id}")
-    if not matches:
-        return None
-    if not _repository_owned(matches[0], repository):
-        raise RulesetError(
-            f"exact ruleset id {ruleset_id} is not owned by repository {repository}"
-        )
-    detail = _require_mapping(
-        client.request(_repo_endpoint(repository, f"/rulesets/{ruleset_id}")),
-        "exact repository ruleset detail",
-    )
-    if detail.get("id") != ruleset_id or not _repository_owned(detail, repository):
-        raise RulesetError(
-            f"exact ruleset detail does not prove repository-owned id {ruleset_id}"
-        )
-    return detail
 
 
 def _verify_admin(repository_data: Mapping[str, Any]) -> None:
@@ -682,14 +623,14 @@ def _verify_live_pr(
         )
 
 
-def _build_plan_and_snapshot(
+def build_plan(
     client: GhClient,
     artifact: Mapping[str, Any],
     *,
     expected_main: str | None,
     merge_gate_sha: str | None,
     pr_number: int | None = None,
-) -> tuple[RulesetPlan, _ApplySnapshot]:
+) -> RulesetPlan:
     guard_values = (expected_main, merge_gate_sha, pr_number)
     if any(value is not None for value in guard_values) and not all(
         value is not None for value in guard_values
@@ -722,12 +663,8 @@ def _build_plan_and_snapshot(
     else:
         ruleset_action = "UPDATE"
     settings = _require_mapping(artifact["repository_settings"], "repository_settings")
-    settings_snapshot = _repository_settings_snapshot(repository_data, settings)
-    settings_action = (
-        "NOOP"
-        if all(repository_data.get(key) == value for key, value in settings.items())
-        else "PATCH"
-    )
+    current_settings = _repository_settings_values(repository_data, settings)
+    settings_action = "NOOP" if current_settings == settings else "PATCH"
     effective = _paginated_list(
         client,
         _repo_endpoint(repository, "/rules/branches/main"),
@@ -760,33 +697,6 @@ def _build_plan_and_snapshot(
         merge_gate_sha=merge_gate_sha,
         pr_number=pr_number,
     )
-    snapshot = _ApplySnapshot(
-        ruleset_id=ruleset_id,
-        ruleset_payload=(
-            None
-            if current_ruleset is None
-            else _ruleset_write_payload(current_ruleset, "managed ruleset snapshot")
-        ),
-        repository_settings=settings_snapshot,
-    )
-    return plan, snapshot
-
-
-def build_plan(
-    client: GhClient,
-    artifact: Mapping[str, Any],
-    *,
-    expected_main: str | None,
-    merge_gate_sha: str | None,
-    pr_number: int | None = None,
-) -> RulesetPlan:
-    plan, _ = _build_plan_and_snapshot(
-        client,
-        artifact,
-        expected_main=expected_main,
-        merge_gate_sha=merge_gate_sha,
-        pr_number=pr_number,
-    )
     return plan
 
 
@@ -799,213 +709,6 @@ def _require_unchanged_plan(
         )
 
 
-def _verify_repository_settings_snapshot(
-    client: GhClient,
-    repository: str,
-    expected: Mapping[str, bool],
-) -> None:
-    current = _read_repository_settings(
-        client,
-        repository,
-        expected,
-        label="repository settings restoration verification",
-    )
-    if current != dict(expected):
-        raise RulesetError(
-            "repository settings restoration verification differs from the exact "
-            f"pre-mutation snapshot: expected {dict(expected)}, found {current}"
-        )
-
-
-def _read_repository_settings(
-    client: GhClient,
-    repository: str,
-    fields: Mapping[str, bool],
-    *,
-    label: str,
-) -> dict[str, bool]:
-    repository_data = _require_mapping(
-        client.request(_repo_endpoint(repository)),
-        label,
-    )
-    return _repository_settings_snapshot(repository_data, fields)
-
-
-def _restore_repository_settings(
-    client: GhClient,
-    repository: str,
-    snapshot: Mapping[str, bool],
-    desired_settings: Mapping[str, Any],
-) -> None:
-    desired = _repository_settings_snapshot(desired_settings, snapshot)
-    current = _read_repository_settings(
-        client,
-        repository,
-        snapshot,
-        label="repository settings before guarded restore",
-    )
-    if current == dict(snapshot):
-        return
-    if current != desired:
-        raise RulesetError(
-            "repository settings changed after this operation's PATCH; refusing "
-            "guarded restoration over an unowned live state: "
-            f"expected the operation payload {desired}, found {current}"
-        )
-
-    request_error: RulesetError | None = None
-    try:
-        client.request(
-            _repo_endpoint(repository),
-            method="PATCH",
-            payload=dict(snapshot),
-        )
-    except RulesetError as exc:
-        request_error = exc
-    try:
-        _verify_repository_settings_snapshot(client, repository, snapshot)
-    except RulesetError as exc:
-        if request_error is not None:
-            raise RulesetError(
-                f"repository settings restore request failed ({request_error}); "
-                f"restoration verification also failed ({exc})"
-            ) from exc
-        raise
-
-
-def _restore_created_ruleset(
-    client: GhClient,
-    repository: str,
-    desired_ruleset: Mapping[str, Any],
-    created_ruleset_id: int | None,
-) -> None:
-    if created_ruleset_id is None:
-        raise RulesetError(
-            "the failed CREATE returned no exact id, so its mutation result cannot "
-            "be proven; refusing to claim restoration or delete an unproven resource"
-        )
-    current = _find_exact_repository_ruleset(client, repository, created_ruleset_id)
-    if current is None:
-        return
-    if normalize_ruleset(current) != normalize_ruleset(desired_ruleset):
-        raise RulesetError(
-            "exact created ruleset changed before compensation; refusing guarded "
-            f"deletion of id {created_ruleset_id}"
-        )
-
-    request_error: RulesetError | None = None
-    try:
-        client.request(
-            _repo_endpoint(repository, f"/rulesets/{created_ruleset_id}"),
-            method="DELETE",
-        )
-    except RulesetError as exc:
-        request_error = exc
-    remaining = _find_exact_repository_ruleset(client, repository, created_ruleset_id)
-    if remaining is not None:
-        detail = f"; delete request failed ({request_error})" if request_error else ""
-        raise RulesetError(
-            "created ruleset still exists after guarded deletion and verification: "
-            f"exact id {created_ruleset_id}{detail}"
-        )
-
-
-def _restore_updated_ruleset(
-    client: GhClient,
-    repository: str,
-    desired_ruleset: Mapping[str, Any],
-    snapshot: _ApplySnapshot,
-) -> None:
-    if snapshot.ruleset_id is None or snapshot.ruleset_payload is None:
-        raise RulesetError("UPDATE compensation is missing the exact prior ruleset")
-    name = str(desired_ruleset["name"])
-    current_id, current = _find_managed_ruleset(client, repository, name)
-    if current is None or current_id != snapshot.ruleset_id:
-        raise RulesetError(
-            "managed ruleset identity changed during UPDATE compensation; expected "
-            f"exact repository ruleset id {snapshot.ruleset_id}, found {current_id!r}"
-        )
-
-    current_normalized = normalize_ruleset(current)
-    snapshot_normalized = normalize_ruleset(snapshot.ruleset_payload)
-    desired_normalized = normalize_ruleset(desired_ruleset)
-    if current_normalized == snapshot_normalized:
-        request_error = None
-    elif current_normalized == desired_normalized:
-        request_error: RulesetError | None = None
-        try:
-            client.request(
-                _repo_endpoint(repository, f"/rulesets/{snapshot.ruleset_id}"),
-                method="PUT",
-                payload=copy.deepcopy(snapshot.ruleset_payload),
-            )
-        except RulesetError as exc:
-            request_error = exc
-    else:
-        raise RulesetError(
-            "managed ruleset changed after this operation's UPDATE; refusing "
-            "guarded restoration over an unowned live state for exact id "
-            f"{snapshot.ruleset_id}"
-        )
-
-    restored_id, restored = _find_managed_ruleset(client, repository, name)
-    if restored is None or restored_id != snapshot.ruleset_id:
-        detail = f"; restore request failed ({request_error})" if request_error else ""
-        raise RulesetError(
-            "prior ruleset identity was not restored and verified: expected id "
-            f"{snapshot.ruleset_id}, found {restored_id!r}{detail}"
-        )
-    restored_payload = _ruleset_write_payload(restored, "restored managed ruleset")
-    if restored_payload != snapshot.ruleset_payload:
-        detail = f"; restore request failed ({request_error})" if request_error else ""
-        raise RulesetError(
-            "restored managed ruleset differs from the exact prior payload" + detail
-        )
-
-
-def _compensate_apply(
-    client: GhClient,
-    plan: RulesetPlan,
-    desired_ruleset: Mapping[str, Any],
-    desired_repository_settings: Mapping[str, Any],
-    snapshot: _ApplySnapshot,
-    *,
-    ruleset_attempted: bool,
-    created_ruleset_id: int | None,
-    settings_attempted: bool,
-) -> list[str]:
-    errors: list[str] = []
-    if settings_attempted:
-        try:
-            _restore_repository_settings(
-                client,
-                plan.repository,
-                snapshot.repository_settings,
-                desired_repository_settings,
-            )
-        except RulesetError as exc:
-            errors.append(f"repository settings: {exc}")
-    if ruleset_attempted:
-        try:
-            if plan.ruleset_action == "CREATE":
-                _restore_created_ruleset(
-                    client,
-                    plan.repository,
-                    desired_ruleset,
-                    created_ruleset_id,
-                )
-            elif plan.ruleset_action == "UPDATE":
-                _restore_updated_ruleset(
-                    client,
-                    plan.repository,
-                    desired_ruleset,
-                    snapshot,
-                )
-        except RulesetError as exc:
-            errors.append(f"managed ruleset: {exc}")
-    return errors
-
-
 def apply_plan(
     client: GhClient,
     artifact: Mapping[str, Any],
@@ -1013,6 +716,14 @@ def apply_plan(
     *,
     git: GitClient,
 ) -> None:
+    """Converge only toward the artifact and never issue a restorative write.
+
+    GitHub does not provide a cross-endpoint transaction or conditional unsafe
+    requests for these endpoints. Repository administrators must serialize with
+    this operation. Once any forward mutation is attempted, failure stops the
+    operation and a fresh guarded invocation must reconcile the live state.
+    """
+
     if (
         plan.expected_main is None
         or plan.merge_gate_sha is None
@@ -1030,7 +741,7 @@ def apply_plan(
         expected_main=plan.expected_main,
         merge_gate_sha=plan.merge_gate_sha,
     )
-    current, snapshot = _build_plan_and_snapshot(
+    current = build_plan(
         client,
         artifact,
         expected_main=plan.expected_main,
@@ -1045,11 +756,10 @@ def apply_plan(
     )
     ruleset = _require_mapping(artifact["ruleset"], "ruleset")
     live_ruleset_id = plan.ruleset_id
-    ruleset_attempted = False
-    settings_attempted = False
+    mutation_phase: str | None = None
     try:
         if plan.ruleset_action == "CREATE":
-            ruleset_attempted = True
+            mutation_phase = "managed-ruleset CREATE request"
             created = _require_mapping(
                 client.request(
                     _repo_endpoint(plan.repository, "/rulesets"),
@@ -1064,7 +774,7 @@ def apply_plan(
         elif plan.ruleset_action == "UPDATE":
             if plan.ruleset_id is None:
                 raise RulesetError("UPDATE plan is missing the managed ruleset id")
-            ruleset_attempted = True
+            mutation_phase = "managed-ruleset UPDATE request"
             client.request(
                 _repo_endpoint(plan.repository, f"/rulesets/{plan.ruleset_id}"),
                 method="PUT",
@@ -1103,7 +813,7 @@ def apply_plan(
                     expected_main=plan.expected_main,
                     merge_gate_sha=plan.merge_gate_sha,
                 )
-            settings_attempted = True
+            mutation_phase = "repository-settings PATCH request"
             client.request(
                 _repo_endpoint(plan.repository),
                 method="PATCH",
@@ -1113,28 +823,16 @@ def apply_plan(
             )
         verify_applied(client, artifact, plan)
     except RulesetError as exc:
-        compensation_errors = _compensate_apply(
-            client,
-            plan,
-            ruleset,
-            _require_mapping(artifact["repository_settings"], "repository_settings"),
-            snapshot,
-            ruleset_attempted=ruleset_attempted,
-            created_ruleset_id=(
-                live_ruleset_id if plan.ruleset_action == "CREATE" else None
-            ),
-            settings_attempted=settings_attempted,
-        )
-        if compensation_errors:
-            raise RulesetError(
-                "GitHub apply failed and automatic compensation did not fully "
-                "restore the prior state. MANUAL RECOVERY REQUIRED. Original "
-                f"failure: {exc}. Compensation failures: "
-                + "; ".join(compensation_errors)
-            ) from exc
+        if mutation_phase is None:
+            raise
         raise RulesetError(
-            "GitHub apply failed; the exact prior ruleset and repository settings "
-            f"were restored and verified. Original failure: {exc}"
+            f"GitHub forward-only apply stopped after {mutation_phase}. APPLY "
+            "INCOMPLETE; MANUAL RECOVERY MAY BE REQUIRED. No automatic rollback "
+            "or restorative mutation was attempted because GitHub does not support "
+            "atomic conditional writes for these endpoints. Live state may be "
+            "unchanged or partially converged. Run a fresh guarded --dry-run, "
+            "serialize repository administration, and rerun --apply with fresh "
+            f"exact guards. Original failure: {exc}"
         ) from exc
 
 
