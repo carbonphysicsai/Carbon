@@ -203,6 +203,42 @@ def _effective_rules(
     ]
 
 
+def _plan(
+    *,
+    repository: str,
+    ruleset_action: str,
+    ruleset_id: int | None,
+    settings_action: str,
+    expected_main: str | None,
+    merge_gate_sha: str | None,
+    pr_number: int | None,
+    current_ruleset: Mapping[str, Any] | None = None,
+    current_repository: Mapping[str, Any] | None = None,
+) -> Any:
+    artifact = _artifact()
+    repository_data = (
+        current_repository
+        if current_repository is not None
+        else _base_responses()["repos/carbonphysicsai/Carbon"]
+    )
+    current_settings = ruleset_module._repository_settings_values(
+        repository_data, artifact["repository_settings"]
+    )
+    return ruleset_module.RulesetPlan(
+        repository=repository,
+        ruleset_action=ruleset_action,
+        ruleset_id=ruleset_id,
+        ruleset_state_sha256=ruleset_module._observation_digest(
+            ruleset_module._ruleset_mutation_state(current_ruleset, artifact["ruleset"])
+        ),
+        settings_action=settings_action,
+        settings_state_sha256=ruleset_module._observation_digest(current_settings),
+        expected_main=expected_main,
+        merge_gate_sha=merge_gate_sha,
+        pr_number=pr_number,
+    )
+
+
 def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
     artifact = _artifact()
     assert artifact["repository"] == "carbonphysicsai/Carbon"
@@ -581,7 +617,7 @@ def test_plan_refuses_inherited_ruleset_with_managed_name() -> None:
         )
 
 
-def test_apply_uses_only_managed_endpoints() -> None:
+def test_apply_accepts_response_defaults_and_uses_only_managed_endpoints() -> None:
     artifact = _artifact()
     responses = _base_responses()
     summary = {
@@ -592,6 +628,20 @@ def test_apply_uses_only_managed_endpoints() -> None:
     }
     detail = json.loads(json.dumps(artifact["ruleset"]))
     detail.update(summary)
+    pull_request = next(
+        rule for rule in detail["rules"] if rule["type"] == "pull_request"
+    )
+    pull_request["parameters"].update(
+        {
+            "dismissal_restriction": {
+                "allowed_actors": [],
+                "enabled": False,
+            },
+            "ignore_approvals_from_contributors": False,
+            "require_extra_approval_for_unattributed_changes": False,
+            "required_reviewers": [],
+        }
+    )
     repository_before = _base_responses()["repos/carbonphysicsai/Carbon"]
     repository_after = dict(repository_before)
     repository_after.update(artifact["repository_settings"])
@@ -608,12 +658,12 @@ def test_apply_uses_only_managed_endpoints() -> None:
                 _effective_rules(artifact, ruleset_id=7),
             ),
             "repos/carbonphysicsai/Carbon/rulesets/7": ResponseSequence(detail, detail),
-            "POST repos/carbonphysicsai/Carbon/rulesets": summary,
+            "POST repos/carbonphysicsai/Carbon/rulesets": detail,
             "PATCH repos/carbonphysicsai/Carbon": {"id": 1},
         }
     )
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -644,7 +694,7 @@ def test_failed_create_attempt_stops_after_one_forward_post() -> None:
         ruleset_module.RulesetError("injected ambiguous repository ruleset POST")
     )
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -693,10 +743,11 @@ def test_failed_update_attempt_stops_after_one_forward_put() -> None:
         }
     )
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="UPDATE",
         ruleset_id=41,
+        current_ruleset=prior_detail,
         settings_action="PATCH",
         expected_main=MAIN_SHA,
         merge_gate_sha=CANDIDATE_SHA,
@@ -715,6 +766,77 @@ def test_failed_update_attempt_stops_after_one_forward_put() -> None:
         )
     ]
     assert client.calls[-1] == mutations[-1]
+
+
+def test_create_refuses_malformed_mutation_response_id() -> None:
+    artifact = _artifact()
+    responses = _base_responses()
+    responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": None}
+    client = FakeClient(responses)
+    plan = _plan(
+        repository="carbonphysicsai/Carbon",
+        ruleset_action="CREATE",
+        ruleset_id=None,
+        settings_action="PATCH",
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+
+    with pytest.raises(ruleset_module.RulesetError, match="APPLY INCOMPLETE") as caught:
+        ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+
+    assert "created managed ruleset has no numeric id" in str(caught.value)
+    expected_mutation = (
+        "POST",
+        "repos/carbonphysicsai/Carbon/rulesets",
+        artifact["ruleset"],
+    )
+    assert [call for call in client.calls if call[0] != "GET"] == [expected_mutation]
+    assert client.calls[-1] == expected_mutation
+
+
+def test_update_refuses_boolean_mutation_response_id() -> None:
+    artifact = _artifact()
+    summary = {
+        "id": 1,
+        "name": "Carbon main merge gate",
+        "source": "carbonphysicsai/Carbon",
+        "source_type": "Repository",
+    }
+    prior_detail = json.loads(json.dumps(artifact["ruleset"]))
+    prior_detail["enforcement"] = "evaluate"
+    prior_detail.update(summary)
+    responses = _base_responses(rulesets=[summary])
+    responses.update(
+        {
+            "repos/carbonphysicsai/Carbon/rulesets/1": prior_detail,
+            "PUT repos/carbonphysicsai/Carbon/rulesets/1": {"id": True},
+        }
+    )
+    client = FakeClient(responses)
+    plan = _plan(
+        repository="carbonphysicsai/Carbon",
+        ruleset_action="UPDATE",
+        ruleset_id=1,
+        current_ruleset=prior_detail,
+        settings_action="PATCH",
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+
+    with pytest.raises(ruleset_module.RulesetError, match="APPLY INCOMPLETE") as caught:
+        ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+
+    assert "updated managed ruleset id changed unexpectedly" in str(caught.value)
+    expected_mutation = (
+        "PUT",
+        "repos/carbonphysicsai/Carbon/rulesets/1",
+        artifact["ruleset"],
+    )
+    assert [call for call in client.calls if call[0] != "GET"] == [expected_mutation]
+    assert client.calls[-1] == expected_mutation
 
 
 @pytest.mark.parametrize(
@@ -754,19 +876,34 @@ def test_settings_failure_after_ruleset_success_sends_only_forward_writes(
     )
     if ruleset_id is None:
         ruleset_endpoint = "repos/carbonphysicsai/Carbon/rulesets"
-        responses[f"POST {ruleset_endpoint}"] = summary
+        responses[f"POST {ruleset_endpoint}"] = desired_detail
         responses[f"repos/carbonphysicsai/Carbon/rulesets/{live_id}"] = desired_detail
     else:
         ruleset_endpoint = f"repos/carbonphysicsai/Carbon/rulesets/{live_id}"
+        pull_request = next(
+            rule for rule in desired_detail["rules"] if rule["type"] == "pull_request"
+        )
+        pull_request["parameters"].update(
+            {
+                "dismissal_restriction": {
+                    "allowed_actors": [],
+                    "enabled": False,
+                },
+                "ignore_approvals_from_contributors": False,
+                "require_extra_approval_for_unattributed_changes": False,
+                "required_reviewers": [],
+            }
+        )
         prior_detail = json.loads(json.dumps(desired_detail))
         prior_detail["enforcement"] = "evaluate"
         responses[ruleset_endpoint] = ResponseSequence(prior_detail, desired_detail)
-        responses[f"PUT {ruleset_endpoint}"] = summary
+        responses[f"PUT {ruleset_endpoint}"] = desired_detail
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action=ruleset_action,
         ruleset_id=ruleset_id,
+        current_ruleset=None if ruleset_id is None else prior_detail,
         settings_action="PATCH",
         expected_main=MAIN_SHA,
         merge_gate_sha=CANDIDATE_SHA,
@@ -806,26 +943,27 @@ def test_forward_only_rerun_converges_ruleset_complete_settings_partial_state() 
     responses.update(
         {
             "repos/carbonphysicsai/Carbon": ResponseSequence(
-                repository_before, repository_after
+                repository_before, repository_before, repository_after
             ),
-            RULESET_LIST_ENDPOINT: ResponseSequence([summary], [summary]),
-            EFFECTIVE_RULES_ENDPOINT: ResponseSequence(effective, effective, effective),
+            RULESET_LIST_ENDPOINT: ResponseSequence([summary], [summary], [summary]),
+            EFFECTIVE_RULES_ENDPOINT: ResponseSequence(
+                effective, effective, effective, effective
+            ),
             "repos/carbonphysicsai/Carbon/rulesets/41": ResponseSequence(
-                detail, detail
+                detail, detail, detail
             ),
             "PATCH repos/carbonphysicsai/Carbon": {"id": 1},
         }
     )
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
-        repository="carbonphysicsai/Carbon",
-        ruleset_action="NOOP",
-        ruleset_id=41,
-        settings_action="PATCH",
+    plan = ruleset_module.build_plan(
+        client,
+        artifact,
         expected_main=MAIN_SHA,
         merge_gate_sha=CANDIDATE_SHA,
         pr_number=PR_NUMBER,
     )
+    assert (plan.ruleset_action, plan.settings_action) == ("NOOP", "PATCH")
 
     ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
 
@@ -1061,7 +1199,7 @@ def test_apply_rechecks_main_guard_before_any_mutation() -> None:
     }
     responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": 7}
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1081,7 +1219,7 @@ def test_apply_refuses_changed_live_pr_head_before_any_mutation() -> None:
     responses = _base_responses(pull=pull)
     responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": 7}
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1117,7 +1255,7 @@ def test_apply_refuses_incompatible_preexisting_rule_before_any_mutation() -> No
     )
     responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": 7}
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1138,7 +1276,7 @@ def test_apply_refuses_concurrent_settings_plan_drift_before_any_mutation() -> N
     )
     responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": 7}
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1172,7 +1310,7 @@ def test_apply_refuses_concurrent_ruleset_action_and_id_drift() -> None:
     responses["repos/carbonphysicsai/Carbon/rulesets/41"] = detail
     responses["POST repos/carbonphysicsai/Carbon/rulesets"] = {"id": 7}
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1184,6 +1322,130 @@ def test_apply_refuses_concurrent_ruleset_action_and_id_drift() -> None:
     with pytest.raises(ruleset_module.RulesetError, match="plan changed"):
         ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
     assert all(method == "GET" for method, _, _ in client.calls)
+
+
+def test_apply_refuses_changed_noncompliant_ruleset_with_same_update_action() -> None:
+    artifact = _artifact()
+    summary = {
+        "id": 41,
+        "name": "Carbon main merge gate",
+        "source": "carbonphysicsai/Carbon",
+        "source_type": "Repository",
+    }
+    prior = json.loads(json.dumps(artifact["ruleset"]))
+    prior["enforcement"] = "evaluate"
+    prior.update(summary)
+    concurrent = json.loads(json.dumps(prior))
+    concurrent["enforcement"] = "disabled"
+    repository = _base_responses()["repos/carbonphysicsai/Carbon"]
+    repository.update(artifact["repository_settings"])
+    responses = _base_responses(rulesets=[summary])
+    responses["repos/carbonphysicsai/Carbon"] = repository
+    responses["repos/carbonphysicsai/Carbon/rulesets/41"] = ResponseSequence(
+        prior, concurrent
+    )
+    responses["PUT repos/carbonphysicsai/Carbon/rulesets/41"] = {"id": 41}
+    client = FakeClient(responses)
+    plan = ruleset_module.build_plan(
+        client,
+        artifact,
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+    assert (plan.ruleset_action, plan.settings_action) == ("UPDATE", "NOOP")
+
+    with pytest.raises(ruleset_module.RulesetError, match="plan changed"):
+        ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+
+    assert all(method == "GET" for method, _, _ in client.calls)
+
+
+def test_apply_refuses_changed_noncompliant_settings_with_same_patch_action() -> None:
+    artifact = _artifact()
+    summary = {
+        "id": 41,
+        "name": "Carbon main merge gate",
+        "source": "carbonphysicsai/Carbon",
+        "source_type": "Repository",
+    }
+    detail = json.loads(json.dumps(artifact["ruleset"]))
+    detail.update(summary)
+    prior = _base_responses()["repos/carbonphysicsai/Carbon"]
+    concurrent = dict(prior)
+    concurrent["allow_squash_merge"] = False
+    effective = _effective_rules(artifact, ruleset_id=41)
+    responses = _base_responses(rulesets=[summary], effective=effective)
+    responses["repos/carbonphysicsai/Carbon"] = ResponseSequence(prior, concurrent)
+    responses["repos/carbonphysicsai/Carbon/rulesets/41"] = detail
+    responses["PATCH repos/carbonphysicsai/Carbon"] = {"id": 1}
+    client = FakeClient(responses)
+    plan = ruleset_module.build_plan(
+        client,
+        artifact,
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+    assert (plan.ruleset_action, plan.settings_action) == ("NOOP", "PATCH")
+
+    with pytest.raises(ruleset_module.RulesetError, match="plan changed"):
+        ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+
+    assert all(method == "GET" for method, _, _ in client.calls)
+
+
+def test_ruleset_state_digest_covers_writable_state_not_response_metadata() -> None:
+    artifact = _artifact()
+    first = json.loads(json.dumps(artifact["ruleset"]))
+    first.update({"id": 41, "updated_at": "2026-09-01T00:00:00Z"})
+    reordered = json.loads(json.dumps(first))
+    reordered["id"] = 42
+    reordered["updated_at"] = "2026-09-01T00:01:00Z"
+    reordered["rules"].reverse()
+    checks = next(
+        rule for rule in reordered["rules"] if rule["type"] == "required_status_checks"
+    )
+    checks["parameters"]["required_status_checks"].reverse()
+    first_state = ruleset_module._ruleset_mutation_state(first, artifact["ruleset"])
+    reordered_state = ruleset_module._ruleset_mutation_state(
+        reordered, artifact["ruleset"]
+    )
+    assert ruleset_module._observation_digest(
+        first_state
+    ) == ruleset_module._observation_digest(reordered_state)
+
+    extra = json.loads(json.dumps(first))
+    extra["rules"].append(
+        {
+            "type": "future_rule",
+            "parameters": {"mode": "first", "ordered_steps": ["one", "two"]},
+        }
+    )
+    changed_extra = json.loads(json.dumps(extra))
+    changed_extra["rules"][-1]["parameters"]["mode"] = "second"
+    assert ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(extra, artifact["ruleset"])
+    ) != ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(changed_extra, artifact["ruleset"])
+    )
+    reordered_extra = json.loads(json.dumps(extra))
+    reordered_extra["rules"][-1]["parameters"]["ordered_steps"].reverse()
+    assert ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(extra, artifact["ruleset"])
+    ) != ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(reordered_extra, artifact["ruleset"])
+    )
+
+    missing = json.loads(json.dumps(first))
+    missing.pop("enforcement")
+    explicit_null = json.loads(json.dumps(first))
+    explicit_null["enforcement"] = None
+    assert ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(missing, artifact["ruleset"])
+    ) != ruleset_module._observation_digest(
+        ruleset_module._ruleset_mutation_state(explicit_null, artifact["ruleset"])
+    )
 
 
 def test_transition_drift_after_ruleset_success_stops_before_settings() -> None:
@@ -1210,11 +1472,11 @@ def test_transition_drift_after_ruleset_success_stops_before_settings() -> None:
                 [], _effective_rules(artifact, ruleset_id=7)
             ),
             "repos/carbonphysicsai/Carbon/rulesets/7": detail,
-            "POST repos/carbonphysicsai/Carbon/rulesets": summary,
+            "POST repos/carbonphysicsai/Carbon/rulesets": detail,
         }
     )
     client = FakeClient(responses)
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="CREATE",
         ruleset_id=None,
@@ -1225,6 +1487,55 @@ def test_transition_drift_after_ruleset_success_stops_before_settings() -> None:
     )
     with pytest.raises(ruleset_module.RulesetError, match="APPLY INCOMPLETE") as caught:
         ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+    assert "between ruleset and repository-settings mutations" in str(caught.value)
+    assert [call for call in client.calls if call[0] != "GET"] == [
+        (
+            "POST",
+            "repos/carbonphysicsai/Carbon/rulesets",
+            artifact["ruleset"],
+        )
+    ]
+
+
+def test_transition_refuses_changed_settings_with_same_patch_action() -> None:
+    artifact = _artifact()
+    summary = {
+        "id": 7,
+        "name": "Carbon main merge gate",
+        "source": "carbonphysicsai/Carbon",
+        "source_type": "Repository",
+    }
+    detail = json.loads(json.dumps(artifact["ruleset"]))
+    detail.update(summary)
+    prior = _base_responses()["repos/carbonphysicsai/Carbon"]
+    concurrent = dict(prior)
+    concurrent["allow_squash_merge"] = False
+    responses = _base_responses()
+    responses.update(
+        {
+            "repos/carbonphysicsai/Carbon": ResponseSequence(prior, prior, concurrent),
+            RULESET_LIST_ENDPOINT: ResponseSequence([], [], [summary]),
+            EFFECTIVE_RULES_ENDPOINT: ResponseSequence(
+                [], [], _effective_rules(artifact, ruleset_id=7)
+            ),
+            "repos/carbonphysicsai/Carbon/rulesets/7": detail,
+            "POST repos/carbonphysicsai/Carbon/rulesets": detail,
+            "PATCH repos/carbonphysicsai/Carbon": {"id": 1},
+        }
+    )
+    client = FakeClient(responses)
+    plan = ruleset_module.build_plan(
+        client,
+        artifact,
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+    assert (plan.ruleset_action, plan.settings_action) == ("CREATE", "PATCH")
+
+    with pytest.raises(ruleset_module.RulesetError, match="APPLY INCOMPLETE") as caught:
+        ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
+
     assert "between ruleset and repository-settings mutations" in str(caught.value)
     assert [call for call in client.calls if call[0] != "GET"] == [
         (
@@ -1360,7 +1671,7 @@ def test_post_apply_verification_refuses_incompatible_inherited_rule() -> None:
         *_effective_rules(artifact),
         {"type": "required_linear_history", "ruleset_id": 99},
     ]
-    plan = ruleset_module.RulesetPlan(
+    plan = _plan(
         repository="carbonphysicsai/Carbon",
         ruleset_action="NOOP",
         ruleset_id=41,

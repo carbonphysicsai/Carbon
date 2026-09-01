@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -23,6 +24,7 @@ GITHUB_ACTIONS_APP_ID = 15368
 GREPTILE_APP_ID = 867647
 PAGE_SIZE = 100
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
+DIGEST_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 
 EXPECTED_PULL_REQUEST_PARAMETERS = {
     "allowed_merge_methods": ["merge"],
@@ -118,7 +120,9 @@ class RulesetPlan:
     repository: str
     ruleset_action: str
     ruleset_id: int | None
+    ruleset_state_sha256: str
     settings_action: str
+    settings_state_sha256: str
     expected_main: str | None
     merge_gate_sha: str | None
     pr_number: int | None = None
@@ -339,6 +343,92 @@ def normalize_ruleset(value: Mapping[str, Any]) -> dict[str, Any]:
         },
         "rules": sorted(normalized_rules, key=lambda item: str(item["type"])),
     }
+
+
+def _canonical_observation(value: Any) -> Any:
+    """Canonicalize JSON mappings while preserving potentially meaningful arrays."""
+
+    if isinstance(value, Mapping):
+        return {str(key): _canonical_observation(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_canonical_observation(item) for item in value]
+    return value
+
+
+def _sorted_observation_list(value: Sequence[Any]) -> list[Any]:
+    items = [_canonical_observation(item) for item in value]
+    return sorted(
+        items,
+        key=lambda item: json.dumps(
+            item,
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
+
+
+def _observation_digest(value: Any) -> str:
+    """Return one stable token for an exact mutable live-state observation."""
+
+    encoded = json.dumps(
+        _canonical_observation(value),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _ruleset_mutation_state(
+    value: Mapping[str, Any] | None, desired: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    """Select every field the desired ruleset PUT would overwrite."""
+
+    if value is None:
+        return None
+    state = _canonical_observation({key: value.get(key) for key in desired})
+    if not isinstance(state, dict):
+        raise RulesetError("managed ruleset mutation state is not an object")
+    state["__present_fields__"] = sorted(key for key in desired if key in value)
+    bypass_actors = state.get("bypass_actors")
+    if isinstance(bypass_actors, list):
+        state["bypass_actors"] = _sorted_observation_list(bypass_actors)
+    conditions = state.get("conditions")
+    if isinstance(conditions, dict):
+        ref_name = conditions.get("ref_name")
+        if isinstance(ref_name, dict):
+            for field in ("include", "exclude"):
+                values = ref_name.get(field)
+                if isinstance(values, list):
+                    ref_name[field] = _sorted_observation_list(values)
+    rules = state.get("rules")
+    if isinstance(rules, list):
+        normalized_rules: list[Any] = []
+        for raw_rule in rules:
+            if not isinstance(raw_rule, dict):
+                normalized_rules.append(raw_rule)
+                continue
+            rule = dict(raw_rule)
+            parameters = rule.get("parameters")
+            if isinstance(parameters, dict):
+                parameters = dict(parameters)
+                if rule.get("type") == "pull_request":
+                    methods = parameters.get("allowed_merge_methods")
+                    if isinstance(methods, list):
+                        parameters["allowed_merge_methods"] = _sorted_observation_list(
+                            methods
+                        )
+                elif rule.get("type") == "required_status_checks":
+                    checks = parameters.get("required_status_checks")
+                    if isinstance(checks, list):
+                        parameters["required_status_checks"] = _sorted_observation_list(
+                            checks
+                        )
+                rule["parameters"] = parameters
+            normalized_rules.append(rule)
+        state["rules"] = _sorted_observation_list(normalized_rules)
+    return state
 
 
 def _repo_endpoint(repository: str, suffix: str = "") -> str:
@@ -692,7 +782,11 @@ def build_plan(
         repository=repository,
         ruleset_action=ruleset_action,
         ruleset_id=ruleset_id,
+        ruleset_state_sha256=_observation_digest(
+            _ruleset_mutation_state(current_ruleset, desired_ruleset)
+        ),
         settings_action=settings_action,
+        settings_state_sha256=_observation_digest(current_settings),
         expected_main=expected_main,
         merge_gate_sha=merge_gate_sha,
         pr_number=pr_number,
@@ -718,6 +812,8 @@ def apply_plan(
 ) -> None:
     """Converge only toward the artifact and never issue a restorative write.
 
+    Each pre-write replan compares canonical fingerprints of every mutable
+    field, so distinct noncompliant states cannot collapse to the same action.
     GitHub does not provide a cross-endpoint transaction or conditional unsafe
     requests for these endpoints. Repository administrators must serialize with
     this operation. Once any forward mutation is attempted, failure stops the
@@ -736,6 +832,15 @@ def apply_plan(
         raise RulesetError(f"unexpected ruleset action {plan.ruleset_action!r}")
     if plan.settings_action not in {"PATCH", "NOOP"}:
         raise RulesetError(f"unexpected settings action {plan.settings_action!r}")
+    for label, observation in (
+        ("ruleset", plan.ruleset_state_sha256),
+        ("repository-settings", plan.settings_state_sha256),
+    ):
+        if (
+            not isinstance(observation, str)
+            or DIGEST_PATTERN.fullmatch(observation) is None
+        ):
+            raise RulesetError(f"apply plan has no valid {label} observation")
     _verify_local_candidate(
         git,
         expected_main=plan.expected_main,
@@ -756,6 +861,7 @@ def apply_plan(
     )
     ruleset = _require_mapping(artifact["ruleset"], "ruleset")
     live_ruleset_id = plan.ruleset_id
+    written_ruleset: dict[str, Any] | None = None
     mutation_phase: str | None = None
     try:
         if plan.ruleset_action == "CREATE":
@@ -771,17 +877,32 @@ def apply_plan(
             live_ruleset_id = created.get("id")
             if type(live_ruleset_id) is not int:
                 raise RulesetError("created managed ruleset has no numeric id")
+            written_ruleset = created
         elif plan.ruleset_action == "UPDATE":
             if plan.ruleset_id is None:
                 raise RulesetError("UPDATE plan is missing the managed ruleset id")
             mutation_phase = "managed-ruleset UPDATE request"
-            client.request(
-                _repo_endpoint(plan.repository, f"/rulesets/{plan.ruleset_id}"),
-                method="PUT",
-                payload=ruleset,
+            updated = _require_mapping(
+                client.request(
+                    _repo_endpoint(plan.repository, f"/rulesets/{plan.ruleset_id}"),
+                    method="PUT",
+                    payload=ruleset,
+                ),
+                "updated managed ruleset",
             )
+            updated_ruleset_id = updated.get("id")
+            if (
+                type(updated_ruleset_id) is not int
+                or updated_ruleset_id != plan.ruleset_id
+            ):
+                raise RulesetError("updated managed ruleset id changed unexpectedly")
+            written_ruleset = updated
         if plan.settings_action == "PATCH":
             if plan.ruleset_action in {"CREATE", "UPDATE"}:
+                if written_ruleset is None:
+                    raise RulesetError(
+                        "ruleset mutation returned no exact state observation"
+                    )
                 _verify_local_candidate(
                     git,
                     expected_main=plan.expected_main,
@@ -791,7 +912,11 @@ def apply_plan(
                     repository=plan.repository,
                     ruleset_action="NOOP",
                     ruleset_id=live_ruleset_id,
+                    ruleset_state_sha256=_observation_digest(
+                        _ruleset_mutation_state(written_ruleset, ruleset)
+                    ),
                     settings_action="PATCH",
+                    settings_state_sha256=plan.settings_state_sha256,
                     expected_main=plan.expected_main,
                     merge_gate_sha=plan.merge_gate_sha,
                     pr_number=plan.pr_number,
