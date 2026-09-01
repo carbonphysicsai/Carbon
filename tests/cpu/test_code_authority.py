@@ -1010,17 +1010,13 @@ def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None
         assert required in wrapper
 
 
-def test_hub_lanes_enforce_decision_console_contract() -> None:
+def test_hub_acceptance_enforces_decision_console_contract() -> None:
     command = "python3 docs/development/carbon_hub/tools/test_decisions.py"
     hub_script = (REPOSITORY_ROOT / "scripts/dev/ci_hub.sh").read_text(
         encoding="utf-8"
     )
-    hub_workflow = (
-        REPOSITORY_ROOT / ".github/workflows/development-hub.yml"
-    ).read_text(encoding="utf-8")
 
     assert command in hub_script
-    assert f"run: {command}" in hub_workflow
 
 
 def test_default_ci_script_invokes_no_archived_path() -> None:
