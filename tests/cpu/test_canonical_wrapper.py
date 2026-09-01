@@ -129,6 +129,7 @@ def test_wrapper_source_has_exact_direct_identity_and_docker_fail_closed() -> No
         "/usr/local/bin/uv",
         "/usr/local/bin/python3",
         "is_trusted_root_executable",
+        "CARBON_CANONICAL_IDENTITY_DIAGNOSTICS",
         "CARBON_CANONICAL_VALIDATION_COPY",
         "refuses writable shared Git metadata",
         "image_id=",
@@ -151,6 +152,11 @@ def test_image_keeps_direct_identity_marker_and_runtime_root_owned() -> None:
     assert "> /etc/carbon-canonical-environment" in source
     assert "chown root:root /etc/carbon-canonical-environment" in source
     assert "chmod 0444 /etc/carbon-canonical-environment" in source
+    assert (
+        'chown root:root /usr/local/bin/uv /usr/local/bin/uvx "${python_path}"'
+        in source
+    )
+    assert 'chmod 0555 /usr/local/bin/uv /usr/local/bin/uvx "${python_path}"' in source
     chown_line = next(line for line in source.splitlines() if "chown -R" in line)
     assert "/opt/uv-python" not in chown_line
 
@@ -307,6 +313,7 @@ esac
     environment["CARBON_CANONICAL_DEV_ENV"] = (
         "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
     )
+    environment["CARBON_CANONICAL_IDENTITY_DIAGNOSTICS"] = "1"
     process = subprocess.run(
         [str(WRAPPER), "--dry-run", "/usr/bin/true"],
         cwd=REPOSITORY_ROOT,
@@ -318,6 +325,9 @@ esac
     assert process.returncode == 0, process.stderr
     assert process.stdout.startswith("BUILD ")
     assert "DIRECT_AFTER_BOOTSTRAP_DOCTOR" not in process.stdout
+    assert (
+        "Carbon canonical identity mismatch: /.dockerenv is missing" in process.stderr
+    )
 
 
 @pytest.mark.skipif(SKIP_DOCKER_TESTS, reason="Docker daemon is unavailable")
@@ -426,7 +436,7 @@ fi
 [[ "$(stat -c '%u:%g:%a' /etc/carbon-canonical-environment)" == "0:0:444" ]] || { echo "canonical marker ownership or mode changed" >&2; exit 97; }
 [[ "$(stat -Lc '%u:%g' /usr/local/bin/python3)" == "0:0" ]] || { echo "canonical Python is not root-owned" >&2; exit 98; }
 [[ "$(stat -Lc '%u:%g' /usr/local/bin/uv)" == "0:0" ]] || { echo "canonical uv is not root-owned" >&2; exit 99; }
-if ! direct="$(./scripts/dev/canonical.sh --dry-run /usr/bin/true)"; then
+if ! direct="$(CARBON_CANONICAL_IDENTITY_DIAGNOSTICS=1 ./scripts/dev/canonical.sh --dry-run /usr/bin/true)"; then
   echo "nested canonical direct-mode probe failed" >&2
   exit 100
 fi

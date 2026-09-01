@@ -36,6 +36,8 @@ RUN mkdir -p /home/ubuntu/.cache/uv /workspaces/Carbon/.venv \
     && ln -s "${python_path}" /usr/local/bin/python3.11 \
     && ln -s "${python_path}" /usr/local/bin/python3 \
     && ln -s "${python_path}" /usr/local/bin/python \
+    && chown root:root /usr/local/bin/uv /usr/local/bin/uvx "${python_path}" \
+    && chmod 0555 /usr/local/bin/uv /usr/local/bin/uvx "${python_path}" \
     && [ "$(id -u "${USERNAME}")" = "${USER_UID}" ] \
     && [ "$(id -g "${USERNAME}")" = "${USER_GID}" ] \
     && chown -R "${USERNAME}:${USERNAME}" /home/ubuntu /workspaces/Carbon \

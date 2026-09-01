@@ -43,34 +43,51 @@ is_trusted_root_executable() {
   [[ "${permissions:5:1}" != "w" && "${permissions:8:1}" != "w" ]]
 }
 
+report_identity_miss() {
+  if [[ "${CARBON_CANONICAL_IDENTITY_DIAGNOSTICS:-}" == "1" ]]; then
+    echo "Carbon canonical identity mismatch: $*" >&2
+  fi
+  return 0
+}
+
 is_exact_canonical_environment() {
-  [[ -f /.dockerenv ]] || return 1
-  [[ "${CARBON_CANONICAL_DEV_ENV:-}" == "${canonical_marker}" ]] || return 1
-  [[ -f "${canonical_marker_path}" ]] || return 1
+  [[ -f /.dockerenv ]] \
+    || { report_identity_miss "/.dockerenv is missing"; return 1; }
+  [[ "${CARBON_CANONICAL_DEV_ENV:-}" == "${canonical_marker}" ]] \
+    || { report_identity_miss "environment marker differs"; return 1; }
+  [[ -f "${canonical_marker_path}" ]] \
+    || { report_identity_miss "marker file is missing"; return 1; }
   [[ "$(/usr/bin/stat -c '%u:%g:%a' "${canonical_marker_path}" 2>/dev/null || true)" == "0:0:444" ]] \
-    || return 1
+    || { report_identity_miss "marker ownership or mode differs"; return 1; }
   [[ "$(/usr/bin/cat "${canonical_marker_path}" 2>/dev/null || true)" == "${canonical_marker}" ]] \
-    || return 1
-  [[ "$(/usr/bin/uname -s 2>/dev/null || true)" == "Linux" ]] || return 1
-  [[ "$(/usr/bin/uname -m 2>/dev/null || true)" == "x86_64" ]] || return 1
-  [[ "$(/usr/bin/id -u 2>/dev/null || true)" == "1000" ]] || return 1
-  [[ "$(/usr/bin/id -g 2>/dev/null || true)" == "1000" ]] || return 1
-  [[ "$(/usr/bin/id -un 2>/dev/null || true)" == "ubuntu" ]] || return 1
-  [[ -r /etc/os-release ]] || return 1
+    || { report_identity_miss "marker content differs"; return 1; }
+  [[ "$(/usr/bin/uname -s 2>/dev/null || true)" == "Linux" ]] \
+    || { report_identity_miss "kernel differs"; return 1; }
+  [[ "$(/usr/bin/uname -m 2>/dev/null || true)" == "x86_64" ]] \
+    || { report_identity_miss "architecture differs"; return 1; }
+  [[ "$(/usr/bin/id -u 2>/dev/null || true)" == "1000" ]] \
+    || { report_identity_miss "UID differs"; return 1; }
+  [[ "$(/usr/bin/id -g 2>/dev/null || true)" == "1000" ]] \
+    || { report_identity_miss "GID differs"; return 1; }
+  [[ "$(/usr/bin/id -un 2>/dev/null || true)" == "ubuntu" ]] \
+    || { report_identity_miss "user name differs"; return 1; }
+  [[ -r /etc/os-release ]] \
+    || { report_identity_miss "OS release is unreadable"; return 1; }
   (
     # shellcheck disable=SC1091
     source /etc/os-release
     [[ "${ID:-}" == "ubuntu" && "${VERSION_ID:-}" == "24.04" ]]
-  ) || return 1
+  ) || { report_identity_miss "OS release differs"; return 1; }
   [[ "$(/usr/local/bin/uv --version 2>/dev/null || true)" == "uv 0.12.7" ]] \
-    || return 1
+    || { report_identity_miss "uv version differs"; return 1; }
   [[ "$(/usr/local/bin/python3 --version 2>/dev/null || true)" == "Python 3.11.16" ]] \
-    || return 1
+    || { report_identity_miss "Python version differs"; return 1; }
   local executable
   for executable in \
     /usr/bin/cat /usr/bin/git /usr/bin/id /usr/bin/stat /usr/bin/uname \
     /usr/local/bin/python3 /usr/local/bin/uv; do
-    is_trusted_root_executable "${executable}" || return 1
+    is_trusted_root_executable "${executable}" \
+      || { report_identity_miss "untrusted executable ${executable}"; return 1; }
   done
 }
 

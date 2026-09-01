@@ -134,6 +134,14 @@ global `git status | grep -q` probe under `pipefail` with an exact path-scoped
 status capture and gives every remaining shell assertion a distinct
 diagnostic. No canonical trust predicate or runtime acceptance is relaxed.
 
+That diagnostic then proved the nested wrapper was rejecting exact identity,
+not Git isolation. Every identity predicate except trusted executable mode was
+already proven by the container prelude, bootstrap, doctor, and labeled
+assertions. The final bounded repair explicitly normalizes the root-owned uv,
+uvx, and managed Python executables to non-writable mode in the image and adds
+opt-in, label-only identity diagnostics. The exact trust predicate remains
+unchanged and fail closed.
+
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`
 for B-01F/B-01G and the conditional B-04 runtime selection (under
