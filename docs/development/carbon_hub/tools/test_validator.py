@@ -1034,6 +1034,88 @@ class ValidatorContractTests(unittest.TestCase):
                 validator.errors,
             )
 
+    def test_post_merge_unmapped_main_advance_rejects_stale_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.init_git_fixture(root)
+            (root / ".agent/tickets").mkdir(parents=True)
+            (root / ".agent/WAVE.md").write_text(
+                "# Fixture wave\n\nSelected ticket B-03.\n", encoding="utf-8"
+            )
+            (root / ".agent/tickets/B-03.md").write_text(
+                "# B-03 authority at snapshot S\n", encoding="utf-8"
+            )
+            self.run_git(root, "add", ".agent")
+            self.run_git(root, "commit", "-m", "snapshot S")
+
+            self.run_git(root, "switch", "-c", "hub")
+            (root / ".agent/tickets/B-03.md").write_text(
+                "# B-03 authority commit A\n\nHUB-AUTHORITY-A\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", ".agent/tickets/B-03.md")
+            self.run_git(root, "commit", "-m", "Hub authority commit A")
+            authority_a = self.run_git(root, "rev-parse", "HEAD")
+
+            captured = (
+                datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+            )
+            playbook = (
+                root / "docs/development/carbon_hub/orientation/HUB_UPDATE_PLAYBOOK.md"
+            )
+            playbook.parent.mkdir(parents=True)
+            playbook.write_text(
+                f"Current authority snapshot: `{authority_a}`, reconciled {captured}.\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", "docs")
+            self.run_git(root, "commit", "-m", "Hub build H pinned to A")
+
+            self.run_git(root, "switch", "main")
+            unknown_path = ".agent/UNMAPPED_AUTHORITY.md"
+            (root / unknown_path).write_text(
+                "# New authority without a Hub owner\n", encoding="utf-8"
+            )
+            self.run_git(root, "add", unknown_path)
+            self.run_git(root, "commit", "-m", "unmapped authority main advance M")
+            main_advance = self.run_git(root, "rev-parse", "HEAD")
+            self.run_git(root, "merge", "--no-ff", "hub", "-m", "merge Hub H")
+
+            validator = validate_hub.Validator(root)
+            validator.data = self.snapshot_fixture_data(authority_a)
+            validator.data["current"]["wave"] = "B"
+            validator.data["impact_policy"] = copy.deepcopy(
+                self.load_hub_data()["impact_policy"]
+            )
+            validator.data["meta"]["captured_at_utc"] = captured
+            validator.captured_at = datetime.strptime(
+                captured, "%Y-%m-%dT%H:%M:%SZ"
+            ).replace(tzinfo=UTC)
+            with patch.dict(
+                os.environ, {"HUB_DIFF_BASE_SHA": main_advance}, clear=False
+            ):
+                validator.collect_diff()
+
+            self.assertEqual(validator.diff_base_sha, main_advance)
+            self.assertNotIn(unknown_path, validator.changed_paths)
+            impact = validator.classify_impact(
+                unknown_path, comparison_base=authority_a
+            )
+            self.assertEqual(impact["impact_class"], "unmapped_authority")
+            self.assertEqual(impact["rule_id"], "unmapped-authority-root")
+            self.assertEqual(validator.errors, [])
+
+            validator.validate_snapshot_metadata()
+            self.assertTrue(
+                any(
+                    "Unmapped authority changed after authority_snapshot_commit"
+                    in error
+                    and unknown_path in error
+                    for error in validator.errors
+                ),
+                validator.errors,
+            )
+
     def test_nonselected_blob_main_link_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)

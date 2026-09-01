@@ -2604,20 +2604,27 @@ class Validator:
         post_snapshot_paths = {
             path.replace("\\", "/") for path in post_snapshot.stdout.split("\0") if path
         }
-        stale_structural = sorted(
-            path
-            for path in post_snapshot_paths
-            if (
-                (impact := self.classify_impact(path, comparison_base=commit))
-                is not None
-                and impact["impact_class"] == "map_structural"
-            )
-        )
+        stale_structural: list[str] = []
+        stale_unmapped: list[str] = []
+        for path in post_snapshot_paths:
+            impact = self.classify_impact(path, comparison_base=commit)
+            if impact is None:
+                continue
+            if impact["impact_class"] == "map_structural":
+                stale_structural.append(path)
+            elif impact["impact_class"] == "unmapped_authority":
+                stale_unmapped.append(path)
         if stale_structural:
             self.fail(
                 "Map-structural authority changed after authority_snapshot_commit; "
                 "create a new authority commit and repin the Hub: "
-                + ", ".join(stale_structural)
+                + ", ".join(sorted(stale_structural))
+            )
+        if stale_unmapped:
+            self.fail(
+                "Unmapped authority changed after authority_snapshot_commit; add an "
+                "explicit impact-policy owner, create a new authority commit, and "
+                "repin the Hub: " + ", ".join(sorted(stale_unmapped))
             )
         if selected is not None:
             for link in selected.get("repo_links", []):
