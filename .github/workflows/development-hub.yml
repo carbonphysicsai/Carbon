@@ -3,28 +3,61 @@ name: Development Hub
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     branches: [main]
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
-  group: development-hub-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: development-hub-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
     name: Static, drift, authority, and PR contract
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      HUB_DIFF_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
     steps:
+      - name: Resolve current live pull request candidate
+        if: github.event_name == 'pull_request'
+        id: live_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          live_path="${RUNNER_TEMP}/hub-live-pr.json"
+          gh api --method GET "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${live_path}"
+          python3 - "${live_path}" "${GITHUB_OUTPUT}" "${EVENT_HEAD}" <<'PY'
+          import json
+          import re
+          import sys
+
+          live_path, output_path, event_head = sys.argv[1:]
+          with open(live_path, encoding="utf-8") as stream:
+              live_pr = json.load(stream)
+          live_head = live_pr["head"]["sha"]
+          if re.fullmatch(r"[0-9a-f]{40}", live_head) is None:
+              raise SystemExit("Live PR head is not an exact lowercase SHA")
+          if live_head != event_head:
+              raise SystemExit(
+                  f"Historical event head {event_head} no longer equals live head "
+                  f"{live_head}; use the current event run"
+              )
+          with open(output_path, "a", encoding="utf-8") as output:
+              print(f"path={live_path}", file=output)
+              print(f"head_sha={live_head}", file=output)
+          PY
+
       - name: Checkout exact candidate with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ steps.live_pr.outputs.head_sha || github.sha }}
 
       - name: Show tool versions
         run: |
@@ -35,7 +68,51 @@ jobs:
       - name: Check generated outputs
         run: python3 docs/development/carbon_hub/tools/render_hub.py --check
 
+      - name: Refresh live pull request declaration and identity
+        if: github.event_name == 'pull_request'
+        id: refresh_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HUB_LIVE_PR_PATH: ${{ steps.live_pr.outputs.path }}
+          CANDIDATE_HEAD: ${{ steps.live_pr.outputs.head_sha }}
+        run: |
+          gh api --method GET "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${HUB_LIVE_PR_PATH}"
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+
+          with open(os.environ["HUB_LIVE_PR_PATH"], encoding="utf-8") as stream:
+              live_pr = json.load(stream)
+          live_head = live_pr["head"]["sha"]
+          live_base = live_pr["base"]["sha"]
+          if live_head != os.environ["CANDIDATE_HEAD"]:
+              raise SystemExit(
+                  f"Refreshed live head {live_head} no longer equals checked-out "
+                  f"candidate {os.environ['CANDIDATE_HEAD']}"
+              )
+          if re.fullmatch(r"[0-9a-f]{40}", live_base) is None:
+              raise SystemExit("Live PR base is not an exact lowercase SHA")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              print(f"base_sha={live_base}", file=output)
+          PY
+
+      - name: Classify the exact candidate against the current base
+        id: change_scope
+        env:
+          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before }}
+        run: |
+          python3 scripts/dev/classify_changes.py \
+            --repository . \
+            --base "${HUB_DIFF_BASE_SHA}" \
+            --github-output "${GITHUB_OUTPUT}"
+
       - name: Validate data, authority drift, links, diff coverage, and PR declaration
+        env:
+          HUB_EXPECTED_CHANGE_SCOPE: ${{ steps.change_scope.outputs.change_scope }}
+          HUB_LIVE_PR_PATH: ${{ steps.live_pr.outputs.path }}
+          HUB_REQUIRE_LIVE_PR: ${{ github.event_name == 'pull_request' }}
         run: python3 docs/development/carbon_hub/tools/validate_hub.py --repo-root .
 
       - name: Test validator enforcement contracts
@@ -48,4 +125,6 @@ jobs:
         run: python3 docs/development/carbon_hub/tools/browser_smoke_test.py --timeout 30
 
       - name: Check whitespace
+        env:
+          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before }}
         run: git diff --check "${HUB_DIFF_BASE_SHA}...HEAD"

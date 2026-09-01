@@ -200,6 +200,50 @@ REQUIRED_IMPACT_RULE_IDS = {
     "protocol-detail",
     "hub-validation-workflow",
 }
+REQUIRED_DELIVERY_FIELDS = (
+    "DELIVERY_MODE",
+    "SEPARATE_CONTRACT_PR_REASON",
+    "BASE",
+    "FINAL_HEAD",
+    "FINAL_TREE",
+    "CHANGE_SCOPE",
+    "CANONICAL_LOCAL_VALIDATION",
+    "MERGE_GATE",
+    "GREPTILE",
+    "UNRESOLVED_THREADS",
+    "BLOCKING_DIRECTION",
+    "DYNAMIC_COMPLETION_EVIDENCE",
+    "COMPLETION_RECEIPT_LOCATION",
+    "CODE_BEARING_COMMITS",
+    "POST_FREEZE_TREE_CHANGES",
+    "FULL_CI_RUNS",
+    "AVOIDABLE_RERUN_REASON",
+)
+DELIVERY_STATUS_ENUMS = {
+    "CANONICAL_LOCAL_VALIDATION": {
+        "PENDING",
+        "PASSED",
+        "SUCCESS",
+        "SUCCEEDED",
+        "FAILED",
+        "UNAVAILABLE",
+        "NOT_REQUIRED",
+    },
+    "MERGE_GATE": {"PENDING", "PASSED", "SUCCESS", "SUCCEEDED", "FAILED"},
+    "GREPTILE": {"PENDING", "PASSED", "SUCCESS", "SUCCEEDED", "FAILED"},
+    "BLOCKING_DIRECTION": {
+        "NONE",
+        "PENDING",
+        "CHANGE",
+        "BLOCKED",
+        "REQUEST_CHANGES",
+    },
+}
+DELIVERY_CHANGE_SCOPES = {
+    "RUNTIME_FULL",
+    "CONTRACT_AUTHORITY",
+    "DERIVED_DOCUMENTATION",
+}
 
 
 class SimpleYamlError(ValueError):
@@ -400,7 +444,9 @@ class Validator:
         self.events: list[dict[str, Any]] = []
         self.event_bundle: dict[str, Any] = {}
         self.html_cache: dict[Path, HubHtmlParser] = {}
+        self.historical_github_event: dict[str, Any] | None = None
         self.github_event: dict[str, Any] | None = None
+        self.live_pr_loaded = False
         self.changed_paths: set[str] | None = None
         self.deleted_paths: set[str] = set()
         self.new_event_ids: set[str] = set()
@@ -437,12 +483,57 @@ class Validator:
             return False
         return True
 
-    @staticmethod
-    def semantic_data_view(value: Any, path: tuple[str, ...] = ()) -> Any:
-        """Remove snapshot-only pins while retaining orientation semantics."""
+    @classmethod
+    def semantic_data_view(
+        cls,
+        value: Any,
+        path: tuple[str, ...] = (),
+        snapshot_commits: frozenset[str] | None = None,
+        normalized_ticket_revisions: dict[str, frozenset[str]] | None = None,
+        normalized_wave_revisions: dict[str, frozenset[str]] | None = None,
+        record_kind: str | None = None,
+        record_id: str | None = None,
+    ) -> Any:
+        """Remove current-role pins while retaining historical identities."""
+        if path == () and isinstance(value, dict):
+            meta = value.get("meta")
+            candidate = (
+                meta.get("authority_snapshot_commit")
+                if isinstance(meta, dict)
+                else None
+            )
+            if (
+                snapshot_commits is None
+                and isinstance(candidate, str)
+                and re.fullmatch(r"[0-9a-f]{40}", candidate)
+            ):
+                snapshot_commits = frozenset({candidate})
+            current = value.get("current")
+            if normalized_ticket_revisions is None:
+                selected = current.get("ticket") if isinstance(current, dict) else None
+                normalized_ticket_revisions = dict.fromkeys(
+                    [selected] if isinstance(selected, str) else [],
+                    snapshot_commits or frozenset(),
+                )
+            if normalized_wave_revisions is None:
+                active = current.get("wave") if isinstance(current, dict) else None
+                normalized_wave_revisions = dict.fromkeys(
+                    [active] if isinstance(active, str) else [],
+                    snapshot_commits or frozenset(),
+                )
+        normalized_ticket_revisions = normalized_ticket_revisions or {}
+        normalized_wave_revisions = normalized_wave_revisions or {}
         if isinstance(value, dict):
             return {
-                key: Validator.semantic_data_view(child, (*path, key))
+                key: cls.semantic_data_view(
+                    child,
+                    (*path, key),
+                    snapshot_commits,
+                    normalized_ticket_revisions,
+                    normalized_wave_revisions,
+                    record_kind,
+                    record_id,
+                )
                 for key, child in value.items()
                 if not (
                     path == ("meta",)
@@ -455,14 +546,156 @@ class Validator:
                 )
             }
         if isinstance(value, list):
-            return [Validator.semantic_data_view(child, path) for child in value]
-        if isinstance(value, str):
-            return re.sub(
-                r"(/(?:blob|commit)/)[0-9a-f]{40}(?=/|$)",
-                r"\1{SNAPSHOT_COMMIT}",
-                value,
-            )
+            result = []
+            for child in value:
+                child_kind = record_kind
+                child_id = record_id
+                if isinstance(child, dict) and path == ("tickets",):
+                    child_kind = "ticket"
+                    candidate_id = child.get("id")
+                    child_id = candidate_id if isinstance(candidate_id, str) else None
+                elif isinstance(child, dict) and path == ("waves",):
+                    child_kind = "wave"
+                    candidate_id = child.get("id")
+                    child_id = candidate_id if isinstance(candidate_id, str) else None
+                result.append(
+                    cls.semantic_data_view(
+                        child,
+                        path,
+                        snapshot_commits,
+                        normalized_ticket_revisions,
+                        normalized_wave_revisions,
+                        child_kind,
+                        child_id,
+                    )
+                )
+            return result
+        role_revisions = frozenset()
+        if path:
+            if path[0] in {"sources", "current", "authority_source_checks"}:
+                role_revisions = snapshot_commits or frozenset()
+            elif record_kind == "ticket" and "repo_links" in path:
+                role_revisions = normalized_ticket_revisions.get(
+                    record_id or "", frozenset()
+                )
+            elif record_kind == "wave" and "repo_links" in path:
+                role_revisions = normalized_wave_revisions.get(
+                    record_id or "", frozenset()
+                )
+        if isinstance(value, str) and role_revisions:
+            for snapshot_commit in sorted(role_revisions):
+                value = re.sub(
+                    rf"(/(?:blob|commit)/){re.escape(snapshot_commit)}(?=/|$)",
+                    r"\1{SNAPSHOT_COMMIT}",
+                    value,
+                )
         return value
+
+    @staticmethod
+    def authority_snapshot(value: Any) -> str | None:
+        if not isinstance(value, dict):
+            return None
+        meta = value.get("meta")
+        candidate = (
+            meta.get("authority_snapshot_commit") if isinstance(meta, dict) else None
+        )
+        if isinstance(candidate, str) and re.fullmatch(r"[0-9a-f]{40}", candidate):
+            return candidate
+        return None
+
+    @classmethod
+    def paired_semantic_data_views(cls, base: Any, current: Any) -> tuple[Any, Any]:
+        """Normalize both comparison snapshots without erasing ancestor changes."""
+        base_snapshot = cls.authority_snapshot(base)
+        current_snapshot = cls.authority_snapshot(current)
+        snapshots = frozenset(
+            snapshot
+            for snapshot in (base_snapshot, current_snapshot)
+            if snapshot is not None
+        )
+
+        def current_identity(value: Any, field: str) -> str | None:
+            if not isinstance(value, dict):
+                return None
+            current_record = value.get("current")
+            candidate = (
+                current_record.get(field) if isinstance(current_record, dict) else None
+            )
+            return candidate if isinstance(candidate, str) else None
+
+        def record_revisions(value: Any, collection: str, record_id: str) -> set[str]:
+            if not isinstance(value, dict):
+                return set()
+            records = value.get(collection)
+            if not isinstance(records, list):
+                return set()
+            record = next(
+                (
+                    item
+                    for item in records
+                    if isinstance(item, dict) and item.get("id") == record_id
+                ),
+                None,
+            )
+            if not isinstance(record, dict):
+                return set()
+            links = record.get("repo_links")
+            if not isinstance(links, list):
+                return set()
+            revisions: set[str] = set()
+            for link in links:
+                if not isinstance(link, dict):
+                    continue
+                url = link.get("url")
+                if not isinstance(url, str):
+                    continue
+                revisions.update(
+                    re.findall(r"/(?:blob|commit)/([0-9a-f]{40})(?=/|$)", url)
+                )
+            return revisions
+
+        def role_revisions(field: str, collection: str) -> dict[str, frozenset[str]]:
+            base_id = current_identity(base, field)
+            current_id = current_identity(current, field)
+            result: dict[str, frozenset[str]] = {}
+            # A retiring role may retain its old exact pins, but it must not adopt
+            # the new snapshot after becoming historical. A newly current role may
+            # replace any of its prior historical pins with the current snapshot.
+            if base_id is not None:
+                revisions = record_revisions(base, collection, base_id)
+                if base_snapshot is not None:
+                    revisions.add(base_snapshot)
+                if base_id == current_id and current_snapshot is not None:
+                    revisions.add(current_snapshot)
+                result[base_id] = frozenset(revisions)
+            if current_id is not None and current_id != base_id:
+                revisions = record_revisions(base, collection, current_id)
+                if current_snapshot is not None:
+                    revisions.add(current_snapshot)
+                result[current_id] = frozenset(revisions)
+            return result
+
+        ticket_revisions = role_revisions("ticket", "tickets")
+        wave_revisions = role_revisions("wave", "waves")
+        return (
+            cls.semantic_data_view(
+                base,
+                snapshot_commits=snapshots,
+                normalized_ticket_revisions=ticket_revisions,
+                normalized_wave_revisions=wave_revisions,
+            ),
+            cls.semantic_data_view(
+                current,
+                snapshot_commits=snapshots,
+                normalized_ticket_revisions=ticket_revisions,
+                normalized_wave_revisions=wave_revisions,
+            ),
+        )
+
+    @classmethod
+    def semantic_data_changed_between(cls, base: Any, current: Any) -> bool:
+        base_view, current_view = cls.paired_semantic_data_views(base, current)
+        return base_view != current_view
 
     def validate_https_url(self, value: Any, label: str) -> bool:
         if not isinstance(value, str) or not value:
@@ -574,12 +807,17 @@ class Validator:
     def carbon_blob_target(value: Any) -> tuple[str, str] | None:
         if not isinstance(value, str):
             return None
-        parsed = urllib.parse.urlsplit(value)
+        try:
+            parsed = urllib.parse.urlsplit(value)
+        except ValueError:
+            return None
         prefix = "/carbonphysicsai/Carbon/blob/"
         if (
             parsed.scheme != "https"
             or parsed.netloc != "github.com"
             or not parsed.path.startswith(prefix)
+            or parsed.query
+            or parsed.fragment
         ):
             return None
         remainder = parsed.path[len(prefix) :]
@@ -587,6 +825,59 @@ class Validator:
             return "", ""
         revision, path = remainder.split("/", 1)
         return revision, urllib.parse.unquote(path)
+
+    @staticmethod
+    def carbon_dynamic_route(value: Any) -> bool:
+        """Return whether a Carbon link is an allowed dynamic issue/PR route."""
+        if not isinstance(value, str):
+            return False
+        try:
+            parsed = urllib.parse.urlsplit(value)
+        except ValueError:
+            return False
+        return (
+            parsed.scheme == "https"
+            and parsed.netloc == "github.com"
+            and not parsed.query
+            and not parsed.fragment
+            and re.fullmatch(
+                r"/carbonphysicsai/Carbon/(?:issues|pull)/[1-9][0-9]*",
+                parsed.path,
+            )
+            is not None
+        )
+
+    def current_authority_target(
+        self, value: Any, commit: str, label: str
+    ) -> tuple[str, str] | None:
+        """Require a current authority link or permit an explicit dynamic route."""
+        if self.carbon_dynamic_route(value):
+            return None
+        target = self.carbon_blob_target(value)
+        if target is None:
+            self.fail(
+                f"{label} must be an exact current-snapshot Carbon blob URL or an "
+                "issue/PR dynamic route"
+            )
+            return None
+        revision, path = target
+        pure = PurePosixPath(path)
+        if (
+            revision != commit
+            or not path
+            or path == "."
+            or pure.is_absolute()
+            or ".." in pure.parts
+            or "\\" in path
+            or pure.as_posix() != path
+            or any(
+                character.isspace() or ord(character) < 32 or ord(character) == 127
+                for character in path
+            )
+        ):
+            self.fail(f"{label} must pin meta.authority_snapshot_commit at a safe path")
+            return None
+        return target
 
     def validate_authority_source_checks(self) -> None:
         checks = self.data.get("authority_source_checks")
@@ -2481,36 +2772,85 @@ class Validator:
         collect_links(self.event_bundle)
         if invalid_blob_links:
             self.fail(
-                "Carbon blob URLs must use an exact lowercase 40-character authority "
-                "snapshot and a safe repository path: "
+                "Carbon blob URLs must use an exact lowercase 40-character commit "
+                "and a safe repository path: "
                 + ", ".join(sorted(set(invalid_blob_links)))
             )
         pinned_shas = {sha for sha, _ in pinned_links}
-        if pinned_shas != {commit}:
-            self.fail(
-                "All pinned Carbon blob URLs must use "
-                f"meta.authority_snapshot_commit; found {sorted(pinned_shas)}"
+        paths_by_revision: dict[str, set[str]] = {}
+        for revision in sorted(pinned_shas):
+            resolved_pin = self.git(
+                "rev-parse",
+                "--verify",
+                f"{revision}^{{commit}}",
+                allow_failure=True,
             )
-        tree = self.git("ls-tree", "-r", "-z", "--name-only", commit)
-        snapshot_paths = {path for path in tree.stdout.split("\0") if path}
+            if (
+                resolved_pin.returncode != 0
+                or resolved_pin.stdout.strip().lower() != revision
+            ):
+                self.fail(
+                    f"Pinned Carbon blob revision does not resolve exactly: {revision}"
+                )
+                continue
+            pin_ancestry = self.git(
+                "merge-base",
+                "--is-ancestor",
+                revision,
+                commit,
+                allow_failure=True,
+            )
+            if pin_ancestry.returncode == 1:
+                self.fail(
+                    "Pinned Carbon blob revisions must equal or precede "
+                    f"meta.authority_snapshot_commit: {revision}"
+                )
+                continue
+            if pin_ancestry.returncode != 0:
+                self.fail(
+                    "Could not establish pinned Carbon blob ancestry for " f"{revision}"
+                )
+                continue
+            tree = self.git(
+                "ls-tree",
+                "-r",
+                "-z",
+                "--name-only",
+                revision,
+                allow_failure=True,
+            )
+            if tree.returncode != 0:
+                self.fail(f"Cannot read pinned Carbon blob tree {revision}")
+                continue
+            paths_by_revision[revision] = {
+                path for path in tree.stdout.split("\0") if path
+            }
         missing_pins = sorted(
-            path
+            f"{sha}:{path}"
             for sha, path in set(pinned_links)
-            if sha == commit and path not in snapshot_paths
+            if path not in paths_by_revision.get(sha, set())
         )
         if missing_pins:
             self.fail(
-                "Pinned Carbon blob URLs do not resolve at the authority snapshot: "
+                "Pinned Carbon blob URLs do not resolve at their exact revisions: "
                 + ", ".join(missing_pins)
             )
 
         linked_paths = {
             path
             for sha, path in pinned_links
-            if sha == commit and path in snapshot_paths
+            if sha == commit and path in paths_by_revision.get(sha, set())
         }
         sources = self.data.get("sources", {})
         current = self.data.get("current", {})
+
+        if isinstance(sources, dict):
+            for source_id, source in sources.items():
+                self.current_authority_target(
+                    source.get("url") if isinstance(source, dict) else None,
+                    commit,
+                    f"sources.{source_id}",
+                )
 
         def source_target(source_id: str) -> str | None:
             source = sources.get(source_id, {}) if isinstance(sources, dict) else {}
@@ -2537,6 +2877,13 @@ class Validator:
             None,
         )
         if selected is not None:
+            for index, link in enumerate(selected.get("repo_links", [])):
+                if isinstance(link, dict):
+                    self.current_authority_target(
+                        link.get("url"),
+                        commit,
+                        f"selected ticket repo_links[{index}]",
+                    )
             repo_ticket_targets = {
                 target[1]
                 for link in selected.get("repo_links", [])
@@ -2556,17 +2903,25 @@ class Validator:
             ),
             None,
         )
-        if isinstance(active_wave, dict) and controlling_register:
-            wave_link_paths = {
-                target[1]
-                for link in active_wave.get("repo_links", [])
-                if isinstance(link, dict)
-                and (target := self.carbon_blob_target(link.get("url"))) is not None
-            }
-            if controlling_register not in wave_link_paths:
-                self.fail(
-                    "The active wave record must link to current.controlling_register"
-                )
+        if isinstance(active_wave, dict):
+            for index, link in enumerate(active_wave.get("repo_links", [])):
+                if isinstance(link, dict):
+                    self.current_authority_target(
+                        link.get("url"),
+                        commit,
+                        f"active wave repo_links[{index}]",
+                    )
+            if controlling_register:
+                wave_link_paths = {
+                    target[1]
+                    for link in active_wave.get("repo_links", [])
+                    if isinstance(link, dict)
+                    and (target := self.carbon_blob_target(link.get("url"))) is not None
+                }
+                if controlling_register not in wave_link_paths:
+                    self.fail(
+                        "The active wave record must link to current.controlling_register"
+                    )
 
         content_cache: dict[tuple[str, str], str | None] = {}
 
@@ -2678,23 +3033,170 @@ class Validator:
                 "current.stage PR evidence does not match the recorded snapshot merge commit"
             )
 
-    def load_github_event(self) -> None:
-        event_path = os.environ.get("GITHUB_EVENT_PATH")
-        if not event_path:
+    @staticmethod
+    def env_enabled(name: str) -> bool:
+        return os.environ.get(name, "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+    def load_json_file(self, path: Path, label: str) -> dict[str, Any] | None:
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            self.fail(f"{label} is not readable JSON: {exc}")
+            return None
+        if not isinstance(value, dict):
+            self.fail(f"{label} must contain a JSON object")
+            return None
+        return value
+
+    def validate_live_pr_checkout(self, pull_request: dict[str, Any]) -> None:
+        """Bind live declaration validation to the exact checked-out PR head."""
+        head = pull_request.get("head")
+        base = pull_request.get("base")
+        head_sha = head.get("sha") if isinstance(head, dict) else None
+        base_sha = base.get("sha") if isinstance(base, dict) else None
+        invalid_identity = False
+        if not isinstance(head_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", head_sha):
+            self.fail(
+                "Live pull request head.sha must be an exact lowercase commit SHA"
+            )
+            invalid_identity = True
+        if not isinstance(base_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", base_sha):
+            self.fail(
+                "Live pull request base.sha must be an exact lowercase commit SHA"
+            )
+            invalid_identity = True
+        if invalid_identity:
             return
         try:
-            value = json.loads(Path(event_path).read_text(encoding="utf-8"))
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-            self.fail(f"GITHUB_EVENT_PATH is not readable JSON: {exc}")
+            checked_out = self.git("rev-parse", "--verify", "HEAD^{commit}")
+        except RuntimeError as exc:
+            self.fail(f"Cannot resolve candidate HEAD for live PR validation: {exc}")
             return
-        if not isinstance(value, dict):
-            self.fail("GITHUB_EVENT_PATH must contain a JSON object")
-        else:
-            self.github_event = value
+        candidate_head = checked_out.stdout.strip().lower()
+        if candidate_head != head_sha:
+            self.fail(
+                "Candidate HEAD does not equal the current live pull request head: "
+                f"HEAD={candidate_head}, live={head_sha}"
+            )
+
+    def load_github_event(self) -> None:
+        live_required = self.env_enabled("HUB_REQUIRE_LIVE_PR") or (
+            self.env_enabled("GITHUB_ACTIONS")
+            and os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+        )
+        event_path = os.environ.get("GITHUB_EVENT_PATH")
+        if not event_path:
+            if live_required:
+                self.fail(
+                    "Live pull request validation requires GITHUB_EVENT_PATH to "
+                    "authenticate the pull request identity"
+                )
+            return
+        value = self.load_json_file(Path(event_path), "GITHUB_EVENT_PATH")
+        if value is None:
+            return
+        self.historical_github_event = value
+        self.github_event = value
+        historical_pr = value.get("pull_request")
+        if not isinstance(historical_pr, dict):
+            if live_required:
+                self.fail(
+                    "Live pull request validation requires a pull_request object "
+                    "in GITHUB_EVENT_PATH"
+                )
+            return
+
+        live_path = os.environ.get("HUB_LIVE_PR_PATH")
+        if not live_path:
+            if live_required:
+                self.fail(
+                    "Live pull request metadata is required; fetch the current GitHub "
+                    "pull request and set HUB_LIVE_PR_PATH"
+                )
+            return
+        live_value = self.load_json_file(Path(live_path), "HUB_LIVE_PR_PATH")
+        if live_value is None:
+            return
+        live_pr = live_value.get("pull_request", live_value)
+        if not isinstance(live_pr, dict):
+            self.fail(
+                "HUB_LIVE_PR_PATH must contain a GitHub pull request object or a "
+                "pull_request wrapper"
+            )
+            return
+        event_number = value.get("number")
+        nested_number = historical_pr.get("number")
+        valid_event_numbers = [
+            number
+            for number in (event_number, nested_number)
+            if isinstance(number, int) and not isinstance(number, bool) and number > 0
+        ]
+        if not valid_event_numbers:
+            self.fail(
+                "GITHUB_EVENT_PATH must contain an exact positive numeric pull "
+                "request identity before live metadata can be trusted"
+            )
+            return
+        if len(set(valid_event_numbers)) != 1:
+            self.fail("GITHUB_EVENT_PATH contains conflicting pull request identities")
+            return
+        historical_number = valid_event_numbers[0]
+        live_number = live_pr.get("number")
+        if (
+            not isinstance(live_number, int)
+            or isinstance(live_number, bool)
+            or live_number <= 0
+        ):
+            self.fail(
+                "Live pull request metadata must include its exact positive "
+                "numeric number"
+            )
+            return
+        if historical_number != live_number:
+            self.fail(
+                "Live pull request metadata does not match the workflow event: "
+                f"event=#{historical_number}, live=#{live_number}"
+            )
+            return
+        historical_head = historical_pr.get("head")
+        historical_head_sha = (
+            historical_head.get("sha") if isinstance(historical_head, dict) else None
+        )
+        if not isinstance(historical_head_sha, str) or not re.fullmatch(
+            r"[0-9a-f]{40}", historical_head_sha
+        ):
+            self.fail(
+                "GITHUB_EVENT_PATH pull_request.head.sha must be an exact lowercase "
+                "commit SHA before a live declaration can be attached to the run"
+            )
+            return
+        live_head = live_pr.get("head")
+        live_head_sha = live_head.get("sha") if isinstance(live_head, dict) else None
+        if not isinstance(live_head_sha, str) or not re.fullmatch(
+            r"[0-9a-f]{40}", live_head_sha
+        ):
+            self.fail(
+                "Live pull request head.sha must be an exact lowercase commit SHA"
+            )
+            return
+        if historical_head_sha != live_head_sha:
+            self.fail(
+                "Workflow event head does not equal the current live pull request "
+                f"head: event={historical_head_sha}, live={live_head_sha}"
+            )
+            return
+        self.github_event = {**value, "pull_request": live_pr}
+        self.live_pr_loaded = True
+        self.validate_live_pr_checkout(live_pr)
 
     def collect_diff(self) -> None:
-        base = os.environ.get("HUB_DIFF_BASE_SHA")
-        if not base and self.github_event:
+        base = None if self.live_pr_loaded else os.environ.get("HUB_DIFF_BASE_SHA")
+        if self.github_event and (not base or self.live_pr_loaded):
             pull_request = self.github_event.get("pull_request", {})
             if isinstance(pull_request, dict):
                 base_record = pull_request.get("base", {})
@@ -2835,8 +3337,7 @@ class Validator:
                         self.base_hub_data = parsed_base_data
             self.semantic_data_changed = (
                 self.base_hub_data is None
-                or self.semantic_data_view(self.base_hub_data)
-                != self.semantic_data_view(self.data)
+                or self.semantic_data_changed_between(self.base_hub_data, self.data)
             )
         except RuntimeError as exc:
             self.fail(f"Cannot evaluate HUB_DIFF_BASE_SHA diff coverage: {exc}")
@@ -2987,12 +3488,11 @@ class Validator:
             return set()
         base = self.base_hub_data
         current = self.data
+        base_view, current_view = self.paired_semantic_data_views(base, current)
         refs: set[str] = set()
-        base_current = base.get("current", {})
-        now_current = current.get("current", {})
-        if self.semantic_data_view(base_current) != self.semantic_data_view(
-            now_current
-        ):
+        base_current = base_view.get("current", {})
+        now_current = current_view.get("current", {})
+        if base_current != now_current:
             wave = now_current.get("wave") if isinstance(now_current, dict) else None
             ticket = (
                 now_current.get("ticket") if isinstance(now_current, dict) else None
@@ -3011,19 +3511,15 @@ class Validator:
                 if isinstance(item, dict) and isinstance(item.get("id"), str)
             }
 
-        base_waves = records_by_id(base.get("waves"))
-        now_waves = records_by_id(current.get("waves"))
+        base_waves = records_by_id(base_view.get("waves"))
+        now_waves = records_by_id(current_view.get("waves"))
         for wave_id in set(base_waves) | set(now_waves):
-            if self.semantic_data_view(
-                base_waves.get(wave_id)
-            ) != self.semantic_data_view(now_waves.get(wave_id)):
+            if base_waves.get(wave_id) != now_waves.get(wave_id):
                 refs.add(f"WAVE-{wave_id}")
-        base_tickets = records_by_id(base.get("tickets"))
-        now_tickets = records_by_id(current.get("tickets"))
+        base_tickets = records_by_id(base_view.get("tickets"))
+        now_tickets = records_by_id(current_view.get("tickets"))
         for ticket_id in set(base_tickets) | set(now_tickets):
-            if self.semantic_data_view(
-                base_tickets.get(ticket_id)
-            ) == self.semantic_data_view(now_tickets.get(ticket_id)):
+            if base_tickets.get(ticket_id) == now_tickets.get(ticket_id):
                 continue
             record = now_tickets.get(ticket_id) or base_tickets.get(ticket_id) or {}
             wave = record.get("wave") if isinstance(record, dict) else None
@@ -3042,9 +3538,7 @@ class Validator:
             "event_schema": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
         }
         for section, ref in system_sections.items():
-            if self.semantic_data_view(base.get(section)) != self.semantic_data_view(
-                current.get(section)
-            ):
+            if base_view.get(section) != current_view.get(section):
                 refs.add(ref)
         return refs
 
@@ -3056,6 +3550,151 @@ class Validator:
             or expected.startswith(value + "/")
             for value in actual
         )
+
+    def validate_delivery_declaration(self) -> None:
+        """Validate the PR template's stable delivery and exact-tree contract."""
+        if self.skip_pr_contract or self.github_event is None:
+            return
+        pull_request = self.github_event.get("pull_request")
+        if not isinstance(pull_request, dict):
+            return
+        body = pull_request.get("body")
+        if not isinstance(body, str):
+            return
+
+        fields: dict[str, str] = {}
+        for field in REQUIRED_DELIVERY_FIELDS:
+            field_pattern = (
+                rf"^[ \t]*{re.escape(field)}[ \t]*:[ \t]*" r"([^\r\n]*?)[ \t]*\r?$"
+            )
+            matches = re.findall(
+                field_pattern,
+                body,
+                flags=re.MULTILINE,
+            )
+            if len(matches) != 1:
+                self.fail(f"PR body must contain exactly one completed {field} field")
+                continue
+            value = matches[0].strip()
+            if not value or re.fullmatch(
+                r"(?:TODO|TBD|<.*>|\[.*\]|<!--.*-->)",
+                value,
+                flags=re.IGNORECASE,
+            ):
+                self.fail(f"PR delivery field {field} must not be a placeholder")
+                continue
+            fields[field] = value
+
+        for field, allowed in DELIVERY_STATUS_ENUMS.items():
+            value = fields.get(field)
+            if value is None:
+                continue
+            status = re.match(r"^([A-Z_]+)(?=$|[ \t:\-—])", value)
+            if status is None or status.group(1) not in allowed:
+                self.fail(f"{field} must begin with one of {sorted(allowed)!r}")
+
+        mode = fields.get("DELIVERY_MODE")
+        separate_reason = fields.get("SEPARATE_CONTRACT_PR_REASON")
+        if mode not in {"SINGLE_TICKET_PR", "SEPARATE_CONTRACT_PR"}:
+            self.fail("DELIVERY_MODE must be SINGLE_TICKET_PR or SEPARATE_CONTRACT_PR")
+        elif mode == "SINGLE_TICKET_PR" and separate_reason != "NOT_APPLICABLE":
+            self.fail(
+                "SINGLE_TICKET_PR requires SEPARATE_CONTRACT_PR_REASON: "
+                "NOT_APPLICABLE"
+            )
+        elif mode == "SEPARATE_CONTRACT_PR" and (
+            separate_reason == "NOT_APPLICABLE"
+            or (separate_reason is not None and len(separate_reason.split()) < 4)
+        ):
+            self.fail(
+                "SEPARATE_CONTRACT_PR requires a concrete authorized exception reason"
+            )
+
+        for field in ("BASE", "FINAL_HEAD", "FINAL_TREE"):
+            value = fields.get(field)
+            if value is not None and not re.fullmatch(r"[0-9a-f]{40}", value):
+                self.fail(f"{field} must be an exact lowercase 40-character Git ID")
+
+        head = pull_request.get("head")
+        base = pull_request.get("base")
+        live_head = head.get("sha") if isinstance(head, dict) else None
+        live_base = base.get("sha") if isinstance(base, dict) else None
+        if isinstance(live_base, str) and fields.get("BASE") != live_base:
+            self.fail(
+                f"PR body BASE does not match the current live base SHA {live_base}"
+            )
+        if isinstance(live_head, str) and fields.get("FINAL_HEAD") != live_head:
+            self.fail(
+                f"PR body FINAL_HEAD does not match the current live head SHA {live_head}"
+            )
+        try:
+            candidate_tree = self.git("rev-parse", "--verify", "HEAD^{tree}")
+        except RuntimeError as exc:
+            self.fail(f"Cannot resolve candidate FINAL_TREE: {exc}")
+        else:
+            tree = candidate_tree.stdout.strip().lower()
+            if fields.get("FINAL_TREE") != tree:
+                self.fail(
+                    f"PR body FINAL_TREE does not match candidate HEAD tree {tree}"
+                )
+
+        scope = fields.get("CHANGE_SCOPE")
+        if scope not in DELIVERY_CHANGE_SCOPES:
+            self.fail(
+                "CHANGE_SCOPE must be RUNTIME_FULL, CONTRACT_AUTHORITY, or "
+                "DERIVED_DOCUMENTATION"
+            )
+        expected_scope = os.environ.get("HUB_EXPECTED_CHANGE_SCOPE")
+        if expected_scope is not None:
+            expected_scope = expected_scope.strip()
+            if expected_scope not in DELIVERY_CHANGE_SCOPES:
+                self.fail(
+                    "HUB_EXPECTED_CHANGE_SCOPE must be one of "
+                    f"{sorted(DELIVERY_CHANGE_SCOPES)!r}"
+                )
+            elif scope != expected_scope:
+                self.fail(
+                    "PR body CHANGE_SCOPE does not match the fail-closed preflight "
+                    f"scope {expected_scope}"
+                )
+        if fields.get("DYNAMIC_COMPLETION_EVIDENCE") != "EXTERNAL":
+            self.fail("DYNAMIC_COMPLETION_EVIDENCE must be EXTERNAL")
+        receipt_location = fields.get("COMPLETION_RECEIPT_LOCATION")
+        if receipt_location not in {None, "PENDING"} and (
+            len(re.findall(r"[A-Za-z0-9]+", receipt_location)) < 4
+            or re.search(
+                r"\b(?:PR|pull(?:[ _-]+request)?|comment|issue(?:comment)?|"
+                r"artifact|body)\b",
+                receipt_location,
+                flags=re.IGNORECASE,
+            )
+            is None
+        ):
+            self.fail(
+                "COMPLETION_RECEIPT_LOCATION must name a concrete PR body/comment, "
+                "issue, or retained artifact"
+            )
+        unresolved = fields.get("UNRESOLVED_THREADS")
+        if unresolved is not None and not re.fullmatch(
+            r"(?:0|[1-9][0-9]*|PENDING)", unresolved
+        ):
+            self.fail("UNRESOLVED_THREADS must be a non-negative integer or PENDING")
+        for field in (
+            "CODE_BEARING_COMMITS",
+            "POST_FREEZE_TREE_CHANGES",
+            "FULL_CI_RUNS",
+        ):
+            value = fields.get(field)
+            if value is not None and not re.fullmatch(
+                r"(?:0|[1-9][0-9]*|PENDING)", value
+            ):
+                self.fail(f"{field} must be a non-negative integer or PENDING")
+        rerun_reason = fields.get("AVOIDABLE_RERUN_REASON")
+        if rerun_reason is not None and (
+            rerun_reason.upper() in {"NONE", "N/A", "NA", "NOT_APPLICABLE", "PENDING"}
+            or len(re.findall(r"[A-Za-z0-9]+", rerun_reason)) < 4
+        ):
+            self.fail("AVOIDABLE_RERUN_REASON must be a completed, specific reason")
 
     def validate_structural_diff(self) -> None:
         if self.changed_paths is None:
@@ -3459,6 +4098,7 @@ class Validator:
         self.validate_snapshot_metadata()
         self.validate_repository_authority()
         self.validate_structural_diff()
+        self.validate_delivery_declaration()
         self.validate_pr_declaration()
         return self.report()
 

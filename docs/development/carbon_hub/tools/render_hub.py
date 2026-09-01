@@ -770,6 +770,23 @@ def generated_extras(expected: set[Path]) -> list[Path]:
     return sorted(actual - expected)
 
 
+def output_matches(path: Path, content: str) -> bool:
+    """Return whether one generated artifact has the exact expected bytes."""
+    try:
+        return path.read_bytes() == content.encode("utf-8")
+    except FileNotFoundError:
+        return False
+
+
+def write_if_changed(path: Path, content: str) -> bool:
+    """Write one generated artifact only when its exact content changed."""
+    if output_matches(path, content):
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
+    return True
+
+
 def run(*, check: bool, data_path: Path, events_path: Path) -> int:
     data = load_json(data_path)
     event_bundle = load_json(events_path)
@@ -795,8 +812,7 @@ def run(*, check: bool, data_path: Path, events_path: Path) -> int:
     if check:
         drift = []
         for path, expected in outputs.items():
-            actual = path.read_text(encoding="utf-8") if path.exists() else None
-            if actual != expected:
+            if not output_matches(path, expected):
                 drift.append(path.relative_to(ROOT).as_posix())
         drift += [path.relative_to(ROOT).as_posix() for path in extras]
         if drift:
@@ -809,13 +825,17 @@ def run(*, check: bool, data_path: Path, events_path: Path) -> int:
             f"Generated outputs are current: {len(outputs)} files; no stale explainers."
         )
         return 0
-    for path, content in outputs.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8", newline="\n")
+    changed = [
+        path.relative_to(ROOT).as_posix()
+        for path, content in outputs.items()
+        if write_if_changed(path, content)
+    ]
     for path in extras:
         path.unlink()
     print(
-        f"Rendered {len(data['waves'])} waves, {len(data['tickets'])} tickets, {len(data['change_paths'])} routes, and {len(events)} events into {len(outputs)} generated files."
+        f"Rendered {len(data['waves'])} waves, {len(data['tickets'])} tickets, "
+        f"{len(data['change_paths'])} routes, and {len(events)} events into "
+        f"{len(outputs)} generated files; wrote {len(changed)} changed files."
     )
     return 0
 
