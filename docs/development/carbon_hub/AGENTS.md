@@ -10,7 +10,7 @@ active wave register, and the selected ticket remain controlling authority.
 2. current `.agent/WAVE.md` and its controlling wave board;
 3. the affected ticket, decision, evidence, domain, business, or publication
    authority;
-4. `data/hub_data_v2.json` and `data/change_events.json`.
+4. `data/hub_data_v2.json`, `data/change_events.json`, and `data/decisions.json`.
 
 The hub explains what, why, where, status, dependency, and handoff. It cannot
 activate a wave or ticket, change scientific meaning, grant maturity, or
@@ -21,6 +21,8 @@ substitute for repository code, review, decisions, tests, or evidence.
 - `data/hub_data_v2.json`;
 - `data/change_events.json`;
 - `data/change_event_template.yaml`;
+- `data/decisions.json` for the technical-lead Decision Console;
+- `decisions.html` for the lightweight Decision Console presentation;
 - `tools/render_hub.py` and `tools/templates/interactive_template.html` when
   changing presentation or generation behavior;
 - maintenance/orientation contracts and validation tools when their contract
@@ -39,13 +41,16 @@ substitute for repository code, review, decisions, tests, or evidence.
 - `explainers/waves/*.md`;
 - `explainers/tickets/*.md`.
 
-Run the renderer after editing source. Generated outputs must be deterministic,
-UTF-8, LF-terminated, and committed with the source change.
+Run the renderer after editing the existing generated Hub source. Generated
+outputs must be deterministic, UTF-8, LF-terminated, and committed with the
+source change. A decision-only update to `data/decisions.json` does not require
+regenerating the core Hub because `decisions.html` reads that index directly.
 
 ## Stable placement and events
 
-- Give each wave, ticket, route, and event a stable unique ID.
-- Give every event exactly one primary `map_ref` and zero or more `affects`.
+- Give each wave, ticket, route, event, and decision a stable unique ID.
+- Give every event and decision exactly one primary `map_ref` and zero or more
+  `affects`.
 - Preserve prior events. A prospective correction uses `supersedes`; it does
   not rewrite history.
 - Add an event only when team understanding, purpose, placement, status,
@@ -54,6 +59,32 @@ UTF-8, LF-terminated, and committed with the source change.
 - Never invent a status, dependency, owner, reviewer, source link, decision,
   scientific value, qualification, or authority state. Mark unsupported
   information missing or future.
+
+## Decision Console
+
+When a material technical/SciML decision is posted to issue #42, create or
+update its record in `data/decisions.json` in the same development change.
+Every decision record must:
+
+- use the exact repository decision ID;
+- bind to one primary Wave/ticket `map_ref`;
+- explain the question, why it matters, the agent recommendation, and the
+  consequences of keeping or changing it;
+- point to the exact durable GitHub response location and technical detail;
+- use exactly one attention state: `NEEDS_REVIEW`, `HUMAN_REQUIRED`,
+  `FOR_AWARENESS`, `OWNER_DEFERRED`, or `RESOLVED`.
+
+Do not mark ordinary asynchronous visibility as `NEEDS_REVIEW` or
+`HUMAN_REQUIRED`. Use those states only when the repository record supports the
+need for Harsh's attention or a genuinely human-reserved decision. Harsh's
+response remains durable in GitHub using `KEEP`, `CHANGE`, `BLOCKED`, or
+`DEFER_TO_OWNER`; the Hub is the decision UX, not the authority record.
+
+For a decision-only change, run the focused check:
+
+```bash
+python docs/development/carbon_hub/tools/test_decisions.py
+```
 
 ## Prohibited content
 
@@ -64,7 +95,7 @@ designed to be safe for a public repository and possible public static hosting.
 
 ## Required checks
 
-From repository root:
+From repository root for normal Hub structural changes:
 
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
@@ -75,6 +106,13 @@ python docs/development/carbon_hub/tools/browser_smoke_test.py
 git diff --check
 ```
 
+For a focused Decision Console/data-only update, use:
+
+```bash
+python docs/development/carbon_hub/tools/test_decisions.py
+git diff --check
+```
+
 The primary `index.html` must remain complete static semantic HTML with zero
-scripts and no automatic remote resource. Failure of `interactive.html` must
-never remove access to the static hub.
+scripts and no automatic remote resource. Failure of `interactive.html` or the
+Decision Console must never remove access to the static hub.
