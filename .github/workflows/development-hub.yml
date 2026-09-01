@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      HUB_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      HUB_DIFF_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
     steps:
       - name: Checkout exact candidate with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -48,4 +48,4 @@ jobs:
         run: python3 docs/development/carbon_hub/tools/browser_smoke_test.py --timeout 30
 
       - name: Check whitespace
-        run: git diff --check "${HUB_BASE_SHA}...HEAD"
+        run: git diff --check "${HUB_DIFF_BASE_SHA}...HEAD"

@@ -20,9 +20,11 @@ application only as optional `interactive.html`. Treat JSON event/map records
 as editable source and deterministically generate the HTML, Markdown, YAML,
 and explainer outputs. Add scoped and root executor instructions, exactly-one
 PR impact declaration, read-only drift/authority/event validation, real-browser
-JavaScript-on/off smoke coverage, and an owner-controlled optional Pages
-workflow. Keep one primary `map_ref` per material event and preserve history
-through prospective `supersedes` records.
+JavaScript-on/off smoke coverage, and optional Pages publication for authorized
+repository maintainers. Keep one primary `map_ref` per material event and
+preserve history through prospective `supersedes` records. The workflow does
+not itself enforce owner approval; any required reviewer on the `github-pages`
+environment is separate human-controlled repository configuration.
 
 **Rationale.** Static-first output fixes the observed blank-page failure while
 remaining usable through `file://`, restricted previews, and simple static
@@ -41,14 +43,16 @@ authority.
 
 **Implementation location.** `docs/development/carbon_hub/`, root `README.md`
 and `AGENTS.md`, `agent_pack/EXECUTION_PROTOCOL.md`, the root PR template, and
-the two Development Hub workflows. Map events `HUB-BUG-001` and `HUB-ADJ-001`
-record the defect/repair and maintenance integration.
+the two Development Hub workflows. Map events `HUB-BUG-001`, `HUB-ADJ-001`,
+and `HUB-ADJ-002` record the blank-page repair, maintenance integration, and
+review-driven validation-protocol repair.
 
 **Downstream effects.** Development PRs must select a primary map location,
 classify hub impact, update source/events only when a material map trigger
 applies, regenerate, validate, and complete exactly one impact declaration.
-Routine implementation detail remains in the PR. Relevant structural changes
-cannot use `HUB_IMPACT_NONE`.
+Map-structural changes require semantic source plus an event; mapped-detail
+changes may use a specific no-impact declaration when orientation meaning is
+unchanged; unmapped authority paths fail until an explicit owner is recorded.
 
 **Reversibility and migration cost.** Documentation and CI changes are
 revertible as one bounded integration. Stable IDs and event history should not
@@ -60,9 +64,11 @@ of generated outputs and CI.
 **Reserved inputs and authority ceiling.** This decision sets no physical
 value, qualification result, security acceptance, rights policy, live
 economics, launch, production, `LIVE`, frontier, settlement, network, weight,
-or emission state. Pages remains disabled unless an owner manually dispatches
-the workflow or sets `CARBON_HUB_PUBLISH=true`; enabling Pages makes the hub
-public. Future internal-only content requires an access-controlled host.
+or emission state. Pages remains disabled unless an authorized maintainer
+manually dispatches the workflow or `CARBON_HUB_PUBLISH=true` enables automatic
+publication; enabling Pages makes the hub public. The workflow does not itself
+enforce owner approval, and this integration changes no repository setting.
+Future internal-only content requires an access-controlled host.
 
 **Lead notification.** The durable SciML / Technical Lead route is issue #42
 and must receive the complete implementation/PR package with `@harshaa765`.

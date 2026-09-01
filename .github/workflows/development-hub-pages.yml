@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   publish:
-    name: Publish owner-approved public static hub
+    name: Publish authorized-maintainer public static hub
     if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.CARBON_HUB_PUBLISH == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
