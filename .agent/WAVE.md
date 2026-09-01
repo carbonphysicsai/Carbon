@@ -7,9 +7,9 @@
 **Selected ticket:** B-04 — `in_progress`
 **Selected phase:** runtime implementation only after B-01F's conditional
 completion gate; paused before that gate
-**B-01F status:** `done` only after its exact reviewed normal merge and exact-
-main `Merge gate`; before that predicate it is the owner-directed
-`in_progress` insertion
+**B-01F status:** `done` only after its exact reviewed normal merge, exact-main
+`Merge gate`, and posted completed external receipt; before that predicate it
+is the owner-directed `in_progress` insertion
 **B-01G status:** `todo`; non-blocking for B-04
 **B-04 contract:** ratified bounded engineering contract; implementation and
 all qualification remain unearned
@@ -104,7 +104,8 @@ all qualification remain unearned
 > `done` and B-04 runtime selection become effective only after the exact B-01F
 > final head/tree passes scope-required checks, `Merge gate`, and Greptile;
 > normally merges with reviewed-tree preservation; and passes exact-main
-> `Merge gate`. Until then B-04 runtime remains paused.
+> `Merge gate`; and its completed normalized external receipt is posted.
+> Until then B-04 runtime remains paused.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -193,7 +194,8 @@ exact reviewed-tree-preserving normal merge and exact-main CI and selects B-04
 ratified engineering maturity, inserts owner-directed B-01F before runtime,
 queues non-blocking B-01G, and prepares the conditional B-01F `done` / B-04
 runtime selection. That transition is authoritative only after the exact
-B-01F reviewed tree normally merges and exact-main `Merge gate` passes. The
+B-01F reviewed tree normally merges, exact-main `Merge gate` passes, and the
+completed normalized external receipt is posted. The
 architecture
 contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
@@ -228,7 +230,8 @@ A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effo
 ## Notes
 
 - Do not mark done without exact-head test/file/`Merge gate`/Greptile evidence,
-  normal reviewed-tree-preserving merge, and exact-main `Merge gate`.
+  normal reviewed-tree-preserving merge, exact-main `Merge gate`, and the
+  posted completed external receipt.
 - B-01E implementation evidence is recorded in
   `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
   `./scripts/dev/ci.sh` in the canonical Linux environment. On a noncanonical

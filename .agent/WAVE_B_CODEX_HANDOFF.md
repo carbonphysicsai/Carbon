@@ -8,9 +8,10 @@
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
 a coordinated status transition for review, but it cannot authorize selection
-or implementation of another ticket before that exact tree normally merges and
-its exact-main push CI succeeds. This handoff does not cache or independently
-select ticket state.
+or implementation of another ticket before the complete exact-head review,
+normal-merge, exact-main, and external-receipt predicate in
+`.agent/DELIVERY_PROTOCOL.md` passes. This handoff does not cache or
+independently select ticket state.
 
 This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
@@ -100,8 +101,9 @@ unimplemented and unqualified. `OWNER-DX-01` inserts B-01F before runtime and
 queues B-01G as non-blocking `todo`. Version 1.1's B-01F `done` and B-04
 runtime selection are conditional: they become effective only after the exact
 B-01F candidate passes exact-head `Merge gate` and Greptile with zero
-unresolved threads, normally merges with reviewed-tree preservation, and
-passes exact-main `Merge gate`. Until then B-04 runtime is paused.
+unresolved threads; normally merges with reviewed-tree preservation; passes
+exact-main `Merge gate`; and has its completed normalized external receipt
+posted. Until then B-04 runtime is paused.
 
 ## 2. Required read order
 
@@ -195,12 +197,13 @@ start of every session:
    `origin/main` row in `.agent/WAVE_B.md` and ticket file to agree. Stop on a
    disagreement. Working-tree or pull-request-branch status fields are
    candidate review content only: even when they agree on `done`, they cannot
-   select or start a dependent ticket until that exact reviewed tree normally
-   merges and exact-main push CI succeeds. The one narrow exception to stopping
-   is continuation or review of an already-authorized, bounded correction
-   branch whose documented sole purpose is to reconcile that exact merged-main
-   disagreement. Under that exception, do only the correction; the disagreement
-   still prohibits selecting or implementing every other ticket.
+   select or start a dependent ticket until the complete exact-head review,
+   normal-merge, exact-main, and external-receipt predicate in
+   `.agent/DELIVERY_PROTOCOL.md` passes. The one narrow exception to stopping is
+   continuation or review of an already-authorized, bounded correction branch
+   whose documented sole purpose is to reconcile that exact merged-main
+   disagreement. Under that exception, do only the correction; the
+   disagreement still prohibits selecting or implementing every other ticket.
 2. If the selected ticket is `in_progress`, continue or review only that ticket
    from its recorded ticket branch. If its recorded local worktree exists,
    verify and use it. If that machine-local worktree is unavailable, fetch the
@@ -253,7 +256,8 @@ B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are complete at the identities in
 section 1. B-04's bounded engineering contract is ratified, but its runtime is
 paused behind B-01F. Version 1.1's B-01F `done` and B-04 runtime selection are
 effective only after the exact B-01F reviewed candidate normally merges with
-tree preservation and exact-main `Merge gate` succeeds. Then create a fresh
+tree preservation, exact-main `Merge gate` succeeds, and the completed
+normalized external receipt is posted. Then create a fresh
 `agent/b-04-reference-truth` branch/worktree from that verified exact main. No
 B-04 runtime, solver, fixture runner, Julia service, Cole–Hopf routine,
 artifact store, transport, measurement, scoring, Dossier, package-authority,
@@ -391,9 +395,10 @@ next-ticket selection. Conditional `done` becomes authoritative only when the
 exact reviewed tree passes scope-required exact-head checks, `Merge gate`, and
 Greptile with all valid findings repaired and zero unresolved threads; normally
 merges with exact second-parent/tree identity; and exact-main `Merge gate`
-passes. Dynamic identities use the external receipt. Do not open a recursive
-closeout PR or commit merely to store/retrigger them. Accountable-reviewer or
-lead silence is not a gate.
+passes; and the completed normalized external receipt is posted. Dynamic
+identities use the external receipt. Do not open a recursive closeout PR or
+commit merely to store/retrigger them. Accountable-reviewer or lead silence is
+not a gate.
 
 ## 6. Miner research boundaries
 

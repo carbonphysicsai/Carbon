@@ -8,6 +8,12 @@ remain conditional
 **Exact base tree:** `62ccbe40d5df0c8c45403609dc14cc7ca892bb25`
 **Decision:** `OWNER-DX-01`
 **Evidence:** `.agent/evidence/wave_b/b-01f.md`
+**Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
+**Hub impact:** `HUB_UPDATE_REQUIRED`; `map_structural`; affects
+`SYSTEM/GOVERNANCE`, `SYSTEM/DEVELOPMENT-SEQUENCING`, `SYSTEM/CI`,
+`SYSTEM/PR-MAINTENANCE`, `SYSTEM/DEVELOPMENT-HUB`,
+`SYSTEM/DEVELOPMENT-HUB/VALIDATION`, `SYSTEM/MATURITY`, `WAVE-B`,
+`WAVE-B/B-01F`, `WAVE-B/B-01G`, and `WAVE-B/B-04`
 
 ## 1. Start gate and bounded authority
 
@@ -113,7 +119,9 @@ tests/cpu/test_github_ruleset.py
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`
 for B-01F/B-01G and the conditional B-04 runtime selection (under
-`docs/development/carbon_hub/`), then run the
+`docs/development/carbon_hub/`). Add bounded impact-policy ownership for the
+new delivery protocol, external-receipt template, ticket launcher, and main
+ruleset artifact so no new authority path remains unmapped. Then run the
 renderer once and include only the generated outputs whose bytes truly change.
 Do not hand-edit generated files or emit repeated intermediate regenerations.
 The final exact manifest is the fixed list above plus that renderer-determined
@@ -121,7 +129,8 @@ semantic source/output set; finalize and audit it only after the coherent
 render.
 
 No `carbon/**`, runtime fixture, domain contract, dependency, lock, generated
-Hub output, B-04-D1 through B-04-D10, or
+Hub output outside the renderer-determined semantic set, B-04-D1 through
+B-04-D10, or
 `Design_Specs/Reference_and_TruthAsset_Contract.md` change belongs in the
 manifest.
 
@@ -158,9 +167,12 @@ completion receipt; do not mutate the reviewed tree merely to store them.
 5. Verify ordered parents, reviewed-tree preservation, exact fetched main, and
    exact-main `Merge gate`.
 6. Post `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md` outside the tree.
-7. Only after that predicate, treat this candidate's B-01F `done` and B-04
-   runtime selection as effective. Prepare B-04 from that exact main on fresh
-   branch `agent/b-04-reference-truth`; do not implement it in this session.
+7. Only after that complete predicate, including the posted receipt, treat
+   this candidate's B-01F `done` and B-04 runtime selection as effective.
+   Record that exact main and recommend fresh branch
+   `agent/b-04-reference-truth`. This owner direction explicitly requires the
+   current session to stop before writing B-04 runtime; a later authorized
+   session may execute B-04 end to end under the launcher.
 
 ## 7. Risks and stop conditions
 

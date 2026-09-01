@@ -16,7 +16,8 @@ merge, and exact-main facts that ratified B-04's bounded engineering contract.
 `todo`. The B-01F `done` and B-04 runtime selection recorded by version 1.1
 become authoritative only after the exact B-01F candidate passes exact-head
 `Merge gate` and Greptile, normally merges with reviewed-tree preservation,
-and passes exact-main `Merge gate`. Before that predicate B-01F is the owner-
+passes exact-main `Merge gate`, and has its completed normalized external
+receipt posted. Before that predicate B-01F is the owner-
 directed `in_progress` work and B-04 runtime remains paused.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
@@ -167,9 +168,10 @@ all required Wave B tickets except non-blocking B-01G → B-GATE
 
 B-03 is closed in bounded engineering scope. B-04's bounded engineering
 contract is ratified. Its runtime implementation is conditionally selected
-only after B-01F's exact reviewed normal merge and exact-main `Merge gate`;
-B-01G does not block it. B-02C owns the resource-
-policy prerequisite; B-07E only inspects or forecasts against it. B-07A
+only after B-01F normally merges its exact reviewed tree, exact-main
+`Merge gate` passes, and the completed external receipt is posted; B-01G does
+not block it. B-02C owns the
+resource-policy prerequisite; B-07E only inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain
 tickets consume rather than redefine them. B-07F owns resolved-plan fixture-
 official integration so B-E4 and B-GATE do not implement a hidden adapter.
@@ -340,11 +342,12 @@ bounded `done` and the next-ticket selection, but that transition becomes
 authoritative only after the exact final head/tree passes every scope-required
 exact-head check and `Merge gate`, Greptile succeeds on the same head with all
 valid findings repaired and zero unresolved threads, normal merge preserves
-exact second-parent/tree identity, and exact-main `Merge gate` succeeds.
-Dynamic identities use `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`
-outside the reviewed tree. Do not require a recursive closeout PR or a commit
-merely to record CI, review, merge, an evidence seal, or a validation
-retrigger. An affirmative human reviewer or lead response is not required.
+exact second-parent/tree identity, exact-main `Merge gate` succeeds, and the
+completed normalized external receipt is posted. Dynamic identities use
+`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md` outside the reviewed tree.
+Do not require a recursive closeout PR or a commit merely to record CI, review,
+merge, an evidence seal, or a validation retrigger. An affirmative human
+reviewer or lead response is not required.
 
 Ticket completion must separately report:
 
@@ -367,7 +370,8 @@ No later state is inferred from an earlier one.
 
 `B-GATE` may propose this board `done` only after:
 
-- every ticket has merged evidence and checked acceptance criteria;
+- every required ticket except explicitly non-blocking B-01G has merged
+  evidence and checked acceptance criteria;
 - full CPU, focused, invariant, quality, and installed-wheel tests pass;
 - the fixture autoresearch gauntlet completes end to end without undocumented repository knowledge;
 - the preregistered B-E4 utility decision passes and the conditional-leakage
@@ -390,9 +394,9 @@ No later state is inferred from an earlier one.
   activation remains unavailable and fail closed;
 - the Dossier and qualification manifest remain incomplete/fail closed for LIVE;
 - `.agent/WAVE_B_REPORT.md` records exact evidence and remaining human inputs;
-- independent correctness review, every valid finding repaired, zero unresolved
-  review threads, normal merge,
-  and exact-main CI are recorded. Human-reserved qualification and activation
+- the complete exact-head review, normal-merge, exact-main, and external-
+  receipt predicate in `.agent/DELIVERY_PROTOCOL.md` passes. Human-reserved
+  qualification and activation
   remain separate and fail closed; no affirmative closeout-response or silence
   gate applies to bounded engineering completion.
 

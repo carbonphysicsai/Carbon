@@ -12,6 +12,12 @@ B-04 runtime remains paused
 **Plan:** `.agent/plans/B-01F_development_throughput_hardening.md`
 **Evidence:** `.agent/evidence/wave_b/b-01f.md`
 **Delivery mode:** `SINGLE_TICKET_PR`
+**Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
+**Hub impact:** `HUB_UPDATE_REQUIRED`; `map_structural`; affects
+`SYSTEM/GOVERNANCE`, `SYSTEM/DEVELOPMENT-SEQUENCING`, `SYSTEM/CI`,
+`SYSTEM/PR-MAINTENANCE`, `SYSTEM/DEVELOPMENT-HUB`,
+`SYSTEM/DEVELOPMENT-HUB/VALIDATION`, `SYSTEM/MATURITY`, `WAVE-B`,
+`WAVE-B/B-01F`, `WAVE-B/B-01G`, and `WAVE-B/B-04`
 
 ## Goal
 
@@ -89,7 +95,9 @@ candidate:
 5. the merge's second parent equals the reviewed head and the merge tree equals
    the reviewed tree;
 6. fetched `origin/main` equals that merge; and
-7. exact-main `Merge gate` succeeds.
+7. exact-main `Merge gate` succeeds; and
+8. the completed normalized external receipt, with no required `PENDING`
+   field, is posted at its declared external location.
 
 Only then is B-01F authoritatively `done` in its bounded delivery-tooling scope
 and B-04 runtime implementation the selected work. If any predicate fails, the
