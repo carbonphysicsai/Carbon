@@ -396,7 +396,7 @@ def _encode_authoring(value: object, expected_type: type) -> CanonicalValue:
 
     try:
         result = _canonical_value(value)
-    except (AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize a hostile exact authoring carrier.
         raise _encoding_error() from None
     return result
 
@@ -410,7 +410,7 @@ def _decode_authoring(value: object, expected_type: type) -> object:
             if type(value) is CanonicalUnion
             else _decode_canonical_value(value)
         )
-    except (AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize a hostile canonical carrier.
         raise _decoding_error() from None
     if type(result) is not expected_type:
         raise _decoding_error()
@@ -481,7 +481,7 @@ def _encode_field(value: object, codec: _FieldCodec) -> CanonicalValue:
                     object.__getattribute__(value, "value"), variants[0].payload_codec
                 ),
             )
-    except (AuthoringError, ReferenceValidationError, TypeError, ValueError) as exc:
+    except Exception as exc:
         if type(exc) is ReferenceCanonicalEncodingError:
             raise
     raise _encoding_error()
@@ -574,13 +574,7 @@ def _decode_field(value: object, codec: _FieldCodec) -> object:
                 raise _decoding_error()
             payload = _decode_field(value.payload, variants[0].payload_codec)
             return descriptor.exact_type(variants[0].discriminator, payload)
-    except (
-        AuthoringError,
-        KeyError,
-        ReferenceValidationError,
-        TypeError,
-        ValueError,
-    ) as exc:
+    except Exception as exc:
         if type(exc) is ReferenceCanonicalDecodingError:
             raise
     raise _decoding_error()
@@ -589,23 +583,31 @@ def _decode_field(value: object, codec: _FieldCodec) -> object:
 def _schema_record(value: object, schema: _Schema) -> CanonicalRecord:
     if type(value) is not schema.exact_type:
         raise _encoding_error()
-    fields: list[tuple[str, CanonicalValue]] = []
-    if schema.top_level:
-        fields.extend(
-            (
+    try:
+        fields: list[tuple[str, CanonicalValue]] = []
+        if schema.top_level:
+            fields.extend(
                 (
-                    "canonicalization_profile",
-                    CanonicalText(REFERENCE_TRUTH_CANONICALIZATION_PROFILE),
-                ),
-                ("object_kind", CanonicalText(schema.record_type)),
-                ("schema_version", CanonicalText(REFERENCE_TRUTH_SCHEMA_VERSION)),
+                    (
+                        "canonicalization_profile",
+                        CanonicalText(REFERENCE_TRUTH_CANONICALIZATION_PROFILE),
+                    ),
+                    ("object_kind", CanonicalText(schema.record_type)),
+                    (
+                        "schema_version",
+                        CanonicalText(REFERENCE_TRUTH_SCHEMA_VERSION),
+                    ),
+                )
             )
+        fields.extend(
+            (name, _encode_field(object.__getattribute__(value, name), codec))
+            for name, codec in schema.fields
         )
-    fields.extend(
-        (name, _encode_field(object.__getattribute__(value, name), codec))
-        for name, codec in schema.fields
-    )
-    return CanonicalRecord(schema.record_type, tuple(fields))
+        return CanonicalRecord(schema.record_type, tuple(fields))
+    except ReferenceCanonicalEncodingError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a hostile exact record carrier.
+        raise _encoding_error() from None
 
 
 def _decode_schema_record(
@@ -614,42 +616,52 @@ def _decode_schema_record(
     *,
     canonical_content_digest: str | None = None,
 ) -> object:
-    if type(value) is not CanonicalRecord or value.record_type != schema.record_type:
-        raise _decoding_error()
-    prefix = (
-        ("canonicalization_profile", "object_kind", "schema_version")
-        if schema.top_level
-        else ()
-    )
-    expected_names = tuple(
-        sorted(prefix + tuple(name for name, _ in schema.fields), key=str.encode)
-    )
-    if tuple(name for name, _ in value.fields) != expected_names:
-        raise _decoding_error()
-    fields = value.field_map()
-    if schema.top_level:
-        identity = tuple(fields[name] for name in prefix)
+    try:
         if (
-            type(identity[0]) is not CanonicalText
-            or identity[0].value != REFERENCE_TRUTH_CANONICALIZATION_PROFILE
-            or type(identity[1]) is not CanonicalText
-            or identity[1].value != schema.record_type
-            or type(identity[2]) is not CanonicalText
-            or identity[2].value != REFERENCE_TRUTH_SCHEMA_VERSION
+            type(value) is not CanonicalRecord
+            or object.__getattribute__(value, "record_type") != schema.record_type
         ):
             raise _decoding_error()
-    kwargs = {name: _decode_field(fields[name], codec) for name, codec in schema.fields}
-    if schema.content_digest_bound:
-        if type(canonical_content_digest) is not str:
+        prefix = (
+            ("canonicalization_profile", "object_kind", "schema_version")
+            if schema.top_level
+            else ()
+        )
+        expected_names = tuple(
+            sorted(prefix + tuple(name for name, _ in schema.fields), key=str.encode)
+        )
+        record_fields = object.__getattribute__(value, "fields")
+        if tuple(name for name, _ in record_fields) != expected_names:
             raise _decoding_error()
-        kwargs["_canonical_content_digest"] = canonical_content_digest
-    try:
+        fields = value.field_map()
+        if schema.top_level:
+            identity = tuple(fields[name] for name in prefix)
+            if (
+                type(identity[0]) is not CanonicalText
+                or object.__getattribute__(identity[0], "value")
+                != REFERENCE_TRUTH_CANONICALIZATION_PROFILE
+                or type(identity[1]) is not CanonicalText
+                or object.__getattribute__(identity[1], "value") != schema.record_type
+                or type(identity[2]) is not CanonicalText
+                or object.__getattribute__(identity[2], "value")
+                != REFERENCE_TRUTH_SCHEMA_VERSION
+            ):
+                raise _decoding_error()
+        kwargs = {
+            name: _decode_field(fields[name], codec) for name, codec in schema.fields
+        }
+        if schema.content_digest_bound:
+            if type(canonical_content_digest) is not str:
+                raise _decoding_error()
+            kwargs["_canonical_content_digest"] = canonical_content_digest
         result = (
             schema.builder(**kwargs)
             if schema.builder is not None
             else schema.exact_type(**kwargs)
         )
-    except (ReferenceValidationError, TypeError, ValueError):
+    except ReferenceCanonicalDecodingError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a hostile canonical record.
         raise _decoding_error() from None
     if type(result) is not schema.exact_type:
         raise _decoding_error()
@@ -698,7 +710,7 @@ def canonical_bytes(value: object) -> bytes:
         document = REFERENCE_TRUTH_DOCUMENT_HEADER + encode_value(
             canonical_record(value)
         )
-    except (AuthoringError, ReferenceValidationError, TypeError, ValueError) as exc:
+    except Exception as exc:
         if type(exc) is ReferenceCanonicalEncodingError:
             raise
         raise _encoding_error() from None

@@ -102,14 +102,14 @@ def _copy(value: object, expected: type[_T], path: str) -> _T:
     checked = _exact(value, expected, path)
     try:
         return replace(checked)
-    except (AttributeError, AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
         raise _reject(path, ReferenceInputCode.INVALID_VALUE) from None
 
 
 def _challenge(value: object) -> ChallengeKey:
     try:
         return reconstruct_challenge_key(value)
-    except (AuthoringError, TypeError, ValueError):
+    except (AttributeError, AuthoringError, TypeError, ValueError):
         raise _reject("/challenge_key", ReferenceInputCode.WRONG_TYPE) from None
 
 
@@ -206,12 +206,24 @@ def _scope(value: object, challenge: ChallengeKey) -> ReferenceScopeBinding:
 
 def _role(value: object, challenge: ChallengeKey) -> EvidenceRoleBinding:
     checked = _exact(value, EvidenceRoleBinding, "/evidence_role_binding")
-    hybrid = checked.hybrid_role_ref
-    if hybrid is not None:
-        hybrid = _owner(hybrid, "hybrid_evidence_role", challenge, "/hybrid_role_ref")
     try:
-        return EvidenceRoleBinding(checked.role, hybrid)
-    except (AuthoringError, TypeError, ValueError):
+        role = _exact_enum(
+            checked.role,
+            EvidenceRole,
+            "/evidence_role_binding",
+        )
+        hybrid = checked.hybrid_role_ref
+        if role is EvidenceRole.REGISTERED_HYBRID:
+            hybrid = _owner(
+                hybrid,
+                "hybrid_evidence_role",
+                challenge,
+                "/hybrid_role_ref",
+            )
+        return EvidenceRoleBinding(role, hybrid)
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
         raise _reject(
             "/evidence_role_binding", ReferenceInputCode.INVALID_VALUE
         ) from None
@@ -247,7 +259,11 @@ def _ref_tuple(
         _b04_ref(item, expected, challenge, f"{path}/{index}")
         for index, item in enumerate(value)
     )
-    if len(set(copied)) != len(copied):
+    try:
+        distinct = len(set(copied))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise _reject(path, ReferenceInputCode.INVALID_VALUE) from None
+    if distinct != len(copied):
         raise _reject(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return copied
 
@@ -270,7 +286,11 @@ def _model_tuple(
         _model(item, expected, challenge, f"{path}/{index}")
         for index, item in enumerate(value)
     )
-    if len(set(copied)) != len(copied):
+    try:
+        distinct = len(set(copied))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise _reject(path, ReferenceInputCode.INVALID_VALUE) from None
+    if distinct != len(copied):
         raise _reject(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return copied
 
@@ -523,6 +543,9 @@ class PrimaryRunGrant(ReferenceTruthRecord):
                 "/execution_target",
             ),
         )
+        direct = _target_entry_refs(self.execution_target)
+        if direct and self.component_entry_refs != direct:
+            raise _reject("/component_entry_refs", ReferenceInputCode.STALE_BINDING)
         if self.answer_key_authority_target != self.execution_target:
             raise _reject("/execution_target", ReferenceInputCode.STALE_BINDING)
         object.__setattr__(
@@ -583,6 +606,9 @@ class WitnessRunGrant(ReferenceTruthRecord):
                 "/execution_target",
             ),
         )
+        direct = _target_entry_refs(self.execution_target)
+        if direct and self.component_entry_refs != direct:
+            raise _reject("/component_entry_refs", ReferenceInputCode.STALE_BINDING)
         object.__setattr__(
             self,
             "request_ref",
@@ -776,9 +802,6 @@ def _validate_grant_common(grant: object, object_kind: str) -> ChallengeKey:
         "source_class",
         _exact_enum(grant.source_class, ReferenceSourceClass, "/source_class"),
     )
-    direct = _target_entry_refs(grant.execution_target)
-    if direct and grant.component_entry_refs != direct:
-        raise _reject("/component_entry_refs", ReferenceInputCode.STALE_BINDING)
     return challenge
 
 
@@ -1112,59 +1135,82 @@ def create_reference_resolution_record(
     compositions: tuple[object, ...] = (),
     precomputed_manifests: tuple[object, ...] = (),
 ) -> ReferenceResolutionRecord:
-    if type(request) not in (PrimaryReferenceRequest, WitnessReferenceRequest):
+    if type(request) is PrimaryReferenceRequest:
+        checked_request = _copy(
+            request,
+            PrimaryReferenceRequest,
+            "/request_binding",
+        )
+    elif type(request) is WitnessReferenceRequest:
+        checked_request = _copy(
+            request,
+            WitnessReferenceRequest,
+            "/request_binding",
+        )
+    else:
         raise _reject("/request_binding", ReferenceInputCode.WRONG_TYPE)
     checked_resource_policy_ref = _owner(
         resource_policy_ref,
         "reference_resource_limit",
-        request.challenge_key,
+        checked_request.challenge_key,
         "/resource_policy_ref",
     )
-    if checked_resource_policy_ref != request.requested_resource_policy_ref:
+    if checked_resource_policy_ref != checked_request.requested_resource_policy_ref:
         raise _reject("/resource_policy_ref", ReferenceInputCode.STALE_BINDING)
-    outcome, reason = select_resolution_terminal(request, observed_reasons)
+    outcome, reason = select_resolution_terminal(checked_request, observed_reasons)
     registered_run_binding: tuple[object, ...] | None = None
+    checked_grant: PrimaryRunGrant | WitnessRunGrant | None = None
     if outcome is ResolutionOutcome.PRIMARY_GRANT_ISSUED:
-        if type(grant) is not PrimaryRunGrant or grant.request_ref != request.to_ref():
+        if type(grant) is not PrimaryRunGrant:
+            raise _reject("/grant_binding", ReferenceInputCode.STALE_BINDING)
+        checked_grant = _copy(grant, PrimaryRunGrant, "/grant_binding")
+        if checked_grant.request_ref != checked_request.to_ref():
             raise _reject("/grant_binding", ReferenceInputCode.STALE_BINDING)
         registered_run_binding = _validate_issued_inventory(
-            request,
-            grant,
+            checked_request,
+            checked_grant,
             policy,
             entries,
             compositions,
             precomputed_manifests,
         )
-        grant_binding = ReferenceGrantBinding.primary(grant.to_ref())
-        request_binding = ReferenceRequestBinding.primary(request.to_ref())
-        execution_target = ReferenceExecutionTarget.primary(request.execution_target)
+        grant_binding = ReferenceGrantBinding.primary(checked_grant.to_ref())
+        request_binding = ReferenceRequestBinding.primary(checked_request.to_ref())
+        execution_target = ReferenceExecutionTarget.primary(
+            checked_request.execution_target
+        )
     elif outcome is ResolutionOutcome.WITNESS_GRANT_ISSUED:
-        if type(grant) is not WitnessRunGrant or grant.request_ref != request.to_ref():
+        if type(grant) is not WitnessRunGrant:
+            raise _reject("/grant_binding", ReferenceInputCode.STALE_BINDING)
+        checked_grant = _copy(grant, WitnessRunGrant, "/grant_binding")
+        if checked_grant.request_ref != checked_request.to_ref():
             raise _reject("/grant_binding", ReferenceInputCode.STALE_BINDING)
         registered_run_binding = _validate_issued_inventory(
-            request,
-            grant,
+            checked_request,
+            checked_grant,
             policy,
             entries,
             compositions,
             precomputed_manifests,
         )
-        grant_binding = ReferenceGrantBinding.witness(grant.to_ref())
-        request_binding = ReferenceRequestBinding.witness(request.to_ref())
-        execution_target = ReferenceExecutionTarget.witness(request.execution_target)
+        grant_binding = ReferenceGrantBinding.witness(checked_grant.to_ref())
+        request_binding = ReferenceRequestBinding.witness(checked_request.to_ref())
+        execution_target = ReferenceExecutionTarget.witness(
+            checked_request.execution_target
+        )
     else:
         if grant is not None:
             raise _reject("/grant_binding", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
         grant_binding = ReferenceGrantBinding.absent(reason)
-        if type(request) is PrimaryReferenceRequest:
-            request_binding = ReferenceRequestBinding.primary(request.to_ref())
+        if type(checked_request) is PrimaryReferenceRequest:
+            request_binding = ReferenceRequestBinding.primary(checked_request.to_ref())
             execution_target = ReferenceExecutionTarget.primary(
-                request.execution_target
+                checked_request.execution_target
             )
         else:
-            request_binding = ReferenceRequestBinding.witness(request.to_ref())
+            request_binding = ReferenceRequestBinding.witness(checked_request.to_ref())
             execution_target = ReferenceExecutionTarget.witness(
-                request.execution_target
+                checked_request.execution_target
             )
     issued = outcome in (
         ResolutionOutcome.PRIMARY_GRANT_ISSUED,
@@ -1172,22 +1218,22 @@ def create_reference_resolution_record(
     )
     reserved = False
     if issued:
-        if grant is None or registered_run_binding is None:
+        if checked_grant is None or registered_run_binding is None:
             raise _reject("/grant_binding", ReferenceInputCode.INCOMPLETE_BINDING)
-        _reserve_run_attempt(request, grant, registered_run_binding)
+        _reserve_run_attempt(checked_request, checked_grant, registered_run_binding)
         reserved = True
     try:
         record = ReferenceResolutionRecord(
-            answer_key_authority_target=request.answer_key_authority_target,
+            answer_key_authority_target=checked_request.answer_key_authority_target,
             applicability_assessment=applicability_assessment,
             authority_function=authority_function,
-            case_ref=request.case_ref,
-            challenge_key=request.challenge_key,
+            case_ref=checked_request.case_ref,
+            challenge_key=checked_request.challenge_key,
             evidence_role_binding=evidence_role_binding,
             execution_target=execution_target,
             grant_binding=grant_binding,
             outcome=outcome,
-            policy_ref=request.policy_ref,
+            policy_ref=checked_request.policy_ref,
             qualification_binding=qualification_binding,
             reason=reason,
             request_binding=request_binding,
@@ -1195,18 +1241,18 @@ def create_reference_resolution_record(
             resolution_version=resolution_version,
             resolver_ref=resolver_ref,
             resource_policy_ref=checked_resource_policy_ref,
-            scope_binding=request.scope_binding,
+            scope_binding=checked_request.scope_binding,
             source_class=source_class,
         )
         if issued:
-            if grant is None:
+            if checked_grant is None:
                 raise _reject("/grant_binding", ReferenceInputCode.INCOMPLETE_BINDING)
-            _complete_run_attempt(record, request, grant)
+            _complete_run_attempt(record, checked_request, checked_grant)
             reserved = False
         return record
     except BaseException:
-        if reserved and grant is not None:
-            _abandon_run_attempt(request, grant)
+        if reserved and checked_grant is not None:
+            _abandon_run_attempt(checked_request, checked_grant)
         raise
 
 
@@ -1243,50 +1289,66 @@ def _validate_issued_inventory(
         )
     ):
         raise _reject("/component_entry_refs", ReferenceInputCode.WRONG_TYPE)
-    if policy.to_ref() != request.policy_ref:
+    checked_policy = _copy(policy, ReferencePolicy, "/policy_ref")
+    checked_entries = tuple(
+        _copy(entry, ReferencePolicyEntry, "/component_entry_refs") for entry in entries
+    )
+    checked_compositions = tuple(
+        _copy(composition, ReferenceComposition, "/component_entry_refs")
+        for composition in compositions
+    )
+    checked_manifests = tuple(
+        _copy(
+            manifest,
+            PrecomputedReferenceSourceManifest,
+            "/precomputed_source_manifest_ref",
+        )
+        for manifest in precomputed_manifests
+    )
+    if checked_policy.to_ref() != request.policy_ref:
         raise _reject("/policy_ref", ReferenceInputCode.STALE_BINDING)
     validate_reference_policy_graph(
-        policy,
-        entries=entries,
-        compositions=compositions,
-        precomputed_manifests=precomputed_manifests,
+        checked_policy,
+        entries=checked_entries,
+        compositions=checked_compositions,
+        precomputed_manifests=checked_manifests,
     )
     if (
-        policy.scope_binding != request.scope_binding
-        or policy.disclosure_policy_ref != request.disclosure_policy_ref
-        or policy.resource_policy_ref != request.requested_resource_policy_ref
+        checked_policy.scope_binding != request.scope_binding
+        or checked_policy.disclosure_policy_ref != request.disclosure_policy_ref
+        or checked_policy.resource_policy_ref != request.requested_resource_policy_ref
     ):
         raise _reject("/policy_ref", ReferenceInputCode.STALE_BINDING)
     if (
-        not policy.answer_key_authority_target.is_bound
-        or policy.answer_key_authority_target.value
+        not checked_policy.answer_key_authority_target.is_bound
+        or checked_policy.answer_key_authority_target.value
         != request.answer_key_authority_target
     ):
         raise _reject("/answer_key_authority_target", ReferenceInputCode.STALE_BINDING)
     if type(request) is PrimaryReferenceRequest:
         expected = expand_authority_target(
             request.execution_target,
-            entries=entries,
-            compositions=compositions,
+            entries=checked_entries,
+            compositions=checked_compositions,
         )
     else:
-        if request.execution_target not in policy.registered_witness_targets:
+        if request.execution_target not in checked_policy.registered_witness_targets:
             raise _reject("/execution_target", ReferenceInputCode.STALE_BINDING)
         expected = expand_witness_target(
             request.execution_target,
-            entries=entries,
-            compositions=compositions,
+            entries=checked_entries,
+            compositions=checked_compositions,
         )
         primary = expand_authority_target(
             request.answer_key_authority_target,
-            entries=entries,
-            compositions=compositions,
+            entries=checked_entries,
+            compositions=checked_compositions,
         )
         if set(primary) & set(expected):
             raise _reject("/component_entry_refs", ReferenceInputCode.ROLE_MISMATCH)
     if grant.component_entry_refs != expected:
         raise _reject("/component_entry_refs", ReferenceInputCode.STALE_BINDING)
-    entry_index = {entry.to_ref(): entry for entry in entries}
+    entry_index = {entry.to_ref(): entry for entry in checked_entries}
     expected_entries = tuple(entry_index[entry_ref] for entry_ref in expected)
     if any(
         entry.expected_representation_ref != request.representation_ref
@@ -1303,7 +1365,7 @@ def _validate_issued_inventory(
             raise _reject("/authority_function", ReferenceInputCode.ROLE_MISMATCH)
     _validate_request_grant_pair(request, grant)
     composition_index = {
-        composition.to_ref(): composition for composition in compositions
+        composition.to_ref(): composition for composition in checked_compositions
     }
     target_entry_ref = request.execution_target.entry_ref
     if target_entry_ref is not None:
@@ -1317,7 +1379,7 @@ def _validate_issued_inventory(
         if target_composition is None:
             raise _reject("/execution_target", ReferenceInputCode.STALE_BINDING)
         target_rights_profile_ref = target_composition.rights_profile_ref
-    manifest_index = {manifest.to_ref(): manifest for manifest in precomputed_manifests}
+    manifest_index = {manifest.to_ref(): manifest for manifest in checked_manifests}
     selected_manifest_list = []
     for entry in expected_entries:
         if not entry.precomputed_source_manifest_ref.is_present:
@@ -1330,9 +1392,9 @@ def _validate_issued_inventory(
         selected_manifest_list.append(manifest)
     selected_manifests = tuple(selected_manifest_list)
     return (
-        replace(policy),
-        tuple(replace(entry) for entry in expected_entries),
-        tuple(replace(manifest) for manifest in selected_manifests),
+        checked_policy,
+        expected_entries,
+        selected_manifests,
         _owner(
             target_rights_profile_ref,
             "rights_profile",
@@ -1443,13 +1505,16 @@ class ReferenceRunRecord(ReferenceTruthRecord):
             if reason_binding.is_present:
                 raise _reject("/reason", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
         else:
-            reason = reason_binding.value
-            if (
-                not reason_binding.is_present
-                or type(reason) is not ReferenceFailureReason
-                or _RUN_OUTCOMES.get(reason) is not outcome
-            ):
+            if not reason_binding.is_present:
                 raise _reject("/reason", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
+            reason = _exact_enum(
+                reason_binding.value,
+                ReferenceFailureReason,
+                "/reason",
+            )
+            if _RUN_OUTCOMES[reason] is not outcome:
+                raise _reject("/reason", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
+            reason_binding = OptionalBinding.present(reason)
         object.__setattr__(self, "challenge_key", challenge)
         object.__setattr__(
             self,
@@ -2245,21 +2310,26 @@ def _validate_request_grant_pair(
     if type(request) is PrimaryReferenceRequest:
         if type(grant) is not PrimaryRunGrant:
             raise _reject("/grant", ReferenceInputCode.ROLE_MISMATCH)
+        checked_request = _copy(request, PrimaryReferenceRequest, "/request")
+        checked_grant = _copy(grant, PrimaryRunGrant, "/grant")
     elif type(request) is WitnessReferenceRequest:
         if type(grant) is not WitnessRunGrant:
             raise _reject("/grant", ReferenceInputCode.ROLE_MISMATCH)
+        checked_request = _copy(request, WitnessReferenceRequest, "/request")
+        checked_grant = _copy(grant, WitnessRunGrant, "/grant")
     else:
         raise _reject("/request", ReferenceInputCode.WRONG_TYPE)
     if (
-        grant.request_ref != request.to_ref()
-        or grant.challenge_key != request.challenge_key
-        or grant.case_ref != request.case_ref
-        or grant.policy_ref != request.policy_ref
-        or grant.answer_key_authority_target != request.answer_key_authority_target
-        or grant.execution_target != request.execution_target
-        or grant.representation_ref != request.representation_ref
-        or grant.disclosure_policy_ref != request.disclosure_policy_ref
-        or grant.scope_binding != request.scope_binding
+        checked_grant.request_ref != checked_request.to_ref()
+        or checked_grant.challenge_key != checked_request.challenge_key
+        or checked_grant.case_ref != checked_request.case_ref
+        or checked_grant.policy_ref != checked_request.policy_ref
+        or checked_grant.answer_key_authority_target
+        != checked_request.answer_key_authority_target
+        or checked_grant.execution_target != checked_request.execution_target
+        or checked_grant.representation_ref != checked_request.representation_ref
+        or checked_grant.disclosure_policy_ref != checked_request.disclosure_policy_ref
+        or checked_grant.scope_binding != checked_request.scope_binding
     ):
         raise _reject("/grant", ReferenceInputCode.STALE_BINDING)
 

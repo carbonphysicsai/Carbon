@@ -38,6 +38,7 @@ from .execution import (
     ReferenceRunRecord,
     _b04_ref,
     _challenge,
+    _copy,
     _identifier,
     _identity,
     _model,
@@ -134,7 +135,11 @@ def _owner_set(
         ):
             raise _reject(path, ReferenceInputCode.CROSS_CHALLENGE)
         copied.append(ref)
-    if len(set(copied)) != len(copied):
+    try:
+        distinct = len(set(copied))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise _reject(path, ReferenceInputCode.INVALID_VALUE) from None
+    if distinct != len(copied):
         raise _reject(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return tuple(
         sorted(copied, key=lambda item: encode_value(owner_ref_to_canonical(item)))
@@ -358,7 +363,7 @@ def _model_enum(value: object, expected: type, path: str):
 def _owner_ref(value: object, kind: str, challenge: ChallengeKey, path: str) -> object:
     try:
         copied = require_owner_ref(value, kind)
-    except (AttributeError, AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize hostile owner-ref carriers.
         raise _reject(path, ReferenceInputCode.WRONG_TYPE) from None
     if (
         type(copied.scope_binding) is not ChallengeScope
@@ -387,78 +392,77 @@ def create_reference_comparison_record(
     uncertainty_treatment_ref: PinnedReferenceIdentity,
     witness_target: ReferenceWitnessTarget,
 ) -> ReferenceComparisonRecord:
-    if (
-        type(primary_run) is not ReferenceRunRecord
-        or type(witness_run) is not ReferenceRunRecord
-    ):
-        raise _reject("/primary_run_ref", ReferenceInputCode.WRONG_TYPE)
-    if primary_run.challenge_key != witness_run.challenge_key:
+    checked_primary = _copy(
+        primary_run,
+        ReferenceRunRecord,
+        "/primary_run_ref",
+    )
+    checked_witness = _copy(
+        witness_run,
+        ReferenceRunRecord,
+        "/witness_run_ref",
+    )
+    if checked_primary.challenge_key != checked_witness.challenge_key:
         raise _reject("/witness_run_ref", ReferenceInputCode.CROSS_CHALLENGE)
-    if type(observed_reasons) is not tuple:
-        raise _reject("/reason", ReferenceInputCode.WRONG_TYPE)
-    if len(observed_reasons) > MAX_CANONICAL_TUPLE_ITEMS:
-        raise _reject("/reason", ReferenceInputCode.INVALID_VALUE)
-    if any(type(item) is not ReferenceComparisonReason for item in observed_reasons):
-        raise _reject("/reason", ReferenceInputCode.WRONG_TYPE)
-    if len(set(observed_reasons)) != len(observed_reasons):
-        raise _reject("/reason", ReferenceInputCode.DUPLICATE_IDENTITY)
-    if type(dependency_disclosures) is not tuple:
-        raise _reject("/dependency_disclosures", ReferenceInputCode.WRONG_TYPE)
-    if len(dependency_disclosures) > MAX_CANONICAL_TUPLE_ITEMS:
-        raise _reject("/dependency_disclosures", ReferenceInputCode.INVALID_VALUE)
-    if any(type(item) is not DependencyDisclosure for item in dependency_disclosures):
-        raise _reject("/dependency_disclosures", ReferenceInputCode.WRONG_TYPE)
+    select_comparison_terminal(observed_reasons)
+    checked_disclosures = _model_tuple(
+        dependency_disclosures,
+        DependencyDisclosure,
+        checked_primary.challenge_key,
+        "/dependency_disclosures",
+        nonempty=True,
+    )
     checked_witness_target = _model(
         witness_target,
         ReferenceWitnessTarget,
-        primary_run.challenge_key,
+        checked_primary.challenge_key,
         "/witness_target",
     )
     if (
-        primary_run.authority_function is not ReferenceAuthorityFunction.PRIMARY
-        or witness_run.authority_function
+        checked_primary.authority_function is not ReferenceAuthorityFunction.PRIMARY
+        or checked_witness.authority_function
         is not ReferenceAuthorityFunction.CORROBORATING_WITNESS
     ):
         raise _reject("/authority_function", ReferenceInputCode.ROLE_MISMATCH)
     facts = set(observed_reasons)
     identity_mismatch = (
-        primary_run.case_ref != witness_run.case_ref
-        or primary_run.policy_ref != witness_run.policy_ref
-        or primary_run.answer_key_authority_target
-        != witness_run.answer_key_authority_target
-        or primary_run.representation_ref != witness_run.representation_ref
-        or primary_run.scope_binding != witness_run.scope_binding
-        or witness_run.execution_target.value != checked_witness_target
+        checked_primary.case_ref != checked_witness.case_ref
+        or checked_primary.policy_ref != checked_witness.policy_ref
+        or checked_primary.answer_key_authority_target
+        != checked_witness.answer_key_authority_target
+        or checked_primary.representation_ref != checked_witness.representation_ref
+        or checked_primary.scope_binding != checked_witness.scope_binding
+        or checked_witness.execution_target.value != checked_witness_target
     )
     if identity_mismatch:
         facts.add(ReferenceComparisonReason.COMPARISON_INPUT_IDENTITY_MISMATCH)
     if (
-        primary_run.outcome is not ReferenceRunOutcome.SUPPORTED
-        or witness_run.outcome is not ReferenceRunOutcome.SUPPORTED
+        checked_primary.outcome is not ReferenceRunOutcome.SUPPORTED
+        or checked_witness.outcome is not ReferenceRunOutcome.SUPPORTED
     ):
         facts.add(ReferenceComparisonReason.PRIMARY_OR_WITNESS_NOT_SUPPORTED)
     if (
-        primary_run.applicability_assessment.status
-        is not witness_run.applicability_assessment.status
-        or primary_run.applicability_assessment.support_boundary_ref
-        != witness_run.applicability_assessment.support_boundary_ref
+        checked_primary.applicability_assessment.status
+        is not checked_witness.applicability_assessment.status
+        or checked_primary.applicability_assessment.support_boundary_ref
+        != checked_witness.applicability_assessment.support_boundary_ref
     ):
         facts.add(ReferenceComparisonReason.COMPARISON_APPLICABILITY_MISMATCH)
     if (
-        primary_run.uncertainty_binding.status is not UncertaintyStatus.RESOLVED
-        or witness_run.uncertainty_binding.status is not UncertaintyStatus.RESOLVED
+        checked_primary.uncertainty_binding.status is not UncertaintyStatus.RESOLVED
+        or checked_witness.uncertainty_binding.status is not UncertaintyStatus.RESOLVED
     ):
         facts.add(ReferenceComparisonReason.COMPARISON_UNCERTAINTY_UNRESOLVED)
     if any(
         item.relation is DependencyRelation.UNDISCLOSED
         or item.relation in (DependencyRelation.SHARED, DependencyRelation.DISTINCT)
         and not item.evidence_refs
-        for item in dependency_disclosures
+        for item in checked_disclosures
     ):
         facts.add(ReferenceComparisonReason.COMPARISON_DEPENDENCE_UNRESOLVED)
     outcome, reason = select_comparison_terminal(tuple(facts))
-    primary_entries = _component_refs(primary_run)
-    witness_entries = _component_refs(witness_run)
+    primary_entries = _component_refs(checked_primary)
+    witness_entries = _component_refs(checked_witness)
     if (
         not primary_entries
         or not witness_entries
@@ -466,26 +470,26 @@ def create_reference_comparison_record(
     ):
         raise _reject("/witness_entry_refs", ReferenceInputCode.ROLE_MISMATCH)
     return ReferenceComparisonRecord(
-        answer_key_authority_target=primary_run.answer_key_authority_target,
+        answer_key_authority_target=checked_primary.answer_key_authority_target,
         applicability_evidence_refs=applicability_evidence_refs,
-        case_ref=primary_run.case_ref,
-        challenge_key=primary_run.challenge_key,
+        case_ref=checked_primary.case_ref,
+        challenge_key=checked_primary.challenge_key,
         comparison_id=comparison_id,
         comparison_method_ref=comparison_method_ref,
         comparison_policy_ref=comparison_policy_ref,
         comparison_version=comparison_version,
-        dependency_disclosures=dependency_disclosures,
+        dependency_disclosures=checked_disclosures,
         evidence_refs=evidence_refs,
         outcome=outcome,
-        policy_ref=primary_run.policy_ref,
+        policy_ref=checked_primary.policy_ref,
         primary_entry_refs=primary_entries,
-        primary_run_ref=primary_run.to_ref(),
+        primary_run_ref=checked_primary.to_ref(),
         reason=reason,
-        representation_ref=primary_run.representation_ref,
-        scope_binding=primary_run.scope_binding,
+        representation_ref=checked_primary.representation_ref,
+        scope_binding=checked_primary.scope_binding,
         uncertainty_treatment_ref=uncertainty_treatment_ref,
         witness_entry_refs=witness_entries,
-        witness_run_ref=witness_run.to_ref(),
+        witness_run_ref=checked_witness.to_ref(),
         witness_target=checked_witness_target,
     )
 

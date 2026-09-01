@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from dataclasses import InitVar, dataclass
+from dataclasses import InitVar, dataclass, replace
 from types import MappingProxyType
 from typing import ClassVar, Protocol, TypeVar, runtime_checkable
 
@@ -75,12 +75,22 @@ from .refs import (
     TruthAssetAdmissionGrantRef,
     TruthAssetRef,
 )
-from .runners import PrimaryReferenceRunner, WitnessReferenceRunner
 
 _ISSUANCE_RECORD_TOKEN = object()
 _GRANT_TOKEN = object()
 _DECISION_TOKEN = object()
 _RecordT = TypeVar("_RecordT")
+
+
+def _statically_declares_interface(value: object, *names: str) -> bool:
+    """Recognize one role shape without binding caller-controlled descriptors."""
+
+    value_type = type(value)
+    namespaces = tuple(
+        type.__getattribute__(owner, "__dict__")
+        for owner in type.__getattribute__(value_type, "__mro__")
+    )
+    return all(any(name in namespace for namespace in namespaces) for name in names)
 
 
 _ADMISSION_ISSUANCE_OUTCOMES = MappingProxyType(
@@ -529,13 +539,25 @@ def _issue_truth_asset_admission_grant_record(
     """Execute one already reserved structural-issuance operation."""
 
     try:
-        is_runner = isinstance(issuer, (PrimaryReferenceRunner, WitnessReferenceRunner))
-        if is_runner:
+        has_issuer_role = _statically_declares_interface(
+            issuer,
+            "issuer_ref",
+            "evaluate_grant_issuance",
+        )
+        has_runner_role = _statically_declares_interface(
+            issuer,
+            "run_primary",
+        ) or _statically_declares_interface(issuer, "run_witness")
+        has_authority_role = _statically_declares_interface(
+            issuer,
+            "admission_authority_ref",
+            "evaluate_admission",
+        )
+        if not has_issuer_role or has_runner_role or has_authority_role:
             raise ReferenceServiceError(
                 ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
                 path="/issuer_ref",
             )
-        has_authority_role = isinstance(issuer, TruthAssetAdmissionAuthority)
         issuer_ref_value = issuer.issuer_ref
         evaluate_grant_issuance = issuer.evaluate_grant_issuance
     except ReferenceServiceError:
@@ -545,7 +567,7 @@ def _issue_truth_asset_admission_grant_record(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
             path="/issuer_ref",
         ) from None
-    if has_authority_role or not callable(evaluate_grant_issuance):
+    if not callable(evaluate_grant_issuance):
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE,
             path="/issuer_ref",
@@ -919,15 +941,35 @@ def _validated_admission_authority(
     """Snapshot the nominal authority interface before irreversible claim."""
 
     try:
-        has_issuer_role = isinstance(authority, TruthAssetAdmissionGrantIssuer)
+        has_authority_role = _statically_declares_interface(
+            authority,
+            "admission_authority_ref",
+            "evaluate_admission",
+        )
+        has_issuer_role = _statically_declares_interface(
+            authority,
+            "issuer_ref",
+            "evaluate_grant_issuance",
+        )
+        has_runner_role = _statically_declares_interface(
+            authority,
+            "run_primary",
+        ) or _statically_declares_interface(authority, "run_witness")
+        if not has_authority_role or has_issuer_role or has_runner_role:
+            raise ReferenceServiceError(
+                ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
+                path="/admission_authority_ref",
+            )
         authority_ref_value = authority.admission_authority_ref
         evaluate_admission = authority.evaluate_admission
+    except ReferenceServiceError:
+        raise
     except Exception:  # noqa: BLE001 - sanitize structural capability inspection.
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
             path="/admission_authority_ref",
         ) from None
-    if has_issuer_role or not callable(evaluate_admission):
+    if not callable(evaluate_admission):
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
             path="/admission_authority_ref",
@@ -1103,32 +1145,29 @@ def _decide_truth_asset_admission_record(
     )
 
 
+def _copy_nested_value(value: object, expected: type[_RecordT], path: str) -> _RecordT:
+    supplied = exact(value, expected, path)
+    try:
+        return replace(supplied)
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def _copy_applicability_assessment(value: object) -> SupportApplicabilityAssessment:
-    assessment = exact(
+    return _copy_nested_value(
         value,
         SupportApplicabilityAssessment,
         "/applicability_assessment",
     )
-    return SupportApplicabilityAssessment(
-        applicability_evidence_refs=assessment.applicability_evidence_refs,
-        limitations=assessment.limitations,
-        method_ref=assessment.method_ref,
-        status=assessment.status,
-        support_boundary_ref=assessment.support_boundary_ref,
-    )
 
 
 def _copy_conditioning_assessment(value: object) -> ConditioningAssessment:
-    assessment = exact(
+    return _copy_nested_value(
         value,
         ConditioningAssessment,
         "/conditioning_assessment",
-    )
-    return ConditioningAssessment(
-        evidence_refs=assessment.evidence_refs,
-        limitations=assessment.limitations,
-        method_ref=assessment.method_ref,
-        status=assessment.status,
     )
 
 
@@ -1141,71 +1180,45 @@ def _copy_dependency_disclosures(
         "/dependency_disclosures",
     )
     return tuple(
-        DependencyDisclosure(
-            category=disclosure.category,
-            evidence_refs=disclosure.evidence_refs,
-            relation=disclosure.relation,
+        _copy_nested_value(
+            disclosure,
+            DependencyDisclosure,
+            "/dependency_disclosures",
         )
         for disclosure in disclosures
     )
 
 
 def _copy_provenance(value: object) -> ReferenceProvenance:
-    provenance = exact(value, ReferenceProvenance, "/provenance_binding")
-    return ReferenceProvenance(
-        dependency_disclosures=provenance.dependency_disclosures,
-        environment_ref=provenance.environment_ref,
-        evidence_campaign_ref=provenance.evidence_campaign_ref,
-        generated_or_copied_code_refs=provenance.generated_or_copied_code_refs,
-        implementation_ref=provenance.implementation_ref,
-        method_ref=provenance.method_ref,
-        provenance_refs=provenance.provenance_refs,
-        reviewer_authority_refs=provenance.reviewer_authority_refs,
-        rights_profile_ref=provenance.rights_profile_ref,
-        source_ref=provenance.source_ref,
+    return _copy_nested_value(
+        value,
+        ReferenceProvenance,
+        "/provenance_binding",
     )
 
 
 def _copy_scope(value: object) -> ReferenceScopeBinding:
-    scope = exact(value, ReferenceScopeBinding, "/scope_binding")
-    return ReferenceScopeBinding(
-        candidate_output_contract_ref=scope.candidate_output_contract_ref,
-        claim_scope_ref=scope.claim_scope_ref,
-        evidence_campaign_ref=scope.evidence_campaign_ref,
-        evidence_population_refs=scope.evidence_population_refs,
-        physical_system_ref=scope.physical_system_ref,
-        proposal_population_ref=scope.proposal_population_ref,
-        reference_fidelity_allocation_ref=scope.reference_fidelity_allocation_ref,
-        sampling_plan_ref=scope.sampling_plan_ref,
-        target_population_ref=scope.target_population_ref,
-        truth_target_ref=scope.truth_target_ref,
+    return _copy_nested_value(
+        value,
+        ReferenceScopeBinding,
+        "/scope_binding",
     )
 
 
 def _copy_uncertainty(value: object) -> UncertaintyRepresentation:
-    uncertainty = exact(
+    return _copy_nested_value(
         value,
         UncertaintyRepresentation,
         "/uncertainty_binding",
     )
-    return UncertaintyRepresentation(
-        component_kinds=uncertainty.component_kinds,
-        coverage_ref=uncertainty.coverage_ref,
-        dependence_policy_ref=uncertainty.dependence_policy_ref,
-        estimand_ref=uncertainty.estimand_ref,
-        evidence_refs=uncertainty.evidence_refs,
-        limitations=uncertainty.limitations,
-        method_ref=uncertainty.method_ref,
-        representation_ref=uncertainty.representation_ref,
-        status=uncertainty.status,
-        units_ref=uncertainty.units_ref,
-        use_restrictions=uncertainty.use_restrictions,
-    )
 
 
 def _copy_authority_target(value: object) -> ReferenceAuthorityTarget:
-    target = exact(value, ReferenceAuthorityTarget, "/execution_target")
-    return ReferenceAuthorityTarget(target.kind, target.value)
+    return _copy_nested_value(
+        value,
+        ReferenceAuthorityTarget,
+        "/execution_target",
+    )
 
 
 @dataclass(frozen=True, slots=True, repr=False, init=False)
@@ -1428,7 +1441,11 @@ class TruthAsset(ReferenceTruthRecord):
                 challenge_key=key,
             ),
         )
-        supersedes = exact(self.supersedes, OptionalBinding, "/supersedes")
+        supersedes = _copy_nested_value(
+            self.supersedes,
+            OptionalBinding,
+            "/supersedes",
+        )
         if supersedes.is_present:
             supersedes = OptionalBinding.present(
                 reference_ref(

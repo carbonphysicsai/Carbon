@@ -236,6 +236,19 @@ class ReferenceDisclosureCode(str, Enum):
     SOURCE_RECORD_REQUIRED = "SOURCE_RECORD_REQUIRED"
 
 
+def _closed_code_member(value: object, enum_type: type[Enum]) -> Enum | None:
+    """Normalize only a registered member or its exact built-in string value."""
+
+    if type(value) is enum_type:
+        return next((member for member in enum_type if value is member), None)
+    if type(value) is not str:
+        return None
+    try:
+        return enum_type(value)
+    except (TypeError, ValueError):
+        return None
+
+
 INPUT_REJECTION_MESSAGES = MappingProxyType(
     {
         ReferenceInputCode.WRONG_TYPE: "input has the wrong exact type",
@@ -331,12 +344,7 @@ class ReferenceValidationError(ReferenceTruthError, ValueError):
     """A malformed or cross-bound B-04 input was rejected."""
 
     def __init__(self, code: ReferenceInputCode | str, *, path: str = "") -> None:
-        try:
-            normalized = (
-                code if type(code) is ReferenceInputCode else ReferenceInputCode(code)
-            )
-        except (TypeError, ValueError):
-            normalized = None
+        normalized = _closed_code_member(code, ReferenceInputCode)
         if normalized is None:
             raise TypeError("code must be one exact ReferenceInputCode")
         super().__init__(
@@ -353,6 +361,8 @@ class ReferenceCanonicalEncodingError(ReferenceValidationError):
 
 class ReferenceCanonicalDecodingError(ReferenceValidationError):
     def __init__(self, *, trailing: bool = False, path: str = "") -> None:
+        if type(trailing) is not bool:
+            raise TypeError("trailing must be an exact bool")
         super().__init__(
             (
                 ReferenceInputCode.TRAILING_BYTES
@@ -370,14 +380,7 @@ class ReferenceMismatchError(ReferenceValidationError):
 
 class ReferenceServiceError(ReferenceTruthError, RuntimeError):
     def __init__(self, code: ReferenceServiceCode | str, *, path: str = "") -> None:
-        try:
-            normalized = (
-                code
-                if type(code) is ReferenceServiceCode
-                else ReferenceServiceCode(code)
-            )
-        except (TypeError, ValueError):
-            normalized = None
+        normalized = _closed_code_member(code, ReferenceServiceCode)
         if normalized is None:
             raise TypeError("code must be one exact ReferenceServiceCode")
         super().__init__(
@@ -389,14 +392,7 @@ class ReferenceServiceError(ReferenceTruthError, RuntimeError):
 
 class ReferenceDisclosureError(ReferenceTruthError, ValueError):
     def __init__(self, code: ReferenceDisclosureCode | str, *, path: str = "") -> None:
-        try:
-            normalized = (
-                code
-                if type(code) is ReferenceDisclosureCode
-                else ReferenceDisclosureCode(code)
-            )
-        except (TypeError, ValueError):
-            normalized = None
+        normalized = _closed_code_member(code, ReferenceDisclosureCode)
         if normalized is None:
             raise TypeError("code must be one exact ReferenceDisclosureCode")
         super().__init__(

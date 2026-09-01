@@ -64,8 +64,47 @@ def _copy_nested_binding(value: object, expected: type, path: str):
             )
             return replace(checked, dependency_disclosures=disclosures)
         return replace(checked)
-    except (AttributeError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
         raise invalid(path, ReferenceInputCode.INVALID_VALUE) from None
+
+
+def _copy_run(value: object, path: str = "/run_ref") -> ReferenceRunRecord:
+    checked = exact(value, ReferenceRunRecord, path)
+    try:
+        return replace(checked)
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
+def _copy_artifact(value: object, path: str = "/artifact_ref") -> ReferenceArtifact:
+    checked = exact(value, ReferenceArtifact, path)
+    try:
+        return _new_reference_artifact(
+            applicability_assessment=checked.applicability_assessment,
+            artifact_content_digest=checked.artifact_content_digest,
+            artifact_descriptor_ref=checked.artifact_descriptor_ref,
+            artifact_id=checked.artifact_id,
+            artifact_origin=checked.artifact_origin,
+            artifact_version=checked.artifact_version,
+            case_ref=checked.case_ref,
+            challenge_key=checked.challenge_key,
+            conditioning_assessment=checked.conditioning_assessment,
+            configuration_ref=checked.configuration_ref,
+            environment_ref=checked.environment_ref,
+            execution_target=checked.execution_target,
+            hardware_ref=checked.hardware_ref,
+            implementation_ref=checked.implementation_ref,
+            method_ref=checked.method_ref,
+            policy_ref=checked.policy_ref,
+            precision_ref=checked.precision_ref,
+            provenance_binding=checked.provenance_binding,
+            representation_ref=checked.representation_ref,
+            run_ref=checked.run_ref,
+            scope_binding=checked.scope_binding,
+            uncertainty_binding=checked.uncertainty_binding,
+        )
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
 
 
 @dataclass(frozen=True, slots=True, repr=False, init=False)
@@ -254,7 +293,7 @@ def create_reference_artifact(
 ) -> ReferenceArtifact:
     """Create an artifact only from one exact supported, artifact-bearing run."""
 
-    checked = exact(run, ReferenceRunRecord, "/run_ref")
+    checked = _copy_run(run)
     if checked.outcome is not ReferenceRunOutcome.SUPPORTED:
         raise invalid("/run_ref", ReferenceInputCode.OUTCOME_REASON_MISMATCH)
     binding = checked.artifact_binding
@@ -291,7 +330,7 @@ def validate_reference_artifact(
     artifact: ReferenceArtifact,
     run: ReferenceRunRecord,
 ) -> None:
-    checked = exact(artifact, ReferenceArtifact, "/artifact_ref")
+    checked = _copy_artifact(artifact)
     reconstructed = create_reference_artifact(
         run,
         artifact_id=checked.artifact_id,
@@ -429,8 +468,9 @@ def create_fixture_reference_asset(
 ) -> FixtureReferenceAsset:
     """Bind deterministic fixture bytes without acquiring truth authority."""
 
-    checked = exact(artifact, ReferenceArtifact, "/artifact_ref")
-    validate_reference_artifact(checked, run)
+    checked = _copy_artifact(artifact)
+    checked_run = _copy_run(run)
+    validate_reference_artifact(checked, checked_run)
     if checked.artifact_origin is not ReferenceArtifactOrigin.FIXTURE_ONLY:
         raise invalid("/artifact_origin", ReferenceInputCode.ROLE_MISMATCH)
     payload = exact_bytes(payload_bytes, "/payload_bytes")

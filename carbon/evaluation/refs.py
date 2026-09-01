@@ -42,7 +42,7 @@ def _wrong(code: ReferenceInputCode, path: str) -> ReferenceValidationError:
 def _challenge(value: object, path: str = "/challenge_key") -> ChallengeKey:
     try:
         return reconstruct_challenge_key(value)
-    except (AuthoringError, TypeError, ValueError):
+    except (AttributeError, AuthoringError, TypeError, ValueError):
         raise _wrong(ReferenceInputCode.WRONG_TYPE, path) from None
 
 
@@ -246,12 +246,17 @@ def is_reference_truth_ref(value: object) -> bool:
 def reconstruct_reference_truth_ref(value: object) -> ReferenceTruthRef:
     if not is_reference_truth_ref(value):
         raise _wrong(ReferenceInputCode.WRONG_TYPE, "/ref_type")
-    return type(value)(
-        value.challenge_key,
-        value.content_digest,
-        value.schema_version,
-        value.canonicalization_profile,
-    )
+    try:
+        return type(value)(
+            object.__getattribute__(value, "challenge_key"),
+            object.__getattribute__(value, "content_digest"),
+            object.__getattribute__(value, "schema_version"),
+            object.__getattribute__(value, "canonicalization_profile"),
+        )
+    except ReferenceValidationError:
+        raise
+    except (AttributeError, TypeError, ValueError):
+        raise _wrong(ReferenceInputCode.WRONG_TYPE, "/ref_type") from None
 
 
 def require_reference_truth_ref(
@@ -300,62 +305,73 @@ def reference_truth_ref_from_canonical(
 ) -> ReferenceTruthRef:
     if type(value) is not CanonicalNominalRef:
         raise ReferenceCanonicalDecodingError(path="/ref")
-    candidates = tuple(
-        ref_type
-        for ref_type in REFERENCE_TRUTH_REF_TYPES
-        if f"{ref_type.RECORD_TYPE}_ref" == value.ref_type
-    )
-    if expected_type is not None:
-        if (
-            type(expected_type) is not type
-            or expected_type not in REFERENCE_TRUTH_REF_TYPES
-        ):
-            raise TypeError("expected_type must be an exact reference-truth ref class")
-        candidates = tuple(item for item in candidates if item is expected_type)
-    if len(candidates) != 1 or value.record.record_type != value.ref_type:
-        raise ReferenceCanonicalDecodingError(path="/ref")
-    fields = value.record.field_map()
-    if set(fields) != {
-        "canonicalization_profile",
-        "challenge_key",
-        "content_digest",
-        "record_type",
-        "schema_version",
-    }:
-        raise ReferenceCanonicalDecodingError(path="/ref")
-
-    def text_field(name: str) -> str:
-        item = fields[name]
-        if type(item) is not CanonicalText:
-            raise ReferenceCanonicalDecodingError(path=f"/ref/{name}")
-        return item.value
-
-    ref_type = candidates[0]
-    if text_field("record_type") != ref_type.RECORD_TYPE:
-        raise ReferenceCanonicalDecodingError(path="/ref/record_type")
-    result = None
-    try:
-        result = ref_type(
-            challenge_key_from_canonical(fields["challenge_key"]),
-            text_field("content_digest"),
-            text_field("schema_version"),
-            text_field("canonicalization_profile"),
-        )
-    except (AuthoringError, ReferenceValidationError, TypeError, ValueError):
-        pass
-    if result is None:
-        raise ReferenceCanonicalDecodingError(path="/ref")
-    if not hmac.compare_digest(
-        encode_value(reference_truth_ref_to_canonical(result)), encode_value(value)
+    if expected_type is not None and (
+        type(expected_type) is not type
+        or expected_type not in REFERENCE_TRUTH_REF_TYPES
     ):
-        raise ReferenceCanonicalDecodingError(path="/ref")
-    return result
+        raise TypeError("expected_type must be an exact reference-truth ref class")
+    try:
+        ref_name = object.__getattribute__(value, "ref_type")
+        record = object.__getattribute__(value, "record")
+        candidates = tuple(
+            ref_type
+            for ref_type in REFERENCE_TRUTH_REF_TYPES
+            if f"{ref_type.RECORD_TYPE}_ref" == ref_name
+        )
+        if expected_type is not None:
+            candidates = tuple(item for item in candidates if item is expected_type)
+        if (
+            len(candidates) != 1
+            or type(record) is not CanonicalRecord
+            or object.__getattribute__(record, "record_type") != ref_name
+        ):
+            raise ReferenceCanonicalDecodingError(path="/ref")
+        fields = record.field_map()
+        if set(fields) != {
+            "canonicalization_profile",
+            "challenge_key",
+            "content_digest",
+            "record_type",
+            "schema_version",
+        }:
+            raise ReferenceCanonicalDecodingError(path="/ref")
+
+        def text_field(name: str) -> str:
+            item = fields[name]
+            if type(item) is not CanonicalText:
+                raise ReferenceCanonicalDecodingError(path=f"/ref/{name}")
+            return object.__getattribute__(item, "value")
+
+        ref_type = candidates[0]
+        if text_field("record_type") != ref_type.RECORD_TYPE:
+            raise ReferenceCanonicalDecodingError(path="/ref/record_type")
+        result = None
+        try:
+            result = ref_type(
+                challenge_key_from_canonical(fields["challenge_key"]),
+                text_field("content_digest"),
+                text_field("schema_version"),
+                text_field("canonicalization_profile"),
+            )
+        except (AuthoringError, ReferenceValidationError, TypeError, ValueError):
+            pass
+        if result is None:
+            raise ReferenceCanonicalDecodingError(path="/ref")
+        if not hmac.compare_digest(
+            encode_value(reference_truth_ref_to_canonical(result)), encode_value(value)
+        ):
+            raise ReferenceCanonicalDecodingError(path="/ref")
+        return result
+    except ReferenceCanonicalDecodingError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize hostile canonical carrier behavior.
+        raise ReferenceCanonicalDecodingError(path="/ref") from None
 
 
 def encode_reference_truth_ref(value: object) -> bytes:
     try:
         return encode_value(reference_truth_ref_to_canonical(value))
-    except (AuthoringError, ReferenceValidationError):
+    except Exception:  # noqa: BLE001 - public hostile-input boundary.
         raise _wrong(ReferenceInputCode.INVALID_VALUE, "/ref") from None
 
 

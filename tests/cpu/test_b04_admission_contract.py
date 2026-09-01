@@ -238,6 +238,36 @@ def _owner(challenge_key, kind: str, label: str) -> object:
     )
 
 
+def _admission_attempt(graph, label: str) -> AdmissionAttemptBinding:
+    challenge = graph.challenge_key
+    return AdmissionAttemptBinding(
+        _identity(
+            challenge,
+            ReferenceIdentityKind.ADMISSION_AUTHORITY,
+            f"{label}_authority",
+        ),
+        graph.policy.answer_key_authority_target.value,
+        AdmissionArtifactBinding.bound(graph.primary_artifact.to_ref()),
+        graph.case_ref,
+        (graph.comparison.to_ref(),),
+        _identity(
+            challenge,
+            ReferenceIdentityKind.ADMISSION_PROFILE,
+            f"{label}_profile",
+        ),
+        graph.policy.disclosure_policy_ref,
+        graph.policy.answer_key_authority_target.value,
+        graph.policy.provenance_policy_ref,
+        QualificationBinding.bound(
+            _owner(challenge, "qualification_evidence_bundle", label)
+        ),
+        graph.policy.rights_profile_ref,
+        graph.primary_run.to_ref(),
+        (_owner(challenge, "permitted_use", label),),
+        graph.policy.registered_witness_targets,
+    )
+
+
 def _unadmitted_truth_asset_bytes(graph: object) -> bytes:
     """Encode a schema-shaped hostile carrier without admitting an asset."""
 
@@ -322,6 +352,185 @@ def test_truth_asset_direct_private_and_canonical_bypasses_fail_closed() -> None
         decode_canonical_bytes(payload, TruthAsset)
     assert canonical_bypass.value.__cause__ is None
     assert canonical_bypass.value.__context__ is None
+
+
+def test_admission_interface_role_inspection_is_static_and_fail_closed() -> None:
+    graph = build_b04_fixture_reference_graph()
+    attempt = _admission_attempt(graph, "static_interface")
+    challenge = graph.challenge_key
+    issuer_ref = _identity(
+        challenge,
+        ReferenceIdentityKind.ADMISSION_ISSUER,
+        "static_interface_issuer",
+    )
+
+    class DynamicIssuer:
+        reads = 0
+
+        def __getattr__(self, name):
+            self.reads += 1
+            if name == "issuer_ref":
+                return issuer_ref
+            if name == "evaluate_grant_issuance":
+                return lambda observed_attempt: observed_attempt
+            raise RuntimeError("protected dynamic issuer detail")
+
+    dynamic_issuer = DynamicIssuer()
+    with pytest.raises(ReferenceServiceError) as captured:
+        issue_truth_asset_admission_grant_record(
+            dynamic_issuer,
+            attempt,
+            issuance_id="b04_dynamic_interface_issuance",
+            issuance_version="1.0",
+        )
+    assert (
+        captured.value.code == ReferenceServiceCode.ADMISSION_ISSUER_UNAVAILABLE.value
+    )
+    assert captured.value.path == "/issuer_ref"
+    assert dynamic_issuer.reads == 0
+
+    class StaticIssuer:
+        unexpected_reads = 0
+
+        @property
+        def issuer_ref(self):
+            return issuer_ref
+
+        def evaluate_grant_issuance(self, observed_attempt):
+            assert observed_attempt == attempt
+            return AdmissionGrantIssuanceEcho(
+                AdmissionGrantIssuanceOutcome.ADMISSION_GRANT_AUTHORIZED,
+                AdmissionGrantIssuanceReason.ADMISSION_GRANT_REQUIREMENTS_SATISFIED,
+                "b04-static-interface-issuance-token",
+            )
+
+        def __getattr__(self, name):
+            del name
+            self.unexpected_reads += 1
+            raise RuntimeError("protected unexpected issuer detail")
+
+    static_issuer = StaticIssuer()
+    issuance = issue_truth_asset_admission_grant_record(
+        static_issuer,
+        attempt,
+        issuance_id="b04_static_interface_issuance",
+        issuance_version="1.0",
+    )
+    assert issuance is not None
+    assert static_issuer.unexpected_reads == 0
+    grant = create_truth_asset_admission_grant(
+        issuance,
+        capability_ref=issuer_ref,
+        grant_id="b04_static_interface_grant",
+        grant_version="1.0",
+    )
+
+    authority_ref = attempt.admission_authority_ref
+
+    class DynamicAuthority:
+        reads = 0
+
+        def __getattr__(self, name):
+            self.reads += 1
+            if name == "admission_authority_ref":
+                return authority_ref
+            if name == "evaluate_admission":
+                return lambda observed_attempt, observed_grant_ref: (
+                    observed_attempt,
+                    observed_grant_ref,
+                )
+            raise RuntimeError("protected dynamic authority detail")
+
+    dynamic_authority = DynamicAuthority()
+    with pytest.raises(ReferenceServiceError) as captured:
+        decide_truth_asset_admission(
+            dynamic_authority,
+            issuance,
+            grant,
+            policy=graph.policy,
+            run=graph.primary_run,
+            artifact=graph.primary_artifact,
+            comparisons=(graph.comparison,),
+            decision_id="b04_dynamic_interface_decision",
+            decision_version="1.0",
+        )
+    assert (
+        captured.value.code
+        == ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE.value
+    )
+    assert captured.value.path == "/admission_authority_ref"
+    assert dynamic_authority.reads == 0
+
+    receipt_ref = _identity(
+        challenge,
+        ReferenceIdentityKind.CONSUMED_GRANT_RECEIPT,
+        "static_interface_receipt",
+    )
+
+    class StaticAuthority:
+        authority_reads = 0
+        unexpected_reads = 0
+
+        @property
+        def admission_authority_ref(self):
+            self.authority_reads += 1
+            return authority_ref
+
+        def evaluate_admission(self, observed_attempt, observed_grant_ref):
+            assert observed_attempt == attempt
+            assert observed_grant_ref == grant.to_ref()
+            return TruthAssetAdmissionEcho(
+                TruthAssetAdmissionOutcome.REJECTED,
+                TruthAssetAdmissionReason.ARTIFACT_ABSENT_OR_INELIGIBLE,
+                receipt_ref,
+            )
+
+        def __getattr__(self, name):
+            del name
+            self.unexpected_reads += 1
+            raise RuntimeError("protected unexpected authority detail")
+
+    class RunnerAuthority(StaticAuthority):
+        def run_primary(self, primary_grant, primary_request):
+            del primary_grant, primary_request
+            raise AssertionError("runner authority callback must not run")
+
+    runner_authority = RunnerAuthority()
+    with pytest.raises(ReferenceServiceError) as captured:
+        decide_truth_asset_admission(
+            runner_authority,
+            issuance,
+            grant,
+            policy=graph.policy,
+            run=graph.primary_run,
+            artifact=graph.primary_artifact,
+            comparisons=(graph.comparison,),
+            decision_id="b04_runner_interface_decision",
+            decision_version="1.0",
+        )
+    assert (
+        captured.value.code
+        == ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE.value
+    )
+    assert runner_authority.authority_reads == 0
+    assert runner_authority.unexpected_reads == 0
+
+    static_authority = StaticAuthority()
+    decision = decide_truth_asset_admission(
+        static_authority,
+        issuance,
+        grant,
+        policy=graph.policy,
+        run=graph.primary_run,
+        artifact=graph.primary_artifact,
+        comparisons=(graph.comparison,),
+        decision_id="b04_static_interface_decision",
+        decision_version="1.0",
+    )
+    assert decision is not None
+    assert decision.outcome is TruthAssetAdmissionOutcome.REJECTED
+    assert static_authority.authority_reads == 1
+    assert static_authority.unexpected_reads == 0
 
 
 def test_admission_graph_requires_primary_role_and_every_registered_witness() -> None:

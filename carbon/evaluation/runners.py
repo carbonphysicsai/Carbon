@@ -14,6 +14,34 @@ from .execution import (
     _validate_request_grant_pair,
 )
 
+_STATIC_MEMBER_ABSENT = object()
+
+
+def _static_member(value: object, name: str) -> object:
+    """Inspect one declared interface member without binding descriptors."""
+
+    value_type = type(value)
+    for owner in type.__getattribute__(value_type, "__mro__"):
+        namespace = type.__getattribute__(owner, "__dict__")
+        if name in namespace:
+            return namespace[name]
+    return _STATIC_MEMBER_ABSENT
+
+
+def _static_callable_member(value: object, name: str) -> bool:
+    """Return whether one statically declared member is safely known callable."""
+
+    member = _static_member(value, name)
+    if type(member) in {classmethod, staticmethod}:
+        member = member.__func__
+    return member is not _STATIC_MEMBER_ABSENT and callable(member)
+
+
+def _statically_declares(value: object, name: str) -> bool:
+    """Return whether one role member is declared without invoking caller code."""
+
+    return _static_member(value, name) is not _STATIC_MEMBER_ABSENT
+
 
 @runtime_checkable
 class PrimaryReferenceRunner(Protocol):
@@ -40,7 +68,14 @@ class WitnessReferenceRunner(Protocol):
 def require_primary_runner(value: object) -> PrimaryReferenceRunner:
     """Validate one nominal primary interface without invoking caller code."""
 
-    if not isinstance(value, PrimaryReferenceRunner):
+    try:
+        valid = _static_callable_member(
+            value,
+            "run_primary",
+        ) and not _statically_declares(value, "run_witness")
+    except Exception:  # noqa: BLE001 - sanitize hostile structural inspection.
+        valid = False
+    if not valid:
         raise ReferenceValidationError(
             ReferenceInputCode.AUTHORITY_INTERFACE_INVALID,
             path="/runner",
@@ -51,7 +86,14 @@ def require_primary_runner(value: object) -> PrimaryReferenceRunner:
 def require_witness_runner(value: object) -> WitnessReferenceRunner:
     """Validate one nominal witness interface without invoking caller code."""
 
-    if not isinstance(value, WitnessReferenceRunner):
+    try:
+        valid = _static_callable_member(
+            value,
+            "run_witness",
+        ) and not _statically_declares(value, "run_primary")
+    except Exception:  # noqa: BLE001 - sanitize hostile structural inspection.
+        valid = False
+    if not valid:
         raise ReferenceValidationError(
             ReferenceInputCode.AUTHORITY_INTERFACE_INVALID,
             path="/runner",

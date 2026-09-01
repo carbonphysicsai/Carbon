@@ -8,7 +8,7 @@ root.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import ClassVar, TypeVar
 
 from carbon.authoring.errors import AuthoringError
@@ -82,7 +82,7 @@ def _identifier(value: object, path: str) -> str:
     result: str | None = None
     try:
         result = validate_canonical_id(value, path.rsplit("/", 1)[-1])
-    except (AuthoringError, TypeError, ValueError):
+    except (AttributeError, AuthoringError, TypeError, ValueError):
         pass
     if result is None:
         raise _invalid(path)
@@ -115,7 +115,7 @@ def _challenge(value: object, path: str = "/challenge_key") -> ChallengeKey:
     result: ChallengeKey | None = None
     try:
         result = reconstruct_challenge_key(value)
-    except (AuthoringError, TypeError, ValueError):
+    except (AttributeError, AuthoringError, TypeError, ValueError):
         pass
     if result is None:
         raise _invalid(path, ReferenceInputCode.WRONG_TYPE)
@@ -140,19 +140,33 @@ def _tuple(
     if any(type(item) is not expected for item in value):
         raise _invalid(path, ReferenceInputCode.WRONG_TYPE)
     copied = tuple(value)
-    if unique and len(set(copied)) != len(copied):
-        raise _invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
+    if unique:
+        try:
+            distinct = len(set(copied))
+        except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+            raise _invalid(path) from None
+        if distinct != len(copied):
+            raise _invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return copied
 
 
+def _copy_exact(value: object, expected: type[T], path: str) -> T:
+    """Rebuild an exact dataclass before inspecting any of its fields."""
+
+    checked = _exact(value, expected, path)
+    try:
+        return replace(checked)
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise _invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def _owner(value: object, kind: str, path: str, challenge_key: ChallengeKey) -> object:
-    copied: object | None = None
     try:
         copied = require_owner_ref(value, kind)
-    except (AuthoringError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path, ReferenceInputCode.WRONG_TYPE)
+    except Exception:  # noqa: BLE001 - normalize hostile owner-ref carriers.
+        raise _invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     scope = copied.scope_binding
     if type(scope) is not ChallengeScope or scope.challenge_key != challenge_key:
         raise _invalid(path, ReferenceInputCode.CROSS_CHALLENGE)
@@ -165,13 +179,10 @@ def _reference_ref(
     path: str,
     challenge_key: ChallengeKey,
 ) -> T:
-    copied: object | None = None
     try:
         copied = reconstruct_reference_truth_ref(value)
-    except (ReferenceValidationError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path, ReferenceInputCode.WRONG_TYPE)
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type ref.
+        raise _invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     if type(copied) is not expected:
         raise _invalid(path, ReferenceInputCode.WRONG_TYPE)
     if copied.challenge_key != challenge_key:
@@ -185,20 +196,7 @@ def _identity(
     path: str,
     challenge_key: ChallengeKey,
 ) -> PinnedReferenceIdentity:
-    _exact(value, PinnedReferenceIdentity, path)
-    copied: PinnedReferenceIdentity | None = None
-    try:
-        copied = PinnedReferenceIdentity(
-            value.challenge_key,
-            value.content_digest,
-            value.identity_id,
-            value.identity_kind,
-            value.identity_version,
-        )
-    except (ReferenceValidationError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path)
+    copied = _copy_exact(value, PinnedReferenceIdentity, path)
     if copied.challenge_key != challenge_key:
         raise _invalid(path, ReferenceInputCode.CROSS_CHALLENGE)
     if copied.identity_kind is not expected_kind:
@@ -209,25 +207,7 @@ def _identity(
 def _scope(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> ReferenceScopeBinding:
-    _exact(value, ReferenceScopeBinding, path)
-    copied: ReferenceScopeBinding | None = None
-    try:
-        copied = ReferenceScopeBinding(
-            value.candidate_output_contract_ref,
-            value.claim_scope_ref,
-            value.evidence_campaign_ref,
-            value.evidence_population_refs,
-            value.physical_system_ref,
-            value.proposal_population_ref,
-            value.reference_fidelity_allocation_ref,
-            value.sampling_plan_ref,
-            value.target_population_ref,
-            value.truth_target_ref,
-        )
-    except (AuthoringError, ReferenceValidationError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path)
+    copied = _copy_exact(value, ReferenceScopeBinding, path)
     if copied.challenge_key != challenge_key:
         raise _invalid(path, ReferenceInputCode.CROSS_CHALLENGE)
     return copied
@@ -236,25 +216,7 @@ def _scope(
 def _provenance(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> ReferenceProvenance:
-    _exact(value, ReferenceProvenance, path)
-    copied: ReferenceProvenance | None = None
-    try:
-        copied = ReferenceProvenance(
-            value.dependency_disclosures,
-            value.environment_ref,
-            value.evidence_campaign_ref,
-            value.generated_or_copied_code_refs,
-            value.implementation_ref,
-            value.method_ref,
-            value.provenance_refs,
-            value.reviewer_authority_refs,
-            value.rights_profile_ref,
-            value.source_ref,
-        )
-    except (AuthoringError, ReferenceValidationError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path)
+    copied = _copy_exact(value, ReferenceProvenance, path)
     if copied.challenge_key != challenge_key:
         raise _invalid(path, ReferenceInputCode.CROSS_CHALLENGE)
     return copied
@@ -263,20 +225,22 @@ def _provenance(
 def _evidence_role(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> EvidenceRoleBinding:
-    _exact(value, EvidenceRoleBinding, path)
-    hybrid_ref = value.hybrid_role_ref
-    if value.role is EvidenceRole.REGISTERED_HYBRID:
-        hybrid_ref = _owner(
-            hybrid_ref, "hybrid_evidence_role", "/hybrid_role_ref", challenge_key
-        )
-    copied: EvidenceRoleBinding | None = None
+    checked = _exact(value, EvidenceRoleBinding, path)
     try:
-        copied = EvidenceRoleBinding(value.role, hybrid_ref)
-    except (AuthoringError, TypeError, ValueError):
-        pass
-    if copied is None:
-        raise _invalid(path)
-    return copied
+        role = _exact_enum(checked.role, EvidenceRole, path)
+        hybrid_ref = checked.hybrid_role_ref
+        if role is EvidenceRole.REGISTERED_HYBRID:
+            hybrid_ref = _owner(
+                hybrid_ref,
+                "hybrid_evidence_role",
+                "/hybrid_role_ref",
+                challenge_key,
+            )
+        return EvidenceRoleBinding(role, hybrid_ref)
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise _invalid(path, ReferenceInputCode.WRONG_TYPE) from None
 
 
 def _optional_b04_ref(
@@ -285,7 +249,7 @@ def _optional_b04_ref(
     path: str,
     challenge_key: ChallengeKey,
 ) -> OptionalBinding:
-    binding = _exact(value, OptionalBinding, path)
+    binding = _copy_exact(value, OptionalBinding, path)
     if binding.is_present:
         return OptionalBinding.present(
             _reference_ref(binding.value, expected, path, challenge_key)
@@ -296,7 +260,7 @@ def _optional_b04_ref(
 def _optional_owner(
     value: object, kind: str, path: str, challenge_key: ChallengeKey
 ) -> OptionalBinding:
-    binding = _exact(value, OptionalBinding, path)
+    binding = _copy_exact(value, OptionalBinding, path)
     if binding.is_present:
         return OptionalBinding.present(_owner(binding.value, kind, path, challenge_key))
     return OptionalBinding.absent()
@@ -305,7 +269,7 @@ def _optional_owner(
 def _authority_target(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> ReferenceAuthorityTarget:
-    target = _exact(value, ReferenceAuthorityTarget, path)
+    target = _copy_exact(value, ReferenceAuthorityTarget, path)
     if target.kind is ReferenceAuthorityTargetKind.SINGLE_PRIMARY_ENTRY:
         return ReferenceAuthorityTarget.single_primary_entry(
             _reference_ref(target.value, ReferencePolicyEntryRef, path, challenge_key)
@@ -320,7 +284,7 @@ def _authority_target(
 def _authority_target_binding(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> ReferenceAuthorityTargetBinding:
-    binding = _exact(value, ReferenceAuthorityTargetBinding, path)
+    binding = _copy_exact(value, ReferenceAuthorityTargetBinding, path)
     if binding.is_bound:
         return ReferenceAuthorityTargetBinding.bound(
             _authority_target(binding.value, path, challenge_key)
@@ -336,7 +300,7 @@ def _authority_target_binding(
 def _witness_target(
     value: object, path: str, challenge_key: ChallengeKey
 ) -> ReferenceWitnessTarget:
-    target = _exact(value, ReferenceWitnessTarget, path)
+    target = _copy_exact(value, ReferenceWitnessTarget, path)
     if target.kind is ReferenceWitnessTargetKind.SINGLE_WITNESS_ENTRY:
         return ReferenceWitnessTarget.single_witness_entry(
             _reference_ref(target.value, ReferencePolicyEntryRef, path, challenge_key)
@@ -1153,7 +1117,7 @@ class ReferencePolicy(ReferenceTruthRecord):
 def primary_target_for_entry(entry: ReferencePolicyEntry) -> ReferenceAuthorityTarget:
     """Build the only nominal primary target authorized by a PRIMARY entry."""
 
-    checked = _exact(entry, ReferencePolicyEntry, "/entry_ref")
+    checked = _copy_exact(entry, ReferencePolicyEntry, "/entry_ref")
     if checked.authority_function is not ReferenceAuthorityFunction.PRIMARY:
         raise _invalid("/authority_function", ReferenceInputCode.ROLE_MISMATCH)
     return ReferenceAuthorityTarget.single_primary_entry(checked.to_ref())
@@ -1164,7 +1128,7 @@ def primary_target_for_composition(
 ) -> ReferenceAuthorityTarget:
     """Build a primary target only from an exact PRIMARY composition."""
 
-    checked = _exact(composition, ReferenceComposition, "/composition_refs")
+    checked = _copy_exact(composition, ReferenceComposition, "/composition_refs")
     if checked.authority_function is not ReferenceAuthorityFunction.PRIMARY:
         raise _invalid("/authority_function", ReferenceInputCode.ROLE_MISMATCH)
     return ReferenceAuthorityTarget.qualified_primary_composition(checked.to_ref())
@@ -1173,7 +1137,7 @@ def primary_target_for_composition(
 def witness_target_for_entry(entry: ReferencePolicyEntry) -> ReferenceWitnessTarget:
     """Build a witness target only from a CORROBORATING_WITNESS entry."""
 
-    checked = _exact(entry, ReferencePolicyEntry, "/entry_ref")
+    checked = _copy_exact(entry, ReferencePolicyEntry, "/entry_ref")
     if (
         checked.authority_function
         is not ReferenceAuthorityFunction.CORROBORATING_WITNESS
@@ -1187,7 +1151,7 @@ def witness_target_for_composition(
 ) -> ReferenceWitnessTarget:
     """Build a witness target only from a CORROBORATING_WITNESS composition."""
 
-    checked = _exact(composition, ReferenceComposition, "/composition_refs")
+    checked = _copy_exact(composition, ReferenceComposition, "/composition_refs")
     if (
         checked.authority_function
         is not ReferenceAuthorityFunction.CORROBORATING_WITNESS
@@ -1202,7 +1166,10 @@ def _index_entries(
     tuple[ReferencePolicyEntry, ...],
     dict[ReferencePolicyEntryRef, ReferencePolicyEntry],
 ]:
-    checked = _tuple(entries, ReferencePolicyEntry, "/entry_refs", unique=True)
+    supplied = _tuple(entries, ReferencePolicyEntry, "/entry_refs")
+    checked = tuple(
+        _copy_exact(entry, ReferencePolicyEntry, "/entry_refs") for entry in supplied
+    )
     index: dict[ReferencePolicyEntryRef, ReferencePolicyEntry] = {}
     for entry in checked:
         ref = entry.to_ref()
@@ -1218,8 +1185,10 @@ def _index_compositions(
     tuple[ReferenceComposition, ...],
     dict[ReferenceCompositionRef, ReferenceComposition],
 ]:
-    checked = _tuple(
-        compositions, ReferenceComposition, "/composition_refs", unique=True
+    supplied = _tuple(compositions, ReferenceComposition, "/composition_refs")
+    checked = tuple(
+        _copy_exact(composition, ReferenceComposition, "/composition_refs")
+        for composition in supplied
     )
     index: dict[ReferenceCompositionRef, ReferenceComposition] = {}
     for composition in checked:
@@ -1231,7 +1200,11 @@ def _index_compositions(
 
 
 def _authority_target_ref(target: ReferenceAuthorityTarget) -> object:
-    checked = _exact(target, ReferenceAuthorityTarget, "/answer_key_authority_target")
+    checked = _copy_exact(
+        target,
+        ReferenceAuthorityTarget,
+        "/answer_key_authority_target",
+    )
     if checked.kind is ReferenceAuthorityTargetKind.SINGLE_PRIMARY_ENTRY:
         return checked.entry_ref
     if checked.kind is ReferenceAuthorityTargetKind.QUALIFIED_PRIMARY_COMPOSITION:
@@ -1240,7 +1213,7 @@ def _authority_target_ref(target: ReferenceAuthorityTarget) -> object:
 
 
 def _witness_target_ref(target: ReferenceWitnessTarget) -> object:
-    checked = _exact(target, ReferenceWitnessTarget, "/witness_target")
+    checked = _copy_exact(target, ReferenceWitnessTarget, "/witness_target")
     if checked.kind is ReferenceWitnessTargetKind.SINGLE_WITNESS_ENTRY:
         return checked.entry_ref
     if checked.kind is ReferenceWitnessTargetKind.QUALIFIED_WITNESS_COMPOSITION:
@@ -1410,7 +1383,7 @@ def validate_reference_policy_graph(
     only; it does not qualify any source or make the policy LIVE.
     """
 
-    checked_policy = _exact(policy, ReferencePolicy, "/policy_ref")
+    checked_policy = _copy_exact(policy, ReferencePolicy, "/policy_ref")
     entry_records, entry_index = _index_entries(entries)
     composition_records, _ = _index_compositions(compositions)
     if tuple(item.to_ref() for item in entry_records) != checked_policy.entry_refs:
@@ -1425,11 +1398,18 @@ def validate_reference_policy_graph(
     for composition in composition_records:
         _validate_composition_containment(checked_policy, composition, entry_index)
 
-    manifests = _tuple(
+    supplied_manifests = _tuple(
         precomputed_manifests,
         PrecomputedReferenceSourceManifest,
         "/precomputed_source_manifest_ref",
-        unique=True,
+    )
+    manifests = tuple(
+        _copy_exact(
+            manifest,
+            PrecomputedReferenceSourceManifest,
+            "/precomputed_source_manifest_ref",
+        )
+        for manifest in supplied_manifests
     )
     manifest_index: dict[
         PrecomputedReferenceSourceManifestRef, PrecomputedReferenceSourceManifest

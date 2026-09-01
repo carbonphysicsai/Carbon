@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import ClassVar, Generic, TypeVar
 
 from carbon.authoring.canonical import (
@@ -121,10 +121,22 @@ def exact_tuple(
     return copied
 
 
+def copy_exact_value(value: object, expected: type[T], path: str) -> T:
+    """Rebuild one exact dataclass carrier and normalize incomplete shells."""
+
+    supplied = exact(value, expected, path)
+    try:
+        return replace(supplied)
+    except ReferenceValidationError:
+        raise
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
+        raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
+
+
 def challenge(value: object, path: str = "/challenge_key") -> ChallengeKey:
     try:
         return reconstruct_challenge_key(value)
-    except (AuthoringError, TypeError, ValueError):
+    except (AttributeError, AuthoringError, TypeError, ValueError):
         raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
 
 
@@ -186,7 +198,7 @@ def owner(
 ) -> object:
     try:
         result = require_owner_ref(value, kind)
-    except (AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize hostile owner-ref carriers.
         raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     if challenge_key is not None:
         scope = object.__getattribute__(result, "scope_binding")
@@ -208,7 +220,11 @@ def owner_sequence(
     result = tuple(
         owner(item, kind, path, challenge_key=challenge_key) for item in copied
     )
-    if len(set(result)) != len(result):
+    try:
+        distinct = len(set(result))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise invalid(path) from None
+    if distinct != len(result):
         raise invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return result
 
@@ -247,7 +263,7 @@ def top_ref(
         raise invalid(path, ReferenceInputCode.WRONG_TYPE)
     try:
         result = reconstruct_top_level_ref(value)
-    except (AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize partial exact-type refs.
         raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     if challenge_key is not None:
         _require_same_challenge(result.challenge_key, challenge_key, path)
@@ -272,7 +288,11 @@ def top_ref_sequence(
         )
         for item in copied
     )
-    if len(set(result)) != len(result):
+    try:
+        distinct = len(set(result))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise invalid(path) from None
+    if distinct != len(result):
         raise invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return result
 
@@ -310,9 +330,19 @@ def reference_ref_sequence(
         )
         for item in copied
     )
-    if len(set(result)) != len(result):
+    try:
+        distinct = len(set(result))
+    except Exception:  # noqa: BLE001 - normalize hostile exact-type hashes.
+        raise invalid(path) from None
+    if distinct != len(result):
         raise invalid(path, ReferenceInputCode.DUPLICATE_IDENTITY)
     return result
+
+
+def copy_pinned_identity(value: object, path: str) -> PinnedReferenceIdentity:
+    """Reconstruct an exact identity before inspecting any of its fields."""
+
+    return copy_exact_value(value, PinnedReferenceIdentity, path)
 
 
 def pinned_identity(
@@ -322,18 +352,12 @@ def pinned_identity(
     *,
     challenge_key: ChallengeKey,
 ) -> PinnedReferenceIdentity:
-    result = exact(value, PinnedReferenceIdentity, path)
+    result = copy_pinned_identity(value, path)
     try:
         _require_same_challenge(result.challenge_key, challenge_key, path)
         if result.identity_kind is not expected_kind:
             raise invalid(path, ReferenceInputCode.ROLE_MISMATCH)
-        return PinnedReferenceIdentity(
-            result.challenge_key,
-            result.content_digest,
-            result.identity_id,
-            result.identity_kind,
-            result.identity_version,
-        )
+        return result
     except ReferenceValidationError:
         raise
     except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
@@ -353,7 +377,7 @@ def evidence_role_binding(
         reconstructed = EvidenceRoleBinding(role, binding.hybrid_role_ref)
     except ReferenceValidationError:
         raise
-    except (AuthoringError, TypeError, ValueError):
+    except Exception:  # noqa: BLE001 - normalize a partial exact-type carrier.
         raise invalid(path, ReferenceInputCode.WRONG_TYPE) from None
     if reconstructed.role is EvidenceRole.REGISTERED_HYBRID:
         owner(
@@ -733,8 +757,8 @@ class ReferenceExecutionTarget(ProtectedReferenceValue):
             if self.kind is ReferenceExecutionTargetKind.PRIMARY
             else ReferenceWitnessTarget
         )
-        target = exact(self.value, expected, "/execution_target")
-        object.__setattr__(self, "value", expected(target.kind, target.value))
+        reconstructed = copy_exact_value(self.value, expected, "/execution_target")
+        object.__setattr__(self, "value", reconstructed)
 
     @classmethod
     def primary(cls, target: ReferenceAuthorityTarget) -> ReferenceExecutionTarget:
@@ -838,17 +862,13 @@ class ReferenceAuthorityTargetBinding(ProtectedReferenceValue):
             raise invalid("/answer_key_authority_target", ReferenceInputCode.WRONG_TYPE)
         exact_enum(self.tag, BoundOrAbsentTag, "/answer_key_authority_target")
         if self.tag is BoundOrAbsentTag.BOUND:
-            target = exact(
+            reconstructed: object = copy_exact_value(
                 self.value,
                 ReferenceAuthorityTarget,
                 "/answer_key_authority_target",
             )
-            reconstructed: object = ReferenceAuthorityTarget(
-                target.kind,
-                target.value,
-            )
         else:
-            reconstructed = exact(
+            reconstructed = exact_enum(
                 self.value,
                 ResolutionReason,
                 "/answer_key_authority_target",
@@ -883,9 +903,8 @@ class ArtifactContentBinding(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not ArtifactContentBinding:
             raise invalid("/artifact_binding", ReferenceInputCode.WRONG_TYPE)
-        descriptor = exact(
+        descriptor = copy_pinned_identity(
             self.artifact_descriptor_ref,
-            PinnedReferenceIdentity,
             "/artifact_descriptor_ref",
         )
         object.__setattr__(
@@ -928,18 +947,13 @@ class RunArtifactBinding(ProtectedReferenceValue):
             raise invalid("/artifact_binding", ReferenceInputCode.WRONG_TYPE)
         exact_enum(self.tag, BoundOrAbsentTag, "/artifact_binding")
         if self.tag is BoundOrAbsentTag.BOUND:
-            content = exact(
+            reconstructed: object = copy_exact_value(
                 self.value,
                 ArtifactContentBinding,
                 "/artifact_binding",
             )
-            reconstructed: object = ArtifactContentBinding(
-                content.artifact_content_digest,
-                content.artifact_descriptor_ref,
-                content.artifact_origin,
-            )
         else:
-            reconstructed = exact(
+            reconstructed = exact_enum(
                 self.value,
                 ReferenceFailureReason,
                 "/artifact_binding",
@@ -1017,7 +1031,7 @@ class QualificationBinding(ProtectedReferenceValue):
                 reconstructed: object = require_owner_ref(
                     self.value, "qualification_evidence_bundle"
                 )
-            except (AuthoringError, TypeError, ValueError):
+            except Exception:  # noqa: BLE001 - normalize a partial owner-ref carrier.
                 raise invalid(
                     "/qualification_binding", ReferenceInputCode.WRONG_TYPE
                 ) from None
@@ -1058,9 +1072,8 @@ class SupportApplicabilityAssessment(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not SupportApplicabilityAssessment:
             raise invalid("/applicability_assessment", ReferenceInputCode.WRONG_TYPE)
-        method = exact(
+        method = copy_pinned_identity(
             self.method_ref,
-            PinnedReferenceIdentity,
             "/applicability_assessment/method_ref",
         )
         assessment_challenge = method.challenge_key
@@ -1129,9 +1142,8 @@ class ConditioningAssessment(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not ConditioningAssessment:
             raise invalid("/conditioning_assessment", ReferenceInputCode.WRONG_TYPE)
-        method = exact(
+        method = copy_pinned_identity(
             self.method_ref,
-            PinnedReferenceIdentity,
             "/conditioning_assessment/method_ref",
         )
         assessment_challenge = method.challenge_key
@@ -1197,9 +1209,8 @@ class UncertaintyRepresentation(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not UncertaintyRepresentation:
             raise invalid("/uncertainty_binding", ReferenceInputCode.WRONG_TYPE)
-        representation = exact(
+        representation = copy_pinned_identity(
             self.representation_ref,
-            PinnedReferenceIdentity,
             "/uncertainty_binding/representation_ref",
         )
         uncertainty_challenge = representation.challenge_key
@@ -1210,6 +1221,11 @@ class UncertaintyRepresentation(ProtectedReferenceValue):
             nonempty=True,
             unique=True,
         )
+        if any(
+            not _registered_enum_member(item, UncertaintyComponentKind)
+            for item in kinds
+        ):
+            raise invalid("/component_kinds")
         object.__setattr__(
             self,
             "component_kinds",
@@ -1348,7 +1364,7 @@ class DependencyDisclosure(ProtectedReferenceValue):
         for item in copied:
             try:
                 reconstructed.append(require_owner_ref(item, "provenance"))
-            except (AuthoringError, TypeError, ValueError):
+            except Exception:  # noqa: BLE001 - normalize a partial owner-ref carrier.
                 raise invalid(
                     "/dependency_disclosures/evidence_refs",
                     ReferenceInputCode.WRONG_TYPE,
@@ -1395,8 +1411,9 @@ class ReferenceProvenance(ProtectedReferenceValue):
     def __post_init__(self) -> None:
         if type(self) is not ReferenceProvenance:
             raise invalid("/provenance_binding", ReferenceInputCode.WRONG_TYPE)
-        source = exact(
-            self.source_ref, PinnedReferenceIdentity, "/provenance_binding/source_ref"
+        source = copy_pinned_identity(
+            self.source_ref,
+            "/provenance_binding/source_ref",
         )
         provenance_challenge = source.challenge_key
         supplied_disclosures = exact_tuple(
@@ -1404,14 +1421,16 @@ class ReferenceProvenance(ProtectedReferenceValue):
             DependencyDisclosure,
             "/dependency_disclosures",
         )
-        disclosures = tuple(
-            DependencyDisclosure(
-                disclosure.category,
-                disclosure.evidence_refs,
-                disclosure.relation,
+        try:
+            disclosures = tuple(
+                replace(disclosure) for disclosure in supplied_disclosures
             )
-            for disclosure in supplied_disclosures
-        )
+        except ReferenceValidationError:
+            raise
+        except Exception:  # noqa: BLE001 - normalize partial exact carriers.
+            raise invalid(
+                "/dependency_disclosures", ReferenceInputCode.WRONG_TYPE
+            ) from None
         expected_categories = tuple(DependencyCategory)
         if (
             len(disclosures) != len(expected_categories)
@@ -1638,28 +1657,20 @@ class AdmissionAttemptBinding(ProtectedReferenceValue):
                 challenge_key=attempt_challenge,
             ),
         )
-        supplied_answer_target = exact(
+        answer_target = copy_exact_value(
             self.answer_key_authority_target,
             ReferenceAuthorityTarget,
             "/answer_key_authority_target",
-        )
-        answer_target = ReferenceAuthorityTarget(
-            supplied_answer_target.kind,
-            supplied_answer_target.value,
         )
         _require_same_challenge(
             answer_target.challenge_key,
             attempt_challenge,
             "/answer_key_authority_target",
         )
-        supplied_primary_target = exact(
+        primary_target = copy_exact_value(
             self.primary_execution_target,
             ReferenceAuthorityTarget,
             "/primary_execution_target",
-        )
-        primary_target = ReferenceAuthorityTarget(
-            supplied_primary_target.kind,
-            supplied_primary_target.value,
         )
         _require_same_challenge(
             primary_target.challenge_key,
@@ -1670,12 +1681,10 @@ class AdmissionAttemptBinding(ProtectedReferenceValue):
             raise invalid("/primary_execution_target", ReferenceInputCode.STALE_BINDING)
         object.__setattr__(self, "answer_key_authority_target", answer_target)
         object.__setattr__(self, "primary_execution_target", primary_target)
-        supplied_artifact = exact(
-            self.artifact_binding, AdmissionArtifactBinding, "/artifact_binding"
-        )
-        artifact = AdmissionArtifactBinding(
-            supplied_artifact.tag,
-            supplied_artifact.value,
+        artifact = copy_exact_value(
+            self.artifact_binding,
+            AdmissionArtifactBinding,
+            "/artifact_binding",
         )
         if artifact.is_bound:
             _require_same_challenge(
@@ -1732,14 +1741,10 @@ class AdmissionAttemptBinding(ProtectedReferenceValue):
                 challenge_key=attempt_challenge,
             ),
         )
-        supplied_qualification = exact(
+        qualification = copy_exact_value(
             self.qualification_binding,
             QualificationBinding,
             "/qualification_binding",
-        )
-        qualification = QualificationBinding(
-            supplied_qualification.tag,
-            supplied_qualification.value,
         )
         if qualification.is_bound:
             owner(

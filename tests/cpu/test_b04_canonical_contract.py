@@ -13,9 +13,12 @@ from types import MappingProxyType
 
 import pytest
 
+import carbon.evaluation.canonical as canonical_runtime
 from carbon.authoring.canonical import (
+    CanonicalNominalRef,
     CanonicalRecord,
     CanonicalText,
+    CanonicalUnion,
     encode_value,
     tagged_sha256,
 )
@@ -29,17 +32,19 @@ from carbon.evaluation.canonical import (
 )
 from carbon.evaluation.errors import (
     ReferenceCanonicalDecodingError,
+    ReferenceCanonicalEncodingError,
     ReferenceInputCode,
     ReferenceValidationError,
 )
 from carbon.evaluation.execution import ReferenceRunRecord
 from carbon.evaluation.fixtures import build_b04_fixture_reference_graph
 from carbon.evaluation.model import (
+    PinnedReferenceIdentity,
     ReferenceAuthorityTargetBinding,
     ReferenceExecutionTarget,
     RunArtifactBinding,
 )
-from carbon.evaluation.policy import ReferencePolicy
+from carbon.evaluation.policy import ReferencePolicy, ReferencePolicyEntry
 from carbon.evaluation.refs import (
     REFERENCE_TRUTH_CANONICALIZATION_PROFILE,
     REFERENCE_TRUTH_DOCUMENT_HEADER,
@@ -48,6 +53,8 @@ from carbon.evaluation.refs import (
     decode_reference_truth_ref,
     encode_reference_truth_ref,
     reconstruct_reference_truth_ref,
+    reference_truth_ref_from_canonical,
+    reference_truth_ref_to_canonical,
     require_reference_truth_ref,
 )
 from carbon.registry.model import ChallengeKey
@@ -219,6 +226,30 @@ def test_nominal_ref_family_and_challenge_substitution_reject() -> None:
     assert captured.value.code == ReferenceInputCode.CROSS_CHALLENGE.value
 
 
+def test_incomplete_exact_nominal_ref_is_normalized_across_ref_entry_points() -> None:
+    ref_type = REFERENCE_TRUTH_REF_TYPES[1]
+    partial = object.__new__(ref_type)
+    calls = (
+        reconstruct_reference_truth_ref,
+        lambda value: require_reference_truth_ref(value, ref_type),
+        reference_truth_ref_to_canonical,
+        encode_reference_truth_ref,
+    )
+
+    for call in calls:
+        with pytest.raises(ReferenceValidationError) as captured:
+            call(partial)
+        assert captured.value.__cause__ is None
+        assert captured.value.__context__ is None
+
+
+def test_incomplete_exact_canonical_nominal_ref_decodes_fail_closed() -> None:
+    with pytest.raises(ReferenceCanonicalDecodingError) as captured:
+        reference_truth_ref_from_canonical(object.__new__(CanonicalNominalRef))
+    assert captured.value.__cause__ is None
+    assert captured.value.__context__ is None
+
+
 @pytest.mark.parametrize("payload", (b"", b"unknown", b"\x00" * 64))
 def test_malformed_ref_bytes_fail_with_closed_non_echoing_error(payload: bytes) -> None:
     with pytest.raises(ReferenceCanonicalDecodingError) as captured:
@@ -246,6 +277,126 @@ def _fixture_record_families() -> tuple[object, ...]:
         graph.primary_artifact,
         graph.primary_fixture_asset,
     )
+
+
+@pytest.mark.parametrize("record_type", (ReferencePolicyEntry, ReferenceRunRecord))
+def test_incomplete_exact_top_level_records_encode_fail_closed(
+    record_type: type,
+) -> None:
+    with pytest.raises(ReferenceCanonicalEncodingError) as captured:
+        canonical_bytes(object.__new__(record_type))
+    assert captured.value.__cause__ is None
+    assert captured.value.__context__ is None
+
+
+def test_incomplete_exact_nested_and_tagged_values_encode_fail_closed() -> None:
+    with pytest.raises(ReferenceCanonicalEncodingError) as nested:
+        canonical_runtime._nested_to_canonical(object.__new__(PinnedReferenceIdentity))
+    assert nested.value.__cause__ is None
+    assert nested.value.__context__ is None
+
+    run = replace(build_b04_fixture_reference_graph().primary_run)
+    object.__setattr__(run, "artifact_binding", object.__new__(RunArtifactBinding))
+    with pytest.raises(ReferenceCanonicalEncodingError) as tagged:
+        canonical_bytes(run)
+    assert tagged.value.__cause__ is None
+    assert tagged.value.__context__ is None
+
+
+def test_incomplete_exact_canonical_carriers_decode_fail_closed() -> None:
+    with pytest.raises(ReferenceCanonicalDecodingError) as record:
+        canonical_runtime._nested_from_canonical(
+            object.__new__(CanonicalRecord),
+            PinnedReferenceIdentity,
+        )
+    assert record.value.__cause__ is None
+    assert record.value.__context__ is None
+
+    policy_schema = canonical_runtime._ensure_schemas().top_by_type[ReferencePolicy]
+    optional_codec = dict(policy_schema.fields)["supersedes"]
+    with pytest.raises(ReferenceCanonicalDecodingError) as union:
+        canonical_runtime._decode_field(
+            object.__new__(CanonicalUnion),
+            optional_codec,
+        )
+    assert union.value.__cause__ is None
+    assert union.value.__context__ is None
+
+
+_HOSTILE_CANONICAL_SECRET = "b04_hostile_canonical_secret"
+
+
+class _HostileCanonicalScalar:
+    def __eq__(self, other: object) -> bool:
+        del other
+        raise RuntimeError(_HOSTILE_CANONICAL_SECRET)
+
+    def __ne__(self, other: object) -> bool:
+        del other
+        raise RuntimeError(_HOSTILE_CANONICAL_SECRET)
+
+    def __hash__(self) -> int:
+        raise RuntimeError(_HOSTILE_CANONICAL_SECRET)
+
+
+def _assert_canonical_error_is_closed(error: ReferenceValidationError) -> None:
+    assert _HOSTILE_CANONICAL_SECRET not in repr(error)
+    assert _HOSTILE_CANONICAL_SECRET not in str(error)
+    assert error.__cause__ is None
+    assert error.__context__ is None
+
+
+def test_hostile_exact_nested_ref_behavior_encodes_fail_closed() -> None:
+    run = replace(build_b04_fixture_reference_graph().primary_run)
+    original = run.case_ref
+    forged = object.__new__(type(original))
+    for name in (
+        "challenge_key",
+        "object_id",
+        "object_version",
+        "canonicalization_profile",
+        "content_digest",
+        "disclosure_class",
+    ):
+        object.__setattr__(forged, name, getattr(original, name))
+    object.__setattr__(forged, "schema_version", _HostileCanonicalScalar())
+    object.__setattr__(run, "case_ref", forged)
+
+    with pytest.raises(ReferenceCanonicalEncodingError) as captured:
+        canonical_bytes(run)
+
+    _assert_canonical_error_is_closed(captured.value)
+
+
+def test_hostile_exact_union_tag_decodes_fail_closed() -> None:
+    policy_schema = canonical_runtime._ensure_schemas().top_by_type[ReferencePolicy]
+    optional_codec = dict(policy_schema.fields)["supersedes"]
+    union = object.__new__(CanonicalUnion)
+    object.__setattr__(union, "tag", _HostileCanonicalScalar())
+    object.__setattr__(union, "payload", CanonicalRecord("empty_payload", ()))
+
+    with pytest.raises(ReferenceCanonicalDecodingError) as captured:
+        canonical_runtime._decode_field(union, optional_codec)
+
+    _assert_canonical_error_is_closed(captured.value)
+
+
+def test_hostile_exact_nominal_ref_field_key_decodes_fail_closed() -> None:
+    record = object.__new__(CanonicalRecord)
+    object.__setattr__(record, "record_type", "reference_policy_ref")
+    object.__setattr__(
+        record,
+        "fields",
+        ((_HostileCanonicalScalar(), CanonicalText("forbidden")),),
+    )
+    nominal = object.__new__(CanonicalNominalRef)
+    object.__setattr__(nominal, "ref_type", "reference_policy_ref")
+    object.__setattr__(nominal, "record", record)
+
+    with pytest.raises(ReferenceCanonicalDecodingError) as captured:
+        reference_truth_ref_from_canonical(nominal)
+
+    _assert_canonical_error_is_closed(captured.value)
 
 
 def test_every_fixture_constructible_record_family_round_trips_exactly() -> None:

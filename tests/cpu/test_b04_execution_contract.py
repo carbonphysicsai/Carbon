@@ -368,6 +368,73 @@ def test_primary_and_witness_runner_interfaces_are_not_interchangeable() -> None
         require_primary_runner(witness)
 
 
+@pytest.mark.parametrize(
+    ("require_runner", "method_name"),
+    (
+        (require_primary_runner, "run_primary"),
+        (require_witness_runner, "run_witness"),
+    ),
+)
+def test_runner_interface_inspection_never_invokes_dynamic_attributes(
+    require_runner,
+    method_name: str,
+) -> None:
+    class DynamicRunner:
+        reads = 0
+
+        def __getattr__(self, name):
+            self.reads += 1
+            if name == method_name:
+                return lambda grant, request: (grant, request)
+            raise RuntimeError("protected dynamic attribute detail")
+
+    runner = DynamicRunner()
+    with pytest.raises(ReferenceValidationError) as captured:
+        require_runner(runner)
+    assert captured.value.code == ReferenceInputCode.AUTHORITY_INTERFACE_INVALID.value
+    assert captured.value.path == ""
+    assert runner.reads == 0
+
+
+def test_runner_static_inspection_rejects_unsafe_and_dual_roles() -> None:
+    class HostileDescriptor:
+        reads = 0
+
+        def __get__(self, instance, owner):
+            del instance, owner
+            self.reads += 1
+            raise RuntimeError("protected runner descriptor detail")
+
+    descriptor = HostileDescriptor()
+
+    class DescriptorPrimary:
+        run_primary = descriptor
+
+    class NoncallablePrimary:
+        run_primary = object()
+
+    class DualRunner:
+        def run_primary(self, grant, request):
+            del grant, request
+
+        def run_witness(self, grant, request):
+            del grant, request
+
+    for value, requirement in (
+        (DescriptorPrimary(), require_primary_runner),
+        (NoncallablePrimary(), require_primary_runner),
+        (DualRunner(), require_primary_runner),
+        (DualRunner(), require_witness_runner),
+    ):
+        with pytest.raises(ReferenceValidationError) as captured:
+            requirement(value)
+        assert (
+            captured.value.code == ReferenceInputCode.AUTHORITY_INTERFACE_INVALID.value
+        )
+        assert captured.value.path == ""
+    assert descriptor.reads == 0
+
+
 def test_execution_record_declaration_order_matches_d11() -> None:
     expected = {
         PrimaryReferenceRequest: (
