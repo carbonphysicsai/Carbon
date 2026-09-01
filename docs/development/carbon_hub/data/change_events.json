@@ -69,6 +69,26 @@
         "SYSTEM/PUBLICATION-AUTHORITY"
       ],
       "supersedes": "HUB-ADJ-001"
+    },
+    {
+      "map_ref": "WAVE-B/B-03",
+      "event_type": "evidence",
+      "event_id": "B-03-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #69 merged the exact reviewed bounded B-03 generator implementation into main; the Hub is repinned to a snapshot containing it while B-03 remains in_progress and post-merge exact-main and closeout evidence are not yet recorded in the authority files.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/69",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-03-E1"
     }
   ]
 }

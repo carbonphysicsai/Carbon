@@ -52,7 +52,7 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `bd479bf478fee193d9d81dec34a5b73bf623a098`, reconciled 2026-09-01T01:04:23Z.
+Current authority snapshot: `a785799d6de2715ed3993a744ac16b7c7a572638`, reconciled 2026-09-01T01:58:16Z.
 
 ## Repository-path impact classes
 

@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `bd479bf478fee193d9d81dec34a5b73bf623a098` on `main`, captured 2026-09-01T01:04:23Z.
-**Current:** Wave B, ticket B-03. The working engineering contract merged in PR #67 and exact-main CI passed; runtime implementation remains selected and had not started in the captured repository state.
+**Authority snapshot:** `a785799d6de2715ed3993a744ac16b7c7a572638` on `main`, captured 2026-09-01T01:58:16Z.
+**Current:** Wave B, ticket B-03. PR #69's bounded B-03 implementation is present in the captured authority snapshot. The controlling Wave-B board and ticket still record B-03 as in_progress, so the Hub does not relabel the ticket done or infer any qualification.
 
 ## Wave spine
 
@@ -84,6 +84,7 @@
 - `HUB-BUG-001` — `SYSTEM/DEVELOPMENT-HUB` — The v2 primary page was an empty JavaScript shell and appeared blank when inline scripts were suppressed; v2.1 replaces it with complete static semantic HTML.
 - `HUB-ADJ-001` — `SYSTEM/DEVELOPMENT-HUB` — The hub is integrated as a data-first repository surface with deterministic generation, maintenance instructions, drift validation, PR impact declaration, and owner-controlled publication support.
 - `HUB-ADJ-002` — `SYSTEM/DEVELOPMENT-HUB/VALIDATION` — PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval.
+- `B-03-E2` — `WAVE-B/B-03` — PR #69 merged the exact reviewed bounded B-03 generator implementation into main; the Hub is repinned to a snapshot containing it while B-03 remains in_progress and post-merge exact-main and closeout evidence are not yet recorded in the authority files.
 
 ## Authority boundary
 
