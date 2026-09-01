@@ -7,11 +7,12 @@ import importlib.util
 import json
 import subprocess
 import sys
-import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
