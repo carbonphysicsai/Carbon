@@ -13,7 +13,7 @@ Carbon has one ordinary development and evidence baseline:
 | Dependency manager | uv 0.12.7, pinned by OCI digest/action commit |
 | Dependency state | committed `uv.lock` |
 | Default dependency group | `dev` only |
-| Normal pre-PR command | `./scripts/dev/ci.sh` |
+| Normal pre-PR command | `./scripts/dev/canonical.sh --full` |
 
 Windows and macOS may host the editor and Docker. Native Windows Python and
 native macOS Python are not canonical Carbon evidence platforms. The first
@@ -59,14 +59,15 @@ qualification.
    ```
 
 6. Work normally. The project interpreter is `.venv/bin/python`.
-7. Before a PR, run:
+7. Before a PR, run the canonical wrapper:
 
    ```bash
-   ./scripts/dev/ci.sh
+   ./scripts/dev/canonical.sh --full
    ```
 
-If `doctor.sh` and `ci.sh` pass, the ordinary Carbon environment and
-engineering gates are valid.
+Inside the exact Dev Container the wrapper executes directly. On another host
+it uses the pinned `linux/amd64` image. If `doctor.sh` and `ci.sh` pass there,
+the ordinary Carbon environment and engineering gates are valid.
 
 ## Repository commands
 
@@ -76,10 +77,60 @@ engineering gates are valid.
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
 | `./scripts/dev/ci.sh` | Runs doctor, invariants, CPU tests, quality, package/wheel/outside-tree import checks, the code-authority boundary, and diff hygiene. |
+| `./scripts/dev/canonical.sh --focused <target>` | Runs focused pytest targets in the exact canonical environment. |
+| `./scripts/dev/canonical.sh --full` | Runs the complete canonical `ci.sh` acceptance. |
+| `./scripts/dev/canonical.sh --interactive` | Opens an interactive shell in the exact canonical environment. |
+| `./scripts/dev/canonical.sh --dry-run ...` | Prints the direct or Docker command without executing it. |
 | `./scripts/dev/shell.sh` | Opens Bash with Carbon's project environment selected. |
 
 Do not replace these commands with ticket-specific remembered sequences.
 Ticket-owned checks may be added after `ci.sh`; they do not replace it.
+
+## Canonical wrapper behavior
+
+`canonical.sh` is the single supported bridge from macOS, Windows/WSL2, or a
+noncanonical Linux host. It executes directly only when the complete pinned
+marker, Ubuntu release, architecture, non-root user, uv, and Python identities
+match. Otherwise it builds/reuses the digest-pinned Carbon image for
+`linux/amd64`, bind-mounts the current worktree read/write, and runs the target
+as `ubuntu` (`1000:1000`). Uncommitted tracked and untracked files therefore
+remain visible to focused and full checks.
+
+For linked Git worktrees, the wrapper also mounts the common Git metadata at
+its exact location, so `HEAD`, the shared object database, refs, and index are
+available without copying or rewriting `.git`. A named `.venv` volume is
+isolated by worktree identity, while the uv download cache is safely reused.
+Neither cache creates root-owned files in the host checkout.
+
+Docker execution fails closed when the client or daemon is unavailable. A
+`--dry-run` is intentionally available without Docker so command construction
+can be reviewed and tested; dry-run output is not canonical validation
+evidence.
+
+## Delivery and Git identity hygiene
+
+Delivery preflight runs `scripts/dev/check_delivery_hygiene.py` before costly
+acceptance jobs. It scans changed tracked text, introduced author/committer
+identities, and introduced commit intent. `--all-tree` adds a complete tracked
+text scan. Actual workstation paths, `.local` identities/hostnames, empty or
+evidence-only commits, and completion/retrigger-only commit messages fail.
+Placeholders such as `/home/<user>/...`, `/Users/<username>/...`, and
+`C:\Users\<username>\...` remain valid.
+
+Intentional fixtures require an exact, reason-bearing entry in
+`scripts/dev/delivery_hygiene_allowlist.txt`. Entries cannot use globs or
+regular expressions; text exceptions bind one path and exact matched value,
+and commit exceptions bind one full SHA and one rule.
+
+Configure a durable public Git identity before committing. GitHub's private
+noreply address is recommended:
+
+```bash
+git config user.name "<github-username>"
+git config user.email "<github-id>+<github-username>@users.noreply.github.com"
+```
+
+Do not rewrite historical commits merely to repair old workstation identity.
 
 ## Pinned identities
 
@@ -169,15 +220,17 @@ Open the repository in the Carbon Dev Container / WSL2 environment.
 
 ## Local and GitHub parity
 
-The GitHub workflow is intentionally orchestration-only:
+The GitHub workflow is path aware and keeps acceptance semantics in repository
+scripts. Delivery preflight classifies the exact current PR head (or exact
+current `main` push) before any expensive lane:
 
 ```text
-canonical job on an ubuntu-24.04 runner
+RUNTIME_FULL
+    -> canonical job on an ubuntu-24.04 runner
     -> pinned uv 0.12.7
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/ci.sh
-
-clean-image job on a fresh ubuntu-24.04 runner
+    -> clean-image job on a fresh ubuntu-24.04 runner
     -> build and load .devcontainer/Dockerfile for linux/amd64 without cache
     -> start the exact image as ubuntu (UID/GID 1000)
     -> copy a clean exact-head checkout and assign it to ubuntu
@@ -185,14 +238,29 @@ clean-image job on a fresh ubuntu-24.04 runner
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/doctor.sh
     -> ./scripts/dev/ci.sh
+
+CONTRACT_AUTHORITY
+    -> invariants plus code/repository authority acceptance
+    -> Development Hub authority, link, route, and browser validation
+
+DERIVED_DOCUMENTATION (explicit allow-list only)
+    -> deterministic Hub generation/drift, links, routes, and browser checks
+
+unknown path
+    -> fail closed to RUNTIME_FULL
+
+every scope
+    -> PR opened/synchronize/reopened/edited/ready-for-review events use the
+       current live head, base, and PR body (never only the historical event)
+    -> always-present final job named "Merge gate"
 ```
 
-The local path ends in the same repository command:
+The noncanonical local path ends in the same repository command:
 
 ```text
-Carbon Dev Container
-    -> ./scripts/dev/bootstrap.sh
-    -> ./scripts/dev/ci.sh
+./scripts/dev/canonical.sh --full
+    -> exact Dev Container: execute ./scripts/dev/ci.sh directly
+    -> other host: pinned image -> bootstrap -> ./scripts/dev/ci.sh
 ```
 
 Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.

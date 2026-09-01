@@ -5,15 +5,13 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
-import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -828,16 +826,17 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
 def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> None:
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     dev_image_job = workflow.partition("\n  dev-image:")[2]
-    run_commands = tuple(
-        line.partition("run:")[2].strip()
-        for line in workflow.splitlines()
-        if re.match(r"^\s+run:\s+\S", line)
-    )
-    assert run_commands == (
+    required_repository_commands = (
+        "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
+        "./scripts/dev/ci_contract_authority.sh",
+        "./scripts/dev/ci_hub.sh",
+        "./scripts/dev/ci_derived_documentation.sh",
+        "python3 scripts/dev/check_merge_gate.py",
     )
+    assert all(command in workflow for command in required_repository_commands)
     assert "runs-on: ubuntu-24.04" in workflow
     assert "ubuntu-latest" not in workflow
     assert "actions/setup-python" not in workflow
@@ -856,18 +855,63 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/verify_image.sh"
     )
     assert "continue-on-error" not in dev_image_job
+    assert workflow.count("name: Merge gate") == 1
     assert (
-        workflow.count("ref: ${{ github.event.pull_request.head.sha || github.sha }}")
-        == 2
+        "types: [opened, synchronize, reopened, edited, ready_for_review]" in workflow
     )
-    assert workflow.count("fetch-depth: 0") == 2
+    assert "pull-requests: read" in workflow
+    assert 'gh api "${endpoint}" --jq .head.sha' in workflow
+    assert 'gh api "${endpoint}" --jq .base.sha' in workflow
+    assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
+    assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 5
+    assert workflow.count("fetch-depth: 0") == 6
+    assert workflow.count("persist-credentials: false") == 7
+    assert "if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'" in workflow
     assert (
-        workflow.count(
-            "QUALITY_BASE_SHA: "
-            "${{ github.event.pull_request.base.sha || github.event.before }}"
-        )
-        == 2
+        "if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'" in workflow
     )
+    assert (
+        "if: needs.preflight.outputs.change_scope == 'DERIVED_DOCUMENTATION'"
+        in workflow
+    )
+    assert "if: always()" in workflow
+    assert "needs: [preflight, canonical, dev-image" in workflow
+    assert workflow.index("\n  preflight:") < workflow.index("\n  canonical:")
+
+
+def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None:
+    preflight = (REPOSITORY_ROOT / "scripts/dev/ci_preflight.sh").read_text(
+        encoding="utf-8"
+    )
+    for required in (
+        "scripts/dev/classify_changes.py",
+        "scripts/dev/check_delivery_hygiene.py",
+        "scripts/dev/check_diff_hygiene.py",
+        '[[ "${actual_head}" == "${expected_head}" ]]',
+        '"refs/heads/main"',
+    ):
+        assert required in preflight
+
+    wrapper_path = REPOSITORY_ROOT / "scripts/dev/canonical.sh"
+    wrapper = wrapper_path.read_text(encoding="utf-8")
+    wrapper_index = _run_git("ls-files", "--stage", "scripts/dev/canonical.sh")
+    if wrapper_index:
+        assert wrapper_index.startswith("100755 ")
+    for required in (
+        "--platform linux/amd64",
+        "--user 1000:1000",
+        "--interactive --tty",
+        "--dry-run",
+        "--focused",
+        "--full",
+        "--interactive",
+        "--git-common-dir",
+        "target=/workspaces/Carbon/.venv",
+        "target=/home/ubuntu/.cache/uv",
+        "Docker is unavailable",
+    ):
+        assert required in wrapper
 
 
 def test_default_ci_script_invokes_no_archived_path() -> None:
@@ -880,6 +924,8 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
     assert "tests/invariants" in ci_source
     assert "./scripts/dev/test.sh" in ci_source
     assert "scripts/check_quality.py" in ci_source
+    assert "scripts/dev/classify_changes.py" in ci_source
+    assert "scripts/dev/check_delivery_hygiene.py" in ci_source
     assert "scripts/dev/check_diff_hygiene.py" in ci_source
     assert '--base "${quality_base}"' in ci_source
     assert "\ngit diff --check\n" not in ci_source

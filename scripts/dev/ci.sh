@@ -24,6 +24,17 @@ if ! git merge-base "${quality_base}" HEAD >/dev/null 2>&1; then
   exit 2
 fi
 
+echo "==> delivery scope and repository hygiene"
+"${python_bin}" scripts/dev/classify_changes.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+"${python_bin}" scripts/dev/check_delivery_hygiene.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+"${python_bin}" scripts/dev/check_diff_hygiene.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+
 echo "==> environment doctor"
 ./scripts/dev/doctor.sh
 
@@ -48,10 +59,5 @@ echo "==> package, wheel, and outside-tree lane"
 
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
-
-echo "==> committed and local Git diff hygiene"
-"${python_bin}" scripts/dev/check_diff_hygiene.py \
-  --repository "${repo_root}" \
-  --base "${quality_base}"
 
 echo "Carbon canonical CI gates passed."
