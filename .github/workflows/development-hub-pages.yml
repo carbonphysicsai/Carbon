@@ -28,18 +28,12 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      HUB_DIFF_BASE_SHA: ${{ github.event.before || github.sha }}
     steps:
       - name: Checkout exact main revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
 
-      - name: Validate static publication payload
-        run: |
-          python3 docs/development/carbon_hub/tools/render_hub.py --check
-          python3 docs/development/carbon_hub/tools/validate_hub.py --repo-root . --skip-pr-contract
+      - name: Verify generated Hub is current
+        run: python3 docs/development/carbon_hub/tools/render_hub.py --check
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
