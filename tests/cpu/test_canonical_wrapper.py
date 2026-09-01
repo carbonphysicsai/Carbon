@@ -415,21 +415,28 @@ def test_docker_backed_linked_worktree_isolated_copy_and_direct_identity(
         ).stdout
         command = r"""
 set -euo pipefail
-[[ -f .git ]]
-[[ "$(git rev-parse --is-inside-work-tree)" == "true" ]]
-[[ "$(id -u):$(id -g)" == "1000:1000" ]]
-[[ "${PATH}" == "/workspaces/Carbon/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ]]
+[[ -f .git ]] || { echo "linked-worktree .git mount is not a regular file" >&2; exit 93; }
+[[ "$(git rev-parse --is-inside-work-tree)" == "true" ]] || { echo "linked-worktree Git metadata did not resolve" >&2; exit 94; }
+[[ "$(id -u):$(id -g)" == "1000:1000" ]] || { echo "canonical UID/GID changed" >&2; exit 95; }
+[[ "${PATH}" == "/workspaces/Carbon/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" ]] || { printf 'unexpected canonical PATH: %s\n' "${PATH}" >&2; exit 96; }
 if grep -Fq " /workspaces/Carbon/.venv " /proc/self/mountinfo; then
   echo "noninteractive validation reused a mounted venv" >&2
   exit 92
 fi
-[[ "$(stat -c '%u:%g:%a' /etc/carbon-canonical-environment)" == "0:0:444" ]]
-[[ "$(stat -Lc '%u:%g' /usr/local/bin/python3)" == "0:0" ]]
-[[ "$(stat -Lc '%u:%g' /usr/local/bin/uv)" == "0:0" ]]
-direct="$(./scripts/dev/canonical.sh --dry-run /usr/bin/true)"
-[[ "${direct}" == "DIRECT_AFTER_BOOTSTRAP_DOCTOR /usr/bin/true" ]]
+[[ "$(stat -c '%u:%g:%a' /etc/carbon-canonical-environment)" == "0:0:444" ]] || { echo "canonical marker ownership or mode changed" >&2; exit 97; }
+[[ "$(stat -Lc '%u:%g' /usr/local/bin/python3)" == "0:0" ]] || { echo "canonical Python is not root-owned" >&2; exit 98; }
+[[ "$(stat -Lc '%u:%g' /usr/local/bin/uv)" == "0:0" ]] || { echo "canonical uv is not root-owned" >&2; exit 99; }
+if ! direct="$(./scripts/dev/canonical.sh --dry-run /usr/bin/true)"; then
+  echo "nested canonical direct-mode probe failed" >&2
+  exit 100
+fi
+[[ "${direct}" == "DIRECT_AFTER_BOOTSTRAP_DOCTOR /usr/bin/true" ]] || { printf 'unexpected nested canonical dry-run: %q\n' "${direct}" >&2; exit 101; }
 touch container-only-untracked.txt
-git status --porcelain=v1 --untracked-files=all | grep -q container-only-untracked.txt
+if ! untracked_status="$(git status --porcelain=v1 --untracked-files=all -- container-only-untracked.txt)"; then
+  echo "linked-worktree Git status failed" >&2
+  exit 102
+fi
+[[ "${untracked_status}" == "?? container-only-untracked.txt" ]] || { printf 'unexpected isolated Git status: %q\n' "${untracked_status}" >&2; exit 103; }
 if git update-ref "$1" HEAD 2>/dev/null; then
   echo "read-only shared Git metadata accepted a ref write" >&2
   exit 91

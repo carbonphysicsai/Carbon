@@ -126,6 +126,14 @@ reuse an exact trusted interpreter and install only when one is absent. This
 bounded recovery does not change the canonical environment identity or the
 B-04 exclusion.
 
+The next exact-head canonical run completed bootstrap, doctor, the invariant
+lane, and 3,286 CPU tests before the linked-worktree wrapper integration
+returned an otherwise silent status of 1. The bounded repair keeps every
+mount, identity, isolation, and read-only assertion; it replaces the opaque
+global `git status | grep -q` probe under `pipefail` with an exact path-scoped
+status capture and gives every remaining shell assertion a distinct
+diagnostic. No canonical trust predicate or runtime acceptance is relaxed.
+
 After every non-Hub commit settles, perform one coherent semantic Hub
 reconciliation. Update `data/hub_data_v2.json` and `data/change_events.json`
 for B-01F/B-01G and the conditional B-04 runtime selection (under
