@@ -335,6 +335,24 @@
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/72"
     },
     {
+      "decision_id": "B-04-D11",
+      "map_ref": "WAVE-B/B-04",
+      "wave": "B",
+      "ticket": "B-04",
+      "title": "Exact v1 executable reference schema and protected surface",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should B-04 freeze the exact closed v1 record/ref registry, subordinate schemas, outcome/reason and absence matrices, canonical framing, root exports, and protected types before its first runtime model?",
+      "recommendation": "KEEP the recorded B-04-D11 v1 schema, compatibility matrices, one-to-one ref registry, audience-safe root tuple, and protected submodule boundary.",
+      "why": "A complete pre-runtime freeze prevents role, identity, absence, provenance, artifact, admission, or public-surface ambiguity while preserving the ratified B-04-D1 through B-04-D10 meaning.",
+      "if_kept": "B-04 can implement deterministic fixture-only policy, execution, comparison, artifact, admission, and disclosure paths while B-05, B-06, B-07F, and B-E2 consume only their authorized seams.",
+      "if_changed": "Supersede B-04-D11 and prospectively update every affected schema field/type/order, ref mapping, compatibility test, protected/public boundary, and downstream consumer without reinterpreting merged v1 history.",
+      "affects": ["WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E2"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5497811877",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/75"
+    },
+    {
       "decision_id": "OWNER-DX-01",
       "map_ref": "WAVE-B/B-01F",
       "wave": "B",

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-01T14:32:12Z"
+  captured_at_utc: "2026-09-01T17:28:29Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "83cc2a628d13ce60fd854168b126d935076ec30a"
+  authority_snapshot_commit: "7da4a35c3a91caa910d8b366af9af1d76fad237b"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -16,9 +16,9 @@ current:
   ticket_title: "Reference and truth contracts"
   ticket_status: "in_progress"
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "1.1"
-  controlling_board_fingerprint: "6272bfd9f4ee36d01bd1784ece3fc8d0d0c6a84ed45a968f290cfb28315ac471"
-  stage: "Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented."
+  controlling_register_version: "1.2"
+  controlling_board_fingerprint: "5962b9ce2e1880b769dcdc39c5e0c1a6f1d01fab942628426fdb9d3849fb393f"
+  stage: "PR #73 satisfied B-01F's exact completion predicate. Version 1.2 records B-04 in_progress in bounded runtime implementation from exact main, with B-04-D11's complete v1 schema freeze recorded and notified before the first runtime model."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -51,9 +51,9 @@ current:
     - "B-01G remains todo as a future non-blocking tooling proof and is not a prerequisite for current runtime work."
   next_selected_ticket: null
   fail_closed:
-    - "B-01F's prepared done state and B-04 runtime selection remain inert until the exact reviewed normal merge, exact-main Merge gate, and completed external receipt satisfy the conditional completion predicate."
+    - "B-04 runtime implementation has started only in bounded fixture-engineering scope; no merged implementation or engineering-test maturity is yet earned."
     - "Every real primary or witness method, support boundary, conditioning rule, uncertainty value, comparison threshold, resource policy, right, and qualification input remains HUMAN_INPUT_REQUIRED or otherwise unavailable."
-    - "B-04-D11 must freeze the exact v1 record schema, outcome/reason matrices, and carbon.evaluation root-export tuple before any runtime model is authorized."
+    - "B-04-D11 freezes the exact v1 record schema, outcome/reason and absence matrices, ref registry, and carbon.evaluation root-export tuple before any runtime model."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
     specified: "earned"
@@ -64,8 +64,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "The B-04 bounded engineering contract is ratified and specified. Runtime implementation and testing remain unearned; B-01F's conditional completion predicate governs when runtime selection becomes effective. Every reference, scientific, security, network, commercial, and production qualification state remains unearned."
-  decision_series_status: "B-04-D1 through B-04-D10 are ratified bounded engineering-contract decisions. OWNER-DX-01 pauses runtime behind B-01F without amending them. B-04-D11 and every runtime/reference implementation remain future work; no human-reserved input or qualification authority is supplied."
+  maturity_summary: "The B-04 bounded engineering contract is ratified and specified. B-01F's resumption predicate is satisfied and B-04-D11 is recorded, but runtime implementation and testing remain unearned until the final bounded candidate passes its delivery predicate. Every reference, scientific, security, network, commercial, and production qualification state remains unearned."
+  decision_series_status: "B-04-D1 through B-04-D10 remain ratified bounded engineering-contract decisions. B-04-D11 is the notified implemented working decision that freezes the exact v1 executable schema before runtime. No human-reserved input or qualification authority is supplied."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -79,6 +79,7 @@ current:
     - "B-04-D8"
     - "B-04-D9"
     - "B-04-D10"
+    - "B-04-D11"
 waves:
   -
     id: "A"
@@ -1361,6 +1362,28 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "WAVE-B/B-01F"
     supersedes: null
+  -
+    map_ref: "WAVE-B/B-04"
+    event_type: "decision"
+    event_id: "B-04-D11"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/7da4a35c3a91caa910d8b366af9af1d76fad237b/.agent/DECISIONS.md"
+    affects:
+      - "WAVE-B/B-01F"
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-E1"
+      - "WAVE-B/B-E2"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+    supersedes: "OWNER-DX-01"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
