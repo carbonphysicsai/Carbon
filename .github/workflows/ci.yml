@@ -19,7 +19,7 @@ jobs:
   preflight:
     name: Delivery preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
       candidate_sha: ${{ steps.candidate.outputs.candidate_sha }}
       base_sha: ${{ steps.candidate.outputs.base_sha }}
@@ -73,6 +73,25 @@ jobs:
           CARBON_EVENT_REF: ${{ github.ref }}
           CARBON_EVENT_SHA: ${{ github.sha }}
         run: ./scripts/dev/ci_preflight.sh
+
+      - name: Install pinned uv
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Bootstrap locked Carbon environment
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
+        run: ./scripts/dev/bootstrap.sh
+
+      - name: Run fast repository preflight
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
+        env:
+          QUALITY_BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+          CARBON_ARTIFACT_DIR: .carbon-artifacts
+        run: ./scripts/dev/preflight.sh
 
   canonical:
     name: Canonical environment
@@ -264,7 +283,7 @@ jobs:
           BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
           PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
-          BOOTSTRAP_BASE_SHA: 6e5fad5d295839759d145adcd650b609e3fd30d0
+          BOOTSTRAP_BASE_SHA: c6302c7136fc5fa984b03660116f7daa7e3e3e48
         run: |
           set -euo pipefail
           [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]

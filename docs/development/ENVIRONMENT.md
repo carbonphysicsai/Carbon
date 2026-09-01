@@ -84,8 +84,9 @@ valid.
 |---|---|
 | `./scripts/dev/bootstrap.sh` | Installs the exact repository Python through pinned uv and synchronizes the locked groups. |
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
+| `./scripts/dev/preflight.sh` | Runs the environment doctor, quality ratchet, and committed/staged/unstaged diff hygiene. GitHub uses it as the fast upstream gate; it does not replace full acceptance. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
-| `./scripts/dev/ci.sh` | Runs delivery scope and repository hygiene, doctor, the quality and diff-hygiene preflight, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
+| `./scripts/dev/ci.sh` | Runs delivery scope and repository hygiene, `preflight.sh`, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
 | `./scripts/dev/canonical.sh --focused <target>` | Runs focused pytest targets in the exact canonical environment. |
 | `./scripts/dev/canonical.sh --full` | Runs the complete canonical `ci.sh` acceptance. |
 | `./scripts/dev/canonical.sh --interactive` | Opens a profile-free interactive shell in the exact canonical environment, preserving the locked project/tool path. |
@@ -246,8 +247,19 @@ Open the repository in the Carbon Dev Container / WSL2 environment.
 ## Local and GitHub parity
 
 The GitHub workflow is path aware and keeps acceptance semantics in repository
-scripts. Delivery preflight classifies the exact current PR head (or exact
-current `main` push) before any expensive lane:
+scripts. Its single cheap dependency gate runs before any classified
+acceptance lane:
+
+```text
+Delivery preflight on an ubuntu-24.04 runner
+    -> resolve and check out the exact current PR head/base or exact main push
+    -> strict changed-path classification and delivery/diff hygiene
+    -> if RUNTIME_FULL: pinned uv 0.12.7 -> bootstrap -> preflight.sh
+       (doctor -> quality ratchet -> committed/staged/unstaged diff hygiene)
+    -> PASS publishes exact identity/scope and unlocks only its required lanes
+```
+
+After Delivery preflight passes, scope-specific acceptance runs:
 
 ```text
 RUNTIME_FULL
@@ -299,12 +311,21 @@ The noncanonical local path ends in the same repository command:
     -> bootstrap -> doctor -> ./scripts/dev/ci.sh
 ```
 
-Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.
+Exact delivery identity/scope lives in `scripts/dev/ci_preflight.sh`, the cheap
+engineering gate lives in `scripts/dev/preflight.sh`, and full acceptance lives
+in `scripts/dev/ci.sh`; none is duplicated in workflow YAML. Because `ci.sh`
+runs delivery scope/hygiene and then `preflight.sh`, direct canonical acceptance
+and both runtime-full jobs rerun the repository-owned cheap gates as part of
+their self-contained proof.
 The workflow fetches complete history so the quality comparison and immutable
 archive-tag boundary can be verified at the exact candidate head. The separate
 clean-image job proves the pinned dev-container definition is runnable as its
 configured non-root user and can execute the same repository-controlled gates;
 a successful Docker build alone is not runnable-container evidence.
+
+The fast preflight is engineering triage only. Its success does not replace
+either full acceptance path and does not establish scientific, runtime,
+security, network, economic, `LIVE`, launch, or production qualification.
 
 ## Supported troubleshooting
 
