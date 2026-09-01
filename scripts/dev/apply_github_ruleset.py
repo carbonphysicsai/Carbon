@@ -804,11 +804,12 @@ def _verify_repository_settings_snapshot(
     repository: str,
     expected: Mapping[str, bool],
 ) -> None:
-    repository_data = _require_mapping(
-        client.request(_repo_endpoint(repository)),
-        "repository settings restoration verification",
+    current = _read_repository_settings(
+        client,
+        repository,
+        expected,
+        label="repository settings restoration verification",
     )
-    current = _repository_settings_snapshot(repository_data, expected)
     if current != dict(expected):
         raise RulesetError(
             "repository settings restoration verification differs from the exact "
@@ -816,11 +817,42 @@ def _verify_repository_settings_snapshot(
         )
 
 
+def _read_repository_settings(
+    client: GhClient,
+    repository: str,
+    fields: Mapping[str, bool],
+    *,
+    label: str,
+) -> dict[str, bool]:
+    repository_data = _require_mapping(
+        client.request(_repo_endpoint(repository)),
+        label,
+    )
+    return _repository_settings_snapshot(repository_data, fields)
+
+
 def _restore_repository_settings(
     client: GhClient,
     repository: str,
     snapshot: Mapping[str, bool],
+    desired_settings: Mapping[str, Any],
 ) -> None:
+    desired = _repository_settings_snapshot(desired_settings, snapshot)
+    current = _read_repository_settings(
+        client,
+        repository,
+        snapshot,
+        label="repository settings before guarded restore",
+    )
+    if current == dict(snapshot):
+        return
+    if current != desired:
+        raise RulesetError(
+            "repository settings changed after this operation's PATCH; refusing "
+            "guarded restoration over an unowned live state: "
+            f"expected the operation payload {desired}, found {current}"
+        )
+
     request_error: RulesetError | None = None
     try:
         client.request(
@@ -894,9 +926,12 @@ def _restore_updated_ruleset(
             f"exact repository ruleset id {snapshot.ruleset_id}, found {current_id!r}"
         )
 
-    if _ruleset_write_payload(current, "managed ruleset before restore") != (
-        snapshot.ruleset_payload
-    ):
+    current_normalized = normalize_ruleset(current)
+    snapshot_normalized = normalize_ruleset(snapshot.ruleset_payload)
+    desired_normalized = normalize_ruleset(desired_ruleset)
+    if current_normalized == snapshot_normalized:
+        request_error = None
+    elif current_normalized == desired_normalized:
         request_error: RulesetError | None = None
         try:
             client.request(
@@ -907,7 +942,11 @@ def _restore_updated_ruleset(
         except RulesetError as exc:
             request_error = exc
     else:
-        request_error = None
+        raise RulesetError(
+            "managed ruleset changed after this operation's UPDATE; refusing "
+            "guarded restoration over an unowned live state for exact id "
+            f"{snapshot.ruleset_id}"
+        )
 
     restored_id, restored = _find_managed_ruleset(client, repository, name)
     if restored is None or restored_id != snapshot.ruleset_id:
@@ -928,6 +967,7 @@ def _compensate_apply(
     client: GhClient,
     plan: RulesetPlan,
     desired_ruleset: Mapping[str, Any],
+    desired_repository_settings: Mapping[str, Any],
     snapshot: _ApplySnapshot,
     *,
     ruleset_attempted: bool,
@@ -941,6 +981,7 @@ def _compensate_apply(
                 client,
                 plan.repository,
                 snapshot.repository_settings,
+                desired_repository_settings,
             )
         except RulesetError as exc:
             errors.append(f"repository settings: {exc}")
@@ -1076,6 +1117,7 @@ def apply_plan(
             client,
             plan,
             ruleset,
+            _require_mapping(artifact["repository_settings"], "repository_settings"),
             snapshot,
             ruleset_attempted=ruleset_attempted,
             created_ruleset_id=(
