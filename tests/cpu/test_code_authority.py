@@ -874,8 +874,20 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
     ci_source = (REPOSITORY_ROOT / "scripts" / "dev" / "ci.sh").read_text(
         encoding="utf-8"
     )
+    required_in_order = (
+        'echo "==> environment doctor"',
+        'echo "==> quality ratchet"',
+        'echo "==> committed and local Git diff hygiene"',
+        'echo "==> invariant lane"',
+        'echo "==> default CPU lane"',
+        'echo "==> package, wheel, and outside-tree lane"',
+        'echo "==> canonical/legacy authority boundary"',
+        'echo "==> terminal committed and local Git diff hygiene"',
+    )
+    positions = tuple(ci_source.index(fragment) for fragment in required_in_order)
     retired_paths = _authority()["retired"]["executable_paths"]
     violations = [path for path in retired_paths if path in ci_source]
+    assert positions == tuple(sorted(positions))
     assert violations == []
     assert "tests/invariants" in ci_source
     assert "./scripts/dev/test.sh" in ci_source

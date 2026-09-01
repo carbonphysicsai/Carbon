@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Focused checks for the Development Hub Decision Console."""
 
 from __future__ import annotations
@@ -45,7 +44,11 @@ def fail(message: str) -> None:
 
 def valid_github_url(value: str) -> bool:
     parsed = urlsplit(value)
-    return parsed.scheme == "https" and parsed.netloc == "github.com" and parsed.path.startswith("/carbonphysicsai/Carbon/")
+    return (
+        parsed.scheme == "https"
+        and parsed.netloc == "github.com"
+        and parsed.path.startswith("/carbonphysicsai/Carbon/")
+    )
 
 
 def main() -> int:
@@ -59,7 +62,9 @@ def main() -> int:
             fail("every decision must be an object")
         missing = REQUIRED - item.keys()
         if missing:
-            fail(f"{item.get('decision_id', '<unknown>')} missing fields {sorted(missing)}")
+            fail(
+                f"{item.get('decision_id', '<unknown>')} missing fields {sorted(missing)}"
+            )
         decision_id = str(item["decision_id"])
         if decision_id in ids:
             fail(f"duplicate decision_id {decision_id}")
@@ -94,7 +99,9 @@ def main() -> int:
     hub = (ROOT / "index.html").read_text(encoding="utf-8")
     if 'href="decisions.html#needs-me"' not in hub:
         fail("primary Hub must link to Decisions → Needs Me")
-    print(f"Decision Console: {len(decisions)} decisions, {len(ids)} unique IDs, focused checks passed.")
+    print(
+        f"Decision Console: {len(decisions)} decisions, {len(ids)} unique IDs, focused checks passed."
+    )
     return 0
 
 
