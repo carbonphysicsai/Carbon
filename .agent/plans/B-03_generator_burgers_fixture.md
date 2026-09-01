@@ -1,13 +1,20 @@
 # B-03 plan — generator runtime contract and Burgers fixture
 
 **Ticket:** B-03 — Generator API and fixed-viscosity Burgers fixture
-**Status:** `in_progress` in contract phase
+**Status:** `in_progress` in implementation phase
 **Contract branch:** `agent/b-03-generator-contract`
 **Contract worktree:** dedicated local worktree; absolute host path intentionally not recorded
 **Exact contract base:** `1dc41288e2d0e516de21d05dc168b188791c39f5`
 **Exact base tree:** `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`
 **Working contract:** `Design_Specs/Generator_Runtime_Contract.md`
 **Implementation branch after the contract gate:** `agent/b-03-generator-burgers-fixture`
+**Exact reviewed contract head/tree:** `139d491c8cf9d144f472e38aa14a4721ed0d8870` /
+`71a3754f520411b599152c8788dacdce0f987b9f`
+**Contract merge commit/tree:** `b86daa5d8b0f8b3e86bb82c2661f405747a200df` /
+`52c3e5f130f771ccd21f96ea8f422f3e96106302`
+**Exact implementation base/tree:** `b86daa5d8b0f8b3e86bb82c2661f405747a200df` /
+`52c3e5f130f771ccd21f96ea8f422f3e96106302`
+**Implementation worktree:** dedicated local worktree; absolute host path intentionally not recorded
 
 ## 1. Dependency and selection gate
 
@@ -18,8 +25,8 @@ B-02C PR #66 normally merged repaired reviewed head
 `a30865d2349f1cc6e725f1ea15e923f8d7893e4c` as
 `1dc41288e2d0e516de21d05dc168b188791c39f5`, preserved tree
 `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`, and exact-main CI
-`33388595061` passed. This branch closes B-02C and selects only B-03; it does
-not implement runtime code.
+`33388595061` passed. The contract branch closed B-02C and selected only B-03;
+it did not implement runtime code.
 
 ## 2. Authority and disposition
 
@@ -74,7 +81,13 @@ Disposition:
 
 ## 4. Implementation phase after the contract gate
 
-Only after all contract gates pass:
+All contract gates passed on exact reviewed head
+`139d491c8cf9d144f472e38aa14a4721ed0d8870`: PR #67 passed exact-head CI,
+received a 5/5 Greptile review with zero comments or unresolved threads, and
+normally merged as `b86daa5d8b0f8b3e86bb82c2661f405747a200df`. Exact-main CI then passed,
+so implementation began from that exact merge and no earlier tree.
+
+Implementation sequence:
 
 1. fetch without pull and create fresh branch
    `agent/b-03-generator-burgers-fixture` in a dedicated worktree from the new
@@ -97,6 +110,32 @@ Only after all contract gates pass:
    threads; and
 8. stop before merging the implementation PR. Do not start B-04, B-05,
    B-07S, or a later ticket.
+
+The bounded implementation package consists of exactly these eleven modules:
+
+```text
+carbon/generators/__init__.py
+carbon/generators/accounting.py
+carbon/generators/authorities.py
+carbon/generators/burgers.py
+carbon/generators/canonical.py
+carbon/generators/conformance.py
+carbon/generators/disclosure.py
+carbon/generators/errors.py
+carbon/generators/model.py
+carbon/generators/refs.py
+carbon/generators/service.py
+```
+
+Validation covers focused B-03 CPU and invariant suites; affected B-02A, A3,
+and A4 boundaries; full CPU and invariant suites; package installation,
+wheel/outside-tree import, public-surface and code-authority checks; formatting,
+lint, compilation, repository quality, and diff/privacy hygiene. The tracked
+candidate records its base/tree, manifest, commands, and local results without
+claiming its own recursive commit identity. After push, the implementation PR,
+exact-head Linux CI, and Greptile metadata supply final immutable head/tree and
+review facts. Any tree change invalidates those facts and requires fresh CI and
+Greptile rereview.
 
 ## 5. Verification matrix
 

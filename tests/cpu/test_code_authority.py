@@ -553,6 +553,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_package_installation.py",
+            "test_import_b03_module",
+            "importlib.import_module",
+            "module_name",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(
@@ -571,22 +577,30 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
         "B02C_MODULES",
     )
+    b03_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B03_MODULES",
+    )
     assert isinstance(builtin_adapters, dict)
     assert isinstance(role_packages, tuple)
     assert isinstance(b02b_modules, tuple)
     assert isinstance(b02c_modules, tuple)
+    assert isinstance(b03_modules, tuple)
     reviewed_dynamic_targets = {
         *builtin_adapters.values(),
         *role_packages,
         *b02b_modules,
         *b02c_modules,
+        *b03_modules,
     }
     assert not any(
         _matches_namespace(module, retired) for module in reviewed_dynamic_targets
     )
 
 
-def test_built_wheel_excludes_every_retired_runtime_namespace(tmp_path: Path) -> None:
+def test_built_wheel_has_exact_generator_manifest_and_imports_outside_tree(
+    tmp_path: Path,
+) -> None:
     wheelhouse = tmp_path / "wheelhouse"
     process = subprocess.run(
         [
@@ -624,6 +638,63 @@ def test_built_wheel_excludes_every_retired_runtime_namespace(tmp_path: Path) ->
         if root != "carbon/__init__.py"
     }
     assert all(f"{root}/__init__.py" in names for root in canonical_packages)
+
+    b03_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B03_MODULES",
+    )
+    assert isinstance(b03_modules, tuple)
+    expected_generator_paths = {
+        "carbon/generators/__init__.py",
+        *(f"{module.replace('.', '/')}.py" for module in b03_modules),
+    }
+    actual_generator_paths = {
+        name
+        for name in names
+        if name.startswith("carbon/generators/") and name.endswith(".py")
+    }
+    assert actual_generator_paths == expected_generator_paths
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    script = f"""
+import importlib
+import importlib.metadata
+import json
+import pathlib
+import sys
+
+wheel = pathlib.Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(wheel))
+module_names = {json.dumps(b03_modules)}
+modules = tuple(importlib.import_module(name) for name in module_names)
+distribution = importlib.metadata.distribution("carbon")
+requirements = distribution.requires or ()
+print(json.dumps({{
+    "module_names": [module.__name__ for module in modules],
+    "module_files": [str(pathlib.Path(module.__file__).resolve()) for module in modules],
+    "distribution_version": distribution.version,
+    "only_optional_requirements": all(
+        "extra ==" in requirement.lower() for requirement in requirements
+    ),
+}}))
+"""
+    imported = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(wheels[0])],
+        cwd=outside,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert imported.returncode == 0, imported.stderr
+    payload = json.loads(imported.stdout)
+    assert payload["module_names"] == list(b03_modules)
+    assert payload["distribution_version"] == "0.9.0"
+    assert payload["only_optional_requirements"] is True
+    assert all(
+        module_file.startswith(f"{wheels[0].resolve()}/carbon/generators/")
+        for module_file in payload["module_files"]
+    )
 
 
 def test_committed_diff_hygiene_rejects_clean_worktree_whitespace_defect(
