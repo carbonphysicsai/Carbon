@@ -98,6 +98,14 @@ class ValidatorContractTests(unittest.TestCase):
         self.assertTrue(
             any("--diff-filter=D" in command for command in validator.commands)
         )
+        diff_commands = [
+            command for command in validator.commands if command[0] == "diff"
+        ]
+        self.assertEqual(len(diff_commands), 6)
+        self.assertTrue(
+            all("--no-renames" in command for command in diff_commands),
+            diff_commands,
+        )
 
     def test_explicit_authority_files_are_structural(self) -> None:
         validator = validate_hub.Validator(Path("."))
@@ -1129,6 +1137,101 @@ class ValidatorContractTests(unittest.TestCase):
                     for error in validator.errors
                 ),
                 validator.errors,
+            )
+
+    def test_authority_rename_preserves_source_path_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            self.init_git_fixture(root)
+            (root / ".agent/tickets").mkdir(parents=True)
+            (root / ".agent/WAVE.md").write_text(
+                "# Fixture wave\n\nSelected ticket B-03.\n", encoding="utf-8"
+            )
+            (root / ".agent/tickets/B-03.md").write_text(
+                "# B-03 authority at snapshot S\n", encoding="utf-8"
+            )
+            self.run_git(root, "add", ".agent")
+            self.run_git(root, "commit", "-m", "snapshot S")
+            snapshot_s = self.run_git(root, "rev-parse", "HEAD")
+
+            self.run_git(root, "switch", "-c", "hub")
+            (root / ".agent/tickets/B-03.md").write_text(
+                "# B-03 authority commit A\n\nHUB-AUTHORITY-A\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", ".agent/tickets/B-03.md")
+            self.run_git(root, "commit", "-m", "Hub authority commit A")
+            authority_a = self.run_git(root, "rev-parse", "HEAD")
+
+            captured = (
+                datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+            )
+            playbook = (
+                root / "docs/development/carbon_hub/orientation/HUB_UPDATE_PLAYBOOK.md"
+            )
+            playbook.parent.mkdir(parents=True)
+            playbook.write_text(
+                f"Current authority snapshot: `{authority_a}`, reconciled {captured}.\n",
+                encoding="utf-8",
+            )
+            self.run_git(root, "add", "docs")
+            self.run_git(root, "commit", "-m", "Hub build H pinned to A")
+
+            self.run_git(root, "switch", "main")
+            destination = "outside-authority/WAVE.md"
+            (root / "outside-authority").mkdir()
+            self.run_git(root, "mv", ".agent/WAVE.md", destination)
+            self.run_git(root, "commit", "-m", "rename authority outside root M")
+            main_advance = self.run_git(root, "rev-parse", "HEAD")
+            self.run_git(root, "merge", "--no-ff", "hub", "-m", "merge Hub H")
+
+            def fixture_validator() -> validate_hub.Validator:
+                validator = validate_hub.Validator(root)
+                validator.data = self.snapshot_fixture_data(authority_a)
+                validator.data["current"]["wave"] = "B"
+                validator.data["impact_policy"] = copy.deepcopy(
+                    self.load_hub_data()["impact_policy"]
+                )
+                validator.data["meta"]["captured_at_utc"] = captured
+                validator.captured_at = datetime.strptime(
+                    captured, "%Y-%m-%dT%H:%M:%SZ"
+                ).replace(tzinfo=UTC)
+                return validator
+
+            post_merge = fixture_validator()
+            with patch.dict(
+                os.environ, {"HUB_DIFF_BASE_SHA": main_advance}, clear=False
+            ):
+                post_merge.collect_diff()
+            self.assertNotIn(".agent/WAVE.md", post_merge.changed_paths)
+            self.assertEqual(post_merge.errors, [])
+
+            post_merge.validate_snapshot_metadata()
+            self.assertTrue(
+                any(
+                    "Map-structural authority changed after authority_snapshot_commit"
+                    in error
+                    and ".agent/WAVE.md" in error
+                    for error in post_merge.errors
+                ),
+                post_merge.errors,
+            )
+
+            pull_request = fixture_validator()
+            with patch.dict(os.environ, {"HUB_DIFF_BASE_SHA": snapshot_s}, clear=False):
+                pull_request.collect_diff()
+            self.assertIn(".agent/WAVE.md", pull_request.changed_paths)
+            self.assertIn(".agent/WAVE.md", pull_request.deleted_paths)
+            self.assertIn(destination, pull_request.changed_paths)
+
+            pull_request.validate_structural_diff()
+            self.assertTrue(
+                any(
+                    "Map-structural repository changes require an updated "
+                    "data/hub_data_v2.json" in error
+                    for error in pull_request.errors
+                ),
+                pull_request.errors,
             )
 
     def test_nonselected_blob_main_link_is_rejected(self) -> None:

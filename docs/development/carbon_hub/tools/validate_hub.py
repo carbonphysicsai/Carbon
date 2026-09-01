@@ -2612,6 +2612,7 @@ class Validator:
 
         post_snapshot = self.git(
             "diff",
+            "--no-renames",
             "--name-only",
             "-z",
             "--diff-filter=ACDMRTUXB",
@@ -2717,15 +2718,23 @@ class Validator:
             commands = (
                 (
                     "diff",
+                    "--no-renames",
                     "--name-only",
                     "-z",
                     "--diff-filter=ACDMRTUXB",
                     f"{self.diff_base_sha}...HEAD",
                 ),
-                ("diff", "--name-only", "-z", "--diff-filter=ACDMRTUXB"),
+                (
+                    "diff",
+                    "--no-renames",
+                    "--name-only",
+                    "-z",
+                    "--diff-filter=ACDMRTUXB",
+                ),
                 (
                     "diff",
                     "--cached",
+                    "--no-renames",
                     "--name-only",
                     "-z",
                     "--diff-filter=ACDMRTUXB",
@@ -2743,13 +2752,21 @@ class Validator:
             deletion_commands = (
                 (
                     "diff",
+                    "--no-renames",
                     "--name-only",
                     "-z",
                     "--diff-filter=D",
                     f"{self.diff_base_sha}...HEAD",
                 ),
-                ("diff", "--name-only", "-z", "--diff-filter=D"),
-                ("diff", "--cached", "--name-only", "-z", "--diff-filter=D"),
+                ("diff", "--no-renames", "--name-only", "-z", "--diff-filter=D"),
+                (
+                    "diff",
+                    "--cached",
+                    "--no-renames",
+                    "--name-only",
+                    "-z",
+                    "--diff-filter=D",
+                ),
             )
             for command in deletion_commands:
                 result = self.git(*command)
