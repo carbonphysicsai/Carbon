@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # 👇 CHANGE THIS to the exact name of your subfolder
-          path: './docs/development/carbon_hub' 
+          path: './carbon_hub' 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
