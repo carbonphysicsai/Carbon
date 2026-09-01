@@ -13,8 +13,11 @@ From an opened Carbon Dev Container:
 ```
 
 Those repository-controlled commands own environment synchronization,
-validation, and normal PR gates. GitHub Actions invokes the same
-`./scripts/dev/ci.sh`; do not reconstruct a separate local test sequence.
+validation, and normal PR gates. GitHub Actions first invokes
+`./scripts/dev/preflight.sh` as a cheap upstream dependency, then both full
+jobs execute the same repository-owned `./scripts/dev/ci.sh` acceptance
+semantics. The direct local pre-PR command remains `./scripts/dev/ci.sh`; do
+not reconstruct a separate local test sequence.
 
 Native Windows Python, historical PoC/Julia/network checks, and optional JAX,
 Torch, chain, CUDA, or GPU stacks are not ordinary Carbon evidence platforms
