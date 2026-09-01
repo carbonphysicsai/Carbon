@@ -759,15 +759,20 @@ class Validator:
                     f"{label}.impact_class must be map_structural or mapped_detail"
                 )
             map_ref = rule.get("map_ref")
-            if map_ref not in {
-                "CURRENT_WAVE",
-                "WAVE_FROM_PATH",
-                "TICKET_FROM_PATH",
-            } and map_ref not in set(system_refs):
-                if not isinstance(map_ref, str) or not re.fullmatch(
-                    r"WAVE-[A-N](?:/[A-Z0-9-]+)?", map_ref
-                ):
-                    self.fail(f"{label}.map_ref is not a supported stable owner")
+            if (
+                map_ref
+                not in {
+                    "CURRENT_WAVE",
+                    "WAVE_FROM_PATH",
+                    "TICKET_FROM_PATH",
+                }
+                and map_ref not in set(system_refs)
+                and (
+                    not isinstance(map_ref, str)
+                    or not re.fullmatch(r"WAVE-[A-N](?:/[A-Z0-9-]+)?", map_ref)
+                )
+            ):
+                self.fail(f"{label}.map_ref is not a supported stable owner")
             structural_when = rule.get("structural_when")
             if structural_when not in {
                 None,
