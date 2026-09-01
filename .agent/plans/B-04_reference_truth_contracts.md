@@ -1,8 +1,8 @@
 # B-04 plan — reference and TruthAsset contracts
 
 **Ticket:** B-04 — ReferencePolicy, TruthAsset, and reference runners<br>
-**Status:** `in_progress`; contract phase complete and ratified, bounded
-runtime implementation active<br>
+**Status:** final single-ticket runtime candidate; B-04 `done` and B-05
+selection remain conditional<br>
 **Branch:** `agent/b-04-reference-truth`<br>
 **Worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
 **Exact base commit:** `7161fe3c4a04821b7f676ab006bd5d313d0442d2`<br>
@@ -10,10 +10,11 @@ runtime implementation active<br>
 **Working contract:** `Design_Specs/Reference_and_TruthAsset_Contract.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-04.md`
 
-This plan retains the completed PR #72 contract phase and begins bounded
-runtime implementation after PR #73 satisfied `OWNER-DX-01`. The B-01F
+This plan retains the completed PR #72 contract phase and records the completed
+bounded runtime candidate begun after PR #73 satisfied `OWNER-DX-01`. The B-01F
 receipt at PR #73 comment `5497405775` selects B-04 from the exact base above.
-B-04-D11 freezes the executable v1 schema before the first runtime model.
+B-04-D11 froze the executable v1 schema before the first runtime model; issue
+#42 comment `5497811877` delivered its non-gating lead notification.
 
 ## 1. Completed contract startup and closeout gate
 
@@ -47,21 +48,21 @@ Apply `KEEP → WRAP → REPAIR → REPLACE` to the exact current repository:
 - `KEEP + WRAP` `carbon.authoring` canonical Challenge, case, graph,
   evidence-kind, provenance, disclosure, use-restriction, and owner-ref
   primitives. B-04 does not redefine case identity.
-- `KEEP` the reserved `carbon.evaluation` package as B-04's future package
-  owner. It currently provides only a location and no B-04 capability.
+- `KEEP` the reserved `carbon.evaluation` package as B-04's implemented package
+  owner, with only the exact D11 public allow-list at its root.
 - `KEEP` `carbon.generators`, `carbon.scoring`, registry lifecycle, seeding,
   audit, and qualification boundaries unchanged; B-04 neither imports the
   generator package nor owns measurement, scoring, LIVE, or qualification.
-- `WRAP` low-level B-02A canonical primitives under a future B-04-owned,
+- `WRAP` low-level B-02A canonical primitives under the B-04-owned,
   versioned canonical profile and domain header. Do not widen B-02A's closed
   schema registry and do not reuse the generator canonical profile.
 - `REPLACE / EXCLUDE` any generic truth mode, solver-by-reputation authority,
   self-cross-check, implicit fallback, nominal-tolerance truth, or direct
-  solver path from future authoritative use.
+  solver path from authoritative use.
 - `MIGRATION_REQUIRED` for any later deliberate legacy or Julia adapter; B-E2
   owns Julia/service adapters and expanded runtime/failure injection, while
   B-04 retains its bounded minimal deterministic fixture runners and failure
-  tests. The archive is not read in this contract session.
+  tests. The archive was not read or revived.
 - `NEW_OWNER_DECISION_REQUIRED` for every real method, viscosity, support,
   tolerance, mesh, timestep, precision, conditioning, uncertainty,
   disagreement, fallback, correlation, resource, security, qualification, or
@@ -91,11 +92,11 @@ Apply `KEEP → WRAP → REPAIR → REPLACE` to the exact current repository:
 4. Record B-04-D1 through B-04-D10 with recommendation, rationale, rejected
    alternatives, interfaces/invariants, downstream owners, reversibility,
    exact paths, and reserved inputs.
-5. Reserve B-04-D11 for the later pre-runtime exact v1 record field/type/order
-   registry, outcome/reason compatibility matrices, and exact ordered
-   `carbon.evaluation.__all__` tuple. The fixed profile, framing, primitive
-   semantics, decoder ceilings, and ref inventory do not claim executable
-   canonical bytes or an exact root surface before D11.
+5. The contract phase reserved B-04-D11 for the pre-runtime exact v1 record
+   field/type/order registry, outcome/reason compatibility matrices, and exact
+   ordered `carbon.evaluation.__all__` tuple. The runtime phase recorded and
+   notified that decision before the first model; no pre-D11 executable-byte or
+   root-surface claim was made.
 6. Keep `ReferenceArtifact`, positive-only `TruthAsset`, and
    `FixtureReferenceAsset` distinct. Execution success or artifact presence
    never grants truth authority.
@@ -142,24 +143,140 @@ the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
   correctness review, and zero unresolved review threads. Every tree change
   requires fresh CI and review.
 
-## 6. Satisfied B-01F gate and bounded runtime plan
+## 6. Completed bounded runtime slices
 
 PR #73 satisfied the exact B-01F predicate and selected this branch from the
-base recorded above. Before any runtime model, record and notify B-04-D11 with
-the complete v1 executable schema, compatibility matrices, and root surface.
-Then implement the closed nominal policy/ref/canonical, execution/comparison,
-artifact/admission, fixture-runner, and disclosure slices under
-`carbon.evaluation`; add focused CPU and invariant tests; run affected B-02A,
-B-03, A3, A4, A5, package, authority, and full acceptance; complete two
-independent read-only audits; and deliver one reviewed runtime PR. Julia,
-Cole–Hopf, real solvers, stores, transport, measurement, score, Dossier,
-qualification, and later-ticket interfaces remain excluded.
+base recorded above. The runtime work then completed these coherent slices:
+
+1. D11 exact enums, subordinate and standalone models, nominal refs, one-to-one
+   canonical registry, hostile-input reconstruction, and exact ordered package
+   root;
+2. policy entry/composition/manifest construction with same-Challenge,
+   same-policy, exact-inventory, semantic-duplicate, primary/witness
+   disjointness, MMS-role, and no-authority-transfer enforcement;
+3. distinct primary and witness request/grant/resolution/run interfaces with
+   one-use capabilities, closed outcome/reason/absence matrices, typed
+   infrastructure/reference failures, and no generic fallback;
+4. comparison, provenance, support/applicability, conditioning, uncertainty,
+   and complete categorical dependency-correlation disclosure without invented
+   scientific thresholds;
+5. distinct `ReferenceArtifact`, non-LIVE `FixtureReferenceAsset`, and
+   positive-only `TruthAsset` admission with structural issuance separated from
+   substantive admission; and
+6. protected/public projections plus minimal deterministic standard-library
+   fixture runners for supported, conditioning, disagreement, numerical,
+   malformed/provenance, infrastructure, correlation, and no-fallback paths.
+
+The implementation preserves one-way explicit imports from current B-02A
+submodules and does not import `carbon.generators`, scoring, registry lifecycle,
+seeding, or any later owner. Julia, Cole–Hopf, production solvers/services,
+stores, transport, measurement, score, Dossier, qualification, and later-ticket
+interfaces remain excluded.
+
+## 7. Exact non-Hub candidate manifest
+
+The runtime implementation paths are exactly:
+
+```text
+carbon/evaluation/__init__.py
+carbon/evaluation/admission.py
+carbon/evaluation/assets.py
+carbon/evaluation/canonical.py
+carbon/evaluation/comparison.py
+carbon/evaluation/disclosure.py
+carbon/evaluation/enums.py
+carbon/evaluation/errors.py
+carbon/evaluation/execution.py
+carbon/evaluation/fixtures.py
+carbon/evaluation/model.py
+carbon/evaluation/policy.py
+carbon/evaluation/refs.py
+carbon/evaluation/runners.py
+```
+
+The focused and boundary test paths are exactly:
+
+```text
+tests/cpu/test_b04_admission_contract.py
+tests/cpu/test_b04_canonical_contract.py
+tests/cpu/test_b04_disclosure_contract.py
+tests/cpu/test_b04_execution_contract.py
+tests/cpu/test_b04_failure_and_disclosure.py
+tests/cpu/test_b04_fixture_runtime.py
+tests/cpu/test_b04_matrix_contract.py
+tests/cpu/test_b04_policy_contract.py
+tests/cpu/test_b04_public_surface.py
+tests/cpu/test_code_authority.py
+tests/cpu/test_package_installation.py
+tests/invariants/test_b04_reference_truth_boundaries.py
+```
+
+The conditional authority snapshot paths are exactly:
+
+```text
+.agent/WAVE.md
+.agent/WAVE_B.md
+.agent/WAVE_B_CODEX_HANDOFF.md
+.agent/evidence/wave_b/b-04.md
+.agent/plans/B-04_reference_truth_contracts.md
+.agent/tickets/B-04_reference_truth_contracts.md
+.agent/tickets/B-05_measurement_scorepack_authoring.md
+```
+
+B-04-D11 and its Decision Console record were committed before the first model.
+The final Development Hub commit separately pins this authority snapshot and
+contains only required Hub source plus renderer-determined outputs.
+
+## 8. Engineering validation and independent audits
+
+Current stable local results are:
+
+| Scope | Result |
+|---|---|
+| focused B-04 CPU + invariant matrix | `235 passed` |
+| affected B-02A/B-03/A3/A4/A5 and boundary regressions | `1252 passed`; the two installed-environment cases then passed in their required isolated rerun |
+| full invariant suite | `75 passed` |
+| package, wheel, outside-tree, and code-authority scope | `87 passed` |
+| strict Ruff, strict Black, compilation, and diff hygiene | PASS |
+| full CPU suite | `3531 passed, 2 skipped in 738.21s (0:12:18)` |
+
+The final scientific/epistemic read-only audit found no remaining role,
+authority-transfer, fallback, disagreement, MMS, fixture-promotion, or
+reference-versus-candidate-failure defect. The final canonical/identity/
+provenance/disclosure/capability read-only audit found no remaining exact-byte,
+reconstruction, admission, protected-surface, dependency, or leakage defect.
+Every earlier valid finding was repaired before those clean final passes.
+
+Local Darwin results are diagnostic only. Exact candidate acceptance still
+requires the repository-selected `RUNTIME_FULL` canonical Linux scope,
+Delivery preflight, Canonical environment, Clean dev-container, Development
+Hub, exact-head `Merge gate`, and exact-head Greptile.
+
+## 9. Conditional closeout and next-ticket transition
+
+The prepared B-04 `done`, bounded `IMPLEMENTED`/`TESTED`, and B-05
+`in_progress` states remain inert until the exact final head/tree passes every
+scope-required exact-head check and `Merge gate`; exact-head Greptile succeeds
+with all valid findings repaired and zero unresolved threads; no applicable
+block remains; a normal expected-head merge preserves ordered second-parent
+and reviewed-tree identity; the reviewed head is ancestral to fetched exact
+main; exact-main `Merge gate` and every push-only requirement succeed; and the
+completed normalized external receipt is posted.
+
+That receipt alone records the final reviewed head/tree, CI/check identities,
+Greptile result and thread count, merge/parents/tree, exact-main results, final
+bounded maturity, and B-05's exact starting main/tree. If any predicate fails,
+the prior merged B-04 `in_progress` / B-05 `todo` state remains controlling.
+No recursive evidence-only commit is required, and no B-05 contract or runtime
+work begins in this session.
 
 ```text
 SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
 RATIFIED_ENGINEERING_CONTRACT: YES
-IMPLEMENTED: NO
-TESTED: CONTRACT/DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
+IMPLEMENTED: YES only after the complete conditional predicate, and only for
+             the exact bounded merged fixture runtime
+TESTED: YES only after that predicate, and only for the exact recorded
+        engineering acceptance scope
 REFERENCE_QUALIFIED: NO
 OPERATIONS_APPROVED: NO
 SECURITY_QUALIFIED: NO

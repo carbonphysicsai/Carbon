@@ -3,15 +3,21 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.2
-**Selected ticket:** B-04 — `in_progress`
-**Selected phase:** bounded runtime implementation; B-01F's conditional
-completion predicate is satisfied
+**Controlling register:** `.agent/WAVE_B.md` version 1.3
+**Selected ticket:** B-05 — `in_progress`
+**Conditional authority:** that selection becomes authoritative only after
+B-04's complete conditional completion predicate
+**Authoritative selection before that predicate:** B-04 — `in_progress`; B-05
+remains `todo`
+**Selected phase after that predicate:** B-05 contract-then-implementation;
+this B-04 session starts no B-05 work
 **B-01F status:** `done` in bounded merged development-system scope
 **B-01G status:** `todo`; non-blocking for B-04
-**B-04 contract:** ratified bounded engineering contract; B-04-D11 exact v1
-schema recorded before runtime; implementation in progress and all
-qualification unearned
+**B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` only after its full
+exact-head/review/normal-merge/exact-main/receipt predicate; bounded candidate
+prepared and every qualification remains unearned
+**B-05 status:** prospective conditional `in_progress`; all DoD remains
+unchecked and no B-05 work has started
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -96,8 +102,9 @@ qualification unearned
 > **B-04 contract ratified; B-01F completed.** PR #72's external completion
 > receipt establishes the exact reviewed contract, required exact-head checks
 > and Greptile, normal reviewed-tree-preserving merge, and exact-main checks.
-> B-04 retains `SPECIFIED: YES`, `RATIFIED_ENGINEERING_CONTRACT: YES`, and
-> `IMPLEMENTED: NO`; every qualification and `LIVE` state remains `NO`.
+> At that historical contract checkpoint B-04 retained `SPECIFIED: YES`,
+> `RATIFIED_ENGINEERING_CONTRACT: YES`, and `IMPLEMENTED: NO`; every
+> qualification and `LIVE` state remained `NO`.
 > `OWNER-DX-01` inserted B-01F before B-04 runtime without amending the
 > contract and queued B-01G as non-blocking `todo`. PR #73 normally merged
 > exact reviewed B-01F head `56093b3abe9e62e89d8aa0b5bf034e02d7d0ad97`
@@ -109,6 +116,22 @@ qualification unearned
 > bounded implementation; B-04-D11 freezes its exact v1 executable schema
 > before the first runtime model. Every qualification and `LIVE` state remains
 > unavailable.
+
+> **B-04 bounded runtime conditional closeout.** The fixture-runtime candidate
+> implements the exact D11 canonical policy/ref graph, primary/witness
+> interfaces, typed outcomes, comparison/disclosure, distinct assets,
+> positive-only admission, and deterministic fixtures under
+> `carbon.evaluation`. Its prepared B-04 `done`, bounded `IMPLEMENTED`/`TESTED`,
+> and B-05 `in_progress` states become authoritative only after one exact final
+> head passes every scope-required check and `Merge gate`; Greptile succeeds on
+> that head with every valid finding repaired and zero unresolved threads; no
+> applicable block remains; a normal expected-head merge preserves ordered
+> second-parent and reviewed-tree identity; fetched exact main contains that
+> head and passes exact-main `Merge gate` plus all push-only requirements; and a
+> completed normalized external receipt is posted. If any predicate fails,
+> B-04 remains `in_progress` and B-05 remains `todo`. No B-05 work starts in
+> this session. Reference/scientific/security/operations/network/commercial/
+> production qualification and `LIVE` remain `NO`.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -198,8 +221,11 @@ ratified engineering maturity, inserts owner-directed B-01F before runtime,
 queues non-blocking B-01G, and prepares the conditional B-01F `done` / B-04
 runtime selection. That transition is authoritative only after the exact
 B-01F reviewed tree normally merges, exact-main `Merge gate` passes, and the
-completed normalized external receipt is posted. The
-architecture
+completed normalized external receipt is posted. Version 1.2 records that PR
+#73 satisfied that predicate, made B-01F authoritatively `done`, and selected
+B-04 bounded runtime. Version 1.3 prepares B-04's conditional bounded `done`
+and B-05 `in_progress` selection; those states remain inert until B-04's full
+Delivery Protocol predicate and receipt pass. The architecture
 contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
