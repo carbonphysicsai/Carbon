@@ -174,6 +174,15 @@ KNOWN_SYSTEM_MAP_REFS = {
     "SYSTEM/SCIENTIFIC-CANON",
 }
 IMPACT_CLASSES = {"map_structural", "mapped_detail", "unmapped_authority"}
+REQUIRED_AUTHORITY_ROOTS = {
+    ".agent/",
+    ".github/",
+    "agent_pack/",
+    "Business/",
+    "Design_Specs/",
+    "docs/context/",
+    "docs/publications/",
+}
 MATURITY_EARNED_STATES = {"earned", "unearned"}
 REQUIRED_IMPACT_RULE_IDS = {
     "root-agent-instructions",
@@ -714,8 +723,15 @@ class Validator:
             self.fail(
                 "impact_policy.authority_roots must be safe repository-relative prefixes"
             )
+            roots = []
         elif not _unique(roots):
             self.fail("impact_policy.authority_roots contains duplicates")
+        missing_authority_roots = sorted(REQUIRED_AUTHORITY_ROOTS - set(roots))
+        if missing_authority_roots:
+            self.fail(
+                "impact_policy.authority_roots is missing required protected roots: "
+                + ", ".join(missing_authority_roots)
+            )
         rules = policy.get("rules")
         if not isinstance(rules, list) or not all(
             isinstance(rule, dict) for rule in rules

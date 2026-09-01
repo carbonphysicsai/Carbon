@@ -764,6 +764,21 @@ class ValidatorContractTests(unittest.TestCase):
                 self.assertIsNotNone(impact)
                 self.assertEqual((impact["impact_class"], impact["map_ref"]), expected)
 
+    def test_impact_policy_cannot_remove_protected_authority_root(self) -> None:
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = self.load_hub_data()
+        validator.data["impact_policy"]["authority_roots"].remove(".agent/")
+
+        validator.validate_impact_policy()
+
+        self.assertTrue(
+            any(
+                "authority_roots is missing required protected roots: .agent/" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
+
     def test_ticket_checklist_is_detail_but_record_fields_are_structural(self) -> None:
         path = ".agent/tickets/B-03_generator_burgers_fixture.md"
         base_text = (
