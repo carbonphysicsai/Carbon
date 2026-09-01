@@ -18,11 +18,65 @@ import tomllib
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
 WORKFLOW_PATH = REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml"
+PREFLIGHT_PATH = REPOSITORY_ROOT / "scripts" / "dev" / "preflight.sh"
+CI_PATH = REPOSITORY_ROOT / "scripts" / "dev" / "ci.sh"
 DOCKERFILE_PATH = REPOSITORY_ROOT / ".devcontainer" / "Dockerfile"
 DEVCONTAINER_PATH = REPOSITORY_ROOT / ".devcontainer" / "devcontainer.json"
 DOCTOR_PATH = REPOSITORY_ROOT / "scripts" / "dev" / "doctor.sh"
 VERIFY_IMAGE_PATH = REPOSITORY_ROOT / "scripts" / "dev" / "verify_image.sh"
 DIFF_HYGIENE_PATH = REPOSITORY_ROOT / "scripts" / "dev" / "check_diff_hygiene.py"
+
+
+def _workflow_job_blocks(workflow: str) -> dict[str, str]:
+    """Return top-level job blocks without depending on line numbers."""
+
+    lines = workflow.splitlines()
+    jobs_line = next(
+        index
+        for index, line in enumerate(lines)
+        if re.fullmatch(r"(?P<indent>\s*)jobs:\s*", line)
+    )
+    parent_indent = len(lines[jobs_line]) - len(lines[jobs_line].lstrip())
+    job_indent: int | None = None
+    starts: list[tuple[str, int]] = []
+    for index in range(jobs_line + 1, len(lines)):
+        line = lines[index]
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= parent_indent:
+            break
+        match = re.fullmatch(r"\s*([A-Za-z0-9_-]+):\s*", line)
+        if match is None:
+            continue
+        if job_indent is None:
+            job_indent = indent
+        if indent == job_indent:
+            starts.append((match.group(1), index))
+
+    assert starts, "workflow has no jobs"
+    blocks: dict[str, str] = {}
+    for position, (job_id, start) in enumerate(starts):
+        end = starts[position + 1][1] if position + 1 < len(starts) else len(lines)
+        blocks[job_id] = "\n".join(lines[start:end])
+    return blocks
+
+
+def _yaml_scalar(block: str, key: str) -> str:
+    match = re.search(
+        rf"^\s*{re.escape(key)}:\s*([^#\n]+?)\s*(?:#.*)?$",
+        block,
+        flags=re.MULTILINE,
+    )
+    assert match is not None, f"missing {key!r} in YAML block"
+    return match.group(1)
+
+
+def _inline_run_commands(block: str) -> tuple[str, ...]:
+    return tuple(
+        match.group(1).strip()
+        for match in re.finditer(r"^\s+run:\s+(\S.*)$", block, re.MULTILINE)
+    )
 
 
 def _authority() -> dict[str, Any]:
@@ -827,15 +881,23 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
 
 def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> None:
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
-    dev_image_job = workflow.partition("\n  dev-image:")[2]
-    run_commands = tuple(
-        line.partition("run:")[2].strip()
-        for line in workflow.splitlines()
-        if re.match(r"^\s+run:\s+\S", line)
+    jobs = _workflow_job_blocks(workflow)
+    assert {"preflight", "canonical", "dev-image"} <= set(jobs)
+    assert _yaml_scalar(jobs["preflight"], "name") == "Fast preflight"
+    assert _yaml_scalar(jobs["canonical"], "name") == "Canonical environment"
+    assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
+    assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
+    assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
+
+    assert _inline_run_commands(jobs["preflight"]) == (
+        "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/preflight.sh",
     )
-    assert run_commands == (
+    assert _inline_run_commands(jobs["canonical"]) == (
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
+    )
+    assert _inline_run_commands(jobs["dev-image"]) == (
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
     )
     assert "runs-on: ubuntu-24.04" in workflow
@@ -852,32 +914,76 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "no-cache: true" in workflow
     assert "pull: true" in workflow
     assert "load: true" in workflow
-    assert dev_image_job.index("docker/build-push-action") < dev_image_job.index(
-        "./scripts/dev/verify_image.sh"
-    )
-    assert "continue-on-error" not in dev_image_job
     assert (
-        workflow.count("ref: ${{ github.event.pull_request.head.sha || github.sha }}")
-        == 2
+        "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+        in jobs["canonical"]
     )
-    assert workflow.count("fetch-depth: 0") == 2
-    assert (
-        workflow.count(
-            "QUALITY_BASE_SHA: "
-            "${{ github.event.pull_request.base.sha || github.event.before }}"
+    assert "name: quality-inventory" in jobs["canonical"]
+    assert "path: .carbon-artifacts/quality.json" in jobs["canonical"]
+    assert jobs["dev-image"].index("docker/build-push-action") < jobs[
+        "dev-image"
+    ].index("./scripts/dev/verify_image.sh")
+    for job_id in ("preflight", "canonical", "dev-image"):
+        assert "continue-on-error" not in jobs[job_id]
+    for job_id in ("preflight", "canonical", "dev-image"):
+        assert (
+            jobs[job_id].count(
+                "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
+            )
+            == 1
         )
-        == 2
+        assert jobs[job_id].count("fetch-depth: 0") == 1
+        assert (
+            jobs[job_id].count(
+                "QUALITY_BASE_SHA: "
+                "${{ github.event.pull_request.base.sha || github.event.before }}"
+            )
+            == 1
+        )
+
+    trigger_contract = workflow.partition("\njobs:")[0]
+    assert "pull_request:" in trigger_contract
+    assert "branches: [main]" in trigger_contract
+    assert "paths:" not in trigger_contract
+    assert "paths-ignore:" not in trigger_contract
+    assert "concurrency:" not in trigger_contract
+
+
+def test_fast_preflight_owns_the_cheap_fail_closed_gate() -> None:
+    preflight = PREFLIGHT_PATH.read_text(encoding="utf-8")
+    preflight_index = _run_git("ls-files", "--stage", "scripts/dev/preflight.sh")
+    assert preflight_index.startswith("100755 ")
+    required_in_order = (
+        "set -euo pipefail",
+        'echo "==> environment doctor"',
+        "./scripts/dev/doctor.sh",
+        'echo "==> quality ratchet"',
+        "scripts/check_quality.py",
+        "--baseline .ci/quality-baseline.json",
+        '--base "${quality_base}"',
+        'echo "==> committed and local Git diff hygiene"',
+        "scripts/dev/check_diff_hygiene.py",
+        'echo "Carbon fast preflight gates passed."',
     )
+    positions = tuple(preflight.index(fragment) for fragment in required_in_order)
+    assert positions == tuple(sorted(positions))
+    assert '--report "${artifact_dir}/quality.json"' in preflight
+    assert "pytest" not in preflight
+    assert "./scripts/dev/test.sh" not in preflight
+    assert "verify_image.sh" not in preflight
+    assert "docker" not in preflight.lower()
+    assert "|| true" not in preflight
+
+    retired_paths = _authority()["retired"]["executable_paths"]
+    assert [path for path in retired_paths if path in preflight] == []
 
 
 def test_default_ci_script_invokes_no_archived_path() -> None:
-    ci_source = (REPOSITORY_ROOT / "scripts" / "dev" / "ci.sh").read_text(
-        encoding="utf-8"
-    )
+    ci_source = CI_PATH.read_text(encoding="utf-8")
+    preflight_source = PREFLIGHT_PATH.read_text(encoding="utf-8")
     required_in_order = (
-        'echo "==> environment doctor"',
-        'echo "==> quality ratchet"',
-        'echo "==> committed and local Git diff hygiene"',
+        'echo "==> fast preflight"',
+        "./scripts/dev/preflight.sh",
         'echo "==> invariant lane"',
         'echo "==> default CPU lane"',
         'echo "==> package, wheel, and outside-tree lane"',
@@ -886,14 +992,17 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
     )
     positions = tuple(ci_source.index(fragment) for fragment in required_in_order)
     retired_paths = _authority()["retired"]["executable_paths"]
-    violations = [path for path in retired_paths if path in ci_source]
+    violations = [
+        path for path in retired_paths if path in ci_source or path in preflight_source
+    ]
     assert positions == tuple(sorted(positions))
     assert violations == []
     assert "tests/invariants" in ci_source
     assert "./scripts/dev/test.sh" in ci_source
-    assert "scripts/check_quality.py" in ci_source
+    assert "scripts/check_quality.py" in preflight_source
+    assert "scripts/dev/check_diff_hygiene.py" in preflight_source
     assert "scripts/dev/check_diff_hygiene.py" in ci_source
-    assert '--base "${quality_base}"' in ci_source
+    assert '--base "${quality_base_ref}"' in ci_source
     assert "\ngit diff --check\n" not in ci_source
     assert "tests/cpu/test_package_installation.py" in ci_source
     assert "tests/cpu/test_code_authority.py" in ci_source

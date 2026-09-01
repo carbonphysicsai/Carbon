@@ -74,8 +74,9 @@ engineering gates are valid.
 |---|---|
 | `./scripts/dev/bootstrap.sh` | Installs the exact repository Python through pinned uv and synchronizes the locked groups. |
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
+| `./scripts/dev/preflight.sh` | Runs the environment doctor, quality ratchet, and committed/staged/unstaged diff hygiene. GitHub uses it as the fast upstream gate; it does not replace full acceptance. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
-| `./scripts/dev/ci.sh` | Runs doctor, the quality and diff-hygiene preflight, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
+| `./scripts/dev/ci.sh` | Runs `preflight.sh`, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
 | `./scripts/dev/shell.sh` | Opens Bash with Carbon's project environment selected. |
 
 Do not replace these commands with ticket-specific remembered sequences.
@@ -169,7 +170,20 @@ Open the repository in the Carbon Dev Container / WSL2 environment.
 
 ## Local and GitHub parity
 
-The GitHub workflow is intentionally orchestration-only:
+The GitHub workflow is intentionally orchestration-only. On a pull request,
+one cheap dependency gate runs before either full acceptance job:
+
+```text
+fast-preflight job on an ubuntu-24.04 runner
+    -> exact candidate checkout with complete comparison history
+    -> pinned uv 0.12.7
+    -> ./scripts/dev/bootstrap.sh
+    -> ./scripts/dev/preflight.sh
+       (doctor -> quality ratchet -> committed/staged/unstaged diff hygiene)
+    -> PASS unlocks both full jobs; failure leaves both unstarted
+```
+
+After preflight passes, the two full jobs run independently:
 
 ```text
 canonical job on an ubuntu-24.04 runner
@@ -195,12 +209,19 @@ Carbon Dev Container
     -> ./scripts/dev/ci.sh
 ```
 
-Test semantics live in `scripts/dev/ci.sh`, not duplicated workflow YAML.
+Full acceptance semantics live in `scripts/dev/ci.sh`, and the cheap gate lives
+in `scripts/dev/preflight.sh`; neither is duplicated in workflow YAML. Because
+`ci.sh` calls `preflight.sh` first, direct canonical acceptance and both GitHub
+full jobs rerun quality and diff hygiene as part of their self-contained proof.
 The workflow fetches complete history so the quality comparison and immutable
 archive-tag boundary can be verified at the exact candidate head. The separate
 clean-image job proves the pinned dev-container definition is runnable as its
 configured non-root user and can execute the same repository-controlled gates;
 a successful Docker build alone is not runnable-container evidence.
+
+The fast preflight is engineering triage only. Its success does not replace
+either full acceptance path and does not establish scientific, runtime,
+security, network, economic, `LIVE`, launch, or production qualification.
 
 ## Supported troubleshooting
 

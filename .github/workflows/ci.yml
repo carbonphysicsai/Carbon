@@ -10,8 +10,36 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    name: Fast preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Bootstrap locked Carbon environment
+        run: ./scripts/dev/bootstrap.sh
+
+      - name: Run fast repository preflight
+        env:
+          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CARBON_ARTIFACT_DIR: .carbon-artifacts
+        run: ./scripts/dev/preflight.sh
+
   canonical:
     name: Canonical environment
+    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -47,6 +75,7 @@ jobs:
 
   dev-image:
     name: Clean dev-container image
+    needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
