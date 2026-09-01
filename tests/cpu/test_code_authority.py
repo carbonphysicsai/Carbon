@@ -1060,7 +1060,26 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "--repository .carbon-gate-candidate" in workflow
     assert '[[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]' in workflow
     assert '[[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]' in workflow
-    assert "BOOTSTRAP_BASE_SHA: c6302c7136fc5fa984b03660116f7daa7e3e3e48" in workflow
+    assert workflow.count("BOOTSTRAP_BASE_SHA:") == 1
+    assert "BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade" in workflow
+    assert "c6302c7136fc5fa984b03660116f7daa7e3e3e48" not in workflow
+    candidate_gate = "gate=.carbon-gate-candidate/scripts/dev/check_merge_gate.py"
+    candidate_classifier = (
+        "classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py"
+    )
+    assert workflow.count(candidate_gate) == 1
+    assert workflow.count(candidate_classifier) == 1
+    bootstrap_selector = (
+        'elif [[ "${BASE_SHA}" == "${BOOTSTRAP_BASE_SHA}"'
+        " && -f .carbon-gate-candidate/scripts/dev/check_merge_gate.py"
+        " && -f .carbon-gate-candidate/scripts/dev/classify_changes.py ]]; then\n"
+        f"            {candidate_gate}\n"
+        f"            {candidate_classifier}\n"
+        '            echo "Using the one-time B-01F bootstrap Merge gate implementation."\n'
+        '            echo "Using the one-time B-01F bootstrap change classifier."\n'
+        "          else"
+    )
+    assert bootstrap_selector in workflow
     assert '--scope "${derived_scope}"' in workflow
     assert '--scope "${{ needs.preflight.outputs.change_scope }}"' not in workflow
     assert "Using exact protected-base Merge gate implementation" in workflow

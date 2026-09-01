@@ -283,7 +283,7 @@ jobs:
           BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
           PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
-          BOOTSTRAP_BASE_SHA: c6302c7136fc5fa984b03660116f7daa7e3e3e48
+          BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
         run: |
           set -euo pipefail
           [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
