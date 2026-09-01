@@ -18,9 +18,9 @@ P0 starts deliberately narrower: bounded neural-operator training-strategy searc
 
 ## Development Hub
 
-New contributors can start with the [Carbon Development Hub](docs/development/carbon_hub/index.html), a static-first map of what Carbon is building, why the Wave A-N sequence exists, where the current Wave B/B-03 work sits, and how proposed changes route back to repository authority.
+New contributors can start with [Development Hub: Start Here](docs/development/carbon_hub/orientation/START_HERE.md), the GitHub-readable guide to what Carbon is building, why the Wave A-N sequence exists, where the current work sits, and how proposed changes route back to repository authority.
 
-- [Start Here](docs/development/carbon_hub/orientation/START_HERE.md) explains waves, tickets, decisions, PRs, evidence, and maturity in plain language.
+- [Local or hosted HTML build](docs/development/carbon_hub/index.html) contains the complete static Hub for use after cloning or through a configured static host. GitHub's file view is not a hosted Hub application.
 - [Hub maintenance contract](docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md) defines ticket-start placement, update triggers, regeneration, validation, and PR impact reporting.
 - [Development environment](docs/DEVELOPMENT.md) remains the canonical setup and execution guide.
 

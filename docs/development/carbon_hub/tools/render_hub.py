@@ -112,6 +112,41 @@ def artifact_coverage(ticket: dict[str, Any]) -> str:
     return "<ul>" + "".join(rows) + "</ul>"
 
 
+def ordered_unique(values: Iterable[object]) -> list[str]:
+    """Return source-ordered, stringified values without duplicates."""
+    return list(dict.fromkeys(str(value) for value in values))
+
+
+def ticket_wave_ids(data: dict[str, Any]) -> list[str]:
+    """Return only waves represented by the captured ticket inventory."""
+    return ordered_unique(ticket["wave"] for ticket in data["tickets"])
+
+
+def human_join(values: Iterable[object]) -> str:
+    rendered = [str(value) for value in values]
+    if not rendered:
+        return "none"
+    if len(rendered) == 1:
+        return rendered[0]
+    if len(rendered) == 2:
+        return f"{rendered[0]} and {rendered[1]}"
+    return f"{', '.join(rendered[:-1])}, and {rendered[-1]}"
+
+
+def ticket_inventory_label(data: dict[str, Any]) -> str:
+    return human_join(f"Wave {wave_id}" for wave_id in ticket_wave_ids(data))
+
+
+def wave_status_summary(data: dict[str, Any]) -> str:
+    current_wave = data["current"]["wave"]
+    return (
+        "Closed waves remain closed only in their recorded bounded scopes. "
+        f"Wave {current_wave} is active only through its controlling board and "
+        "selected ticket. Planned waves remain planning context, not implementation "
+        "permission."
+    )
+
+
 CSS = r"""
 :root{--ink:#182326;--muted:#586a70;--paper:#f4f6f5;--panel:#fff;--line:#ccd6d9;--dark:#101a1e;--blue:#155f88;--blue-soft:#e7f2f8;--green:#176847;--green-soft:#e5f3eb;--amber:#8b4d00;--amber-soft:#fff0d6;--red:#943838;--shadow:0 10px 30px rgba(16,29,35,.08);--radius:18px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}a{color:#075c89;text-decoration-thickness:.09em;text-underline-offset:.16em;overflow-wrap:anywhere}:focus-visible{outline:3px solid #f0a236;outline-offset:3px;border-radius:4px}.skip{position:absolute;top:-5rem;left:1rem;background:#fff;color:#000;padding:.8rem 1rem;z-index:100}.skip:focus{top:1rem}.hero{background:var(--dark);color:#fff;padding:2.5rem max(1.2rem,calc((100vw - 1420px)/2))}.hero h1{font-size:clamp(2.2rem,6vw,4.7rem);line-height:1;letter-spacing:-.045em;margin:.5rem 0 1rem}.hero p{max-width:1000px;color:#cfdbdf}.eyebrow{font-size:.75rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:#a9d8f3}.nav{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line)}.nav ul{max-width:1420px;margin:0 auto;padding:.7rem 1.2rem;display:flex;gap:.35rem;overflow-x:auto;list-style:none}.nav a{display:block;padding:.5rem .65rem;border-radius:8px;color:var(--ink);font-weight:700;text-decoration:none;white-space:nowrap}.nav a:hover{background:var(--blue-soft)}main{max-width:1420px;margin:auto;padding:1.4rem 1.2rem 5rem}.section{scroll-margin-top:5rem;margin:1.5rem 0;padding:clamp(1rem,3vw,2rem);background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}.section>h2{font-size:clamp(1.7rem,3vw,2.5rem);line-height:1.1;margin:.2rem 0 .5rem}.lede{font-size:1.08rem;color:var(--muted);max-width:1100px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem}.card{min-width:0;padding:1.1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.card h3{line-height:1.2;margin:.15rem 0 .5rem}.card h4{margin:1rem 0 .25rem}.current{background:linear-gradient(135deg,var(--dark),#1c333c);color:#fff}.current a{color:#abe0ff}.current .card{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}.current .muted{color:#c7d4d8}.status{display:inline-block;padding:.18rem .55rem;border-radius:999px;background:#e9edef;color:#34464c;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;font-weight:850}.status.closed,.status.done{background:var(--green-soft);color:var(--green)}.status.active,.status.in_progress{background:var(--amber-soft);color:var(--amber)}.badge{display:inline-block;padding:.18rem .5rem;margin:.12rem;border:1px solid var(--line);border-radius:999px;background:#f7f9f9;font-size:.82rem}.muted{color:var(--muted)}.boundary{border-left:4px solid var(--amber);background:var(--amber-soft);padding:.8rem 1rem;border-radius:0 10px 10px 0}.fail{border-left:4px solid var(--red);background:#fae9e9;color:var(--ink);padding:.8rem 1rem;border-radius:0 10px 10px 0}.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.55rem;margin:.8rem 0}.meta div{padding:.55rem .7rem;border-radius:9px;background:#eef3f4}.current .meta div{background:rgba(255,255,255,.1)}.meta strong{display:block;text-transform:uppercase;letter-spacing:.05em;font-size:.72rem;color:var(--muted)}.current .meta strong{color:#bfd0d6}.wave{border-top:5px solid #96a5aa}.wave.closed{border-top-color:var(--green)}.wave.active{border-top-color:#d7871a}.ticket{border-left:5px solid #96a5aa}.ticket.done{border-left-color:var(--green)}.ticket.in_progress{border-left-color:#d7871a}.links{padding-left:1.1rem}.links li{margin:.25rem 0}code{padding:.08rem .28rem;background:#edf1f2;border-radius:5px;overflow-wrap:anywhere}.current code{background:rgba(255,255,255,.13)}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{text-align:left;vertical-align:top;padding:.65rem;border-bottom:1px solid var(--line)}th{background:#eef3f4}.footer{padding:2rem max(1.2rem,calc((100vw - 1420px)/2));background:var(--dark);color:#d6e0e3}.footer a{color:#abe0ff}@media(max-width:700px){.nav{position:static}.nav ul{flex-wrap:wrap}.hero{padding:1.6rem 1rem}.hero h1{font-size:2.45rem}.section{padding:1rem;border-radius:12px}.grid,.meta{grid-template-columns:1fr}th,td{min-width:10rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}@media print{.nav{position:static}.section{box-shadow:none}.hero{background:#fff;color:#000}.hero p{color:#333}}
 """
@@ -119,6 +154,10 @@ CSS = r"""
 
 def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     meta, current = data["meta"], data["current"]
+    ticket_waves = ticket_inventory_label(data)
+    wave_summary = wave_status_summary(data)
+    snapshot_commit = str(meta["authority_snapshot_commit"])
+    snapshot_short = snapshot_commit[:8]
     nav_items = (
         ("start", "Start here"),
         ("current", "Current"),
@@ -237,19 +276,19 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
         for item in data["glossary"]
     )
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="description" content="Carbon Development Hub: static-first orientation, map, router, and repository handoff."><title>Carbon Development Hub v{esc(meta["version"])}</title><style>{CSS}</style></head><body><a class="skip" href="#main-content">Skip to main content</a><header class="hero"><p class="eyebrow">Orientation layer · repository authority remains controlling</p><h1>Carbon Development Hub</h1><p>{esc(meta["purpose"])}</p><p>Version {esc(meta["version"])} · snapshot <strong>{esc(meta["commit_short"])}</strong> on <strong>{esc(meta["branch"])}</strong> · captured {esc(meta["captured_at_utc"])}</p></header><nav class="nav" aria-label="Development Hub sections"><ul>{nav}</ul></nav><main id="main-content">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="description" content="Carbon Development Hub: static-first orientation, map, router, and repository handoff."><title>Carbon Development Hub v{esc(meta["version"])}</title><style>{CSS}</style></head><body><a class="skip" href="#main-content">Skip to main content</a><header class="hero"><p class="eyebrow">Orientation layer · repository authority remains controlling</p><h1>Carbon Development Hub</h1><p>{esc(meta["purpose"])}</p><p>Version {esc(meta["version"])} · authority snapshot <strong>{esc(snapshot_short)}</strong> on <strong>{esc(meta["branch"])}</strong> · captured {esc(meta["captured_at_utc"])}</p></header><nav class="nav" aria-label="Development Hub sections"><ul>{nav}</ul></nav><main id="main-content">
 <section class="section" id="start"><p class="eyebrow">New to Carbon</p><h2>Understand the layers before changing the system</h2><p class="lede">The hub answers what, why, where, status, dependency, and handoff. The repository owns how, exact semantics, code, review, tests, evidence, and implementation authority.</p><div class="grid">{orientation_html}</div><p class="boundary"><strong>Core rule:</strong> Carbon may widen what participants and agents can discover without changing who controls the official grade. The exam must be qualified before it may qualify candidates.</p></section>
-<section class="section current" id="current"><p class="eyebrow">Captured repository position</p><h2>Wave {esc(current["wave"])} · {esc(current["ticket"])}</h2><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; ticket <strong>{esc(current["ticket_status"])}</strong>.</p><p class="muted">{esc(current["maturity_ceiling"])}</p></article><article class="card"><h3>Completed direct dependency</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave B context: {badges(current["other_completed_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">None is selected next; every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}<p class="muted">Next selected ticket: {esc(current["next_selected_ticket"] or "none captured")}</p></article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></section>
-<section class="section" id="waves"><p class="eyebrow">Development sequence</p><h2>Wave A through Wave N</h2><p class="lede">Wave A is closed only in its recorded bounded engineering scope. Wave B is active only through its controlling board and selected ticket. Later waves are planning context, not implementation permission.</p><div class="grid">{"".join(wave_cards)}</div></section>
-<section class="section" id="tickets"><p class="eyebrow">Captured ticket map</p><h2>Wave A and Wave B tickets</h2><p class="lede">Each explainer shows placement and purpose. Repository records remain authoritative; unsupported artifact links are marked missing or future.</p><div class="grid">{"".join(ticket_cards)}</div></section>
+<section class="section current" id="current"><p class="eyebrow">Captured repository position</p><h2>Wave {esc(current["wave"])} · {esc(current["ticket"])}</h2><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; ticket <strong>{esc(current["ticket_status"])}</strong>.</p><p class="muted">{esc(current["maturity_summary"])}</p></article><article class="card"><h3>Completed direct dependency</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave {esc(current["wave"])} context: {badges(current["other_completed_wave_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">Every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}<p class="muted">Next selected ticket: {esc(current["next_selected_ticket"] or "none captured")}</p></article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></section>
+<section class="section" id="waves"><p class="eyebrow">Development sequence</p><h2>Wave {esc(waves[0]["id"])} through Wave {esc(waves[-1]["id"])}</h2><p class="lede">{esc(wave_summary)}</p><div class="grid">{"".join(wave_cards)}</div></section>
+<section class="section" id="tickets"><p class="eyebrow">Captured ticket map</p><h2>Captured tickets across {esc(ticket_waves)}</h2><p class="lede">Each explainer shows placement and purpose. Repository records remain authoritative; unsupported artifact links are marked missing or future.</p><div class="grid">{"".join(ticket_cards)}</div></section>
 <section class="section" id="changes"><p class="eyebrow">Protocol-change router</p><h2>Place the change before implementing it</h2><p class="lede">Choose the layer that owns the meaning. Routing does not activate a later wave or authorize work outside the selected ticket.</p><div class="grid">{"".join(route_cards)}</div></section>
 <section class="section" id="decisions"><p class="eyebrow">Asynchronous oversight</p><h2>Decision routing and supersession</h2><div class="grid"><article class="card"><h3>SciML and technical lane</h3><p>Material SciML and technical decisions route to <a href="{esc(data["sources"]["harsh_inbox"]["url"])}" target="_blank" rel="noopener noreferrer">issue #42</a> and mention <code>@harshaa765</code>.</p></article><article class="card"><h3>Owner lane</h3><p>Owner-reserved choices and decisions explicitly deferred by a lead route to <a href="{esc(data["sources"]["owner_inbox"]["url"])}" target="_blank" rel="noopener noreferrer">issue #41</a>.</p></article><article class="card"><h3>Complete notification</h3><p>Include recommendation, rationale, implementation location, rejected alternatives, downstream effects, reversibility, unresolved reserved inputs, and exact change path.</p></article><article class="card"><h3>Preserve history</h3><p>Notification gives visibility, not authority. Silence does not grant scientific, security, legal, economic, launch, LIVE, or production authority. Later changes supersede; current merged authority controls.</p></article></div></section>
 <section class="section" id="events"><p class="eyebrow">Concise map history</p><h2>Change events</h2><p class="lede">Events capture material changes to team understanding, placement, status, dependency, boundaries, maturity, risk, or primary links. Detailed discussion stays in repository records.</p><div class="grid">{"".join(event_cards)}</div></section>
 <section class="section" id="maturity"><p class="eyebrow">Independent states</p><h2>Eight maturity dimensions</h2><p class="lede">Never infer a later state from an earlier one.</p><div class="table-wrap"><table><thead><tr><th>State</th><th>Meaning</th><th>Required proof</th><th>Does not imply</th></tr></thead><tbody>{maturity_rows}</tbody></table></div></section>
 <section class="section" id="glossary"><p class="eyebrow">Plain-language reference</p><h2>Glossary</h2><div class="grid">{glossary}</div></section>
 <section class="section" id="sources"><p class="eyebrow">Repository handoff</p><h2>Where authority lives</h2><p class="lede">These links are pinned to the captured commit where possible. They load only when deliberately opened; this primary page requests no remote resource.</p>{links_html(data["sources"].values())}<p><a href="interactive.html">Open the optional interactive hub</a>.</p></section>
-<section class="section" id="publication"><p class="eyebrow">Owner-controlled publication</p><h2>Hosting boundary</h2><p>Open <code>index.html</code> through <code>file://</code>, or run <code>python tools/serve_hub.py</code>. GitHub Pages is manual by default; automatic deployment remains disabled unless the owner sets <code>CARBON_HUB_PUBLISH=true</code>. Enabling Pages publishes this hub publicly. Future internal-only content belongs on an access-controlled static host and must never contain secrets, credentials, hidden evaluation material, or customer-confidential data.</p></section>
-</main><footer class="footer"><p><strong>Authority ceiling:</strong> {esc(meta["authority_notice"])}</p><p>Generated from the two JSON source records. Snapshot <a href="{esc(meta["repository"])}/commit/{esc(meta["commit"])}" target="_blank" rel="noopener noreferrer">{esc(meta["commit_short"])}</a>.</p></footer></body></html>
+<section class="section" id="publication"><p class="eyebrow">Maintainer-controlled publication</p><h2>Hosting boundary</h2><p>Open <code>index.html</code> through <code>file://</code>, or run <code>python tools/serve_hub.py</code>. Manual GitHub Pages publication is available to authorized repository maintainers. The workflow does not itself enforce owner approval; if desired, a required reviewer on the <code>github-pages</code> environment is a separate human-controlled repository setting. Automatic publication remains disabled unless <code>CARBON_HUB_PUBLISH=true</code>. This Hub integration neither enables Pages nor changes repository settings. Enabling Pages publishes the Hub publicly.</p></section>
+</main><footer class="footer"><p><strong>Authority ceiling:</strong> {esc(meta["authority_notice"])}</p><p>Generated from the two JSON source records. Authority snapshot <a href="{esc(meta["repository"])}/commit/{esc(snapshot_commit)}" target="_blank" rel="noopener noreferrer">{esc(snapshot_short)}</a>.</p></footer></body></html>
 """
 
 
@@ -259,6 +298,16 @@ def render_interactive(data: dict[str, Any], events: list[dict[str, Any]]) -> st
         raise SystemExit(
             "Interactive template must contain exactly one __HUB_DATA__ marker"
         )
+    for marker in ("__CURRENT_POSITION__", "__CURRENT_STAGE__"):
+        if template.count(marker) != 1:
+            raise SystemExit(
+                f"Interactive template must contain exactly one {marker} marker"
+            )
+    current = data["current"]
+    template = template.replace(
+        "__CURRENT_POSITION__",
+        f"Wave {esc(current['wave'])} / {esc(current['ticket'])}",
+    ).replace("__CURRENT_STAGE__", esc(current["stage"]))
     interactive_data = {**data, "change_events": events}
     payload = json.dumps(
         interactive_data, ensure_ascii=False, separators=(",", ":")
@@ -275,7 +324,8 @@ def render_interactive(data: dict[str, Any], events: list[dict[str, Any]]) -> st
     captured = (
         str(data["meta"]["captured_at_utc"]).replace("T", " ").replace("Z", " UTC")
     )
-    snapshot = f'<div class="snapshot"><strong>Snapshot {esc(data["meta"]["commit_short"])}</strong>{esc(data["meta"]["branch"])} · {esc(captured)}</div>'
+    snapshot_commit = str(data["meta"]["authority_snapshot_commit"])
+    snapshot = f'<div class="snapshot"><strong>Authority snapshot {esc(snapshot_commit[:8])}</strong>{esc(data["meta"]["branch"])} · {esc(captured)}</div>'
     result, count = re.subn(
         r'<div class="snapshot">.*?</div>', snapshot, result, count=1, flags=re.DOTALL
     )
@@ -438,7 +488,7 @@ does not prove.
 - **Current wave:** Wave {current["wave"]} — {current["wave_title"]}
 - **Current ticket:** {current["ticket"]} — {current["ticket_title"]}
 - **Current stage:** {current["stage"]}
-- **Captured maturity ceiling:** {current["maturity_ceiling"]}
+- **Captured maturity:** {current["maturity_summary"]}
 
 ## How to use the hub
 
@@ -465,7 +515,7 @@ settlement, weight, or emission claim.
 
 {links_markdown(data["sources"].values())}
 
-Snapshot: `{data["meta"]["commit_short"]}` on `{data["meta"]["branch"]}`,
+Authority snapshot: `{data["meta"]["authority_snapshot_commit"][:8]}` on `{data["meta"]["branch"]}`,
 captured {data["meta"]["captured_at_utc"]}.
 """
 
@@ -479,7 +529,7 @@ def render_change_routing(data: dict[str, Any]) -> str:
     for route in data["change_paths"]:
         tickets = (
             ", ".join(route["tickets"])
-            or "No current Wave B ticket anchor is captured."
+            or f"No current Wave {data['current']['wave']} ticket anchor is captured."
         )
         sections += [
             "",
@@ -536,7 +586,7 @@ def render_compact(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
         "",
         f"**Purpose:** {meta['purpose']}",
         "",
-        f"**Snapshot:** `{meta['commit']}` on `{meta['branch']}`, captured {meta['captured_at_utc']}.",
+        f"**Authority snapshot:** `{meta['authority_snapshot_commit']}` on `{meta['branch']}`, captured {meta['captured_at_utc']}.",
         f"**Current:** Wave {current['wave']}, ticket {current['ticket']}. {current['stage']}",
         "",
         "## Wave spine",
@@ -575,16 +625,20 @@ def render_compact(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
 
 def render_readme(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     current = data["current"]
+    waves = data["waves"]
+    ticket_waves = ticket_inventory_label(data)
     return f"""# Carbon Development Hub v2.1
 
 Carbon's static-first, non-repository orientation and navigation layer.
 
-Open **`index.html`** first. It contains the complete core hub as semantic HTML, has no script element or automatic remote resource, and works through `file://` or a basic static server. `interactive.html` is optional.
+When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the primary repository-readable orientation entry.
+
+**`index.html`** is the complete local or hosted static Hub build after cloning or through a configured static host. GitHub's file view is not a hosted Hub application. The page has no script element or automatic remote resource and works through `file://` or a basic static server. `interactive.html` is optional.
 
 ## Inventory
 
-- {len(data["waves"])} waves (A-N)
-- {len(data["tickets"])} captured Wave A/B tickets
+- {len(waves)} waves ({waves[0]["id"]}-{waves[-1]["id"]})
+- {len(data["tickets"])} captured tickets across {ticket_waves}
 - {len(data["change_paths"])} protocol-change routes
 - {len(events)} map-level change events
 - {len(data["maturity"])} independent maturity states
@@ -608,7 +662,7 @@ node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py
 ```
 
-The hub explains and routes; repository authority controls implementation and evidence. GitHub Pages is owner-controlled and public when enabled.
+The hub explains and routes; repository authority controls implementation and evidence. Manual Pages publication is available to authorized maintainers, but the workflow does not itself enforce owner approval. A required reviewer on the `github-pages` environment, if desired, is a separate human-controlled repository setting. Pages is public when enabled; this integration does not enable it or change settings.
 """
 
 

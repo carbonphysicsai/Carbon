@@ -52,8 +52,8 @@ Route a new physical job from authored semantics through real integration and hu
 
 ### Repository authority
 
-- [Scientific Challenge Authoring Contract](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Scientific_Challenge_Authoring_Contract.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/.agent/WAVE_B.md)
+- [Scientific Challenge Authoring Contract](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Scientific_Challenge_Authoring_Contract.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/.agent/WAVE_B.md)
 
 > This route explains placement. The active wave board must authorize the exact implementation sequence.
 
@@ -100,8 +100,8 @@ Place architecture work according to whether it changes a bounded catalog compon
 
 ### Repository authority
 
-- [Candidate Assembly and Strategy Compiler Contract](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Candidate Assembly and Strategy Compiler Contract](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Wave B may expose bounded, Challenge-owned structural components. Broad model-family neutrality belongs to Wave J, and arbitrary construction programs remain later-wave work.
 
@@ -149,8 +149,8 @@ Route prior work through immutable schema, publication controls, deterministic p
 
 ### Repository authority
 
-- [Wave B Miner MCP Research Contract](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Miner_MCP_Wave_B_Research_Contract.md)
-- [Research Resource Policy Contract](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Research_Resource_Policy_Contract.md)
+- [Wave B Miner MCP Research Contract](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Miner_MCP_Wave_B_Research_Contract.md)
+- [Research Resource Policy Contract](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Research_Resource_Policy_Contract.md)
 
 > Wave B priors remain immutable Challenge-level artifacts. Server-side personalization and qualified learned public publication are not active capabilities.
 
@@ -195,8 +195,8 @@ Route truth assets, primary and witness roles, uncertainty, access, typed failur
 
 ### Repository authority
 
-- [Julia truth-oracle runtime](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Runtime_Julia_Truth_Oracle.md)
-- [Evidence and Envelope Standards](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Evidence_and_Envelope_Standards.md)
+- [Julia truth-oracle runtime](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Runtime_Julia_Truth_Oracle.md)
+- [Evidence and Envelope Standards](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Evidence_and_Envelope_Standards.md)
 
 > A successful solver run is not reference qualification. Missing or failed truth remains typed and fail closed.
 
@@ -243,8 +243,8 @@ Keep measurement definition, uncertainty, Score Pack evidence use, admissibility
 
 ### Repository authority
 
-- [Scoring specification](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Scoring.md)
-- [Evaluation Evidence and Validator Audit](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Design_Specs/Evaluation_Evidence_and_Validator_Audit.md)
+- [Scoring specification](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Scoring.md)
+- [Evaluation Evidence and Validator Audit](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Design_Specs/Evaluation_Evidence_and_Validator_Audit.md)
 
 > Customer payment, sponsor size, economic policy, prior similarity, and mock or practice metrics cannot enter official score unless a future registered scientific contract gives a metric a legitimate scientific role.
 
@@ -289,8 +289,8 @@ Attach the defect to the ticket that owns the violated contract, then preserve t
 
 ### Repository authority
 
-- [Always-on invariants](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/.agent/INVARIANTS.md)
-- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/.agent/DECISIONS.md)
+- [Always-on invariants](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/.agent/INVARIANTS.md)
+- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/.agent/DECISIONS.md)
 
 > Post-merge history stays intact. Record the correction or superseding decision rather than editing evidence to hide the original defect.
 
@@ -336,7 +336,7 @@ Route customer-facing capability through rights, privacy, truth access, delivery
 
 ### Repository authority
 
-- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Business/Business_Canon.md)
-- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/b86daa5d8b0f8b3e86bb82c2661f405747a200df/Business/Commercial_Operating_Model.md)
+- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Business/Business_Canon.md)
+- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/bd479bf478fee193d9d81dec34a5b73bf623a098/Business/Commercial_Operating_Model.md)
 
 > The business canon permits these product directions, but Carbon cannot sell a mode as implemented until technical and contractual qualification exists.

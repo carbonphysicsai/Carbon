@@ -1,11 +1,11 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-08-31T21:15:10Z"
+  captured_at_utc: "2026-09-01T01:04:23Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  commit: "b86daa5d8b0f8b3e86bb82c2661f405747a200df"
-  commit_short: "b86daa5d"
+  authority_snapshot_commit: "bd479bf478fee193d9d81dec34a5b73bf623a098"
+  hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
 current:
@@ -15,23 +15,26 @@ current:
   ticket: "B-03"
   ticket_title: "Generator API and fixed-viscosity Burgers fixture"
   ticket_status: "in_progress"
+  controlling_register: ".agent/WAVE_B.md"
+  controlling_register_version: "0.9"
+  controlling_board_fingerprint: "beb86366f9a99bbea0aed9159bb2ccb97e365b223a50c6ece319cdc63239cad5"
   stage: "The working engineering contract merged in PR #67 and exact-main CI passed; runtime implementation remains selected and had not started in the captured repository state."
-  closed_wave: "A"
-  completed_b_tickets:
+  most_recent_closed_wave: "A"
+  completed_wave_tickets:
     - "B-01"
     - "B-01E"
     - "B-02A"
-    - "B-07R"
     - "B-02B"
     - "B-02C"
+    - "B-07R"
   recent_dependencies:
     - "B-02A"
-  other_completed_context:
+  other_completed_wave_context:
     - "B-01"
     - "B-01E"
-    - "B-07R"
     - "B-02B"
     - "B-02C"
+    - "B-07R"
   downstream_handoffs:
     - "B-06"
     - "B-07C"
@@ -45,7 +48,16 @@ current:
     - "The conformance estimand, threshold, and qualification evidence remain HUMAN_INPUT or otherwise unavailable."
     - "Production entropy, reference truth, censoring policy, and exact LIVE activation remain unavailable."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
-  maturity_ceiling: "SPECIFIED for the merged B-03 working contract; runtime implementation was not yet captured. Every qualification state remains unearned."
+  maturity_states:
+    specified: "earned"
+    implemented: "unearned"
+    tested: "unearned"
+    scientifically_qualified: "unearned"
+    security_qualified: "unearned"
+    network_qualified: "unearned"
+    commercially_validated: "unearned"
+    production_qualified: "unearned"
+  maturity_summary: "The merged B-03 working contract is specified. Runtime implementation and every qualification state remain unearned in the captured authority snapshot."
   decision_series_status: "B-03-D1 through B-03-D8 remain preserved as conditional working-decision records in the captured tree; PR #67 and exact-main run 33407394333 provide the external merge/CI evidence, while runtime implementation remains uncaptured."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -1203,6 +1215,26 @@ events:
       - "SYSTEM/CI"
       - "SYSTEM/PUBLICATION"
     supersedes: null
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    event_type: "adjustment"
+    event_id: "HUB-ADJ-002"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval."
+    primary_detail: "docs/development/carbon_hub/tools/validate_hub.py"
+    affects:
+      - "WAVE-B/B-03"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/CI"
+      - "SYSTEM/PR-MAINTENANCE"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PUBLICATION"
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/PUBLICATION-AUTHORITY"
+    supersedes: "HUB-ADJ-001"
 event_schema:
   map_ref: "WAVE-B/B-03"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

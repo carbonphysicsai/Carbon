@@ -33,10 +33,8 @@ from typing import Any
 
 from serve_hub import HUB_ROOT, create_server
 
-EXPECTED_PRIMARY_TEXT: dict[str, tuple[str, ...]] = {
+BASE_EXPECTED_PRIMARY_TEXT: dict[str, tuple[str, ...]] = {
     "orientation": ("orientation", "start here"),
-    "Wave B": ("wave b",),
-    "B-03": ("b-03",),
     "change routes": (
         "change routes",
         "change route",
@@ -50,11 +48,9 @@ EXPECTED_PRIMARY_TEXT: dict[str, tuple[str, ...]] = {
     "sources": ("authority and sources", "where authority lives", "sources"),
 }
 
-INTERACTIVE_ROUTES: dict[str, tuple[str, ...]] = {
+BASE_INTERACTIVE_ROUTES: dict[str, tuple[str, ...]] = {
     "#/home": ("understand what is changing", "carbon development hub"),
     "#/start": ("new to carbon", "start here"),
-    "#/wave/B": ("wave b",),
-    "#/ticket/B-03": ("b-03",),
     "#/changes": ("place a change", "change routes", "change route"),
     "#/maturity": ("maturity",),
     "#/glossary": ("glossary",),
@@ -64,6 +60,33 @@ INTERACTIVE_ROUTES: dict[str, tuple[str, ...]] = {
 
 class SmokeFailure(RuntimeError):
     """A browser smoke assertion or protocol operation failed."""
+
+
+def _living_state_expectations(
+    root: Path,
+) -> tuple[dict[str, tuple[str, ...]], dict[str, tuple[str, ...]]]:
+    data_path = root / "data" / "hub_data_v2.json"
+    try:
+        data = json.loads(data_path.read_text(encoding="utf-8"))
+        current = data["current"]
+        wave = str(current["wave"])
+        ticket = str(current["ticket"])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise SmokeFailure(
+            f"Cannot derive browser expectations from {data_path}: {exc}"
+        ) from exc
+
+    primary = {
+        **BASE_EXPECTED_PRIMARY_TEXT,
+        f"Wave {wave}": (f"wave {wave}".casefold(),),
+        ticket: (ticket.casefold(),),
+    }
+    routes = {
+        **BASE_INTERACTIVE_ROUTES,
+        f"#/wave/{wave}": (f"wave {wave}".casefold(),),
+        f"#/ticket/{ticket}": (ticket.casefold(),),
+    }
+    return primary, routes
 
 
 @dataclass(frozen=True)
@@ -621,6 +644,7 @@ def _assert_primary(
     *,
     javascript_enabled: bool,
     nonce: int,
+    expected_text: dict[str, tuple[str, ...]],
 ) -> str:
     mode = "javascript-on" if javascript_enabled else "javascript-off"
     url = f"{base_url}/index.html?smoke={nonce}-{viewport.name}-{mode}"
@@ -637,7 +661,7 @@ def _assert_primary(
         )
     missing = [
         label
-        for label, alternatives in EXPECTED_PRIMARY_TEXT.items()
+        for label, alternatives in expected_text.items()
         if not _contains_any(text, alternatives)
     ]
     if missing:
@@ -670,6 +694,7 @@ def _assert_interactive(
     viewport: Viewport,
     *,
     nonce: int,
+    routes: dict[str, tuple[str, ...]],
 ) -> None:
     url = f"{base_url}/interactive.html?smoke={nonce}#/home"
     text, initial_events = _load(
@@ -700,7 +725,7 @@ def _assert_interactive(
             + ", ".join(str(value) for value in unsafe_attributes)
         )
     all_events = list(initial_events)
-    for route, alternatives in INTERACTIVE_ROUTES.items():
+    for route, alternatives in routes.items():
         start = len(session.events)
         session.evaluate(f"location.hash = {json.dumps(route)}")
         session.drain(0.15)
@@ -715,7 +740,7 @@ def _assert_interactive(
     errors = _event_errors(all_events)
     if errors:
         raise SmokeFailure("Interactive page errors: " + "; ".join(errors))
-    print(f"PASS interactive routes ({len(INTERACTIVE_ROUTES)})")
+    print(f"PASS interactive routes ({len(routes)})")
 
 
 def _assert_mobile_navigation(
@@ -812,6 +837,7 @@ def run_smoke(root: Path, browser: Path, timeout: float) -> None:
     index_path = root / "index.html"
     if not index_path.is_file():
         raise SmokeFailure(f"Generated primary page is missing: {index_path}")
+    expected_primary_text, interactive_routes = _living_state_expectations(root)
 
     server = create_server(root, "127.0.0.1", 0, quiet=True)
     server_thread = threading.Thread(
@@ -839,6 +865,7 @@ def run_smoke(root: Path, browser: Path, timeout: float) -> None:
                         viewport,
                         javascript_enabled=True,
                         nonce=nonce,
+                        expected_text=expected_primary_text,
                     )
                     disabled_text = _assert_primary(
                         session,
@@ -847,6 +874,7 @@ def run_smoke(root: Path, browser: Path, timeout: float) -> None:
                         viewport,
                         javascript_enabled=False,
                         nonce=nonce,
+                        expected_text=expected_primary_text,
                     )
                     if enabled_text != disabled_text:
                         raise SmokeFailure(
@@ -861,6 +889,7 @@ def run_smoke(root: Path, browser: Path, timeout: float) -> None:
                         base_url,
                         VIEWPORTS[0],
                         nonce=nonce,
+                        routes=interactive_routes,
                     )
                     _assert_mobile_navigation(
                         session,

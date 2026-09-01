@@ -27,22 +27,47 @@ The hub explains Carbon's development system and routes the team to the authorit
 
 Link those records instead.
 
-## Snapshot procedure
+## Authority snapshot and build procedure
 
 1. Read `.agent/WAVE.md` and the active wave board.
-2. Pin the current `main` commit.
-3. Reconcile ticket statuses, dependencies, and primary links.
-4. Update `data/hub_data_v2.json` and append a concise record to
+2. Ensure the mapped authority, ticket, decision, or evidence change exists in
+   a committed authority snapshot. This is commit `A` in the two-commit model.
+3. Set `meta.authority_snapshot_commit` to `A`; keep
+   `meta.hub_build_commit` null in source because a commit cannot record its own
+   identity without a self-reference problem.
+4. Reconcile ticket statuses, dependencies, maturity states, primary links,
+   `current.controlling_board_fingerprint`, and the exact marker assertions in
+   `authority_source_checks`. Each asserted path must be linked at `A`, and its
+   markers must exist both at `A` and candidate `HEAD`.
+5. Update `data/hub_data_v2.json` and append a concise record to
    `data/change_events.json` when a material map trigger applies.
-5. Run `python tools/render_hub.py`.
-6. Run `python tools/render_hub.py --check`.
-7. Run `python tools/validate_hub.py --repo-root ../../..` from this directory,
+6. Commit the Hub source and generated outputs as commit `H`, after `A`. All
+   pinned detail links use `A`; diff/event coverage uses the independent PR or
+   push comparison base supplied as `HUB_DIFF_BASE_SHA`.
+7. Run `python tools/render_hub.py`.
+8. Run `python tools/render_hub.py --check`.
+9. Run `python tools/validate_hub.py --repo-root ../../..` from this directory,
    or pass the repository root explicitly.
-8. Run `node tools/test_routes.js` and `python tools/browser_smoke_test.py`.
-9. Inspect desktop and narrow/mobile layouts and record the explicit snapshot
-   commit and capture time in source.
+10. Run `node tools/test_routes.js` and `python tools/browser_smoke_test.py`.
+11. Inspect desktop and narrow/mobile layouts and record the explicit authority
+    snapshot and capture time in source.
 
-Current snapshot: `b86daa5d8b0f8b3e86bb82c2661f405747a200df`, reconciled 2026-08-31T21:15:10Z.
+Current authority snapshot: `bd479bf478fee193d9d81dec34a5b73bf623a098`, reconciled 2026-09-01T01:04:23Z.
+
+## Repository-path impact classes
+
+- `map_structural` changes orientation-bearing selection, status, dependency,
+  ownership, maturity, boundary, route, or primary-link meaning. They require a
+  semantic Hub update and a new immutable event. A ticket title, purpose,
+  status, dependency, owner/reviewer route, authority/boundary, or primary
+  contract/plan/evidence link change is structurally escalated even though
+  routine ticket body detail defaults to `mapped_detail`.
+- `mapped_detail` changes have an explicit owner but do not automatically change
+  orientation meaning. A specific `HUB_IMPACT_NONE` is valid for routine
+  implementation, plan, or evidence detail when the mapped meaning remains
+  unchanged.
+- `unmapped_authority` changes fail until `data/hub_data_v2.json` records an
+  explicit bounded path owner. They never fall back to the active wave.
 
 ## Event attachment schema
 
@@ -77,10 +102,14 @@ The hub summarizes those sources. It does not override them.
 ## Publication rule
 
 Publish the whole `docs/development/carbon_hub/` directory. The primary page
-is complete without JavaScript or remote resources. GitHub Pages publication
-is public and owner-controlled; automatic deployment remains disabled unless
-`CARBON_HUB_PUBLISH=true`. Future internal-only material belongs on an
-access-controlled static host and never in this public-safe source set.
+is complete without JavaScript or remote resources. Manual GitHub Pages
+publication is available to authorized repository maintainers. The workflow
+does not itself enforce owner approval. If desired, a required reviewer on the
+`github-pages` environment is a separate human-controlled repository setting.
+Automatic publication remains disabled unless `CARBON_HUB_PUBLISH=true`.
+This integration neither enables Pages nor changes repository settings.
+Future internal-only material belongs on an access-controlled static host and
+never in this public-safe source set.
 
 ## Content-model reference
 

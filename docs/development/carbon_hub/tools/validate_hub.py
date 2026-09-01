@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -25,7 +26,7 @@ from typing import Any
 
 HUB_RELATIVE = Path("docs/development/carbon_hub")
 EXPECTED_WAVES = list("ABCDEFGHIJKLMN")
-EXPECTED_TICKETS = [
+HISTORICAL_WAVE_A_TICKET_IDS_V1 = [
     "A-1",
     "A0",
     "A1",
@@ -40,33 +41,8 @@ EXPECTED_TICKETS = [
     "A10",
     "A11",
     "A12",
-    "B-01",
-    "B-01E",
-    "B-02A",
-    "B-02B",
-    "B-02C",
-    "B-03",
-    "B-04",
-    "B-05",
-    "B-06",
-    "B-07R",
-    "B-07S",
-    "B-07A",
-    "B-07B",
-    "B-07C",
-    "B-07D1",
-    "B-07D2",
-    "B-07D3",
-    "B-07E",
-    "B-07F",
-    "B-07G",
-    "B-E1",
-    "B-E2",
-    "B-E3",
-    "B-E4",
-    "B-GATE",
 ]
-EXPECTED_WAVE_A_DIRECT_DEPENDENCIES = {
+HISTORICAL_WAVE_A_DIRECT_DEPENDENCIES_V1 = {
     "A-1": [],
     "A0": ["A-1"],
     "A1": ["A0"],
@@ -82,7 +58,7 @@ EXPECTED_WAVE_A_DIRECT_DEPENDENCIES = {
     "A11": ["A5", "A6", "A7", "A8", "A9", "A10"],
     "A12": ["A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11"],
 }
-EXPECTED_WAVE_A_CONTEXT_DEPENDENCIES = {"A9": ["A8"]}
+HISTORICAL_WAVE_A_CONTEXT_DEPENDENCIES_V1 = {"A9": ["A8"]}
 EXPECTED_ROUTES = [
     "new-challenge",
     "model-architecture",
@@ -148,16 +124,20 @@ CURRENT_POSITION_FIELDS = {
     "ticket",
     "ticket_title",
     "ticket_status",
+    "controlling_register",
+    "controlling_register_version",
+    "controlling_board_fingerprint",
     "stage",
-    "closed_wave",
-    "completed_b_tickets",
+    "most_recent_closed_wave",
+    "completed_wave_tickets",
     "recent_dependencies",
-    "other_completed_context",
+    "other_completed_wave_context",
     "downstream_handoffs",
     "parallel_context",
     "next_selected_ticket",
     "fail_closed",
-    "maturity_ceiling",
+    "maturity_states",
+    "maturity_summary",
     "decision_series_status",
     "technical_decision_route",
     "owner_decision_route",
@@ -179,15 +159,37 @@ VAGUE_DECLARATIONS = {
 }
 KNOWN_SYSTEM_MAP_REFS = {
     "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/BUSINESS-AUTHORITY",
     "SYSTEM/CI",
     "SYSTEM/DEVELOPMENT-HUB",
     "SYSTEM/DEVELOPMENT-HUB/INTERACTIVE",
     "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+    "SYSTEM/DEVELOPMENT-SEQUENCING",
     "SYSTEM/GOVERNANCE",
     "SYSTEM/MATURITY",
     "SYSTEM/PR-MAINTENANCE",
+    "SYSTEM/PROTOCOL-AUTHORITY",
     "SYSTEM/PUBLICATION",
+    "SYSTEM/PUBLICATION-AUTHORITY",
     "SYSTEM/SCIENTIFIC-CANON",
+}
+IMPACT_CLASSES = {"map_structural", "mapped_detail", "unmapped_authority"}
+MATURITY_EARNED_STATES = {"earned", "unearned"}
+REQUIRED_IMPACT_RULE_IDS = {
+    "root-agent-instructions",
+    "root-spec",
+    "legacy-code-index",
+    "constitution",
+    "always-on-invariants",
+    "current-wave-register",
+    "wave-board",
+    "ticket-record",
+    "ticket-plan",
+    "ticket-evidence",
+    "business-detail",
+    "publication-detail",
+    "protocol-detail",
+    "hub-validation-workflow",
 }
 
 
@@ -393,10 +395,11 @@ class Validator:
         self.changed_paths: set[str] | None = None
         self.deleted_paths: set[str] = set()
         self.new_event_ids: set[str] = set()
-        self.base_sha: str | None = None
+        self.diff_base_sha: str | None = None
         self.base_hub_data: dict[str, Any] | None = None
         self.semantic_data_changed = False
         self.captured_at: datetime | None = None
+        self.impact_cache: dict[str, dict[str, str] | None] = {}
 
     def fail(self, message: str) -> None:
         self.errors.append(message)
@@ -434,7 +437,12 @@ class Validator:
                 for key, child in value.items()
                 if not (
                     path == ("meta",)
-                    and key in {"captured_at_utc", "commit", "commit_short"}
+                    and key
+                    in {
+                        "captured_at_utc",
+                        "authority_snapshot_commit",
+                        "hub_build_commit",
+                    }
                 )
             }
         if isinstance(value, list):
@@ -553,6 +561,234 @@ class Validator:
                         self.fail(f"{label}.label must be non-empty")
                     self.validate_https_url(link.get("url"), f"{label}.url")
 
+    @staticmethod
+    def carbon_blob_target(value: Any) -> tuple[str, str] | None:
+        if not isinstance(value, str):
+            return None
+        parsed = urllib.parse.urlsplit(value)
+        prefix = "/carbonphysicsai/Carbon/blob/"
+        if (
+            parsed.scheme != "https"
+            or parsed.netloc != "github.com"
+            or not parsed.path.startswith(prefix)
+        ):
+            return None
+        remainder = parsed.path[len(prefix) :]
+        if "/" not in remainder:
+            return "", ""
+        revision, path = remainder.split("/", 1)
+        return revision, urllib.parse.unquote(path)
+
+    def validate_authority_source_checks(self) -> None:
+        checks = self.data.get("authority_source_checks")
+        if (
+            not isinstance(checks, list)
+            or not checks
+            or not all(isinstance(item, dict) for item in checks)
+        ):
+            self.fail("authority_source_checks must be a non-empty list of objects")
+            return
+        ids: list[str] = []
+        paths: list[str] = []
+        for index, check in enumerate(checks):
+            label = f"authority_source_checks[{index}]"
+            if not self.require_keys(check, ("id", "path", "required_markers"), label):
+                continue
+            check_id = check.get("id")
+            if not isinstance(check_id, str) or not re.fullmatch(
+                r"[a-z0-9]+(?:-[a-z0-9]+)*", check_id
+            ):
+                self.fail(f"{label}.id must be stable lowercase kebab-case")
+            else:
+                ids.append(check_id)
+            path = check.get("path")
+            if (
+                not isinstance(path, str)
+                or not path
+                or path.startswith(("/", "\\"))
+                or "\\" in path
+                or ".." in PurePosixPath(path).parts
+            ):
+                self.fail(f"{label}.path must be a safe repository-relative file")
+            else:
+                paths.append(path)
+            markers = check.get("required_markers")
+            if (
+                not isinstance(markers, list)
+                or not markers
+                or not all(
+                    isinstance(marker, str) and marker.strip() for marker in markers
+                )
+            ):
+                self.fail(f"{label}.required_markers must be non-empty strings")
+            elif not _unique(markers):
+                self.fail(f"{label}.required_markers contains duplicates")
+        if not _unique(ids):
+            self.fail("authority_source_checks contains duplicate IDs")
+        if not _unique(paths):
+            self.fail("authority_source_checks contains duplicate paths")
+
+        current = self.data.get("current", {})
+        selected_id = current.get("ticket") if isinstance(current, dict) else None
+        selected = next(
+            (
+                item
+                for item in self.data.get("tickets", [])
+                if isinstance(item, dict) and item.get("id") == selected_id
+            ),
+            None,
+        )
+        required_paths = {".agent/WAVE.md"}
+        register = (
+            current.get("controlling_register") if isinstance(current, dict) else None
+        )
+        if isinstance(register, str):
+            required_paths.add(register)
+        if isinstance(selected, dict):
+            repo_path = selected.get("repo_path")
+            if isinstance(repo_path, str):
+                required_paths.add(repo_path)
+            for link in selected.get("repo_links", []):
+                if not isinstance(link, dict):
+                    continue
+                if "evidence" in str(link.get("label", "")).lower():
+                    target = self.carbon_blob_target(link.get("url"))
+                    if target is not None and target[1]:
+                        required_paths.add(target[1])
+        if isinstance(current, dict) and current.get("decision_series"):
+            required_paths.add(".agent/DECISIONS.md")
+        missing_paths = sorted(required_paths - set(paths))
+        if missing_paths:
+            self.fail(
+                "authority_source_checks is missing current-state proof paths: "
+                + ", ".join(missing_paths)
+            )
+
+    def validate_impact_policy(self) -> None:
+        policy = self.data.get("impact_policy")
+        if not self.require_keys(
+            policy,
+            (
+                "schema_version",
+                "classes",
+                "system_map_refs",
+                "authority_roots",
+                "rules",
+            ),
+            "impact_policy",
+        ):
+            return
+        if policy.get("schema_version") != "1.0":
+            self.fail("impact_policy.schema_version must be '1.0'")
+        classes = policy.get("classes")
+        if not isinstance(classes, list) or set(classes) != IMPACT_CLASSES:
+            self.fail(
+                "impact_policy.classes must define map_structural, mapped_detail, "
+                "and unmapped_authority"
+            )
+        system_refs = policy.get("system_map_refs")
+        if not isinstance(system_refs, list) or not all(
+            isinstance(value, str)
+            and re.fullmatch(r"SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*", value)
+            for value in system_refs
+        ):
+            self.fail("impact_policy.system_map_refs must be stable SYSTEM/* refs")
+            system_refs = []
+        elif not _unique(system_refs):
+            self.fail("impact_policy.system_map_refs contains duplicates")
+        missing_system_refs = sorted(KNOWN_SYSTEM_MAP_REFS - set(system_refs))
+        if missing_system_refs:
+            self.fail(
+                "impact_policy.system_map_refs is missing required refs: "
+                + ", ".join(missing_system_refs)
+            )
+        roots = policy.get("authority_roots")
+        if not isinstance(roots, list) or not all(
+            isinstance(value, str)
+            and value.endswith("/")
+            and not value.startswith(("/", "\\"))
+            and ".." not in PurePosixPath(value).parts
+            and "\\" not in value
+            for value in roots
+        ):
+            self.fail(
+                "impact_policy.authority_roots must be safe repository-relative prefixes"
+            )
+        elif not _unique(roots):
+            self.fail("impact_policy.authority_roots contains duplicates")
+        rules = policy.get("rules")
+        if not isinstance(rules, list) or not all(
+            isinstance(rule, dict) for rule in rules
+        ):
+            self.fail("impact_policy.rules must be a list of objects")
+            return
+        rule_ids: list[str] = []
+        for index, rule in enumerate(rules):
+            label = f"impact_policy.rules[{index}]"
+            if not self.require_keys(
+                rule,
+                ("id", "match_type", "path", "impact_class", "map_ref"),
+                label,
+            ):
+                continue
+            rule_id = rule.get("id")
+            if not isinstance(rule_id, str) or not re.fullmatch(
+                r"[a-z0-9]+(?:-[a-z0-9]+)*", rule_id
+            ):
+                self.fail(f"{label}.id must be a stable lowercase kebab-case ID")
+            else:
+                rule_ids.append(rule_id)
+            if rule.get("match_type") not in {
+                "exact",
+                "prefix",
+                "wave_board",
+                "ticket_record",
+            }:
+                self.fail(f"{label}.match_type is unsupported")
+            path = rule.get("path")
+            if (
+                not isinstance(path, str)
+                or not path
+                or path.startswith(("/", "\\"))
+                or "\\" in path
+                or ".." in PurePosixPath(path).parts
+            ):
+                self.fail(f"{label}.path must be a safe repository-relative value")
+            if rule.get("impact_class") not in IMPACT_CLASSES - {"unmapped_authority"}:
+                self.fail(
+                    f"{label}.impact_class must be map_structural or mapped_detail"
+                )
+            map_ref = rule.get("map_ref")
+            if map_ref not in {
+                "CURRENT_WAVE",
+                "WAVE_FROM_PATH",
+                "TICKET_FROM_PATH",
+            } and map_ref not in set(system_refs):
+                if not isinstance(map_ref, str) or not re.fullmatch(
+                    r"WAVE-[A-N](?:/[A-Z0-9-]+)?", map_ref
+                ):
+                    self.fail(f"{label}.map_ref is not a supported stable owner")
+            structural_when = rule.get("structural_when")
+            if structural_when not in {
+                None,
+                "wave_register_fields_change",
+                "ticket_board_fields_change",
+                "ticket_record_fields_change",
+            }:
+                self.fail(f"{label}.structural_when is unsupported")
+            if structural_when and rule.get("impact_class") != "mapped_detail":
+                self.fail(
+                    f"{label}.structural_when requires a mapped_detail default class"
+                )
+        if not _unique(rule_ids):
+            self.fail("impact_policy.rules contains duplicate IDs")
+        missing_rules = sorted(REQUIRED_IMPACT_RULE_IDS - set(rule_ids))
+        if missing_rules:
+            self.fail(
+                "impact_policy.rules is missing required ownership rules: "
+                + ", ".join(missing_rules)
+            )
+
     def load_sources(self) -> None:
         self.data = self.load_json_object(
             self.hub_root / "data/hub_data_v2.json", "data/hub_data_v2.json"
@@ -668,7 +904,9 @@ class Validator:
             "meta",
             "current",
             "sources",
+            "authority_source_checks",
             "authority_ceilings",
+            "impact_policy",
             "waves",
             "tickets",
             "maturity",
@@ -679,6 +917,8 @@ class Validator:
         if not self.require_keys(self.data, top_keys, "data/hub_data_v2.json"):
             return
         self.validate_data_urls()
+        self.validate_authority_source_checks()
+        self.validate_impact_policy()
         meta = self.data.get("meta")
         if self.require_keys(
             meta,
@@ -688,8 +928,8 @@ class Validator:
                 "captured_at_utc",
                 "repository",
                 "branch",
-                "commit",
-                "commit_short",
+                "authority_snapshot_commit",
+                "hub_build_commit",
                 "purpose",
                 "authority_notice",
             ),
@@ -697,11 +937,17 @@ class Validator:
         ):
             if meta.get("version") != "2.1":
                 self.fail("meta.version must be '2.1'")
-            if not re.fullmatch(r"[0-9a-f]{40}", str(meta.get("commit", ""))):
-                self.fail("meta.commit must be a lowercase 40-character Git commit ID")
-            if str(meta.get("commit_short", "")) != str(meta.get("commit", ""))[:8]:
+            if not re.fullmatch(
+                r"[0-9a-f]{40}", str(meta.get("authority_snapshot_commit", ""))
+            ):
                 self.fail(
-                    "meta.commit_short must be the first eight characters of meta.commit"
+                    "meta.authority_snapshot_commit must be a lowercase "
+                    "40-character Git commit ID"
+                )
+            if meta.get("hub_build_commit") is not None:
+                self.fail(
+                    "meta.hub_build_commit must remain null in source to avoid "
+                    "self-referential build identity"
                 )
             captured_at = meta.get("captured_at_utc")
             if not isinstance(captured_at, str):
@@ -721,9 +967,9 @@ class Validator:
         current = self.data.get("current")
         if self.require_keys(current, CURRENT_POSITION_FIELDS, "current"):
             for field in (
-                "completed_b_tickets",
+                "completed_wave_tickets",
                 "recent_dependencies",
-                "other_completed_context",
+                "other_completed_wave_context",
                 "downstream_handoffs",
                 "parallel_context",
                 "fail_closed",
@@ -736,6 +982,37 @@ class Validator:
                     self.fail(f"current.{field} must be a list of non-empty strings")
                 elif not _unique(value):
                     self.fail(f"current.{field} contains duplicate entries")
+            maturity_states = current.get("maturity_states")
+            if not isinstance(maturity_states, dict):
+                self.fail("current.maturity_states must be an object")
+            else:
+                if list(maturity_states) != EXPECTED_MATURITY:
+                    self.fail(
+                        "current.maturity_states must contain the eight maturity "
+                        f"dimensions in canonical order {EXPECTED_MATURITY!r}"
+                    )
+                invalid_states = {
+                    str(value)
+                    for value in maturity_states.values()
+                    if value not in MATURITY_EARNED_STATES
+                }
+                if invalid_states:
+                    self.fail(
+                        "current.maturity_states values must be earned or unearned; "
+                        f"found {sorted(invalid_states)!r}"
+                    )
+            if (
+                not isinstance(current.get("maturity_summary"), str)
+                or not current.get("maturity_summary", "").strip()
+            ):
+                self.fail("current.maturity_summary must be a non-empty string")
+            if not re.fullmatch(
+                r"[0-9a-f]{64}", str(current.get("controlling_board_fingerprint", ""))
+            ):
+                self.fail(
+                    "current.controlling_board_fingerprint must be a lowercase "
+                    "SHA-256 digest of the parsed controlling board"
+                )
 
         waves = self.data.get("waves")
         tickets = self.data.get("tickets")
@@ -768,7 +1045,6 @@ class Validator:
         maturity_ids = [item.get("id") for item in maturity]
         for label, actual, expected in (
             ("wave", wave_ids, EXPECTED_WAVES),
-            ("ticket", ticket_ids, EXPECTED_TICKETS),
             ("change route", route_ids, EXPECTED_ROUTES),
             ("maturity", maturity_ids, EXPECTED_MATURITY),
         ):
@@ -776,6 +1052,16 @@ class Validator:
                 self.fail(f"{label} IDs must be unique")
             if actual != expected:
                 self.fail(f"Expected stable {label} IDs {expected}; found {actual}")
+        if not _unique(ticket_ids):
+            self.fail("ticket IDs must be unique")
+        captured_wave_a = [
+            item.get("id") for item in tickets if item.get("wave") == "A"
+        ]
+        if captured_wave_a != HISTORICAL_WAVE_A_TICKET_IDS_V1:
+            self.fail(
+                "Wave A historical closeout v1 ticket IDs changed: expected "
+                f"{HISTORICAL_WAVE_A_TICKET_IDS_V1!r}; found {captured_wave_a!r}"
+            )
         if len(self.events) < len(BASELINE_EVENT_IDS):
             self.fail(
                 f"Expected at least {len(BASELINE_EVENT_IDS)} change events; "
@@ -889,6 +1175,17 @@ class Validator:
                 self.fail(f"{ticket_id} references unknown wave {ticket.get('wave')!r}")
             if ticket.get("status") not in TICKET_STATUSES:
                 self.fail(f"{ticket_id} has invalid status {ticket.get('status')!r}")
+            if ticket_id == current.get("ticket"):
+                selected_maturity = ticket.get("maturity_states")
+                if not isinstance(selected_maturity, dict):
+                    self.fail(
+                        f"Selected ticket {ticket_id} must define structured maturity_states"
+                    )
+                elif selected_maturity != current.get("maturity_states"):
+                    self.fail(
+                        "current.maturity_states must exactly match the selected "
+                        f"ticket {ticket_id} maturity_states"
+                    )
             for field in ("depends_on", "unlocks", "unlocks_context"):
                 if field not in ticket:
                     continue
@@ -915,14 +1212,14 @@ class Validator:
                 )
             elif not _unique(context):
                 self.fail(f"{ticket_id}.depends_on_context contains duplicates")
-            if ticket_id in EXPECTED_WAVE_A_DIRECT_DEPENDENCIES:
-                expected_direct = EXPECTED_WAVE_A_DIRECT_DEPENDENCIES[ticket_id]
+            if ticket_id in HISTORICAL_WAVE_A_DIRECT_DEPENDENCIES_V1:
+                expected_direct = HISTORICAL_WAVE_A_DIRECT_DEPENDENCIES_V1[ticket_id]
                 if ticket.get("depends_on") != expected_direct:
                     self.fail(
                         f"{ticket_id}.depends_on must preserve the ticket-owned "
                         f"direct contract dependencies {expected_direct!r}"
                     )
-                expected_context = EXPECTED_WAVE_A_CONTEXT_DEPENDENCIES.get(
+                expected_context = HISTORICAL_WAVE_A_CONTEXT_DEPENDENCIES_V1.get(
                     ticket_id, []
                 )
                 if ticket.get("depends_on_context", []) != expected_context:
@@ -931,6 +1228,21 @@ class Validator:
                         f"sequencing context {expected_context!r}"
                     )
             self.validate_ticket_paths(ticket)
+
+        ticket_partition = [
+            ticket_id
+            for wave in waves
+            for ticket_id in (
+                wave.get("ticket_ids", [])
+                if isinstance(wave.get("ticket_ids"), list)
+                else []
+            )
+        ]
+        if ticket_partition != ticket_ids:
+            self.fail(
+                "Wave ticket_ids must partition captured tickets in canonical wave order; "
+                f"found {ticket_partition!r} versus {ticket_ids!r}"
+            )
 
         for index, route in enumerate(routes):
             label = f"change_paths[{index}]"
@@ -1044,6 +1356,14 @@ class Validator:
                     )
             return
         if re.fullmatch(r"SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*", value):
+            policy = self.data.get("impact_policy", {})
+            allowed = (
+                policy.get("system_map_refs", []) if isinstance(policy, dict) else []
+            )
+            if value not in allowed:
+                self.fail(
+                    f"{label} references SYSTEM owner not declared by impact_policy: {value!r}"
+                )
             return
         self.fail(
             f"{label} is not a stable WAVE-* or SYSTEM/* map reference: {value!r}"
@@ -1308,11 +1628,14 @@ class Validator:
                 self.fail(
                     f"index.html has only {len(visible)} visible characters; expected at least 10000"
                 )
+            current = self.data.get("current", {})
+            current_wave = str(current.get("wave", ""))
+            current_ticket = str(current.get("ticket", ""))
             for phrase in (
                 "Carbon Development Hub",
                 "Wave A through Wave N",
-                "Wave B",
-                "B-03",
+                f"Wave {current_wave}",
+                current_ticket,
                 "Eight maturity dimensions",
                 "Protocol-change router",
             ):
@@ -1378,84 +1701,333 @@ class Validator:
         except Exception as exc:  # noqa: BLE001
             self.fail(f"Renderer drift check could not run safely: {exc}")
 
-    def parse_wave_b_table(self, text: str) -> dict[str, dict[str, str]]:
-        rows: dict[str, dict[str, str]] = {}
+    def parse_current_authority(
+        self, text: str, source_label: str
+    ) -> dict[str, Any] | None:
+        patterns = {
+            "wave": r"^\*\*Current wave:\*\*\s*([A-N])\s*$",
+            "state": r"^\*\*State:\*\*\s*(.+?)\s*$",
+            "register": (
+                r"^\*\*Controlling register:\*\*\s*`([^`]+)`\s+version\s+"
+                r"([A-Za-z0-9._-]+)\s*$"
+            ),
+            "ticket": (
+                r"^\*\*Selected ticket:\*\*\s*([A-Z0-9-]+)\s*[—-]+\s*"
+                r"`(todo|in_progress|done|blocked)`\s*$"
+            ),
+        }
+        matches = {
+            key: re.search(pattern, text, flags=re.MULTILINE)
+            for key, pattern in patterns.items()
+        }
+        missing = [key for key, match in matches.items() if match is None]
+        if missing:
+            self.fail(
+                f"{source_label} is missing parseable authority fields: {missing}"
+            )
+            return None
+        register_path = str(matches["register"].group(1))
+        pure = PurePosixPath(register_path)
+        if (
+            pure.is_absolute()
+            or "\\" in register_path
+            or ".." in pure.parts
+            or pure.parts[:1] != (".agent",)
+            or pure.suffix.lower() != ".md"
+        ):
+            self.fail(
+                f"{source_label} controlling register is not a safe .agent Markdown path: "
+                f"{register_path!r}"
+            )
+            return None
+        next_match = re.search(
+            r"^\*\*Next selected ticket:\*\*\s*`?([A-Z0-9-]+|none)`?\s*$",
+            text,
+            flags=re.MULTILINE | re.IGNORECASE,
+        )
+        next_ticket = None
+        if next_match and next_match.group(1).lower() != "none":
+            next_ticket = next_match.group(1).upper()
+        closed_waves = tuple(
+            value.upper()
+            for value in re.findall(
+                r"^\*\*Wave\s+([A-N]):\*\*\s*closed\b",
+                text,
+                flags=re.MULTILINE | re.IGNORECASE,
+            )
+        )
+        return {
+            "wave": matches["wave"].group(1),
+            "state": _clean_markdown(matches["state"].group(1)),
+            "register": register_path,
+            "register_version": matches["register"].group(2),
+            "ticket": matches["ticket"].group(1),
+            "ticket_status": matches["ticket"].group(2),
+            "next_ticket": next_ticket,
+            "closed_waves": closed_waves,
+        }
+
+    def parse_ticket_board(
+        self, text: str, source_label: str
+    ) -> tuple[str | None, dict[str, dict[str, Any]]]:
+        version_match = re.search(
+            r"^\*\*Version:\*\*\s*([A-Za-z0-9._-]+)\s*$",
+            text,
+            flags=re.MULTILINE,
+        )
+        version = version_match.group(1) if version_match else None
+        if version is None:
+            self.fail(f"{source_label} is missing a parseable Version field")
+        required_headers = {
+            "ID",
+            "Deliverable",
+            "Status",
+            "Driver",
+            "Accountable reviewer",
+            "Depends on",
+        }
+        lines = text.splitlines()
         headers: list[str] | None = None
-        for line in text.splitlines():
+        start = 0
+        for index, line in enumerate(lines):
             if not line.strip().startswith("|"):
-                if headers and rows:
+                continue
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if required_headers <= set(cells):
+                headers = cells
+                start = index + 1
+                break
+        if headers is None:
+            self.fail(f"{source_label} is missing the controlling ticket table")
+            return version, {}
+        rows: dict[str, dict[str, Any]] = {}
+        ticket_pattern = re.compile(
+            r"(?<![A-Z0-9-])([A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*))"
+            r"(?![A-Z0-9-])"
+        )
+        for line in lines[start:]:
+            if not line.strip().startswith("|"):
+                if rows:
                     break
                 continue
             cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-            expected_head = [
-                "ID",
-                "Deliverable",
-                "Status",
-                "Evidence",
-                "Driver",
-                "Accountable reviewer",
-                "Depends on",
-            ]
-            if cells[:7] == expected_head:
-                headers = cells
-                continue
-            if headers is None or all(re.fullmatch(r":?-+:?", cell) for cell in cells):
+            if all(re.fullmatch(r":?-+:?", cell) for cell in cells):
                 continue
             if len(cells) != len(headers):
-                self.fail(f".agent/WAVE_B.md has a malformed board row: {line}")
+                self.fail(f"{source_label} has a malformed board row: {line}")
                 continue
-            record = dict(zip(headers, cells))
-            ticket_id = _clean_markdown(record["ID"])
+            raw_record = dict(zip(headers, cells))
+            ticket_id = _clean_markdown(raw_record["ID"])
+            if not re.fullmatch(
+                r"[A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*)", ticket_id
+            ):
+                self.fail(f"{source_label} has invalid ticket ID {ticket_id!r}")
+                continue
             if ticket_id in rows:
-                self.fail(f".agent/WAVE_B.md contains duplicate row {ticket_id}")
-            rows[ticket_id] = record
-        if headers is None:
-            self.fail(".agent/WAVE_B.md is missing the controlling ticket table")
-        return rows
+                self.fail(f"{source_label} contains duplicate row {ticket_id}")
+                continue
+            status = _clean_markdown(raw_record["Status"])
+            if status not in TICKET_STATUSES:
+                self.fail(
+                    f"{source_label} row {ticket_id} has invalid status {status!r}"
+                )
+            dependency_text = _clean_markdown(raw_record["Depends on"])
+            dependencies = [
+                match.group(1) for match in ticket_pattern.finditer(dependency_text)
+            ]
+            rows[ticket_id] = {
+                "id": ticket_id,
+                "deliverable": _clean_markdown(raw_record["Deliverable"]),
+                "status": status,
+                "owner": _clean_markdown(raw_record["Driver"]),
+                "reviewer": _clean_markdown(raw_record["Accountable reviewer"]),
+                "depends_on": dependencies,
+                "dependency_context": dependency_text,
+            }
+        return version, rows
 
-    def validate_repository_authority(self) -> None:
-        try:
-            wave_text = (self.repo_root / ".agent/WAVE.md").read_text(encoding="utf-8")
-            board_text = (self.repo_root / ".agent/WAVE_B.md").read_text(
-                encoding="utf-8"
+    @staticmethod
+    def board_signature(
+        version: str | None, rows: dict[str, dict[str, Any]]
+    ) -> tuple[Any, ...]:
+        return (
+            version,
+            tuple(
+                (
+                    ticket_id,
+                    row.get("deliverable"),
+                    row.get("status"),
+                    row.get("owner"),
+                    row.get("reviewer"),
+                    tuple(row.get("depends_on", [])),
+                )
+                for ticket_id, row in rows.items()
+            ),
+        )
+
+    @classmethod
+    def board_fingerprint(
+        cls, version: str | None, rows: dict[str, dict[str, Any]]
+    ) -> str:
+        payload = json.dumps(
+            cls.board_signature(version, rows),
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(payload).hexdigest()
+
+    @staticmethod
+    def ticket_record_fields(text: str) -> dict[str, str]:
+        def normalize(value: str) -> str:
+            return _clean_markdown(value.replace("<br>", " ")).casefold()
+
+        def field(*names: str) -> str:
+            alternatives = "|".join(re.escape(name) for name in names)
+            match = re.search(
+                rf"^\*\*(?:{alternatives}):\*\*\s*(.+?)\s*$",
+                text,
+                flags=re.IGNORECASE | re.MULTILINE,
             )
-        except (OSError, UnicodeError) as exc:
-            self.fail(f"Cannot read current wave authority: {exc}")
-            return
-        wave_match = re.search(
-            r"^\*\*Current wave:\*\*\s*(.+?)\s*$", wave_text, flags=re.MULTILINE
-        )
-        state_match = re.search(
-            r"^\*\*State:\*\*\s*(.+?)\s*$", wave_text, flags=re.MULTILINE
-        )
-        ticket_match = re.search(
-            r"^\*\*Selected ticket:\*\*\s*([A-Z0-9-]+)\s*[—-]+\s*`([^`]+)`\s*$",
-            wave_text,
-            flags=re.MULTILINE,
-        )
-        if not (wave_match and state_match and ticket_match):
+            return normalize(match.group(1)) if match else ""
+
+        def section(name: str) -> str:
+            match = re.search(
+                rf"^##\s+{re.escape(name)}\s*$\n(.*?)(?=^##\s+|\Z)",
+                text,
+                flags=re.IGNORECASE | re.MULTILINE | re.DOTALL,
+            )
+            return normalize(match.group(1)) if match else ""
+
+        heading = re.search(r"^#\s+(.+?)\s*$", text, flags=re.MULTILINE)
+        return {
+            "title": normalize(heading.group(1)) if heading else "",
+            "purpose": section("Goal"),
+            "boundary": section("Must not"),
+            "wave": field("Wave"),
+            "status": field("Status"),
+            "depends_on": field("Depends on"),
+            "owner": field("Owner", "Driver"),
+            "reviewer": field("Accountable reviewer", "Reviewer"),
+            "authority": field("Authority", "Authority ceiling"),
+            "contract": field("Working contract", "Primary contract", "Contract"),
+            "plan": field("Plan", "Implementation plan"),
+            "evidence": field("Evidence", "Evidence record"),
+        }
+
+    def read_authority_text(
+        self, relative: str, source_label: str, revision: str | None = None
+    ) -> str | None:
+        pure = PurePosixPath(relative)
+        if pure.is_absolute() or "\\" in relative or ".." in pure.parts:
+            self.fail(f"{source_label} requested unsafe authority path {relative!r}")
+            return None
+        if revision is not None:
+            result = self.git("show", f"{revision}:{relative}", allow_failure=True)
+            if result.returncode != 0:
+                self.fail(
+                    f"{source_label} cannot read {relative} at authority snapshot {revision}"
+                )
+                return None
+            return result.stdout
+        target = (self.repo_root / Path(*pure.parts)).resolve()
+        if not _inside(self.repo_root, target):
             self.fail(
-                ".agent/WAVE.md is missing parseable current wave, state, or selected ticket fields"
+                f"{source_label} authority path escapes the repository: {relative}"
             )
-            return
-        authoritative_wave = _clean_markdown(wave_match.group(1))
-        authoritative_state = _clean_markdown(state_match.group(1))
-        authoritative_ticket, authoritative_status = ticket_match.groups()
+            return None
+        try:
+            return target.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            self.fail(f"{source_label} cannot read {relative}: {exc}")
+            return None
+
+    def load_authority_view(
+        self, source_label: str, revision: str | None = None
+    ) -> dict[str, Any] | None:
+        wave_text = self.read_authority_text(".agent/WAVE.md", source_label, revision)
+        if wave_text is None:
+            return None
+        authority = self.parse_current_authority(
+            wave_text, f"{source_label} .agent/WAVE.md"
+        )
+        if authority is None:
+            return None
+        board_text = self.read_authority_text(
+            authority["register"], source_label, revision
+        )
+        if board_text is None:
+            return None
+        board_version, board_rows = self.parse_ticket_board(
+            board_text, f"{source_label} {authority['register']}"
+        )
+        selected = next(
+            (
+                item
+                for item in self.data.get("tickets", [])
+                if item.get("id") == authority["ticket"]
+            ),
+            None,
+        )
+        selected_source = None
+        if selected is not None:
+            selected_source = self.read_authority_text(
+                str(selected.get("repo_path", "")), source_label, revision
+            )
+        decisions_text = self.read_authority_text(
+            ".agent/DECISIONS.md", source_label, revision
+        )
+        return {
+            "authority": authority,
+            "wave_text": wave_text,
+            "board_version": board_version,
+            "board_rows": board_rows,
+            "selected_source": selected_source,
+            "decisions_text": decisions_text or "",
+        }
+
+    def validate_authority_view(self, view: dict[str, Any], source_label: str) -> None:
+        authority = view["authority"]
+        authoritative_wave = authority["wave"]
+        authoritative_ticket = authority["ticket"]
+        authoritative_status = authority["ticket_status"]
         current = self.data.get("current", {})
         for label, actual, expected in (
             ("current.wave", current.get("wave"), authoritative_wave),
-            ("current.wave_status", current.get("wave_status"), authoritative_state),
+            ("current.wave_status", current.get("wave_status"), authority["state"]),
             ("current.ticket", current.get("ticket"), authoritative_ticket),
             (
                 "current.ticket_status",
                 current.get("ticket_status"),
                 authoritative_status,
             ),
+            (
+                "current.controlling_register",
+                current.get("controlling_register"),
+                authority["register"],
+            ),
+            (
+                "current.controlling_register_version",
+                current.get("controlling_register_version"),
+                authority["register_version"],
+            ),
         ):
             if actual != expected:
                 self.fail(
-                    f"{label} is {actual!r}, but .agent/WAVE.md says {expected!r}"
+                    f"{source_label}: {label} is {actual!r}, but authority says {expected!r}"
                 )
+        if view.get("board_version") != authority["register_version"]:
+            self.fail(
+                f"{source_label}: controlling-register version {authority['register_version']!r} "
+                f"does not match board version {view.get('board_version')!r}"
+            )
+        board_fingerprint = self.board_fingerprint(
+            view.get("board_version"), view.get("board_rows", {})
+        )
+        if current.get("controlling_board_fingerprint") != board_fingerprint:
+            self.fail(
+                f"{source_label}: current.controlling_board_fingerprint does not "
+                "match the parsed controlling-board inventory"
+            )
         wave_record = next(
             (
                 item
@@ -1466,8 +2038,9 @@ class Validator:
         )
         if wave_record is None or wave_record.get("status") != "active":
             self.fail(
-                f"Current Wave {authoritative_wave} must be the one active hub wave"
+                f"{source_label}: current Wave {authoritative_wave} must be the active hub wave"
             )
+            return
         active_waves = [
             item.get("id")
             for item in self.data.get("waves", [])
@@ -1475,242 +2048,188 @@ class Validator:
         ]
         if active_waves != [authoritative_wave]:
             self.fail(
-                f"Exactly the authoritative current wave must be active; found {active_waves}"
+                f"{source_label}: exactly the authoritative wave must be active; found {active_waves}"
             )
-        if wave_record is not None and current.get("wave_title") != wave_record.get(
-            "title"
-        ):
+        if current.get("wave_title") != wave_record.get("title"):
             self.fail(
-                f"current.wave_title must match Wave {authoritative_wave}'s captured title"
+                f"{source_label}: current.wave_title must match Wave {authoritative_wave}"
             )
-        closed_match = re.search(
-            r"^\*\*Wave\s+([A-N]):\*\*\s*closed\b",
-            wave_text,
-            flags=re.MULTILINE | re.IGNORECASE,
-        )
-        if not closed_match:
-            self.fail(".agent/WAVE.md is missing a parseable closed-wave field")
-        elif current.get("closed_wave") != closed_match.group(1).upper():
+        predecessor = wave_record.get("predecessor")
+        if current.get("most_recent_closed_wave") != predecessor:
             self.fail(
-                f"current.closed_wave is {current.get('closed_wave')!r}; "
-                f".agent/WAVE.md says {closed_match.group(1).upper()!r}"
+                f"{source_label}: current.most_recent_closed_wave must be {predecessor!r}"
             )
-        else:
-            closed_record = next(
-                (
-                    item
-                    for item in self.data.get("waves", [])
-                    if item.get("id") == current.get("closed_wave")
-                ),
-                None,
+        if predecessor is not None and predecessor not in authority["closed_waves"]:
+            self.fail(
+                f"{source_label}: .agent/WAVE.md does not mark predecessor Wave {predecessor} closed"
             )
-            if closed_record is None or closed_record.get("status") != "closed":
-                self.fail("current.closed_wave must identify a captured closed wave")
-
-        board_rows = self.parse_wave_b_table(board_text)
+        board_rows = view["board_rows"]
+        expected_active_ids = list(board_rows)
+        captured_active_ids = wave_record.get("ticket_ids")
+        if captured_active_ids != expected_active_ids:
+            self.fail(
+                f"{source_label}: Wave {authoritative_wave} ticket_ids must match the "
+                f"controlling board {expected_active_ids!r}; found {captured_active_ids!r}"
+            )
         data_rows = {
             item.get("id"): item
             for item in self.data.get("tickets", [])
-            if item.get("wave") == "B"
+            if item.get("wave") == authoritative_wave
         }
-        expected_b = [ticket for ticket in EXPECTED_TICKETS if ticket.startswith("B-")]
-        if list(board_rows) != expected_b:
+        if list(data_rows) != expected_active_ids:
             self.fail(
-                f"Wave B board row order/IDs differ from the stable hub set: {list(board_rows)}"
+                f"{source_label}: captured Wave {authoritative_wave} ticket records "
+                f"must match active board order {expected_active_ids!r}; found {list(data_rows)!r}"
             )
-        for ticket_id in expected_b:
-            board, ticket = board_rows.get(ticket_id), data_rows.get(ticket_id)
-            if board is None or ticket is None:
+        known_ticket_ids = {
+            str(item.get("id")) for item in self.data.get("tickets", [])
+        }
+        for ticket_id, board in board_rows.items():
+            ticket = data_rows.get(ticket_id)
+            if ticket is None:
                 continue
-            for board_field, data_field in (
-                ("Status", "status"),
-                ("Driver", "owner"),
-                ("Accountable reviewer", "reviewer"),
-            ):
-                expected = _clean_markdown(board[board_field])
+            if not ticket_id.startswith(authoritative_wave):
+                self.fail(
+                    f"{source_label}: active board row {ticket_id} does not belong to Wave {authoritative_wave}"
+                )
+            for data_field in ("status", "owner", "reviewer"):
                 actual = _clean_markdown(str(ticket.get(data_field, "")))
+                expected = board[data_field]
                 if actual != expected:
                     self.fail(
-                        f"{ticket_id}.{data_field} is {actual!r}; Wave B board says {expected!r}"
+                        f"{source_label}: {ticket_id}.{data_field} is {actual!r}; "
+                        f"controlling board says {expected!r}"
                     )
-            dependency_text = _clean_markdown(board["Depends on"])
-            pieces = [piece.strip() for piece in dependency_text.split(",")]
-            if pieces and all(piece in EXPECTED_TICKETS for piece in pieces):
-                if ticket.get("depends_on") != pieces:
-                    self.fail(
-                        f"{ticket_id}.depends_on is {ticket.get('depends_on')!r}; Wave B board says {pieces!r}"
-                    )
-            elif ticket_id == "B-01":
-                context = ticket.get("depends_on_context")
-                if not isinstance(context, list) or not context:
-                    self.fail(
-                        "B-01 must preserve the board's prose activation dependency as depends_on_context"
-                    )
-            else:
+            unknown_dependencies = [
+                dependency
+                for dependency in board["depends_on"]
+                if dependency not in known_ticket_ids
+            ]
+            if unknown_dependencies:
                 self.fail(
-                    f"{ticket_id} has a non-structured dependency cell that cannot be checked exactly: {dependency_text!r}"
+                    f"{source_label}: {ticket_id} board dependencies are not captured: "
+                    f"{unknown_dependencies!r}"
                 )
-
-        completed_b = [
+            if ticket.get("depends_on") != board["depends_on"]:
+                self.fail(
+                    f"{source_label}: {ticket_id}.depends_on is {ticket.get('depends_on')!r}; "
+                    f"controlling board says {board['depends_on']!r}"
+                )
+        completed = [
             ticket_id
             for ticket_id, row in board_rows.items()
-            if _clean_markdown(row.get("Status", "")) == "done"
+            if row["status"] == "done"
         ]
-        captured_completed = current.get("completed_b_tickets", [])
-        if set(captured_completed) != set(completed_b):
+        if current.get("completed_wave_tickets") != completed:
             self.fail(
-                "current.completed_b_tickets must contain exactly the Wave B board's "
-                f"done tickets {completed_b!r}; found {captured_completed!r}"
+                f"{source_label}: current.completed_wave_tickets must be {completed!r}; "
+                f"found {current.get('completed_wave_tickets')!r}"
             )
-
         selected = data_rows.get(authoritative_ticket)
         if selected is None:
             self.fail(
-                f"Selected ticket {authoritative_ticket} is not captured in hub ticket data"
+                f"{source_label}: selected ticket {authoritative_ticket} is not captured"
             )
             return
         if selected.get("status") != authoritative_status:
             self.fail(
-                f"Selected ticket data status differs from .agent/WAVE.md: {selected.get('status')!r}"
+                f"{source_label}: selected ticket status is {selected.get('status')!r}; "
+                f"authority says {authoritative_status!r}"
             )
         if current.get("ticket_title") != selected.get("title"):
-            self.fail("current.ticket_title must match the selected ticket title")
+            self.fail(
+                f"{source_label}: current.ticket_title must match selected ticket"
+            )
         stage_tokens = re.findall(r"[a-z0-9]+", str(current.get("stage", "")).lower())
         selected_stage_tokens = re.findall(
             r"[a-z0-9]+", str(selected.get("current_stage", "")).lower()
         )
         if not selected_stage_tokens or stage_tokens != selected_stage_tokens:
             self.fail(
-                "current.stage must preserve the selected ticket's captured current_stage claim"
+                f"{source_label}: current.stage must match selected ticket current_stage"
             )
-
         selected_dependencies = selected.get("depends_on", [])
         if current.get("recent_dependencies") != selected_dependencies:
             self.fail(
-                "current.recent_dependencies must exactly match the selected ticket's "
-                f"direct dependencies {selected_dependencies!r}"
+                f"{source_label}: current.recent_dependencies must be {selected_dependencies!r}"
             )
+        all_tickets = {
+            str(item.get("id")): item for item in self.data.get("tickets", [])
+        }
         incomplete_dependencies = [
             dependency
             for dependency in selected_dependencies
-            if next(
-                (
-                    item.get("status")
-                    for item in self.data.get("tickets", [])
-                    if item.get("id") == dependency
-                ),
-                None,
-            )
-            != "done"
+            if all_tickets.get(dependency, {}).get("status") != "done"
         ]
         if incomplete_dependencies:
             self.fail(
-                f"Selected ticket has non-done direct dependencies: {incomplete_dependencies}"
+                f"{source_label}: selected ticket has non-done dependencies {incomplete_dependencies!r}"
             )
-        other_expected = set(completed_b) - set(selected_dependencies)
-        if set(current.get("other_completed_context", [])) != other_expected:
+        other_expected = [
+            ticket_id
+            for ticket_id in completed
+            if ticket_id not in set(selected_dependencies)
+        ]
+        if current.get("other_completed_wave_context") != other_expected:
             self.fail(
-                "current.other_completed_context must contain the other completed "
-                f"Wave B tickets {sorted(other_expected)!r}"
+                f"{source_label}: current.other_completed_wave_context must be "
+                f"{other_expected!r}; found {current.get('other_completed_wave_context')!r}"
             )
         if current.get("downstream_handoffs") != selected.get("unlocks"):
             self.fail(
-                "current.downstream_handoffs must exactly match the selected ticket's "
-                f"reverse dependencies {selected.get('unlocks')!r}"
+                f"{source_label}: current.downstream_handoffs must match selected ticket unlocks"
             )
-
-        known_tickets = {
-            str(item.get("id")): item for item in self.data.get("tickets", [])
-        }
+        parallel_statements = current.get("parallel_context", [])
         parallel_refs: set[str] = set()
-        for statement in current.get("parallel_context", []):
+        for statement in parallel_statements:
             parallel_refs.update(
                 ticket_id
-                for ticket_id in known_tickets
+                for ticket_id in expected_active_ids
                 if re.search(
                     rf"(?<![A-Z0-9-]){re.escape(ticket_id)}(?![A-Z0-9-])",
                     statement,
                 )
             )
-        if not parallel_refs:
-            self.fail("current.parallel_context must name at least one captured ticket")
+        if parallel_statements and not parallel_refs:
+            self.fail(
+                f"{source_label}: non-empty current.parallel_context must name an active-board ticket"
+            )
         for parallel_id in sorted(parallel_refs):
-            record = known_tickets[parallel_id]
+            record = data_rows[parallel_id]
             if parallel_id == authoritative_ticket or record.get("status") != "todo":
                 self.fail(
-                    f"current.parallel_context may only name unselected todo tickets; found {parallel_id}"
+                    f"{source_label}: parallel context may only name unselected todo tickets; "
+                    f"found {parallel_id}"
                 )
             unresolved = [
                 dependency
                 for dependency in record.get("depends_on", [])
-                if known_tickets.get(dependency, {}).get("status") != "done"
+                if all_tickets.get(dependency, {}).get("status") != "done"
             ]
             if unresolved:
                 self.fail(
-                    f"current.parallel_context names {parallel_id} with unresolved dependencies {unresolved}"
+                    f"{source_label}: parallel ticket {parallel_id} has unresolved "
+                    f"dependencies {unresolved!r}"
                 )
-
-        next_match = re.search(
-            r"^\*\*Next selected ticket:\*\*\s*([A-Z0-9-]+|none)\s*$",
-            wave_text,
-            flags=re.MULTILINE | re.IGNORECASE,
-        )
-        expected_next = (
-            None
-            if next_match is None or next_match.group(1).lower() == "none"
-            else next_match.group(1).upper()
-        )
-        if current.get("next_selected_ticket") != expected_next:
+        if current.get("next_selected_ticket") != authority["next_ticket"]:
             self.fail(
-                f"current.next_selected_ticket must be {expected_next!r} from .agent/WAVE.md"
+                f"{source_label}: current.next_selected_ticket must be "
+                f"{authority['next_ticket']!r}"
             )
-
         repository_url = str(self.data.get("meta", {}).get("repository", "")).rstrip(
             "/"
         )
         if current.get("technical_decision_route") != f"{repository_url}/issues/42":
             self.fail(
-                "current.technical_decision_route must be the repository's issue #42"
+                f"{source_label}: current.technical_decision_route must be issue #42"
             )
         if current.get("owner_decision_route") != f"{repository_url}/issues/41":
-            self.fail("current.owner_decision_route must be the repository's issue #41")
-
-        maturity_text = str(current.get("maturity_ceiling", ""))
-        maturity_lower = maturity_text.lower()
-        if not (
-            "specified" in maturity_lower
-            and "runtime implementation" in maturity_lower
-            and (
-                "not yet captured" in maturity_lower or "not captured" in maturity_lower
-            )
-            and "qualification" in maturity_lower
-            and "unearned" in maturity_lower
-        ):
-            self.fail(
-                "current.maturity_ceiling must preserve the selected ticket's "
-                "SPECIFIED-only, runtime-unimplemented, qualification-unearned ceiling"
-            )
-        fail_closed_text = " ".join(current.get("fail_closed", [])).lower()
-        for marker in ("human_input", "scientific", "security", "production", "live"):
-            if marker not in fail_closed_text:
-                self.fail(
-                    f"current.fail_closed is missing required boundary marker {marker!r}"
-                )
-
-        try:
-            decisions_text = (self.repo_root / ".agent/DECISIONS.md").read_text(
-                encoding="utf-8"
-            )
-        except (OSError, UnicodeError) as exc:
-            self.fail(
-                f"Cannot read .agent/DECISIONS.md for current decision series: {exc}"
-            )
-            decisions_text = ""
-        decision_series = current.get("decision_series", [])
-        for decision_id in decision_series:
+            self.fail(f"{source_label}: current.owner_decision_route must be issue #41")
+        decisions_text = view["decisions_text"]
+        for decision_id in current.get("decision_series", []):
             if not str(decision_id).startswith(f"{authoritative_ticket}-D"):
                 self.fail(
-                    f"current.decision_series entry {decision_id!r} does not belong to the selected ticket"
+                    f"{source_label}: decision {decision_id!r} does not belong to selected ticket"
                 )
             if not re.search(
                 rf"^##\s+.*\b{re.escape(str(decision_id))}:?\s*",
@@ -1718,39 +2237,69 @@ class Validator:
                 flags=re.MULTILINE,
             ):
                 self.fail(
-                    f"current.decision_series entry {decision_id!r} has no decision-log heading"
+                    f"{source_label}: decision {decision_id!r} has no decision-log heading"
                 )
-        series_status = str(current.get("decision_series_status", ""))
-        if decision_series and (
-            decision_series[0] not in series_status
-            or decision_series[-1] not in series_status
-            or "runtime implementation" not in series_status.lower()
-        ):
-            self.fail(
-                "current.decision_series_status must identify the series range and runtime boundary"
-            )
-        source_path = self.repo_root / str(selected.get("repo_path", ""))
-        try:
-            source_text = source_path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as exc:
-            self.fail(f"Cannot read selected ticket source {source_path}: {exc}")
+        source_text = view.get("selected_source")
+        if source_text is None:
             return
+        source_fields = self.ticket_record_fields(source_text)
         source_status = re.search(
-            r"^\*\*Status:\*\*\s*`?([a-z_]+)`?\s*$", source_text, flags=re.MULTILINE
+            r"^\*\*Status:\*\*\s*`?([a-z_]+)`?\s*$",
+            source_text,
+            flags=re.MULTILINE,
         )
         if not source_status:
             self.fail(
-                f"Selected ticket source {selected.get('repo_path')} has no parseable Status field"
+                f"{source_label}: selected ticket source has no parseable Status field"
             )
         elif source_status.group(1) != authoritative_status:
             self.fail(
-                f"Selected ticket source status is {source_status.group(1)!r}; current authority says {authoritative_status!r}"
+                f"{source_label}: selected ticket source status is "
+                f"{source_status.group(1)!r}; authority says {authoritative_status!r}"
             )
+        source_dependencies = re.findall(
+            r"\b[A-N](?:-[A-Z0-9]+|[0-9]+)\b",
+            source_fields.get("depends_on", "").upper(),
+        )
+        if (
+            source_fields.get("depends_on")
+            and source_dependencies != board_rows[authoritative_ticket]["depends_on"]
+        ):
+            self.fail(
+                f"{source_label}: selected ticket source dependencies are "
+                f"{source_dependencies!r}; controlling board says "
+                f"{board_rows[authoritative_ticket]['depends_on']!r}"
+            )
+        for source_field, board_field in (("owner", "owner"), ("reviewer", "reviewer")):
+            source_value = source_fields.get(source_field, "")
+            if (
+                source_value
+                and source_value
+                != board_rows[authoritative_ticket][board_field].casefold()
+            ):
+                self.fail(
+                    f"{source_label}: selected ticket source {source_field} is "
+                    f"{source_value!r}; controlling board says "
+                    f"{board_rows[authoritative_ticket][board_field]!r}"
+                )
+
+    def validate_repository_authority(self) -> None:
+        snapshot = str(self.data.get("meta", {}).get("authority_snapshot_commit", ""))
+        snapshot_view = self.load_authority_view(
+            "authority snapshot",
+            snapshot if re.fullmatch(r"[0-9a-f]{40}", snapshot) else None,
+        )
+        if snapshot_view is not None:
+            self.validate_authority_view(snapshot_view, "authority snapshot")
+        candidate_view = self.load_authority_view("candidate HEAD")
+        if candidate_view is not None:
+            self.validate_authority_view(candidate_view, "candidate HEAD")
 
     def validate_root_integration(self) -> None:
         checks = {
             "README.md": (
                 "## Development Hub",
+                "docs/development/carbon_hub/orientation/START_HERE.md",
                 "docs/development/carbon_hub/index.html",
                 "docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md",
             ),
@@ -1818,7 +2367,7 @@ class Validator:
 
     def validate_snapshot_metadata(self) -> None:
         meta = self.data.get("meta", {})
-        commit = str(meta.get("commit", ""))
+        commit = str(meta.get("authority_snapshot_commit", ""))
         if not re.fullmatch(r"[0-9a-f]{40}", commit):
             return
         try:
@@ -1826,7 +2375,8 @@ class Validator:
             resolved_commit = resolved.stdout.strip().lower()
             if resolved_commit != commit:
                 self.fail(
-                    f"meta.commit resolves to {resolved_commit}, not the recorded exact commit {commit}"
+                    "meta.authority_snapshot_commit resolves to "
+                    f"{resolved_commit}, not the recorded exact commit {commit}"
                 )
                 return
             show = self.git("show", "-s", "--format=%cI%n%s", commit)
@@ -1837,8 +2387,23 @@ class Validator:
             commit_time = datetime.fromisoformat(lines[0]).astimezone(UTC)
             subject = lines[1]
         except (RuntimeError, ValueError) as exc:
-            self.fail(f"Cannot resolve meta.commit as a repository commit: {exc}")
+            self.fail(
+                "Cannot resolve meta.authority_snapshot_commit as a repository "
+                f"commit: {exc}"
+            )
             return
+
+        ancestry = self.git(
+            "merge-base", "--is-ancestor", commit, "HEAD", allow_failure=True
+        )
+        if ancestry.returncode == 1:
+            self.fail(
+                "meta.authority_snapshot_commit must be an ancestor of candidate HEAD"
+            )
+        elif ancestry.returncode != 0:
+            self.fail(
+                "Could not establish authority-snapshot ancestry against candidate HEAD"
+            )
 
         if self.captured_at is not None and self.captured_at < commit_time:
             self.fail(
@@ -1856,62 +2421,224 @@ class Validator:
             self.fail(f"Cannot read the Hub snapshot playbook: {exc}")
         else:
             expected_line = (
-                f"Current snapshot: `{commit}`, reconciled "
+                f"Current authority snapshot: `{commit}`, reconciled "
                 f"{meta.get('captured_at_utc')}."
             )
             if expected_line not in playbook:
                 self.fail(
-                    "HUB_UPDATE_PLAYBOOK.md snapshot commit/time does not match metadata"
+                    "HUB_UPDATE_PLAYBOOK.md authority snapshot/time does not match metadata"
                 )
 
-        serialized = json.dumps(self.data, ensure_ascii=True, sort_keys=True)
-        pinned_shas = set(re.findall(r"/blob/([0-9a-f]{40})/", serialized))
+        pinned_links: list[tuple[str, str]] = []
+        invalid_blob_links: list[str] = []
+
+        def collect_links(value: Any) -> None:
+            if isinstance(value, dict):
+                for child in value.values():
+                    collect_links(child)
+            elif isinstance(value, list):
+                for child in value:
+                    collect_links(child)
+            elif isinstance(value, str):
+                target = self.carbon_blob_target(value)
+                if target is None:
+                    return
+                revision, path = target
+                pure = PurePosixPath(path)
+                if (
+                    not re.fullmatch(r"[0-9a-f]{40}", revision)
+                    or not path
+                    or pure.is_absolute()
+                    or ".." in pure.parts
+                    or "\\" in path
+                ):
+                    invalid_blob_links.append(value)
+                    return
+                pinned_links.append((revision, path))
+
+        collect_links(self.data)
+        collect_links(self.event_bundle)
+        if invalid_blob_links:
+            self.fail(
+                "Carbon blob URLs must use an exact lowercase 40-character authority "
+                "snapshot and a safe repository path: "
+                + ", ".join(sorted(set(invalid_blob_links)))
+            )
+        pinned_shas = {sha for sha, _ in pinned_links}
         if pinned_shas != {commit}:
             self.fail(
-                f"All pinned Carbon blob URLs must use meta.commit; found {sorted(pinned_shas)}"
+                "All pinned Carbon blob URLs must use "
+                f"meta.authority_snapshot_commit; found {sorted(pinned_shas)}"
             )
-
-        comparison_sha = self.base_sha
-        comparison_label = "HUB_BASE_SHA"
-        if comparison_sha is None:
-            for ref in ("refs/remotes/origin/main", "refs/heads/main"):
-                candidate = self.git(
-                    "rev-parse", "--verify", f"{ref}^{{commit}}", allow_failure=True
-                )
-                if candidate.returncode == 0:
-                    comparison_sha = candidate.stdout.strip().lower()
-                    comparison_label = ref
-                    break
-        if comparison_sha is not None:
-            ancestry = self.git(
-                "merge-base",
-                "--is-ancestor",
-                commit,
-                comparison_sha,
-                allow_failure=True,
-            )
-            if ancestry.returncode == 1:
-                self.fail(
-                    f"meta.commit is not an ancestor of the intended source base {comparison_label}"
-                )
-            elif ancestry.returncode != 0:
-                self.fail(
-                    f"Could not establish snapshot ancestry against {comparison_label}"
-                )
-
-        structural = bool(
-            self.changed_paths
-            and any(self.impact_ref(path) is not None for path in self.changed_paths)
+        tree = self.git("ls-tree", "-r", "-z", "--name-only", commit)
+        snapshot_paths = {path for path in tree.stdout.split("\0") if path}
+        missing_pins = sorted(
+            path
+            for sha, path in set(pinned_links)
+            if sha == commit and path not in snapshot_paths
         )
-        if (
-            self.base_sha is not None
-            and (self.semantic_data_changed or structural)
-            and commit != self.base_sha
-        ):
+        if missing_pins:
             self.fail(
-                "Semantic/structural hub reconciliation must pin meta.commit to "
-                "the exact HUB_BASE_SHA source base"
+                "Pinned Carbon blob URLs do not resolve at the authority snapshot: "
+                + ", ".join(missing_pins)
             )
+
+        linked_paths = {
+            path
+            for sha, path in pinned_links
+            if sha == commit and path in snapshot_paths
+        }
+        sources = self.data.get("sources", {})
+        current = self.data.get("current", {})
+
+        def source_target(source_id: str) -> str | None:
+            source = sources.get(source_id, {}) if isinstance(sources, dict) else {}
+            target = self.carbon_blob_target(
+                source.get("url") if isinstance(source, dict) else None
+            )
+            return target[1] if target is not None else None
+
+        if source_target("current_wave") != ".agent/WAVE.md":
+            self.fail("sources.current_wave must pin .agent/WAVE.md")
+        controlling_register = (
+            current.get("controlling_register") if isinstance(current, dict) else None
+        )
+        if source_target("controlling_board") != controlling_register:
+            self.fail("sources.controlling_board must pin current.controlling_register")
+
+        selected_ticket = str(current.get("ticket", ""))
+        selected = next(
+            (
+                item
+                for item in self.data.get("tickets", [])
+                if item.get("id") == selected_ticket
+            ),
+            None,
+        )
+        if selected is not None:
+            repo_ticket_targets = {
+                target[1]
+                for link in selected.get("repo_links", [])
+                if isinstance(link, dict)
+                and "repo ticket" in str(link.get("label", "")).lower()
+                and (target := self.carbon_blob_target(link.get("url"))) is not None
+            }
+            if repo_ticket_targets != {selected.get("repo_path")}:
+                self.fail(
+                    "Selected-ticket Repo ticket link must pin the selected repo_path"
+                )
+        active_wave = next(
+            (
+                item
+                for item in self.data.get("waves", [])
+                if item.get("id") == current.get("wave")
+            ),
+            None,
+        )
+        if isinstance(active_wave, dict) and controlling_register:
+            wave_link_paths = {
+                target[1]
+                for link in active_wave.get("repo_links", [])
+                if isinstance(link, dict)
+                and (target := self.carbon_blob_target(link.get("url"))) is not None
+            }
+            if controlling_register not in wave_link_paths:
+                self.fail(
+                    "The active wave record must link to current.controlling_register"
+                )
+
+        content_cache: dict[tuple[str, str], str | None] = {}
+
+        def revision_content(revision: str, path: str) -> str | None:
+            key = (revision, path)
+            if key not in content_cache:
+                result = self.git("show", f"{revision}:{path}", allow_failure=True)
+                content_cache[key] = result.stdout if result.returncode == 0 else None
+            return content_cache[key]
+
+        for check in self.data.get("authority_source_checks", []):
+            path = str(check.get("path", ""))
+            check_id = str(check.get("id", path))
+            if path not in linked_paths:
+                self.fail(
+                    f"authority source check {check_id} path is not represented by a "
+                    "blob link pinned to authority_snapshot_commit"
+                )
+                continue
+            snapshot_content = revision_content(commit, path)
+            head_content = revision_content("HEAD", path)
+            if snapshot_content is None:
+                self.fail(
+                    f"authority source check {check_id} cannot read {path} at the snapshot"
+                )
+                continue
+            if head_content is None:
+                self.fail(
+                    f"authority source check {check_id} cannot read {path} at candidate HEAD"
+                )
+                continue
+            for marker in check.get("required_markers", []):
+                if marker not in snapshot_content:
+                    self.fail(
+                        f"authority source check {check_id} marker is absent from "
+                        f"{path} at authority_snapshot_commit: {marker!r}"
+                    )
+                if marker not in head_content:
+                    self.fail(
+                        f"authority source check {check_id} marker is absent from "
+                        f"{path} at candidate HEAD: {marker!r}"
+                    )
+
+        post_snapshot = self.git(
+            "diff",
+            "--name-only",
+            "-z",
+            "--diff-filter=ACDMRTUXB",
+            f"{commit}..HEAD",
+        )
+        post_snapshot_paths = {
+            path.replace("\\", "/") for path in post_snapshot.stdout.split("\0") if path
+        }
+        stale_structural = sorted(
+            path
+            for path in post_snapshot_paths
+            if (
+                (impact := self.classify_impact(path, comparison_base=commit))
+                is not None
+                and impact["impact_class"] == "map_structural"
+            )
+        )
+        if stale_structural:
+            self.fail(
+                "Map-structural authority changed after authority_snapshot_commit; "
+                "create a new authority commit and repin the Hub: "
+                + ", ".join(stale_structural)
+            )
+        if selected is not None:
+            for link in selected.get("repo_links", []):
+                if not isinstance(link, dict):
+                    continue
+                label = str(link.get("label", "")).lower()
+                if "repo ticket" not in label and "evidence" not in label:
+                    continue
+                parsed = urllib.parse.urlsplit(str(link.get("url", "")))
+                match = re.fullmatch(
+                    r"/carbonphysicsai/Carbon/blob/([0-9a-f]{40})/(.+)",
+                    parsed.path,
+                )
+                if not match or match.group(1) != commit:
+                    self.fail(
+                        f"Selected-ticket {label} link is not pinned to the authority snapshot"
+                    )
+                    continue
+                detail = self.git(
+                    "show", f"{commit}:{match.group(2)}", allow_failure=True
+                )
+                if detail.returncode != 0 or selected_ticket not in detail.stdout:
+                    self.fail(
+                        f"Selected-ticket {label} link does not resolve to content "
+                        f"describing {selected_ticket} at the authority snapshot"
+                    )
 
         merged_pr = re.search(r"Merge pull request #(\d+)\b", subject)
         stage_pr = re.search(
@@ -1937,27 +2664,27 @@ class Validator:
             self.github_event = value
 
     def collect_diff(self) -> None:
-        base = os.environ.get("HUB_BASE_SHA")
+        base = os.environ.get("HUB_DIFF_BASE_SHA")
         if not base and self.github_event:
-            base = (
-                str(
-                    self.github_event.get("pull_request", {})
-                    .get("base", {})
-                    .get("sha", "")
-                )
-                or None
-            )
+            pull_request = self.github_event.get("pull_request", {})
+            if isinstance(pull_request, dict):
+                base_record = pull_request.get("base", {})
+                if isinstance(base_record, dict):
+                    base = str(base_record.get("sha", "")) or None
+            if not base:
+                before = self.github_event.get("before")
+                base = str(before) if isinstance(before, str) and before else None
         if not base:
             self.warn(
-                "HUB_BASE_SHA is unavailable; structural diff/change-event coverage was skipped"
+                "HUB_DIFF_BASE_SHA is unavailable; diff/change-event coverage was skipped"
             )
             return
         if not re.fullmatch(r"[0-9a-fA-F]{7,64}", base):
-            self.fail("HUB_BASE_SHA must be a hexadecimal Git object ID")
+            self.fail("HUB_DIFF_BASE_SHA must be a hexadecimal Git object ID")
             return
         try:
             resolved_base = self.git("rev-parse", "--verify", f"{base}^{{commit}}")
-            self.base_sha = resolved_base.stdout.strip().lower()
+            self.diff_base_sha = resolved_base.stdout.strip().lower()
             changed: set[str] = set()
             commands = (
                 (
@@ -1965,7 +2692,7 @@ class Validator:
                     "--name-only",
                     "-z",
                     "--diff-filter=ACDMRTUXB",
-                    f"{self.base_sha}...HEAD",
+                    f"{self.diff_base_sha}...HEAD",
                 ),
                 ("diff", "--name-only", "-z", "--diff-filter=ACDMRTUXB"),
                 (
@@ -1991,7 +2718,7 @@ class Validator:
                     "--name-only",
                     "-z",
                     "--diff-filter=D",
-                    f"{self.base_sha}...HEAD",
+                    f"{self.diff_base_sha}...HEAD",
                 ),
                 ("diff", "--name-only", "-z", "--diff-filter=D"),
                 ("diff", "--cached", "--name-only", "-z", "--diff-filter=D"),
@@ -2006,7 +2733,7 @@ class Validator:
             self.changed_paths.update(self.deleted_paths)
             prior = self.git(
                 "show",
-                f"{self.base_sha}:{HUB_RELATIVE.as_posix()}/data/change_events.json",
+                f"{self.diff_base_sha}:{HUB_RELATIVE.as_posix()}/data/change_events.json",
                 allow_failure=True,
             )
             prior_events: dict[str, dict[str, Any]] = {}
@@ -2048,7 +2775,7 @@ class Validator:
 
             prior_data = self.git(
                 "show",
-                f"{self.base_sha}:{HUB_RELATIVE.as_posix()}/data/hub_data_v2.json",
+                f"{self.diff_base_sha}:{HUB_RELATIVE.as_posix()}/data/hub_data_v2.json",
                 allow_failure=True,
             )
             if prior_data.returncode == 0:
@@ -2067,56 +2794,214 @@ class Validator:
                 != self.semantic_data_view(self.data)
             )
         except RuntimeError as exc:
-            self.fail(f"Cannot evaluate HUB_BASE_SHA structural diff: {exc}")
+            self.fail(f"Cannot evaluate HUB_DIFF_BASE_SHA diff coverage: {exc}")
+
+    def authority_semantics_changed(
+        self, path: str, selector: str, comparison_base: str | None = None
+    ) -> bool:
+        base = comparison_base or self.diff_base_sha
+        if base is None:
+            return True
+        prior = self.git("show", f"{base}:{path}", allow_failure=True)
+        current_path = self.repo_root / Path(*PurePosixPath(path).parts)
+        if prior.returncode != 0 or not current_path.is_file():
+            return True
+        try:
+            current = current_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            return True
+        if selector == "wave_register_fields_change":
+            before = self.parse_current_authority(prior.stdout, f"diff-base {path}")
+            after = self.parse_current_authority(current, f"candidate {path}")
+            if before is None or after is None:
+                return True
+            keys = (
+                "wave",
+                "state",
+                "register",
+                "register_version",
+                "ticket",
+                "ticket_status",
+                "next_ticket",
+                "closed_waves",
+            )
+            return tuple(before[key] for key in keys) != tuple(
+                after[key] for key in keys
+            )
+        if selector == "ticket_board_fields_change":
+            before_version, before_rows = self.parse_ticket_board(
+                prior.stdout, f"diff-base {path}"
+            )
+            after_version, after_rows = self.parse_ticket_board(
+                current, f"candidate {path}"
+            )
+
+            return self.board_signature(
+                before_version, before_rows
+            ) != self.board_signature(after_version, after_rows)
+        if selector == "ticket_record_fields_change":
+            return self.ticket_record_fields(prior.stdout) != self.ticket_record_fields(
+                current
+            )
+        return True
+
+    def classify_impact(
+        self, path: str, *, comparison_base: str | None = None
+    ) -> dict[str, str] | None:
+        if comparison_base is None and path in self.impact_cache:
+            return self.impact_cache[path]
+        policy = self.data.get("impact_policy", {})
+        rules = policy.get("rules", []) if isinstance(policy, dict) else []
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+            match_type = rule.get("match_type")
+            pattern = str(rule.get("path", ""))
+            matched = False
+            if match_type == "exact":
+                matched = path == pattern
+            elif match_type == "prefix":
+                matched = path.startswith(pattern)
+            elif match_type == "wave_board":
+                matched = re.fullmatch(r"\.agent/WAVE_([A-N])\.md", path) is not None
+            elif match_type == "ticket_record":
+                matched = path.startswith(pattern)
+            if not matched:
+                continue
+            raw_ref = str(rule.get("map_ref", ""))
+            map_ref = raw_ref
+            if raw_ref == "CURRENT_WAVE":
+                current_wave = str(self.data.get("current", {}).get("wave", ""))
+                map_ref = f"WAVE-{current_wave}" if current_wave else ""
+            elif raw_ref == "WAVE_FROM_PATH":
+                match = re.fullmatch(r"\.agent/WAVE_([A-N])\.md", path)
+                map_ref = f"WAVE-{match.group(1)}" if match else ""
+            elif raw_ref == "TICKET_FROM_PATH":
+                name = Path(path).name.upper()
+                map_ref = ""
+                tickets = [
+                    item
+                    for item in self.data.get("tickets", [])
+                    if isinstance(item, dict) and isinstance(item.get("id"), str)
+                ]
+                for ticket in sorted(
+                    tickets, key=lambda item: len(str(item.get("id"))), reverse=True
+                ):
+                    ticket_id = str(ticket["id"])
+                    if name == ticket_id or name.startswith(
+                        (ticket_id + "_", ticket_id + ".")
+                    ):
+                        map_ref = f"WAVE-{ticket.get('wave')}/{ticket_id}"
+                        break
+            if not map_ref:
+                result = {
+                    "impact_class": "unmapped_authority",
+                    "map_ref": "",
+                    "rule_id": str(rule.get("id", "unknown")),
+                }
+                if comparison_base is None:
+                    self.impact_cache[path] = result
+                return result
+            impact_class = str(rule.get("impact_class", ""))
+            selector = rule.get("structural_when")
+            if isinstance(selector, str) and self.authority_semantics_changed(
+                path, selector, comparison_base
+            ):
+                impact_class = "map_structural"
+            result = {
+                "impact_class": impact_class,
+                "map_ref": map_ref,
+                "rule_id": str(rule.get("id", "unknown")),
+            }
+            if comparison_base is None:
+                self.impact_cache[path] = result
+            return result
+        roots = policy.get("authority_roots", []) if isinstance(policy, dict) else []
+        if any(isinstance(root, str) and path.startswith(root) for root in roots):
+            result = {
+                "impact_class": "unmapped_authority",
+                "map_ref": "",
+                "rule_id": "unmapped-authority-root",
+            }
+            if comparison_base is None:
+                self.impact_cache[path] = result
+            return result
+        if comparison_base is None:
+            self.impact_cache[path] = None
+        return None
 
     def impact_ref(self, path: str) -> str | None:
-        current_wave = str(self.data.get("current", {}).get("wave", "B"))
-        if path in {"AGENTS.md", "agent_pack/EXECUTION_PROTOCOL.md"}:
-            return "SYSTEM/AGENT-EXECUTION"
-        if path in {"CONSTITUTION.md", ".agent/INVARIANTS.md"}:
-            return "SYSTEM/GOVERNANCE"
-        if path == ".agent/CODE_AUTHORITY.toml":
-            return "SYSTEM/AGENT-EXECUTION"
-        if path == "docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md":
-            return "SYSTEM/SCIENTIFIC-CANON"
-        if path == "docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md":
-            return "SYSTEM/MATURITY"
-        # Hub presentation, tools, and generated artifacts are not structural by
-        # path alone. Their PR declaration still records impact, while a material
-        # repository-authority change below requires source data plus an event.
-        if path == "README.md" or path.startswith(f"{HUB_RELATIVE.as_posix()}/"):
+        impact = self.classify_impact(path)
+        if impact is None or impact["impact_class"] == "unmapped_authority":
             return None
-        if path == ".github/pull_request_template.md":
-            return "SYSTEM/PR-MAINTENANCE"
-        if path.startswith(".github/workflows/"):
-            return "SYSTEM/PUBLICATION" if "page" in path.lower() else "SYSTEM/CI"
-        if path == ".agent/WAVE.md":
-            return f"WAVE-{current_wave}"
-        match = re.fullmatch(r"\.agent/WAVE_([A-N])\.md", path)
-        if match:
-            return f"WAVE-{match.group(1)}"
-        if path.startswith((".agent/tickets/", ".agent/plans/", ".agent/evidence/")):
-            name = Path(path).name.upper()
-            for ticket in sorted(EXPECTED_TICKETS, key=len, reverse=True):
-                if name == ticket or name.startswith((ticket + "_", ticket + ".")):
-                    wave = next(
-                        (
-                            item.get("wave")
-                            for item in self.data.get("tickets", [])
-                            if item.get("id") == ticket
-                        ),
-                        ticket[0],
-                    )
-                    return f"WAVE-{wave}/{ticket}"
-            return f"WAVE-{current_wave}"
-        if path in {
-            ".agent/DECISIONS.md",
-            ".agent/DELEGATED_DECISION_PROTOCOL.md",
-        } or path.startswith("Design_Specs/"):
-            return f"WAVE-{current_wave}"
-        if path.startswith(("Business/", "docs/publications/")):
-            return "WAVE-G"
-        return None
+        return impact["map_ref"]
+
+    def semantic_change_map_refs(self) -> set[str]:
+        """Return map owners whose Hub semantics differ from the diff base."""
+        if self.base_hub_data is None:
+            return set()
+        base = self.base_hub_data
+        current = self.data
+        refs: set[str] = set()
+        base_current = base.get("current", {})
+        now_current = current.get("current", {})
+        if self.semantic_data_view(base_current) != self.semantic_data_view(
+            now_current
+        ):
+            wave = now_current.get("wave") if isinstance(now_current, dict) else None
+            ticket = (
+                now_current.get("ticket") if isinstance(now_current, dict) else None
+            )
+            if isinstance(wave, str) and isinstance(ticket, str):
+                refs.add(f"WAVE-{wave}/{ticket}")
+            elif isinstance(wave, str):
+                refs.add(f"WAVE-{wave}")
+
+        def records_by_id(value: Any) -> dict[str, Any]:
+            if not isinstance(value, list):
+                return {}
+            return {
+                str(item["id"]): item
+                for item in value
+                if isinstance(item, dict) and isinstance(item.get("id"), str)
+            }
+
+        base_waves = records_by_id(base.get("waves"))
+        now_waves = records_by_id(current.get("waves"))
+        for wave_id in set(base_waves) | set(now_waves):
+            if self.semantic_data_view(
+                base_waves.get(wave_id)
+            ) != self.semantic_data_view(now_waves.get(wave_id)):
+                refs.add(f"WAVE-{wave_id}")
+        base_tickets = records_by_id(base.get("tickets"))
+        now_tickets = records_by_id(current.get("tickets"))
+        for ticket_id in set(base_tickets) | set(now_tickets):
+            if self.semantic_data_view(
+                base_tickets.get(ticket_id)
+            ) == self.semantic_data_view(now_tickets.get(ticket_id)):
+                continue
+            record = now_tickets.get(ticket_id) or base_tickets.get(ticket_id) or {}
+            wave = record.get("wave") if isinstance(record, dict) else None
+            if isinstance(wave, str):
+                refs.add(f"WAVE-{wave}/{ticket_id}")
+
+        system_sections = {
+            "meta": "SYSTEM/DEVELOPMENT-HUB",
+            "sources": "SYSTEM/DEVELOPMENT-HUB",
+            "authority_source_checks": "SYSTEM/DEVELOPMENT-HUB",
+            "authority_ceilings": "SYSTEM/MATURITY",
+            "impact_policy": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+            "maturity": "SYSTEM/MATURITY",
+            "change_paths": "SYSTEM/DEVELOPMENT-HUB",
+            "glossary": "SYSTEM/DEVELOPMENT-HUB",
+            "event_schema": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        }
+        for section, ref in system_sections.items():
+            if self.semantic_data_view(base.get(section)) != self.semantic_data_view(
+                current.get(section)
+            ):
+                refs.add(ref)
+        return refs
 
     @staticmethod
     def ref_covered(expected: str, actual: set[str]) -> bool:
@@ -2130,26 +3015,46 @@ class Validator:
     def validate_structural_diff(self) -> None:
         if self.changed_paths is None:
             return
-        impacts = {
-            path: ref
+        classified = {
+            path: impact
             for path in self.changed_paths
-            if (ref := self.impact_ref(path)) is not None
+            if (impact := self.classify_impact(path)) is not None
         }
-        if not impacts and not self.semantic_data_changed:
+        unmapped = sorted(
+            path
+            for path, impact in classified.items()
+            if impact["impact_class"] == "unmapped_authority"
+        )
+        for path in unmapped:
+            self.fail(
+                f"Authority path {path} has no explicit Development Hub impact-policy "
+                "map owner; add a bounded ownership rule before this change can pass"
+            )
+        structural = {
+            path: impact["map_ref"]
+            for path, impact in classified.items()
+            if impact["impact_class"] == "map_structural"
+        }
+        if not structural and not self.semantic_data_changed:
             return
         hub_data_path = f"{HUB_RELATIVE.as_posix()}/data/hub_data_v2.json"
         events_path = f"{HUB_RELATIVE.as_posix()}/data/change_events.json"
-        if impacts and hub_data_path not in self.changed_paths:
+        if structural and hub_data_path not in self.changed_paths:
             self.fail(
-                "Structural repository changes require an updated data/hub_data_v2.json"
+                "Map-structural repository changes require an updated data/hub_data_v2.json"
             )
-        if impacts and events_path not in self.changed_paths:
+        if structural and not self.semantic_data_changed:
             self.fail(
-                "Structural repository changes require an updated data/change_events.json"
+                "Map-structural repository changes require a semantic Hub-data delta; "
+                "snapshot pins or timestamps alone are not reconciliation"
+            )
+        if structural and events_path not in self.changed_paths:
+            self.fail(
+                "Map-structural repository changes require an updated data/change_events.json"
             )
         if self.semantic_data_changed and hub_data_path not in self.changed_paths:
             self.fail(
-                "Semantic hub-data reconciliation differs from HUB_BASE_SHA but "
+                "Semantic hub-data reconciliation differs from HUB_DIFF_BASE_SHA but "
                 "data/hub_data_v2.json is not in the diff"
             )
         if self.semantic_data_changed and events_path not in self.changed_paths:
@@ -2159,8 +3064,8 @@ class Validator:
             )
         if not self.new_event_ids:
             self.fail(
-                "Structural or semantic hub changes require at least one new immutable "
-                "change event relative to HUB_BASE_SHA"
+                "Map-structural or semantic hub changes require at least one new "
+                "immutable change event relative to HUB_DIFF_BASE_SHA"
             )
             return
         new_events = [
@@ -2173,8 +3078,9 @@ class Validator:
             for ref in item.get("affects", [])
             if isinstance(ref, str)
         )
+        required_refs = set(structural.values()) | self.semantic_change_map_refs()
         missing = sorted(
-            {ref for ref in impacts.values() if not self.ref_covered(ref, covered)}
+            {ref for ref in required_refs if not self.ref_covered(ref, covered)}
         )
         if missing:
             self.fail(
@@ -2243,9 +3149,56 @@ class Validator:
             )
         if self.changed_paths is None:
             return
+        classified = {
+            path: impact
+            for path in self.changed_paths
+            if (impact := self.classify_impact(path)) is not None
+        }
         structural = sorted(
-            path for path in self.changed_paths if self.impact_ref(path) is not None
+            path
+            for path, impact in classified.items()
+            if impact["impact_class"] == "map_structural"
         )
+        mapped_details = sorted(
+            path
+            for path, impact in classified.items()
+            if impact["impact_class"] == "mapped_detail"
+        )
+        unmapped = sorted(
+            path
+            for path, impact in classified.items()
+            if impact["impact_class"] == "unmapped_authority"
+        )
+        if unmapped:
+            self.fail(
+                "No PR declaration can bypass unmapped authority paths: "
+                + ", ".join(unmapped)
+            )
+        declared_map_refs = set(
+            re.findall(
+                r"\b(?:WAVE-[A-N](?:/[A-Z0-9-]+)?|SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*)\b",
+                detail,
+            )
+        )
+        mapped_detail_refs = {
+            classified[path]["map_ref"]
+            for path in mapped_details
+            if classified[path]["map_ref"]
+        }
+        new_event_coverage = {
+            ref
+            for event in self.events
+            if event.get("event_id") in self.new_event_ids
+            for ref in [
+                event.get("map_ref"),
+                *(
+                    event.get("affects", [])
+                    if isinstance(event.get("affects"), list)
+                    else []
+                ),
+            ]
+            if isinstance(ref, str)
+        }
         hub_data_path = f"{HUB_RELATIVE.as_posix()}/data/hub_data_v2.json"
         events_path = f"{HUB_RELATIVE.as_posix()}/data/change_events.json"
         source_records = {hub_data_path, events_path}
@@ -2275,7 +3228,28 @@ class Validator:
                     "HUB_IMPACT_NONE must state a concrete scoped reason the hub "
                     "semantics remain accurate"
                 )
+            missing_detail_refs = sorted(
+                expected
+                for expected in mapped_detail_refs
+                if expected not in declared_map_refs
+            )
+            if missing_detail_refs:
+                self.fail(
+                    "HUB_IMPACT_NONE must name the mapped-detail owner refs: "
+                    + ", ".join(missing_detail_refs)
+                )
         if kind == "HUB_UPDATE_REQUIRED":
+            missing_detail_refs = sorted(
+                expected
+                for expected in mapped_detail_refs
+                if expected not in declared_map_refs
+                and not self.ref_covered(expected, new_event_coverage)
+            )
+            if missing_detail_refs:
+                self.fail(
+                    "HUB_UPDATE_REQUIRED must name or newly event-cover the "
+                    "mapped-detail owner refs: " + ", ".join(missing_detail_refs)
+                )
             hub_changes = {
                 path
                 for path in self.changed_paths
@@ -2285,12 +3259,6 @@ class Validator:
                 self.fail(
                     "HUB_UPDATE_REQUIRED must include at least one Development Hub file"
                 )
-            declared_map_refs = set(
-                re.findall(
-                    r"\b(?:WAVE-[A-N](?:/[A-Z0-9-]+)?|SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*)\b",
-                    detail,
-                )
-            )
             declared_event_ids = {
                 str(event.get("event_id"))
                 for event in self.events
@@ -2326,6 +3294,11 @@ class Validator:
                 is not None
             )
             known_map_refs = set(KNOWN_SYSTEM_MAP_REFS)
+            policy_refs = self.data.get("impact_policy", {}).get("system_map_refs", [])
+            if isinstance(policy_refs, list):
+                known_map_refs.update(
+                    ref for ref in policy_refs if isinstance(ref, str)
+                )
             known_map_refs.update(
                 f"WAVE-{item.get('id')}"
                 for item in self.data.get("waves", [])
@@ -2412,7 +3385,7 @@ class Validator:
             missing = sorted(source_records - self.changed_paths)
             if structural and missing:
                 self.fail(
-                    "Structural repository changes require both hub source records; "
+                    "Map-structural repository changes require both hub source records; "
                     "missing: " + ", ".join(missing)
                 )
 
@@ -2435,11 +3408,11 @@ class Validator:
             return self.report()
         self.validate_html()
         self.validate_renderer_drift()
-        self.validate_repository_authority()
         self.validate_root_integration()
         self.load_github_event()
         self.collect_diff()
         self.validate_snapshot_metadata()
+        self.validate_repository_authority()
         self.validate_structural_diff()
         self.validate_pr_declaration()
         return self.report()
@@ -2482,7 +3455,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--skip-pr-contract",
         action="store_true",
-        help="skip the pull-request body declaration check (for owner-controlled publication workflows)",
+        help="skip the pull-request body declaration check for non-PR validation workflows",
     )
     args = parser.parse_args(argv)
     return Validator(args.repo_root, skip_pr_contract=args.skip_pr_contract).run()

@@ -8,6 +8,15 @@ const root = path.resolve(__dirname, '..');
 const primary = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const data = JSON.parse(fs.readFileSync(path.join(root, 'data', 'hub_data_v2.json'), 'utf8'));
 const eventBundle = JSON.parse(fs.readFileSync(path.join(root, 'data', 'change_events.json'), 'utf8'));
+const currentWave = data.waves.find(wave => wave.id === data.current.wave);
+const currentTicket = data.tickets.find(ticket => ticket.id === data.current.ticket);
+const ticketWaveIds = [...new Set(data.tickets.map(ticket => ticket.wave))];
+function humanJoin(values) {
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(', ')}, and ${values.at(-1)}`;
+}
+const ticketWaveLabel = humanJoin(ticketWaveIds.map(wave => `Wave ${wave}`));
 
 if (/<script\b/i.test(primary)) {
   throw new Error('Primary index.html must contain zero script elements');
@@ -17,10 +26,10 @@ const staticRoutes = {
   'index.html': 'Carbon Development Hub',
   '#start': 'Understand the layers before changing the system',
   '#current': 'Captured repository position',
-  '#waves': 'Wave A through Wave N',
-  '#wave-B': 'Wave B: Science-ready authoring skeletons',
-  '#tickets': 'Wave A and Wave B tickets',
-  '#ticket-B-03': 'B-03: Generator API and fixed-viscosity Burgers fixture',
+  '#waves': `Wave ${data.waves[0].id} through Wave ${data.waves.at(-1).id}`,
+  [`#wave-${currentWave.id}`]: `Wave ${currentWave.id}: ${currentWave.title}`,
+  '#tickets': `Captured tickets across ${ticketWaveLabel}`,
+  [`#ticket-${currentTicket.id}`]: `${currentTicket.id}: ${currentTicket.title}`,
   '#changes': 'Place the change before implementing it',
   '#change-new-challenge': 'Add a new Challenge',
   '#change-reference-truth': 'Change a reference or truth path',
@@ -84,6 +93,12 @@ function element() {
 }
 
 const interactive = fs.readFileSync(path.join(root, 'interactive.html'), 'utf8');
+if (!interactive.includes(`<strong>Wave ${data.current.wave} / ${data.current.ticket}</strong>`) ||
+    !interactive.includes(data.current.stage) ||
+    interactive.includes('__CURRENT_POSITION__') || interactive.includes('__CURRENT_STAGE__')) {
+  console.error('FAIL interactive sidebar current-position binding');
+  failures += 1;
+}
 const scriptMatch = interactive.match(/<script>([\s\S]*?)<\/script>/);
 if (!scriptMatch) throw new Error('interactive.html has no inline application script');
 const elements = {
@@ -153,9 +168,9 @@ const interactiveRoutes = {
   '#/home': 'Understand what is changing and why.',
   '#/start': 'New to Carbon',
   '#/waves': 'The full development plan',
-  '#/wave/B': 'Wave B: Science-ready authoring skeletons',
+  [`#/wave/${currentWave.id}`]: `Wave ${currentWave.id}: ${currentWave.title}`,
   '#/tickets': 'Ticket index',
-  '#/ticket/B-03': 'B-03: Generator API and fixed-viscosity Burgers fixture',
+  [`#/ticket/${currentTicket.id}`]: `${currentTicket.id}: ${currentTicket.title}`,
   '#/changes': 'Place a change before you implement it',
   '#/change/new-challenge': 'Add a new Challenge',
   '#/change/reference-truth': 'Change a reference or truth path',
@@ -173,6 +188,86 @@ for (const [route, expected] of Object.entries(interactiveRoutes)) {
   }
 }
 
+const livingStateFixture = vm.runInContext(`(() => {
+  const originalCurrent = DATA.current;
+  const originalWaves = DATA.waves;
+  const originalTickets = DATA.tickets;
+  try {
+    const fixtureTitle = 'Wave C living-state fixture';
+    DATA.current = {
+      ...originalCurrent,
+      wave: 'C',
+      wave_title: 'Portfolio learning',
+      wave_status: 'active in bounded fixture scope',
+      ticket: 'C-01',
+      ticket_title: fixtureTitle,
+      ticket_status: 'in_progress',
+      stage: 'C-01 is the selected current fixture ticket.',
+      recent_dependencies: [],
+      other_completed_wave_context: [],
+      downstream_handoffs: [],
+      parallel_context: [],
+      next_selected_ticket: null,
+      maturity_summary: 'C-01 is specified in this fixture; later maturity states remain unearned.',
+      decision_series: ['C-01-D1'],
+      decision_series_status: 'C-01-D1 is the captured fixture decision.',
+      technical_decision_route: 'https://example.test/decisions/C-01'
+    };
+    DATA.waves = originalWaves.map(wave => ({
+      ...wave,
+      status: wave.id === 'C' ? 'active' : wave.status === 'active' ? 'planned' : wave.status,
+      ticket_ids: wave.id === 'C' ? ['C-01'] : wave.ticket_ids
+    }));
+    DATA.tickets = [...originalTickets, {
+      id: 'C-01', wave: 'C', title: fixtureTitle, status: 'in_progress', phase: 'Wave C',
+      one_line: 'Exercise renderer living-state bindings without changing repository authority.',
+      what: 'Fixture-only route coverage.', why: 'Prevent stale current-wave presentation.',
+      adds: 'A test-only current ticket.', does_not: 'It grants no implementation authority.',
+      depends_on: [], unlocks: [], owner: 'Fixture driver', reviewer: 'Fixture reviewer',
+      master_questions: [], repo_links: [{label:'Fixture ticket',url:'https://example.test/tickets/C-01'}],
+      orientation_note: 'Fixture-only presentation test.'
+    }];
+    location.hash = '#/home';
+    const homeHtml = home();
+    location.hash = '#/tickets';
+    const ticketsHtml = ticketsPage();
+    return {
+      homeHtml,
+      ticketsHtml,
+      waveHtml: wavePage('C'),
+      maturityHtml: maturityPage(),
+      emptyAnchorHtml: changePage('protocol-defect')
+    };
+  } finally {
+    DATA.current = originalCurrent;
+    DATA.waves = originalWaves;
+    DATA.tickets = originalTickets;
+  }
+})()`, context);
+
+const fixtureExpectations = {
+  home: [livingStateFixture.homeHtml, ['Wave C', 'C-01', 'C-01-D1']],
+  tickets: [livingStateFixture.ticketsHtml, ['Wave C', 'value="C"', 'ticket C-01']],
+  wave: [livingStateFixture.waveHtml, ['Wave C:', 'C-01']],
+  maturity: [livingStateFixture.maturityHtml, ['Example: current C-01', 'C-01 is specified in this fixture']],
+  emptyAnchor: [livingStateFixture.emptyAnchorHtml, ['No current Wave C ticket anchor', 'WAVE-C/C-01']]
+};
+for (const [surface, [html, expectedText]] of Object.entries(fixtureExpectations)) {
+  for (const expected of expectedText) {
+    if (!html.includes(expected)) {
+      console.error(`FAIL living-state fixture ${surface}: missing ${expected}`);
+      failures += 1;
+    }
+  }
+}
+for (const stale of ['Wave B is active', 'current B-03', 'B-03 supplies', 'B-03-D1 through B-03-D8']) {
+  if (livingStateFixture.homeHtml.includes(stale) || livingStateFixture.maturityHtml.includes(stale) || livingStateFixture.emptyAnchorHtml.includes(stale)) {
+    console.error(`FAIL living-state fixture retained stale current claim: ${stale}`);
+    failures += 1;
+  }
+}
+
 if (failures) process.exit(1);
 console.log(`Static routes passed: ${Object.keys(staticRoutes).length}`);
 console.log(`Interactive routes passed: ${Object.keys(interactiveRoutes).length}`);
+console.log(`Living-state fixture surfaces passed: ${Object.keys(fixtureExpectations).length}`);

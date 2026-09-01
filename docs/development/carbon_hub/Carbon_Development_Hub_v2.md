@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Snapshot:** `b86daa5d8b0f8b3e86bb82c2661f405747a200df` on `main`, captured 2026-08-31T21:15:10Z.
+**Authority snapshot:** `bd479bf478fee193d9d81dec34a5b73bf623a098` on `main`, captured 2026-09-01T01:04:23Z.
 **Current:** Wave B, ticket B-03. The working engineering contract merged in PR #67 and exact-main CI passed; runtime implementation remains selected and had not started in the captured repository state.
 
 ## Wave spine
@@ -83,6 +83,7 @@
 - `B-03-E1` — `WAVE-B/B-03` — PR #67 merged the B-03 working engineering contract and exact-main CI passed; runtime implementation remained selected and unstarted in the captured repository state.
 - `HUB-BUG-001` — `SYSTEM/DEVELOPMENT-HUB` — The v2 primary page was an empty JavaScript shell and appeared blank when inline scripts were suppressed; v2.1 replaces it with complete static semantic HTML.
 - `HUB-ADJ-001` — `SYSTEM/DEVELOPMENT-HUB` — The hub is integrated as a data-first repository surface with deterministic generation, maintenance instructions, drift validation, PR impact declaration, and owner-controlled publication support.
+- `HUB-ADJ-002` — `SYSTEM/DEVELOPMENT-HUB/VALIDATION` — PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval.
 
 ## Authority boundary
 

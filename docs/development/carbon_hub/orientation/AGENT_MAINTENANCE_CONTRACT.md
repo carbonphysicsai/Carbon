@@ -90,10 +90,22 @@ or:
 HUB_IMPACT_NONE: <specific reason the hub remains accurate>
 ```
 
-`HUB_IMPACT_NONE` cannot cover wave registers, ticket definitions, Build Out or
-master-plan structure, decision records, evidence records, or changes to
-ownership, cross-wave placement, status, dependencies, boundaries, maturity,
-or recurring change routing.
+The data-owned impact policy classifies repository paths as `map_structural`,
+`mapped_detail`, or `unmapped_authority`. `HUB_IMPACT_NONE` cannot cover a
+map-structural change to selection, ownership, cross-wave placement, status,
+dependencies, boundaries, maturity, primary links, or recurring routing. It
+may cover a mapped-detail plan, evidence, decision, business, publication, or
+implementation change only when the declaration names its map owner and gives
+a specific reason the Hub's orientation meaning remains accurate. An unmapped
+authority path always fails until an explicit bounded owner is recorded; it
+never falls back to the active wave.
+
+For a mapped authority update, make the authority/evidence change in commit
+`A`, then build the Hub in commit `H`. The Hub records a parsed controlling-board
+fingerprint plus exact `authority_source_checks`; all asserted paths must be
+linked at `A`, and every asserted marker must remain present at candidate
+`HEAD`. This proves the pinned records contain the state the Hub summarizes
+without treating unrelated appended evidence detail as a structural rewrite.
 
 ## Validation and closeout
 
@@ -120,8 +132,11 @@ validation evidence.
 ## Publication boundary
 
 This public repository contains only public-safe orientation. Manual Pages
-deployment is owner-controlled. Automatic deployment requires the repository
-variable `CARBON_HUB_PUBLISH=true`; this task does not set it or enable Pages.
-Enabling Pages makes the hub public. Any future internal-only content belongs
-on an access-controlled static host and remains subject to rights, privacy,
-security, and customer-confidentiality authority.
+deployment is available to authorized repository maintainers. The workflow
+does not itself enforce owner approval; a required reviewer on the
+`github-pages` environment, if desired, is a separate human-controlled
+repository setting. Automatic deployment requires the repository variable
+`CARBON_HUB_PUBLISH=true`; this task does not set it, enable Pages, or change
+settings. Enabling Pages makes the hub public. Any future internal-only content
+belongs on an access-controlled static host and remains subject to rights,
+privacy, security, and customer-confidentiality authority.
