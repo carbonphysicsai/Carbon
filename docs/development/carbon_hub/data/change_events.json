@@ -89,6 +89,30 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-03-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-04",
+      "event_type": "evidence",
+      "event_id": "B-04-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-03 completed its exact reviewed merge and exact-main closeout, and Wave B board version 1.0 selects B-04 for working-contract authoring only.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md",
+      "affects": [
+        "WAVE-B/B-03",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-03-E2"
     }
   ]
 }

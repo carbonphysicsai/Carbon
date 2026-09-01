@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `a785799d6de2715ed3993a744ac16b7c7a572638` on `main`, captured 2026-09-01T01:58:16Z.
-**Current:** Wave B, ticket B-03. PR #69's bounded B-03 implementation is present in the captured authority snapshot. The controlling Wave-B board and ticket still record B-03 as in_progress, so the Hub does not relabel the ticket done or infer any qualification.
+**Authority snapshot:** `79143d13e1e69e6f8e32ac066828b47fe5f9b060` on `main`, captured 2026-09-01T03:53:59Z.
+**Current:** Wave B, ticket B-04. Version 1.0 records B-03 done in bounded merged engineering scope and selects B-04 in_progress for working-contract authoring only. The B-04 contract in this snapshot is a candidate; normal merge and exact-main CI remain pending, and no B-04 implementation is authorized.
 
 ## Wave spine
 
@@ -47,8 +47,8 @@
 | [B-02A](explainers/tickets/b_02a.md) | Define the physical task, candidate output, target population, SamplingPlan, canonical cases, and their exact identities. | done |
 | [B-02B](explainers/tickets/b_02b.md) | Define CandidateAssemblyContract, ParameterCatalog, optional structural components, StrategyCompiler, and ResolvedConstructionPlan. | done |
 | [B-02C](explainers/tickets/b_02c.md) | Define resource classes, ceilings, reconstruction-stage receipt seams, enforcement outcomes, and non-scientific resource receipts. | done |
-| [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | in_progress |
-| [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | todo |
+| [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | done |
+| [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | in_progress |
 | [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | todo |
 | [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | todo |
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
@@ -85,6 +85,7 @@
 - `HUB-ADJ-001` — `SYSTEM/DEVELOPMENT-HUB` — The hub is integrated as a data-first repository surface with deterministic generation, maintenance instructions, drift validation, PR impact declaration, and owner-controlled publication support.
 - `HUB-ADJ-002` — `SYSTEM/DEVELOPMENT-HUB/VALIDATION` — PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval.
 - `B-03-E2` — `WAVE-B/B-03` — PR #69 merged the exact reviewed bounded B-03 generator implementation into main; the Hub is repinned to a snapshot containing it while B-03 remains in_progress and post-merge exact-main and closeout evidence are not yet recorded in the authority files.
+- `B-04-E1` — `WAVE-B/B-04` — B-03 completed its exact reviewed merge and exact-main closeout, and Wave B board version 1.0 selects B-04 for working-contract authoring only.
 
 ## Authority boundary
 
