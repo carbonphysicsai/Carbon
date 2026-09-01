@@ -1,14 +1,125 @@
 # Agent decisions log
 
+## 2026-09-01 — OWNER-DX-01: Carbon development throughput hardening
+
+**Affected ticket and sequence.** Insert B-01F after PR #72's merged B-04
+contract and before B-04 runtime implementation:
+
+```text
+B-04 bounded engineering contract ratified
+→ B-01F development throughput hardening
+→ B-04 runtime implementation
+```
+
+B-01G is a future non-blocking tooling proof. This sequencing decision does
+not reopen, demote, or amend B-04-D1 through B-04-D10 or
+`Design_Specs/Reference_and_TruthAsset_Contract.md`.
+
+**Problem.** Carbon's prior process required repeated owner prompts, separate
+contract merges without a substantive reason, commits used only to retrigger a
+corrected PR declaration or store external completion facts, full expensive CI
+for every authority-only change, host-specific validation paths, and broad
+generated-Hub churn. Those costs did not add scientific, security, rights,
+protocol, or production assurance.
+
+**Owner-selected approach.** Make repository authority and machine enforcement
+implement the normal lifecycle:
+
+```text
+working contract and decisions
+→ vertical implementation slices
+→ canonical validation
+→ exact-head scope-required CI and Merge gate
+→ exact-head Greptile Review
+→ valid-finding repair and zero unresolved threads
+→ normal exact-expected-head merge
+→ ordered-parent/reviewed-tree/exact-main verification
+→ completed normalized external receipt posted
+→ bounded closeout and next ready ticket
+```
+
+Greptile is the routine correctness review Carbon waits for. Human and domain-
+lead oversight is asynchronous unless current authority explicitly reserves a
+value or acceptance decision to a human. Human silence is not a gate. An
+explicit applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` pauses the
+affected change; every human-reserved science, security acceptance, rights,
+economics, qualification, `LIVE`, launch, deployment, and production decision
+remains unavailable and fail closed.
+
+Unless owner direction explicitly says to stop before merge, an end-to-end
+ticket session normally merges an unchanged clean reviewed candidate with an
+exact expected-head guard, verifies exact main, posts the completed normalized
+external receipt, closes the bounded ticket, and continues to the next ready
+ticket without another owner prompt solely for the merge. Normal merge commits
+are required; squash, rebase-merge, auto-merge, and routine bypasses are
+prohibited.
+
+**Delivery and evidence model.** One pull request per ticket is the default:
+working contract/decisions/plan first, coherent vertical implementation/test
+slices later, and final-tree review over all of them together. A separate
+contract PR is allowed only for a contract-only ticket, a real concurrent
+downstream immutable-contract need, an established cross-domain public-
+interface freeze, or another concrete reason recorded by current sequencing.
+Ticket size alone is not a reason. Material contract changes are prospective
+and the final tree is reviewed again.
+
+Stable scope, authority, base, decisions, contracts, expected manifest,
+commands, invariants, maturity ceiling, and conditional predicate remain
+tracked. Final head/tree, checks, Greptile, threads, merge topology, exact-main
+checks, notification, maturity, and next-ticket facts use the normalized
+external completion receipt. No commit may exist merely to record/retrigger
+those dynamic facts.
+
+**Machine-enforced implementation.** B-01F adds delivery hygiene, one canonical
+cross-host wrapper, strict changed-path scopes with unknown paths failing to
+full runtime acceptance, an always-present `Merge gate`, live PR-body/head Hub
+validation, bounded semantic Hub fan-out, a versioned main ruleset and admin
+`--dry-run`/apply tool, a concise launcher, and the normalized PR declaration.
+The live ruleset is applied only with repository-administration permission;
+otherwise the artifact and smallest manual owner action remain explicit.
+
+**Alternatives rejected.** Preserve prompt-only merge permission; wait for
+routine human approval or silence; continue one contract PR plus one
+implementation PR by default; commit external check/merge identities; use
+empty commits as validation events; call native host output canonical; run full
+runtime CI for every derived/document-only change; trust an unclassified path;
+or suppress legitimate Hub changes with an arbitrary count.
+
+**Interfaces, invariants, and downstream effect.** Repository governance, CI,
+Hub validation/rendering, PR declarations, and developer commands change.
+Carbon runtime and domain canonical bytes do not. Runtime-bearing changes keep
+full acceptance; explicit contract and derived-document scopes receive only
+their appropriate gates; unknown paths fail closed. B-04 resumes only after
+B-01F's exact reviewed normal merge, exact-main `Merge gate`, and posting of the
+completed normalized external receipt. B-01G does not block it.
+
+**Reversibility and migration.** Delivery scripts, classifiers, workflows, and
+protocol prose are prospectively reversible through a later normally reviewed
+ticket. Merged ticket history and external receipts are not rewritten. A
+future scope optimization must add evidence rather than silently weaken the
+fail-closed classifier or runtime gate.
+
+**Implementation and notification.** Implemented by the B-01F single-ticket
+candidate under `.agent/tickets/B-01F_development_throughput_hardening.md`,
+`.agent/plans/B-01F_development_throughput_hardening.md`, and the paths in its
+exact final manifest. The issue #42 lead notification and final PR identity are
+dynamic external evidence. A lead change supersedes this decision through the
+same files and a new reviewed repository decision; an explicit
+`DEFER_TO_OWNER` routes the complete package to issue #41.
+
+**Reserved inputs.** Live GitHub ruleset application requires repository-
+administration permission. B-01F supplies no human-reserved scientific,
+security, legal/rights, economic, qualification, `LIVE`, launch, deployment,
+or production value.
+
 ## 2026-09-01 — B-04 decision-series status
 
-> **B-04-D1 through B-04-D10 status: CANDIDATE BOUNDED ENGINEERING-CONTRACT
-> DECISIONS.** They become ratified engineering authority only if the exact
-> reviewed contract tree passes required CI and Greptile review, normally
-> merges, preserves its reviewed meaning, and passes exact-main CI. Until then,
-> current merged governance still selects B-03 and B-04 implementation is
-> unauthorized. Notification is delivery, not approval; silence creates no
-> gate. Every real reference choice and qualification remains reserved and fail
+> **B-04-D1 through B-04-D10 status: RATIFIED BOUNDED ENGINEERING-CONTRACT
+> DECISIONS.** PR #72's external completion receipt establishes exact-head
+> checks and Greptile, normal reviewed-tree-preserving merge, and exact-main
+> checks without copying their dynamic identities into this tracked decision.
+> `OWNER-DX-01` pauses runtime behind B-01F but does not amend these decisions.
+> Every real reference choice and qualification remains reserved and fail
 > closed.
 
 ## 2026-09-01 — B-04-D1: Keep the canonical evaluation package and one-way ownership

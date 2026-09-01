@@ -1,7 +1,7 @@
 # Carbon Wave B Board
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 1.0
+**Version:** 1.1
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 records B-03's exact reviewed-tree-preserving normal merge and exact-main CI and selects B-04 `in_progress` for working-contract authoring only. No B-04 implementation is authorized until that exact contract tree normally merges and exact-main CI succeeds. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -9,6 +9,16 @@
 **B-02B closeout:** PR #64 normally merged exact reviewed head `68189e7068715a5d8054f0f7e64dc981ae1c37aa` as `b10b6e74fb3f8ab8a7427a6763c7db4f41341083`, with ordered parents `1c012468545f448aa758daf7dec17e409bb13bbc`, `68189e7068715a5d8054f0f7e64dc981ae1c37aa` and exact reviewed/merge tree `45273c527684b94afeb2f01b66a774b5426b6e0e`. Exact-head CI `33362051770`, Greptile 5/5 on exact-head check `99413062552` with zero unresolved threads, and exact-main CI `33368352662` passed. B-02B is authoritatively `done` in bounded engineering scope.
 **B-02C closeout:** PR #66 normally merged repaired exact reviewed head `a30865d2349f1cc6e725f1ea15e923f8d7893e4c` as `1dc41288e2d0e516de21d05dc168b188791c39f5`, with ordered parents `319a765860ac6e93018124bd57a84bfd6679672e`, `a30865d2349f1cc6e725f1ea15e923f8d7893e4c` and exact reviewed/merge tree `eb9b0c9b899cc4be9c8e9b22c16a5a3a48406a12`. Repaired exact-head CI `33388174967`, Greptile 5/5 on exact-head check `99475440630` with zero comments, annotations, or unresolved threads, and exact-main CI `33388595061` passed. B-02C is authoritatively `done` in bounded engineering scope.
 **B-03 closeout:** PR #69 normally merged exact reviewed head `702bf274b1a0c4bfefa075d8da08d3e7217a53d1` as `d5d1372f1311132ed9d60e10e36c4fb7d43a2473`, with ordered parents `b86daa5d8b0f8b3e86bb82c2661f405747a200df`, `702bf274b1a0c4bfefa075d8da08d3e7217a53d1` and exact reviewed/merge tree `65dc9f5da4368482ad8ece155a63ff24ef46bf24`. Exact-head CI `33452836347`, Greptile on exact-head check `99686337091` with all 36 files reviewed and zero comments, annotations, or unresolved threads, and exact-main push CI `33460078744` passed. Issue #42 closeout comment `5487728238` records the immutable evidence. B-03 is authoritatively `done` only in bounded merged engineering scope.
+**B-04 contract / B-01F transition:** PR #72's external completion receipt
+records the dynamic exact-head review/check, normal reviewed-tree-preserving
+merge, and exact-main facts that ratified B-04's bounded engineering contract.
+`OWNER-DX-01` inserts B-01F before runtime and queues B-01G as non-blocking
+`todo`. The B-01F `done` and B-04 runtime selection recorded by version 1.1
+become authoritative only after the exact B-01F candidate passes exact-head
+`Merge gate` and Greptile, normally merges with reviewed-tree preservation,
+passes exact-main `Merge gate`, and has its completed normalized external
+receipt posted. Before that predicate B-01F is the owner-
+directed `in_progress` work and B-04 runtime remains paused.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -17,8 +27,10 @@
 Authority comes from the merged active `.agent/WAVE.md`, selected ticket, and
 merged delegated-decision protocol, not this file alone or prior role
 approval. B-01, B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are
-authoritatively `done` in their recorded bounded scopes. B-04 is the selected
-`in_progress` ticket in contract phase. Working engineering decisions
+authoritatively `done` in their recorded bounded scopes. B-04's bounded
+engineering contract is ratified and its ticket remains `in_progress`; its
+runtime phase is conditionally selected only after B-01F's gate. B-01F's
+candidate `done` is subject to the same gate. Working engineering decisions
 may proceed after durable record and applicable notification without
 affirmative lead response. A human-reserved value remains unavailable and
 blocks its affected behavior, not unrelated bounded work.
@@ -92,11 +104,13 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 |---|---|---|---|---|---|---|---|---|---|
 | B-01 | Wave B orientation, exact authority pin, conflict ledger, and baseline evidence | done | `.agent/evidence/wave_b/b-01.md` | Codex / protocol lead | Tech lead | merged A11, merged A12, `.agent/WAVE_A_REPORT.md`, explicit Wave B activation | MQ-018 | S | WB-0 |
 | B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
+| B-01F | Development throughput hardening: delivery hygiene, canonical wrapper, path-aware gates, live PR validation, bounded Hub fan-out, external receipts, and stable Merge gate | done | `.agent/evidence/wave_b/b-01f.md` (conditional completion predicate; dynamic identities external) | Codex + SRE | Tech lead + SRE | B-01E, ratified B-04 engineering contract | MQ-018 | L | WB-1/2 |
+| B-01G | Deterministic checked-in static schema-codegen shadow proof | todo | — | Codex | Tech lead + domain owners | B-01F; non-blocking for B-04 | MQ-018 | S | future tooling |
 | B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | done | `.agent/evidence/wave_b/b-02a.md` (PR #60 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded engineering scope only) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | done | `.agent/evidence/wave_b/b-02b.md` (PR #64 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded engineering scope only) | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | done | `.agent/evidence/wave_b/b-02c.md` (PR #66 repaired exact-head review, normal exact-tree-preserving merge, and exact-main CI recorded; bounded engineering scope only) | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | done | `.agent/evidence/wave_b/b-03.md` (PR #69 exact reviewed-tree-preserving normal merge, exact-head CI/Greptile, exact-main CI, and issue #42 closeout recorded; bounded engineering scope only) | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
-| B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | in_progress | `.agent/evidence/wave_b/b-04.md` (working-contract authoring candidate; implementation prohibited until exact contract merge and exact-main CI) | Codex + SciML | SciML + statistics + protocol + independent reviewer | B-02A | MQ-004 | L | WB-1/2 |
+| B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | in_progress | `.agent/evidence/wave_b/b-04.md` (bounded engineering contract ratified; runtime paused until B-01F's conditional completion predicate) | Codex + SciML | SciML + statistics + protocol + independent reviewer | B-02A; runtime additionally requires B-01F | MQ-004 | L | WB-1/2 |
 | B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | todo | — | Codex + SciML | SciML + statistics + protocol + SRE | B-02C, B-04 | MQ-005, MQ-006, MQ-007, MQ-008 | L | WB-2 |
 | B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | todo | — | Codex | SciML + statistics + protocol + security + independent reviewer | B-02A, B-03, B-04, B-05, A3 | MQ-003 through MQ-008, MQ-018 | M | WB-2/3 |
 | B-07R | Ratify the miner research architecture and authority boundaries | done | `.agent/evidence/wave_b/b-07r.md` (PR #62 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded architecture only) | Protocol lead + Codex | Protocol + science + security + rights | B-01, B-02A | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-1 |
@@ -114,9 +128,14 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-E2 | Julia/reference failure contract | todo | — | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | todo | — | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
 | B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | todo | — | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
-| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4 | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
+| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-01F, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4; B-01G explicitly non-blocking | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
 
 Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. Including the owner-directed B-01E insertion, the decomposed board totals roughly **76-127 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **49-83 elapsed engineering days (10-17 working weeks)**. A single lane is approximately **16-26 working weeks**. These are planning estimates, not calendar commitments; scientific/security/rights decisions, review queueing, and later qualification are additional.
+
+Those historical launch estimates predate the owner-directed B-01F insertion
+and do not include future non-blocking B-01G. B-01F hardens delivery rather than
+rebaselining scientific-ticket duration; a later launch-planning update may
+revise estimates prospectively.
 
 `WB-0` through `WB-5` are dependency phases, not calendar promises: activation/orientation; scientific foundations; semantic and wire contracts; core research implementations; prior/practice/resource integration; gauntlet and closeout. Launch v1.0.3 records the conditional effort rebaseline; calendar dates remain unresolved until staffing is approved.
 
@@ -126,6 +145,8 @@ Effort uses the launch-plan scale: S is at most one primary-lane day, M is two t
 
 ```text
 B-01 → B-01E → B-02A
+B-04 bounded engineering contract → B-01F → B-04 runtime
+B-01F → B-01G (future non-blocking tooling lane)
 B-02A → B-03
 B-02A → B-04
 B-02A → B-07R
@@ -142,13 +163,15 @@ B-02A + B-02B + B-02C + B-04 + B-05 → B-E1
 B-04 → B-E2
 B-02A + B-03 + B-04 + B-05 + A3 → B-06 → B-E3
 B-07A/B/C/D1/D2/D3/E/F/G/S + B-E1 + A12 → B-E4
-all tickets → B-GATE
+all required Wave B tickets except non-blocking B-01G → B-GATE
 ```
 
-B-03 is closed in bounded engineering scope. B-04 is selected for contract
-authoring only; its implementation may begin only after the exact contract
-tree normally merges and exact-main CI succeeds. B-02C owns the resource-
-policy prerequisite; B-07E only inspects or forecasts against it. B-07A
+B-03 is closed in bounded engineering scope. B-04's bounded engineering
+contract is ratified. Its runtime implementation is conditionally selected
+only after B-01F normally merges its exact reviewed tree, exact-main
+`Merge gate` passes, and the completed external receipt is posted; B-01G does
+not block it. B-02C owns the
+resource-policy prerequisite; B-07E only inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain
 tickets consume rather than redefine them. B-07F owns resolved-plan fixture-
 official integration so B-E4 and B-GATE do not implement a hidden adapter.
@@ -163,6 +186,7 @@ repository execution rule remains one bounded ticket per implementation lane.
 |---|---|
 | `B-01` | B-01 |
 | — owner-directed 2026-08-30 infrastructure insertion | B-01E |
+| — owner-directed 2026-09-01 throughput insertion | B-01F; B-01G queued separately and non-blocking |
 | `B-02` | B-02A, B-02B, B-02C |
 | `B-03` through `B-06` | B-03 through B-06 |
 | `B-07` | B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G |
@@ -271,9 +295,11 @@ not rewritten. Current merged repository authority controls until then.
 
 The Accountable reviewer column remains technical/domain review and
 notification routing. It creates no affirmative pre-approval or silence gate.
-Independent technical review, repair of every valid finding, zero unresolved
-review threads, required CI, and normal merge remain mandatory. A documented
-invalid finding may be closed with rationale.
+Greptile is the routine independent correctness review Carbon waits for.
+Repair every valid finding, require zero unresolved Greptile threads, required
+exact-head checks and `Merge gate`, and normal merge. Human/domain review is
+asynchronous unless current authority reserves the affected value or
+acceptance decision. A documented invalid finding may be closed with rationale.
 
 This non-blocking development rule does not allow an agent to invent or approve
 scientific truth, thresholds, tolerances, population or SamplingPlan claims,
@@ -284,6 +310,13 @@ decision leaves the affected capability stopped, explicit, bounded, and fail
 closed; it does not block unrelated fixture, schema, interface, test, or
 infrastructure development.
 
+Use one ticket branch/worktree and one pull request by default. Put the working
+contract, decisions, plan, and start state first; add coherent vertical
+implementation/test slices; and review the final contract, implementation,
+tests, and stable evidence together. A separate contract PR requires one of
+the concrete exceptions in `.agent/DELIVERY_PROTOCOL.md`; ticket size alone is
+not one.
+
 Before each ticket begins:
 
 1. read `CONSTITUTION.md`, `AGENTS.md`, `.agent/INVARIANTS.md`, the active `.agent/WAVE.md`, this candidate board, and the ticket;
@@ -293,22 +326,28 @@ Before each ticket begins:
 5. run and record the ticket-specific baseline;
 6. create a detailed `.agent/plans/` file for every multi-module ticket before implementation;
 7. create and record the ticket's working contract before implementation when
-   the ticket defines a new public or security boundary; obtain independent
-   exact-head review before normal merge, while human-reserved values remain
-   fail closed.
+   the ticket defines a new public or security boundary; implement against it
+   in the same PR by default; and obtain exact-final-tree Greptile and every
+   ticket-required review before normal merge, while human-reserved values
+   remain fail closed; and
+8. on macOS, Windows, or noncanonical Linux, run validation through
+   `./scripts/dev/canonical.sh` and never call native-host output canonical.
 
 Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.
-Ordinarily the implementation change leaves merge fields pending for a later
-governance transition. A ticket change may instead carry a conditional
-completion record that becomes authoritative only after the exact reviewed tree
-passes required CI/review, normally merges with tree equality, and exact-main
-CI passes. Immutable PR/check/merge/Actions metadata and a post-merge issue
-comment may carry identities the tracked commit cannot self-record. Do not
-require a recursive closeout pull request merely to restate those facts. If a
-record cannot carry another non-self-referential identity, fill only that
-identity in the smallest later governance transition; do not reopen
-implementation. An affirmative reviewer or lead response is not required.
+The tracked record contains stable scope, authority, base, decisions,
+contracts, expected manifest, commands, invariants, maturity ceiling, and a
+conditional completion predicate. A ticket candidate may coordinate its own
+bounded `done` and the next-ticket selection, but that transition becomes
+authoritative only after the exact final head/tree passes every scope-required
+exact-head check and `Merge gate`, Greptile succeeds on the same head with all
+valid findings repaired and zero unresolved threads, normal merge preserves
+exact second-parent/tree identity, exact-main `Merge gate` succeeds, and the
+completed normalized external receipt is posted. Dynamic identities use
+`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md` outside the reviewed tree.
+Do not require a recursive closeout PR or a commit merely to record CI, review,
+merge, an evidence seal, or a validation retrigger. An affirmative human
+reviewer or lead response is not required.
 
 Ticket completion must separately report:
 
@@ -331,7 +370,8 @@ No later state is inferred from an earlier one.
 
 `B-GATE` may propose this board `done` only after:
 
-- every ticket has merged evidence and checked acceptance criteria;
+- every required ticket except explicitly non-blocking B-01G has merged
+  evidence and checked acceptance criteria;
 - full CPU, focused, invariant, quality, and installed-wheel tests pass;
 - the fixture autoresearch gauntlet completes end to end without undocumented repository knowledge;
 - the preregistered B-E4 utility decision passes and the conditional-leakage
@@ -354,9 +394,9 @@ No later state is inferred from an earlier one.
   activation remains unavailable and fail closed;
 - the Dossier and qualification manifest remain incomplete/fail closed for LIVE;
 - `.agent/WAVE_B_REPORT.md` records exact evidence and remaining human inputs;
-- independent correctness review, every valid finding repaired, zero unresolved
-  review threads, normal merge,
-  and exact-main CI are recorded. Human-reserved qualification and activation
+- the complete exact-head review, normal-merge, exact-main, and external-
+  receipt predicate in `.agent/DELIVERY_PROTOCOL.md` passes. Human-reserved
+  qualification and activation
   remain separate and fail closed; no affirmative closeout-response or silence
   gate applies to bounded engineering completion.
 

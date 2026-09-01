@@ -1,0 +1,31 @@
+# Exact intentional repository fixtures. Four TAB-separated fields are required.
+# kind  path  exact matched value  durable reason
+text	.devcontainer/Dockerfile	/home/ubuntu	Pinned canonical container home, not a workstation path.
+text	docs/development/ENVIRONMENT.md	/home/ubuntu	Pinned canonical container home, not a workstation path.
+text	scripts/dev/canonical.sh	/home/ubuntu	Pinned canonical container home, not a workstation path.
+text	scripts/dev/doctor.sh	/home/ubuntu	Pinned canonical container home, not a workstation path.
+text	scripts/dev/verify_image.sh	/home/ubuntu	Pinned canonical container home, not a workstation path.
+text	tests/cpu/test_code_authority.py	/home/ubuntu	Assertion for the pinned canonical container identity.
+text	tests/cpu/test_canonical_wrapper.py	/home/ubuntu	Assertion for the pinned canonical container cache path.
+text	tests/cpu/test_delivery_hygiene.py	/Users/alice	Intentional POSIX detection and exact-allow-list fixture.
+text	tests/cpu/test_delivery_hygiene.py	/Users/alicia	Intentional exact-allow-list near-match fixture.
+text	tests/cpu/test_delivery_hygiene.py	/Users/legacy-owner	Intentional complete-tree scan fixture.
+text	tests/cpu/test_delivery_hygiene.py	/home/josé	Intentional Unicode POSIX detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	/home/workstation-owner	Intentional uncommitted-worktree detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	C:\Users\Zoë	Intentional Unicode Windows detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	D:/Users/Δelta	Intentional forward-slash Windows detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	E:/Users\mixed	Intentional mixed-slash Windows detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	person@buildhost.local	Intentional .local email detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	tester@buildhost.local	Intentional introduced-identity detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	buildhost.local	Intentional plain machine-local hostname fixture.
+text	tests/cpu/test_delivery_hygiene.py	host.local	Intentional minimal plain machine-local hostname fixture.
+text	tests/cpu/test_delivery_hygiene.py	nicks-MacBook-Pro-3.local	Intentional macOS hostname detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	DESKTOP-A1B2C3	Intentional Windows hostname detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	plainhost.local	Intentional labeled hostname detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	threading.local	Intentional exact code-attribute fixture, not a workstation hostname.
+text	tests/cpu/test_delivery_hygiene.py	alice.local	Intentional minimal standalone hostname detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	josé.local	Intentional Unicode standalone hostname detection fixture.
+text	tests/cpu/test_delivery_hygiene.py	lab.segment.local	Intentional multi-label standalone hostname detection fixture.
+text	carbon/observability/service.py	threading.local	Standard-library thread-local code attribute, not a workstation hostname.
+text	Design_Specs/Implementation.md	threading.local	Documented standard-library thread-local code attribute, not a workstation hostname.
+text	tests/cpu/test_strategy_schema.py	/Users/validator	Synthetic hidden-evaluation isolation fixture, not a host identity.

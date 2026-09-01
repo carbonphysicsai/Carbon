@@ -13,7 +13,7 @@ Carbon has one ordinary development and evidence baseline:
 | Dependency manager | uv 0.12.7, pinned by OCI digest/action commit |
 | Dependency state | committed `uv.lock` |
 | Default dependency group | `dev` only |
-| Normal pre-PR command | `./scripts/dev/ci.sh` |
+| Normal pre-PR command | `./scripts/dev/canonical.sh --full` |
 
 Windows and macOS may host the editor and Docker. Native Windows Python and
 native macOS Python are not canonical Carbon evidence platforms. The first
@@ -59,14 +59,24 @@ qualification.
    ```
 
 6. Work normally. The project interpreter is `.venv/bin/python`.
-7. Before a PR, run:
+7. Before a PR, return to a WSL host shell at the same checkout and run the
+   canonical wrapper so it can create the read-only-source validation
+   container:
 
    ```bash
-   ./scripts/dev/ci.sh
+   ./scripts/dev/canonical.sh --full
    ```
 
-If `doctor.sh` and `ci.sh` pass, the ordinary Carbon environment and
-engineering gates are valid.
+   A live read/write Dev Container remains suitable for interactive work, but
+   noninteractive wrapper validation there fails closed unless it is already
+   the wrapper-created isolated checkout.
+
+Validation executes directly only in the exact image's wrapper-created,
+isolated checkout, where Git metadata is read-only. On another host it uses
+the pinned `linux/amd64` image. Interactive mode is the explicit exception
+that uses a guarded read/write live checkout. If bootstrap, doctor, and
+`ci.sh` pass there, the ordinary Carbon environment and engineering gates are
+valid.
 
 ## Repository commands
 
@@ -76,11 +86,77 @@ engineering gates are valid.
 | `./scripts/dev/doctor.sh` | Performs non-authority-mutating checks of the host, interpreter, lock, environment, repository, tools, and installed package. |
 | `./scripts/dev/preflight.sh` | Runs the environment doctor, quality ratchet, and committed/staged/unstaged diff hygiene. GitHub uses it as the fast upstream gate; it does not replace full acceptance. |
 | `./scripts/dev/test.sh` | Runs the supported default CPU suite; extra pytest arguments are forwarded. |
-| `./scripts/dev/ci.sh` | Runs `preflight.sh`, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
+| `./scripts/dev/ci.sh` | Runs delivery scope and repository hygiene, `preflight.sh`, invariants, CPU tests, package/wheel/outside-tree import checks, the code-authority boundary, and terminal diff hygiene. |
+| `./scripts/dev/canonical.sh --focused <target>` | Runs focused pytest targets in the exact canonical environment. |
+| `./scripts/dev/canonical.sh --full` | Runs the complete canonical `ci.sh` acceptance. |
+| `./scripts/dev/canonical.sh --interactive` | Opens a profile-free interactive shell in the exact canonical environment, preserving the locked project/tool path. |
+| `./scripts/dev/canonical.sh --dry-run ...` | Prints the direct or Docker command without executing it. |
 | `./scripts/dev/shell.sh` | Opens Bash with Carbon's project environment selected. |
 
 Do not replace these commands with ticket-specific remembered sequences.
 Ticket-owned checks may be added after `ci.sh`; they do not replace it.
+
+## Canonical wrapper behavior
+
+`canonical.sh` is the single supported bridge from macOS, Windows/WSL2, or a
+noncanonical Linux host. Direct execution requires container provenance
+(`/.dockerenv`), the root-owned image marker, trusted absolute system/tool
+executables, the complete pinned Ubuntu and architecture identity, and the
+non-root `ubuntu` user. Validation also requires the wrapper-created isolation
+marker and read-only Git metadata.
+Otherwise the wrapper unconditionally performs a cache-enabled build of the
+digest-pinned Carbon image for `linux/amd64`, verifies the built image
+contract, and runs the resulting immutable image ID as `ubuntu` (`1000:1000`).
+
+Focused, full, and arbitrary noninteractive commands bind the host worktree
+read-only at `/carbon-source`, copy its tracked and untracked content except
+`.git` and `.venv` into the image-owned writable checkout, and mount the host
+checkout's `.git` plus any linked-worktree common Git directory read-only.
+Uncommitted files remain visible to validation without container writes
+changing host files or shared refs. The wrapper runs `bootstrap.sh` and
+`doctor.sh` before every requested command. `--interactive` is deliberately
+different: it mounts the live checkout and shared Git metadata read/write, and
+fails before startup unless UID/GID 1000 can write both. Bootstrap and doctor
+run with the exact trusted system path; requested commands receive exactly the
+fresh project `.venv/bin` followed by that path.
+
+For linked Git worktrees, the common Git metadata remains available at its
+exact location. Noninteractive validation never reuses executable virtual-
+environment state: each ephemeral writable checkout creates a fresh `.venv`.
+Interactive mode alone uses a named `.venv` volume isolated by worktree
+identity. The uv download cache is safely reused in every mode; neither cache
+nor virtual environment creates files in the host checkout.
+
+Docker execution fails closed when the client or daemon is unavailable. A
+`--dry-run` is intentionally available without Docker so command construction
+can be reviewed and tested; dry-run output is not canonical validation
+evidence.
+
+## Delivery and Git identity hygiene
+
+Delivery preflight runs `scripts/dev/check_delivery_hygiene.py` before costly
+acceptance jobs. It scans changed tracked text, introduced author/committer
+identities, and introduced commit intent. `--all-tree` adds a complete tracked
+text scan. Actual workstation paths, standalone `.local` identities/hostnames,
+empty or evidence-only commits, and completion/retrigger-only commit messages
+fail.
+Placeholders such as `/home/<user>/...`, `/Users/<username>/...`, and
+`C:\Users\<username>\...` remain valid.
+
+Intentional fixtures require an exact, reason-bearing entry in
+`scripts/dev/delivery_hygiene_allowlist.txt`. Entries cannot use globs or
+regular expressions; text exceptions bind one path and exact matched value,
+and commit exceptions bind one full SHA and one rule.
+
+Configure a durable public Git identity before committing. GitHub's private
+noreply address is recommended:
+
+```bash
+git config user.name "<github-username>"
+git config user.email "<github-id>+<github-username>@users.noreply.github.com"
+```
+
+Do not rewrite historical commits merely to repair old workstation identity.
 
 ## Pinned identities
 
@@ -170,28 +246,29 @@ Open the repository in the Carbon Dev Container / WSL2 environment.
 
 ## Local and GitHub parity
 
-The GitHub workflow is intentionally orchestration-only. On a pull request,
-one cheap dependency gate runs before either full acceptance job:
+The GitHub workflow is path aware and keeps acceptance semantics in repository
+scripts. Its single cheap dependency gate runs before any classified
+acceptance lane:
 
 ```text
-fast-preflight job on an ubuntu-24.04 runner
-    -> exact candidate checkout with complete comparison history
-    -> pinned uv 0.12.7
-    -> ./scripts/dev/bootstrap.sh
-    -> ./scripts/dev/preflight.sh
+Delivery preflight on an ubuntu-24.04 runner
+    -> resolve and check out the exact current PR head/base or exact main push
+    -> strict changed-path classification and delivery/diff hygiene
+    -> if RUNTIME_FULL: pinned uv 0.12.7 -> bootstrap -> preflight.sh
        (doctor -> quality ratchet -> committed/staged/unstaged diff hygiene)
-    -> PASS unlocks both full jobs; failure leaves both unstarted
+    -> PASS publishes exact identity/scope and unlocks only its required lanes
 ```
 
-After preflight passes, the two full jobs run independently:
+After Delivery preflight passes, scope-specific acceptance runs:
 
 ```text
-canonical job on an ubuntu-24.04 runner
+RUNTIME_FULL
+    -> canonical job on an ubuntu-24.04 runner
     -> pinned uv 0.12.7
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/ci.sh
-
-clean-image job on a fresh ubuntu-24.04 runner
+    -> require Docker-backed normal-checkout and linked-worktree wrapper tests
+    -> clean-image job on a fresh ubuntu-24.04 runner
     -> build and load .devcontainer/Dockerfile for linux/amd64 without cache
     -> start the exact image as ubuntu (UID/GID 1000)
     -> copy a clean exact-head checkout and assign it to ubuntu
@@ -199,20 +276,47 @@ clean-image job on a fresh ubuntu-24.04 runner
     -> ./scripts/dev/bootstrap.sh
     -> ./scripts/dev/doctor.sh
     -> ./scripts/dev/ci.sh
+
+CONTRACT_AUTHORITY
+    -> invariants plus code/repository authority acceptance
+    -> Development Hub authority, link, route, and browser validation
+
+DERIVED_DOCUMENTATION (explicit allow-list only)
+    -> deterministic Hub generation/drift, links, routes, and browser checks
+
+unknown path
+    -> fail closed to RUNTIME_FULL
+
+every scope
+    -> PR opened/synchronize/reopened/edited/ready-for-review events use the
+       current live head, base, and PR body (never only the historical event)
+    -> always-present final job named "Merge gate"
 ```
 
-The local path ends in the same repository command:
+The Merge gate checks out the exact candidate with full history, reclassifies
+it with the exact protected base's classifier, requires equality with the
+preflight scope, and executes the protected base's gate. The exact pre-B-01F
+base has a one-SHA candidate-classifier/gate bootstrap fallback because those
+files do not yet exist there. This is repository-local hardening, not a claim
+that candidate workflow tampering is eliminated: the workflow YAML and job
+results remain candidate-controlled until an external or default-branch
+required-workflow mechanism owns them.
+
+The noncanonical local path ends in the same repository command:
 
 ```text
-Carbon Dev Container
-    -> ./scripts/dev/bootstrap.sh
-    -> ./scripts/dev/ci.sh
+./scripts/dev/canonical.sh --full
+    -> cached pinned-image build -> verify immutable image ID
+    -> read-only source + writable validation copy + read-only Git metadata
+    -> bootstrap -> doctor -> ./scripts/dev/ci.sh
 ```
 
-Full acceptance semantics live in `scripts/dev/ci.sh`, and the cheap gate lives
-in `scripts/dev/preflight.sh`; neither is duplicated in workflow YAML. Because
-`ci.sh` calls `preflight.sh` first, direct canonical acceptance and both GitHub
-full jobs rerun quality and diff hygiene as part of their self-contained proof.
+Exact delivery identity/scope lives in `scripts/dev/ci_preflight.sh`, the cheap
+engineering gate lives in `scripts/dev/preflight.sh`, and full acceptance lives
+in `scripts/dev/ci.sh`; none is duplicated in workflow YAML. Because `ci.sh`
+runs delivery scope/hygiene and then `preflight.sh`, direct canonical acceptance
+and both runtime-full jobs rerun the repository-owned cheap gates as part of
+their self-contained proof.
 The workflow fetches complete history so the quality comparison and immutable
 archive-tag boundary can be verified at the exact candidate head. The separate
 clean-image job proves the pinned dev-container definition is runnable as its

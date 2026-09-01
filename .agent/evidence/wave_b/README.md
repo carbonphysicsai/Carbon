@@ -10,42 +10,58 @@ Use the lowercase canonical ticket ID and retain its hyphens. Examples:
 `b-01.md`, `b-07d1.md`, and `b-gate.md`. Link the record from the ticket and the
 Evidence column in `.agent/WAVE_B.md`.
 
-Each record must contain:
+## Stable tracked evidence
 
-1. ticket ID, branch, base commit/tree, reviewed head/tree, worktree status,
-   and merge commit/tree fields or an explicit conditional-completion pointer
-   to immutable PR/check/merge/Actions metadata;
+Each tracked record contains facts that can exist before the final candidate
+identifies itself:
+
+1. ticket ID, branch, starting base commit/tree, worktree status, and a
+   conditional-completion pointer to external metadata;
 2. exact authority versions and Master Open Question classifications;
 3. Definition-of-Done item to implementation/test/evidence mapping;
 4. `KEEP`, `WRAP`, `REPAIR`, `REPLACE`, and owner-decision classifications;
-5. exact commands, exit codes, test counts, tool versions, artifact hashes,
-   inherited failures, and before/after deltas;
-6. invariant and protected-field evidence;
-7. independent reviewer identity/role, exact reviewed head/tree, findings,
-   repairs, rereview state, Accountable-reviewer routing, and any explicit
-   blocking direction plus its resolution;
-8. separate maturity claims for specification, implementation, testing,
+5. expected manifest, validation commands, invariants, and protected-field
+   acceptance;
+6. inherited failures and required before/after deltas;
+7. required review role, exact-head predicate, Accountable-reviewer routing,
+   and handling for an explicit blocking direction;
+8. separate maturity ceilings for specification, implementation, testing,
    scientific qualification, security qualification, network qualification,
-   commercial validation, and production qualification;
-9. remaining risks and the smallest human decisions required.
+   commercial validation, and production qualification; and
+9. remaining risks, smallest human decisions, and conditional closeout.
 
 A missing, skipped, unavailable, or failed check stays visible. Do not record it
 as passing evidence. Any reviewed-tree change invalidates exact-head review.
 The implementation merge must preserve the reviewed tree exactly.
 
-A ticket change may carry conditional completion evidence that becomes
-authoritative only after the exact reviewed tree passes required CI/review,
-normally merges with tree equality and exact second-parent identity, and
-exact-main CI passes. The immutable PR checks, merge object, Actions run, and a
-post-merge issue comment may carry identities the tracked commit cannot
-self-record. Do not require a recursive closeout pull request merely to restate
-those facts. If a tracked record cannot contain another non-self-referential
-identity, fill only that identity in the smallest later governance transition;
-do not reopen implementation. Resolve every explicit blocking direction and
-route Accountable reviewers, but neither routing nor silence creates an
-affirmative-response gate. The implementer cannot serve as the independent
-correctness reviewer.
+## External dynamic completion receipt
+
+Final reviewed head/tree, CI/check/job identities, Greptile check/summary,
+finding disposition, unresolved thread count, merge commit/ordered parents/
+tree, exact-main checks, notification identity, final maturity, and next-ticket
+selection are dynamic completion facts. Record them outside the reviewed tree
+using `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`, in the PR body, one
+normalized PR completion comment, issue #42, or a retained GitHub Actions
+artifact.
+
+A ticket candidate may coordinate its bounded `done` state and the next-ticket
+selection. The transition becomes authoritative only after the exact reviewed
+tree passes scope-required exact-head checks and `Merge gate`, Greptile Review
+passes on the same head with every valid finding repaired and zero unresolved
+threads, normal merge preserves exact second-parent/tree identity, exact-
+main `Merge gate` passes, and the completed normalized external receipt is
+posted. Do not require a recursive closeout pull request or an evidence-only
+commit merely to restate those facts.
+
+PR-body and issue-comment edits do not change the reviewed Git tree. Correct a
+stale declaration and validate the current live body/head without an empty
+commit. A declaration edit cannot substitute for required repository content.
+
+Resolve every explicit blocking direction and route Accountable reviewers,
+but neither routing nor silence creates an affirmative-response gate. Greptile
+supplies routine independent correctness review; human-reserved acceptance
+remains separate and fail closed.
 
 This directory stores engineering and review evidence. It cannot create
-scientific truth, security acceptance, LIVE authority, frontier status, network
-weights, emissions, settlement, or launch approval.
+scientific truth, security acceptance, `LIVE` authority, frontier status,
+network weights, emissions, settlement, deployment, or launch approval.

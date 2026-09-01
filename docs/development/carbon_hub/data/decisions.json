@@ -333,6 +333,24 @@
       "affects": ["WAVE-B/B-02A", "WAVE-B/B-03", "WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "WAVE-B/B-E2", "WAVE-B/B-E3"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5488793657",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/72"
+    },
+    {
+      "decision_id": "OWNER-DX-01",
+      "map_ref": "WAVE-B/B-01F",
+      "wave": "B",
+      "ticket": "B-01F",
+      "title": "Repository-owned development throughput and delivery proof",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should Carbon make repository-owned canonical execution, path-aware CI, exact-head review, guarded merge policy, and external completion receipts the default delivery system before B-04 runtime resumes?",
+      "recommendation": "KEEP the OWNER-DX-01 delivery system and its fail-closed exact-identity boundaries.",
+      "why": "A single repository-owned path reduces workstation drift, avoidable reruns, generated-output fan-out, stale pull-request declarations, and unverifiable completion claims without transferring scientific or production authority to automation.",
+      "if_kept": "B-01G and resumed B-04 work inherit one canonical validation path, a stable Merge gate, explicit review and merge evidence, and bounded Development Hub updates.",
+      "if_changed": "Canonical execution, CI classification, branch protection, receipt authority, agent delivery protocol, and downstream ticket launch requirements would need a coordinated prospective migration.",
+      "affects": ["WAVE-B/B-01G", "WAVE-B/B-04"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5492051391",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/73"
     }
   ]
 }

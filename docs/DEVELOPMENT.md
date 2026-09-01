@@ -9,15 +9,16 @@ From an opened Carbon Dev Container:
 ```bash
 ./scripts/dev/bootstrap.sh
 ./scripts/dev/doctor.sh
-./scripts/dev/ci.sh
 ```
 
 Those repository-controlled commands own environment synchronization,
-validation, and normal PR gates. GitHub Actions first invokes
-`./scripts/dev/preflight.sh` as a cheap upstream dependency, then both full
-jobs execute the same repository-owned `./scripts/dev/ci.sh` acceptance
-semantics. The direct local pre-PR command remains `./scripts/dev/ci.sh`; do
-not reconstruct a separate local test sequence.
+validation, and normal PR gates. Before a PR, return to the host shell at the
+same checkout and run `./scripts/dev/canonical.sh --full`; it creates the
+isolated, read-only-source validation environment. GitHub Actions resolves the
+exact live candidate, runs Delivery preflight, and unlocks only the acceptance
+lanes required by the classified change scope. Runtime-full changes also run
+the repository-owned fast preflight before both full `./scripts/dev/ci.sh`
+acceptance paths. Do not reconstruct a separate local test sequence.
 
 Native Windows Python, historical PoC/Julia/network checks, and optional JAX,
 Torch, chain, CUDA, or GPU stacks are not ordinary Carbon evidence platforms

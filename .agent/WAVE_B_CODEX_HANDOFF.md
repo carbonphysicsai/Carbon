@@ -1,22 +1,23 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.0
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.0
+**Governance version:** 1.1
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.1
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
 a coordinated status transition for review, but it cannot authorize selection
-or implementation of another ticket before that exact tree normally merges and
-its exact-main push CI succeeds. This handoff does not cache or independently
-select ticket state.
+or implementation of another ticket before the complete exact-head review,
+normal-merge, exact-main, and external-receipt predicate in
+`.agent/DELIVERY_PROTOCOL.md` passes. This handoff does not cache or
+independently select ticket state.
 
 This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-## 1. B-02A/B-07R/B-02B/B-02C/B-03 closeout and delegated governance
+## 1. Completed foundations, B-04 contract, and B-01F delivery governance
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -92,6 +93,18 @@ passed. Issue #42 closeout comment `5487728238` records completion. B-03 is
 prohibited until the exact contract tree normally merges and exact-main CI
 succeeds.
 
+PR #72's external completion receipt establishes that the exact reviewed B-04
+bounded engineering contract passed required exact-head checks and Greptile,
+normally merged with reviewed-tree preservation, and passed exact-main checks.
+B-04 is `SPECIFIED` and its engineering contract is ratified; it remains
+unimplemented and unqualified. `OWNER-DX-01` inserts B-01F before runtime and
+queues B-01G as non-blocking `todo`. Version 1.1's B-01F `done` and B-04
+runtime selection are conditional: they become effective only after the exact
+B-01F candidate passes exact-head `Merge gate` and Greptile with zero
+unresolved threads; normally merges with reviewed-tree preservation; passes
+exact-main `Merge gate`; and has its completed normalized external receipt
+posted. Until then B-04 runtime is paused.
+
 ## 2. Required read order
 
 Read the repository versions in this order before B-01 or any later ticket:
@@ -99,27 +112,29 @@ Read the repository versions in this order before B-01 or any later ticket:
 1. `CONSTITUTION.md`
 2. `AGENTS.md`
 3. `agent_pack/EXECUTION_PROTOCOL.md`
-4. `.agent/INVARIANTS.md`
-5. `.agent/WAVE.md`
-6. `.agent/WAVE_B.md`
-7. this handoff
-8. `.agent/evidence/wave_b/README.md`
-9. the current Wave B governance and ticket records in `.agent/DECISIONS.md`
-10. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
-11. the selected `.agent/tickets/B-*.md` file
-12. `.agent/CODE_AUTHORITY.toml`,
+4. `.agent/DELIVERY_PROTOCOL.md`
+5. `.agent/DELEGATED_DECISION_PROTOCOL.md`
+6. `.agent/INVARIANTS.md`
+7. `.agent/WAVE.md`
+8. `.agent/WAVE_B.md`
+9. this handoff
+10. `.agent/evidence/wave_b/README.md`
+11. the current Wave B governance and ticket records in `.agent/DECISIONS.md`
+12. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
+13. the selected `.agent/tickets/B-*.md` file
+14. `.agent/CODE_AUTHORITY.toml`,
     `docs/development/ENVIRONMENT.md`, and
     `docs/history/LEGACY_CODE_INDEX.md` when present
-13. `.agent/ORIENTATION.md`, treating its prior commit pins as historical
+15. `.agent/ORIENTATION.md`, treating its prior commit pins as historical
     evidence
-14. every authority file named by the ticket
-15. `Design_Specs/Build_Out.md`
-16. `Design_Specs/Build_Out_Constitutional_Overlay.md`
-17. the relevant sections of
+16. every authority file named by the ticket
+17. `Design_Specs/Build_Out.md`
+18. `Design_Specs/Build_Out_Constitutional_Overlay.md`
+19. the relevant sections of
     `Design_Specs/Agentic_Development_Master_Plan.md`
-18. each Master Open Design Question cited by the ticket
-19. `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` for scientific work
-20. relevant implementation, tests, packaging configuration, and
+20. each Master Open Design Question cited by the ticket
+21. `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` for scientific work
+22. relevant implementation, tests, packaging configuration, and
     `.github/workflows/ci.yml`
 
 After B-07S creates, ratifies, and normally merges
@@ -182,12 +197,13 @@ start of every session:
    `origin/main` row in `.agent/WAVE_B.md` and ticket file to agree. Stop on a
    disagreement. Working-tree or pull-request-branch status fields are
    candidate review content only: even when they agree on `done`, they cannot
-   select or start a dependent ticket until that exact reviewed tree normally
-   merges and exact-main push CI succeeds. The one narrow exception to stopping
-   is continuation or review of an already-authorized, bounded correction
-   branch whose documented sole purpose is to reconcile that exact merged-main
-   disagreement. Under that exception, do only the correction; the disagreement
-   still prohibits selecting or implementing every other ticket.
+   select or start a dependent ticket until the complete exact-head review,
+   normal-merge, exact-main, and external-receipt predicate in
+   `.agent/DELIVERY_PROTOCOL.md` passes. The one narrow exception to stopping is
+   continuation or review of an already-authorized, bounded correction branch
+   whose documented sole purpose is to reconcile that exact merged-main
+   disagreement. Under that exception, do only the correction; the
+   disagreement still prohibits selecting or implementing every other ticket.
 2. If the selected ticket is `in_progress`, continue or review only that ticket
    from its recorded ticket branch. If its recorded local worktree exists,
    verify and use it. If that machine-local worktree is unavailable, fetch the
@@ -215,9 +231,12 @@ start of every session:
 5. A `blocked` ticket does not permit starting one of its dependents. An
    unrelated ticket may be selected only if its own dependency/readiness gate
    passes and the board permits that lane.
-6. Use one reviewable branch/worktree per ticket, do not combine tickets, run
-   parallel lanes only when the board permits and their authority/files do not
-   overlap, and stop after the bounded implementation and evidence package.
+6. Use one reviewable branch/worktree and one PR per ticket by default. Write
+   the working contract first, then coherent vertical implementation/test
+   slices, and review the whole final tree together. A separate contract PR
+   requires an exception in `.agent/DELIVERY_PROTOCOL.md`; ticket size alone
+   is not one. Run parallel lanes only when the board permits and their
+   authority/files do not overlap.
 
 B-07R must ratify the research architecture before dependent implementation.
 B-07S must ratify the exact wire protocol before service-facing code. B-07A
@@ -234,13 +253,16 @@ Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
 B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are complete at the identities in
-section 1. B-04 is the sole selected `in_progress` ticket in contract phase.
-Continue its contract only from `agent/b-04-reference-truth-contract`. No
+section 1. B-04's bounded engineering contract is ratified, but its runtime is
+paused behind B-01F. Version 1.1's B-01F `done` and B-04 runtime selection are
+effective only after the exact B-01F reviewed candidate normally merges with
+tree preservation, exact-main `Merge gate` succeeds, and the completed
+normalized external receipt is posted. Then create a fresh
+`agent/b-04-reference-truth` branch/worktree from that verified exact main. No
 B-04 runtime, solver, fixture runner, Julia service, Cole–Hopf routine,
 artifact store, transport, measurement, scoring, Dossier, package-authority,
-or test implementation belongs on the contract branch. Only after the exact
-contract tree normally merges and exact-main CI passes may a fresh B-04
-implementation branch/worktree be created from that new exact `origin/main`.
+or test implementation belongs in B-01F. B-01G remains `todo` and does not
+block B-04.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -278,9 +300,12 @@ that change merges.
 
 The board's Accountable reviewer column routes technical/domain review and
 notification. It creates no affirmative pre-approval or silence gate.
-Independent technical review, repair of every valid finding, zero unresolved
-review threads, CI, and normal merge remain required. A documented invalid
-finding may be closed with rationale.
+Greptile is the routine independent correctness review Carbon waits for.
+Repair every valid finding, require zero unresolved Greptile threads, all
+scope-required exact-head checks and `Merge gate`, and normal merge. Human and
+domain review is asynchronous unless current authority explicitly reserves the
+affected value or acceptance decision. A documented invalid finding may be
+closed with rationale.
 
 This rule does not authorize agents to invent or approve scientific truth,
 thresholds, tolerances, population or SamplingPlan claims, qualification,
@@ -307,6 +332,8 @@ Before editing:
 7. Map each Definition-of-Done item to a file, test, and evidence artifact.
 8. Create `.agent/plans/<ticket>.md` before multi-module, protocol, scientific,
    persistence, concurrency, or security-sensitive work.
+9. On macOS, Windows, or noncanonical Linux, use
+   `./scripts/dev/canonical.sh`; never call native-host output canonical.
 
 During implementation:
 
@@ -325,24 +352,27 @@ During implementation:
 Before requesting review:
 
 1. Run focused tests and the ticket's subsystem tests.
-2. Run `./scripts/dev/ci.sh` in the canonical Carbon environment, then run
+2. Run `./scripts/dev/ci.sh` in the canonical Carbon environment, through
+   `./scripts/dev/canonical.sh` when outside it, then run
    only additional dependency groups or archived-component checks explicitly
    owned by the selected ticket.
 3. Run `git diff --check` and inspect the complete diff.
-4. Record exact commands, exit codes, counts, tool versions, base/head hashes,
-   artifact hashes, inherited failures, before/after deltas, and maturity claims
-   in `.agent/evidence/wave_b/<ticket-id>.md`.
+4. Record stable scope, authority, starting base, decisions, expected manifest,
+   commands, invariants, inherited failures, deltas, maturity ceiling, and the
+   conditional predicate in `.agent/evidence/wave_b/<ticket-id>.md`. Put final
+   head/tree/check/review/merge/exact-main identities in the external receipt.
 5. Report implementation, reuse, tests, invariants, maturity, risks, and human
    input under the headings required by `AGENTS.md`.
 6. Link the evidence file from the ticket and Wave B board.
-7. Bind independent review to the exact head SHA and tree. Any reviewed-tree
-   change invalidates the review. The implementer cannot act as the independent
-   reviewer. Resolve blocking technical findings before normal merge. The
-   board's Accountable reviewer assignment routes review and notification but
-   requires no affirmative response unless that reviewer submits a blocking
-   review under the repository's normal process.
-8. Leave later tickets untouched. Update board status only through the
-   repository's review, authorization, and merge process.
+7. Bind Greptile and all required checks to the exact head SHA and tree. Any
+   reviewed-tree change invalidates that evidence. Resolve valid technical
+   findings and require zero unresolved Greptile threads before normal merge.
+   Accountable-reviewer routing requires no affirmative response unless that
+   reviewer submits a blocking direction under the repository's process.
+8. Unless owner direction explicitly says to stop before merge, normally merge
+   the unchanged clean candidate with an exact expected-head guard, verify
+   ordered parents/reviewed-tree/exact-main `Merge gate`, post the external
+   receipt, and continue to the next ready ticket authorized by the session.
 
 Use board states with these meanings:
 
@@ -351,23 +381,24 @@ Use board states with these meanings:
   bounded execution has begun.
 - `blocked`: a named dependency, contract, environment, or reserved human decision
   prevents correct completion.
-- `done`: every Definition-of-Done item has evidence, exact-head technical
-  review repaired every valid finding with zero unresolved review threads, the
-  implementation merged with a tree identical to the reviewed head, post-merge
-  CI passed, and the evidence record or its conditional external-metadata
+- `done`: every Definition-of-Done item has evidence, exact-head `Merge gate`
+  and Greptile passed with every valid finding repaired and zero unresolved
+  threads, the implementation normally merged with a tree identical to the
+  reviewed head, exact-main `Merge gate` passed, and the external receipt
   pointer records the merge, CI, review outcome, and lead-notification delivery
   when applicable. Affirmative role or lead approval is not required.
 
 Code completion alone cannot produce `done`.
 
-The implementation change may prepare pending merge fields or a conditional
-completion record. Conditional `done` becomes authoritative only when the exact
-reviewed tree passes required CI/review, normally merges with tree equality and
-exact second-parent identity, and exact-main CI passes. Immutable PR/check/
-merge/Actions metadata and a post-merge issue comment may supply identities the
-tracked commit cannot contain. Do not open a recursive closeout PR merely to
-restate them. Independent correctness review and resolution of blocking
-findings remain required; Accountable-reviewer or lead silence is not a gate.
+The implementation change may prepare a conditional completion record and
+next-ticket selection. Conditional `done` becomes authoritative only when the
+exact reviewed tree passes scope-required exact-head checks, `Merge gate`, and
+Greptile with all valid findings repaired and zero unresolved threads; normally
+merges with exact second-parent/tree identity; and exact-main `Merge gate`
+passes; and the completed normalized external receipt is posted. Dynamic
+identities use the external receipt. Do not open a recursive closeout PR or
+commit merely to store/retrigger them. Accountable-reviewer or lead silence is
+not a gate.
 
 ## 6. Miner research boundaries
 
@@ -480,52 +511,30 @@ unavailable or fixture-only.
 
 ## 9. Session prompt template
 
-Use this prompt only after the start gate has passed. Replace `<TICKET>` with one
-eligible ticket ID.
+Use `agent_pack/CODEX_TICKET_LAUNCHER.md`. After B-01F's conditional
+completion predicate passes, the complete B-04 launcher is only:
 
 ```text
-In carbonphysicsai/Carbon, execute only Wave B ticket <TICKET>. Read
-CONSTITUTION.md, AGENTS.md, and `.agent/WAVE_B_CODEX_HANDOFF.md` in full, then
-follow the handoff's authority order. Verify that the merged `.agent/WAVE.md`
-names Wave B active in bounded development scope, names `.agent/WAVE_B.md`
-version 1.0 as the controlling register, and selects <TICKET> with the same
-status recorded by the board and ticket file. If <TICKET> is `in_progress`,
-continue only its recorded ticket branch after verifying the recorded base,
-current remote HEAD/tree, evidence, CI, and review state. Use its existing
-local worktree when available; otherwise fetch and create a local tracking
-checkout/worktree from the exact existing remote ticket branch, never from
-`origin/main`. If <TICKET> is `todo`, verify that every dependency is
-authoritatively `done`, then, with current user authorization, fetch
-`origin main`, record the exact remote SHA/tree, and create the dedicated
-ticket branch/worktree from that SHA without using `git pull`.
-Confirm that no reserved human decision is being invented. If a check fails,
-stop and report it.
-
-Create a ticket-scoped plan when required. Implement the smallest change that
-satisfies the ticket Definition of Done. Do not invent scientific,
-security, rights, economic, or launch values. Preserve mock/official isolation,
-protected-field non-disclosure, v1 compatibility, and every applicable Carbon
-invariant. Run and report `./scripts/dev/ci.sh` plus only ticket-owned optional-
-group checks. Do not request native-Windows diagnostics or archived PoC,
-Julia, JAX, chain, GPU, miner, validator, or other legacy validation unless
-the selected ticket explicitly owns it. Request independent review and stop
-after this ticket. Do not begin a dependent ticket.
-For every material decision, record it, include the required `Lead notification`
-section in the pull request, and notify issue #42 mentioning `@harshaa765`.
-Notification is non-blocking unless the lead submits `REQUEST_CHANGES` or an
-explicit `BLOCKED` direction for the affected change.
+Execute the current selected Carbon ticket end-to-end under
+`agent_pack/CODEX_TICKET_LAUNCHER.md`. Use current repository authority,
+exact-head CI, Merge gate and Greptile. Merge and advance when clean. Keep all
+human-reserved authority fail closed.
 ```
 
-The current user instruction must authorize each fetch, commit, push, pull
-request, or merge. Preserve existing changes and report git state. Do not pull,
-reset, delete, commit, push, open a pull request, or merge based on this handoff
-alone.
+The active user/session authorization defines the bounded external-write scope.
+Preserve existing changes and report git state. Do not pull, reset, delete,
+rewrite history, force-push, or expand beyond that scope. When the session is
+authorized end to end and no explicit stop-before-merge direction exists, do
+not ask for another prompt solely to commit, push, open the ticket PR, normally
+merge its unchanged clean reviewed head, verify exact main, or advance to the
+next ready ticket.
 
 ## 10. Wave closeout
 
-B-GATE produces `.agent/WAVE_B_REPORT.md` only after every predecessor satisfies
-its evidence and merge gate. Exact-head correctness review, required CI, normal
-merge, and exact-main CI decide whether bounded engineering evidence supports
+B-GATE produces `.agent/WAVE_B_REPORT.md` only after every required predecessor
+except explicitly non-blocking B-01G satisfies its evidence and merge gate.
+Exact-head Greptile, required CI and `Merge gate`, normal merge, and exact-main
+`Merge gate` decide whether bounded engineering evidence supports
 `SPECIFIED`, `IMPLEMENTED`, and `TESTED` claims. Human-reserved scientific,
 security, rights, economic, qualification, LIVE, launch, and production
 authority remains separate and fail closed. Fixture success cannot confer

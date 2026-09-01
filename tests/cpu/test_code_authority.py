@@ -73,10 +73,11 @@ def _yaml_scalar(block: str, key: str) -> str:
 
 
 def _inline_run_commands(block: str) -> tuple[str, ...]:
-    return tuple(
+    commands = (
         match.group(1).strip()
         for match in re.finditer(r"^\s+run:\s+(\S.*)$", block, re.MULTILINE)
     )
+    return tuple(command for command in commands if not command.startswith(("|", ">")))
 
 
 def _authority() -> dict[str, Any]:
@@ -793,6 +794,82 @@ def test_committed_diff_hygiene_rejects_clean_worktree_whitespace_defect(
     assert "trailing whitespace" in output
 
 
+def test_diff_hygiene_checks_both_sides_of_staged_and_committed_rename(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    _initialize_git_repository(repository)
+    (repository / "tracked.txt").write_text(
+        "existing trailing whitespace \n",
+        encoding="utf-8",
+    )
+    assert _git_at(repository, "add", "tracked.txt").returncode == 0
+    assert (
+        _git_at(
+            repository,
+            "commit",
+            "--quiet",
+            "--message",
+            "establish historical fixture",
+        ).returncode
+        == 0
+    )
+    base = _git_at(repository, "rev-parse", "HEAD").stdout.strip()
+    destination = repository / ".agent/evidence/wave_b/tracked.txt"
+    destination.parent.mkdir(parents=True)
+    moved = _git_at(
+        repository,
+        "mv",
+        "tracked.txt",
+        ".agent/evidence/wave_b/tracked.txt",
+    )
+    assert moved.returncode == 0, moved.stderr
+
+    staged = subprocess.run(
+        [
+            sys.executable,
+            str(DIFF_HYGIENE_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    staged_output = f"{staged.stdout}\n{staged.stderr}"
+    assert staged.returncode == 1, staged_output
+    assert "staged changes" in staged_output
+    assert ".agent/evidence/wave_b/tracked.txt" in staged_output
+
+    committed = _git_at(
+        repository,
+        "commit",
+        "--quiet",
+        "--message",
+        "move historical fixture",
+    )
+    assert committed.returncode == 0, committed.stderr
+    committed_check = subprocess.run(
+        [
+            sys.executable,
+            str(DIFF_HYGIENE_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    committed_output = f"{committed_check.stdout}\n{committed_check.stderr}"
+    assert committed_check.returncode == 1, committed_output
+    assert "the committed merge-base-to-HEAD range" in committed_output
+    assert ".agent/evidence/wave_b/tracked.txt" in committed_output
+
+
 def test_diff_hygiene_rejects_unresolvable_comparison_base(tmp_path: Path) -> None:
     repository = tmp_path / "repository"
     _initialize_git_repository(repository)
@@ -882,14 +959,23 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
 def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> None:
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     jobs = _workflow_job_blocks(workflow)
-    assert {"preflight", "canonical", "dev-image"} <= set(jobs)
-    assert _yaml_scalar(jobs["preflight"], "name") == "Fast preflight"
+    assert set(jobs) == {
+        "preflight",
+        "canonical",
+        "dev-image",
+        "contract-authority",
+        "hub-validation",
+        "derived-documentation",
+        "merge-gate",
+    }
+    assert _yaml_scalar(jobs["preflight"], "name") == "Delivery preflight"
     assert _yaml_scalar(jobs["canonical"], "name") == "Canonical environment"
     assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
 
     assert _inline_run_commands(jobs["preflight"]) == (
+        "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/preflight.sh",
     )
@@ -900,6 +986,18 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _inline_run_commands(jobs["dev-image"]) == (
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
     )
+    required_repository_commands = (
+        "./scripts/dev/ci_preflight.sh",
+        "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/preflight.sh",
+        "./scripts/dev/ci.sh",
+        './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
+        "./scripts/dev/ci_contract_authority.sh",
+        "./scripts/dev/ci_hub.sh",
+        "./scripts/dev/ci_derived_documentation.sh",
+        'python3 "${gate}"',
+    )
+    assert all(command in workflow for command in required_repository_commands)
     assert "runs-on: ubuntu-24.04" in workflow
     assert "ubuntu-latest" not in workflow
     assert "actions/setup-python" not in workflow
@@ -923,30 +1021,125 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert jobs["dev-image"].index("docker/build-push-action") < jobs[
         "dev-image"
     ].index("./scripts/dev/verify_image.sh")
-    for job_id in ("preflight", "canonical", "dev-image"):
-        assert "continue-on-error" not in jobs[job_id]
-    for job_id in ("preflight", "canonical", "dev-image"):
-        assert (
-            jobs[job_id].count(
-                "ref: ${{ github.event.pull_request.head.sha || github.sha }}"
-            )
-            == 1
-        )
-        assert jobs[job_id].count("fetch-depth: 0") == 1
-        assert (
-            jobs[job_id].count(
-                "QUALITY_BASE_SHA: "
-                "${{ github.event.pull_request.base.sha || github.event.before }}"
-            )
-            == 1
-        )
+    for job in jobs.values():
+        assert "continue-on-error" not in job
 
     trigger_contract = workflow.partition("\njobs:")[0]
     assert "pull_request:" in trigger_contract
     assert "branches: [main]" in trigger_contract
     assert "paths:" not in trigger_contract
     assert "paths-ignore:" not in trigger_contract
-    assert "concurrency:" not in trigger_contract
+    assert "concurrency:" in trigger_contract
+
+    assert workflow.count("name: Merge gate") == 1
+    assert (
+        "types: [opened, synchronize, reopened, edited, ready_for_review]" in workflow
+    )
+    assert "pull-requests: read" in workflow
+    assert 'gh api "${endpoint}" --jq .head.sha' in workflow
+    assert 'gh api "${endpoint}" --jq .base.sha' in workflow
+    assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
+    assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 6
+    assert workflow.count("fetch-depth: 0") == 7
+    assert workflow.count("persist-credentials: false") == 8
+    assert (
+        jobs["preflight"].count(
+            "if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'"
+        )
+        == 3
+    )
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
+    assert "github.event.pull_request.number || github.sha" in workflow
+    assert 'CARBON_REQUIRE_DOCKER_TESTS: "1"' in workflow
+    assert workflow.count("HUB_EXPECTED_CHANGE_SCOPE:") == 2
+    assert "ref: ${{ needs.preflight.outputs.base_sha }}" in workflow
+    assert "path: .carbon-gate-candidate" in workflow
+    assert ".carbon-gate-base/scripts/dev/classify_changes.py" in workflow
+    assert "one-time B-01F bootstrap change classifier" in workflow
+    assert "--repository .carbon-gate-candidate" in workflow
+    assert '[[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]' in workflow
+    assert '[[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]' in workflow
+    assert workflow.count("BOOTSTRAP_BASE_SHA:") == 1
+    assert "BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade" in workflow
+    assert "c6302c7136fc5fa984b03660116f7daa7e3e3e48" not in workflow
+    candidate_gate = "gate=.carbon-gate-candidate/scripts/dev/check_merge_gate.py"
+    candidate_classifier = (
+        "classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py"
+    )
+    assert workflow.count(candidate_gate) == 1
+    assert workflow.count(candidate_classifier) == 1
+    bootstrap_selector = (
+        'elif [[ "${BASE_SHA}" == "${BOOTSTRAP_BASE_SHA}"'
+        " && -f .carbon-gate-candidate/scripts/dev/check_merge_gate.py"
+        " && -f .carbon-gate-candidate/scripts/dev/classify_changes.py ]]; then\n"
+        f"            {candidate_gate}\n"
+        f"            {candidate_classifier}\n"
+        '            echo "Using the one-time B-01F bootstrap Merge gate implementation."\n'
+        '            echo "Using the one-time B-01F bootstrap change classifier."\n'
+        "          else"
+    )
+    assert bootstrap_selector in workflow
+    assert '--scope "${derived_scope}"' in workflow
+    assert '--scope "${{ needs.preflight.outputs.change_scope }}"' not in workflow
+    assert "Using exact protected-base Merge gate implementation" in workflow
+    assert "one-time B-01F bootstrap Merge gate implementation" in workflow
+    assert "if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'" in workflow
+    assert (
+        "if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'" in workflow
+    )
+    assert (
+        "if: needs.preflight.outputs.change_scope == 'DERIVED_DOCUMENTATION'"
+        in workflow
+    )
+    assert "if: always()" in workflow
+    assert "needs: [preflight, canonical, dev-image" in workflow
+    assert workflow.index("\n  preflight:") < workflow.index("\n  canonical:")
+
+
+def test_delivery_preflight_and_canonical_wrapper_are_machine_enforced() -> None:
+    preflight = (REPOSITORY_ROOT / "scripts/dev/ci_preflight.sh").read_text(
+        encoding="utf-8"
+    )
+    for required in (
+        "scripts/dev/classify_changes.py",
+        "scripts/dev/check_delivery_hygiene.py",
+        "scripts/dev/check_diff_hygiene.py",
+        '[[ "${actual_head}" == "${expected_head}" ]]',
+        '"refs/heads/main"',
+    ):
+        assert required in preflight
+
+    wrapper_path = REPOSITORY_ROOT / "scripts/dev/canonical.sh"
+    wrapper = wrapper_path.read_text(encoding="utf-8")
+    wrapper_index = _run_git("ls-files", "--stage", "scripts/dev/canonical.sh")
+    if wrapper_index:
+        assert wrapper_index.startswith("100755 ")
+    for required in (
+        "--platform linux/amd64",
+        "--user 1000:1000",
+        "--interactive --tty",
+        "--dry-run",
+        "--focused",
+        "--full",
+        "--interactive",
+        "--git-common-dir",
+        "-f /.dockerenv",
+        "/etc/carbon-canonical-environment",
+        "target=/carbon-source,readonly",
+        "GIT_OPTIONAL_LOCKS=0",
+        "target=/workspaces/Carbon/.venv",
+        "target=/home/ubuntu/.cache/uv",
+        "Docker is unavailable",
+    ):
+        assert required in wrapper
+
+
+def test_hub_acceptance_enforces_decision_console_contract() -> None:
+    command = "python3 docs/development/carbon_hub/tools/test_decisions.py"
+    hub_script = (REPOSITORY_ROOT / "scripts/dev/ci_hub.sh").read_text(encoding="utf-8")
+
+    assert command in hub_script
 
 
 def test_fast_preflight_owns_the_cheap_fail_closed_gate() -> None:
@@ -982,6 +1175,7 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
     ci_source = CI_PATH.read_text(encoding="utf-8")
     preflight_source = PREFLIGHT_PATH.read_text(encoding="utf-8")
     required_in_order = (
+        'echo "==> delivery scope and repository hygiene"',
         'echo "==> fast preflight"',
         "./scripts/dev/preflight.sh",
         'echo "==> invariant lane"',
@@ -996,13 +1190,19 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
         path for path in retired_paths if path in ci_source or path in preflight_source
     ]
     assert positions == tuple(sorted(positions))
+    assert ci_source.count("scripts/dev/check_diff_hygiene.py") == 1
+    assert preflight_source.count("scripts/dev/check_diff_hygiene.py") == 1
     assert violations == []
     assert "tests/invariants" in ci_source
     assert "./scripts/dev/test.sh" in ci_source
+    assert "scripts/dev/classify_changes.py" in ci_source
+    assert "scripts/dev/check_delivery_hygiene.py" in ci_source
     assert "scripts/check_quality.py" in preflight_source
     assert "scripts/dev/check_diff_hygiene.py" in preflight_source
     assert "scripts/dev/check_diff_hygiene.py" in ci_source
-    assert '--base "${quality_base_ref}"' in ci_source
+    assert 'QUALITY_BASE_SHA="${quality_base}" ./scripts/dev/preflight.sh' in ci_source
+    assert ci_source.count('--base "${quality_base}"') == 3
+    assert '--base "${quality_base_ref}"' not in ci_source
     assert "\ngit diff --check\n" not in ci_source
     assert "tests/cpu/test_package_installation.py" in ci_source
     assert "tests/cpu/test_code_authority.py" in ci_source

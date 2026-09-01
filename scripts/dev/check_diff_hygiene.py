@@ -89,10 +89,13 @@ def check_diff_hygiene(repository: Path, base_reference: str) -> int:
     checks = (
         (
             "the committed merge-base-to-HEAD range",
-            ("diff", "--check", merge_base, head, "--"),
+            ("diff", "--no-renames", "--check", merge_base, head, "--"),
         ),
-        ("staged changes", ("diff", "--cached", "--check", "--")),
-        ("unstaged changes", ("diff", "--check", "--")),
+        (
+            "staged changes",
+            ("diff", "--cached", "--no-renames", "--check", "--"),
+        ),
+        ("unstaged changes", ("diff", "--no-renames", "--check", "--")),
     )
     failed = False
     for description, arguments in checks:

@@ -5,23 +5,77 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
 
 permissions:
   contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   preflight:
-    name: Fast preflight
+    name: Delivery preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      candidate_sha: ${{ steps.candidate.outputs.candidate_sha }}
+      base_sha: ${{ steps.candidate.outputs.base_sha }}
+      change_scope: ${{ steps.delivery.outputs.change_scope }}
     steps:
-      - name: Check out exact candidate
+      - name: Resolve the current exact candidate
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SHA: ${{ github.sha }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_REF: ${{ github.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            endpoint="repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}"
+            candidate_sha="$(gh api "${endpoint}" --jq .head.sha)"
+            base_sha="$(gh api "${endpoint}" --jq .base.sha)"
+            [[ "${EVENT_PR_HEAD}" =~ ^[0-9a-f]{40}$ ]]
+            if [[ "${candidate_sha}" != "${EVENT_PR_HEAD}" ]]; then
+              echo "Historical event head ${EVENT_PR_HEAD} no longer equals live head ${candidate_sha}; use the current event run." >&2
+              exit 2
+            fi
+          elif [[ "${EVENT_NAME}" == "push" && "${EVENT_REF}" == "refs/heads/main" ]]; then
+            candidate_sha="${EVENT_SHA}"
+            base_sha="${EVENT_BEFORE}"
+          else
+            echo "Unsupported event/ref: ${EVENT_NAME} ${EVENT_REF}" >&2
+            exit 2
+          fi
+          [[ "${candidate_sha}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${base_sha}" =~ ^[0-9a-f]{40}$ ]]
+          printf 'candidate_sha=%s\nbase_sha=%s\n' "${candidate_sha}" "${base_sha}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check out current exact candidate with history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ steps.candidate.outputs.candidate_sha }}
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify and run delivery preflight
+        id: delivery
+        env:
+          QUALITY_BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+          CARBON_CANDIDATE_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          CARBON_EVENT_NAME: ${{ github.event_name }}
+          CARBON_EVENT_REF: ${{ github.ref }}
+          CARBON_EVENT_SHA: ${{ github.sha }}
+        run: ./scripts/dev/ci_preflight.sh
 
       - name: Install pinned uv
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.7"
@@ -29,42 +83,45 @@ jobs:
           cache-dependency-glob: uv.lock
 
       - name: Bootstrap locked Carbon environment
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
         run: ./scripts/dev/bootstrap.sh
 
       - name: Run fast repository preflight
+        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
         env:
-          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          QUALITY_BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
         run: ./scripts/dev/preflight.sh
 
   canonical:
     name: Canonical environment
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - name: Check out exact candidate
+      - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
           fetch-depth: 0
-
+          persist-credentials: false
       - name: Install pinned uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.7"
           enable-cache: true
           cache-dependency-glob: uv.lock
-
       - name: Bootstrap locked Carbon environment
         run: ./scripts/dev/bootstrap.sh
-
       - name: Run canonical local/CI command
         env:
-          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
+          # Ubuntu runners provide Docker; make wrapper integration fail instead
+          # of silently skipping when that required service is unavailable.
+          CARBON_REQUIRE_DOCKER_TESTS: "1"
         run: ./scripts/dev/ci.sh
-
       - name: Upload quality inventory
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -75,18 +132,19 @@ jobs:
 
   dev-image:
     name: Clean dev-container image
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      CARBON_DEV_IMAGE: carbon-dev:${{ github.event.pull_request.head.sha || github.sha }}
+      CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
     steps:
-      - name: Check out exact candidate
+      - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
           fetch-depth: 0
-
+          persist-credentials: false
       - name: Build pinned Carbon development image
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
@@ -98,8 +156,184 @@ jobs:
           no-cache: true
           pull: true
           tags: ${{ env.CARBON_DEV_IMAGE }}
-
       - name: Start image and run canonical acceptance
         env:
-          QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
+
+  contract-authority:
+    name: Contract and authority acceptance
+    if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked Carbon environment
+        run: ./scripts/dev/bootstrap.sh
+      - name: Run contract-authority acceptance
+        env:
+          QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+        run: ./scripts/dev/ci_contract_authority.sh
+
+  hub-validation:
+    name: Development Hub validation
+    if: needs.preflight.outputs.change_scope != 'DERIVED_DOCUMENTATION'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refresh current live pull-request metadata
+        if: github.event_name == 'pull_request'
+        id: live-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          live_path="${RUNNER_TEMP}/carbon-live-pr.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${live_path}"
+          printf 'path=%s\nrequired=true\n' "${live_path}" >> "${GITHUB_OUTPUT}"
+      - name: Run exact-head Hub acceptance
+        env:
+          HUB_DIFF_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          HUB_EXPECTED_CHANGE_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          HUB_LIVE_PR_PATH: ${{ steps.live-pr.outputs.path }}
+          HUB_REQUIRE_LIVE_PR: ${{ steps.live-pr.outputs.required }}
+        run: ./scripts/dev/ci_hub.sh
+
+  derived-documentation:
+    name: Derived documentation acceptance
+    if: needs.preflight.outputs.change_scope == 'DERIVED_DOCUMENTATION'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refresh current live pull-request metadata
+        if: github.event_name == 'pull_request'
+        id: live-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          live_path="${RUNNER_TEMP}/carbon-live-pr.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${live_path}"
+          printf 'path=%s\nrequired=true\n' "${live_path}" >> "${GITHUB_OUTPUT}"
+      - name: Run derived-documentation acceptance
+        env:
+          HUB_DIFF_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          HUB_EXPECTED_CHANGE_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          HUB_LIVE_PR_PATH: ${{ steps.live-pr.outputs.path }}
+          HUB_REQUIRE_LIVE_PR: ${{ steps.live-pr.outputs.required }}
+        run: ./scripts/dev/ci_derived_documentation.sh
+
+  merge-gate:
+    name: Merge gate
+    if: always()
+    needs: [preflight, canonical, dev-image, contract-authority, hub-validation, derived-documentation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Repository-local trust hardening: execute the protected base's gate and
+      # classifier implementations over an exact candidate checkout. The
+      # workflow YAML and reported job results remain candidate-controlled;
+      # eliminating that trust requires external/default-branch infrastructure.
+      - name: Check out exact protected-base gate and classifier implementations
+        if: needs.preflight.outputs.base_sha != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          path: .carbon-gate-base
+      - name: Check out the exact candidate scope input with history
+        if: needs.preflight.outputs.candidate_sha != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: .carbon-gate-candidate
+      - name: Require every classified acceptance job
+        env:
+          BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
+          PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
+        run: |
+          set -euo pipefail
+          [[ "${BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${CANDIDATE_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          actual_candidate="$(git -C .carbon-gate-candidate rev-parse --verify HEAD^{commit})"
+          [[ "${actual_candidate}" == "${CANDIDATE_SHA}" ]]
+
+          gate=.carbon-gate-base/scripts/dev/check_merge_gate.py
+          classifier=.carbon-gate-base/scripts/dev/classify_changes.py
+          if [[ -f "${gate}" && -f "${classifier}" ]]; then
+            actual_base="$(git -C .carbon-gate-base rev-parse --verify HEAD^{commit})"
+            [[ "${actual_base}" == "${BASE_SHA}" ]]
+            echo "Using exact protected-base Merge gate implementation."
+            echo "Using exact protected-base change classifier."
+          elif [[ "${BASE_SHA}" == "${BOOTSTRAP_BASE_SHA}" && -f .carbon-gate-candidate/scripts/dev/check_merge_gate.py && -f .carbon-gate-candidate/scripts/dev/classify_changes.py ]]; then
+            gate=.carbon-gate-candidate/scripts/dev/check_merge_gate.py
+            classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
+            echo "Using the one-time B-01F bootstrap Merge gate implementation."
+            echo "Using the one-time B-01F bootstrap change classifier."
+          else
+            echo "No protected-base gate/classifier pair is available for base ${BASE_SHA:-missing}." >&2
+            exit 2
+          fi
+
+          scope_output="${RUNNER_TEMP}/carbon-gate-scope.txt"
+          : > "${scope_output}"
+          python3 "${classifier}" \
+            --repository .carbon-gate-candidate \
+            --base "${BASE_SHA}" \
+            --github-output "${scope_output}"
+          derived_scope=
+          while IFS='=' read -r key value; do
+            if [[ "${key}" == "change_scope" ]]; then
+              [[ -z "${derived_scope}" ]] || { echo "Duplicate derived change scope." >&2; exit 2; }
+              derived_scope="${value}"
+            fi
+          done < "${scope_output}"
+          case "${derived_scope}" in
+            RUNTIME_FULL|CONTRACT_AUTHORITY|DERIVED_DOCUMENTATION) ;;
+            *) echo "Protected classifier returned invalid scope: ${derived_scope:-missing}." >&2; exit 2 ;;
+          esac
+          if [[ "${derived_scope}" != "${PREFLIGHT_SCOPE}" ]]; then
+            echo "Preflight scope ${PREFLIGHT_SCOPE:-missing} disagrees with protected scope ${derived_scope}." >&2
+            exit 2
+          fi
+          python3 "${gate}" \
+            --scope "${derived_scope}" \
+            --preflight "${{ needs.preflight.result }}" \
+            --canonical "${{ needs.canonical.result }}" \
+            --dev-image "${{ needs.dev-image.result }}" \
+            --contract-authority "${{ needs.contract-authority.result }}" \
+            --hub-validation "${{ needs.hub-validation.result }}" \
+            --derived-documentation "${{ needs.derived-documentation.result }}"

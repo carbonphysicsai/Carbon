@@ -10,6 +10,37 @@ EOF
   exit 2
 }
 
+fail() {
+  echo "Carbon bootstrap failed: $*" >&2
+  exit 2
+}
+
+canonical_marker="ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
+canonical_marker_path="/etc/carbon-canonical-environment"
+
+python_identity() {
+  "$1" -I -c \
+    'import platform, sys; print(f"{sys.implementation.name}|{platform.python_version()}")'
+}
+
+is_trusted_root_executable() {
+  local executable="$1"
+  local identity permissions
+  identity="$(/usr/bin/stat -Lc '%u:%g:%A' "${executable}" 2>/dev/null || true)"
+  [[ "${identity}" == 0:0:* ]] || return 1
+  permissions="${identity##*:}"
+  [[ "${permissions:5:1}" != "w" && "${permissions:8:1}" != "w" ]]
+}
+
+is_exact_carbon_image() {
+  [[ -f /.dockerenv ]] || return 1
+  [[ "${CARBON_CANONICAL_DEV_ENV:-}" == "${canonical_marker}" ]] || return 1
+  [[ -f "${canonical_marker_path}" ]] || return 1
+  [[ "$(/usr/bin/stat -c '%u:%g:%a' "${canonical_marker_path}" 2>/dev/null || true)" == "0:0:444" ]] \
+    || return 1
+  [[ "$(/usr/bin/cat "${canonical_marker_path}" 2>/dev/null || true)" == "${canonical_marker}" ]]
+}
+
 kernel="$(uname -s 2>/dev/null || true)"
 case "${kernel}" in
   MINGW*|MSYS*|CYGWIN*) unsupported_windows ;;
@@ -75,8 +106,36 @@ for group in ${CARBON_UV_GROUPS:-}; do
 done
 
 cd "${repo_root}"
-uv python install "${python_version}"
-uv sync "${sync_args[@]}"
+python_path=""
+if [[ -f /.dockerenv && -n "${CARBON_CANONICAL_DEV_ENV:-}" ]] && \
+  ! is_exact_carbon_image; then
+  fail "the container claims a Carbon canonical identity without its root-owned marker."
+fi
+if is_exact_carbon_image; then
+  python_path="/usr/local/bin/python3"
+  is_trusted_root_executable "${python_path}" \
+    || fail "the canonical image interpreter is not root-owned and non-writable."
+  [[ "$(python_identity "${python_path}" 2>/dev/null || true)" == "cpython|${python_version}" ]] \
+    || fail "the canonical image interpreter is not exact CPython ${python_version}."
+else
+  python_path="$(
+    uv python find --no-project --no-python-downloads "${python_version}" \
+      2>/dev/null || true
+  )"
+  if [[ -n "${python_path}" ]] && \
+    [[ "$(python_identity "${python_path}" 2>/dev/null || true)" != "cpython|${python_version}" ]]; then
+    python_path=""
+  fi
+  if [[ -z "${python_path}" ]]; then
+    uv python install "${python_version}"
+    python_path="$(
+      uv python find --no-project --no-python-downloads "${python_version}"
+    )"
+    [[ "$(python_identity "${python_path}" 2>/dev/null || true)" == "cpython|${python_version}" ]] \
+      || fail "uv did not provide exact CPython ${python_version} after installation."
+  fi
+fi
+uv sync --python "${python_path}" "${sync_args[@]}"
 
 echo "Carbon locked environment synchronized:"
 echo "  repository: ${repo_root}"

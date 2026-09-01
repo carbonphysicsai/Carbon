@@ -11,8 +11,27 @@ export PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 cd "${repo_root}"
 
+if ! quality_base="$(git rev-parse --verify --end-of-options "${quality_base_ref}^{commit}" 2>/dev/null)"; then
+  echo "Carbon CI cannot resolve QUALITY_BASE_SHA '${quality_base_ref}' to a commit." >&2
+  echo "Fetch the comparison history or set QUALITY_BASE_SHA to an available commit/ref." >&2
+  exit 2
+fi
+if ! git merge-base "${quality_base}" HEAD >/dev/null 2>&1; then
+  echo "Carbon CI cannot find a merge base between '${quality_base_ref}' and HEAD." >&2
+  echo "Fetch full comparison history and ensure the refs share ancestry." >&2
+  exit 2
+fi
+
+echo "==> delivery scope and repository hygiene"
+"${python_bin}" scripts/dev/classify_changes.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+"${python_bin}" scripts/dev/check_delivery_hygiene.py \
+  --repository "${repo_root}" \
+  --base "${quality_base}"
+
 echo "==> fast preflight"
-./scripts/dev/preflight.sh
+QUALITY_BASE_SHA="${quality_base}" ./scripts/dev/preflight.sh
 
 echo "==> invariant lane"
 "${python_bin}" -m pytest tests/invariants -m invariant -q
@@ -33,6 +52,6 @@ echo "==> canonical/legacy authority boundary"
 echo "==> terminal committed and local Git diff hygiene"
 "${python_bin}" scripts/dev/check_diff_hygiene.py \
   --repository "${repo_root}" \
-  --base "${quality_base_ref}"
+  --base "${quality_base}"
 
 echo "Carbon canonical CI gates passed."

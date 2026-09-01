@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `79143d13e1e69e6f8e32ac066828b47fe5f9b060` on `main`, captured 2026-09-01T03:53:59Z.
-**Current:** Wave B, ticket B-04. Version 1.0 records B-03 done in bounded merged engineering scope and selects B-04 in_progress for working-contract authoring only. The B-04 contract in this snapshot is a candidate; normal merge and exact-main CI remain pending, and no B-04 implementation is authorized.
+**Authority snapshot:** `83cc2a628d13ce60fd854168b126d935076ec30a` on `main`, captured 2026-09-01T14:32:12Z.
+**Current:** Wave B, ticket B-04. Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.
 
 ## Wave spine
 
@@ -44,6 +44,8 @@
 | [A12](explainers/tickets/a12.md) | Test the authority boundaries as system invariants and close Wave A against its acceptance criteria. | done |
 | [B-01](explainers/tickets/b_01.md) | Pin the exact authority set, reconcile conflicts, and establish baseline evidence for Wave B. | done |
 | [B-01E](explainers/tickets/b_01e.md) | Make local and CI commands deterministic, pin dependencies, enforce code authority, and quarantine legacy executable paths. | done |
+| [B-01F](explainers/tickets/b_01f.md) | Make Carbon's owner-directed delivery lifecycle durable, machine-enforced, and lower-churn without weakening substantive gates. | done |
+| [B-01G](explainers/tickets/b_01g.md) | Prove deterministic checked-in static generation for repeated nominal reference and canonical registry patterns. | todo |
 | [B-02A](explainers/tickets/b_02a.md) | Define the physical task, candidate output, target population, SamplingPlan, canonical cases, and their exact identities. | done |
 | [B-02B](explainers/tickets/b_02b.md) | Define CandidateAssemblyContract, ParameterCatalog, optional structural components, StrategyCompiler, and ResolvedConstructionPlan. | done |
 | [B-02C](explainers/tickets/b_02c.md) | Define resource classes, ceilings, reconstruction-stage receipt seams, enforcement outcomes, and non-scientific resource receipts. | done |
@@ -86,6 +88,8 @@
 - `HUB-ADJ-002` — `SYSTEM/DEVELOPMENT-HUB/VALIDATION` — PR review separated authority snapshots from diff bases, made active-board validation lifecycle-aware, introduced explicit path-impact handling, and corrected publication control to authorized-maintainer wording without claiming workflow-enforced owner approval.
 - `B-03-E2` — `WAVE-B/B-03` — PR #69 merged the exact reviewed bounded B-03 generator implementation into main; the Hub is repinned to a snapshot containing it while B-03 remains in_progress and post-merge exact-main and closeout evidence are not yet recorded in the authority files.
 - `B-04-E1` — `WAVE-B/B-04` — B-03 completed its exact reviewed merge and exact-main closeout, and Wave B board version 1.0 selects B-04 for working-contract authoring only.
+- `OWNER-DX-01` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-01 records B-01F done under its conditional completion predicate, queues B-01G as non-blocking todo, and keeps B-04 selected in_progress with its bounded engineering contract ratified while runtime remains unimplemented.
+- `HUB-ADJ-003` — `SYSTEM/PUBLICATION` — The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.
 
 ## Authority boundary
 

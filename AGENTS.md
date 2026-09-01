@@ -21,10 +21,12 @@ Before every new ticket or major wave, read:
 3. `.agent/WAVE.md`;
 4. the active ticket under `.agent/tickets/`;
 5. for development tickets, `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`;
-6. ticket-referenced domain specifications;
-7. `Design_Specs/Build_Out.md`;
-8. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
-9. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
+6. `.agent/DELIVERY_PROTOCOL.md` and
+   `.agent/DELEGATED_DECISION_PROTOCOL.md`;
+7. ticket-referenced domain specifications;
+8. `Design_Specs/Build_Out.md`;
+9. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
+10. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
 
 Scientific constitutional reference:
 
@@ -288,6 +290,17 @@ Do not infer later states from earlier ones.
 
 Work on one bounded ticket at a time unless explicitly authorized otherwise.
 
+Use one pull request per ticket by default. Write the working contract,
+durable decisions, plan, and ticket-start state first; add coherent vertical
+implementation slices and their tests in later commits; and submit the
+contract, implementation, tests, and stable evidence together for final-tree
+review. A separate contract pull request requires the exact
+`CONTRACT_ONLY_TICKET`, `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT`, or
+`CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE` reason code, or the file-backed
+`AUTHORITATIVE_SEQUENCING` form defined in `.agent/DELIVERY_PROTOCOL.md`.
+Arbitrary prose and ticket-size rationales fail closed. A working contract may
+evolve prospectively during implementation.
+
 Before editing:
 
 1. read current authority/ticket;
@@ -308,6 +321,30 @@ Avoid unrelated refactors, speculative future abstractions, and opportunistic ar
 
 Future waves in the Agentic Master Plan are compatibility context, not implementation permission.
 
+The normal selected-ticket lifecycle is:
+
+```text
+working contract and decisions
+→ vertical implementation slices
+→ canonical validation
+→ exact-head scope-required checks and Merge gate
+→ exact-head Greptile Review
+→ repair valid findings and reach zero unresolved threads
+→ normal exact-expected-head merge
+→ reviewed-tree and exact-main verification
+→ completed normalized external receipt posted
+→ bounded closeout and next ready ticket
+```
+
+Greptile is the routine independent correctness review Carbon waits for. Human
+and domain-lead review is asynchronous oversight unless repository authority
+explicitly reserves a value or acceptance decision to a human. Human silence
+is not a gate. Unless owner direction explicitly says to stop before merge, an
+end-to-end ticket session must not ask for another owner prompt solely to merge
+an unchanged, green, reviewed candidate. The completed normalized external
+receipt must be posted before bounded closeout or next-ticket advance. Follow
+`.agent/DELIVERY_PROTOCOL.md`.
+
 ---
 
 # 10. Testing and evidence
@@ -321,6 +358,12 @@ Before declaring completion run:
 3. required baseline/regression suite;
 4. lint/type/static checks required by the repo;
 5. relevant security/leakage/invariant tests.
+
+On macOS, Windows, or noncanonical Linux, run validation through
+`./scripts/dev/canonical.sh <command> [args...]`. Native-host output is never
+canonical. The strict changed-path classifier selects the minimum CI scope;
+unknown paths fail closed to full runtime acceptance, and a ticket's
+substantive requirements still apply even when its path class is lighter.
 
 For development-ticket changes, also reconcile the hub source, regenerate its
 derived outputs, and run the checks in
@@ -341,7 +384,22 @@ Prefer tests for:
 
 Do not delete/weaken a test merely because implementation fails it.
 
-Record completion evidence in `.agent/WAVE.md` only when the ticket's review/merge rules are satisfied.
+Keep ticket scope, authority, starting base, durable decisions, contracts,
+expected manifest, validation commands, invariants, maturity ceiling, and a
+conditional completion predicate in tracked evidence. Put final reviewed
+head/tree, checks, Greptile result, unresolved threads, merge topology,
+exact-main checks, notification, final maturity, and next-ticket identities in
+the external receipt defined by
+`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Do not create an empty or
+evidence-only commit to retrigger a declaration or store external facts.
+
+Record completion evidence in `.agent/WAVE.md` only when the ticket's exact
+review/merge predicate is satisfied. A prepared conditional closeout and next-
+ticket transition becomes effective only after exact-head required checks and
+`Merge gate`, exact-head Greptile with all valid findings repaired and zero
+unresolved threads, normal expected-head merge with reviewed-tree
+preservation, exact-main `Merge gate`, and posting of the completed normalized
+external receipt.
 
 ---
 
@@ -514,6 +572,15 @@ under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
 
 Prefer one ticket → one reviewable branch/diff.
 
+Use normal merge commits only. Do not squash, rebase-merge, or enable auto-
+merge. Merge only when the PR head is exact and unchanged, all scope-required
+checks and `Merge gate` succeeded on that head, Greptile succeeded on the same
+head, all valid findings were repaired, unresolved Greptile thread count is
+zero, no applicable block remains, the base is reconciled, and the merge uses
+an exact expected-head guard. After merge verify ordered parents, exact second-
+parent identity, reviewed-tree preservation, fetched exact main, and exact-
+main `Merge gate`.
+
 Do not:
 
 - mass-delete or mass-rename unrelated code;
@@ -522,6 +589,8 @@ Do not:
 - introduce unnecessary dependencies;
 - commit secrets/credentials;
 - push unreviewed major production changes merely for speed.
+- create commits whose only purpose is recording successful CI, review, merge,
+  an evidence seal, or a validation retrigger.
 
 Changes should be understandable and revertible.
 

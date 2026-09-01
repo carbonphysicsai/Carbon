@@ -2,13 +2,42 @@
 
 <!-- What changed, why, and which bounded authority permits it? -->
 
-## Validation
+## Delivery mode
 
-<!-- List exact commands and results. Do not infer qualification from tests. -->
+DELIVERY_MODE: SINGLE_TICKET_PR
+SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE
 
-## Authority and maturity ceiling
+<!--
+For SEPARATE_CONTRACT_PR, replace NOT_APPLICABLE with exactly one:
+CONTRACT_ONLY_TICKET
+CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT
+CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE
+AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words that equals a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>
+DETAILS and marker values must be plain single-line prose without Markdown/HTML metacharacters <, >, &, *, backtick, or underscore.
+Ticket size is never a valid reason.
+-->
 
-<!-- State what remains unavailable or fail closed. -->
+## Exact candidate
+
+BASE:
+FINAL_HEAD:
+FINAL_TREE:
+
+## Canonical validation
+
+CHANGE_SCOPE:
+CANONICAL_LOCAL_VALIDATION:
+MERGE_GATE:
+GREPTILE:
+UNRESOLVED_THREADS:
+BLOCKING_DIRECTION:
+
+<!-- List exact commands/results. Native-host output is not canonical. -->
+
+## Completion receipt
+
+DYNAMIC_COMPLETION_EVIDENCE: EXTERNAL
+COMPLETION_RECEIPT_LOCATION:
 
 ## Lead notification
 
@@ -22,3 +51,14 @@ placeholder with a specific map reference, source file, or no-impact reason.
 HUB_UPDATE_REQUIRED: <map refs and changed hub source files>
 
 HUB_IMPACT_NONE: <specific reason the hub's purpose, placement, status, dependencies, boundaries, maturity, routes, and primary links remain accurate>
+
+## Maturity ceiling
+
+<!-- State what remains unavailable or fail closed. -->
+
+## Throughput observations
+
+CODE_BEARING_COMMITS:
+POST_FREEZE_TREE_CHANGES:
+FULL_CI_RUNS:
+AVOIDABLE_RERUN_REASON:

@@ -3,9 +3,16 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.0
+**Controlling register:** `.agent/WAVE_B.md` version 1.1
 **Selected ticket:** B-04 — `in_progress`
-**Selected phase:** contract authoring on the candidate branch
+**Selected phase:** runtime implementation only after B-01F's conditional
+completion gate; paused before that gate
+**B-01F status:** `done` only after its exact reviewed normal merge, exact-main
+`Merge gate`, and posted completed external receipt; before that predicate it
+is the owner-directed `in_progress` insertion
+**B-01G status:** `todo`; non-blocking for B-04
+**B-04 contract:** ratified bounded engineering contract; implementation and
+all qualification remain unearned
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -82,9 +89,23 @@
 > zero comments and unresolved threads, and exact-main push CI `33460078744`
 > passed. Issue #42 closeout comment `5487728238` records the immutable merge
 > evidence. B-03 is `done` only in bounded merged engineering scope. Version
-> 1.0 selects B-04 `in_progress` for working-contract authoring only; B-04
-> implementation remains prohibited until the exact contract tree normally
-> merges and exact-main CI succeeds.
+> 1.0 selected B-04 `in_progress` for working-contract authoring only and
+> prohibited implementation until the exact contract tree normally merged and
+> exact-main CI succeeded. PR #72's external receipt now establishes that
+> historical contract gate.
+
+> **B-04 contract ratified; B-01F inserted.** PR #72's external completion
+> receipt establishes the exact reviewed contract, required exact-head checks
+> and Greptile, normal reviewed-tree-preserving merge, and exact-main checks.
+> B-04 retains `SPECIFIED: YES`, `RATIFIED_ENGINEERING_CONTRACT: YES`, and
+> `IMPLEMENTED: NO`; every qualification and `LIVE` state remains `NO`.
+> `OWNER-DX-01` temporarily inserts B-01F before B-04 runtime without amending
+> the contract and queues B-01G as non-blocking `todo`. This candidate's B-01F
+> `done` and B-04 runtime selection become effective only after the exact B-01F
+> final head/tree passes scope-required checks, `Merge gate`, and Greptile;
+> normally merges with reviewed-tree preservation; and passes exact-main
+> `Merge gate`; and its completed normalized external receipt is posted.
+> Until then B-04 runtime remains paused.
 
 > **Authoritative Wave-A closeout evidence:** A-1 and A0-A12 are `done` only in
 > their recorded bounded engineering scopes. PR #50 ratified A12-R1 through
@@ -104,11 +125,20 @@
 ## Workflow
 
 ```text
-current authority → one ticket → baseline tests → implement → tests → review/merge → board evidence → next
+current authority
+→ one ticket / one PR by default
+→ working contract and vertical implementation slices
+→ canonical validation
+→ exact-head Merge gate and Greptile
+→ repair valid findings / zero unresolved threads
+→ normal exact-expected-head merge
+→ reviewed-tree and exact-main verification
+→ external completion receipt / next ready ticket
 ```
 
 - Sequential by default.
-- Harness-native worktrees/branches preferred.
+- Dedicated worktrees/branches required by default; use
+  `./scripts/dev/canonical.sh` on noncanonical hosts.
 - Model routing is **not** part of this board (optional under `agent_pack/executors/`).
 - Future waves in the Agentic Master Plan are planning authority, not current implementation authorization.
 
@@ -160,7 +190,13 @@ Version 0.8 records B-02B's exact reviewed merge and exact-main CI and selects
 B-02C `in_progress`. Version 0.9 recorded B-02C's repaired exact reviewed
 normal merge and exact-main CI and selected B-03. Version 1.0 records B-03's
 exact reviewed-tree-preserving normal merge and exact-main CI and selects B-04
-`in_progress` in contract phase. The architecture
+`in_progress` in contract phase. Version 1.1 records the B-04 contract's
+ratified engineering maturity, inserts owner-directed B-01F before runtime,
+queues non-blocking B-01G, and prepares the conditional B-01F `done` / B-04
+runtime selection. That transition is authoritative only after the exact
+B-01F reviewed tree normally merges, exact-main `Merge gate` passes, and the
+completed normalized external receipt is posted. The
+architecture
 contract is version 0.4 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
@@ -170,8 +206,8 @@ and its exact-main CI passed. B-01E owns only the canonical development
 environment and legacy executable quarantine. PR #61 then normally merged the
 delegated-decision governance described above, and PR #60 closed B-02A using
 that model. B-07R's, B-02B's, and B-02C's external review, merge, and
-exact-main-CI facts are recorded above and in their evidence records. B-04
-begins with a separate working engineering contract; real reference methods,
+exact-main-CI facts are recorded above and in their evidence records. B-04's
+bounded engineering contract is ratified; real reference methods,
 support, uncertainty, disagreement, qualification, security, operations,
 production, and LIVE values remain unavailable.
 
@@ -193,10 +229,13 @@ A baseline-pinned program-level testnet-to-mainnet roadmap, with the Wave B effo
 
 ## Notes
 
-- Do not mark done without test/file/review evidence.
+- Do not mark done without exact-head test/file/`Merge gate`/Greptile evidence,
+  normal reviewed-tree-preserving merge, exact-main `Merge gate`, and the
+  posted completed external receipt.
 - B-01E implementation evidence is recorded in
   `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
-  `./scripts/dev/ci.sh` in the canonical Linux environment. Native-Windows
+  `./scripts/dev/ci.sh` in the canonical Linux environment. On a noncanonical
+  host use `./scripts/dev/canonical.sh`. Native-Windows
   diagnostics and archived PoC, Julia, network, JAX, chain, GPU, or other
   legacy validation are required only when the selected ticket explicitly
   owns that environment or archived component.

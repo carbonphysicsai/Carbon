@@ -11,6 +11,7 @@ Model choice, API keys, and vendor harness config are **out of band** (see optio
 **Agent constitution:** repo root `AGENTS.md`  
 **Board / tickets (canonical):** repo root `.agent/`
 **Delegated decisions:** `.agent/DELEGATED_DECISION_PROTOCOL.md`
+**Delivery and evidence:** `.agent/DELIVERY_PROTOCOL.md`
 **Development Hub maintenance:** `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`
 
 ```text
@@ -47,9 +48,10 @@ long-horizon document is not independent permission to start work.
 4. ticket under `.agent/tickets/`
 5. `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`
 6. `.agent/DELEGATED_DECISION_PROTOCOL.md`
-7. ticket-referenced domain specifications
-8. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
-9. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
+7. `.agent/DELIVERY_PROTOCOL.md`
+8. ticket-referenced domain specifications
+9. `Design_Specs/Build_Out_Constitutional_Overlay.md` for A8 onward
+10. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints
 
 If work touches customer/product/business semantics, also read:
 
@@ -102,28 +104,49 @@ orientation/current authority
 → select primary map_ref and classify hub impact
 → one ticket
 → baseline tests
-→ working contract / material decisions where needed
+→ working contract / material decisions
+→ coherent vertical implementation slices
 → concise hub events when team understanding changes
 → notify applicable decision inboxes
-→ implement minimum DoD
-→ ticket + regression + hub validation
-→ independent technical review
-→ normal merge
-→ board evidence
-→ hub reconciliation
-→ next ticket
+→ canonical ticket + regression + hub validation
+→ exact-head scope checks and Merge gate
+→ exact-head Greptile Review
+→ repair valid findings; zero unresolved threads
+→ normal exact-expected-head merge
+→ ordered-parent/tree and exact-main Merge gate verification
+→ external completion receipt and bounded closeout
+→ next ready ticket
 ```
 
 1. Open next `todo` ticket under `.agent/tickets/` in `.agent/WAVE.md` order unless owner authorizes otherwise.
-2. Prefer one branch/worktree per ticket.
+2. Use one branch/worktree and one pull request per ticket by default. Put the
+   working contract, decisions, plan, and ticket-start state in the first
+   commit; add coherent vertical implementation/test slices later; review the
+   whole final tree together. A separate contract PR requires one exact reason
+   code or file-backed `AUTHORITATIVE_SEQUENCING` declaration from
+   `.agent/DELIVERY_PROTOCOL.md`; arbitrary prose and ticket-size rationales
+   fail closed.
 3. **Before edits:** record the primary hub `map_ref`, classify hub impact, run relevant baseline tests / PoC smoke, and record result.
 4. Implement the minimum coherent change; prefer KEEP/WRAP/REPAIR.
 5. Material engineering decisions inside the authorized ticket follow `.agent/DELEGATED_DECISION_PROTOCOL.md`: select the agent-recommended approach, record it, notify the applicable lead, and continue unless an explicit block applies.
 6. During work, add concise map events for material decisions, adjustments, bugs, blockers, risks, or evidence results that change team understanding; routine implementation detail remains in the PR.
 7. **After edits:** run baseline + ticket-specific + invariant tests; reconcile hub source, regenerate derived outputs, and run hub drift/validation checks when required.
-8. Update `.agent/WAVE.md` status/evidence only after merge/acceptance rules are satisfied.
-9. Stop at the ticket's bounded review/merge boundary, not at every material engineering decision. An explicit `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A reserved human decision blocks only the behavior that cannot proceed correctly with a fail-closed seam; unrelated authorized work continues.
-10. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
+8. On macOS, Windows, or noncanonical Linux, run validation through
+   `./scripts/dev/canonical.sh`; never call native-host output canonical.
+9. Update `.agent/WAVE.md` status/evidence only after the exact completion
+   predicate is satisfied. A conditional closeout in the reviewed tree remains
+   inert until exact-head checks/`Merge gate`/Greptile, normal reviewed-tree-
+   preserving merge, and exact-main `Merge gate` all pass and the completed
+   normalized external receipt is posted.
+10. Unless owner direction explicitly says to stop before merge, continue an
+    end-to-end ticket through normal exact-expected-head merge, exact-main
+    verification, posting of the completed normalized external receipt,
+    closeout, and next ready-ticket selection. Do not ask for another owner
+    prompt solely to merge an unchanged, green, reviewed ticket. An explicit
+    `REQUEST_CHANGES` or `BLOCKED` direction pauses the affected change. A
+    reserved human decision blocks only the behavior that cannot proceed
+    correctly with a fail-closed seam; unrelated work continues.
+11. On repeated implementation failure, mark the affected ticket or sub-scope blocked and report it without weakening tests or authority boundaries.
 
 Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.
 
@@ -136,6 +159,11 @@ Development authorization comes from the active Wave and selected ticket, not fr
 A material development decision must be recorded in `.agent/DECISIONS.md` or the applicable ticket, plan, or specification. Decisions in Carbon's SciML / Technical Lead lane must be surfaced in GitHub issue #42 and mention `@harshaa765`. Owner-reserved decisions and decisions explicitly deferred by a lead route to owner issue #41.
 
 Notification is evidence of delivery and visibility, not approval. No affirmative response, reaction, approval, or waiting period is required for agent-authorized engineering work.
+
+Greptile is the routine independent correctness review Carbon waits for before
+merge. Human and domain-lead review remains asynchronous oversight unless the
+repository explicitly reserves the affected value or acceptance decision to a
+human. Human silence is not a gate.
 
 A decision is material when it changes or selects:
 
@@ -254,6 +282,14 @@ For the active board, success remains:
 Each capability may separately be `SPECIFIED`, `IMPLEMENTED`, `TESTED`, `SCIENTIFICALLY_QUALIFIED`, `SECURITY_QUALIFIED`, `NETWORK_QUALIFIED`, `COMMERCIALLY_VALIDATED`, and `PRODUCTION_QUALIFIED`.
 
 Never infer a later state from an earlier one.
+
+Stable tracked evidence contains scope, authority, base, durable decisions,
+contracts, expected manifest, commands, invariants, maturity ceiling, and the
+conditional completion predicate. Dynamic final head/tree, checks, Greptile,
+thread count, merge topology, exact-main checks, notification, final maturity,
+and next selection belong in the external receipt under
+`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Do not commit merely to
+record or retrigger those facts.
 
 The Development Hub is derived navigation only. It cannot activate a wave or
 ticket, grant maturity, or replace repository authority.

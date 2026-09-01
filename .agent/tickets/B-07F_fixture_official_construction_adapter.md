@@ -16,17 +16,20 @@ closeout.
 
 ## Definition of Done
 
-- [ ] Before implementation, produce
+- [ ] Begin the single-ticket PR with the working
       `Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md`,
-      record material engineering decisions, and notify protocol/SciML/security
-      owners; pass applicable document validation and exact-head CI; repair
-      every valid Greptile finding with zero Greptile threads unresolved; and
+      material decisions, plan, and protocol/SciML/security notification;
+      implement coherent vertical slices against that contract; then review
+      the final contract, implementation, tests, and stable evidence together.
+      Require applicable validation, exact-head `Merge gate` and Greptile,
+      repair every valid finding with zero Greptile threads unresolved, and
       normally merge the exact reviewed tree. A documented invalid finding may
-      be closed with rationale, and any tree change requires rereview. Record
-      the exact contract commit in the implementation plan. Notification is
-      not ratification and silence is no gate. Scientific/security
-      qualification, official data rights, LIVE, and production authority
-      remain human-owned and fail closed.
+      be closed with rationale, any tree change requires rereview, and a
+      separate contract PR requires an exception in
+      `.agent/DELIVERY_PROTOCOL.md`. Notification is not ratification and
+      silence is no gate. Scientific/security qualification, official data
+      rights, `LIVE`, and production authority remain human-owned and fail
+      closed.
 - [ ] Implement a new fixture-only resolved-plan consumer rather than changing
       A8's frozen Strategy-insensitive stub semantics.
 - [ ] Inject the consumer behind the existing A7/A8-shaped internal

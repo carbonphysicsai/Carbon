@@ -1,8 +1,9 @@
 # Ticket B-04 - ReferencePolicy, TruthAsset, and reference runners
 
-**Wave:** B candidate transition
+**Wave:** B active in bounded development scope
 **Status:** in_progress
-**Phase:** contract authoring on this candidate branch
+**Phase:** bounded engineering contract ratified; runtime implementation paused
+behind B-01F
 **Depends on:** B-02A
 **Build Out:** C19 and truth/reference authoring
 **Master questions:** MQ-004
@@ -13,9 +14,13 @@
 **Plan:** `.agent/plans/B-04_reference_truth_contracts.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-04.md`
 
-This selection is candidate branch content until the exact reviewed contract
-tree normally merges and exact-main CI succeeds. Implementation must not begin
-before that gate.
+PR #72 normally merged the exact reviewed contract tree and exact-main
+canonical, clean-container, and Development Hub checks succeeded. The B-04
+contract is ratified engineering authority. Owner decision `OWNER-DX-01`
+inserts B-01F before runtime implementation without reopening or demoting that
+contract. B-04 runtime may begin only after B-01F's exact reviewed candidate
+normally merges with reviewed-tree preservation and exact-main `Merge gate`
+succeeds.
 
 ## Goal
 
@@ -23,14 +28,13 @@ Represent how one exact case receives an uncertainty-bearing answer key without 
 
 ## Definition of Done
 
-- [ ] Produce the candidate
-      `Design_Specs/Reference_and_TruthAsset_Contract.md`; record material
-      engineering decisions and route SciML/statistics/protocol and
-      methodologically independent reference review; pass applicable local
-      document/baseline/Hub validation; and leave all real reference-policy
-      choices human-owned and fail closed. Exact-head CI and Greptile are
-      required before this session stops. Normal merge and exact-main CI remain
-      deliberately pending and are the implementation authorization gate.
+- [x] Produce and ratify
+      `Design_Specs/Reference_and_TruthAsset_Contract.md`; record B-04-D1
+      through B-04-D10; route the required review; and leave all real reference-
+      policy choices human-owned and fail closed. PR #72's external completion
+      receipt carries the exact reviewed-head, check, finding/thread, merge-
+      topology, and exact-main identities that earned this substantive
+      maturity transition.
 - [ ] Define `ReferencePolicy`, `TruthAsset`, primary/corroborating roles, provenance, uncertainty, applicability, failure, and disagreement contracts.
 - [ ] Define orthogonal closed evidence-kind, authority-function, and source-
       class axes capable of representing analytic or semi-analytic primary
@@ -96,18 +100,21 @@ validation, transfer one reference's authority to another regime or envelope,
 or claim solver authority from successful execution, language, library,
 reputation, cost, or nominal tolerance.
 
-## Contract-session stop state
+## Runtime resumption gate
 
-The unchecked items above are implementation Definition-of-Done requirements;
-this session defines their engineering contract only. It does not create a
-runtime, solver, fixture runner, Julia service, Cole–Hopf method, artifact
-store, transport, measurement, scoring, Dossier, or later-ticket interface.
+The unchecked items above remain B-04 runtime Definition-of-Done requirements.
+They are neither undone nor implemented by B-01F. After B-01F satisfies its
+exact reviewed normal-merge and exact-main `Merge gate`, start B-04 runtime
+from that exact main on a fresh `agent/b-04-reference-truth` branch/worktree.
+Until then no runtime, solver, fixture runner, Julia service, Cole–Hopf method,
+artifact store, transport, measurement, scoring, Dossier, or later-ticket
+interface is authorized.
 
 ```text
-SPECIFIED: CANDIDATE — BOUNDED ENGINEERING CONTRACT
-RATIFIED_ENGINEERING_CONTRACT: NO — NORMAL MERGE AND EXACT-MAIN CI PENDING
+SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
+RATIFIED_ENGINEERING_CONTRACT: YES
 IMPLEMENTED: NO
-TESTED: DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
+TESTED: CONTRACT/DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
 REFERENCE_QUALIFIED: NO
 OPERATIONS_APPROVED: NO
 SECURITY_QUALIFIED: NO
