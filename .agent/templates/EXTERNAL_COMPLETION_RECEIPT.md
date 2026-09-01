@@ -56,7 +56,9 @@ For `SEPARATE_CONTRACT_PR`, replace `NOT_APPLICABLE` with exactly
 `CONTRACT_ONLY_TICKET`, `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT`,
 `CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE`, or
 `AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words equal to a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>`.
-Ticket size is categorically invalid.
+`DETAILS` and marker values must be plain single-line prose without Markdown/
+HTML metacharacters `<`, `>`, `&`, `*`, backtick, or underscore. Ticket size is
+categorically invalid.
 
 Every SHA, tree, run, check, job, comment, and thread-count field must be read
 from the live system after it exists. Use `PENDING` before completion and never

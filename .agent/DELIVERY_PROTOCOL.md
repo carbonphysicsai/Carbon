@@ -70,7 +70,9 @@ ticket, `Design_Specs/Build_Out.md`, or
 `Design_Specs/Agentic_Development_Master_Plan.md`. The normalized `<reason>`
 must contain at least four words and normalize-equal the value of one complete
 `SEPARATE_CONTRACT_PR_EXCEPTION: <specific reason>` machine line in that exact
-file at candidate `HEAD`.
+file at candidate `HEAD`. Both `DETAILS` and the complete marker value must be
+plain single-line prose and must not contain Markdown/HTML metacharacters `<`,
+`>`, `&`, `*`, backtick, or underscore.
 
 Unrelated prose does not authorize an exception. An arbitrary explanation,
 working-tree-only marker, stale or untracked file, or ticket-size rationale is

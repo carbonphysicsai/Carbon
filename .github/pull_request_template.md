@@ -13,6 +13,7 @@ CONTRACT_ONLY_TICKET
 CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT
 CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE
 AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words that equals a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>
+DETAILS and marker values must be plain single-line prose without Markdown/HTML metacharacters <, >, &, *, backtick, or underscore.
 Ticket size is never a valid reason.
 -->
 
