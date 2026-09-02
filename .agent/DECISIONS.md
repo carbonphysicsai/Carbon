@@ -1747,6 +1747,106 @@ runtime paths are not imported or modified. Issue #42 receives the non-gating
 lead notification mentioning `@harshaa765`; the Decision Console records the
 durable response and implementation PR URLs.
 
+## 2026-09-02 — B-04-D12: Keep at-most-once admission-authority invocation across the callback boundary
+
+**Status.** Implemented working engineering decision for the bounded B-04
+fixture runtime. This decision clarifies one-use capability mechanics; it does
+not select a production retry, cancellation, idempotency, reconciliation,
+security-acceptance, or operations policy.
+
+**Problem.** `TruthAssetAdmissionGrant` is immutable and one-use, and the
+ratified contract authorizes one exact structurally valid admission attempt,
+but it deliberately adds no retry policy. An external admission authority may
+commit an effect and then raise, be cancelled, lose its response, or return a
+malformed echo. Restoring the same grant after that boundary would permit a
+second authority action even though the runtime cannot know whether the first
+action took effect.
+
+**Recommendation.** `KEEP` the at-most-once boundary and make its state
+transition explicit. The runtime reconstructs and validates all caller-owned
+records and graph bindings, atomically reserves inspection of the one-use
+grant, validates role separation and the exact authority identity/interface,
+and snapshots the callable before any irreversible claim. It then atomically
+consumes the grant immediately before invoking that saved callback. A failure,
+including a non-`Exception` process-control or cancellation signal, before
+consumption releases the reversible reservation. Once callback invocation
+begins, no post-call rollback exists.
+
+A valid echo produces one exact admission decision. An ordinary provider
+`Exception`, malformed or wrong-type echo, incompatible outcome/reason, or
+invalid consumed-grant receipt produces no decision and leaves the grant
+consumed. A non-`Exception` `BaseException`, including cancellation, propagates
+without fabricating a decision and also leaves the grant consumed. Reentrant,
+concurrent, or later reuse is rejected locally as
+`ReferenceValidationError(STALE_BINDING, /grant_ref)` before another callback.
+`GRANT_INVALID_OR_CONSUMED` remains only an available authority-emitted reason
+on the first claimed attempt; it is not fabricated for local replay.
+
+**Rationale.** This is the smallest deterministic implementation of the
+ratified one-use grant and one-attempt contract. Rollback or consume-after-echo
+would silently add retry/idempotency semantics and could duplicate an external
+authority effect. Preserving the consumed state is fail closed: it creates no
+decision, no `TruthAsset`, no candidate/scoring failure, and no retry or
+qualification claim. A later recovery mechanism must issue a prospectively
+authorized new capability or define a versioned durable idempotency and
+reconciliation protocol under its named owner.
+
+**Greptile finding disposition.** The outdated “Grant consumed before
+decision” finding is `PARTIALLY_VALID / CLARIFIED`. Its factual observation is
+retained: callback or post-callback validation failure can consume a grant
+without producing a decision. Its retry description is corrected: replay does
+not produce a `GRANT_INVALID_OR_CONSUMED` decision and never invokes another
+authority callback; it fails locally as stale. The repair is durable rationale
+and complete boundary coverage, not rollback.
+
+**Rejected alternatives.** Rolling the grant back after callback start,
+consuming only after a valid echo, fabricating an admission decision from a
+provider/service failure, translating process-control signals into scientific
+outcomes, or adding a generic retry/idempotency switch would weaken one-use
+authority or invent later operational policy.
+
+**Interfaces and invariants.** The public D11 schema, canonical bytes, ref
+families, outcome/reason matrices, and curated package root do not change.
+Pre-callback validation remains retryable with the same unconsumed grant only
+because no authority callback began. Post-boundary failure remains a typed
+service/validation failure or propagated process-control signal with no
+decision record. Exactly one callback may cross one grant boundary, including
+under reentrancy and concurrency. Issuer/authority/runner role separation,
+positive-only admission, protected-error handling, and reference-versus-
+candidate failure separation remain unchanged.
+
+**Test evidence.** Focused matrix coverage proves pre-callback authority
+validation failure and process-control release, ordinary provider exceptions,
+malformed/wrong-type/incompatible echoes, exact invalid-receipt
+classification, callback `KeyboardInterrupt`/`SystemExit`/`GeneratorExit` and
+`asyncio.CancelledError` propagation with post-boundary burn, reentrant and
+concurrent single-callback behavior, reuse rejection after provider failure or
+valid decision, and self-admission/dual-role rejection.
+
+**Downstream impact.** B-E2 may add registered service/runtime failure
+injection without changing the one-use meaning. A later operations/security
+owner may define durable cancellation, idempotency, reconciliation, or
+prospective reissuance. B-05, B-06, B-07F, scoring, candidate lifecycle,
+frontier, settlement, and `LIVE` receive no new authority.
+
+**Reversibility and migration cost.** The fixture implementation choice is
+locally simple to supersede, but making an already-started external action
+resumable requires a new prospective grant/service version, durable attempt
+identity, authority-side idempotency evidence, reconciliation states, and
+consumer tests. Historical v1 decisions and consumed grants are never
+reinterpreted.
+
+**Human-reserved inputs.** Production retry/cancellation/idempotency policy,
+authority recovery and audit requirements, security acceptance, operational
+service guarantees, and every substantive admission/qualification value
+remain unavailable and fail closed.
+
+**Exact change path.** `.agent/DECISIONS.md`, the B-04 plan/evidence,
+`tests/cpu/test_b04_matrix_contract.py`, issue #42, and the required
+Development Hub decision/event source plus deterministic generated projections.
+The ratified contract, D11 schema, and production modules require no semantic
+change.
+
 ## 2026-08-31 — HUB-D1: Static-first Development Hub and maintenance gate
 
 **Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`

@@ -167,6 +167,12 @@ base recorded above. The runtime work then completed these coherent slices:
    fixture runners for supported, conditioning, disagreement, numerical,
    malformed/provenance, infrastructure, correlation, and no-fallback paths.
 
+B-04-D12 keeps the admission callback boundary at-most-once: complete graph
+and authority validation precede the atomic claim, while the one-use grant is
+consumed immediately before the saved external callback and is never rolled
+back after callback start. This clarifies the ratified one-attempt/no-retry
+contract without changing D11 bytes or adding a production retry policy.
+
 The implementation preserves one-way explicit imports from current B-02A
 submodules and does not import `carbon.generators`, scoring, registry lifecycle,
 seeding, or any later owner. Julia, Cole–Hopf, production solvers/services,
@@ -204,11 +210,18 @@ tests/cpu/test_b04_execution_contract.py
 tests/cpu/test_b04_failure_and_disclosure.py
 tests/cpu/test_b04_fixture_runtime.py
 tests/cpu/test_b04_matrix_contract.py
+tests/cpu/test_b04_noncanonical_carrier_regressions.py
 tests/cpu/test_b04_policy_contract.py
 tests/cpu/test_b04_public_surface.py
 tests/cpu/test_code_authority.py
 tests/cpu/test_package_installation.py
 tests/invariants/test_b04_reference_truth_boundaries.py
+```
+
+The durable decision path is exactly:
+
+```text
+.agent/DECISIONS.md
 ```
 
 The conditional authority snapshot paths are exactly:
@@ -229,23 +242,24 @@ contains only required Hub source plus renderer-determined outputs.
 
 ## 8. Engineering validation and independent audits
 
-Current stable local results are:
+Fresh corrected-candidate results are required after the D12 coverage and
+current-main synchronization settle. The earlier numeric ledger is superseded
+and is not evidence for the final candidate:
 
 | Scope | Result |
 |---|---|
-| focused B-04 CPU + invariant matrix | `235 passed` |
-| affected B-02A/B-03/A3/A4/A5 and boundary regressions | `1252 passed`; the two installed-environment cases then passed in their required isolated rerun |
-| full invariant suite | `75 passed` |
-| package, wheel, outside-tree, and code-authority scope | `87 passed` |
-| strict Ruff, strict Black, compilation, and diff hygiene | PASS |
-| full CPU suite | `3531 passed, 2 skipped in 738.21s (0:12:18)` |
+| focused B-04 CPU + invariant matrix | PENDING final-candidate rerun |
+| affected B-02A/B-03/A3/A4/A5 and boundary regressions | PENDING final-candidate rerun |
+| full invariant suite | PENDING final-candidate rerun |
+| package, wheel, outside-tree, and code-authority scope | PENDING final-candidate rerun |
+| strict Ruff, strict Black, compilation, and diff hygiene | PENDING final-candidate rerun |
+| full CPU suite | PENDING final-candidate rerun |
 
-The final scientific/epistemic read-only audit found no remaining role,
-authority-transfer, fallback, disagreement, MMS, fixture-promotion, or
-reference-versus-candidate-failure defect. The final canonical/identity/
-provenance/disclosure/capability read-only audit found no remaining exact-byte,
-reconstruction, admission, protected-surface, dependency, or leakage defect.
-Every earlier valid finding was repaired before those clean final passes.
+The prior scientific/epistemic and canonical/identity/provenance/disclosure/
+capability audits predate D12 and are not final-candidate evidence. The old
+grant-consumption finding is `PARTIALLY_VALID / CLARIFIED`; fresh independent
+audits are required after synchronization, and no provider failure is treated
+as an admission decision.
 
 Local Darwin results are diagnostic only. Exact candidate acceptance still
 requires the repository-selected `RUNTIME_FULL` canonical Linux scope,

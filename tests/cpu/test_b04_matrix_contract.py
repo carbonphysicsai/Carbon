@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import pickle
 import threading
@@ -1440,6 +1441,143 @@ def test_admission_provider_receives_isolated_attempt_and_grant_ref_snapshots() 
     assert grant.to_ref() == grant_ref
 
 
+def test_admission_preclaim_baseexception_releases_inspection_reservation() -> None:
+    graph, _attempt, run, artifact, comparison, issuance, grant, delegate = (
+        _positive_admission_inputs("preclaim_baseexception")
+    )
+
+    class PreclaimControlSignal(BaseException):
+        pass
+
+    signal = PreclaimControlSignal("process-control signal")
+
+    class InterruptedAuthority:
+        admission_calls = 0
+
+        @property
+        def admission_authority_ref(self):
+            raise signal
+
+        def evaluate_admission(self, observed_attempt, observed_grant_ref):
+            del observed_attempt, observed_grant_ref
+            self.admission_calls += 1
+            raise AssertionError("preclaim failure must not invoke the callback")
+
+    interrupted = InterruptedAuthority()
+    with pytest.raises(PreclaimControlSignal) as captured:
+        admission_runtime.decide_truth_asset_admission(
+            interrupted,
+            issuance,
+            grant,
+            policy=graph.policy,
+            run=run,
+            artifact=artifact,
+            comparisons=(comparison,),
+            decision_id="b04_matrix_preclaim_baseexception_decision",
+            decision_version="1.0",
+        )
+    assert captured.value is signal
+    assert interrupted.admission_calls == 0
+
+    decision = admission_runtime.decide_truth_asset_admission(
+        delegate,
+        issuance,
+        grant,
+        policy=graph.policy,
+        run=run,
+        artifact=artifact,
+        comparisons=(comparison,),
+        decision_id="b04_matrix_after_preclaim_baseexception_decision",
+        decision_version="1.0",
+    )
+    assert decision is not None
+    assert decision.outcome is TruthAssetAdmissionOutcome.ADMITTED
+
+
+@pytest.mark.parametrize(
+    "signal_type",
+    (
+        pytest.param(KeyboardInterrupt, id="keyboard_interrupt"),
+        pytest.param(SystemExit, id="system_exit"),
+        pytest.param(GeneratorExit, id="generator_exit"),
+        pytest.param(asyncio.CancelledError, id="asyncio_cancelled"),
+    ),
+)
+def test_admission_callback_baseexception_propagates_and_burns_grant(
+    signal_type: type[BaseException],
+) -> None:
+    signal_label = {
+        KeyboardInterrupt: "keyboard_interrupt",
+        SystemExit: "system_exit",
+        GeneratorExit: "generator_exit",
+        asyncio.CancelledError: "asyncio_cancelled",
+    }[signal_type]
+    graph, attempt, run, artifact, comparison, issuance, grant, _ = (
+        _positive_admission_inputs(f"callback_{signal_label}")
+    )
+    signal = signal_type("process-control signal")
+
+    class InterruptedAuthority:
+        admission_calls = 0
+
+        @property
+        def admission_authority_ref(self):
+            return attempt.admission_authority_ref
+
+        def evaluate_admission(self, observed_attempt, observed_grant_ref):
+            assert observed_attempt == attempt
+            assert observed_grant_ref == grant.to_ref()
+            self.admission_calls += 1
+            raise signal
+
+    interrupted = InterruptedAuthority()
+    decision = None
+    with pytest.raises(signal_type) as captured:
+        decision = admission_runtime.decide_truth_asset_admission(
+            interrupted,
+            issuance,
+            grant,
+            policy=graph.policy,
+            run=run,
+            artifact=artifact,
+            comparisons=(comparison,),
+            decision_id="b04_matrix_callback_baseexception_decision",
+            decision_version="1.0",
+        )
+    assert decision is None
+    assert captured.value is signal
+    assert interrupted.admission_calls == 1
+
+    class ReplayAuthority:
+        admission_calls = 0
+
+        @property
+        def admission_authority_ref(self):
+            return attempt.admission_authority_ref
+
+        def evaluate_admission(self, observed_attempt, observed_grant_ref):
+            del observed_attempt, observed_grant_ref
+            self.admission_calls += 1
+            raise AssertionError("consumed-grant callback must not run")
+
+    replay = ReplayAuthority()
+    with pytest.raises(ReferenceValidationError) as replayed:
+        admission_runtime.decide_truth_asset_admission(
+            replay,
+            issuance,
+            grant,
+            policy=graph.policy,
+            run=run,
+            artifact=artifact,
+            comparisons=(comparison,),
+            decision_id="b04_matrix_callback_baseexception_replay",
+            decision_version="1.0",
+        )
+    assert replayed.value.code == ReferenceInputCode.STALE_BINDING.value
+    assert replayed.value.path == "/grant_ref"
+    assert replay.admission_calls == 0
+
+
 @pytest.mark.parametrize(
     "failure_mode",
     (
@@ -1591,6 +1729,9 @@ def test_admission_authority_failure_burns_at_most_once_grant(
             == ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE.value
         )
         assert captured.value.path == "/outcome"
+    elif failure_mode == "invalid_receipt":
+        assert captured.value.code == ReferenceInputCode.ROLE_MISMATCH.value
+        assert captured.value.path == "/consumed_grant_receipt_ref"
 
     class ReplayAuthority:
         admission_calls = 0
