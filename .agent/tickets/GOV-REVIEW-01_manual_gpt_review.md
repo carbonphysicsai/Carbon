@@ -8,7 +8,7 @@
 **Plan:** `.agent/plans/GOV-REVIEW-01_manual_gpt_review.md`
 **Stable evidence:** `.agent/evidence/governance/gov-review-01.md`
 
-This contract-only governance ticket replaces the unavailable Greptile service
+This bounded governance migration ticket replaces the unavailable Greptile service
 with exact-head manual Codex/GPT review evidence plus a distinct human approval.
 It does not alter scientific authority, Wave-B scope, B-04 runtime semantics,
 or any maturity claim.

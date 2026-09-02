@@ -3,7 +3,7 @@
 **Evidence class:** stable tracked governance evidence
 **Exact base commit:** `938f94d3cf0ae8ff092b52659c39f0952ec352da`
 **Exact base tree:** `ca050935b1b4881931d438e47a7a69a98bd5fcfa`
-**Branch:** `agent/gov-review-01-gpt-review`
+**Branch:** `agent/gov-review-01-gpt-review-v2`
 **Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`
 
 ## Stable findings
