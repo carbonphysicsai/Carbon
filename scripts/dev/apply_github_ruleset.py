@@ -714,6 +714,7 @@ def _verify_live_pr(
         and pull.get("merge_commit_sha") == expected_main
         and merge_gate_sha == expected_main
     ):
+        merged_base = _require_sha(base.get("sha"), "merged pull request base")
         merged_head = _require_sha(head.get("sha"), "merged pull request head")
         merge_commit = _require_mapping(
             client.request(_repo_endpoint(repository, f"/commits/{expected_main}")),
@@ -729,6 +730,14 @@ def _verify_live_pr(
             raise RulesetError(
                 "guarded governance PR must use a normal two-parent merge"
             )
+        first_parent = _require_mapping(parents[0], "guarded merge first parent")
+        if (
+            _require_sha(first_parent.get("sha"), "guarded merge first parent SHA")
+            != merged_base
+        ):
+            raise RulesetError(
+                "guarded merge first parent must equal the pull request base"
+            )
         second_parent = _require_mapping(parents[1], "guarded merge second parent")
         if (
             _require_sha(second_parent.get("sha"), "guarded merge second parent SHA")
@@ -737,6 +746,30 @@ def _verify_live_pr(
             raise RulesetError(
                 "guarded merge second parent must equal the reviewed PR head"
             )
+        head_commit = _require_mapping(
+            client.request(_repo_endpoint(repository, f"/commits/{merged_head}")),
+            "guarded reviewed commit",
+        )
+        merge_payload = _require_mapping(
+            merge_commit.get("commit"), "guarded merge commit payload"
+        )
+        reviewed_payload = _require_mapping(
+            head_commit.get("commit"), "guarded reviewed commit payload"
+        )
+        merge_tree = _require_sha(
+            _require_mapping(merge_payload.get("tree"), "guarded merge tree").get(
+                "sha"
+            ),
+            "guarded merge tree SHA",
+        )
+        reviewed_tree = _require_sha(
+            _require_mapping(reviewed_payload.get("tree"), "guarded reviewed tree").get(
+                "sha"
+            ),
+            "guarded reviewed tree SHA",
+        )
+        if merge_tree != reviewed_tree:
+            raise RulesetError("guarded merge tree must equal the reviewed PR tree")
         return
     raise RulesetError(
         "guarded pull request must be open on the exact candidate or normally "

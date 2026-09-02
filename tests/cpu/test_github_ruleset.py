@@ -16,6 +16,7 @@ SCRIPT = REPOSITORY_ROOT / "scripts" / "dev" / "apply_github_ruleset.py"
 ARTIFACT = REPOSITORY_ROOT / ".github" / "rulesets" / "main.v1.json"
 MAIN_SHA = "a" * 40
 CANDIDATE_SHA = "b" * 40
+TREE_SHA = "e" * 40
 PR_NUMBER = 72
 RULESET_LIST_ENDPOINT = (
     "repos/carbonphysicsai/Carbon/rulesets?includes_parents=true&per_page=100&page=1"
@@ -417,7 +418,12 @@ def test_plan_accepts_exact_main_from_normally_merged_guard_pr() -> None:
     responses = _base_responses(pull=merged)
     responses[f"repos/carbonphysicsai/Carbon/commits/{MAIN_SHA}"] = {
         "sha": MAIN_SHA,
+        "commit": {"tree": {"sha": TREE_SHA}},
         "parents": [{"sha": "c" * 40}, {"sha": CANDIDATE_SHA}],
+    }
+    responses[f"repos/carbonphysicsai/Carbon/commits/{CANDIDATE_SHA}"] = {
+        "sha": CANDIDATE_SHA,
+        "commit": {"tree": {"sha": TREE_SHA}},
     }
     main_check_endpoint = CHECK_RUNS_ENDPOINT.replace(CANDIDATE_SHA, MAIN_SHA)
     responses[main_check_endpoint] = responses.pop(CHECK_RUNS_ENDPOINT)
@@ -435,17 +441,44 @@ def test_plan_accepts_exact_main_from_normally_merged_guard_pr() -> None:
 
 
 @pytest.mark.parametrize(
-    ("parents", "message"),
+    ("base_sha", "parents", "merge_tree", "reviewed_tree", "message"),
     [
-        ([{"sha": "c" * 40}], "normal two-parent merge"),
         (
+            "c" * 40,
+            [{"sha": "c" * 40}],
+            TREE_SHA,
+            TREE_SHA,
+            "normal two-parent merge",
+        ),
+        (
+            "c" * 40,
             [{"sha": "c" * 40}, {"sha": "d" * 40}],
+            TREE_SHA,
+            TREE_SHA,
             "second parent must equal",
+        ),
+        (
+            "c" * 40,
+            [{"sha": "d" * 40}, {"sha": CANDIDATE_SHA}],
+            TREE_SHA,
+            TREE_SHA,
+            "first parent must equal",
+        ),
+        (
+            "c" * 40,
+            [{"sha": "c" * 40}, {"sha": CANDIDATE_SHA}],
+            "f" * 40,
+            TREE_SHA,
+            "merge tree must equal",
         ),
     ],
 )
 def test_plan_refuses_non_normal_or_wrong_head_governance_merge(
-    parents: list[dict[str, str]], message: str
+    base_sha: str,
+    parents: list[dict[str, str]],
+    merge_tree: str,
+    reviewed_tree: str,
+    message: str,
 ) -> None:
     merged = _live_pr()
     merged.update(
@@ -455,10 +488,16 @@ def test_plan_refuses_non_normal_or_wrong_head_governance_merge(
             "merge_commit_sha": MAIN_SHA,
         }
     )
+    merged["base"]["sha"] = base_sha
     responses = _base_responses(pull=merged)
     responses[f"repos/carbonphysicsai/Carbon/commits/{MAIN_SHA}"] = {
         "sha": MAIN_SHA,
+        "commit": {"tree": {"sha": merge_tree}},
         "parents": parents,
+    }
+    responses[f"repos/carbonphysicsai/Carbon/commits/{CANDIDATE_SHA}"] = {
+        "sha": CANDIDATE_SHA,
+        "commit": {"tree": {"sha": reviewed_tree}},
     }
     main_check_endpoint = CHECK_RUNS_ENDPOINT.replace(CANDIDATE_SHA, MAIN_SHA)
     responses[main_check_endpoint] = responses.pop(CHECK_RUNS_ENDPOINT)
