@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `cdd59bdff3361870b0053d927a5fc416062f8b2b` on `main`, captured 2026-09-02T11:26:20Z.
+**Authority snapshot:** `af41f4c4838fbba0a86e9b6a945c9ed1fe168189` on `main`, captured 2026-09-02T11:36:38Z.
 **Current:** Wave B, ticket B-04. B-01F's exact completion predicate is satisfied and B-04 remains the selected in_progress runtime ticket. GOV-REVIEW-01 interposes only the prospective delivery-review migration: fresh complete-diff Codex/GPT review, distinct non-author human approval, and the protected GPT review gate. It changes no B-04 runtime semantics or maturity.
 
 ## Wave spine
