@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `35e46734d92fcf46bfbc987d45696b25d00d61ca` on `main`, captured 2026-09-02T00:00:11Z.
-**Current:** Wave B, ticket B-04. Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.
+**Authority snapshot:** `0997c335b740b32f45b9f452d8c1d6df75f9e789` on `main`, captured 2026-09-02T12:07:01Z.
+**Current:** Wave B, ticket B-04. B-01F's exact completion predicate is satisfied and B-04 remains the selected in_progress runtime ticket. GOV-REVIEW-01 interposes only the prospective delivery-review migration: fresh complete-diff Codex/GPT review, distinct non-author human approval, and the protected GPT review gate. It changes no B-04 runtime semantics or maturity.
 
 ## Wave spine
 
@@ -92,6 +92,7 @@
 - `HUB-ADJ-003` — `SYSTEM/PUBLICATION` — The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.
 - `OWNER-NET-01` — `SYSTEM/DEVELOPMENT-SEQUENCING` — OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work.
 - `HUB-BUG-002` — `SYSTEM/PUBLICATION` — The Pages publisher now fetches full Git history before static-payload validation so the pinned historical authority snapshot resolves without weakening the validator.
+- `GOV-REVIEW-01-D1` — `SYSTEM/DEVELOPMENT-SEQUENCING` — The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.
 
 ## Authority boundary
 

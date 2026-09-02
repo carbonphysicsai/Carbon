@@ -380,6 +380,31 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5500028528",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/76"
+    },
+    {
+      "decision_id": "GOV-REVIEW-01-D1",
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "wave": "B",
+      "ticket": "GOV-REVIEW-01",
+      "title": "Manual Codex/GPT review plus distinct human approval",
+      "attention": "RESOLVED",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should Carbon replace the inaccessible Greptile workspace with fresh complete-diff Codex/GPT review, a closed exact-head receipt, and distinct non-author human approval?",
+      "recommendation": "KEEP GOV-REVIEW-01-D1 and its protected GPT review gate, stale-approval dismissal, last-push approval, resolved-thread, normal-merge, and no-bypass controls.",
+      "why": "The owner-selected process preserves exact-head review and finding accountability without depending on an inaccessible third-party workspace or adding an automated model API secret and billing dependency.",
+      "if_kept": "B-04 and later tickets receive one exact-head model-review record plus an attributable non-author human approval, while all scientific and other reserved authority stays separate and fail closed.",
+      "if_changed": "Delivery protocol, receipt schema, review workflow and validator, ruleset artifact and live state, ticket gates, tests, and external completion evidence require a coordinated prospective migration.",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/PR-MAINTENANCE",
+        "SYSTEM/GOVERNANCE",
+        "WAVE-B/B-04",
+        "WAVE-B/B-GATE"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5508835152",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/commit/cdd59bdff3361870b0053d927a5fc416062f8b2b"
     }
   ]
 }

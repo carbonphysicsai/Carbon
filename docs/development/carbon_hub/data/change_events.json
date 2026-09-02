@@ -193,6 +193,30 @@
         "SYSTEM/CI"
       ],
       "supersedes": "HUB-ADJ-003"
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "event_type": "decision",
+      "event_id": "GOV-REVIEW-01-D1",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5508835152",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/PR-MAINTENANCE",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/DEVELOPMENT-HUB",
+      "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+      "WAVE-B/B-04",
+      "WAVE-B/B-05",
+      "WAVE-B/B-06",
+      "WAVE-B/B-07F",
+      "WAVE-B/B-07S",
+      "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

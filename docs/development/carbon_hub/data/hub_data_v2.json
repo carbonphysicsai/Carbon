@@ -2,10 +2,10 @@
   "meta": {
     "title": "Carbon Development Hub",
     "version": "2.1",
-    "captured_at_utc": "2026-09-02T00:00:11Z",
+    "captured_at_utc": "2026-09-02T12:07:01Z",
     "repository": "https://github.com/carbonphysicsai/Carbon",
     "branch": "main",
-    "authority_snapshot_commit": "35e46734d92fcf46bfbc987d45696b25d00d61ca",
+    "authority_snapshot_commit": "0997c335b740b32f45b9f452d8c1d6df75f9e789",
     "hub_build_commit": null,
     "purpose": "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.",
     "authority_notice": "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -20,7 +20,7 @@
     "controlling_register": ".agent/WAVE_B.md",
     "controlling_register_version": "1.1",
     "controlling_board_fingerprint": "6272bfd9f4ee36d01bd1784ece3fc8d0d0c6a84ed45a968f290cfb28315ac471",
-    "stage": "Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.",
+    "stage": "B-01F's exact completion predicate is satisfied and B-04 remains the selected in_progress runtime ticket. GOV-REVIEW-01 interposes only the prospective delivery-review migration: fresh complete-diff Codex/GPT review, distinct non-author human approval, and the protected GPT review gate. It changes no B-04 runtime semantics or maturity.",
     "most_recent_closed_wave": "A",
     "completed_wave_tickets": [
       "B-01",
@@ -58,7 +58,7 @@
     ],
     "next_selected_ticket": null,
     "fail_closed": [
-      "B-01F's prepared done state and B-04 runtime selection remain inert until the exact reviewed normal merge, exact-main Merge gate, and completed external receipt satisfy the conditional completion predicate.",
+      "B-04 remains unclosed until its exact candidate passes required checks, fresh complete-diff Codex/GPT review, distinct non-author human approval, GPT review gate, normal merge, exact-main verification, and the completed external receipt.",
       "Every real primary or witness method, support boundary, conditioning rule, uncertainty value, comparison threshold, resource policy, right, and qualification input remains HUMAN_INPUT_REQUIRED or otherwise unavailable.",
       "B-04-D11 must freeze the exact v1 record schema, outcome/reason matrices, and carbon.evaluation root-export tuple before any runtime model is authorized.",
       "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
@@ -73,8 +73,8 @@
       "commercially_validated": "unearned",
       "production_qualified": "unearned"
     },
-    "maturity_summary": "The B-04 bounded engineering contract is ratified and specified. Runtime implementation and testing remain unearned; B-01F's conditional completion predicate governs when runtime selection becomes effective. Every reference, scientific, security, network, commercial, and production qualification state remains unearned.",
-    "decision_series_status": "B-04-D1 through B-04-D10 are ratified bounded engineering-contract decisions. OWNER-DX-01 pauses runtime behind B-01F without amending them. B-04-D11 and every runtime/reference implementation remain future work; no human-reserved input or qualification authority is supplied.",
+    "maturity_summary": "The B-04 bounded engineering contract is ratified and specified, and B-04 runtime is the selected in-progress work. Runtime implementation and testing remain unearned until the exact completion predicate passes. Every reference, scientific, security, network, commercial, and production qualification state remains unearned.",
+    "decision_series_status": "B-04-D1 through B-04-D10 are ratified bounded engineering-contract decisions. B-04-D11 and runtime decisions remain candidate work until B-04 closes. GOV-REVIEW-01-D1 changes only the prospective delivery-review control and supplies no human-reserved input or qualification authority.",
     "technical_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/42",
     "owner_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/41",
     "decision_series": [
@@ -93,95 +93,107 @@
   "sources": {
     "constitution": {
       "label": "Repository constitution",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/CONSTITUTION.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/CONSTITUTION.md"
     },
     "invariants": {
       "label": "Always-on agent invariants",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/INVARIANTS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/INVARIANTS.md"
     },
     "build_out": {
       "label": "Current Build Out",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Build_Out.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Build_Out.md"
     },
     "constitutional_overlay": {
       "label": "Build Out Constitutional Overlay",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Build_Out_Constitutional_Overlay.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Build_Out_Constitutional_Overlay.md"
     },
     "protocol_extension": {
       "label": "Build Out Protocol Extension",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Build_Out_Protocol_Extension.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Build_Out_Protocol_Extension.md"
     },
     "scientific_canon": {
       "label": "Scientific Reference Canon v4",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
     },
     "master_plan": {
       "label": "Agentic Development Master Plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Agentic_Development_Master_Plan.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Agentic_Development_Master_Plan.md"
     },
     "launch_plan": {
       "label": "Current testnet-to-mainnet launch path",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
     },
     "open_questions": {
       "label": "Master open design questions",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md"
     },
     "governance_ticket": {
       "label": "GOV-NET-01 roadmap ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
     },
     "governance_plan": {
       "label": "GOV-NET-01 delivery plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
     },
     "governance_evidence": {
       "label": "GOV-NET-01 stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/evidence/governance/gov-net-01.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/evidence/governance/gov-net-01.md"
+    },
+    "review_governance_ticket": {
+      "label": "GOV-REVIEW-01 delivery-review migration ticket",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/tickets/GOV-REVIEW-01_manual_gpt_review.md"
+    },
+    "review_governance_plan": {
+      "label": "GOV-REVIEW-01 delivery plan",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/plans/GOV-REVIEW-01_manual_gpt_review.md"
+    },
+    "review_governance_evidence": {
+      "label": "GOV-REVIEW-01 stable evidence",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/evidence/governance/gov-review-01.md"
     },
     "maturity_ledger": {
       "label": "Current implemented-vs-specified ledger",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md"
     },
     "current_wave": {
       "label": "Current wave register",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE.md"
     },
     "wave_a_report": {
       "label": "Wave A closeout report",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE_A_REPORT.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE_A_REPORT.md"
     },
     "controlling_board": {
       "label": "Current controlling board",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE_B.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE_B.md"
     },
     "b_01f_ticket": {
       "label": "B-01F delivery hardening ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/tickets/B-01F_development_throughput_hardening.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/tickets/B-01F_development_throughput_hardening.md"
     },
     "b_01f_evidence": {
       "label": "B-01F stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/evidence/wave_b/b-01f.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/evidence/wave_b/b-01f.md"
     },
     "b_01g_ticket": {
       "label": "B-01G non-blocking tooling ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/tickets/B-01G_static_schema_codegen_proof.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/tickets/B-01G_static_schema_codegen_proof.md"
     },
     "code_authority": {
       "label": "Current executable-code authority map",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/CODE_AUTHORITY.toml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/CODE_AUTHORITY.toml"
     },
     "generator_package": {
       "label": "Bounded generator package public surface",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/carbon/generators/__init__.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/carbon/generators/__init__.py"
     },
     "decision_log": {
       "label": "Agent decisions log",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/DECISIONS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/DECISIONS.md"
     },
     "delegated_decisions": {
       "label": "Delegated decision protocol",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/DELEGATED_DECISION_PROTOCOL.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/DELEGATED_DECISION_PROTOCOL.md"
     },
     "harsh_inbox": {
       "label": "SciML / Technical Lead Decision Inbox #42",
@@ -193,31 +205,35 @@
     },
     "operations": {
       "label": "Operations and deployment guide",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Operations.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Operations.md"
     },
     "commercial_model": {
       "label": "Commercial Operating Model",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Business/Commercial_Operating_Model.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Business/Commercial_Operating_Model.md"
     },
     "business_canon": {
       "label": "Business Canon",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Business/Business_Canon.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Business/Business_Canon.md"
     },
     "hub_validation_workflow": {
       "label": "Development Hub validation workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.github/workflows/development-hub.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.github/workflows/development-hub.yml"
     },
     "ci_workflow": {
       "label": "Canonical CI and stable Merge gate workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.github/workflows/ci.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.github/workflows/ci.yml"
+    },
+    "gpt_review_workflow": {
+      "label": "Protected exact-head GPT review gate workflow",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.github/workflows/gpt-review.yml"
     },
     "main_ruleset": {
       "label": "Main branch ruleset artifact",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.github/rulesets/main.v1.json"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.github/rulesets/main.v1.json"
     },
     "hub_publication_workflow": {
       "label": "Development Hub publication workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.github/workflows/development-hub-pages.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.github/workflows/development-hub-pages.yml"
     }
   },
   "authority_source_checks": [
@@ -313,6 +329,8 @@
       "id": "decision-authority",
       "path": ".agent/DECISIONS.md",
       "required_markers": [
+        "## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval",
+        "`.agent/templates/CODEX_GPT_REVIEW_RECEIPT.md`. The protected-base `GPT review",
         "## 2026-09-01 — OWNER-DX-01: Carbon development throughput hardening",
         "> **B-04-D1 through B-04-D10 status: RATIFIED BOUNDED ENGINEERING-CONTRACT",
         "## 2026-09-01 — B-04-D1: Keep the canonical evaluation package and one-way ownership",
@@ -322,6 +340,17 @@
         "Mainnet economic activation requires the Wave-H/I treasury path.",
         "`StructuralLocalnetWeightIntent`, `TestnetWinnerWeightIntent`, and",
         "OWNER_DIRECTION / RATIFIED_ROADMAP: YES after merge under current governance"
+      ]
+    },
+    {
+      "id": "review-governance-ticket",
+      "path": ".agent/tickets/GOV-REVIEW-01_manual_gpt_review.md",
+      "required_markers": [
+        "**Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`",
+        "This bounded governance migration ticket replaces the unavailable Greptile service",
+        "fresh read-only Codex/GPT review of the complete PR diff",
+        "No later PR may use this bootstrap exception.",
+        "B-04 remains the selected `in_progress` implementation ticket throughout."
       ]
     },
     {
@@ -422,7 +451,19 @@
       "required_markers": [
         "\"name\": \"Carbon main merge gate\"",
         "\"context\": \"Merge gate\"",
-        "\"context\": \"Greptile Review\""
+        "\"context\": \"GPT review gate\"",
+        "\"required_approving_review_count\": 1"
+      ]
+    },
+    {
+      "id": "gpt-review-gate-workflow",
+      "path": ".github/workflows/gpt-review.yml",
+      "required_markers": [
+        "name: GPT Review",
+        "pull_request_review:",
+        "name: GPT review gate",
+        "Check out the protected base review validator",
+        "python scripts/dev/check_gpt_review_gate.py"
       ]
     },
     {
@@ -759,6 +800,34 @@
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
+        "id": "gov-review-01-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/GOV-REVIEW-01_manual_gpt_review.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "gov-review-01-plan",
+        "match_type": "exact",
+        "path": ".agent/plans/GOV-REVIEW-01_manual_gpt_review.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "gov-review-01-evidence",
+        "match_type": "exact",
+        "path": ".agent/evidence/governance/gov-review-01.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "codex-gpt-review-receipt",
+        "match_type": "exact",
+        "path": ".agent/templates/CODEX_GPT_REVIEW_RECEIPT.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PR-MAINTENANCE"
+      },
+      {
         "id": "ticket-record",
         "match_type": "ticket_record",
         "path": ".agent/tickets/",
@@ -941,15 +1010,15 @@
       "repo_links": [
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE_B.md"
         },
         {
           "label": "Current wave register",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE.md"
         },
         {
           "label": "Agentic Development Master Plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Agentic_Development_Master_Plan.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -2479,39 +2548,39 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/tickets/B-04_reference_truth_contracts.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/tickets/B-04_reference_truth_contracts.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/WAVE_B.md"
         },
         {
           "label": "Reference and TruthAsset contract",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/Design_Specs/Reference_and_TruthAsset_Contract.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/Design_Specs/Reference_and_TruthAsset_Contract.md"
         },
         {
           "label": "B-04 contract plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/plans/B-04_reference_truth_contracts.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/plans/B-04_reference_truth_contracts.md"
         },
         {
           "label": "B-04 evidence record",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/evidence/wave_b/b-04.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/evidence/wave_b/b-04.md"
         },
         {
           "label": "B-04 decision series",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/.agent/DECISIONS.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/.agent/DECISIONS.md"
         },
         {
           "label": "Reserved evaluation package boundary",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/35e46734d92fcf46bfbc987d45696b25d00d61ca/carbon/evaluation/__init__.py"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/0997c335b740b32f45b9f452d8c1d6df75f9e789/carbon/evaluation/__init__.py"
         },
         {
           "label": "Harshdeep decision inbox",
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.",
-      "maturity_ceiling": "SPECIFIED and RATIFIED_ENGINEERING_CONTRACT are earned for the bounded engineering contract. IMPLEMENTED, runtime TESTED, REFERENCE_QUALIFIED, scientific, security, network, commercial, production, and LIVE states remain unearned; B-01F's conditional completion predicate governs runtime resumption.",
+      "current_stage": "B-01F's exact completion predicate is satisfied and B-04 remains the selected in_progress runtime ticket. GOV-REVIEW-01 interposes only the prospective delivery-review migration: fresh complete-diff Codex/GPT review, distinct non-author human approval, and the protected GPT review gate. It changes no B-04 runtime semantics or maturity.",
+      "maturity_ceiling": "SPECIFIED and RATIFIED_ENGINEERING_CONTRACT are earned for the bounded engineering contract. IMPLEMENTED, runtime TESTED, REFERENCE_QUALIFIED, scientific, security, network, commercial, production, and LIVE states remain unearned until B-04's exact completion predicate passes.",
       "maturity_states": {
         "specified": "earned",
         "implemented": "unearned",

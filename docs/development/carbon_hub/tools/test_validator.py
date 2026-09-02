@@ -54,7 +54,9 @@ FINAL_TREE: {tree}
 CHANGE_SCOPE: RUNTIME_FULL
 CANONICAL_LOCAL_VALIDATION: PENDING
 MERGE_GATE: PENDING
-GREPTILE: PENDING
+CODEX_GPT_REVIEW_RECEIPT: PENDING
+HUMAN_APPROVAL_REVIEW: PENDING
+GPT_REVIEW_GATE: PENDING
 UNRESOLVED_THREADS: PENDING
 BLOCKING_DIRECTION: NONE
 
@@ -989,7 +991,9 @@ class ValidatorContractTests(unittest.TestCase):
         values = {
             "CANONICAL_LOCAL_VALIDATION": "PENDING",
             "MERGE_GATE": "PENDING",
-            "GREPTILE": "PENDING",
+            "CODEX_GPT_REVIEW_RECEIPT": "PENDING",
+            "HUMAN_APPROVAL_REVIEW": "PENDING",
+            "GPT_REVIEW_GATE": "PENDING",
             "BLOCKING_DIRECTION": "NONE",
             "COMPLETION_RECEIPT_LOCATION": "PR completion comment after merge",
         }
@@ -1034,7 +1038,9 @@ class ValidatorContractTests(unittest.TestCase):
                 "CANONICAL_LOCAL_VALIDATION: MAYBE"
             ),
             "MERGE_GATE: PENDING": "MERGE_GATE: GREEN",
-            "GREPTILE: PENDING": "GREPTILE: IGNORED",
+            "CODEX_GPT_REVIEW_RECEIPT: PENDING": ("CODEX_GPT_REVIEW_RECEIPT: IGNORED"),
+            "HUMAN_APPROVAL_REVIEW: PENDING": "HUMAN_APPROVAL_REVIEW: IGNORED",
+            "GPT_REVIEW_GATE: PENDING": "GPT_REVIEW_GATE: IGNORED",
             "BLOCKING_DIRECTION: NONE": "BLOCKING_DIRECTION: SILENCE_MEANS_PASS",
         }
         body = delivery_body(head, head, tree)
@@ -1052,7 +1058,9 @@ class ValidatorContractTests(unittest.TestCase):
         for field in (
             "CANONICAL_LOCAL_VALIDATION",
             "MERGE_GATE",
-            "GREPTILE",
+            "CODEX_GPT_REVIEW_RECEIPT",
+            "HUMAN_APPROVAL_REVIEW",
+            "GPT_REVIEW_GATE",
             "BLOCKING_DIRECTION",
         ):
             self.assertTrue(

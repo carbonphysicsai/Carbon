@@ -328,22 +328,24 @@ working contract and decisions
 → vertical implementation slices
 → canonical validation
 → exact-head scope-required checks and Merge gate
-→ exact-head Greptile Review
-→ repair valid findings and reach zero unresolved threads
+→ fresh read-only Codex/GPT review of the complete exact-head diff
+→ repair valid findings and reach zero unresolved findings
+→ distinct non-author human approval carrying the exact-head review receipt
+→ successful GPT review gate and zero unresolved review threads
 → normal exact-expected-head merge
 → reviewed-tree and exact-main verification
 → completed normalized external receipt posted
 → bounded closeout and next ready ticket
 ```
 
-Greptile is the routine independent correctness review Carbon waits for. Human
-and domain-lead review is asynchronous oversight unless repository authority
-explicitly reserves a value or acceptance decision to a human. Human silence
-is not a gate. Unless owner direction explicitly says to stop before merge, an
-end-to-end ticket session must not ask for another owner prompt solely to merge
-an unchanged, green, reviewed candidate. The completed normalized external
-receipt must be posted before bounded closeout or next-ticket advance. Follow
-`.agent/DELIVERY_PROTOCOL.md`.
+Carbon waits for a fresh read-only Codex/GPT review of the complete exact-head
+diff and a distinct non-author human approval carrying the closed review
+receipt. The protected `GPT review gate` validates that receipt. Domain-lead
+review remains asynchronous unless repository authority explicitly reserves a
+value or acceptance decision to a human; the delivery approval is a separate
+engineering-control gate and confers no reserved authority. The completed
+normalized external receipt must be posted before bounded closeout or next-
+ticket advance. Follow `.agent/DELIVERY_PROTOCOL.md`.
 
 ---
 
@@ -387,7 +389,8 @@ Do not delete/weaken a test merely because implementation fails it.
 Keep ticket scope, authority, starting base, durable decisions, contracts,
 expected manifest, validation commands, invariants, maturity ceiling, and a
 conditional completion predicate in tracked evidence. Put final reviewed
-head/tree, checks, Greptile result, unresolved threads, merge topology,
+head/tree, checks, Codex/GPT review receipt, human approval, unresolved review
+threads, merge topology,
 exact-main checks, notification, final maturity, and next-ticket identities in
 the external receipt defined by
 `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Do not create an empty or
@@ -396,10 +399,11 @@ evidence-only commit to retrigger a declaration or store external facts.
 Record completion evidence in `.agent/WAVE.md` only when the ticket's exact
 review/merge predicate is satisfied. A prepared conditional closeout and next-
 ticket transition becomes effective only after exact-head required checks and
-`Merge gate`, exact-head Greptile with all valid findings repaired and zero
-unresolved threads, normal expected-head merge with reviewed-tree
-preservation, exact-main `Merge gate`, and posting of the completed normalized
-external receipt.
+`Merge gate`, fresh complete-diff exact-head Codex/GPT review with all valid
+findings repaired, distinct non-author human approval, successful `GPT review
+gate`, zero unresolved review threads, normal expected-head merge with
+reviewed-tree preservation, exact-main `Merge gate`, and posting of the
+completed normalized external receipt.
 
 ---
 
@@ -574,12 +578,13 @@ Prefer one ticket → one reviewable branch/diff.
 
 Use normal merge commits only. Do not squash, rebase-merge, or enable auto-
 merge. Merge only when the PR head is exact and unchanged, all scope-required
-checks and `Merge gate` succeeded on that head, Greptile succeeded on the same
-head, all valid findings were repaired, unresolved Greptile thread count is
-zero, no applicable block remains, the base is reconciled, and the merge uses
-an exact expected-head guard. After merge verify ordered parents, exact second-
-parent identity, reviewed-tree preservation, fetched exact main, and exact-
-main `Merge gate`.
+checks and `Merge gate` succeeded on that head, a fresh read-only Codex/GPT
+review covered the complete diff, all valid findings were repaired, a distinct
+non-author human approved that exact head with the closed receipt, `GPT review
+gate` succeeded, unresolved review-thread count is zero, no applicable block
+remains, the base is reconciled, and the merge uses an exact expected-head
+guard. After merge verify ordered parents, exact second-parent identity,
+reviewed-tree preservation, fetched exact main, and exact-main `Merge gate`.
 
 Do not:
 
