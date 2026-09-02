@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-02T13:41:20Z"
+  captured_at_utc: "2026-09-02T14:59:35Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a837c94c3f679112efb1e7aeb3092912748d827d"
+  authority_snapshot_commit: "9f4c00e39275798b7075eb238226299460737143"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -1444,7 +1444,7 @@ events:
     owner_lane: "sciml_technical_lead"
     status: "active"
     summary: "B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/a837c94c3f679112efb1e7aeb3092912748d827d/.agent/DECISIONS.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/9f4c00e39275798b7075eb238226299460737143/.agent/DECISIONS.md"
     affects:
       - "WAVE-B/B-06"
       - "WAVE-B/B-E2"
