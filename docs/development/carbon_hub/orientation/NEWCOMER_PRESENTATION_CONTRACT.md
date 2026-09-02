@@ -11,7 +11,7 @@
 
 Carbon uses **one Development Hub with progressive disclosure**.
 
-The default published surface is **Overview**. It assumes the reader has never
+The default reader experience is **Overview**. It assumes the reader has never
 heard of Carbon, Bittensor, SciML, miners, validators, MCP, Score Packs, or the
 Wave system.
 
@@ -52,8 +52,8 @@ Overview may translate canonical status into these reader-facing labels:
 | Wave `planned`; ticket `todo` | Planned |
 | Ticket `blocked` | Blocked |
 
-The exact canonical status and maturity/authority ceiling must remain visible in
-Technical Detail.
+The exact canonical status and maturity/authority ceiling remain owned by the
+Technical Detail record.
 
 `Built in bounded scope` does not mean scientifically qualified, security
 qualified, network qualified, commercially validated, production qualified, or
@@ -61,43 +61,47 @@ LIVE unless those states are separately supported by repository authority.
 
 ## Data binding
 
-Plain-language copy lives in:
+Plain-language copy is split into reviewable, non-authoritative projections:
 
 ```text
 data/newcomer_projection_v1.json
+data/newcomer_tickets_wave_a_v1.json
+data/newcomer_tickets_wave_b_v1.json
 ```
 
-It is a **non-authoritative projection**, not a second roadmap or maturity
-ledger.
+The Wave file carries the A-N roadmap projection. Ticket copy is split by
+captured Wave so reviewers can inspect it without one large opaque data blob.
 
 Every projection record binds to the same stable `map_ref` as its canonical
-Wave or ticket. Validation fails if:
+Wave or ticket. `tools/render_newcomer.py` fails if:
 
 - a captured Wave or ticket lacks newcomer copy;
 - newcomer copy contains an unknown Wave or ticket;
 - the bound `map_ref` differs from the canonical stable location;
-- generated Overview output is stale.
+- projection files disagree on schema, map owner, or owner decision;
+- generated Overview output is stale when `--check` is used.
 
 Canonical status, title, dependencies, maturity, authority, specifications,
 decisions, implementation evidence, and repository links remain owned by the
 existing Hub and underlying repository records.
 
-## Published Hub
+## Overview output
 
-The repository keeps the existing detailed static Hub at `index.html`.
-
-`newcomer.html` is a generated static Overview. `technical.html` is a local
-redirect to the existing static Hub.
-
-For public Pages publication only, the workflow stages:
+`tools/render_newcomer.py` generates:
 
 ```text
-existing index.html   -> technical.html
-newcomer.html         -> index.html
+newcomer.html
+technical.html
 ```
 
-This makes Overview the public front door without rewriting or weakening the
-technical Hub. Both pages remain static and public-safe.
+`newcomer.html` is the plain-English Overview. `technical.html` is a local
+handoff to the existing complete `index.html` Hub.
+
+The target public Pages behavior is to make Overview the front door while
+preserving the current technical Hub as Technical Detail. **That publication
+staging is not claimed active merely because this contract and renderer exist.**
+Changing the Pages workflow crosses the Hub's existing authority-repin boundary
+and must land through its own validated repository change.
 
 ## Copy rules
 
@@ -130,24 +134,24 @@ company/system state before choosing depth.
 **Risks:** Simplified language can overstate maturity or erase a scientific
 boundary.
 
-**Controls:** Exact canonical status and maturity remain visible; every
-newcomer record binds to one canonical map ref; future capabilities retain
-explicit `still not true` language; Technical Detail remains one click away.
+**Controls:** Exact canonical status and maturity remain in Technical Detail;
+every newcomer record binds to one canonical map ref; future capabilities retain
+explicit `still not true` language; the renderer rejects incomplete coverage.
 
-**Reversibility:** High. The projection and publication staging can be removed
-without changing scientific, protocol, business, or implementation authority.
+**Reversibility:** High. The projection and renderer can be removed without
+changing scientific, protocol, business, or implementation authority.
 
 **Dependencies:** Current Hub stable IDs, deterministic generation, Hub
 validation, and public-safe repository content.
 
-**Affected projects:** Development Hub, Hub CI, Hub Pages publication, Wave and
-ticket orientation.
+**Affected projects:** Development Hub orientation and future Hub publication.
 
 ## Validation
 
 Run the existing Hub checks plus:
 
 ```bash
+python docs/development/carbon_hub/tools/render_newcomer.py
 python docs/development/carbon_hub/tools/render_newcomer.py --check
 ```
 
