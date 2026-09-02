@@ -131,10 +131,12 @@ unchecked and no B-05 work has started
 > positive-only admission, and deterministic fixtures under
 > `carbon.evaluation`. Its prepared B-04 `done`, bounded `IMPLEMENTED`/`TESTED`,
 > and B-05 `in_progress` states become authoritative only after one exact final
-> head passes every scope-required check and `Merge gate`; Greptile succeeds on
-> that head with every valid finding repaired and zero unresolved threads; no
-> applicable block remains; a normal expected-head merge preserves ordered
-> second-parent and reviewed-tree identity; fetched exact main contains that
+> head passes every scope-required check and `Merge gate`; fresh read-only
+> Codex/GPT review covers the complete exact-head diff with every finding
+> repaired or dispositioned; a distinct non-author human approval carries the
+> closed exact-head/tree receipt; `GPT review gate` succeeds with zero
+> unresolved review threads and no applicable block; a normal expected-head
+> merge preserves ordered second-parent and reviewed-tree identity; fetched exact main contains that
 > head and passes exact-main `Merge gate` plus all push-only requirements; and a
 > completed normalized external receipt is posted. If any predicate fails,
 > B-04 remains `in_progress` and B-05 remains `todo`. No B-05 work starts in

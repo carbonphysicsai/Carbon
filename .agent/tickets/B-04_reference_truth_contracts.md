@@ -141,9 +141,11 @@ states in this candidate are inert until all of the following are true for one
 exact unchanged candidate:
 
 1. every scope-required exact-head check succeeds, including `Merge gate`;
-2. Greptile Review succeeds on the same exact head;
-3. every valid finding is repaired and reviewed, unresolved Greptile thread
-   count is zero, and no applicable block remains;
+2. fresh read-only Codex/GPT review covers the complete exact-head diff and
+   every finding is repaired or dispositioned;
+3. a distinct non-author human approval carries the closed exact-head/tree
+   receipt, `GPT review gate` succeeds, unresolved review-thread count is zero,
+   and no applicable block remains;
 4. the pull request normally merges with an exact expected-head guard;
 5. the merge's ordered second parent equals the reviewed head and its tree
    equals the reviewed tree;

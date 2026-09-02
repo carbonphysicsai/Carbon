@@ -121,10 +121,13 @@ ticket authority follows.
 Version 1.3 prepares a conditional B-04 runtime closeout. B-04 becomes `done`
 and earns bounded `IMPLEMENTED` and `TESTED`, and B-05 becomes the selected
 `in_progress` ticket, only after one exact unchanged B-04 final head passes
-all scope-required checks and `Merge gate`; exact-head Greptile succeeds with
-all valid findings repaired and zero unresolved threads; no applicable block
-remains; a normal expected-head merge preserves ordered second-parent and
-reviewed-tree identity; fetched exact main contains that head and passes
+all scope-required checks and `Merge gate`; fresh read-only Codex/GPT review
+covers the complete exact-head diff with every finding repaired or
+dispositioned; a distinct non-author human approval carries the closed
+exact-head/tree receipt; `GPT review gate` succeeds with zero unresolved review
+threads and no applicable block; a normal expected-head merge preserves
+ordered second-parent and reviewed-tree identity; fetched exact main contains
+that head and passes
 exact-main `Merge gate` plus every push-only requirement; and a completed
 normalized external receipt is posted. Until that full predicate, B-04
 remains the authoritative selected `in_progress` ticket and B-05 remains

@@ -139,9 +139,10 @@ the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
 - Open a draft PR titled `B-04: define reference and TruthAsset contract`, post
   the decision notification to issue #42 mentioning `@harshaa765`, then move
   ready only when the tree and local validation settle.
-- Require exact-head canonical and clean-container CI, successful Greptile
-  correctness review, and zero unresolved review threads. Every tree change
-  requires fresh CI and review.
+- Require exact-head canonical and clean-container CI, fresh complete-diff
+  Codex/GPT review, distinct non-author human approval carrying the closed
+  receipt, successful `GPT review gate`, and zero unresolved review threads.
+  Every tree change requires fresh CI and review.
 
 ## 6. Completed bounded runtime slices
 
@@ -268,22 +269,26 @@ as an admission decision.
 Local Darwin results are diagnostic only. Exact candidate acceptance still
 requires the repository-selected `RUNTIME_FULL` canonical Linux scope,
 Delivery preflight, Canonical environment, Clean dev-container, Development
-Hub, exact-head `Merge gate`, and exact-head Greptile.
+Hub, exact-head `Merge gate`, fresh complete-diff Codex/GPT review, distinct
+non-author human approval, and `GPT review gate`.
 
 ## 9. Conditional closeout and next-ticket transition
 
 The prepared B-04 `done`, bounded `IMPLEMENTED`/`TESTED`, and B-05
 `in_progress` states remain inert until the exact final head/tree passes every
-scope-required exact-head check and `Merge gate`; exact-head Greptile succeeds
-with all valid findings repaired and zero unresolved threads; no applicable
-block remains; a normal expected-head merge preserves ordered second-parent
-and reviewed-tree identity; the reviewed head is ancestral to fetched exact
-main; exact-main `Merge gate` and every push-only requirement succeed; and the
-completed normalized external receipt is posted.
+scope-required exact-head check and `Merge gate`; fresh read-only Codex/GPT
+review covers the complete exact-head diff with every finding repaired or
+dispositioned; a distinct non-author human approval carries the closed
+exact-head/tree receipt; `GPT review gate` succeeds with zero unresolved review
+threads and no applicable block; a normal expected-head merge preserves
+ordered second-parent and reviewed-tree identity; the reviewed head is
+ancestral to fetched exact main; exact-main `Merge gate` and every push-only
+requirement succeed; and the completed normalized external receipt is posted.
 
 That receipt alone records the final reviewed head/tree, CI/check identities,
-Greptile result and thread count, merge/parents/tree, exact-main results, final
-bounded maturity, and B-05's exact starting main/tree. If any predicate fails,
+Codex/GPT review receipt, human approval review, `GPT review gate`, and thread
+count; merge/parents/tree; exact-main results; final bounded maturity; and
+B-05's exact starting main/tree. If any predicate fails,
 the prior merged B-04 `in_progress` / B-05 `todo` state remains controlling.
 No recursive evidence-only commit is required, and no B-05 contract or runtime
 work begins in this session.
