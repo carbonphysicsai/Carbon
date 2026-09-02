@@ -34,10 +34,12 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       decisions, plan, and SciML/statistics/protocol notification; implement
       coherent vertical slices against that contract; then review the final
       contract, implementation, tests, and stable evidence together. Require
-      applicable validation, exact-head `Merge gate` and Greptile, repair every
-      valid finding with zero Greptile threads unresolved, and normally merge
-      the exact reviewed tree. A documented invalid finding may be closed with
-      rationale, any tree change requires rereview, and a separate contract PR
+      applicable validation and exact-head `Merge gate`; obtain fresh read-
+      only Codex/GPT review of the complete diff; repair or disposition every
+      finding; require distinct non-author human approval carrying the closed
+      receipt, successful `GPT review gate`, and zero unresolved review
+      threads; and normally merge the exact reviewed tree. Any tree change
+      requires rereview, and a separate contract PR
       requires an exception in `.agent/DELIVERY_PROTOCOL.md`. Notification is
       not ratification and silence is no gate. Real measurement, uncertainty,
       score-policy values, and scientific qualification remain human-owned and

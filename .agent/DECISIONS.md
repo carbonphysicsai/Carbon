@@ -1,5 +1,73 @@
 # Agent decisions log
 
+## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval
+
+**Problem.** Carbon's live delivery contract depended on a Greptile workspace
+that the current repository operators cannot control. The repository owner
+selected manual Codex/GPT review plus human approval as the replacement. The
+live ruleset dropped Greptile before stable authority and replacement
+enforcement landed, leaving `Merge gate` active but no independent review
+check or required approval. Classify that seam as `MIGRATION_REQUIRED`.
+
+**Recommendation and exact contract.** Preserve historical Greptile receipts
+as immutable evidence, but remove Greptile from live and prospective delivery
+authority. Every new candidate must receive a fresh read-only Codex/GPT review
+of the complete pull-request diff at the exact final head and tree. Every
+finding must be repaired or dispositioned, with zero unresolved findings. A
+human other than the pull-request author must submit an `APPROVED` GitHub
+review on that exact head containing the closed v1 receipt defined by
+`.agent/templates/CODEX_GPT_REVIEW_RECEIPT.md`. The protected-base `GPT review
+gate` validates the live PR/head/tree, reviewer separation, exact receipt
+schema and order, model identity, review context/scope, finding arithmetic,
+zero unresolved findings, and `PASS` outcome. The ruleset requires one
+approval, dismisses stale approvals on push, requires last-push approval and
+resolved threads, requires `Merge gate` plus `GPT review gate`, allows normal
+merge commits only, and has no bypass actor.
+
+**Rationale.** This retains exact-head invalidation, complete-diff review,
+finding accountability, a separately attributable human act, protected-base
+validation, and ruleset enforcement without depending on an inaccessible
+third-party workspace or introducing an OpenAI API secret. The approval is a
+procedural engineering-control gate. It grants no scientific, security,
+rights, operational, economic, qualification, `LIVE`, launch, deployment, or
+production authority.
+
+**Rejected alternatives.** Restoring the inaccessible Greptile workspace was
+rejected because no current operator controls it. Creating another automated
+paid-model integration was rejected because the owner selected manual review
+and it would add secret, billing, and provider-availability dependencies.
+Unstructured human-only review was rejected because it cannot bind model
+review scope, exact head/tree, or finding disposition. Self-approval was
+rejected because it collapses implementation and acceptance. Removing review
+without a replacement was rejected because it weakens the delivery invariant.
+
+**Bootstrap and enforcement.** The governance PR itself cannot run a workflow
+that does not yet exist on the protected default branch. It therefore uses a
+one-time fail-closed bootstrap: exact-head checks, the same structured manual
+Codex/GPT receipt, and a distinct non-author human approval must exist before a
+normal expected-head merge. After exact-main `Merge gate`, the generalized
+ruleset tool uses that normally merged governance PR as its exact-main guard to
+apply and verify the versioned replacement. No later PR may use this
+bootstrap.
+
+**Interfaces, downstream impact, and reversibility.** The implementation lives
+in `.github/workflows/gpt-review.yml`,
+`scripts/dev/check_gpt_review_gate.py`, `.github/rulesets/main.v1.json`, and
+`scripts/dev/apply_github_ruleset.py`; tests live in the corresponding CPU
+test modules. `AGENTS.md`, delivery/delegation protocols, ticket launchers,
+active/future Wave-B gates, and the external receipt template change
+prospectively. Historical delivery evidence is not rewritten. Reversal is a
+bounded governance migration requiring a new reviewed contract, workflow,
+ruleset artifact, tests, and guarded live-ruleset update. B-04 remains selected
+`in_progress`; no B-04 runtime semantics, B-05 work, Bittensor work, or future-
+wave authority changes.
+
+**Human-reserved inputs and change path.** No scientific or other maturity
+input is selected here. The owner-selected process is complete. A later change
+must supersede `GOV-REVIEW-01-D1` and update the governance ticket/plan/evidence,
+delivery and delegation protocols, receipt template, validator/workflow,
+ruleset artifact/tool/tests, active prospective ticket gates, and Hub source.
+
 ## 2026-09-01 — OWNER-NET-01: post-Wave-B Bittensor wiring and treasury-before-mainnet roadmap
 
 **Exact decision base.** This prospective roadmap decision is authored from

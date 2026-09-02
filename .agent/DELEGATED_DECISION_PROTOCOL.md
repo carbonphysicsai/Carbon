@@ -22,8 +22,10 @@ authorized ticket
 -> agent notifies the applicable decision inbox
 -> agent implements and tests
 -> exact-head scope-required checks and Merge gate
--> exact-head Greptile Review
--> repair valid findings and reach zero unresolved threads
+-> fresh read-only Codex/GPT review of the complete exact-head diff
+-> repair valid findings and reach zero unresolved findings
+-> distinct non-author human approval carrying the exact-head receipt
+-> successful GPT review gate and zero unresolved review threads
 -> normal exact-expected-head merge
 -> reviewed-tree and exact-main verification
 -> completed normalized external receipt posted
@@ -176,18 +178,22 @@ Owner silence is not approval, but it also does not block agent-authorized engin
 
 ## 7. Review and merge
 
-Greptile is Carbon's routine independent correctness review before merge.
-Human and domain-lead review remains asynchronous oversight unless current
-authority explicitly reserves the affected value or acceptance decision to a
-human. Human silence is not a gate. Review is primarily a pre-merge
-correctness gate, not a universal pre-implementation gate.
+Carbon's routine correctness review before merge is a fresh read-only
+Codex/GPT review of the complete exact-head diff. A distinct non-author human
+must approve that exact head with the closed review receipt, and the protected
+`GPT review gate` must validate it. This procedural delivery approval grants no
+scientific, security, rights, economic, qualification, `LIVE`, launch,
+deployment, or production authority. Review remains a pre-merge correctness
+gate, not a universal pre-implementation gate.
 
 A reviewer may identify defects while development is in progress. The executor repairs valid findings on the same ticket branch and requests rereview where needed.
 
 A reviewed tree must satisfy the exact-head predicate in
 `.agent/DELIVERY_PROTOCOL.md`: every scope-required check and `Merge gate`
-succeeds on the unchanged exact head; Greptile succeeds on that same head;
-every valid finding is repaired; unresolved Greptile thread count is zero; no
+succeeds on the unchanged exact head; the complete-diff Codex/GPT review binds
+that exact head/tree; every valid finding is repaired and every invalid finding
+is dispositioned; a distinct non-author human approval carries the receipt;
+`GPT review gate` succeeds; unresolved review-thread count is zero; no
 applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` remains; and the base is
 reconciled. Use a normal merge commit with an exact expected-head guard. Do not
 squash, rebase-merge, or enable auto-merge.
@@ -213,9 +219,9 @@ ticket branch and pull request unless a separate-contract exception in
 exception.
 
 The contract may evolve during implementation. Material changes receive new
-decision records or supersession notes and renewed notification. Greptile and
-all ticket-required review must cover the final contract, implementation,
-tests, and stable evidence together.
+decision records or supersession notes and renewed notification. The fresh
+Codex/GPT review and all ticket-required review must cover the final contract,
+implementation, tests, and stable evidence together.
 
 A working contract is not the same as scientific qualification, security acceptance, LIVE authority, launch approval, or production qualification.
 

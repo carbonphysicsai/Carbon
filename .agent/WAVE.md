@@ -33,6 +33,14 @@ unchecked and no B-05 work has started
 **Agent constitution:** repo root `AGENTS.md`  
 **Spec pin:** record commit SHA and current authority set in `.agent/ORIENTATION.md` at new major-wave orientation
 
+> **Delivery review migration.** `GOV-REVIEW-01-D1` replaces the unavailable
+> Greptile service prospectively with fresh read-only Codex/GPT review of the
+> complete exact-head diff, a closed head/tree-bound receipt, distinct non-
+> author human approval, and the protected `GPT review gate`. Historical
+> Greptile evidence remains immutable. This governance interposition does not
+> change Wave B, B-04 selection or runtime semantics, maturity, or future-wave
+> implementation authority.
+
 > **B-02A closed.** PR #60 normally merged exact reviewed head
 > `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
 > `61a4463ac459f7fe96545f2746511d6940246f57`, as
@@ -155,8 +163,9 @@ current authority
 → one ticket / one PR by default
 → working contract and vertical implementation slices
 → canonical validation
-→ exact-head Merge gate and Greptile
-→ repair valid findings / zero unresolved threads
+→ exact-head Merge gate and fresh complete-diff Codex/GPT review
+→ repair valid findings / distinct non-author human approval
+→ GPT review gate / zero unresolved review threads
 → normal exact-expected-head merge
 → reviewed-tree and exact-main verification
 → external completion receipt / next ready ticket
@@ -262,9 +271,11 @@ future ticket, or authorize implementation or launch.
 
 ## Notes
 
-- Do not mark done without exact-head test/file/`Merge gate`/Greptile evidence,
-  normal reviewed-tree-preserving merge, exact-main `Merge gate`, and the
-  posted completed external receipt.
+- Do not mark done without exact-head test/file/`Merge gate` evidence, a fresh
+  complete-diff Codex/GPT review, distinct non-author human approval carrying
+  the closed receipt, successful `GPT review gate`, zero unresolved review
+  threads, normal reviewed-tree-preserving merge, exact-main `Merge gate`, and
+  the posted completed external receipt.
 - B-01E implementation evidence is recorded in
   `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
   `./scripts/dev/ci.sh` in the canonical Linux environment. On a noncanonical

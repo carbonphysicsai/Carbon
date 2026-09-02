@@ -26,13 +26,20 @@ and `Merge gate` check `99944337076` succeeded. Version 1.2 therefore records
 B-01F `done` and B-04's bounded runtime phase active from that exact main.
 **B-04 runtime conditional closeout:** Version 1.3 prepares B-04 `done` and
 B-05 `in_progress` only after B-04's exact unchanged final head passes every
-scope-required check and `Merge gate`; exact-head Greptile with all valid
-findings repaired and zero unresolved threads; no applicable block; normal
+scope-required check and `Merge gate`; fresh read-only Codex/GPT review of the
+complete exact-head diff with every finding repaired or dispositioned; a
+distinct non-author human approval carrying the closed exact-head/tree receipt;
+successful `GPT review gate` and zero unresolved review threads; no applicable block; normal
 expected-head merge with ordered second-parent/reviewed-tree equality; fetched
 exact-main ancestry plus `Merge gate` and every push-only requirement; and a
 completed normalized external receipt. Before that full predicate, B-04 remains
 the authoritative selected `in_progress` ticket and B-05 remains `todo`. This
 session starts no B-05 work.
+**Delivery review migration:** `GOV-REVIEW-01-D1` preserves historical
+Greptile receipts but replaces live/prospective review with fresh read-only
+Codex/GPT complete-diff review, a distinct non-author human approval carrying
+the exact-head/tree receipt, and the protected `GPT review gate`. It changes no
+Wave-B ticket order, runtime semantics, or maturity.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -311,12 +318,14 @@ normally merged repository decision; historical evidence is marked superseded,
 not rewritten. Current merged repository authority controls until then.
 
 The Accountable reviewer column remains technical/domain review and
-notification routing. It creates no affirmative pre-approval or silence gate.
-Greptile is the routine independent correctness review Carbon waits for.
-Repair every valid finding, require zero unresolved Greptile threads, required
-exact-head checks and `Merge gate`, and normal merge. Human/domain review is
-asynchronous unless current authority reserves the affected value or
-acceptance decision. A documented invalid finding may be closed with rationale.
+notification routing. It creates no pre-implementation approval or silence
+gate. Before merge, Carbon requires a fresh read-only Codex/GPT review of the
+complete exact-head diff, repair of every valid finding, disposition of every
+invalid finding, a distinct non-author human approval carrying the closed
+review receipt, successful `GPT review gate`, zero unresolved review threads,
+required exact-head checks and `Merge gate`, and normal merge. This delivery
+approval grants no reserved scientific, security, rights, economic,
+qualification, `LIVE`, launch, deployment, or production authority.
 
 This non-blocking development rule does not allow an agent to invent or approve
 scientific truth, thresholds, tolerances, population or SamplingPlan claims,
@@ -344,9 +353,10 @@ Before each ticket begins:
 6. create a detailed `.agent/plans/` file for every multi-module ticket before implementation;
 7. create and record the ticket's working contract before implementation when
    the ticket defines a new public or security boundary; implement against it
-   in the same PR by default; and obtain exact-final-tree Greptile and every
-   ticket-required review before normal merge, while human-reserved values
-   remain fail closed; and
+   in the same PR by default; and obtain fresh complete-diff Codex/GPT review,
+   the distinct non-author human approval and `GPT review gate`, and every
+   ticket-required review on the exact final tree before normal merge, while
+   human-reserved values remain fail closed; and
 8. on macOS, Windows, or noncanonical Linux, run validation through
    `./scripts/dev/canonical.sh` and never call native-host output canonical.
 
@@ -357,8 +367,10 @@ contracts, expected manifest, commands, invariants, maturity ceiling, and a
 conditional completion predicate. A ticket candidate may coordinate its own
 bounded `done` and the next-ticket selection, but that transition becomes
 authoritative only after the exact final head/tree passes every scope-required
-exact-head check and `Merge gate`, Greptile succeeds on the same head with all
-valid findings repaired and zero unresolved threads, normal merge preserves
+exact-head check and `Merge gate`, fresh complete-diff Codex/GPT review binds
+the same head/tree with all valid findings repaired or dispositioned, a
+distinct non-author human approval carries the closed receipt, `GPT review
+gate` succeeds with zero unresolved review threads, normal merge preserves
 exact second-parent/tree identity, exact-main `Merge gate` succeeds, and the
 completed normalized external receipt is posted. Dynamic identities use
 `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md` outside the reviewed tree.

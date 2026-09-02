@@ -180,58 +180,6 @@
       "supersedes": null
     },
     {
-      "map_ref": "WAVE-B/B-04",
-      "event_type": "decision",
-      "event_id": "B-04-D11",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/534afd85e0aeb5a156e3ef24a8958b8cab0ace05/.agent/DECISIONS.md",
-      "affects": [
-        "WAVE-B/B-01F",
-        "WAVE-B/B-05",
-        "WAVE-B/B-06",
-        "WAVE-B/B-07F",
-        "WAVE-B/B-E1",
-        "WAVE-B/B-E2",
-        "WAVE-B/B-GATE",
-        "SYSTEM/AGENT-EXECUTION",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/DEVELOPMENT-SEQUENCING",
-        "SYSTEM/GOVERNANCE",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "OWNER-DX-01"
-    },
-    {
-      "map_ref": "WAVE-B/B-04",
-      "event_type": "evidence",
-      "event_id": "B-04-E2",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/bcb8a618b26135a911039630315bd9a00cfd5e48/.agent/evidence/wave_b/b-04.md",
-      "affects": [
-        "WAVE-B/B-01F",
-        "WAVE-B/B-01G",
-        "WAVE-B/B-05",
-        "WAVE-B/B-06",
-        "WAVE-B/B-07A",
-        "WAVE-B/B-07C",
-        "WAVE-B/B-07F",
-        "WAVE-B/B-E1",
-        "WAVE-B/B-E2",
-        "WAVE-B/B-GATE",
-        "SYSTEM/AGENT-EXECUTION",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
-        "SYSTEM/DEVELOPMENT-SEQUENCING",
-        "SYSTEM/GOVERNANCE",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-04-D11"
-    },
-    {
       "map_ref": "SYSTEM/PUBLICATION",
       "event_type": "bug",
       "event_id": "HUB-BUG-002",
@@ -247,18 +195,26 @@
       "supersedes": "HUB-ADJ-003"
     },
     {
-      "map_ref": "WAVE-B/B-04",
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
       "event_type": "decision",
-      "event_id": "B-04-D12",
-      "owner_lane": "sciml_technical_lead",
+      "event_id": "GOV-REVIEW-01-D1",
+      "owner_lane": "carbon_owner",
       "status": "active",
-      "summary": "B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c84df2980ca96529755cf9c98fcc7e356cac724f/.agent/DECISIONS.md",
+      "summary": "The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5508835152",
       "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E2",
         "SYSTEM/AGENT-EXECUTION",
-        "SYSTEM/DEVELOPMENT-HUB"
+        "SYSTEM/CI",
+        "SYSTEM/PR-MAINTENANCE",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/DEVELOPMENT-HUB",
+      "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+      "WAVE-B/B-04",
+      "WAVE-B/B-05",
+      "WAVE-B/B-06",
+      "WAVE-B/B-07F",
+      "WAVE-B/B-07S",
+      "WAVE-B/B-GATE"
       ],
       "supersedes": null
     }

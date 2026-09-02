@@ -20,8 +20,10 @@ live in `AGENTS.md`, `.agent/DELIVERY_PROTOCOL.md`, and
    the external completion receipt.
 7. Notify issue #42 only for material lead-lane decisions. Route an explicit
    `DEFER_TO_OWNER` package to issue #41.
-8. Wait for scope-required exact-head checks, `Merge gate`, and exact-head
-   Greptile Review. Repair valid findings and require zero unresolved Greptile
+8. Wait for scope-required exact-head checks and `Merge gate`. Obtain a fresh
+   read-only Codex/GPT review of the complete exact-head diff, repair valid
+   findings, and require a distinct non-author human approval carrying the
+   closed receipt, successful `GPT review gate`, and zero unresolved review
    threads.
 9. When clean and not explicitly directed to stop, normally merge with the
    exact expected-head guard. Do not squash, rebase-merge, enable auto-merge,
