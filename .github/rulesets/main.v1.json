@@ -44,10 +44,6 @@
             {
               "context": "Merge gate",
               "integration_id": 15368
-            },
-            {
-              "context": "Greptile Review",
-              "integration_id": 867647
             }
           ]
         }
