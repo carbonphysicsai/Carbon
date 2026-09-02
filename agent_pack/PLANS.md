@@ -31,11 +31,13 @@ gate.
 
 ## Completion predicate
 
-State the exact-head required checks and `Merge gate`, exact-head Greptile,
-valid-finding repair, zero unresolved threads, normal expected-head merge,
-ordered-parent/reviewed-tree verification, exact-main `Merge gate`, bounded
-maturity, and next-ticket transition. Dynamic identities belong in the
-external completion receipt, not a closeout-only commit.
+State the exact-head required checks and `Merge gate`, fresh read-only
+complete-diff Codex/GPT review, valid-finding repair, distinct non-author human
+approval carrying the closed receipt, successful `GPT review gate`, zero
+unresolved review threads, normal expected-head merge, ordered-parent/reviewed-
+tree verification, exact-main `Merge gate`, bounded maturity, and next-ticket
+transition. Dynamic identities belong in the external completion receipt, not
+a closeout-only commit.
 
 ## Implementation result
 

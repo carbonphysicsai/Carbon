@@ -48,7 +48,7 @@ merge/CI gate and before any service-facing implementation begins.
       B-07E resource analysis/forecasting, and B-07B task lifecycle/records.
       B-07G owns only service composition, dispatch, and conformance.
 - [ ] Add an operation-by-operation authority, disclosure, failure, and resource test matrix.
-- [ ] Record the material exact-protocol decisions and applicable domain-lead notifications; pass document validation and exact-head CI; repair every valid Greptile finding with zero Greptile threads unresolved; and normally merge the exact reviewed tree before B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, or B-07G implementation. A documented invalid finding may be closed with rationale, and any tree change requires rereview. Notification is not approval and silence is no gate. Human-reserved scientific values, security acceptance, rights/legal policy, economics, qualification, LIVE, launch, and production authority remains unavailable.
+- [ ] Record the material exact-protocol decisions and applicable domain-lead notifications; pass document validation and exact-head CI; obtain fresh read-only Codex/GPT review of the complete diff; repair or disposition every finding; require distinct non-author human approval carrying the closed receipt, successful `GPT review gate`, and zero unresolved review threads; and normally merge the exact reviewed tree before B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, or B-07G implementation. Any tree change requires rereview. Notification is not approval and silence is no pre-implementation gate. Human-reserved scientific values, security acceptance, rights/legal policy, economics, qualification, LIVE, launch, and production authority remains unavailable.
 
 ## Must not
 

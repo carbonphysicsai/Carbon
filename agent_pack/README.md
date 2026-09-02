@@ -9,7 +9,7 @@ current authority and selected ticket
 → working contract and durable decisions
 → coherent vertical implementation/test slices
 → canonical validation
-→ exact-head Merge gate and Greptile
+→ exact-head Merge gate, Codex/GPT review, human approval, and GPT review gate
 → normal reviewed-tree-preserving merge
 → exact-main verification and bounded closeout
 → next ready ticket
@@ -43,10 +43,9 @@ non-blocking `todo`.
 
 The B-01F candidate prepares a conditional transition: B-01F becomes `done`
 and B-04 runtime becomes selected only after the exact final B-01F head/tree
-passes scope-required exact-head checks and `Merge gate`, exact-head Greptile
-with every valid finding repaired and zero unresolved threads, normal exact-
-expected-head merge with reviewed-tree preservation, and exact-main
-`Merge gate`. Before that predicate, B-04 runtime stays paused.
+passes the review and delivery predicate that was authoritative for that
+historical merge. That completed evidence remains immutable. Current and
+future candidates use the Codex/GPT review process below.
 
 This sequencing changes development delivery only. It does not amend the B-04
 contract or grant scientific truth, security acceptance, rights, economics,
@@ -64,11 +63,11 @@ qualification, `LIVE`, launch, deployment, or production authority.
   alone is not one.
 - On macOS, Windows, or noncanonical Linux, run commands through
   `./scripts/dev/canonical.sh`. Native-host output is not canonical.
-- Greptile is the routine correctness review Carbon waits for. Human/domain
-  review remains asynchronous unless a decision or acceptance is explicitly
-  human-reserved; human silence is not a gate.
-- Require exact-head scope checks and `Merge gate`, exact-head Greptile, valid-
-  finding repair, zero unresolved threads, and no applicable block.
+- Require exact-head scope checks and `Merge gate`, a fresh read-only
+  Codex/GPT review of the complete diff, repair or disposition of every
+  finding, a distinct non-author human approval carrying the closed receipt,
+  successful `GPT review gate`, zero unresolved review threads, and no
+  applicable block.
 - Unless owner direction explicitly says to stop before merge, normally merge
   the unchanged clean candidate with an exact expected-head guard, verify
   ordered parents/reviewed-tree/exact-main `Merge gate`, close the bounded

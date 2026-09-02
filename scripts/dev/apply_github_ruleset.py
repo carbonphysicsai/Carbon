@@ -19,23 +19,21 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ARTIFACT = REPOSITORY_ROOT / ".github" / "rulesets" / "main.v1.json"
 EXPECTED_REPOSITORY = "carbonphysicsai/Carbon"
 EXPECTED_RULESET_NAME = "Carbon main merge gate"
-EXPECTED_PR_HEAD_REF = "agent/b-01f-development-throughput"
 GITHUB_ACTIONS_APP_ID = 15368
-GREPTILE_APP_ID = 867647
 PAGE_SIZE = 100
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
 DIGEST_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 
 EXPECTED_PULL_REQUEST_PARAMETERS = {
     "allowed_merge_methods": ["merge"],
-    "dismiss_stale_reviews_on_push": False,
+    "dismiss_stale_reviews_on_push": True,
     "require_code_owner_review": False,
-    "require_last_push_approval": False,
-    "required_approving_review_count": 0,
+    "require_last_push_approval": True,
+    "required_approving_review_count": 1,
     "required_review_thread_resolution": True,
 }
 EXPECTED_REQUIRED_CHECKS = (
-    {"context": "Greptile Review", "integration_id": GREPTILE_APP_ID},
+    {"context": "GPT review gate", "integration_id": GITHUB_ACTIONS_APP_ID},
     {"context": "Merge gate", "integration_id": GITHUB_ACTIONS_APP_ID},
 )
 EXPECTED_STATUS_CHECK_PARAMETERS = {
@@ -205,9 +203,9 @@ def load_artifact(path: Path) -> dict[str, Any]:
         or any(
             pull_parameters.get(field) is not expected
             for field, expected in (
-                ("dismiss_stale_reviews_on_push", False),
+                ("dismiss_stale_reviews_on_push", True),
                 ("require_code_owner_review", False),
-                ("require_last_push_approval", False),
+                ("require_last_push_approval", True),
                 ("required_review_thread_resolution", True),
             )
         )
@@ -231,7 +229,7 @@ def load_artifact(path: Path) -> dict[str, Any]:
         raise RulesetError("required checks must use the strict status policy")
     checks = check_parameters.get("required_status_checks")
     if not isinstance(checks, list) or len(checks) != len(EXPECTED_REQUIRED_CHECKS):
-        raise RulesetError("required checks must be Merge gate and Greptile Review")
+        raise RulesetError("required checks must be Merge gate and GPT review gate")
     normalized_checks: list[tuple[str, int]] = []
     for item in checks:
         if not isinstance(item, dict) or set(item) != {"context", "integration_id"}:
@@ -246,7 +244,7 @@ def load_artifact(path: Path) -> dict[str, Any]:
         for item in EXPECTED_REQUIRED_CHECKS
     )
     if sorted(normalized_checks) != expected_checks:
-        raise RulesetError("required checks must be Merge gate and Greptile Review")
+        raise RulesetError("required checks must be Merge gate and GPT review gate")
     if settings != EXPECTED_REPOSITORY_SETTINGS or any(
         type(setting) is not bool for setting in settings.values()
     ):
@@ -685,32 +683,65 @@ def _verify_live_pr(
         raise RulesetError("PR number must be a positive integer")
     pull = _require_mapping(
         client.request(_repo_endpoint(repository, f"/pulls/{pr_number}")),
-        "B-01F pull request",
+        "guarded pull request",
     )
     if pull.get("number") != pr_number:
         raise RulesetError("live pull request number does not match --pr-number")
-    if pull.get("state") != "open" or pull.get("draft") is not False:
-        raise RulesetError("B-01F pull request must be open and non-draft")
-    base = _require_mapping(pull.get("base"), "B-01F pull request base")
-    base_repo = _require_mapping(base.get("repo"), "B-01F base repository")
+    base = _require_mapping(pull.get("base"), "guarded pull request base")
+    base_repo = _require_mapping(base.get("repo"), "guarded base repository")
+    head = _require_mapping(pull.get("head"), "guarded pull request head")
+    head_repo = _require_mapping(head.get("repo"), "guarded head repository")
     if (
         base_repo.get("full_name") != EXPECTED_REPOSITORY
         or base.get("ref") != "main"
-        or base.get("sha") != expected_main
+        or head_repo.get("full_name") != EXPECTED_REPOSITORY
     ):
         raise RulesetError(
-            "B-01F pull request base must be current carbonphysicsai/Carbon main"
+            "guarded pull request must be an in-repository change targeting main"
         )
-    head = _require_mapping(pull.get("head"), "B-01F pull request head")
-    head_repo = _require_mapping(head.get("repo"), "B-01F head repository")
+    if pull.get("state") == "open":
+        if pull.get("draft") is not False:
+            raise RulesetError("open guarded pull request must be non-draft")
+        if base.get("sha") != expected_main or head.get("sha") != merge_gate_sha:
+            raise RulesetError(
+                "open guarded pull request must bind current main and the exact candidate"
+            )
+        return
     if (
-        head_repo.get("full_name") != EXPECTED_REPOSITORY
-        or head.get("ref") != EXPECTED_PR_HEAD_REF
-        or head.get("sha") != merge_gate_sha
+        pull.get("state") == "closed"
+        and isinstance(pull.get("merged_at"), str)
+        and bool(pull.get("merged_at"))
+        and pull.get("merge_commit_sha") == expected_main
+        and merge_gate_sha == expected_main
     ):
-        raise RulesetError(
-            "B-01F pull request head must be the exact in-repository candidate"
+        merged_head = _require_sha(head.get("sha"), "merged pull request head")
+        merge_commit = _require_mapping(
+            client.request(_repo_endpoint(repository, f"/commits/{expected_main}")),
+            "guarded merge commit",
         )
+        if (
+            _require_sha(merge_commit.get("sha"), "guarded merge commit SHA")
+            != expected_main
+        ):
+            raise RulesetError("guarded merge commit does not match exact checked main")
+        parents = merge_commit.get("parents")
+        if not isinstance(parents, list) or len(parents) != 2:
+            raise RulesetError(
+                "guarded governance PR must use a normal two-parent merge"
+            )
+        second_parent = _require_mapping(parents[1], "guarded merge second parent")
+        if (
+            _require_sha(second_parent.get("sha"), "guarded merge second parent SHA")
+            != merged_head
+        ):
+            raise RulesetError(
+                "guarded merge second parent must equal the reviewed PR head"
+            )
+        return
+    raise RulesetError(
+        "guarded pull request must be open on the exact candidate or normally "
+        "merged as the exact checked main"
+    )
 
 
 def build_plan(
@@ -1041,18 +1072,22 @@ def _verify_effective_rules(
                 raise RulesetError(
                     "an effective pull_request rule blocks normal merge commits"
                 )
-            if type(approval_count) is not int or approval_count != 0:
+            if type(approval_count) is not int or approval_count not in {0, 1}:
                 raise RulesetError(
-                    "an effective pull_request rule requires human approvals"
+                    "an effective pull_request rule has an incompatible human approval count"
+                )
+            if parameters.get("require_code_owner_review") is not False:
+                raise RulesetError(
+                    "an effective pull_request rule enables incompatible "
+                    "require_code_owner_review"
                 )
             for field in (
                 "dismiss_stale_reviews_on_push",
-                "require_code_owner_review",
                 "require_last_push_approval",
             ):
-                if parameters.get(field) is not False:
+                if type(parameters.get(field)) is not bool:
                     raise RulesetError(
-                        f"an effective pull_request rule enables incompatible {field}"
+                        f"an effective pull_request rule has malformed {field}"
                     )
         elif rule_type == "required_status_checks":
             parameters = _require_mapping(
@@ -1070,11 +1105,11 @@ def _verify_effective_rules(
     }
     if not effective_checks.issubset(expected_checks):
         raise RulesetError(
-            "effective required checks include checks outside exact Merge gate and Greptile policy"
+            "effective required checks include checks outside exact Merge gate and GPT review policy"
         )
     if require_managed and effective_checks != expected_checks:
         raise RulesetError(
-            "effective required checks differ from exact Merge gate and Greptile policy"
+            "effective required checks differ from exact Merge gate and GPT review policy"
         )
 
 
@@ -1119,8 +1154,8 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__,
         epilog=(
-            "Apply mode is intentionally restricted to the live, open, non-draft "
-            "B-01F PR from agent/b-01f-development-throughput into current main."
+            "Apply mode is restricted to an exact checked in-repository PR head or "
+            "the exact checked main produced by that normally merged PR."
         ),
     )
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -1142,8 +1177,8 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--pr-number",
         type=_positive_pr_number,
         help=(
-            "live open B-01F PR number whose exact in-repository head must equal "
-            "the clean local HEAD (required with --apply)"
+            "guarded in-repository PR number; it must either be open at the clean "
+            "local candidate or normally merged as the exact checked local main"
         ),
     )
     args = parser.parse_args(argv)

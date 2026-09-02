@@ -110,8 +110,10 @@ orientation/current authority
 → notify applicable decision inboxes
 → canonical ticket + regression + hub validation
 → exact-head scope checks and Merge gate
-→ exact-head Greptile Review
-→ repair valid findings; zero unresolved threads
+→ fresh read-only Codex/GPT review of the complete exact-head diff
+→ repair valid findings; zero unresolved findings
+→ distinct non-author human approval carrying the exact-head receipt
+→ successful GPT review gate; zero unresolved review threads
 → normal exact-expected-head merge
 → ordered-parent/tree and exact-main Merge gate verification
 → external completion receipt and bounded closeout
@@ -135,9 +137,10 @@ orientation/current authority
    `./scripts/dev/canonical.sh`; never call native-host output canonical.
 9. Update `.agent/WAVE.md` status/evidence only after the exact completion
    predicate is satisfied. A conditional closeout in the reviewed tree remains
-   inert until exact-head checks/`Merge gate`/Greptile, normal reviewed-tree-
-   preserving merge, and exact-main `Merge gate` all pass and the completed
-   normalized external receipt is posted.
+   inert until exact-head checks/`Merge gate`, fresh complete-diff Codex/GPT
+   review, distinct non-author human approval, successful `GPT review gate`,
+   normal reviewed-tree-preserving merge, and exact-main `Merge gate` all pass
+   and the completed normalized external receipt is posted.
 10. Unless owner direction explicitly says to stop before merge, continue an
     end-to-end ticket through normal exact-expected-head merge, exact-main
     verification, posting of the completed normalized external receipt,
@@ -160,10 +163,11 @@ A material development decision must be recorded in `.agent/DECISIONS.md` or the
 
 Notification is evidence of delivery and visibility, not approval. No affirmative response, reaction, approval, or waiting period is required for agent-authorized engineering work.
 
-Greptile is the routine independent correctness review Carbon waits for before
-merge. Human and domain-lead review remains asynchronous oversight unless the
-repository explicitly reserves the affected value or acceptance decision to a
-human. Human silence is not a gate.
+Carbon waits for a fresh read-only Codex/GPT review of the complete exact-head
+diff and a distinct non-author human approval carrying the closed receipt. The
+protected `GPT review gate` validates that receipt. This delivery approval is
+separate from scientific, security, rights, economic, qualification, `LIVE`,
+launch, deployment, and production authority.
 
 A decision is material when it changes or selects:
 
@@ -285,7 +289,8 @@ Never infer a later state from an earlier one.
 
 Stable tracked evidence contains scope, authority, base, durable decisions,
 contracts, expected manifest, commands, invariants, maturity ceiling, and the
-conditional completion predicate. Dynamic final head/tree, checks, Greptile,
+conditional completion predicate. Dynamic final head/tree, checks, Codex/GPT
+review receipt, human approval, `GPT review gate`,
 thread count, merge topology, exact-main checks, notification, final maturity,
 and next selection belong in the external receipt under
 `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Do not commit merely to

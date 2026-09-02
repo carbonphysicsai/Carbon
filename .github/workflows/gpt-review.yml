@@ -1,0 +1,50 @@
+name: GPT Review
+
+on:
+  pull_request_review:
+    branches: [main]
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: gpt-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review-gate:
+    name: GPT review gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out the protected base review validator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate the live exact-head review receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          pull_path="${RUNNER_TEMP}/carbon-review-pull.json"
+          reviews_path="${RUNNER_TEMP}/carbon-review-reviews.json"
+          commit_path="${RUNNER_TEMP}/carbon-review-commit.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${pull_path}"
+          live_head="$(jq -r .head.sha "${pull_path}")"
+          [[ "${EVENT_HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${live_head}" == "${EVENT_HEAD_SHA}" ]]
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
+            --jq '.[]' | jq -s '.' > "${reviews_path}"
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${live_head}" > "${commit_path}"
+          python scripts/dev/check_gpt_review_gate.py \
+            --pull-request "${pull_path}" \
+            --reviews "${reviews_path}" \
+            --commit "${commit_path}"
