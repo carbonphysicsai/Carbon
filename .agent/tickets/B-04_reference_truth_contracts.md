@@ -110,6 +110,13 @@ Until then no runtime, solver, fixture runner, Julia service, Cole–Hopf method
 artifact store, transport, measurement, scoring, Dossier, or later-ticket
 interface is authorized.
 
+The final runtime candidate uses the prospective delivery review contract in
+`GOV-REVIEW-01-D1`: fresh read-only Codex/GPT review of the complete exact-head
+diff, repair or disposition of every finding, distinct non-author human
+approval carrying the closed exact-head/tree receipt, successful `GPT review
+gate`, and zero unresolved review threads. This procedural review grants no
+reference or scientific qualification.
+
 ```text
 SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
 RATIFIED_ENGINEERING_CONTRACT: YES

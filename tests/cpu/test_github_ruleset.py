@@ -258,10 +258,10 @@ def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
     } == set(rules)
     pull_request = rules["pull_request"]["parameters"]
     assert pull_request["allowed_merge_methods"] == ["merge"]
-    assert pull_request["dismiss_stale_reviews_on_push"] is False
+    assert pull_request["dismiss_stale_reviews_on_push"] is True
     assert pull_request["require_code_owner_review"] is False
-    assert pull_request["require_last_push_approval"] is False
-    assert pull_request["required_approving_review_count"] == 0
+    assert pull_request["require_last_push_approval"] is True
+    assert pull_request["required_approving_review_count"] == 1
     assert pull_request["required_review_thread_resolution"] is True
     status_parameters = rules["required_status_checks"]["parameters"]
     assert status_parameters["do_not_enforce_on_create"] is False
@@ -270,7 +270,7 @@ def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
         (item["context"], item["integration_id"])
         for item in status_parameters["required_status_checks"]
     }
-    assert checks == {("Merge gate", 15368), ("Greptile Review", 867647)}
+    assert checks == {("Merge gate", 15368), ("GPT review gate", 15368)}
     assert artifact["repository_settings"] == {
         "allow_merge_commit": True,
         "allow_squash_merge": False,
@@ -365,15 +365,14 @@ def test_plan_refuses_changed_main() -> None:
 @pytest.mark.parametrize(
     ("case", "message"),
     [
-        ("draft", "open and non-draft"),
-        ("closed", "open and non-draft"),
-        ("missing_base", "pull request base must be a JSON object"),
-        ("base_repository", "base must be current"),
-        ("base_ref", "base must be current"),
-        ("base_sha", "base must be current"),
-        ("head_repository", "head must be the exact"),
-        ("head_ref", "head must be the exact"),
-        ("head_sha", "head must be the exact"),
+        ("draft", "must be non-draft"),
+        ("closed", "must be open on the exact candidate"),
+        ("missing_base", "guarded pull request base must be a JSON object"),
+        ("base_repository", "in-repository change targeting main"),
+        ("base_ref", "in-repository change targeting main"),
+        ("base_sha", "bind current main"),
+        ("head_repository", "in-repository change targeting main"),
+        ("head_sha", "bind current main"),
     ],
 )
 def test_plan_refuses_live_pr_identity_drift(case: str, message: str) -> None:
@@ -392,8 +391,6 @@ def test_plan_refuses_live_pr_identity_drift(case: str, message: str) -> None:
         pull["base"]["sha"] = "c" * 40
     elif case == "head_repository":
         pull["head"]["repo"]["full_name"] = "someone/Carbon"
-    elif case == "head_ref":
-        pull["head"]["ref"] = "agent/another-ticket"
     elif case == "head_sha":
         pull["head"]["sha"] = "c" * 40
     client = FakeClient(_base_responses(pull=pull))
@@ -403,6 +400,76 @@ def test_plan_refuses_live_pr_identity_drift(case: str, message: str) -> None:
             _artifact(),
             expected_main=MAIN_SHA,
             merge_gate_sha=CANDIDATE_SHA,
+            pr_number=PR_NUMBER,
+        )
+
+
+def test_plan_accepts_exact_main_from_normally_merged_guard_pr() -> None:
+    merged = _live_pr()
+    merged.update(
+        {
+            "state": "closed",
+            "merged_at": "2026-09-02T00:00:00Z",
+            "merge_commit_sha": MAIN_SHA,
+        }
+    )
+    merged["base"]["sha"] = "c" * 40
+    responses = _base_responses(pull=merged)
+    responses[f"repos/carbonphysicsai/Carbon/commits/{MAIN_SHA}"] = {
+        "sha": MAIN_SHA,
+        "parents": [{"sha": "c" * 40}, {"sha": CANDIDATE_SHA}],
+    }
+    main_check_endpoint = CHECK_RUNS_ENDPOINT.replace(CANDIDATE_SHA, MAIN_SHA)
+    responses[main_check_endpoint] = responses.pop(CHECK_RUNS_ENDPOINT)
+    responses[main_check_endpoint]["check_runs"][0]["head_sha"] = MAIN_SHA
+    client = FakeClient(responses)
+    plan = ruleset_module.build_plan(
+        client,
+        _artifact(),
+        expected_main=MAIN_SHA,
+        merge_gate_sha=MAIN_SHA,
+        pr_number=PR_NUMBER,
+    )
+    assert plan.expected_main == MAIN_SHA
+    assert plan.merge_gate_sha == MAIN_SHA
+
+
+@pytest.mark.parametrize(
+    ("parents", "message"),
+    [
+        ([{"sha": "c" * 40}], "normal two-parent merge"),
+        (
+            [{"sha": "c" * 40}, {"sha": "d" * 40}],
+            "second parent must equal",
+        ),
+    ],
+)
+def test_plan_refuses_non_normal_or_wrong_head_governance_merge(
+    parents: list[dict[str, str]], message: str
+) -> None:
+    merged = _live_pr()
+    merged.update(
+        {
+            "state": "closed",
+            "merged_at": "2026-09-02T00:00:00Z",
+            "merge_commit_sha": MAIN_SHA,
+        }
+    )
+    responses = _base_responses(pull=merged)
+    responses[f"repos/carbonphysicsai/Carbon/commits/{MAIN_SHA}"] = {
+        "sha": MAIN_SHA,
+        "parents": parents,
+    }
+    main_check_endpoint = CHECK_RUNS_ENDPOINT.replace(CANDIDATE_SHA, MAIN_SHA)
+    responses[main_check_endpoint] = responses.pop(CHECK_RUNS_ENDPOINT)
+    responses[main_check_endpoint]["check_runs"][0]["head_sha"] = MAIN_SHA
+    client = FakeClient(responses)
+    with pytest.raises(ruleset_module.RulesetError, match=message):
+        ruleset_module.build_plan(
+            client,
+            _artifact(),
+            expected_main=MAIN_SHA,
+            merge_gate_sha=MAIN_SHA,
             pr_number=PR_NUMBER,
         )
 
@@ -1027,9 +1094,9 @@ def _write_artifact(tmp_path: Path, value: Mapping[str, Any]) -> Path:
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("dismiss_stale_reviews_on_push", True),
+        ("dismiss_stale_reviews_on_push", False),
         ("require_code_owner_review", True),
-        ("require_last_push_approval", True),
+        ("require_last_push_approval", False),
         ("required_approving_review_count", False),
     ],
 )
@@ -1228,7 +1295,7 @@ def test_apply_refuses_changed_live_pr_head_before_any_mutation() -> None:
         merge_gate_sha=CANDIDATE_SHA,
         pr_number=PR_NUMBER,
     )
-    with pytest.raises(ruleset_module.RulesetError, match="exact in-repository"):
+    with pytest.raises(ruleset_module.RulesetError, match="bind current main"):
         ruleset_module.apply_plan(client, _artifact(), plan, git=FakeGit())
     assert all(method == "GET" for method, _, _ in client.calls)
 
@@ -1241,7 +1308,7 @@ def test_apply_refuses_incompatible_preexisting_rule_before_any_mutation() -> No
         if item["type"] == "pull_request"
     )
     inherited["ruleset_id"] = 99
-    inherited["parameters"]["required_approving_review_count"] = 1
+    inherited["parameters"]["required_approving_review_count"] = 2
     responses = _base_responses(
         rulesets=[
             {
@@ -1264,7 +1331,7 @@ def test_apply_refuses_incompatible_preexisting_rule_before_any_mutation() -> No
         merge_gate_sha=CANDIDATE_SHA,
         pr_number=PR_NUMBER,
     )
-    with pytest.raises(ruleset_module.RulesetError, match="human approvals"):
+    with pytest.raises(ruleset_module.RulesetError, match="human approval count"):
         ruleset_module.apply_plan(client, artifact, plan, git=FakeGit())
     assert all(method == "GET" for method, _, _ in client.calls)
 
@@ -1625,9 +1692,9 @@ def test_effective_rules_refuse_inherited_human_approval() -> None:
         if item["type"] == "pull_request"
     )
     inherited["ruleset_id"] = 99
-    inherited["parameters"]["required_approving_review_count"] = 1
+    inherited["parameters"]["required_approving_review_count"] = 2
     effective.append(inherited)
-    with pytest.raises(ruleset_module.RulesetError, match="human approvals"):
+    with pytest.raises(ruleset_module.RulesetError, match="human approval count"):
         ruleset_module._verify_effective_rules(
             effective, artifact["ruleset"], 41, require_managed=True
         )

@@ -87,11 +87,13 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       ticket-local Definition-of-Done criteria is insufficient.
 - [ ] Produce `.agent/WAVE_B_REPORT.md` with exact commits, tests, reviews, maturity states, evidence artifacts, human inputs, risks, and Wave C blockers.
 - [ ] Record material closeout decisions and applicable domain notifications;
-      pass exact-head validation and CI; repair every valid Greptile finding
-      with zero Greptile threads unresolved; and normally merge the exact
-      reviewed tree before the conditional bounded-engineering board status
-      change becomes effective. A documented invalid finding may be closed with
-      rationale, and any tree change requires rereview. Notification is not
+      pass exact-head validation and CI; obtain fresh read-only Codex/GPT
+      review of the complete diff; repair or disposition every finding;
+      require distinct non-author human approval carrying the closed receipt,
+      successful `GPT review gate`, and zero unresolved review threads; and
+      normally merge the exact reviewed tree before the conditional bounded-
+      engineering board status change becomes effective. Any tree change
+      requires rereview. Notification is not
       authorization and silence is no gate. Wave C, scientific/security/rights
       qualification, LIVE, launch, and production authority remain separately
       human-owned and fail closed.

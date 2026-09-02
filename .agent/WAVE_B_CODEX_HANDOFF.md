@@ -17,6 +17,11 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
+`GOV-REVIEW-01-D1` prospectively replaces the unavailable Greptile service
+with fresh read-only Codex/GPT review of the complete exact-head diff, a closed
+head/tree-bound receipt, distinct non-author human approval, and the protected
+`GPT review gate`. Historical Greptile records remain immutable evidence.
+
 ## 1. Completed foundations, B-04 contract, and B-01F delivery governance
 
 B-01 is authoritatively `done` on exact main commit
@@ -299,13 +304,12 @@ than rewriting historical evidence. Current merged authority controls until
 that change merges.
 
 The board's Accountable reviewer column routes technical/domain review and
-notification. It creates no affirmative pre-approval or silence gate.
-Greptile is the routine independent correctness review Carbon waits for.
-Repair every valid finding, require zero unresolved Greptile threads, all
-scope-required exact-head checks and `Merge gate`, and normal merge. Human and
-domain review is asynchronous unless current authority explicitly reserves the
-affected value or acceptance decision. A documented invalid finding may be
-closed with rationale.
+notification. It creates no pre-implementation approval or silence gate.
+Before merge, require a fresh read-only Codex/GPT review of the complete exact-
+head diff, repair or disposition of every finding, a distinct non-author human
+approval carrying the closed receipt, successful `GPT review gate`, zero
+unresolved review threads, all scope-required exact-head checks and `Merge
+gate`, and normal merge. This delivery approval grants no reserved authority.
 
 This rule does not authorize agents to invent or approve scientific truth,
 thresholds, tolerances, population or SamplingPlan claims, qualification,
@@ -364,11 +368,11 @@ Before requesting review:
 5. Report implementation, reuse, tests, invariants, maturity, risks, and human
    input under the headings required by `AGENTS.md`.
 6. Link the evidence file from the ticket and Wave B board.
-7. Bind Greptile and all required checks to the exact head SHA and tree. Any
-   reviewed-tree change invalidates that evidence. Resolve valid technical
-   findings and require zero unresolved Greptile threads before normal merge.
-   Accountable-reviewer routing requires no affirmative response unless that
-   reviewer submits a blocking direction under the repository's process.
+7. Bind the fresh complete-diff Codex/GPT review, distinct non-author human
+   approval, `GPT review gate`, and all required checks to the exact head SHA
+   and tree. Any tree change invalidates that evidence. Resolve or disposition
+   every finding and require zero unresolved review threads before normal
+   merge.
 8. Unless owner direction explicitly says to stop before merge, normally merge
    the unchanged clean candidate with an exact expected-head guard, verify
    ordered parents/reviewed-tree/exact-main `Merge gate`, post the external
@@ -381,20 +385,23 @@ Use board states with these meanings:
   bounded execution has begun.
 - `blocked`: a named dependency, contract, environment, or reserved human decision
   prevents correct completion.
-- `done`: every Definition-of-Done item has evidence, exact-head `Merge gate`
-  and Greptile passed with every valid finding repaired and zero unresolved
-  threads, the implementation normally merged with a tree identical to the
-  reviewed head, exact-main `Merge gate` passed, and the external receipt
-  pointer records the merge, CI, review outcome, and lead-notification delivery
-  when applicable. Affirmative role or lead approval is not required.
+- `done`: every Definition-of-Done item has evidence, exact-head `Merge gate`,
+  fresh complete-diff Codex/GPT review, distinct non-author human approval,
+  and `GPT review gate` passed with every finding resolved or dispositioned
+  and zero unresolved review threads; the implementation normally merged with
+  a tree identical to the reviewed head; exact-main `Merge gate` passed; and
+  the external receipt records the merge, CI, review, approval, and applicable
+  notification identities.
 
 Code completion alone cannot produce `done`.
 
 The implementation change may prepare a conditional completion record and
 next-ticket selection. Conditional `done` becomes authoritative only when the
-exact reviewed tree passes scope-required exact-head checks, `Merge gate`, and
-Greptile with all valid findings repaired and zero unresolved threads; normally
-merges with exact second-parent/tree identity; and exact-main `Merge gate`
+exact reviewed tree passes scope-required exact-head checks and `Merge gate`,
+fresh complete-diff Codex/GPT review, distinct non-author human approval, and
+`GPT review gate` with every finding resolved or dispositioned and zero
+unresolved review threads; normally merges with exact second-parent/tree
+identity; and exact-main `Merge gate`
 passes; and the completed normalized external receipt is posted. Dynamic
 identities use the external receipt. Do not open a recursive closeout PR or
 commit merely to store/retrigger them. Accountable-reviewer or lead silence is
@@ -517,8 +524,9 @@ completion predicate passes, the complete B-04 launcher is only:
 ```text
 Execute the current selected Carbon ticket end-to-end under
 `agent_pack/CODEX_TICKET_LAUNCHER.md`. Use current repository authority,
-exact-head CI, Merge gate and Greptile. Merge and advance when clean. Keep all
-human-reserved authority fail closed.
+exact-head CI, Merge gate, fresh complete-diff Codex/GPT review, distinct non-
+author human approval, and GPT review gate. Merge and advance when clean. Keep
+all human-reserved authority fail closed.
 ```
 
 The active user/session authorization defines the bounded external-write scope.
@@ -533,8 +541,9 @@ next ready ticket.
 
 B-GATE produces `.agent/WAVE_B_REPORT.md` only after every required predecessor
 except explicitly non-blocking B-01G satisfies its evidence and merge gate.
-Exact-head Greptile, required CI and `Merge gate`, normal merge, and exact-main
-`Merge gate` decide whether bounded engineering evidence supports
+Fresh complete-diff exact-head Codex/GPT review, distinct non-author human
+approval, `GPT review gate`, required CI and `Merge gate`, normal merge, and
+exact-main `Merge gate` decide whether bounded engineering evidence supports
 `SPECIFIED`, `IMPLEMENTED`, and `TESTED` claims. Human-reserved scientific,
 security, rights, economic, qualification, LIVE, launch, and production
 authority remains separate and fail closed. Fixture success cannot confer

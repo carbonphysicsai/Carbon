@@ -15,21 +15,25 @@ working contract and durable decisions
 → coherent vertical implementation slices
 → canonical validation
 → exact-head required checks
-→ exact-head Greptile Review
+→ fresh read-only Codex/GPT review of the complete exact-head diff
 → repair every valid finding
-→ zero unresolved Greptile threads
+→ zero unresolved findings
+→ distinct non-author human APPROVED review with the closed exact-head receipt
+→ successful GPT review gate and zero unresolved review threads
 → normal expected-head merge
 → reviewed-tree and exact-main verification
 → bounded ticket closeout
 → next ready ticket
 ```
 
-Greptile is Carbon's routine independent correctness review. Human and domain-
-lead review remains asynchronous oversight unless current authority explicitly
-reserves a value or acceptance decision to a human. Human silence is not a
-delivery gate. A human-reserved science, security-acceptance, rights,
-economics, qualification, `LIVE`, launch, deployment, or production decision
-stays unavailable and fail closed.
+Carbon's routine correctness review is a fresh read-only Codex/GPT review of
+the complete exact-head pull-request diff. A distinct non-author human must
+submit an `APPROVED` review carrying the closed receipt in
+`.agent/templates/CODEX_GPT_REVIEW_RECEIPT.md`; the protected `GPT review gate`
+validates that receipt against the live head and tree. This delivery approval
+is an engineering-control gate, not scientific, security, rights, economic,
+qualification, `LIVE`, launch, deployment, or production acceptance. Those
+reserved decisions stay unavailable and fail closed.
 
 Unless current owner direction explicitly says to stop before merge, a session
 authorized to execute a ticket end to end continues through the normal merge,
@@ -119,15 +123,20 @@ true:
 2. the pull-request tree is the final candidate tree;
 3. every check required by the detected scope succeeded on that exact head,
    including `Merge gate`;
-4. `Greptile Review` succeeded on the same exact head;
-5. every valid finding was repaired and any repaired tree was reviewed again;
-6. the unresolved Greptile thread count is zero;
-7. no observed applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` direction
+4. a fresh read-only Codex/GPT review covered the complete diff at that exact
+   head and tree;
+5. every valid finding was repaired, every invalid finding was dispositioned,
+   and any repaired tree was reviewed again;
+6. one distinct non-author human submitted an `APPROVED` review on that exact
+   head carrying the closed review receipt;
+7. `GPT review gate` succeeded on the same exact head and unresolved review-
+   thread count is zero;
+8. no observed applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` direction
    remains;
-8. the pull-request base has been reconciled under current repository policy;
-9. every human-reserved value needed for the affected behavior is available,
+9. the pull-request base has been reconciled under current repository policy;
+10. every human-reserved value needed for the affected behavior is available,
    or the behavior remains explicit and fail closed; and
-10. the expected-head guard is supplied to the merge operation.
+11. the expected-head guard is supplied to the merge operation.
 
 PR-body or issue-comment changes do not alter the Git tree. A declaration edit
 cannot substitute for a required repository change. A corrected declaration
@@ -182,8 +191,8 @@ reviewed tree:
 
 - final reviewed head and tree;
 - CI run and required job/check identities;
-- Greptile check and summary identities;
-- unresolved thread count and disposition of findings;
+- Codex/GPT review receipt, GitHub approval, and `GPT review gate` identities;
+- unresolved review-thread count and disposition of findings;
 - merge commit, ordered parents, and merge tree;
 - exact-main check identities;
 - lead/issue notification identity;
@@ -215,9 +224,11 @@ after:
 ```text
 exact final head/tree
 + scope-required exact-head checks and Merge gate
-+ exact-head Greptile Review
++ fresh complete-diff exact-head Codex/GPT review
 + all valid findings repaired
-+ zero unresolved Greptile threads
++ distinct non-author human approval with the closed receipt
++ successful GPT review gate
++ zero unresolved review threads
 + no applicable block
 + normal expected-head merge
 + ordered-parent and reviewed-tree equality
@@ -239,4 +250,4 @@ rights, or deployment authority.
 
 Routine engineering merge authority cannot override a human-reserved
 decision. Missing reserved authority remains explicit and fail closed even
-when `Merge gate` and Greptile are green.
+when `Merge gate` and `GPT review gate` are green.
