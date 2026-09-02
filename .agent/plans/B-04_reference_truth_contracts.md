@@ -1,19 +1,20 @@
 # B-04 plan — reference and TruthAsset contracts
 
 **Ticket:** B-04 — ReferencePolicy, TruthAsset, and reference runners<br>
-**Status:** `in_progress`; contract phase complete and ratified, runtime phase
-paused behind B-01F<br>
-**Branch:** `agent/b-04-reference-truth-contract`<br>
+**Status:** final single-ticket runtime candidate; B-04 `done` and B-05
+selection remain conditional<br>
+**Branch:** `agent/b-04-reference-truth`<br>
 **Worktree:** dedicated local worktree; absolute host path intentionally not recorded<br>
-**Exact base commit:** `74ef837deed20b8fb9f0a5137086b15fc82bf820`<br>
-**Exact base tree:** `325022d9b43b119235af50214152ad269fa3cb6a`<br>
+**Exact base commit:** `7161fe3c4a04821b7f676ab006bd5d313d0442d2`<br>
+**Exact base tree:** `619e366dead2288ccfd312f54ad09f17f86a1c62`<br>
 **Working contract:** `Design_Specs/Reference_and_TruthAsset_Contract.md`<br>
 **Evidence:** `.agent/evidence/wave_b/b-04.md`
 
-This plan records the completed PR #72 contract phase. Its external completion
-receipt records the final reviewed-tree, checks, merge topology, and exact-main
-facts. `OWNER-DX-01` now pauses runtime behind B-01F without altering the
-contract. No B-04 implementation is authorized in the B-01F session.
+This plan retains the completed PR #72 contract phase and records the completed
+bounded runtime candidate begun after PR #73 satisfied `OWNER-DX-01`. The B-01F
+receipt at PR #73 comment `5497405775` selects B-04 from the exact base above.
+B-04-D11 froze the executable v1 schema before the first runtime model; issue
+#42 comment `5497811877` delivered its non-gating lead notification.
 
 ## 1. Completed contract startup and closeout gate
 
@@ -47,21 +48,21 @@ Apply `KEEP → WRAP → REPAIR → REPLACE` to the exact current repository:
 - `KEEP + WRAP` `carbon.authoring` canonical Challenge, case, graph,
   evidence-kind, provenance, disclosure, use-restriction, and owner-ref
   primitives. B-04 does not redefine case identity.
-- `KEEP` the reserved `carbon.evaluation` package as B-04's future package
-  owner. It currently provides only a location and no B-04 capability.
+- `KEEP` the reserved `carbon.evaluation` package as B-04's implemented package
+  owner, with only the exact D11 public allow-list at its root.
 - `KEEP` `carbon.generators`, `carbon.scoring`, registry lifecycle, seeding,
   audit, and qualification boundaries unchanged; B-04 neither imports the
   generator package nor owns measurement, scoring, LIVE, or qualification.
-- `WRAP` low-level B-02A canonical primitives under a future B-04-owned,
+- `WRAP` low-level B-02A canonical primitives under the B-04-owned,
   versioned canonical profile and domain header. Do not widen B-02A's closed
   schema registry and do not reuse the generator canonical profile.
 - `REPLACE / EXCLUDE` any generic truth mode, solver-by-reputation authority,
   self-cross-check, implicit fallback, nominal-tolerance truth, or direct
-  solver path from future authoritative use.
+  solver path from authoritative use.
 - `MIGRATION_REQUIRED` for any later deliberate legacy or Julia adapter; B-E2
   owns Julia/service adapters and expanded runtime/failure injection, while
   B-04 retains its bounded minimal deterministic fixture runners and failure
-  tests. The archive is not read in this contract session.
+  tests. The archive was not read or revived.
 - `NEW_OWNER_DECISION_REQUIRED` for every real method, viscosity, support,
   tolerance, mesh, timestep, precision, conditioning, uncertainty,
   disagreement, fallback, correlation, resource, security, qualification, or
@@ -91,11 +92,11 @@ Apply `KEEP → WRAP → REPAIR → REPLACE` to the exact current repository:
 4. Record B-04-D1 through B-04-D10 with recommendation, rationale, rejected
    alternatives, interfaces/invariants, downstream owners, reversibility,
    exact paths, and reserved inputs.
-5. Reserve B-04-D11 for the later pre-runtime exact v1 record field/type/order
-   registry, outcome/reason compatibility matrices, and exact ordered
-   `carbon.evaluation.__all__` tuple. The fixed profile, framing, primitive
-   semantics, decoder ceilings, and ref inventory do not claim executable
-   canonical bytes or an exact root surface before D11.
+5. The contract phase reserved B-04-D11 for the pre-runtime exact v1 record
+   field/type/order registry, outcome/reason compatibility matrices, and exact
+   ordered `carbon.evaluation.__all__` tuple. The runtime phase recorded and
+   notified that decision before the first model; no pre-D11 executable-byte or
+   root-surface claim was made.
 6. Keep `ReferenceArtifact`, positive-only `TruthAsset`, and
    `FixtureReferenceAsset` distinct. Execution success or artifact presence
    never grants truth authority.
@@ -138,27 +139,167 @@ the merged Hub authority. The PR declares `HUB_UPDATE_REQUIRED` for
 - Open a draft PR titled `B-04: define reference and TruthAsset contract`, post
   the decision notification to issue #42 mentioning `@harshaa765`, then move
   ready only when the tree and local validation settle.
-- Require exact-head canonical and clean-container CI, successful Greptile
-  correctness review, and zero unresolved review threads. Every tree change
-  requires fresh CI and review.
+- Require exact-head canonical and clean-container CI, fresh complete-diff
+  Codex/GPT review, distinct non-author human approval carrying the closed
+  receipt, successful `GPT review gate`, and zero unresolved review threads.
+  Every tree change requires fresh CI and review.
 
-## 6. B-01F pause and runtime resumption boundary
+## 6. Completed bounded runtime slices
 
-The contract PR is merged and ratified. Runtime remains paused until B-01F's
-exact final candidate passes scope-required exact-head checks and `Merge gate`,
-exact-head Greptile with every valid finding repaired and zero unresolved
-threads, normal exact-expected-head merge with reviewed-tree preservation, and
-exact-main `Merge gate`. Only then create a fresh
-`agent/b-04-reference-truth` branch from the verified exact main. Do not
-implement a runtime, reference method, solver, fixture runner, Julia service,
-Cole–Hopf routine, store, transport, measurement, score, Dossier, or later-
-ticket interface in B-01F.
+PR #73 satisfied the exact B-01F predicate and selected this branch from the
+base recorded above. The runtime work then completed these coherent slices:
+
+1. D11 exact enums, subordinate and standalone models, nominal refs, one-to-one
+   canonical registry, hostile-input reconstruction, and exact ordered package
+   root;
+2. policy entry/composition/manifest construction with same-Challenge,
+   same-policy, exact-inventory, semantic-duplicate, primary/witness
+   disjointness, MMS-role, and no-authority-transfer enforcement;
+3. distinct primary and witness request/grant/resolution/run interfaces with
+   one-use capabilities, closed outcome/reason/absence matrices, typed
+   infrastructure/reference failures, and no generic fallback;
+4. comparison, provenance, support/applicability, conditioning, uncertainty,
+   and complete categorical dependency-correlation disclosure without invented
+   scientific thresholds;
+5. distinct `ReferenceArtifact`, non-LIVE `FixtureReferenceAsset`, and
+   positive-only `TruthAsset` admission with structural issuance separated from
+   substantive admission; and
+6. protected/public projections plus minimal deterministic standard-library
+   fixture runners for supported, conditioning, disagreement, numerical,
+   malformed/provenance, infrastructure, correlation, and no-fallback paths.
+
+B-04-D12 keeps the admission callback boundary at-most-once: complete graph
+and authority validation precede the atomic claim, while the one-use grant is
+consumed immediately before the saved external callback and is never rolled
+back after callback start. Non-`Exception` provider control signals are replaced
+outside the provider context by a fixed protected, nonpickleable control signal
+without changing the release-before-claim or burn-after-callback transition.
+This clarifies the ratified one-attempt/no-retry and protected-disclosure
+contract without changing D11 bytes or adding a production retry/cancellation
+policy.
+
+The implementation preserves one-way explicit imports from current B-02A
+submodules and does not import `carbon.generators`, scoring, registry lifecycle,
+seeding, or any later owner. Julia, Cole–Hopf, production solvers/services,
+stores, transport, measurement, score, Dossier, qualification, and later-ticket
+interfaces remain excluded.
+
+## 7. Exact non-Hub candidate manifest
+
+The runtime implementation paths are exactly:
+
+```text
+carbon/evaluation/__init__.py
+carbon/evaluation/admission.py
+carbon/evaluation/assets.py
+carbon/evaluation/canonical.py
+carbon/evaluation/comparison.py
+carbon/evaluation/disclosure.py
+carbon/evaluation/enums.py
+carbon/evaluation/errors.py
+carbon/evaluation/execution.py
+carbon/evaluation/fixtures.py
+carbon/evaluation/model.py
+carbon/evaluation/policy.py
+carbon/evaluation/refs.py
+carbon/evaluation/runners.py
+```
+
+The focused and boundary test paths are exactly:
+
+```text
+tests/cpu/test_b04_admission_contract.py
+tests/cpu/test_b04_canonical_contract.py
+tests/cpu/test_b04_disclosure_contract.py
+tests/cpu/test_b04_execution_contract.py
+tests/cpu/test_b04_failure_and_disclosure.py
+tests/cpu/test_b04_fixture_runtime.py
+tests/cpu/test_b04_matrix_contract.py
+tests/cpu/test_b04_noncanonical_carrier_regressions.py
+tests/cpu/test_b04_policy_contract.py
+tests/cpu/test_b04_public_surface.py
+tests/cpu/test_code_authority.py
+tests/cpu/test_package_installation.py
+tests/invariants/test_b04_reference_truth_boundaries.py
+```
+
+The durable decision path is exactly:
+
+```text
+.agent/DECISIONS.md
+```
+
+The conditional authority snapshot paths are exactly:
+
+```text
+.agent/WAVE.md
+.agent/WAVE_B.md
+.agent/WAVE_B_CODEX_HANDOFF.md
+.agent/evidence/wave_b/b-04.md
+.agent/plans/B-04_reference_truth_contracts.md
+.agent/tickets/B-04_reference_truth_contracts.md
+.agent/tickets/B-05_measurement_scorepack_authoring.md
+```
+
+B-04-D11 and its Decision Console record were committed before the first model.
+The final Development Hub commit separately pins this authority snapshot and
+contains only required Hub source plus renderer-determined outputs.
+
+## 8. Engineering validation and independent audits
+
+Fresh corrected-candidate results are required after the D12 coverage and
+current-main synchronization settle. The earlier numeric ledger is superseded
+and is not evidence for the final candidate:
+
+| Scope | Result |
+|---|---|
+| focused B-04 CPU + invariant matrix | PENDING final-candidate rerun |
+| affected B-02A/B-03/A3/A4/A5 and boundary regressions | PENDING final-candidate rerun |
+| full invariant suite | PENDING final-candidate rerun |
+| package, wheel, outside-tree, and code-authority scope | PENDING final-candidate rerun |
+| strict Ruff, strict Black, compilation, and diff hygiene | PENDING final-candidate rerun |
+| full CPU suite | PENDING final-candidate rerun |
+
+The prior scientific/epistemic and canonical/identity/provenance/disclosure/
+capability audits predate D12 and are not final-candidate evidence. The old
+grant-consumption finding is `PARTIALLY_VALID / CLARIFIED`; fresh independent
+audits are required after synchronization, and no provider failure is treated
+as an admission decision.
+
+Local Darwin results are diagnostic only. Exact candidate acceptance still
+requires the repository-selected `RUNTIME_FULL` canonical Linux scope,
+Delivery preflight, Canonical environment, Clean dev-container, Development
+Hub, exact-head `Merge gate`, fresh complete-diff Codex/GPT review, distinct
+non-author human approval, and `GPT review gate`.
+
+## 9. Conditional closeout and next-ticket transition
+
+The prepared B-04 `done`, bounded `IMPLEMENTED`/`TESTED`, and B-05
+`in_progress` states remain inert until the exact final head/tree passes every
+scope-required exact-head check and `Merge gate`; fresh read-only Codex/GPT
+review covers the complete exact-head diff with every finding repaired or
+dispositioned; a distinct non-author human approval carries the closed
+exact-head/tree receipt; `GPT review gate` succeeds with zero unresolved review
+threads and no applicable block; a normal expected-head merge preserves
+ordered second-parent and reviewed-tree identity; the reviewed head is
+ancestral to fetched exact main; exact-main `Merge gate` and every push-only
+requirement succeed; and the completed normalized external receipt is posted.
+
+That receipt alone records the final reviewed head/tree, CI/check identities,
+Codex/GPT review receipt, human approval review, `GPT review gate`, and thread
+count; merge/parents/tree; exact-main results; final bounded maturity; and
+B-05's exact starting main/tree. If any predicate fails,
+the prior merged B-04 `in_progress` / B-05 `todo` state remains controlling.
+No recursive evidence-only commit is required, and no B-05 contract or runtime
+work begins in this session.
 
 ```text
 SPECIFIED: YES — BOUNDED ENGINEERING CONTRACT
 RATIFIED_ENGINEERING_CONTRACT: YES
-IMPLEMENTED: NO
-TESTED: CONTRACT/DOCUMENT AND EXISTING-BASELINE VALIDATION ONLY
+IMPLEMENTED: YES only after the complete conditional predicate, and only for
+             the exact bounded merged fixture runtime
+TESTED: YES only after that predicate, and only for the exact recorded
+        engineering acceptance scope
 REFERENCE_QUALIFIED: NO
 OPERATIONS_APPROVED: NO
 SECURITY_QUALIFIED: NO

@@ -68,12 +68,29 @@ B03_MODULES = (
     "carbon.generators.service",
 )
 
+B04_MODULES = (
+    "carbon.evaluation.admission",
+    "carbon.evaluation.assets",
+    "carbon.evaluation.canonical",
+    "carbon.evaluation.comparison",
+    "carbon.evaluation.disclosure",
+    "carbon.evaluation.enums",
+    "carbon.evaluation.errors",
+    "carbon.evaluation.execution",
+    "carbon.evaluation.fixtures",
+    "carbon.evaluation.model",
+    "carbon.evaluation.policy",
+    "carbon.evaluation.refs",
+    "carbon.evaluation.runners",
+)
+
 INSTALLED_MODULES = (
     "carbon",
     *ROLE_PACKAGES,
     *B02B_MODULES,
     *B02C_MODULES,
     *B03_MODULES,
+    *B04_MODULES,
 )
 
 
@@ -166,6 +183,13 @@ def test_import_b02c_module(module_name: str) -> None:
 
 @pytest.mark.parametrize("module_name", B03_MODULES)
 def test_import_b03_module(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+
+    assert module.__name__ == module_name
+
+
+@pytest.mark.parametrize("module_name", B04_MODULES)
+def test_import_b04_module(module_name: str) -> None:
     module = importlib.import_module(module_name)
 
     assert module.__name__ == module_name

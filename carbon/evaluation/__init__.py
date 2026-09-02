@@ -1,1 +1,53 @@
-"""SDK-independent scientific evaluation boundary."""
+"""Audience-safe categorical surface for the B-04 evaluation boundary."""
+
+from .disclosure import (
+    PublicReferenceOutcomeProjection,
+    PublicReferencePolicyProjection,
+    create_public_reference_outcome_projection,
+    create_public_reference_policy_projection,
+)
+from .enums import (
+    AdmissionGrantIssuanceOutcome,
+    AdmissionGrantIssuanceReason,
+    ConditioningStatus,
+    ReferenceAuthorityFunction,
+    ReferenceAuthorityTargetKind,
+    ReferenceComparisonOutcome,
+    ReferenceComparisonReason,
+    ReferenceCompositionKind,
+    ReferenceFailureReason,
+    ReferenceRunOutcome,
+    ReferenceSourceClass,
+    ReferenceWitnessTargetKind,
+    ResolutionOutcome,
+    ResolutionReason,
+    SupportApplicabilityStatus,
+    TruthAssetAdmissionOutcome,
+    TruthAssetAdmissionReason,
+    UncertaintyStatus,
+)
+
+__all__ = [
+    "AdmissionGrantIssuanceOutcome",
+    "AdmissionGrantIssuanceReason",
+    "ConditioningStatus",
+    "PublicReferenceOutcomeProjection",
+    "PublicReferencePolicyProjection",
+    "ReferenceAuthorityFunction",
+    "ReferenceAuthorityTargetKind",
+    "ReferenceComparisonOutcome",
+    "ReferenceComparisonReason",
+    "ReferenceCompositionKind",
+    "ReferenceFailureReason",
+    "ReferenceRunOutcome",
+    "ReferenceSourceClass",
+    "ReferenceWitnessTargetKind",
+    "ResolutionOutcome",
+    "ResolutionReason",
+    "SupportApplicabilityStatus",
+    "TruthAssetAdmissionOutcome",
+    "TruthAssetAdmissionReason",
+    "UncertaintyStatus",
+    "create_public_reference_outcome_projection",
+    "create_public_reference_policy_projection",
+]

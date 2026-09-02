@@ -1,7 +1,11 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
-**Wave:** B candidate
-**Status:** todo
+**Wave:** B active in bounded development scope
+**Status:** `in_progress`
+**Conditional authority:** this status takes effect only after B-04's
+conditional completion predicate passes
+**Execution state before that predicate:** `todo`; no B-05 contract, decision,
+plan, evidence, runtime, test, or implementation work has started
 **Depends on:** B-02C, B-04
 **Build Out:** C5 Wave B authoring seam
 **Master questions:** MQ-005, MQ-006, MQ-007, MQ-008
@@ -9,6 +13,15 @@
 C13-C14 and §§7-8; `Miner_MCP_Wave_B_Research_Contract.md` §8.2;
 `Compute_Optimization.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
+
+The B-04 candidate prospectively selects this board-order dependent ticket only
+after B-04's exact final head passes every scope-required check and `Merge gate`,
+exact-head Greptile with all valid findings repaired and zero unresolved
+threads, normal expected-head merge with ordered-parent/reviewed-tree equality,
+exact-main `Merge gate`, and a completed normalized external receipt. If any
+predicate fails, this ticket remains authoritative `todo`. Selection supplies
+no B-05 contract or runtime implementation and no human-reserved measurement,
+uncertainty, scoring, reconstruction-evidence, or qualification value.
 
 ## Goal
 

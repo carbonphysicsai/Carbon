@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.1
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.1
+**Governance version:** 1.3
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.3
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -22,7 +22,7 @@ with fresh read-only Codex/GPT review of the complete exact-head diff, a closed
 head/tree-bound receipt, distinct non-author human approval, and the protected
 `GPT review gate`. Historical Greptile records remain immutable evidence.
 
-## 1. Completed foundations, B-04 contract, and B-01F delivery governance
+## 1. Completed foundations, B-04 runtime, and B-01F completion
 
 B-01 is authoritatively `done` on exact main commit
 `4ee58d56862d0441d5d151d79db1fe3036f1025d`, tree
@@ -101,14 +101,37 @@ succeeds.
 PR #72's external completion receipt establishes that the exact reviewed B-04
 bounded engineering contract passed required exact-head checks and Greptile,
 normally merged with reviewed-tree preservation, and passed exact-main checks.
-B-04 is `SPECIFIED` and its engineering contract is ratified; it remains
-unimplemented and unqualified. `OWNER-DX-01` inserts B-01F before runtime and
-queues B-01G as non-blocking `todo`. Version 1.1's B-01F `done` and B-04
-runtime selection are conditional: they become effective only after the exact
-B-01F candidate passes exact-head `Merge gate` and Greptile with zero
-unresolved threads; normally merges with reviewed-tree preservation; passes
-exact-main `Merge gate`; and has its completed normalized external receipt
-posted. Until then B-04 runtime is paused.
+At that historical checkpoint B-04 was `SPECIFIED`, its engineering contract
+was ratified, and it remained unimplemented and unqualified. `OWNER-DX-01`
+inserted B-01F before runtime and queued B-01G as non-blocking `todo`. Version
+1.1 prepared B-01F `done` and B-04 runtime selection conditionally; the next
+paragraph records that this historical predicate is now satisfied rather than
+still awaiting completion.
+
+PR #73 has now satisfied that predicate. Its normalized receipt is PR #73
+comment `5497405775`: reviewed head
+`56093b3abe9e62e89d8aa0b5bf034e02d7d0ad97` normally merged as
+`7161fe3c4a04821b7f676ab006bd5d313d0442d2` with exact tree
+`619e366dead2288ccfd312f54ad09f17f86a1c62`; exact-main run `33532472507`
+and `Merge gate` check `99944337076` succeeded. B-04 is the selected
+`in_progress` ticket in bounded runtime implementation. B-04-D11 records the
+exact v1 executable schema before the first model; no qualification or later-
+ticket authority follows.
+
+Version 1.3 prepares a conditional B-04 runtime closeout. B-04 becomes `done`
+and earns bounded `IMPLEMENTED` and `TESTED`, and B-05 becomes the selected
+`in_progress` ticket, only after one exact unchanged B-04 final head passes
+all scope-required checks and `Merge gate`; fresh read-only Codex/GPT review
+covers the complete exact-head diff with every finding repaired or
+dispositioned; a distinct non-author human approval carries the closed
+exact-head/tree receipt; `GPT review gate` succeeds with zero unresolved review
+threads and no applicable block; a normal expected-head merge preserves
+ordered second-parent and reviewed-tree identity; fetched exact main contains
+that head and passes
+exact-main `Merge gate` plus every push-only requirement; and a completed
+normalized external receipt is posted. Until that full predicate, B-04
+remains the authoritative selected `in_progress` ticket and B-05 remains
+`todo`. This B-04 session starts no B-05 contract or implementation work.
 
 ## 2. Required read order
 
@@ -257,17 +280,28 @@ behavior, and every deferred human input has an explicit fail-closed path.
 Non-reserved material decisions follow the record-and-notify rule below. Do
 not skip a blocked ticket by starting one of its dependents.
 
-B-01E, B-02A, B-07R, B-02B, B-02C, and B-03 are complete at the identities in
-section 1. B-04's bounded engineering contract is ratified, but its runtime is
-paused behind B-01F. Version 1.1's B-01F `done` and B-04 runtime selection are
-effective only after the exact B-01F reviewed candidate normally merges with
-tree preservation, exact-main `Merge gate` succeeds, and the completed
-normalized external receipt is posted. Then create a fresh
-`agent/b-04-reference-truth` branch/worktree from that verified exact main. No
-B-04 runtime, solver, fixture runner, Julia service, Cole–Hopf routine,
-artifact store, transport, measurement, scoring, Dossier, package-authority,
-or test implementation belongs in B-01F. B-01G remains `todo` and does not
-block B-04.
+B-01E, B-02A, B-07R, B-02B, B-02C, B-03, and B-01F are complete at the
+identities in section 1. B-04's bounded engineering contract is ratified and
+PR #73's normalized receipt satisfies the runtime-resumption predicate.
+Version 1.2 selected B-04 runtime from exact main
+`7161fe3c4a04821b7f676ab006bd5d313d0442d2`; B-04-D11 must be recorded and
+notified before the first model and is now recorded at issue #42 comment
+`5497811877`. The fresh branch is
+`agent/b-04-reference-truth`. No Julia service, Cole–Hopf routine, production
+solver, artifact store, transport, measurement, scoring, Dossier,
+qualification, or later-ticket implementation belongs in B-04. B-01G remains
+`todo` and does not block it.
+
+The bounded candidate is owned by `carbon.evaluation`: immutable D11 policy,
+reference, provenance, disclosure, outcome, artifact, admission, comparison,
+and execution records; nominal primary/witness runner interfaces; and
+deterministic fixture-only runners/assets. It wraps existing B-02A canonical,
+identity, provenance, disclosure, and case primitives without reverse-owning
+`carbon.generators`. Its fixture artifacts are structurally unable to confer
+reference, scientific, security, operations, network, commercial, production,
+or `LIVE` authority. The conditional transition above selects B-05 only after
+the completed receipt; all B-05 DoD remains unchecked and no B-05 work begins
+in this candidate.
 `B-02` is retired umbrella shorthand only; B-02A, B-02B, and B-02C retain their
 exact individual dependency rows.
 
@@ -518,8 +552,9 @@ unavailable or fixture-only.
 
 ## 9. Session prompt template
 
-Use `agent_pack/CODEX_TICKET_LAUNCHER.md`. After B-01F's conditional
-completion predicate passes, the complete B-04 launcher is only:
+Use `agent_pack/CODEX_TICKET_LAUNCHER.md`. B-01F's conditional completion
+predicate has passed at the identities in section 1. For the currently
+selected B-04 ticket, the complete launcher is only:
 
 ```text
 Execute the current selected Carbon ticket end-to-end under
@@ -536,6 +571,11 @@ authorized end to end and no explicit stop-before-merge direction exists, do
 not ask for another prompt solely to commit, push, open the ticket PR, normally
 merge its unchanged clean reviewed head, verify exact main, or advance to the
 next ready ticket.
+
+For this candidate, “advance” means only making B-05's prospective
+`in_progress` selection effective after B-04's complete Delivery Protocol
+predicate and receipt. It does not authorize starting B-05 contract or runtime
+work in the B-04 session.
 
 ## 10. Wave closeout
 
