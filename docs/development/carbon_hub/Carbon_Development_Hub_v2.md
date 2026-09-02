@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `d0cff7f611aaf9598ebe16999cb20941f48655b8` on `main`, captured 2026-09-01T20:33:39Z.
+**Authority snapshot:** `35e46734d92fcf46bfbc987d45696b25d00d61ca` on `main`, captured 2026-09-02T00:00:11Z.
 **Current:** Wave B, ticket B-04. Version 1.1 records B-01F done only under its conditional completion predicate, keeps B-01G todo and non-blocking, and selects B-04 in_progress with its bounded engineering contract ratified. Until B-01F's exact reviewed merge, exact-main Merge gate, and completed external receipt pass, B-04 runtime remains paused and unimplemented.
 
 ## Wave spine
@@ -91,6 +91,7 @@
 - `OWNER-DX-01` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-01 records B-01F done under its conditional completion predicate, queues B-01G as non-blocking todo, and keeps B-04 selected in_progress with its bounded engineering contract ratified while runtime remains unimplemented.
 - `HUB-ADJ-003` — `SYSTEM/PUBLICATION` — The B-01F candidate reconciles intervening main-line Pages drift by preserving authorized-maintainer dispatch, the CARBON_HUB_PUBLISH opt-in gate, and full Hub validation before deployment.
 - `OWNER-NET-01` — `SYSTEM/DEVELOPMENT-SEQUENCING` — OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work.
+- `HUB-BUG-002` — `SYSTEM/PUBLICATION` — The Pages publisher now fetches full Git history before static-payload validation so the pinned historical authority snapshot resolves without weakening the validator.
 
 ## Authority boundary
 
