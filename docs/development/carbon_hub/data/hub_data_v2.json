@@ -455,7 +455,8 @@
       "required_markers": [
         "Publish authorized-maintainer public static hub",
         "github.event_name == 'workflow_dispatch'",
-        "vars.CARBON_HUB_PUBLISH == 'true'"
+        "vars.CARBON_HUB_PUBLISH == 'true'",
+        "fetch-depth: 0"
       ]
     }
   ],

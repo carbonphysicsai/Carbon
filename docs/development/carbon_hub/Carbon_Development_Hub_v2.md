@@ -93,6 +93,7 @@
 - `OWNER-NET-01` — `SYSTEM/DEVELOPMENT-SEQUENCING` — OWNER-NET-01 preserves Wave B and ratifies the post-Wave-B C0/C1/C2 network path, D-to-H-to-I launch-critical branch, temporary no-winner-safe direct testnet policy, and treasury-before-mainnet requirement without selecting implementation work.
 - `B-04-D11` — `WAVE-B/B-04` — B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation.
 - `B-04-E2` — `WAVE-B/B-04` — B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.
+- `HUB-BUG-002` — `SYSTEM/PUBLICATION` — The Pages publisher now fetches full Git history before static-payload validation so the pinned historical authority snapshot resolves without weakening the validator.
 
 ## Authority boundary
 
