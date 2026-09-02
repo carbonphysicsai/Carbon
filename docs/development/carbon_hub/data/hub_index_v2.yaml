@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-01T22:16:47Z"
+  captured_at_utc: "2026-09-02T02:29:48Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "90e5ab645b638914b1395bc64d69a73e154bd605"
+  authority_snapshot_commit: "c84df2980ca96529755cf9c98fcc7e356cac724f"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -66,7 +66,7 @@ current:
     commercially_validated: "unearned"
     production_qualified: "unearned"
   maturity_summary: "B-05 is selected only under B-04's conditional completion predicate, and no B-05 contract or implementation work has started. All B-05 maturity states and every scientific, security, network, commercial, and production qualification state remain unearned."
-  decision_series_status: "No B-05 decision has been recorded. B-04-D1 through B-04-D11 are implemented working decisions only for B-04's bounded fixture-runtime candidate and grant no B-05 measurement, scoring, qualification, or human-reserved authority."
+  decision_series_status: "No B-05 decision has been recorded. B-04-D1 through B-04-D12 are implemented working decisions only for B-04's bounded fixture-runtime candidate and grant no B-05 measurement, scoring, qualification, retry, operations, or human-reserved authority."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -1437,6 +1437,20 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "SYSTEM/CI"
     supersedes: "HUB-ADJ-003"
+  -
+    map_ref: "WAVE-B/B-04"
+    event_type: "decision"
+    event_id: "B-04-D12"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/c84df2980ca96529755cf9c98fcc7e356cac724f/.agent/DECISIONS.md"
+    affects:
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-E2"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

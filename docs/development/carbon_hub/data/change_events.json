@@ -245,6 +245,22 @@
         "SYSTEM/CI"
       ],
       "supersedes": "HUB-ADJ-003"
+    },
+    {
+      "map_ref": "WAVE-B/B-04",
+      "event_type": "decision",
+      "event_id": "B-04-D12",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c84df2980ca96529755cf9c98fcc7e356cac724f/.agent/DECISIONS.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E2",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }

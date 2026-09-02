@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `90e5ab645b638914b1395bc64d69a73e154bd605` on `main`, captured 2026-09-01T22:16:47Z.
+**Authority snapshot:** `c84df2980ca96529755cf9c98fcc7e356cac724f` on `main`, captured 2026-09-02T02:29:48Z.
 **Current:** Wave B, ticket B-05. Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
 
 ## Wave spine
@@ -94,6 +94,7 @@
 - `B-04-D11` — `WAVE-B/B-04` — B-01F's exact completion predicate is satisfied and B-04-D11 freezes the complete v1 executable reference schema and protected/public surface before bounded runtime implementation.
 - `B-04-E2` — `WAVE-B/B-04` — B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.
 - `HUB-BUG-002` — `SYSTEM/PUBLICATION` — The Pages publisher now fetches full Git history before static-payload validation so the pinned historical authority snapshot resolves without weakening the validator.
+- `B-04-D12` — `WAVE-B/B-04` — B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset.
 
 ## Authority boundary
 

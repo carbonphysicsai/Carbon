@@ -353,6 +353,24 @@
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/75"
     },
     {
+      "decision_id": "B-04-D12",
+      "map_ref": "WAVE-B/B-04",
+      "wave": "B",
+      "ticket": "B-04",
+      "title": "At-most-once admission-authority invocation across the callback boundary",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should the one-use admission grant remain consumed after callback start even when the provider raises, is cancelled, or returns an invalid echo without producing a decision?",
+      "recommendation": "KEEP complete pre-callback validation and reversible inspection, atomically consume immediately before the saved callback with no post-boundary rollback, and replace non-Exception provider control flow with one fixed protected signal outside provider context.",
+      "why": "The ratified contract permits one exact attempt and selects no retry or durable idempotency policy; rollback could duplicate an unknowable external effect, while the original provider signal could disclose protected text, arguments, context, or traceback frames.",
+      "if_kept": "Provider or post-callback failure creates no decision or TruthAsset, hostile control signals expose no provider payload and create no outcome, and every reentrant, concurrent, or later reuse fails locally before a second callback.",
+      "if_changed": "A resumable design requires a prospective grant and service version, durable attempt identity, authority-side idempotency evidence, reconciliation states, and explicit operations and security ownership.",
+      "affects": ["WAVE-B/B-06", "WAVE-B/B-E2", "SYSTEM/AGENT-EXECUTION", "SYSTEM/DEVELOPMENT-HUB"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5503430538",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/75"
+    },
+    {
       "decision_id": "OWNER-DX-01",
       "map_ref": "WAVE-B/B-01F",
       "wave": "B",
