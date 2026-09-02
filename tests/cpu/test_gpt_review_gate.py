@@ -16,6 +16,7 @@ SPEC.loader.exec_module(review_gate)
 
 HEAD = "a" * 40
 TREE = "b" * 40
+REPOSITORY = {"full_name": "carbonphysicsai/Carbon"}
 
 
 def _pull() -> dict[str, object]:
@@ -23,9 +24,9 @@ def _pull() -> dict[str, object]:
         "number": 75,
         "state": "open",
         "draft": False,
-        "user": {"login": "implementer"},
-        "base": {"ref": "main"},
-        "head": {"sha": HEAD},
+        "user": {"login": "implementer", "type": "User"},
+        "base": {"ref": "main", "sha": "c" * 40, "repo": REPOSITORY},
+        "head": {"sha": HEAD, "repo": REPOSITORY},
     }
 
 
@@ -57,7 +58,7 @@ def _review(**changes: object) -> dict[str, object]:
         "id": 123,
         "state": "APPROVED",
         "commit_id": HEAD,
-        "user": {"login": "human-reviewer"},
+        "user": {"login": "human-reviewer", "type": "User"},
         "body": _receipt(),
     }
     value.update(changes)
@@ -78,8 +79,11 @@ def test_accepts_non_author_exact_head_receipt() -> None:
     [
         ({"state": "closed"}, "open and non-draft"),
         ({"draft": True}, "open and non-draft"),
-        ({"base": {"ref": "develop"}}, "target main"),
-        ({"head": {"sha": "bad"}}, "head SHA"),
+        (
+            {"base": {"ref": "develop", "repo": REPOSITORY}},
+            "target main",
+        ),
+        ({"head": {"sha": "bad", "repo": REPOSITORY}}, "head SHA"),
     ],
 )
 def test_rejects_invalid_pull_request(
@@ -103,7 +107,14 @@ def test_rejects_commit_or_tree_mismatch() -> None:
     [
         ({"state": "COMMENTED"}, "no APPROVED"),
         ({"commit_id": "c" * 40}, "stale"),
-        ({"user": {"login": "IMPLEMENTER"}}, "author cannot approve"),
+        (
+            {"user": {"login": "IMPLEMENTER", "type": "User"}},
+            "author cannot approve",
+        ),
+        (
+            {"user": {"login": "review-bot", "type": "Bot"}},
+            "human GitHub user",
+        ),
         ({"id": 0}, "positive id"),
         ({"body": ""}, "exactly one v1 receipt"),
     ],
@@ -146,11 +157,22 @@ def test_rejects_duplicate_or_reordered_receipt() -> None:
 
 def test_ignores_unrelated_reviews_and_selects_latest_valid_id() -> None:
     older = _review(id=123)
-    newer = _review(id=456, user={"login": "second-human"})
+    newer = _review(id=456, user={"login": "second-human", "type": "User"})
     unrelated = _review(id=999, state="COMMENTED", body="not a receipt")
     assert review_gate.validate_review_gate(
         _pull(), [older, unrelated, newer], _commit()
     )[:2] == (456, "second-human")
+
+
+@pytest.mark.parametrize("side", ["base", "head"])
+def test_rejects_cross_repository_pull_request(side: str) -> None:
+    pull = _pull()
+    record = copy.deepcopy(pull[side])
+    assert isinstance(record, dict)
+    record["repo"] = {"full_name": "attacker/Fork"}
+    pull[side] = record
+    with pytest.raises(review_gate.ReviewGateError, match="repository must be"):
+        review_gate.validate_review_gate(pull, [_review()], _commit())
 
 
 def test_main_reads_files_and_reports_safe_failure(

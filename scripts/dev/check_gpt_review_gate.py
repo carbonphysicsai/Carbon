@@ -13,6 +13,7 @@ from typing import Any
 
 SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
 MODEL_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:/+\-]{0,119}\Z")
+EXPECTED_REPOSITORY = "carbonphysicsai/Carbon"
 RECEIPT_FIELDS = (
     "CARBON_CODEX_GPT_REVIEW_RECEIPT",
     "REVIEWED_HEAD",
@@ -55,6 +56,19 @@ def _login(value: Any, label: str) -> str:
     if not isinstance(value, str) or not value or len(value) > 100:
         raise ReviewGateError(f"{label} must be a non-empty GitHub login")
     return value
+
+
+def _user(value: Any, label: str) -> dict[str, Any]:
+    user = _mapping(value, label)
+    if user.get("type") != "User":
+        raise ReviewGateError(f"{label} must be a human GitHub user")
+    return user
+
+
+def _repository(record: Mapping[str, Any], label: str) -> None:
+    repository = _mapping(record.get("repo"), f"{label} repository")
+    if repository.get("full_name") != EXPECTED_REPOSITORY:
+        raise ReviewGateError(f"{label} repository must be {EXPECTED_REPOSITORY}")
 
 
 def _parse_receipt(body: Any) -> dict[str, str]:
@@ -132,10 +146,12 @@ def validate_review_gate(
     base = _mapping(pull.get("base"), "pull request base")
     if base.get("ref") != "main":
         raise ReviewGateError("pull request must target main")
+    _repository(base, "pull request base")
     head_record = _mapping(pull.get("head"), "pull request head")
+    _repository(head_record, "pull request head")
     head = _sha(head_record.get("sha"), "pull request head SHA")
     author = _login(
-        _mapping(pull.get("user"), "pull request author").get("login"),
+        _user(pull.get("user"), "pull request author").get("login"),
         "pull request author",
     )
 
@@ -162,7 +178,7 @@ def validate_review_gate(
             if type(review_id) is not int or review_id <= 0:
                 raise ReviewGateError("approved review has no positive id")
             reviewer = _login(
-                _mapping(raw.get("user"), "approved reviewer").get("login"),
+                _user(raw.get("user"), "approved reviewer").get("login"),
                 "approved reviewer",
             )
             if reviewer.casefold() == author.casefold():

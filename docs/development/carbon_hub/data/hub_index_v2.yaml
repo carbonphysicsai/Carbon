@@ -1413,6 +1413,10 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "WAVE-B/B-04"
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-07S"
       - "WAVE-B/B-GATE"
     supersedes: null
 event_schema:

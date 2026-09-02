@@ -29,6 +29,7 @@ jobs:
       - name: Validate the live exact-head review receipt
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
@@ -37,8 +38,11 @@ jobs:
           reviews_path="${RUNNER_TEMP}/carbon-review-reviews.json"
           commit_path="${RUNNER_TEMP}/carbon-review-commit.json"
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${pull_path}"
+          live_base="$(jq -r .base.sha "${pull_path}")"
           live_head="$(jq -r .head.sha "${pull_path}")"
+          [[ "${EVENT_BASE_SHA}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${EVENT_HEAD_SHA}" =~ ^[0-9a-f]{40}$ ]]
+          [[ "${live_base}" == "${EVENT_BASE_SHA}" ]]
           [[ "${live_head}" == "${EVENT_HEAD_SHA}" ]]
           gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
