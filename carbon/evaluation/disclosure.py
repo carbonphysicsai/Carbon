@@ -34,6 +34,7 @@ from .errors import (
     ReferenceDisclosureCode,
     ReferenceDisclosureError,
     ReferenceValidationError,
+    _reference_provider_control_signal,
 )
 from .execution import (
     PrimaryRunGrant,
@@ -233,13 +234,19 @@ class ReferenceDisclosureAuthority(ProtectedReferenceValue):
         if _token is not _DISCLOSURE_AUTHORITY_TOKEN:
             raise PermissionError("disclosure authority requires controlled issuance")
         checked_policy = _copy_policy_ref(disclosure_policy_ref, None)
+        control_signal = None
         try:
             verifier = object.__getattribute__(
                 authority,
                 "verify_reference_disclosure",
             )
-        except (AttributeError, TypeError):
+        except Exception:  # noqa: BLE001 - sanitize the registry capability boundary.
             verifier = None
+        except BaseException:  # noqa: BLE001 - normalize provider control flow.
+            verifier = None
+            control_signal = _reference_provider_control_signal()
+        if control_signal is not None:
+            raise control_signal from None
         if not callable(verifier):
             raise TypeError(
                 "disclosure registry authority must provide "
@@ -558,6 +565,7 @@ def _require_authority(
 ) -> None:
     if type(authority) is not ReferenceDisclosureAuthority:
         raise _disclosure_error(ReferenceDisclosureCode.DISCLOSURE_POLICY_REQUIRED)
+    control_signal = None
     try:
         authority.require_projection(
             disclosure_policy_ref=disclosure_policy_ref,
@@ -568,6 +576,10 @@ def _require_authority(
         raise _disclosure_error(
             ReferenceDisclosureCode.PROJECTION_NOT_PERMITTED
         ) from None
+    except BaseException:  # noqa: BLE001 - normalize provider control flow.
+        control_signal = _reference_provider_control_signal()
+    if control_signal is not None:
+        raise control_signal from None
 
 
 def create_public_reference_policy_projection(

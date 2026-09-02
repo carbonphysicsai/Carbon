@@ -100,6 +100,24 @@ class _RejectingDisclosureRegistry:
         raise RuntimeError(_SECRET)
 
 
+class _InterruptedDisclosureRegistry:
+    def __init__(self) -> None:
+        self.signal = KeyboardInterrupt(_SECRET)
+
+    def verify_reference_disclosure(self, **bindings: object) -> object:
+        del bindings
+        raise self.signal
+
+
+class _InterruptedDisclosureDescriptorRegistry:
+    def __init__(self, signal: BaseException) -> None:
+        self.signal = signal
+
+    @property
+    def verify_reference_disclosure(self) -> object:
+        raise self.signal
+
+
 def _authority(graph: object) -> tuple[
     ReferenceDisclosureAuthority,
     _PositiveDisclosureRegistry,
@@ -309,6 +327,50 @@ def test_disclosure_capability_is_exact_frozen_redacted_and_nonserializable() ->
         )
 
 
+@pytest.mark.parametrize(
+    "signal_type",
+    (
+        pytest.param(RuntimeError, id="ordinary_exception"),
+        pytest.param(KeyboardInterrupt, id="control_signal"),
+    ),
+)
+def test_disclosure_authority_issuance_sanitizes_hostile_registry_descriptor(
+    signal_type: type[BaseException],
+) -> None:
+    graph = build_b04_fixture_reference_graph()
+    original = signal_type(_SECRET)
+    registry = _InterruptedDisclosureDescriptorRegistry(original)
+
+    with pytest.raises(BaseException) as captured:
+        _issue_reference_disclosure_authority(
+            disclosure_policy_ref=graph.policy.disclosure_policy_ref,
+            authority=registry,
+        )
+
+    failure = captured.value
+    assert failure is not original
+    assert type(failure) is not type(original)
+    assert failure.__cause__ is None
+    assert failure.__context__ is None
+    surface = repr((str(failure), repr(failure), failure.args, failure.__dict__))
+    assert _SECRET not in surface
+    traceback_frames = []
+    traceback = failure.__traceback__
+    while traceback is not None:
+        traceback_frames.append(traceback.tb_frame.f_code.co_name)
+        traceback = traceback.tb_next
+    assert "verify_reference_disclosure" not in traceback_frames
+    if issubclass(signal_type, Exception):
+        assert type(failure) is TypeError
+        assert _SECRET.encode("ascii") not in pickle.dumps(failure)
+    else:
+        assert type(failure).__name__ == "_ReferenceProviderControlSignal"
+        assert not isinstance(failure, Exception)
+        with pytest.raises(TypeError) as pickle_failure:
+            pickle.dumps(failure)
+        assert _SECRET not in repr(pickle_failure.value)
+
+
 def test_object_setattr_cannot_replace_a_denying_disclosure_registry() -> None:
     graph = build_b04_fixture_reference_graph()
     authority = _issue_reference_disclosure_authority(
@@ -437,6 +499,52 @@ def test_absent_wrong_or_rejecting_disclosure_authority_fails_closed() -> None:
     assert denied.value.__cause__ is None
     assert denied.value.__suppress_context__ is True
     assert _SECRET not in denied_surface
+
+
+@pytest.mark.parametrize("source_kind", ("policy", "outcome"))
+def test_disclosure_provider_control_signal_is_fixed_and_nonserializable(
+    source_kind: str,
+) -> None:
+    graph = build_b04_fixture_reference_graph()
+    registry = _InterruptedDisclosureRegistry()
+    authority = _issue_reference_disclosure_authority(
+        disclosure_policy_ref=graph.policy.disclosure_policy_ref,
+        authority=registry,
+    )
+
+    with pytest.raises(BaseException) as captured:
+        if source_kind == "policy":
+            create_public_reference_policy_projection(
+                graph.policy,
+                disclosure_authority=authority,
+            )
+        else:
+            create_public_reference_outcome_projection(
+                graph.primary_run,
+                grant=graph.primary_grant,
+                disclosure_authority=authority,
+            )
+
+    signal = captured.value
+    assert signal is not registry.signal
+    assert type(signal) is not type(registry.signal)
+    assert type(signal).__name__ == "_ReferenceProviderControlSignal"
+    assert not isinstance(signal, Exception)
+    assert signal.__cause__ is None
+    assert signal.__context__ is None
+    assert signal.__suppress_context__ is True
+    assert _SECRET not in repr(
+        (str(signal), repr(signal), signal.args, signal.__dict__)
+    )
+    traceback_frames = []
+    traceback = signal.__traceback__
+    while traceback is not None:
+        traceback_frames.append(traceback.tb_frame.f_code.co_name)
+        traceback = traceback.tb_next
+    assert "verify_reference_disclosure" not in traceback_frames
+    with pytest.raises(TypeError) as pickle_failure:
+        pickle.dumps(signal)
+    assert _SECRET not in repr(pickle_failure.value)
 
 
 def test_outcome_projection_requires_the_exact_nominal_bound_grant() -> None:

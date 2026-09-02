@@ -340,6 +340,43 @@ class ReferenceTruthError(Exception):
         raise TypeError("protected reference errors cannot be pickled")
 
 
+class _ReferenceProviderControlSignal(BaseException):
+    """Fixed protected signal for non-Exception provider control flow."""
+
+    __slots__ = ()
+
+    def __init__(self) -> None:
+        self.__cause__ = None
+        self.__suppress_context__ = True
+        super().__init__("the configured reference provider interrupted control flow")
+
+    def __repr__(self) -> str:
+        return "_ReferenceProviderControlSignal()"
+
+    @property
+    def __context__(self) -> None:
+        """Never retain a provider signal or traceback through exception context."""
+
+        return None
+
+    @__context__.setter
+    def __context__(self, value: object) -> None:
+        del value
+
+    def __reduce__(self):
+        raise TypeError("protected reference control signals cannot be pickled")
+
+    def __reduce_ex__(self, protocol: int):
+        del protocol
+        raise TypeError("protected reference control signals cannot be pickled")
+
+
+def _reference_provider_control_signal() -> BaseException:
+    """Return a fresh fixed signal outside any hostile provider exception object."""
+
+    return _ReferenceProviderControlSignal()
+
+
 class ReferenceValidationError(ReferenceTruthError, ValueError):
     """A malformed or cross-bound B-04 input was rejected."""
 

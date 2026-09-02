@@ -170,8 +170,12 @@ base recorded above. The runtime work then completed these coherent slices:
 B-04-D12 keeps the admission callback boundary at-most-once: complete graph
 and authority validation precede the atomic claim, while the one-use grant is
 consumed immediately before the saved external callback and is never rolled
-back after callback start. This clarifies the ratified one-attempt/no-retry
-contract without changing D11 bytes or adding a production retry policy.
+back after callback start. Non-`Exception` provider control signals are replaced
+outside the provider context by a fixed protected, nonpickleable control signal
+without changing the release-before-claim or burn-after-callback transition.
+This clarifies the ratified one-attempt/no-retry and protected-disclosure
+contract without changing D11 bytes or adding a production retry/cancellation
+policy.
 
 The implementation preserves one-way explicit imports from current B-02A
 submodules and does not import `carbon.generators`, scoring, registry lifecycle,

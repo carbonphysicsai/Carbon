@@ -35,6 +35,7 @@ from .errors import (
     ReferenceServiceCode,
     ReferenceServiceError,
     ReferenceValidationError,
+    _reference_provider_control_signal,
 )
 from .execution import ReferenceRunRecord
 from .model import (
@@ -516,6 +517,7 @@ def issue_truth_asset_admission_grant_record(
         checked_issuance_id,
         checked_issuance_version,
     )
+    control_signal = None
     try:
         record = _issue_truth_asset_admission_grant_record(
             issuer,
@@ -523,9 +525,14 @@ def issue_truth_asset_admission_grant_record(
             checked_issuance_id,
             checked_issuance_version,
         )
-    except BaseException:
+    except Exception:
         _release_issuance_operation(operation_key, operation_token)
         raise
+    except BaseException:  # noqa: BLE001 - normalize provider control flow.
+        _release_issuance_operation(operation_key, operation_token)
+        control_signal = _reference_provider_control_signal()
+    if control_signal is not None:
+        raise control_signal from None
     _complete_issuance_operation(operation_key, operation_token)
     return record
 
@@ -1052,6 +1059,7 @@ def _decide_truth_asset_admission_record(
         checked_comparisons,
     )
     inspection_ref, inspection_token = _reserve_grant_inspection(checked_grant)
+    control_signal = None
     try:
         authority_ref, evaluate_admission = _validated_admission_authority(
             authority,
@@ -1065,9 +1073,15 @@ def _decide_truth_asset_admission_record(
             authority,
             inspection_token,
         )
-    except BaseException:
+    except Exception:
         _release_grant_inspection(inspection_ref, inspection_token)
         raise
+    except BaseException:  # noqa: BLE001 - normalize provider control flow.
+        _release_grant_inspection(inspection_ref, inspection_token)
+        control_signal = _reference_provider_control_signal()
+    if control_signal is not None:
+        raise control_signal from None
+    control_signal = None
     try:
         echo = evaluate_admission(
             _copy_admission_attempt(attempt),
@@ -1078,6 +1092,10 @@ def _decide_truth_asset_admission_record(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,
             path="/admission_authority_ref",
         ) from None
+    except BaseException:  # noqa: BLE001 - normalize provider control flow.
+        control_signal = _reference_provider_control_signal()
+    if control_signal is not None:
+        raise control_signal from None
     if type(echo) is not TruthAssetAdmissionEcho:
         raise ReferenceServiceError(
             ReferenceServiceCode.ADMISSION_AUTHORITY_UNAVAILABLE,

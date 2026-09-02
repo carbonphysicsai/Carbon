@@ -143,6 +143,41 @@ _RUN_STATUS_CASES = (
     ),
 )
 
+_PROTECTED_CONTROL_SECRET = "b04-protected-provider-control-secret"
+
+
+def _assert_sanitized_provider_control_signal(
+    captured: BaseException,
+    original: BaseException,
+    *,
+    forbidden_frame: str,
+) -> None:
+    assert captured is not original
+    assert type(captured) is not type(original)
+    assert type(captured).__name__ == "_ReferenceProviderControlSignal"
+    assert not isinstance(captured, Exception)
+    assert captured.__cause__ is None
+    assert captured.__context__ is None
+    assert captured.__suppress_context__ is True
+    surface = repr(
+        (
+            str(captured),
+            repr(captured),
+            captured.args,
+            captured.__dict__,
+        )
+    )
+    assert _PROTECTED_CONTROL_SECRET not in surface
+    traceback_frames = []
+    traceback = captured.__traceback__
+    while traceback is not None:
+        traceback_frames.append(traceback.tb_frame.f_code.co_name)
+        traceback = traceback.tb_next
+    assert forbidden_frame not in traceback_frames
+    with pytest.raises(TypeError) as pickle_failure:
+        pickle.dumps(captured)
+    assert _PROTECTED_CONTROL_SECRET not in repr(pickle_failure.value)
+
 
 def _assert_code(captured: pytest.ExceptionInfo, code: ReferenceInputCode) -> None:
     assert captured.value.code == code.value
@@ -636,6 +671,69 @@ def test_issuance_provider_failure_fabricates_no_record_or_capability(
         )
         is not None
     )
+
+
+def test_issuance_provider_control_signal_is_sanitized_and_releases_operation() -> None:
+    graph = build_b04_fixture_reference_graph()
+    attempt = _attempt(
+        graph,
+        artifact_binding=AdmissionArtifactBinding.absent(
+            AdmissionArtifactAbsenceReason.MISSING
+        ),
+        qualification_binding=QualificationBinding.absent(
+            QualificationAbsenceReason.UNAVAILABLE
+        ),
+    )
+    issuer_ref = fixture_runtime._identity(
+        ReferenceIdentityKind.ADMISSION_ISSUER,
+        "matrix_issuance_control_signal_issuer",
+        graph.challenge_key,
+    )
+    original = KeyboardInterrupt(_PROTECTED_CONTROL_SECRET)
+
+    class Issuer:
+        issuance_calls = 0
+        interrupted = True
+
+        @property
+        def issuer_ref(self):
+            return issuer_ref
+
+        def evaluate_grant_issuance(self, observed_attempt):
+            assert observed_attempt == attempt
+            self.issuance_calls += 1
+            if self.interrupted:
+                raise original
+            return admission_runtime.AdmissionGrantIssuanceEcho(
+                AdmissionGrantIssuanceOutcome.ADMISSION_GRANT_AUTHORIZED,
+                AdmissionGrantIssuanceReason.ADMISSION_GRANT_REQUIREMENTS_SATISFIED,
+                "b04-matrix-issuance-control-recovery-token",
+            )
+
+    issuer = Issuer()
+    with pytest.raises(BaseException) as captured:
+        admission_runtime.issue_truth_asset_admission_grant_record(
+            issuer,
+            attempt,
+            issuance_id="b04_matrix_issuance_control_signal",
+            issuance_version="1.0",
+        )
+    _assert_sanitized_provider_control_signal(
+        captured.value,
+        original,
+        forbidden_frame="evaluate_grant_issuance",
+    )
+    assert issuer.issuance_calls == 1
+
+    issuer.interrupted = False
+    recovered = admission_runtime.issue_truth_asset_admission_grant_record(
+        issuer,
+        attempt,
+        issuance_id="b04_matrix_issuance_control_signal",
+        issuance_version="1.0",
+    )
+    assert recovered is not None
+    assert issuer.issuance_calls == 2
 
 
 def _registered_structural_graph(graph):
@@ -1449,7 +1547,7 @@ def test_admission_preclaim_baseexception_releases_inspection_reservation() -> N
     class PreclaimControlSignal(BaseException):
         pass
 
-    signal = PreclaimControlSignal("process-control signal")
+    signal = PreclaimControlSignal(_PROTECTED_CONTROL_SECRET)
 
     class InterruptedAuthority:
         admission_calls = 0
@@ -1464,7 +1562,7 @@ def test_admission_preclaim_baseexception_releases_inspection_reservation() -> N
             raise AssertionError("preclaim failure must not invoke the callback")
 
     interrupted = InterruptedAuthority()
-    with pytest.raises(PreclaimControlSignal) as captured:
+    with pytest.raises(BaseException) as captured:
         admission_runtime.decide_truth_asset_admission(
             interrupted,
             issuance,
@@ -1476,7 +1574,11 @@ def test_admission_preclaim_baseexception_releases_inspection_reservation() -> N
             decision_id="b04_matrix_preclaim_baseexception_decision",
             decision_version="1.0",
         )
-    assert captured.value is signal
+    _assert_sanitized_provider_control_signal(
+        captured.value,
+        signal,
+        forbidden_frame="admission_authority_ref",
+    )
     assert interrupted.admission_calls == 0
 
     decision = admission_runtime.decide_truth_asset_admission(
@@ -1503,7 +1605,7 @@ def test_admission_preclaim_baseexception_releases_inspection_reservation() -> N
         pytest.param(asyncio.CancelledError, id="asyncio_cancelled"),
     ),
 )
-def test_admission_callback_baseexception_propagates_and_burns_grant(
+def test_admission_callback_baseexception_is_sanitized_and_burns_grant(
     signal_type: type[BaseException],
 ) -> None:
     signal_label = {
@@ -1515,7 +1617,7 @@ def test_admission_callback_baseexception_propagates_and_burns_grant(
     graph, attempt, run, artifact, comparison, issuance, grant, _ = (
         _positive_admission_inputs(f"callback_{signal_label}")
     )
-    signal = signal_type("process-control signal")
+    signal = signal_type(_PROTECTED_CONTROL_SECRET)
 
     class InterruptedAuthority:
         admission_calls = 0
@@ -1532,7 +1634,7 @@ def test_admission_callback_baseexception_propagates_and_burns_grant(
 
     interrupted = InterruptedAuthority()
     decision = None
-    with pytest.raises(signal_type) as captured:
+    with pytest.raises(BaseException) as captured:
         decision = admission_runtime.decide_truth_asset_admission(
             interrupted,
             issuance,
@@ -1545,7 +1647,11 @@ def test_admission_callback_baseexception_propagates_and_burns_grant(
             decision_version="1.0",
         )
     assert decision is None
-    assert captured.value is signal
+    _assert_sanitized_provider_control_signal(
+        captured.value,
+        signal,
+        forbidden_frame="evaluate_admission",
+    )
     assert interrupted.admission_calls == 1
 
     class ReplayAuthority:

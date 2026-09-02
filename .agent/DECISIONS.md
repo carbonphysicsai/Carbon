@@ -1770,14 +1770,20 @@ and snapshots the callable before any irreversible claim. It then atomically
 consumes the grant immediately before invoking that saved callback. A failure,
 including a non-`Exception` process-control or cancellation signal, before
 consumption releases the reversible reservation. Once callback invocation
-begins, no post-call rollback exists.
+begins, no post-call rollback exists. At every issuer, admission-authority, and
+disclosure-registry provider boundary, a non-`Exception` `BaseException` is
+replaced outside the provider exception context by one fresh fixed protected
+non-`Exception` control signal. Its fixed payload and arguments contain no
+provider object, message, or arguments; its cause and context are empty, it
+retains no provider-origin traceback frame, and it cannot be pickled.
 
 A valid echo produces one exact admission decision. An ordinary provider
 `Exception`, malformed or wrong-type echo, incompatible outcome/reason, or
 invalid consumed-grant receipt produces no decision and leaves the grant
-consumed. A non-`Exception` `BaseException`, including cancellation, propagates
-without fabricating a decision and also leaves the grant consumed. Reentrant,
-concurrent, or later reuse is rejected locally as
+consumed. A non-`Exception` `BaseException`, including cancellation, yields the
+fixed protected control signal without fabricating a decision and also leaves
+the grant consumed. Reentrant, concurrent, or later reuse is rejected locally
+as
 `ReferenceValidationError(STALE_BINDING, /grant_ref)` before another callback.
 `GRANT_INVALID_OR_CONSUMED` remains only an available authority-emitted reason
 on the first claimed attempt; it is not fabricated for local replay.
@@ -1799,18 +1805,26 @@ not produce a `GRANT_INVALID_OR_CONSUMED` decision and never invokes another
 authority callback; it fails locally as stale. The repair is durable rationale
 and complete boundary coverage, not rollback.
 
+The later independent-audit finding that raw provider control signals exposed
+provider text, arguments, pickled bytes, and traceback frames is
+`VALID / REPAIRED`. The repair changes only the outward protected boundary: it
+normalizes the signal after applying the same pre-claim release or post-claim
+burn transition. It does not convert cancellation into a reference outcome,
+restore a consumed grant, or select a production cancellation/retry policy.
+
 **Rejected alternatives.** Rolling the grant back after callback start,
 consuming only after a valid echo, fabricating an admission decision from a
 provider/service failure, translating process-control signals into scientific
-outcomes, or adding a generic retry/idempotency switch would weaken one-use
-authority or invent later operational policy.
+outcomes, exposing the original provider signal across a public boundary, or
+adding a generic retry/idempotency switch would weaken one-use authority,
+disclose protected provider data, or invent later operational policy.
 
 **Interfaces and invariants.** The public D11 schema, canonical bytes, ref
 families, outcome/reason matrices, and curated package root do not change.
 Pre-callback validation remains retryable with the same unconsumed grant only
 because no authority callback began. Post-boundary failure remains a typed
-service/validation failure or propagated process-control signal with no
-decision record. Exactly one callback may cross one grant boundary, including
+service/validation failure or fixed protected control signal with no decision
+record. Exactly one callback may cross one grant boundary, including
 under reentrancy and concurrency. Issuer/authority/runner role separation,
 positive-only admission, protected-error handling, and reference-versus-
 candidate failure separation remain unchanged.
@@ -1819,7 +1833,9 @@ candidate failure separation remain unchanged.
 validation failure and process-control release, ordinary provider exceptions,
 malformed/wrong-type/incompatible echoes, exact invalid-receipt
 classification, callback `KeyboardInterrupt`/`SystemExit`/`GeneratorExit` and
-`asyncio.CancelledError` propagation with post-boundary burn, reentrant and
+`asyncio.CancelledError` normalization with post-boundary burn, issuance
+control-signal normalization with pre-boundary release, disclosure-registry
+normalization, absence of provider frames/text/context/pickling, reentrant and
 concurrent single-callback behavior, reuse rejection after provider failure or
 valid decision, and self-admission/dual-role rejection.
 
@@ -1842,10 +1858,11 @@ service guarantees, and every substantive admission/qualification value
 remain unavailable and fail closed.
 
 **Exact change path.** `.agent/DECISIONS.md`, the B-04 plan/evidence,
-`tests/cpu/test_b04_matrix_contract.py`, issue #42, and the required
-Development Hub decision/event source plus deterministic generated projections.
-The ratified contract, D11 schema, and production modules require no semantic
-change.
+`carbon/evaluation/errors.py`, `carbon/evaluation/admission.py`,
+`carbon/evaluation/disclosure.py`, the focused matrix/disclosure tests, issue
+#42, and the required Development Hub decision/event source plus deterministic
+generated projections. The ratified contract and D11 public schema require no
+semantic change.
 
 ## 2026-08-31 — HUB-D1: Static-first Development Hub and maintenance gate
 
