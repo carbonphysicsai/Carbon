@@ -85,6 +85,7 @@ _CONTRACT_EXACT = frozenset(
         "CONSTITUTION.md",
         "README.md",
         "docs/development/carbon_hub/AGENTS.md",
+        "docs/development/carbon_hub/NEWCOMER_OVERVIEW_README.md",
     }
 )
 _DERIVED_EXACT = frozenset(
@@ -94,6 +95,8 @@ _DERIVED_EXACT = frozenset(
         "docs/development/carbon_hub/data/hub_index_v2.yaml",
         "docs/development/carbon_hub/index.html",
         "docs/development/carbon_hub/interactive.html",
+        "docs/development/carbon_hub/newcomer.html",
+        "docs/development/carbon_hub/technical.html",
         "docs/development/carbon_hub/orientation/CHANGE_ROUTING.md",
         "docs/development/carbon_hub/orientation/GLOSSARY.md",
         "docs/development/carbon_hub/orientation/START_HERE.md",

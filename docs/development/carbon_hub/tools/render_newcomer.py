@@ -97,7 +97,11 @@ def validate(hub: dict[str, Any], copy: dict[str, Any]) -> None:
 
 
 def detail(item: dict[str, Any], map_ref: str, href: str) -> str:
-    ceiling = item.get("authority_ceiling") or item.get("maturity_ceiling") or "See exact Hub record."
+    ceiling = (
+        item.get("authority_ceiling")
+        or item.get("maturity_ceiling")
+        or "See exact Hub record."
+    )
     return (
         '<details><summary>Technical Detail</summary><div class="technical">'
         f'<p><span class="label">Canonical title:</span> {esc(item["title"])}</p>'
@@ -105,7 +109,7 @@ def detail(item: dict[str, Any], map_ref: str, href: str) -> str:
         f'<p><span class="label">Map ref:</span> <code>{esc(map_ref)}</code></p>'
         f'<p><span class="label">Maturity / authority ceiling:</span> {esc(ceiling)}</p>'
         f'<p><a href="{esc(href)}">Open the full technical Hub record</a></p>'
-        '</div></details>'
+        "</div></details>"
     )
 
 
@@ -130,7 +134,7 @@ def render(hub: dict[str, Any], copy: dict[str, Any]) -> str:
             f'<p><span class="label">Done when:</span> {esc(plain["done_when"])}</p>'
             f'<p class="boundary"><span class="label">Still not true:</span> {esc(plain["not_yet"])}</p>'
             + detail(canonical, plain["map_ref"], f"index.html#wave-{wave_id}")
-            + '</article>'
+            + "</article>"
         )
 
     ticket_groups: list[str] = []
@@ -151,15 +155,15 @@ def render(hub: dict[str, Any], copy: dict[str, Any]) -> str:
                 f'<p><span class="label">What changes when finished?</span> {esc(plain["changes"])}</p>'
                 f'<p class="boundary"><span class="label">What it does not do:</span> {esc(plain["not_yet"])}</p>'
                 + detail(canonical, plain["map_ref"], f"index.html#ticket-{ticket_id}")
-                + '</article>'
+                + "</article>"
             )
-        open_attr = ' open' if wave_id == current_wave else ''
+        open_attr = " open" if wave_id == current_wave else ""
         ticket_groups.append(
-            f'<details{open_attr}><summary>Wave {esc(wave_id)} tickets</summary>'
+            f"<details{open_attr}><summary>Wave {esc(wave_id)} tickets</summary>"
             f'<div class="grid">{"".join(cards)}</div></details>'
         )
 
-    return f'''<!doctype html>
+    return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{esc(copy["summary"])}"><title>{esc(copy["title"])}</title><style>{CSS}</style></head>
 <body><header class="hero"><p class="eyebrow">Carbon Hub · Overview</p><h1>Understand Carbon before reading the repository.</h1><p>{esc(copy["summary"])}</p><div class="buttons"><a class="button" href="#current">Start with where Carbon is now</a><a class="button alt" href="index.html">Open Technical Detail</a></div></header>
 <nav class="nav" aria-label="Overview sections"><div><a href="#current">Current</a><a href="#roadmap">Roadmap</a><a href="#tickets">Tickets</a><a href="#status">Status</a></div></nav><main>
@@ -169,13 +173,13 @@ def render(hub: dict[str, Any], copy: dict[str, Any]) -> str:
 <section class="section" id="roadmap"><p class="eyebrow">Development roadmap</p><h2>What each Wave is trying to make true</h2><p class="lede">Read the idea first. Open Technical Detail for canonical names, maturity, dependencies, specifications, and evidence.</p><div class="grid">{"".join(wave_cards)}</div></section>
 <section class="section" id="tickets"><p class="eyebrow">Work map</p><h2>What the captured tickets mean</h2><p class="lede">Tickets are bounded pieces of work. Their technical records remain the repository handoff.</p><div class="groups">{"".join(ticket_groups)}</div></section>
 <section class="section" id="status"><p class="eyebrow">Status discipline</p><h2>Simple words, exact maturity</h2><div class="grid"><article class="card"><h3>Built in bounded scope</h3><p>The recorded engineering work is complete in its stated scope. Scientific, security, network, commercial, and production qualification remain separate.</p></article><article class="card"><h3>Building</h3><p>The controlling board selected bounded work. Completion and later maturity remain unearned until their own evidence exists.</p></article><article class="card"><h3>Planned</h3><p>The repository describes the future capability. Roadmap presence does not create implementation authority.</p></article></div><p class="boundary"><strong>One truth, two levels of detail:</strong> Overview and Technical Detail describe the same stable records. Overview cannot activate work, change scientific meaning, or grant maturity.</p></section>
-</main><footer><p><strong>Authority boundary:</strong> This is a newcomer projection of the Carbon Development Hub. Repository authority, tickets, contracts, decisions, review, tests, and evidence remain controlling.</p><p><a href="index.html">Open Technical Detail</a> · <code>SYSTEM/DEVELOPMENT-HUB</code> · <code>{esc(copy["product_decision"])}</code></p></footer></body></html>'''
+</main><footer><p><strong>Authority boundary:</strong> This is a newcomer projection of the Carbon Development Hub. Repository authority, tickets, contracts, decisions, review, tests, and evidence remain controlling.</p><p><a href="index.html">Open Technical Detail</a> · <code>SYSTEM/DEVELOPMENT-HUB</code> · <code>{esc(copy["product_decision"])}</code></p></footer></body></html>"""
 
 
 def render_technical() -> str:
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-        '<title>Carbon Hub — Technical Detail</title></head><body><main>'
+        "<title>Carbon Hub — Technical Detail</title></head><body><main>"
         "<h1>Carbon Hub — Technical Detail</h1>"
         '<p><a href="index.html">Open the complete technical Hub.</a></p>'
         "</main></body></html>"
