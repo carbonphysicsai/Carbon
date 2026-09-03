@@ -25,6 +25,11 @@ substitute for repository code, review, decisions, tests, or evidence.
 - `decisions.html` for the lightweight Decision Console presentation;
 - `tools/render_hub.py` and `tools/templates/interactive_template.html` when
   changing presentation or generation behavior;
+- `data/newcomer_projection_v1.json`, `data/newcomer_tickets_wave_a_v1.json`,
+  and `data/newcomer_tickets_wave_b_v1.json` for newcomer-first Overview copy;
+- `tools/render_newcomer.py` when changing newcomer presentation or generation
+  behavior (imported by `tools/render_hub.py`; see
+  `orientation/NEWCOMER_PRESENTATION_CONTRACT.md`);
 - maintenance/orientation contracts and validation tools when their contract
   changes.
 
@@ -32,6 +37,8 @@ substitute for repository code, review, decisions, tests, or evidence.
 
 - `index.html`;
 - `interactive.html`;
+- `newcomer.html`;
+- `technical.html`;
 - `Carbon_Development_Hub_v2.md`;
 - `README.md`;
 - `data/hub_index_v2.yaml`;
@@ -43,8 +50,12 @@ substitute for repository code, review, decisions, tests, or evidence.
 
 Run the renderer after editing the existing generated Hub source. Generated
 outputs must be deterministic, UTF-8, LF-terminated, and committed with the
-source change. A decision-only update to `data/decisions.json` does not require
-regenerating the core Hub because `decisions.html` reads that index directly.
+source change. `tools/render_hub.py` generates and checks `newcomer.html` and
+`technical.html` in the same pass as the rest of the Hub (it imports
+`tools/render_newcomer.py`); do not run `render_newcomer.py` in place of the
+required `render_hub.py` commands below. A decision-only update to
+`data/decisions.json` does not require regenerating the core Hub because
+`decisions.html` reads that index directly.
 
 ## Stable placement and events
 
@@ -115,4 +126,7 @@ git diff --check
 
 The primary `index.html` must remain complete static semantic HTML with zero
 scripts and no automatic remote resource. Failure of `interactive.html` or the
-Decision Console must never remove access to the static hub.
+Decision Console must never remove access to the static hub. `newcomer.html`
+(the newcomer-first Overview) must also remain complete static semantic HTML
+with zero scripts; see `orientation/NEWCOMER_PRESENTATION_CONTRACT.md` for its
+copy rules and data-binding requirements.

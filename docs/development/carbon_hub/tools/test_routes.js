@@ -67,6 +67,52 @@ for (const route of data.change_paths) {
     failures += 1;
   }
 }
+
+if (!primary.includes('href="newcomer.html"')) {
+  console.error('FAIL static index.html: missing reciprocal link to newcomer.html');
+  failures += 1;
+} else {
+  console.log('PASS static index.html links to newcomer.html');
+}
+
+const newcomer = fs.readFileSync(path.join(root, 'newcomer.html'), 'utf8');
+if (/<script\b/i.test(newcomer)) {
+  throw new Error('newcomer.html must contain zero script elements');
+}
+const newcomerExpectations = [
+  ['#current', 'Where Carbon is now'],
+  ['#roadmap', 'What each Wave is trying to make true'],
+  ['#tickets', 'What the captured tickets mean'],
+  ['#status', 'Simple words, exact maturity']
+];
+for (const [route, expected] of newcomerExpectations) {
+  const id = route.slice(1);
+  if (!newcomer.includes(`id="${id}"`) || !newcomer.includes(expected)) {
+    console.error(`FAIL newcomer ${route}: missing anchor or ${expected}`);
+    failures += 1;
+  } else {
+    console.log(`PASS newcomer ${route}`);
+  }
+}
+for (const wave of data.waves) {
+  if (!newcomer.includes(`id="overview-wave-${wave.id}"`)) {
+    console.error(`FAIL newcomer missing Wave ${wave.id} card`);
+    failures += 1;
+  }
+}
+for (const ticket of data.tickets) {
+  if (!newcomer.includes(`id="overview-ticket-${ticket.id}"`)) {
+    console.error(`FAIL newcomer missing ${ticket.id} card`);
+    failures += 1;
+  }
+}
+if (!newcomer.includes('href="index.html"')) {
+  console.error('FAIL newcomer.html: missing link back to index.html');
+  failures += 1;
+} else {
+  console.log('PASS newcomer.html links to index.html');
+}
+
 for (const event of eventBundle.events) {
   if (!primary.includes(`id="event-${event.event_id}"`)) {
     console.error(`FAIL static missing ${event.event_id} anchor`);
@@ -270,4 +316,5 @@ for (const stale of ['Wave B is active', 'current B-03', 'B-03 supplies', 'B-03-
 if (failures) process.exit(1);
 console.log(`Static routes passed: ${Object.keys(staticRoutes).length}`);
 console.log(`Interactive routes passed: ${Object.keys(interactiveRoutes).length}`);
+console.log(`Newcomer route checks passed: ${newcomerExpectations.length}`);
 console.log(`Living-state fixture surfaces passed: ${Object.keys(fixtureExpectations).length}`);
