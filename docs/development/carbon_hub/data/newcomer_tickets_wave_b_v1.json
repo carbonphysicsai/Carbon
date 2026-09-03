@@ -1,0 +1,223 @@
+{
+  "schema_version": "1.0",
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+  "product_decision": "OWNER-HUB-01",
+  "tickets": {
+    "B-01": {
+      "title": "Agree on the starting point for the next build stage",
+      "what": "Pin the exact constitution, specifications, prior implementation, and maturity state that control Wave B.",
+      "why": "A new development stage cannot start safely if different contributors use different sources of truth.",
+      "changes": "Wave B gets a shared starting point and a record of conflicts that were resolved.",
+      "not_yet": "This does not implement a scientific exam or activate a Challenge.",
+      "map_ref": "WAVE-B/B-01"
+    },
+    "B-01E": {
+      "title": "Make development reproducible and keep retired code out",
+      "what": "Pin the development environment, make local and CI commands match, enforce which code is authoritative, and quarantine legacy executable paths.",
+      "why": "Scientific evidence is hard to trust when different machines run different environments or retired code can silently return.",
+      "changes": "Wave B gets a reproducible development substrate.",
+      "not_yet": "This does not qualify production infrastructure or revive quarantined legacy behavior.",
+      "map_ref": "WAVE-B/B-01E"
+    },
+    "B-01F": {
+      "title": "Make changes easier to deliver without weakening review",
+      "what": "Harden the pull-request, review, merge, Hub, and completion-evidence path so one bounded change can move through Carbon with less avoidable ceremony.",
+      "why": "Carbon needs fast development and exact-head review at the same time.",
+      "changes": "The project gets a repeatable delivery path with guarded merges and explicit completion evidence.",
+      "not_yet": "This does not change scientific rules, choose scientific values, or grant qualification, launch, or production authority.",
+      "map_ref": "WAVE-B/B-01F"
+    },
+    "B-01G": {
+      "title": "Test whether repetitive schema code can be generated safely",
+      "what": "Run a small future proof that generates reviewable source code without runtime reflection or broad untrusted deserialization.",
+      "why": "Some repetitive code may be automatable, but Carbon needs evidence that automation preserves exact identities and ownership boundaries.",
+      "changes": "The team gets evidence for or against a later static code-generation approach.",
+      "not_yet": "This is queued tooling work; it does not migrate current scientific domains or block the active scientific work.",
+      "map_ref": "WAVE-B/B-01G"
+    },
+    "B-02A": {
+      "title": "Define the exact physics job",
+      "what": "Specify the physical problem, what a candidate must output, which situations the exam represents, and how test cases are selected.",
+      "why": "Every later generator, reference answer, measurement, and candidate must refer to the same scientific job.",
+      "changes": "Downstream work gets one exact authored Challenge to build against.",
+      "not_yet": "This does not choose the real production distributions, thresholds, evidence weights, or live values.",
+      "map_ref": "WAVE-B/B-02A"
+    },
+    "B-02B": {
+      "title": "Turn a submitted idea into one exact build plan",
+      "what": "Define how a participant's strategy is compiled into a deterministic, reconstructible construction plan with no silent defaults or substitutions.",
+      "why": "Carbon must rebuild what the participant actually submitted rather than a silently changed version.",
+      "changes": "Later reconstruction can consume one exact plan with known parameters and components.",
+      "not_yet": "This does not authorize arbitrary participant code or choose real catalog values.",
+      "map_ref": "WAVE-B/B-02B"
+    },
+    "B-02C": {
+      "title": "Put hard resource limits around research and reconstruction",
+      "what": "Define resource classes, ceilings, enforcement outcomes, and records that distinguish estimates, admission, observed use, and scientific evidence.",
+      "why": "Carbon must control cost and execution risk without confusing resource policy with scientific merit.",
+      "changes": "Later practice and reconstruction paths gain a fail-closed resource-policy prerequisite.",
+      "not_yet": "This does not set real hardware classes, prices, quotas, validator capacity, funding, or production enforcement.",
+      "map_ref": "WAVE-B/B-02C"
+    },
+    "B-03": {
+      "title": "Create test cases in a controlled, auditable way",
+      "what": "Define the case-generation interface and implement one bounded physics fixture that records what it intended to generate, what it produced, and why a case was rejected or replaced.",
+      "why": "Truth, measurements, practice, and reconstruction all need a controlled source of canonical Challenge cases.",
+      "changes": "Carbon gets the case-generation seam for the first bounded Wave B fixture.",
+      "not_yet": "This does not choose production sampling values, qualify the generator, define truth, or activate live behavior.",
+      "map_ref": "WAVE-B/B-03"
+    },
+    "B-04": {
+      "title": "Define what counts as a reference answer and what happens when truth fails",
+      "what": "Register the allowed source of reference answers, its applicability and uncertainty, and explicit outcomes for disagreement, timeout, divergence, or unavailability.",
+      "why": "A candidate can only be judged against an adequate, registered source of truth; silent fallback would corrupt the evidence.",
+      "changes": "Measurements and qualification gain an explicit truth-authority boundary.",
+      "not_yet": "This does not declare one solver universally authoritative or allow an unregistered fallback.",
+      "map_ref": "WAVE-B/B-04"
+    },
+    "B-05": {
+      "title": "Decide how the exam measures a model",
+      "what": "Define the rules that turn reference answers and model outputs into scientific measurements and a final evaluation result.",
+      "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
+      "changes": "The exam gains explicit measurement and evidence-use rules that later evaluation code can execute without inventing scientific policy at runtime.",
+      "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
+      "map_ref": "WAVE-B/B-05"
+    },
+    "B-06": {
+      "title": "Assemble the evidence needed to decide whether an exam is qualified",
+      "what": "Create one auditable package that brings together evidence about case generation, reference truth, measurements, uncertainty, attacks, coverage, and limitations.",
+      "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
+      "changes": "Carbon gains an explicit evidence package and a fail-closed qualification state.",
+      "not_yet": "A populated template or fixture evidence does not make an exam live or scientifically qualified.",
+      "map_ref": "WAVE-B/B-06"
+    },
+    "B-07R": {
+      "title": "Set the rules for a safe researcher assistance loop",
+      "what": "Define which research-help operations Carbon may provide, who owns them, what rights apply, and how they stay separate from official submission and scoring.",
+      "why": "Research tools are useful only if they cannot score, prequalify, submit, or leak the official exam.",
+      "changes": "Wave B gains the architectural boundary for local research services.",
+      "not_yet": "This does not yet define the exact service protocol or remote networking mechanics.",
+      "map_ref": "WAVE-B/B-07R"
+    },
+    "B-07S": {
+      "title": "Define the exact research-service protocol",
+      "what": "Specify the exact operations, request and response shapes, lifecycle, errors, bounds, and local adapter that all later research-service pieces must follow.",
+      "why": "An architecture diagram is not enough to guarantee interoperable or fail-closed behavior.",
+      "changes": "Later research-service tickets get one protocol owner instead of redefining the interface themselves.",
+      "not_yet": "This does not authorize a network listener, credentials, remote quotas, official submission operations, or production service.",
+      "map_ref": "WAVE-B/B-07S"
+    },
+    "B-07A": {
+      "title": "Tell researchers which practice tools a Challenge supports",
+      "what": "Create a capability manifest and shared types so a client can discover which bounded research operations, contracts, limits, and versions apply to a Challenge.",
+      "why": "Researchers need to know what the system offers without guessing or invoking capabilities the Challenge never registered.",
+      "changes": "The research service gains one discovery layer for supported operations.",
+      "not_yet": "This cannot expose official submission/result operations or invent capabilities that were never registered.",
+      "map_ref": "WAVE-B/B-07A"
+    },
+    "B-07B": {
+      "title": "Give every research experiment a durable record",
+      "what": "Record each research task, outcome, failure, receipt, evidence class, and lineage so later tools can tell what happened and what the result may support.",
+      "why": "Practice, shared history, utility studies, and rights controls all depend on exact provenance.",
+      "changes": "Wave B gains a common record for research experiments and their history.",
+      "not_yet": "A research receipt is not an official score, ranking, qualification, or frontier event.",
+      "map_ref": "WAVE-B/B-07B"
+    },
+    "B-07C": {
+      "title": "Give researchers useful practice without showing the real exam",
+      "what": "Build mock practice tasks, rehearsal tools, and comparisons on fresh public cases.",
+      "why": "Researchers need feedback, but practice must not reveal protected cases, official mixtures, exact margins, or official ordering.",
+      "changes": "Carbon gains a bounded practice loop with aggregate feedback.",
+      "not_yet": "Practice cannot admit, reject, rank, prequalify, or submit an official candidate.",
+      "map_ref": "WAVE-B/B-07C"
+    },
+    "B-07D1": {
+      "title": "Create a stable format for shared experiment history",
+      "what": "Define an immutable Challenge-level history package, what it estimates, how versions are stored, and how old versions can be found.",
+      "why": "Carbon cannot safely share research history until the history has exact identity and a stable data contract.",
+      "changes": "The system gains an immutable data model for shared prior experiment summaries.",
+      "not_yet": "This does not publish a qualified learned prior or personalize the history for individual miners.",
+      "map_ref": "WAVE-B/B-07D1"
+    },
+    "B-07D2": {
+      "title": "Test how to publish shared history without leaking the hidden exam",
+      "what": "Build a test-only publisher and a cumulative disclosure ledger that tracks what has been released over time.",
+      "why": "Several individually safe releases can reveal protected structure when combined, so disclosure must be controlled across time.",
+      "changes": "Carbon gains a fail-closed test publication path and release history.",
+      "not_yet": "This does not authorize public activation, qualified learned publication, or signing custody.",
+      "map_ref": "WAVE-B/B-07D2"
+    },
+    "B-07D3": {
+      "title": "Serve the same approved history to every researcher",
+      "what": "Implement exact current and historical retrieval and deterministic compatibility checks against the active Challenge.",
+      "why": "Every researcher should receive the same approved Challenge-level history and predictable handling of versions.",
+      "changes": "The research service gains a request-time history retrieval layer.",
+      "not_yet": "This does not create personalized guidance or predict official scores, gates, ranks, or winners.",
+      "map_ref": "WAVE-B/B-07D3"
+    },
+    "B-07E": {
+      "title": "Estimate resource needs without confusing an estimate with a promise",
+      "what": "Analyze a proposed plan's likely resource needs and keep estimates separate from later forecasts, quotes, admission, observed usage, and scientific evidence.",
+      "why": "Researchers and operators need cost information, but an estimate must not become a capacity commitment, price, or scientific claim.",
+      "changes": "Carbon gains a typed resource-estimation path that uses the registered resource policy.",
+      "not_yet": "This does not set prices, quotas, remote fees, capacity, or make an uncalibrated forecast claim.",
+      "map_ref": "WAVE-B/B-07E"
+    },
+    "B-07F": {
+      "title": "Connect an exact build plan to the official-shaped evaluation path",
+      "what": "Take the compiled construction plan and run it through a controlled fixture version of Carbon's existing reconstruction lifecycle.",
+      "why": "Wave B needs to prove that the authored plan can enter the evaluation path through one explicit integration point.",
+      "changes": "Carbon gains a fixture-only bridge from strategy compilation to official-shaped execution.",
+      "not_yet": "This does not run production reconstruction, arbitrary code, real training, scientific evidence, or emissions.",
+      "map_ref": "WAVE-B/B-07F"
+    },
+    "B-07G": {
+      "title": "Make sure the research-service pieces work together without gaining extra authority",
+      "what": "Compose the research operations, route each one to its named owner, and test the combined service for missing or extra behavior.",
+      "why": "Individual modules can be correct while the assembled service routes requests incorrectly or absorbs authority it does not own.",
+      "changes": "Wave B gains a final local composition and conformance layer for the research service.",
+      "not_yet": "This service does not own official submission, scientific policy, shared-history policy, or other domain-specific scientific meaning.",
+      "map_ref": "WAVE-B/B-07G"
+    },
+    "B-E1": {
+      "title": "Handle noisy or inconclusive comparisons without forcing a winner",
+      "what": "Test reproducibility and uncertainty across repeated reconstruction and evaluation, preserving dependence between cases and allowing an inconclusive result.",
+      "why": "Candidate order can change under variance. Carbon needs a way to say the evidence did not resolve the comparison.",
+      "changes": "Carbon gains a statistical evidence harness for unstable or contested outcomes.",
+      "not_yet": "Partial evidence, forecasts, screens, or heuristics cannot create a superior result.",
+      "map_ref": "WAVE-B/B-E1"
+    },
+    "B-E2": {
+      "title": "Fail safely when the reference solver cannot answer",
+      "what": "Implement explicit outcomes when a registered truth source diverges, times out, disagrees, or becomes unavailable.",
+      "why": "Carbon must preserve truth-system failures instead of silently turning them into a candidate score or switching to another source.",
+      "changes": "The exam gains fail-closed reference-failure behavior and fixtures.",
+      "not_yet": "This does not allow unregistered fallback or relabel infrastructure failure as candidate science.",
+      "map_ref": "WAVE-B/B-E2"
+    },
+    "B-E3": {
+      "title": "Trace every claim to the evidence that supports it",
+      "what": "Map each scientific or engineering claim to its supporting evidence, limitations, and the place in the evidence package where that support lives.",
+      "why": "A technically complete system can still overclaim if nobody can show which evidence supports each statement and which evidence is missing.",
+      "changes": "Carbon gains a claim-to-evidence and claim-to-limitation crosswalk.",
+      "not_yet": "A crosswalk cannot fill an evidence gap or turn design intent into qualification.",
+      "map_ref": "WAVE-B/B-E3"
+    },
+    "B-E4": {
+      "title": "Try to break the research loop before trusting it",
+      "what": "Attack the research workflow for hidden-exam leakage, poisoning, gaming, collapsed method diversity, and unsafe evidence use while also testing whether it produces useful research.",
+      "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
+      "changes": "Carbon gains an adversarial test of the Wave B research loop and the claims made about its usefulness.",
+      "not_yet": "Historical fit or local improvement does not establish safe utility without the preregistered test evidence.",
+      "map_ref": "WAVE-B/B-E4"
+    },
+    "B-GATE": {
+      "title": "Prove the whole Wave B system fits together and close the wave",
+      "what": "Run the integrated fixture workflow, check cross-domain invariants, audit for placeholders that might look live, and produce the closeout evidence.",
+      "why": "All individual tickets can pass while the combined system violates a boundary or exposes a fixture as if it were qualified behavior.",
+      "changes": "Carbon gains the bounded evidence needed to close Wave B and hand development to Wave C.",
+      "not_yet": "Wave B closeout still does not create real training, live science, production service, Bittensor weights, or settlement authority.",
+      "map_ref": "WAVE-B/B-GATE"
+    }
+  }
+}

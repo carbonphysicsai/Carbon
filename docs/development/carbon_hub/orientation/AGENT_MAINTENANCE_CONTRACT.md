@@ -35,6 +35,9 @@ data/hub_data_v2.json
 data/change_events.json
 data/change_event_template.yaml
 data/decisions.json
+data/newcomer_projection_v1.json
+data/newcomer_tickets_wave_a_v1.json
+data/newcomer_tickets_wave_b_v1.json
 ```
 
 Presentation/generation source:
@@ -43,6 +46,8 @@ Presentation/generation source:
 decisions.html
 tools/render_hub.py
 tools/templates/interactive_template.html
+tools/render_newcomer.py
+orientation/NEWCOMER_PRESENTATION_CONTRACT.md
 ```
 
 Generated; never hand-edit:
@@ -50,6 +55,8 @@ Generated; never hand-edit:
 ```text
 index.html
 interactive.html
+newcomer.html
+technical.html
 Carbon_Development_Hub_v2.md
 README.md
 data/hub_index_v2.yaml
@@ -59,6 +66,15 @@ orientation/GLOSSARY.md
 explainers/waves/*.md
 explainers/tickets/*.md
 ```
+
+`newcomer.html` and `technical.html` are generated and checked by
+`tools/render_hub.py` in the same deterministic pass as every other generated
+file (`tools/render_hub.py` imports `tools/render_newcomer.py`'s shared
+`collect_outputs()`); no separate CI step exists or is required for the
+newcomer Overview. `tools/render_newcomer.py` remains independently runnable
+for focused newcomer-only iteration. See
+`orientation/NEWCOMER_PRESENTATION_CONTRACT.md` for the newcomer copy contract,
+coverage/map_ref validation rules, and the deferred Pages-root follow-up.
 
 The Decision Console is deliberately lightweight. `decisions.html` reads the
 public-safe `data/decisions.json` index directly and hands responses back to the
