@@ -65,6 +65,13 @@ def _user(value: Any, label: str) -> dict[str, Any]:
     return user
 
 
+def _actor(value: Any, label: str) -> dict[str, Any]:
+    actor = _mapping(value, label)
+    if actor.get("type") not in {"User", "Bot"}:
+        raise ReviewGateError(f"{label} must be a GitHub user or bot")
+    return actor
+
+
 def _repository(record: Mapping[str, Any], label: str) -> None:
     repository = _mapping(record.get("repo"), f"{label} repository")
     if repository.get("full_name") != EXPECTED_REPOSITORY:
@@ -151,7 +158,7 @@ def validate_review_gate(
     _repository(head_record, "pull request head")
     head = _sha(head_record.get("sha"), "pull request head SHA")
     author = _login(
-        _user(pull.get("user"), "pull request author").get("login"),
+        _actor(pull.get("user"), "pull request author").get("login"),
         "pull request author",
     )
 

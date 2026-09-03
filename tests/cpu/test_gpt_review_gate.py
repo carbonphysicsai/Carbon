@@ -74,6 +74,17 @@ def test_accepts_non_author_exact_head_receipt() -> None:
     )
 
 
+def test_accepts_bot_pull_request_author() -> None:
+    pull = _pull()
+    pull["user"] = {"login": "Copilot", "type": "Bot"}
+    assert review_gate.validate_review_gate(pull, [_review()], _commit()) == (
+        123,
+        "human-reviewer",
+        HEAD,
+        TREE,
+    )
+
+
 @pytest.mark.parametrize(
     ("mutation", "message"),
     [
