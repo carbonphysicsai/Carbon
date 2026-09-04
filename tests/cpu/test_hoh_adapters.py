@@ -27,6 +27,7 @@ from agent_pack.executors.hoh.identity import head_identity
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
     ExecutorUnavailable,
+    IdentityMismatch,
     PacketValidationError,
     PauseRequested,
     Role,
@@ -162,6 +163,12 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     assert "carbon-hoh-read-v1" in evidence_command
     assert "--include-managed-config" in evidence_command
     assert evidence_kwargs["cwd"] == workspace
+    assert evidence_kwargs["env"]["GIT_ATTR_NOSYSTEM"] == "1"
+    assert evidence_kwargs["env"]["GIT_CONFIG_NOSYSTEM"] == "1"
+    assert evidence_kwargs["env"]["GIT_CONFIG_GLOBAL"] == "/dev/null"
+    assert evidence_kwargs["env"]["GIT_NO_REPLACE_OBJECTS"] == "1"
+    assert evidence_kwargs["env"]["GIT_TERMINAL_PROMPT"] == "0"
+    assert evidence_kwargs["env"]["HOME"] == evidence_kwargs["env"]["CODEX_HOME"]
 
     sentinel = tmp_path / "outside-projection.txt"
     sentinel.write_text("protected canary\n", encoding="utf-8")
@@ -439,6 +446,64 @@ def test_projection_materializes_exact_candidate_blobs_not_live_worktree(
     )
 
 
+def test_read_only_projection_preserves_executable_git_mode(tmp_path: Path) -> None:
+    repository, requirements = make_repository(tmp_path)
+    verifier = repository / "executable-verifier.sh"
+    verifier.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    verifier.chmod(0o755)
+    subprocess.run(["git", "add", "executable-verifier.sh"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "--message", "executable fixture"],
+        cwd=repository,
+        check=True,
+    )
+    manifest = run_manifest(repository, requirements, ScriptedExecutor({}))
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+
+    projection = broker.projection(
+        Role.TESTER,
+        1,
+        ("executable-verifier.sh",),
+        head_identity(repository),
+    )
+
+    assert stat.S_IMODE((projection / "executable-verifier.sh").stat().st_mode) == 0o500
+    status = subprocess.run(
+        ["git", "status", "--porcelain=v1"],
+        cwd=projection,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert status.stdout == ""
+    executed = subprocess.run(["./executable-verifier.sh"], cwd=projection, check=False)
+    assert executed.returncode == 0
+
+
+def test_projection_rejects_symlinked_managed_parent_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    manifest = run_manifest(repository, requirements, ScriptedExecutor({}))
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+    outside = tmp_path / "outside-projections"
+    outside.mkdir(mode=0o750)
+    canary = outside / "canary.txt"
+    canary.write_text("unchanged\n", encoding="utf-8")
+    (broker.state_root / "projections").symlink_to(outside)
+
+    with pytest.raises(ScopeViolation, match="state directory is unsafe"):
+        broker.projection(
+            Role.TESTER,
+            1,
+            ("src.txt",),
+            head_identity(repository),
+        )
+
+    assert canary.read_text(encoding="utf-8") == "unchanged\n"
+    assert stat.S_IMODE(outside.stat().st_mode) == 0o750
+
+
 def test_developer_seal_rejects_symlink_swap_without_touching_target(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -570,6 +635,88 @@ def test_default_state_store_is_under_git_common_directory(tmp_path: Path) -> No
         ).stdout.strip()
     ).resolve()
     assert store.root == common / ".carbon-hoh" / "runs" / "bounded-run"
+
+
+def test_state_store_rejects_symlinked_root_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path / "outside-root"
+    outside.mkdir(mode=0o750)
+    canary = outside / "canary.txt"
+    canary.write_text("unchanged\n", encoding="utf-8")
+    linked_root = tmp_path / "linked-state"
+    linked_root.symlink_to(outside)
+
+    with pytest.raises(IdentityMismatch, match="external state root is unsafe"):
+        StateStore(linked_root)
+
+    assert canary.read_text(encoding="utf-8") == "unchanged\n"
+    assert stat.S_IMODE(outside.stat().st_mode) == 0o750
+
+
+def test_state_store_rejects_broad_existing_root_without_chmod(
+    tmp_path: Path,
+) -> None:
+    existing = tmp_path / "existing-state"
+    existing.mkdir(mode=0o750)
+
+    with pytest.raises(IdentityMismatch, match="not private mode-0700"):
+        StateStore(existing)
+
+    assert stat.S_IMODE(existing.stat().st_mode) == 0o750
+
+
+def test_state_store_rejects_symlink_lock_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    store = StateStore(tmp_path / "state")
+    outside = tmp_path / "outside-lock"
+    outside.write_text("unchanged\n", encoding="utf-8")
+    outside.chmod(0o640)
+    store.lock_path.symlink_to(outside)
+
+    with (
+        pytest.raises(IdentityMismatch, match="controller lock is unsafe"),
+        store.locked(),
+    ):
+        pass
+
+    assert outside.read_text(encoding="utf-8") == "unchanged\n"
+    assert stat.S_IMODE(outside.stat().st_mode) == 0o640
+
+
+def test_state_store_detects_temp_replacement_without_touching_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = StateStore(tmp_path / "state")
+    outside = tmp_path / "outside-state"
+    outside.write_text("unchanged\n", encoding="utf-8")
+    outside.chmod(0o640)
+    original_replace = os.replace
+
+    def replace_temp_with_symlink(
+        source,
+        destination,
+        *,
+        src_dir_fd=None,
+        dst_dir_fd=None,
+    ):
+        os.unlink(source, dir_fd=src_dir_fd)
+        os.symlink(outside, source, dir_fd=src_dir_fd)
+        return original_replace(
+            source,
+            destination,
+            src_dir_fd=src_dir_fd,
+            dst_dir_fd=dst_dir_fd,
+        )
+
+    monkeypatch.setattr(os, "replace", replace_temp_with_symlink)
+    with pytest.raises(IdentityMismatch, match="installed state file identity changed"):
+        store.save_pending_install({"synthetic": True})
+
+    assert outside.read_text(encoding="utf-8") == "unchanged\n"
+    assert stat.S_IMODE(outside.stat().st_mode) == 0o640
 
 
 def test_run_manifest_explicitly_denies_final_authorities(tmp_path: Path) -> None:

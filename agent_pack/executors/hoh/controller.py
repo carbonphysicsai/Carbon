@@ -32,6 +32,7 @@ from .identity import (
     resolve_repository_root,
     resolve_tree,
     sanitized_git_environment,
+    symbolic_head_ref,
 )
 from .models import (
     SCHEMA_VERSION,
@@ -117,6 +118,7 @@ class HarnessController:
         self._verify_executor_profiles()
         candidate = head_identity(self.repository)
         candidate_paths = self._authorize_candidate(candidate["head"])
+        self._verify_worktree_ref()
         state = {
             "schema_version": SCHEMA_VERSION,
             "run_id": self.run_manifest["run_id"],
@@ -166,6 +168,7 @@ class HarnessController:
             self.store.load_state(),
             self.requirement_ids,
         )
+        state = self._reconcile_pending_install(state)
         if state["run_manifest_digest"] != self.manifest_digest:
             raise IdentityMismatch("controller state is bound to another run manifest")
         self.state = state
@@ -284,6 +287,12 @@ class HarnessController:
         assert_payload_safe(self.state, self.protected_patterns)
         self.store.save_state(self.state)
         self._persisted_state_digest = digest_value(self.state)
+        pending = self.store.load_pending_install()
+        if (
+            pending is not None
+            and pending.get("candidate_after") == self.state["candidate"]
+        ):
+            self.store.clear_pending_install()
 
     def _verify_static_identities(self) -> None:
         authority = self.run_manifest["authority"]
@@ -364,6 +373,7 @@ class HarnessController:
 
     def _verify_candidate_identity(self) -> None:
         assert self.state is not None
+        self._verify_worktree_ref()
         actual = head_identity(self.repository)
         expected = self.state["candidate"]
         if actual["head"] != expected["head"] or actual["tree"] != expected["tree"]:
@@ -380,12 +390,81 @@ class HarnessController:
         """Require HEAD to remain the exact state-bound candidate ref."""
 
         assert self.state is not None
+        self._verify_worktree_ref()
         expected = {
             "head": self.state["candidate"]["head"],
             "tree": self.state["candidate"]["tree"],
         }
         if head_identity(self.repository) != expected:
             raise IdentityMismatch(f"candidate changed during {operation}")
+
+    def _verify_worktree_ref(self) -> None:
+        expected = self.run_manifest["developer_worktree_ref"]
+        actual = symbolic_head_ref(self.repository)
+        if actual != expected:
+            raise IdentityMismatch(
+                f"candidate worktree ref mismatch: expected {expected}, found {actual}"
+            )
+
+    def _reconcile_pending_install(self, state: dict[str, Any]) -> dict[str, Any]:
+        """Roll a journaled ref CAS deterministically backward or forward."""
+
+        pending = self.store.load_pending_install()
+        if pending is None:
+            return state
+        required = {
+            "schema_version",
+            "run_id",
+            "run_manifest_digest",
+            "target_ref",
+            "iteration",
+            "candidate_before",
+            "candidate_after",
+            "phase_after",
+        }
+        if set(pending) != required or any(
+            set(pending.get(key, {})) != {"head", "tree", "changed_paths"}
+            for key in ("candidate_before", "candidate_after")
+        ):
+            raise IdentityMismatch("pending candidate install journal is malformed")
+        if (
+            pending["schema_version"] != SCHEMA_VERSION
+            or pending["run_id"] != self.run_manifest["run_id"]
+            or pending["run_manifest_digest"] != self.manifest_digest
+            or pending["target_ref"] != self.run_manifest["developer_worktree_ref"]
+            or pending["iteration"] != state["iteration"]
+            or pending["phase_after"] != ControllerPhase.TESTING.value
+        ):
+            raise IdentityMismatch(
+                "pending candidate install journal identity mismatch"
+            )
+        self._verify_worktree_ref()
+        actual = head_identity(self.repository)
+        before = pending["candidate_before"]
+        after = pending["candidate_after"]
+        actual_pair = {"head": actual["head"], "tree": actual["tree"]}
+        before_pair = {"head": before["head"], "tree": before["tree"]}
+        after_pair = {"head": after["head"], "tree": after["tree"]}
+        if state["candidate"] == before and actual_pair == before_pair:
+            self.store.clear_pending_install()
+            return state
+        if state["candidate"] == after and actual_pair == after_pair:
+            self.store.clear_pending_install()
+            return state
+        if state["candidate"] == before and actual_pair == after_pair:
+            recovered = json.loads(json.dumps(state))
+            recovered["candidate"] = after
+            recovered["phase"] = ControllerPhase.TESTING.value
+            recovered["paused_from"] = None
+            recovered["last_error"] = None
+            validate_controller_state(recovered, self.requirement_ids)
+            assert_payload_safe(recovered, self.protected_patterns)
+            self.store.save_state(recovered)
+            self.store.clear_pending_install()
+            return recovered
+        raise IdentityMismatch(
+            "pending candidate install cannot be reconciled with exact ref/state"
+        )
 
     def _authorize_candidate(self, candidate_head: str) -> tuple[str, ...]:
         """Recompute and enforce the cumulative candidate Git boundary."""
@@ -691,10 +770,7 @@ class HarnessController:
 
     def _develop(self) -> None:
         assert self.state is not None
-        before = {
-            "head": self.state["candidate"]["head"],
-            "tree": self.state["candidate"]["tree"],
-        }
+        before = dict(self.state["candidate"])
         packet, workspace, workspace_before = self._invoke(
             Role.DEVELOPER,
             "developer_result.schema.json",
@@ -707,21 +783,13 @@ class HarnessController:
             workspace_before,
             before,
         )
-        cumulative_paths = changed_paths(
-            self.repository,
-            self.run_manifest["authority"]["commit"],
-            after["head"],
-        )
         plan_patterns = tuple(
             path
             for action in self.state["active_plan"]["actions"]
             for path in action["allowed_paths"]
         )
         self._require_paths_allowed(iteration_paths, plan_patterns, "iteration plan")
-        self.state["candidate"] = {
-            **after,
-            "changed_paths": list(cumulative_paths),
-        }
+        self.state["candidate"] = after
         self.state["phase"] = ControllerPhase.TESTING.value
         validate_controller_state(self.state, self.requirement_ids)
         assert_payload_safe(self.state, self.protected_patterns)
@@ -865,7 +933,12 @@ class HarnessController:
             projected_after["head"],
             iteration_paths,
         )
-        if head_identity(self.repository) != dict(candidate_before):
+        candidate_before_identity = {
+            "head": candidate_before["head"],
+            "tree": candidate_before["tree"],
+        }
+        self._verify_worktree_ref()
+        if head_identity(self.repository) != candidate_before_identity:
             raise IdentityMismatch("candidate changed during Developer invocation")
         diff = subprocess.run(
             git_command(
@@ -978,6 +1051,10 @@ class HarnessController:
         if candidate_identity["tree"] != candidate_tree:
             raise IdentityMismatch("off-ref candidate commit/tree identity mismatch")
         cumulative_paths = self._authorize_candidate(candidate_commit)
+        candidate_state = {
+            **candidate_identity,
+            "changed_paths": list(cumulative_paths),
+        }
         self._require_paths_allowed(
             iteration_paths,
             plan_patterns,
@@ -985,6 +1062,18 @@ class HarnessController:
         )
         if not set(iteration_paths).issubset(cumulative_paths):
             raise IdentityMismatch("candidate commit omitted Developer paths")
+
+        pending = {
+            "schema_version": SCHEMA_VERSION,
+            "run_id": self.run_manifest["run_id"],
+            "run_manifest_digest": self.manifest_digest,
+            "target_ref": self.run_manifest["developer_worktree_ref"],
+            "iteration": self.state["iteration"],
+            "candidate_before": dict(candidate_before),
+            "candidate_after": candidate_state,
+            "phase_after": ControllerPhase.TESTING.value,
+        }
+        self.store.save_pending_install(pending)
 
         with tempfile.TemporaryDirectory(
             prefix="candidate-install-", dir=self.store.root
@@ -1006,9 +1095,10 @@ class HarnessController:
                     capture_output=True,
                 )
 
+            self._verify_worktree_ref()
             updated = run_install_git(
                 "update-ref",
-                "HEAD",
+                self.run_manifest["developer_worktree_ref"],
                 candidate_commit,
                 candidate_before["head"],
             )
@@ -1017,12 +1107,13 @@ class HarnessController:
                     "candidate changed during atomic Developer import; "
                     "no ref was overwritten"
                 )
+        self._verify_worktree_ref()
         if head_identity(self.repository) != candidate_identity:
             raise IdentityMismatch(
                 "candidate changed after atomic Developer import; "
-                "no external ref or shared checkout was modified"
+                "the newly selected ref and shared checkout were not modified"
             )
-        return candidate_identity, iteration_paths
+        return candidate_state, iteration_paths
 
     @staticmethod
     def _require_regular_git_modes(

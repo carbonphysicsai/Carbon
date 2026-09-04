@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version", "run_id", "authority", "ticket", "requirements",
-    "roles", "developer_worktree", "initial_context", "context_allow_paths",
+    "roles", "developer_worktree", "developer_worktree_ref", "initial_context", "context_allow_paths",
     "permitted_change_paths", "protected_patterns", "max_iterations",
     "authority_ceiling"
   ],
@@ -36,6 +36,7 @@
       }
     },
     "developer_worktree": {"type": "string", "pattern": "^/"},
+    "developer_worktree_ref": {"type": "string", "pattern": "^refs/heads/[A-Za-z0-9][A-Za-z0-9._/-]*$"},
     "initial_context": {"$ref": "#/$defs/role_paths"},
     "context_allow_paths": {"$ref": "#/$defs/role_paths"},
     "permitted_change_paths": {"$ref": "#/$defs/paths"},

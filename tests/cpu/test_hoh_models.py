@@ -9,11 +9,14 @@ from pathlib import Path
 
 import pytest
 
+from agent_pack.executors.hoh.executors import ScriptedExecutor
 from agent_pack.executors.hoh.models import PacketValidationError, RequirementStatus
 from agent_pack.executors.hoh.validation import (
     validate_iteration_evidence,
     validate_requirements_manifest,
+    validate_run_manifest,
 )
+from tests.cpu.hoh_support import make_repository, run_manifest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 HOH_ROOT = REPOSITORY_ROOT / "agent_pack" / "executors" / "hoh"
@@ -130,3 +133,12 @@ def test_unknown_packet_fields_fail_closed() -> None:
     manifest["scientifically_qualified"] = True
     with pytest.raises(PacketValidationError, match="extra"):
         validate_requirements_manifest(manifest)
+
+
+def test_run_manifest_rejects_unsafe_worktree_ref(tmp_path: Path) -> None:
+    repository, requirements = make_repository(tmp_path)
+    manifest = run_manifest(repository, requirements, ScriptedExecutor({}))
+    manifest["developer_worktree_ref"] = "refs/heads/main@{1}"
+
+    with pytest.raises(PacketValidationError, match="exact local branch ref"):
+        validate_run_manifest(manifest)

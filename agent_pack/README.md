@@ -36,16 +36,13 @@ Do not use `agent_pack/.agent/`; that path is retired.
 
 ## Current Wave B position
 
-The B-04 bounded engineering contract is ratified; B-04 runtime remains
-unimplemented and unqualified. Owner decision `OWNER-DX-01` inserts B-01F,
-Development Throughput Hardening, before runtime and queues B-01G as future
-non-blocking `todo`.
-
-The B-01F candidate prepares a conditional transition: B-01F becomes `done`
-and B-04 runtime becomes selected only after the exact final B-01F head/tree
-passes the review and delivery predicate that was authoritative for that
-historical merge. That completed evidence remains immutable. Current and
-future candidates use the Codex/GPT review process below.
+The B-04 bounded engineering contract and fixture runtime are completed in
+their merged, receipt-recorded engineering scopes; every scientific, security,
+production, and `LIVE` qualification remains unearned. Owner decision
+`OWNER-DX-02` interposes B-01H, Carbon Iterative Agent Harness Pilot, before
+B-05. B-01H remains conditionally `in_progress`; B-05 is `todo`, not started,
+and becomes the first planned harness pilot only after B-01H's complete
+delivery predicate. B-01G remains future non-blocking `todo`.
 
 This sequencing changes development delivery only. It does not amend the B-04
 contract or grant scientific truth, security acceptance, rights, economics,

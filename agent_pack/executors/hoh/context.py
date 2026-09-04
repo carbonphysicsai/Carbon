@@ -25,6 +25,7 @@ from .identity import (
     tracked_paths,
 )
 from .models import PacketValidationError, Role, ScopeViolation
+from .state_store import StateStore
 
 DEFAULT_PROTECTED_PATTERNS = (
     ".env",
@@ -109,7 +110,7 @@ class ContextBroker:
         run_manifest: dict[str, Any],
     ) -> None:
         self.repository = repository.resolve()
-        self.state_root = state_root.resolve()
+        self.state_root = StateStore(state_root).root
         self.manifest = run_manifest
         self.protected_patterns = tuple(
             dict.fromkeys(
@@ -117,6 +118,56 @@ class ContextBroker:
             )
         )
         self._tracked: frozenset[str] = frozenset()
+
+    def _state_directory(self, *components: str) -> Path:
+        """Create/traverse controller-owned state directories without links."""
+
+        descriptor = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for component in self.state_root.parts[1:]:
+                if not component or component in {".", ".."} or "/" in component:
+                    raise ScopeViolation("invalid controller state path component")
+                child = os.open(
+                    component,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=descriptor,
+                )
+                os.close(descriptor)
+                descriptor = child
+            root_identity = os.fstat(descriptor)
+            if root_identity.st_uid != os.getuid() or not stat.S_ISDIR(
+                root_identity.st_mode
+            ):
+                raise ScopeViolation("controller state root is not an owned directory")
+            for component in components:
+                if not component or component in {".", ".."} or "/" in component:
+                    raise ScopeViolation("invalid controller state path component")
+                try:
+                    os.mkdir(component, mode=0o700, dir_fd=descriptor)
+                except FileExistsError:
+                    pass
+                child = os.open(
+                    component,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=descriptor,
+                )
+                os.close(descriptor)
+                descriptor = child
+                identity = os.fstat(descriptor)
+                if identity.st_uid != os.getuid() or not stat.S_ISDIR(identity.st_mode):
+                    raise ScopeViolation(
+                        "controller state path is not an owned directory"
+                    )
+                os.fchmod(descriptor, 0o700)
+        except (OSError, ScopeViolation) as error:
+            os.close(descriptor)
+            if isinstance(error, ScopeViolation):
+                raise
+            raise ScopeViolation(
+                f"controller state directory is unsafe: {error}"
+            ) from error
+        os.close(descriptor)
+        return self.state_root.joinpath(*components)
 
     @staticmethod
     def _make_directory_removable(path: Path) -> bool:
@@ -261,7 +312,8 @@ class ContextBroker:
         candidate: dict[str, str],
     ) -> Path:
         self._require_candidate_tree(candidate)
-        target = self.state_root / "projections" / str(iteration) / role.value.lower()
+        parent = self._state_directory("projections", str(iteration))
+        target = parent / role.value.lower()
         self._remove_projection(target)
         target.mkdir(parents=True, mode=0o700)
         for path in sorted(set(paths)):
@@ -296,7 +348,9 @@ class ContextBroker:
                 for name in directories:
                     os.chmod(Path(root) / name, 0o500)
                 for name in files:
-                    os.chmod(Path(root) / name, 0o400)
+                    file_path = Path(root) / name
+                    current_mode = stat.S_IMODE(os.lstat(file_path).st_mode)
+                    os.chmod(file_path, 0o500 if current_mode & 0o111 else 0o400)
             os.chmod(target, 0o500)
         return target
 
@@ -307,7 +361,8 @@ class ContextBroker:
     def developer_shadow(self, iteration: int) -> Path:
         """Return controller-owned Git metadata never exposed to Developer."""
 
-        return self.state_root / "developer-shadows" / str(iteration)
+        parent = self._state_directory("developer-shadows")
+        return parent / str(iteration)
 
     def seal_developer_projection(self, workspace: Path, iteration: int) -> Path:
         """Copy only Developer worktree files into trusted controller Git metadata.

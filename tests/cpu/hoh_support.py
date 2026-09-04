@@ -10,7 +10,12 @@ from typing import Any
 
 from agent_pack.executors.hoh.context import DEFAULT_PROTECTED_PATTERNS
 from agent_pack.executors.hoh.executors import RoleInvocation, ScriptedExecutor
-from agent_pack.executors.hoh.identity import digest_file, git_blob, head_identity
+from agent_pack.executors.hoh.identity import (
+    digest_file,
+    git_blob,
+    head_identity,
+    symbolic_head_ref,
+)
 from agent_pack.executors.hoh.models import Role
 from agent_pack.executors.hoh.state_store import StateStore
 
@@ -235,6 +240,7 @@ def run_manifest(
         },
         "roles": profiles,
         "developer_worktree": str(repository),
+        "developer_worktree_ref": symbolic_head_ref(repository),
         "initial_context": {
             "planner": ["ticket.md", "requirements.json"],
             "developer": ["ticket.md", "requirements.json"],

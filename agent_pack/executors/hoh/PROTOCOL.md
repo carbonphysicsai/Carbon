@@ -55,6 +55,8 @@ open-regression records remain structured inputs to later roles.
 ## Identity and scope law
 
 - The authority ref must continue to resolve to the pinned authority commit.
+- The Developer worktree must remain attached to the exact local branch ref
+  bound in the run manifest; detached or switched worktrees fail closed.
 - The pinned authority commit must resolve to the pinned tree.
 - Ticket and requirements bytes must match their SHA-256 bindings.
 - The requirements manifest must bind the exact ticket path, bytes, and Git
@@ -72,17 +74,23 @@ open-regression records remain structured inputs to later roles.
 - Every state/worktree transition holds the run's external mode-0600 lock.
   Step and retry additionally compare the persisted state digest with the
   controller's loaded version, so a stale controller cannot overwrite a newer
-  transition.
+  transition. State roots and entries are traversed descriptor-relatively with
+  no link following; unsafe roots, locks, targets, and replacement races fail
+  closed without changing external target modes. Candidate installation first
+  persists an intent journal, then compare-and-swaps the exact bound ref. Resume
+  deterministically clears an unapplied intent or rolls state forward after a
+  completed ref update.
 - Developer operates only in a sanitized writable projection. The controller
   never runs host Git against Developer-owned metadata: it discards every
   `.git` entry, copies only regular worktree files into a controller-owned
   shadow repository, and derives the patch there. Newly changed paths must
   match both the iteration plan and run-level scope. The candidate commit is
   built off-ref from the exact expected parent/tree and installed only through
-  an atomic compare-and-swap; an intervening external ref or worktree change is
-  preserved and fails closed. Only regular-file Git modes are accepted.
-- Planner and Tester run against read-only projections and cannot repair the
-  candidate.
+  an atomic compare-and-swap of the manifest-bound branch; an intervening
+  external ref or worktree change is preserved and fails closed. Only
+  regular-file Git modes are accepted.
+- Planner and Tester run against read-only projections, preserve executable
+  Git modes, and cannot repair the candidate.
 - Codex role subprocesses receive only an allow-listed environment and private
   `HOME`; ambient API-key and credential variables are not inherited. A custom
   permission profile denies all non-projection reads except the minimal tool
@@ -97,8 +105,9 @@ open-regression records remain structured inputs to later roles.
   advancement or final-evidence acceptance.
 - Controller evidence replay uses the executor evidence seam. The Codex adapter
   runs authorized verifier commands under the same read-only, root-denying,
-  network-disabled profile; the manual executor fails unavailable, and direct
-  subprocess replay is confined to the explicitly synthetic test executor.
+  network-disabled profile and sanitized Git environment; the manual executor
+  fails unavailable, and direct subprocess replay is confined to the
+  explicitly synthetic test executor.
 
 Any mismatch fails closed without advancement.
 
@@ -109,8 +118,8 @@ validator state, and reconstruction-sensitive material cannot be disclosed or
 persisted. Both requests and expanded tracked paths are checked. Obvious secret
 keys/values in role packets are rejected before persistence. The mandatory
 default protected-pattern set cannot be removed or weakened by a run manifest.
-Disposable projection cleanup uses a no-follow traversal and never chmods
-through role-created symlinks.
+Disposable projection roots and managed parents use descriptor-relative
+no-follow traversal. Cleanup never chmods through role-created symlinks.
 
 ## Maturity law
 

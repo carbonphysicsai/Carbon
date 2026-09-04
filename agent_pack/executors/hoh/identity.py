@@ -13,6 +13,7 @@ from .models import IdentityMismatch, ScopeViolation
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_OID_RE = re.compile(r"^[0-9a-f]{40}$")
+GIT_LOCAL_REF_RE = re.compile(r"^refs/heads/[A-Za-z0-9][A-Za-z0-9._/-]*$")
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -153,6 +154,19 @@ def head_identity(repository: Path) -> dict[str, str]:
         "head": resolve_commit(repository),
         "tree": resolve_tree(repository),
     }
+
+
+def symbolic_head_ref(repository: Path) -> str:
+    """Return the exact attached local branch ref; detached HEAD is unsupported."""
+
+    value = _git(repository, "symbolic-ref", "--quiet", "HEAD")
+    if not GIT_LOCAL_REF_RE.fullmatch(value) or any(
+        token in value for token in ("..", "//", "@{")
+    ):
+        raise IdentityMismatch(
+            f"candidate worktree has invalid symbolic HEAD: {value!r}"
+        )
+    return value
 
 
 def require_ancestor(repository: Path, ancestor: str, descendant: str) -> None:

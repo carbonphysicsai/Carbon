@@ -10284,10 +10284,13 @@ requirements; a model assertion cannot create `VERIFIED`, clear
 ## B-01H-D2 — Exact identities and external atomic state
 
 Every transition binds the authority commit/tree, ticket content digest,
-requirements-manifest digest, role/executor profile, iteration, and applicable
-candidate head/tree. Dynamic state is atomically persisted under the Git common
-directory by default and is never committed as per-iteration evidence. Every
-transition holds a per-run mode-0600 lock, and step/retry compare the persisted
+requirements-manifest digest, role/executor profile, iteration, exact attached
+local worktree ref, and applicable candidate head/tree. Dynamic state is
+atomically persisted under the Git common directory by default and is never
+committed as per-iteration evidence. The state root and managed entries are
+opened descriptor-relatively without following links; unsafe roots, locks,
+targets, or replacement races fail closed without chmodding an external target.
+Every transition holds a per-run mode-0600 lock, and step/retry compare the persisted
 state digest with the controller's loaded version before writing, preventing a
 stale controller from overwriting newer state. A paused
 run records its exact coherent active phase, retains the plan needed for a
@@ -10296,7 +10299,11 @@ acceptance also proves authority ancestry, cumulative run scope, protected-path
 exclusion, and regular-file Git modes rather than trusting persisted path text;
 the manual adapter consumes at most one supplied packet. Executor
 unavailability, startup failure, and timeout become identity-bound resumable
-`PAUSED_INFRA` states at the originating role/evidence phase.
+`PAUSED_INFRA` states at the originating role/evidence phase. Candidate ref
+installation writes a durable intent journal before its exact-ref
+compare-and-swap; resume deterministically clears an unapplied intent or rolls
+the durable state forward after a completed ref update, so a crash cannot leave
+the ref advanced behind stale controller state.
 
 ## B-01H-D3 — Regression-first evidence semantics
 
@@ -10335,8 +10342,9 @@ fails unavailable, and direct subprocess replay exists only in the explicitly
 synthetic test executor. The controller imports only its plan/run-allow-listed
 committed patch into the dedicated ticket worktree and never uses
 `danger-full-access`. Candidate installation is a ref-only compare-and-swap;
-the controller never synchronizes or resets the shared checkout. Every
-controller-authority Git command suppresses system/global configuration,
+it targets the exact manifest-bound local branch and refuses a detached or
+switched worktree, while never synchronizing or resetting the shared checkout.
+Every controller-authority Git command and Codex evidence replay suppresses system/global configuration,
 repository fsmonitor and hooks, ambient templates, and applicable external
 filter/diff execution.
 
@@ -10353,7 +10361,9 @@ materialized from immutable blobs and modes in the exact state-bound candidate
 tree, never the mutable checkout. Developer sealing uses descriptor-relative
 no-follow traversal, copying, and mode changes. External ref, index, and
 worktree drift is preserved and fails closed. Projection cleanup never follows
-or chmods through role-created symlinks. Final resume re-grants persisted Tester paths
+or chmods through role-created symlinks; managed projection parents reject
+intermediate links, and read-only projections preserve executable Git modes.
+Final resume re-grants persisted Tester paths
 through this same role allow-list before reconstructing the evidence projection.
 
 ## B-01H-D6 — Final candidate is delivery handoff only

@@ -220,12 +220,9 @@ class CodexExecAdapter:
             ],
             cwd=workspace,
             env={
+                **self._role_environment(runtime_directory),
                 "CODEX_HOME": str(codex_home),
                 "HOME": str(codex_home),
-                "LANG": "C.UTF-8",
-                "LC_ALL": "C.UTF-8",
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "TMPDIR": str(runtime_directory),
             },
             check=False,
             capture_output=True,

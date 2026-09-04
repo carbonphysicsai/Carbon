@@ -207,12 +207,12 @@ B-07A/B/C/D1/D2/D3/E/F/G/S + B-E1 + A12 → B-E4
 all required Wave B tickets except non-blocking B-01G, including B-01H → B-GATE
 ```
 
-B-03 and B-01F are closed in their bounded merged scopes. B-04's bounded
-engineering contract is ratified, B-01F's completion predicate is satisfied,
-and B-04-D11 froze the v1 executable schema before the completed bounded
-runtime candidate. Its `done` and B-05's `in_progress` remain conditional on
-the full delivery predicate; no B-05 work has started. B-01G does not block
-either transition. B-02C owns the resource-policy prerequisite; B-07E only
+B-03, B-01F, and B-04 are closed in their bounded merged scopes. PR #75's
+normalized receipt satisfied B-04's full completion predicate and selected
+B-05 `in_progress but NOT STARTED`; `OWNER-DX-02` subsequently interposed
+B-01H, so B-01H is now the conditional `in_progress` ticket and B-05 is `todo`
+until B-01H completes its full delivery predicate. No B-05 work has started.
+B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
 inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain
 tickets consume rather than redefine them. B-07F owns resolved-plan fixture-

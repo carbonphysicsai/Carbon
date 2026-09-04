@@ -209,6 +209,7 @@ def validate_run_manifest(value: Any) -> dict[str, Any]:
             "requirements",
             "roles",
             "developer_worktree",
+            "developer_worktree_ref",
             "initial_context",
             "context_allow_paths",
             "permitted_change_paths",
@@ -253,6 +254,16 @@ def validate_run_manifest(value: Any) -> dict[str, Any]:
     worktree = _string(root["developer_worktree"], "developer_worktree")
     if not PurePosixPath(worktree).is_absolute():
         raise PacketValidationError("developer_worktree must be an absolute path")
+    worktree_ref = _string(root["developer_worktree_ref"], "developer_worktree_ref")
+    if (
+        not worktree_ref.startswith("refs/heads/")
+        or ".." in worktree_ref
+        or "//" in worktree_ref
+        or "@{" in worktree_ref
+    ):
+        raise PacketValidationError(
+            "developer_worktree_ref must be an exact local branch ref"
+        )
     context = _mapping(root["initial_context"], "initial_context")
     _exact_keys(context, [role.value.lower() for role in Role], "initial_context")
     for role in Role:

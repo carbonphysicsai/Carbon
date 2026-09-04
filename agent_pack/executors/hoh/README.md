@@ -46,7 +46,9 @@ writable projection's `.git`, copies only regular worktree files into a
 controller-owned shadow repository, and imports only the plan/run-allow-listed
 patch into the dedicated ticket worktree. It constructs the candidate commit
 off-ref from the exact expected parent/tree and installs it only with an atomic
-ref-only compare-and-swap. It never synchronizes or resets the shared checkout;
+compare-and-swap of the exact local branch bound in the run manifest. A
+detached or switched worktree fails closed. It never synchronizes or resets the
+shared checkout;
 all later role context is rebuilt from immutable blobs in the state-bound tree,
 so concurrent external ref, index, or worktree changes are preserved and fail
 closed. Every controller-authority Git subprocess suppresses system/global
@@ -54,7 +56,9 @@ configuration, hooks, fsmonitor, templates, external diffs, and applicable
 filter execution. Mandatory
 protected patterns cannot be removed by a run manifest, only regular-file Git
 modes are importable, and projection cleanup never follows role-created
-symlinks.
+symlinks. Managed state/projection directories and state files use
+descriptor-relative no-follow traversal; unsafe roots, locks, targets, or
+replacement races cannot redirect chmod or state writes outside the run root.
 Role subprocesses receive a small allow-listed environment rather than
 inheriting API keys or other ambient variables. `danger-full-access` is never
 used. See the official [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions),
@@ -74,8 +78,9 @@ $(git rev-parse --git-common-dir)/.carbon-hoh/runs/<run-id>/
 ```
 
 This state is outside tracked content. Resume revalidates the exact run
-manifest digest, authority ref/commit/tree, immutable ticket and requirements
-blobs, role profiles, exact candidate ref/tree, and protected-context boundary.
+manifest digest, authority ref/commit/tree, manifest-bound attached worktree
+ref, immutable ticket and requirements blobs, role profiles, exact candidate
+head/tree, and protected-context boundary.
 `resume` also proves authority ancestry, recomputes and reauthorizes the exact
 Git changed-path manifest and regular-file modes, rejects lifecycle-incoherent
 phase/plan/requirement/regression state, reauthorizes every persisted Tester
@@ -88,7 +93,10 @@ structured inputs to later roles.
 Every initialize/resume/step/retry transaction holds a mode-0600 per-run lock,
 and step/retry compare the persisted state digest with the version loaded by
 that controller before writing. A stale controller therefore cannot overwrite
-a newer transition. Executor unavailability, startup failure, and timeout enter
+a newer transition. Candidate installation durably journals its intended
+before/after state before the ref compare-and-swap; resume clears an unapplied
+intent or rolls state forward after a completed ref update. Executor
+unavailability, startup failure, and timeout enter
 the typed `PAUSED_INFRA` state at the originating phase and remain eligible for
 the same identity-checked retry path. The CLI defers bounded Codex preflight
 until an invocation, so preflight failure is persisted through that path;
@@ -104,7 +112,8 @@ that role's `context_allow_paths`, rejects protected/out-of-authority requests,
 records every disclosed path and SHA-256, and re-invokes the role. Every role
 receives a disposable Git projection containing only granted paths; the
 Developer projection is writable, while Planner and Tester projections are
-read-only. Projection bytes and executable modes come from the exact candidate
+read-only without removing executable bits. Projection bytes and executable
+modes come from the exact candidate
 tree rather than the mutable shared checkout. Developer sealing traverses and
 copies only through no-follow file descriptors and never applies a path-based
 mode change to role-controlled content.
@@ -113,8 +122,9 @@ A requirements manifest also binds an exact closed command allow-list for each
 requirement. Tester evidence must name a disclosed verifier artifact, its
 digest, and one exact allow-listed argv. The controller independently reruns
 that command through the executor evidence seam. The Codex adapter uses the
-same verified read-only, root-denying, network-disabled profile with only the
-candidate projection and a private runtime exposed; manual replay fails
+same verified read-only, root-denying, network-disabled profile and sanitized
+Git environment with only the candidate projection and a private runtime
+exposed; manual replay fails
 unavailable, while direct subprocess replay exists only in the explicitly
 synthetic test executor. The controller matches exit status and stdout/stderr
 digest before accepting `VERIFIED`. An empty command list, as in the

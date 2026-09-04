@@ -985,7 +985,7 @@ def test_candidate_import_preserves_post_cas_external_commit(
         nonlocal injected
         normalized = [str(item) for item in command]
         result = original_run(command, *args, **kwargs)
-        if "update-ref" in normalized and "HEAD" in normalized and not injected:
+        if "update-ref" in normalized and not injected:
             injected = True
             (repository / "src.txt").write_text(
                 "intentional external reversion\n", encoding="utf-8"
@@ -1011,9 +1011,7 @@ def test_candidate_import_preserves_post_cas_external_commit(
         return result
 
     monkeypatch.setattr("subprocess.run", race)
-    with pytest.raises(
-        IdentityMismatch, match="no external ref or shared checkout was modified"
-    ):
+    with pytest.raises(IdentityMismatch, match="candidate changed after atomic"):
         controller.step()
 
     assert injected
@@ -1026,6 +1024,89 @@ def test_candidate_import_preserves_post_cas_external_commit(
     assert git(repository, "log", "-1", "--format=%s") == "post-check external"
     assert git(repository, "status", "--porcelain=v1", "--untracked-files=all") == ""
     assert git(repository, "write-tree") == git(repository, "rev-parse", "HEAD^{tree}")
+
+
+def test_candidate_import_never_advances_newly_selected_same_commit_ref(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor(
+        {Role.PLANNER: [plan_packet], Role.DEVELOPER: [developer_packet]}
+    )
+    controller, repository, manifest = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    original_head = git(repository, "rev-parse", "HEAD")
+    intended_ref = manifest["developer_worktree_ref"]
+    git(repository, "branch", "same-commit-switch", original_head)
+    original_run = subprocess.run
+    switched = False
+
+    def switch_before_cas(command, *args, **kwargs):
+        nonlocal switched
+        normalized = [str(item) for item in command]
+        if "update-ref" in normalized and not switched:
+            switched = True
+            changed = original_run(
+                ["git", "switch", "--quiet", "same-commit-switch"],
+                cwd=repository,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            assert changed.returncode == 0
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", switch_before_cas)
+    with pytest.raises(IdentityMismatch, match="worktree ref mismatch"):
+        controller.step()
+
+    assert switched
+    assert (
+        git(repository, "rev-parse", "refs/heads/same-commit-switch") == original_head
+    )
+    assert git(repository, "rev-parse", intended_ref) != original_head
+
+
+def test_resume_rolls_forward_crash_after_candidate_ref_cas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor(
+        {Role.PLANNER: [plan_packet], Role.DEVELOPER: [developer_packet]}
+    )
+    controller, repository, manifest = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    original_save = controller.store.save_state
+    failed = False
+
+    def fail_first_post_cas_save(state):
+        nonlocal failed
+        if controller.store.pending_install_path.exists() and not failed:
+            failed = True
+            raise OSError("synthetic state persistence failure")
+        return original_save(state)
+
+    monkeypatch.setattr(controller.store, "save_state", fail_first_post_cas_save)
+    with pytest.raises(OSError, match="synthetic state persistence failure"):
+        controller.step()
+    assert failed
+    installed_head = git(repository, "rev-parse", manifest["developer_worktree_ref"])
+    assert installed_head != manifest["authority"]["commit"]
+
+    recovered = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    state = recovered.resume()
+    assert state["phase"] == "TESTING"
+    assert state["candidate"]["head"] == installed_head
+    assert not controller.store.pending_install_path.exists()
 
 
 def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
