@@ -29,7 +29,7 @@
     },
     "B-01G": {
       "title": "Test whether repetitive schema code can be generated safely",
-      "what": "Run a small future proof that generates reviewable source code without runtime reflection or broad untrusted deserialization.",
+      "what": "Run a small proof of a future approach that generates reviewable source code without runtime reflection or broad untrusted deserialization.",
       "why": "Some repetitive code may be automatable, but Carbon needs evidence that automation preserves exact identities and ownership boundaries.",
       "changes": "The team gets evidence for or against a later static code-generation approach.",
       "not_yet": "This is queued tooling work; it does not migrate current scientific domains or block the active scientific work.",
@@ -81,6 +81,7 @@
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
       "changes": "The exam gains explicit measurement and evidence-use rules that later evaluation code can execute without inventing scientific policy at runtime.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
+      "current_stage_plain": "Selected as the next ticket, but its contract and implementation have not started. The prior ticket must still finish its delivery checks.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {

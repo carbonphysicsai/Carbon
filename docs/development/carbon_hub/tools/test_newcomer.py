@@ -80,6 +80,16 @@ class NewcomerProjectionTests(unittest.TestCase):
             self.assertIn(render_hub.NEWCOMER_STATUS_LABELS[status], self.output)
             self.assertIn(f"Exact canonical status:</strong> {status}", self.output)
 
+    def test_current_stage_does_not_imply_unstarted_implementation(self) -> None:
+        stage = self.projection["tickets"][str(self.data["current"]["ticket"])].get(
+            "current_stage_plain"
+        )
+        self.assertTrue(stage)
+        self.assertIn(
+            f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
+        )
+        self.assertIn("contract and implementation have not started", self.output)
+
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:
         self.assertIsNone(re.search(r"<script\b", self.output, flags=re.IGNORECASE))
         self.assertIsNone(
