@@ -42,6 +42,10 @@ class StateStore:
         return self.root / "pending_install.json"
 
     @property
+    def initialization_path(self) -> Path:
+        return self.root / "initialization.json"
+
+    @property
     def lock_path(self) -> Path:
         return self.root / "controller.lock"
 
@@ -200,10 +204,61 @@ class StateStore:
             os.close(root_descriptor)
 
     def initialize(self, run_manifest: dict[str, Any], state: dict[str, Any]) -> None:
+        initialization = {
+            "schema_version": "1.0",
+            "run_manifest": run_manifest,
+            "controller_state": state,
+        }
+        if self._exists("initialization.json"):
+            if canonical_json_bytes(
+                self._load("initialization.json", "initialization journal")
+            ) != canonical_json_bytes(initialization):
+                raise IdentityMismatch(
+                    "pending initialization belongs to different run state"
+                )
+            self._recover_initialization()
+            return
         if self._exists("run_manifest.json") or self._exists("controller_state.json"):
             raise IdentityMismatch(f"run state already exists at {self.root}")
-        self._atomic_write("run_manifest.json", run_manifest)
-        self._atomic_write("controller_state.json", state)
+        self._atomic_write("initialization.json", initialization)
+        self._recover_initialization()
+
+    def _recover_initialization(self) -> None:
+        """Finish one journaled first write without stranding its run ID."""
+
+        if not self._exists("initialization.json"):
+            return
+        initialization = self._load("initialization.json", "initialization journal")
+        if (
+            set(initialization)
+            != {"schema_version", "run_manifest", "controller_state"}
+            or initialization["schema_version"] != "1.0"
+            or not isinstance(initialization["run_manifest"], dict)
+            or not isinstance(initialization["controller_state"], dict)
+        ):
+            raise IdentityMismatch("initialization journal is malformed")
+        for name, label, value in (
+            (
+                "run_manifest.json",
+                "run manifest",
+                initialization["run_manifest"],
+            ),
+            (
+                "controller_state.json",
+                "controller state",
+                initialization["controller_state"],
+            ),
+        ):
+            if self._exists(name):
+                if canonical_json_bytes(
+                    self._load(name, label)
+                ) != canonical_json_bytes(value):
+                    raise IdentityMismatch(
+                        f"{label} differs from pending initialization"
+                    )
+            else:
+                self._atomic_write(name, value)
+        self._clear_file("initialization.json", "initialization journal")
 
     def save_state(self, state: dict[str, Any]) -> None:
         if not self._exists("run_manifest.json"):
@@ -219,11 +274,14 @@ class StateStore:
         return self._load("pending_install.json", "pending candidate install")
 
     def clear_pending_install(self) -> None:
+        self._clear_file("pending_install.json", "pending candidate install")
+
+    def _clear_file(self, name: str, label: str) -> None:
         root_descriptor = self._open_root(create=False)
         try:
             try:
                 identity = os.stat(
-                    "pending_install.json",
+                    name,
                     dir_fd=root_descriptor,
                     follow_symlinks=False,
                 )
@@ -234,16 +292,18 @@ class StateStore:
                 or not stat.S_ISREG(identity.st_mode)
                 or identity.st_nlink != 1
             ):
-                raise IdentityMismatch("pending candidate install path is unsafe")
-            os.unlink("pending_install.json", dir_fd=root_descriptor)
+                raise IdentityMismatch(f"{label} path is unsafe")
+            os.unlink(name, dir_fd=root_descriptor)
             os.fsync(root_descriptor)
         finally:
             os.close(root_descriptor)
 
     def load_manifest(self) -> dict[str, Any]:
+        self._recover_initialization()
         return self._load("run_manifest.json", "run manifest")
 
     def load_state(self) -> dict[str, Any]:
+        self._recover_initialization()
         return self._load("controller_state.json", "controller state")
 
     def _load(self, name: str, label: str) -> dict[str, Any]:

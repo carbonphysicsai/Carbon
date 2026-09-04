@@ -10290,6 +10290,9 @@ atomically persisted under the Git common directory by default and is never
 committed as per-iteration evidence. The state root and managed entries are
 opened descriptor-relatively without following links; unsafe roots, locks,
 targets, or replacement races fail closed without chmodding an external target.
+The first manifest/state pair is installed through a durable initialization
+journal; resume completes an interrupted first install only when every existing
+file matches that journal, so a crash cannot strand the run ID.
 Every transition holds a per-run mode-0600 lock, and step/retry compare the persisted
 state digest with the controller's loaded version before writing, preventing a
 stale controller from overwriting newer state. A paused
@@ -10310,8 +10313,9 @@ the ref advanced behind stale controller state.
 Only independent Tester evidence whose verifier artifact and exact argv are
 authorized by the identity-bound requirements manifest creates `VERIFIED`.
 The controller reruns that command in the isolated candidate projection and
-matches exit status plus output digest; model labels or arbitrary disclosed
-files are insufficient. The complete Tester result set is validated before
+requires the artifact digest to match both the projected file and its exact
+candidate disclosure before matching exit status plus output digest; model
+labels, controller metadata, or arbitrary disclosed files are insufficient. The complete Tester result set is validated before
 requirements or regressions mutate, and both are installed from one detached
 next-state value only after the packet succeeds. A later failure of a verified
 requirement creates an explicit regression, reopens it as `FAILED`, and requires the next plan to
@@ -10363,7 +10367,8 @@ must match role/ticket allow-lists, cannot enter protected or out-of-authority
 namespaces, and are logged with content digests. Protected hidden-evaluation
 data, credentials, private validator state, and reconstruction-sensitive
 identifiers are rejected from packets and persisted state. Run manifests cannot
-remove the mandatory protection set; Developer imports use the same root-aware
+remove the mandatory protection set, including the controller-owned projection
+metadata filename; Developer imports use the same root-aware
 matcher and accept regular-file Git modes only. Every role projection is
 materialized from immutable blobs and modes in the exact state-bound candidate
 tree, never the mutable checkout. Developer sealing uses descriptor-relative

@@ -1163,7 +1163,7 @@ class HarnessController:
         assert self.state is not None
         self._require_candidate_ref("evidence replay")
         disclosed = {
-            item["path"]
+            item["path"]: item["sha256"]
             for item in self.state["disclosures"]
             if item["role"] == Role.TESTER.value
             and item["iteration"] == self.state["iteration"]
@@ -1181,6 +1181,11 @@ class HarnessController:
                 if artifact not in disclosed:
                     raise PacketValidationError(
                         f"evidence artifact was not disclosed to Tester: {artifact}"
+                    )
+                if evidence["sha256"] != disclosed[artifact]:
+                    raise PacketValidationError(
+                        "evidence artifact digest mismatch with its candidate "
+                        f"disclosure: {artifact}"
                     )
                 path = workspace / artifact
                 if path.is_symlink() or not path.is_file():

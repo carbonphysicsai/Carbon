@@ -98,7 +98,9 @@ structured inputs to later roles.
 Every initialize/resume/step/retry transaction holds a mode-0600 per-run lock,
 and step/retry compare the persisted state digest with the version loaded by
 that controller before writing. A stale controller therefore cannot overwrite
-a newer transition. Candidate installation durably journals its intended
+a newer transition. The initial manifest/state pair is journaled first; resume
+completes a matching interrupted install, so a partial first write cannot
+strand the run ID. Candidate installation durably journals its intended
 before/after state before the ref compare-and-swap; resume clears an unapplied
 intent or rolls state forward after a completed ref update. Executor
 unavailability, startup failure, and timeout enter
@@ -119,13 +121,16 @@ receives a disposable Git projection containing only granted paths; the
 Developer projection is writable, while Planner and Tester projections are
 read-only without removing executable bits. Projection bytes and executable
 modes come from the exact candidate
-tree rather than the mutable shared checkout. Developer sealing traverses and
+tree rather than the mutable shared checkout. The controller-owned
+`.carbon-hoh-context.json` filename is mandatory protected context and cannot
+be supplied by the candidate. Developer sealing traverses and
 copies only through no-follow file descriptors and never applies a path-based
 mode change to role-controlled content.
 
 A requirements manifest also binds an exact closed command allow-list for each
 requirement. Tester evidence must name a disclosed verifier artifact, its
-digest, and one exact allow-listed argv. The controller independently reruns
+digest, and one exact allow-listed argv. That digest must equal both the
+candidate disclosure and projected file before the controller independently reruns
 that command through the executor evidence seam. The Codex adapter uses the
 same verified read-only, root-denying, network-disabled profile and sanitized
 Git environment plus its profile-bound trusted execution path, with only the

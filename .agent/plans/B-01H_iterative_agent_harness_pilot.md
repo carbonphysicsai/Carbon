@@ -111,17 +111,19 @@ evidence-command replay, mandatory protected policy, trusted-shadow regular-file
 Developer patch sealing, off-ref exact-parent candidate construction and atomic
 compare-and-swap of the manifest-bound local branch with a sanitized Git
 boundary and no shared-checkout mutation, durable pending-install recovery,
+recoverable journaled initial manifest/state installation,
 immutable candidate-tree projection materialization with executable modes
 preserved, descriptor-relative no-follow state/projection storage and Developer
 sealing, structured
 failure/regression carry-forward,
 regression-first replanning and handoff blocking, transactional Tester-state
-acceptance, identity-checked pause retry, a verified `codex exec` adapter with an
+acceptance, candidate-disclosure-bound evidence hashes and a protected
+projection-metadata namespace, identity-checked pause retry, a verified `codex exec` adapter with an
 explicit profile-bound absolute executable identity and trusted execution path,
 one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 76 focused tests passing. Ruff
+The native Python 3.11.16 diagnostic reports 78 focused tests passing. Ruff
 0.16.3 passes on the new Python surface, every JSON schema parses, and diff
 hygiene is clean. The real adapter probe identifies `codex-cli
 0.151.0-alpha.7.2` but safely rejects it because its actual Developer exec path

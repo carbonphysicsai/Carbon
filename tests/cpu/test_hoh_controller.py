@@ -168,6 +168,37 @@ def test_synthetic_failure_replan_regression_repair_success(tmp_path: Path) -> N
     assert state["candidate"]["head"] != manifest["authority"]["commit"]
 
 
+def test_resume_recovers_interrupted_initial_state_install(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor({})
+    controller, _repository, _manifest = _controller(tmp_path, executor)
+    original_write = controller.store._atomic_write
+    failed = False
+
+    def fail_first_state_write(name, value):
+        nonlocal failed
+        if name == "controller_state.json" and not failed:
+            failed = True
+            raise OSError("synthetic initial state persistence failure")
+        return original_write(name, value)
+
+    monkeypatch.setattr(controller.store, "_atomic_write", fail_first_state_write)
+    with pytest.raises(OSError, match="synthetic initial state"):
+        controller.initialize()
+
+    assert controller.store.initialization_path.is_file()
+    assert controller.store.manifest_path.is_file()
+    assert not controller.store.state_path.exists()
+
+    recovered = controller.resume()
+    assert recovered["phase"] == ControllerPhase.PLANNING.value
+    assert recovered["iteration"] == 1
+    assert controller.store.state_path.is_file()
+    assert not controller.store.initialization_path.exists()
+
+
 @pytest.mark.parametrize("role", [Role.PLANNER, Role.TESTER])
 def test_read_roles_use_read_only_projection_not_candidate(
     tmp_path: Path,

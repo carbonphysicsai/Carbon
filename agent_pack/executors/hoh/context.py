@@ -28,6 +28,7 @@ from .models import PacketValidationError, Role, ScopeViolation
 from .state_store import StateStore
 
 DEFAULT_PROTECTED_PATTERNS = (
+    ".carbon-hoh-context.json",
     ".env",
     ".env.*",
     ".carbon-hidden/**",
@@ -40,6 +41,8 @@ DEFAULT_PROTECTED_PATTERNS = (
     "**/protected_exam/**",
     "**/reconstruction_private/**",
 )
+
+CONTEXT_METADATA_PATH = ".carbon-hoh-context.json"
 
 SECRET_VALUE_MARKERS = (
     "-----BEGIN PRIVATE KEY-----",
@@ -332,7 +335,7 @@ class ContextBroker:
             "role": role.value,
             "disclosed_paths": sorted(set(paths)),
         }
-        (target / ".carbon-hoh-context.json").write_text(
+        (target / CONTEXT_METADATA_PATH).write_text(
             json.dumps(metadata, sort_keys=True, separators=(",", ":")) + "\n",
             encoding="utf-8",
         )

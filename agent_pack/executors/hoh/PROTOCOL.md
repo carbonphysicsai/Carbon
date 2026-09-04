@@ -78,7 +78,10 @@ open-regression records remain structured inputs to later roles.
   controller's loaded version, so a stale controller cannot overwrite a newer
   transition. State roots and entries are traversed descriptor-relatively with
   no link following; unsafe roots, locks, targets, and replacement races fail
-  closed without changing external target modes. Candidate installation first
+  closed without changing external target modes. Initial manifest/state
+  persistence first installs a journal that resume can complete only when any
+  installed half matches it, preventing an interrupted first write from
+  stranding the run ID. Candidate installation first
   persists an intent journal, then compare-and-swaps the exact bound ref. Resume
   deterministically clears an unapplied intent or rolls state forward after a
   completed ref update.
@@ -92,7 +95,9 @@ open-regression records remain structured inputs to later roles.
   external ref or worktree change is preserved and fails closed. Only
   regular-file Git modes are accepted.
 - Planner and Tester run against read-only projections, preserve executable
-  Git modes, and cannot repair the candidate.
+  Git modes, and cannot repair the candidate. The controller-owned
+  `.carbon-hoh-context.json` metadata name is mandatory protected context and
+  cannot collide with a candidate file.
 - The Codex executable must be supplied as an exact absolute path independent of
   ambient lookup. Its owned/root-owned executable regular-file identity and
   SHA-256 are bound into each role profile and revalidated before every launch.
@@ -115,6 +120,8 @@ open-regression records remain structured inputs to later roles.
   `/usr/bin:/bin` execution path; the manual executor
   fails unavailable, and direct subprocess replay is confined to the
   explicitly synthetic test executor.
+- Evidence artifact SHA-256 must equal both the immutable candidate disclosure
+  digest and the projected file digest before any verifier command is accepted.
 
 Any mismatch fails closed without advancement.
 

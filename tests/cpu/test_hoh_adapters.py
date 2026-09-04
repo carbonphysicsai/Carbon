@@ -17,7 +17,11 @@ from agent_pack.executors.hoh.codex import (
     TRUSTED_EXECUTION_PATH,
     CodexExecAdapter,
 )
-from agent_pack.executors.hoh.context import ContextBroker, assert_payload_safe
+from agent_pack.executors.hoh.context import (
+    CONTEXT_METADATA_PATH,
+    ContextBroker,
+    assert_payload_safe,
+)
 from agent_pack.executors.hoh.executors import (
     EvidenceInvocation,
     ManualExecutor,
@@ -684,6 +688,35 @@ def test_root_level_protected_context_is_rejected(tmp_path: Path) -> None:
             iteration=1,
             candidate=head_identity(repository),
         )
+
+
+def test_projection_metadata_path_cannot_collide_with_candidate(
+    tmp_path: Path,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    (repository / CONTEXT_METADATA_PATH).write_text(
+        "candidate-controlled bytes\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "add", CONTEXT_METADATA_PATH], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "--message", "metadata collision fixture"],
+        cwd=repository,
+        check=True,
+    )
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    manifest["context_allow_paths"]["tester"] = ["**"]
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+
+    with pytest.raises(ScopeViolation, match="protected context request"):
+        broker.grant(
+            Role.TESTER,
+            [CONTEXT_METADATA_PATH],
+            iteration=1,
+            candidate=head_identity(repository),
+        )
+
+    assert CONTEXT_METADATA_PATH in manifest["protected_patterns"]
 
 
 def test_default_state_store_is_under_git_common_directory(tmp_path: Path) -> None:
