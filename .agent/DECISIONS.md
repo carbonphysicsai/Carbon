@@ -10237,3 +10237,85 @@ These decisions govern A0 planning; they do not implement A0 or qualify any scie
 | Date | Ticket | Why stop/escalate | Outcome |
 |------|--------|-------------------|---------|
 | | | | |
+# OWNER-DX-02 — Carbon Iterative Agent Harness Pilot
+
+**Date:** 2026-09-04
+**Status:** owner-authorized sequencing and bounded development-system decision
+**Ticket:** B-01H
+**Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
+
+**Decision.** After B-04's completed external predicate and before any B-05
+scientific work, insert B-01H to implement a bounded Carbon-native iterative
+Planner/Developer/Tester controller. B-05 remains the next scientific ticket
+and becomes the first planned live harness pilot after B-01H closes. B-01G
+remains todo and non-blocking.
+
+**Why.** PR #75's receipt proved B-04 completed and selected B-05 but explicitly
+recorded it as not started. The interposition can therefore improve development
+control without rewriting B-05 science or historical B-04 evidence.
+
+**Authority ceiling.** The harness may orchestrate independent development
+roles, validate engineering packets and evidence, freeze candidates, and hand a
+final candidate to Carbon's existing delivery protocol. It cannot implement
+B-05 science, choose reserved values, approve/merge, satisfy final review,
+qualify science/security/production, activate `LIVE`, create rights/economics,
+or access/persist protected hidden evaluation.
+
+**Alternatives rejected.** Starting B-05 before the harness would defeat the
+authorized pilot sequencing. Folding B-01H into B-01G would mix unrelated
+static-codegen and orchestration scopes. Treating a model loop as final review
+would violate the delivery protocol.
+
+**Reversibility / migration.** B-01H is optional development tooling under
+`agent_pack/executors/hoh/`; removing it does not change Carbon runtime or
+scientific contracts. B-05's exact DoD remains authoritative and unchanged.
+
+**Human-reserved input.** None is required for the bounded controller. Every
+B-05 scientific value and every later authority remains unavailable and fail
+closed.
+
+## B-01H-D1 — Deterministic controller owns advancement
+
+Only strict controller logic advances requirement or run state. Planner and
+Tester produce schema-valid proposals/evidence; Developer cannot certify
+requirements; a model assertion cannot create `VERIFIED`, clear
+`BLOCKED_HUMAN`, or create final/merge/qualification authority.
+
+## B-01H-D2 — Exact identities and external atomic state
+
+Every transition binds the authority commit/tree, ticket content digest,
+requirements-manifest digest, role/executor profile, iteration, and applicable
+candidate head/tree. Dynamic state is atomically persisted under the Git common
+directory by default and is never committed as per-iteration evidence.
+
+## B-01H-D3 — Regression-first evidence semantics
+
+Only accepted independent Tester evidence creates `VERIFIED`. A later failure
+of a verified requirement creates an explicit regression, reopens it as
+`FAILED`, and requires the next plan to address every open regression before
+new work.
+
+## B-01H-D4 — Supported Codex exec adapter with bounded sandboxes
+
+Wrap the currently installed and officially documented `codex exec` surface:
+independent ephemeral invocations, explicit `read-only` or `workspace-write`,
+ignored user config, fixed working directory, and JSON Schema output. Planner
+and Tester receive controller-created read projections; Developer receives only
+the dedicated ticket worktree. The adapter fails unavailable when its version
+or required flags cannot be verified and never uses `danger-full-access`.
+
+## B-01H-D5 — Progressive disclosure is allow-listed and audited
+
+Each role begins from a bounded context manifest. Additional normalized paths
+must match role/ticket allow-lists, cannot enter protected or out-of-authority
+namespaces, and are logged with content digests. Protected hidden-evaluation
+data, credentials, private validator state, and reconstruction-sensitive
+identifiers are rejected from packets and persisted state.
+
+## B-01H-D6 — Final candidate is delivery handoff only
+
+`FINAL_CANDIDATE_READY` means all in-scope harness requirements have accepted
+Tester evidence on one exact candidate. It grants no merge, Codex/GPT review,
+human approval, scientific/security/production qualification, `LIVE`, network,
+economics, or rights authority and must hand off unchanged to
+`.agent/DELIVERY_PROTOCOL.md`.

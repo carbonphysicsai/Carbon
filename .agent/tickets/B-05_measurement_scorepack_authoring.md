@@ -1,12 +1,13 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`
-**Conditional authority:** this status takes effect only after B-04's
-conditional completion predicate passes
-**Execution state before that predicate:** `todo`; no B-05 contract, decision,
-plan, evidence, runtime, test, or implementation work has started
-**Depends on:** B-02C, B-04
+**Status:** `todo`; next scientific ticket and first planned B-01H pilot
+**Owner interposition:** `OWNER-DX-02` inserts B-01H after B-04 completion and
+before this ticket
+**Prior selection evidence:** PR #75's completed receipt selected B-05
+`in_progress but NOT STARTED`; no B-05 contract, decision, plan, evidence,
+runtime, test, or implementation work began before the interposition
+**Depends on:** B-02C, B-04, B-01H
 **Build Out:** C5 Wave B authoring seam
 **Master questions:** MQ-005, MQ-006, MQ-007, MQ-008
 **Authority:** `Scoring.md`; `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md` §4
@@ -14,14 +15,13 @@ C13-C14 and §§7-8; `Miner_MCP_Wave_B_Research_Contract.md` §8.2;
 `Compute_Optimization.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
 
-The B-04 candidate prospectively selects this board-order dependent ticket only
-after B-04's exact final head passes every scope-required check and `Merge gate`,
-exact-head Greptile with all valid findings repaired and zero unresolved
-threads, normal expected-head merge with ordered-parent/reviewed-tree equality,
-exact-main `Merge gate`, and a completed normalized external receipt. If any
-predicate fails, this ticket remains authoritative `todo`. Selection supplies
-no B-05 contract or runtime implementation and no human-reserved measurement,
-uncertainty, scoring, reconstruction-evidence, or qualification value.
+PR #75 comment `5513643185` proves B-04's completed predicate and historical
+selection of this ticket. `OWNER-DX-02` subsequently interposes B-01H while
+preserving this ticket's Definition of Done unchanged. B-05 starts only after
+B-01H's complete delivery predicate and exact pilot base are recorded. This
+sequencing supplies no B-05 contract or runtime implementation and no human-
+reserved measurement, uncertainty, scoring, reconstruction-evidence, or
+qualification value.
 
 ## Goal
 

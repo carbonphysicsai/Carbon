@@ -3,21 +3,19 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.3
-**Selected ticket:** B-05 — `in_progress`
-**Conditional authority:** that selection becomes authoritative only after
-B-04's complete conditional completion predicate
-**Authoritative selection before that predicate:** B-04 — `in_progress`; B-05
-remains `todo`
-**Selected phase after that predicate:** B-05 contract-then-implementation;
-this B-04 session starts no B-05 work
+**Controlling register:** `.agent/WAVE_B.md` version 1.4
+**Selected ticket:** B-01H — `in_progress`
+**Owner sequencing:** `OWNER-DX-02` interposes B-01H after completed B-04 and
+before B-05; B-05 remains the next scientific ticket and first planned pilot
+but is not started
+**B-01H status:** `in_progress` in bounded development-system scope
 **B-01F status:** `done` in bounded merged development-system scope
 **B-01G status:** `todo`; non-blocking for B-04
-**B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` only after its full
-exact-head/review/normal-merge/exact-main/receipt predicate; bounded candidate
-prepared and every qualification remains unearned
-**B-05 status:** prospective conditional `in_progress`; all DoD remains
-unchecked and no B-05 work has started
+**B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
+runtime scope after PR #75's full predicate; every qualification remains
+unearned
+**B-05 status:** `todo` during the B-01H interposition; it was selected by the
+completed B-04 receipt but remained explicitly not started
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -40,6 +38,15 @@ unchecked and no B-05 work has started
 > Greptile evidence remains immutable. This governance interposition does not
 > change Wave B, B-04 selection or runtime semantics, maturity, or future-wave
 > implementation authority.
+
+> **OWNER-DX-02 — Carbon Iterative Agent Harness Pilot.** PR #75 comment
+> `5513643185` established B-04's completed predicate and selected B-05
+> `in_progress but NOT STARTED` at exact main `650b035d…`. Owner direction now
+> interposes B-01H as the selected development-system ticket. B-05 remains the
+> next scientific ticket and becomes the first planned harness pilot only after
+> B-01H's own exact completion predicate. B-01G remains todo and non-blocking.
+> This grants no B-05 science, security, production, network, economics,
+> rights, qualification, `LIVE`, review, or merge authority.
 
 > **B-02A closed.** PR #60 normally merged exact reviewed head
 > `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
