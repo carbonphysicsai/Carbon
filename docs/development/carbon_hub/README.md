@@ -11,7 +11,7 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 41 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 14 map-level change events
+- 15 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
@@ -28,6 +28,7 @@ schema or presentation behavior. Never hand-edit generated outputs. Then run:
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
 python docs/development/carbon_hub/tools/render_hub.py --check
+python docs/development/carbon_hub/tools/test_newcomer.py
 python docs/development/carbon_hub/tools/validate_hub.py --repo-root .
 node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py

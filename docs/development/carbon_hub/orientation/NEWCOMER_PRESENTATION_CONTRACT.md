@@ -38,6 +38,18 @@ Every captured ticket Overview must answer:
 3. **What changes when it is finished?**
 4. **What does this ticket not do?**
 
+The Independent Exam / Validator Execution Map uses the same single-record
+rule. It renders one ordered `Q1`–`Q5`, `R1`–`R15` target process. Every step
+shows Input, controller, action, output, why, failure or indeterminate states,
+maturity, technical authority, and expandable Investor, Engineer, CFD, and
+Physics PhD explanations. Those depths explain one process; they are not four
+audience-specific process models.
+
+The map must always state that it describes the target qualified exam, Wave B
+is current authoring work, the real validator-to-exam vertical is planned for
+Wave C1, Burgers v1 remains PRE-LIVE pending a measured Validation Dossier,
+and science ends before the separate R15 network/economic policy step.
+
 The first sentence should make sense without Carbon-specific vocabulary.
 Introduce canonical names after the underlying idea has been explained.
 
@@ -87,21 +99,22 @@ existing Hub and underlying repository records.
 
 ## Overview output
 
-`tools/render_newcomer.py` generates:
+`tools/render_hub.py` generates the single Hub front door:
 
 ```text
-newcomer.html
-technical.html
+index.html
 ```
 
-`newcomer.html` is the plain-English Overview. `technical.html` is a local
-handoff to the existing complete `index.html` Hub.
+`index.html` leads with the plain-English Overview on every Wave and ticket
+card. The same card retains the complete canonical record in an inline
+`Technical detail` disclosure. `tools/render_newcomer.py` is a compatibility
+entry point for the same deterministic build; it does not create a separate
+output.
 
-The target public Pages behavior is to make Overview the front door while
-preserving the current technical Hub as Technical Detail. **That publication
-staging is not claimed active merely because this contract and renderer exist.**
-Changing the Pages workflow crosses the Hub's existing authority-repin boundary
-and must land through its own validated repository change.
+The existing Pages workflow already publishes the directory's `index.html`.
+This change therefore makes Overview the front door without changing the Pages
+workflow, repository settings, or publication authority. Automatic publication
+remains disabled unless the separately governed repository variable permits it.
 
 ## Copy rules
 
@@ -153,6 +166,7 @@ Run the existing Hub checks plus:
 ```bash
 python docs/development/carbon_hub/tools/render_newcomer.py
 python docs/development/carbon_hub/tools/render_newcomer.py --check
+python docs/development/carbon_hub/tools/test_newcomer.py
 ```
 
 The Overview is presentation evidence only. It grants no later maturity.

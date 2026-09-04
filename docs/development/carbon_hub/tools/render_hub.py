@@ -20,6 +20,22 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "data" / "hub_data_v2.json"
 EVENTS_PATH = ROOT / "data" / "change_events.json"
 TEMPLATE_PATH = ROOT / "tools" / "templates" / "interactive_template.html"
+NEWCOMER_WAVE_PATH = ROOT / "data" / "newcomer_projection_v1.json"
+NEWCOMER_TICKET_PATHS = (
+    ROOT / "data" / "newcomer_tickets_wave_a_v1.json",
+    ROOT / "data" / "newcomer_tickets_wave_b_v1.json",
+)
+VALIDATOR_EXAM_MAP_PATH = ROOT / "data" / "validator_exam_map_v1.json"
+
+NEWCOMER_STATUS_LABELS = {
+    "closed": "Built in bounded scope",
+    "done": "Built in bounded scope",
+    "active": "Building",
+    "in_progress": "Building",
+    "planned": "Planned",
+    "todo": "Planned",
+    "blocked": "Blocked",
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -30,6 +46,116 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SystemExit(f"Expected a JSON object in {path}")
     return value
+
+
+def load_newcomer_projection(data: dict[str, Any]) -> dict[str, Any]:
+    """Load and fail closed on the non-authoritative newcomer projection."""
+    projection = load_json(NEWCOMER_WAVE_PATH)
+    tickets: dict[str, Any] = {}
+    for path in NEWCOMER_TICKET_PATHS:
+        bundle = load_json(path)
+        for key in ("schema_version", "map_ref", "product_decision"):
+            if bundle.get(key) != projection.get(key):
+                raise SystemExit(f"{path}: {key} does not match Wave projection")
+        records = bundle.get("tickets")
+        if not isinstance(records, dict):
+            raise SystemExit(f"{path}: tickets must be an object")
+        overlap = set(records) & set(tickets)
+        if overlap:
+            raise SystemExit(f"Duplicate newcomer tickets: {sorted(overlap)}")
+        tickets.update(records)
+    projection["tickets"] = tickets
+
+    if projection.get("schema_version") != "1.0":
+        raise SystemExit("newcomer projection schema_version must be 1.0")
+    if projection.get("map_ref") != "SYSTEM/DEVELOPMENT-HUB":
+        raise SystemExit("newcomer projection must bind to SYSTEM/DEVELOPMENT-HUB")
+    if projection.get("product_decision") != "OWNER-HUB-01":
+        raise SystemExit("newcomer projection must bind to OWNER-HUB-01")
+
+    waves = {str(item["id"]): item for item in data["waves"]}
+    canonical_tickets = {str(item["id"]): item for item in data["tickets"]}
+    if set(projection.get("waves", {})) != set(waves):
+        raise SystemExit("Newcomer Wave coverage does not match canonical Hub")
+    if set(tickets) != set(canonical_tickets):
+        raise SystemExit("Newcomer ticket coverage does not match canonical Hub")
+
+    for wave_id, item in projection["waves"].items():
+        if item.get("map_ref") != f"WAVE-{wave_id}":
+            raise SystemExit(f"{wave_id}: wrong newcomer map_ref")
+        if waves[wave_id].get("status") not in NEWCOMER_STATUS_LABELS:
+            raise SystemExit(f"{wave_id}: unsupported canonical status")
+        for field in ("title", "what", "why", "done_when", "not_yet"):
+            if not str(item.get(field, "")).strip():
+                raise SystemExit(f"{wave_id}: missing newcomer field {field}")
+
+    for ticket_id, item in tickets.items():
+        canonical = canonical_tickets[ticket_id]
+        expected = f"WAVE-{canonical['wave']}/{ticket_id}"
+        if item.get("map_ref") != expected:
+            raise SystemExit(f"{ticket_id}: wrong newcomer map_ref")
+        if canonical.get("status") not in NEWCOMER_STATUS_LABELS:
+            raise SystemExit(f"{ticket_id}: unsupported canonical status")
+        for field in ("title", "what", "why", "changes", "not_yet"):
+            if not str(item.get(field, "")).strip():
+                raise SystemExit(f"{ticket_id}: missing newcomer field {field}")
+    return projection
+
+
+def load_validator_exam_map() -> dict[str, Any]:
+    """Load and validate the single canonical target exam-process projection."""
+    exam = load_json(VALIDATOR_EXAM_MAP_PATH)
+    if exam.get("schema_version") != "1.0":
+        raise SystemExit("validator exam map schema_version must be 1.0")
+    if exam.get("map_ref") != "SYSTEM/DEVELOPMENT-HUB":
+        raise SystemExit("validator exam map must bind to SYSTEM/DEVELOPMENT-HUB")
+    if exam.get("product_decision") != "OWNER-HUB-01":
+        raise SystemExit("validator exam map must bind to OWNER-HUB-01")
+    if exam.get("depths") != ["Investor", "Engineer", "CFD", "Physics PhD"]:
+        raise SystemExit("validator exam map must expose the four required depths")
+    layers = exam.get("layers")
+    if not isinstance(layers, list) or [layer.get("id") for layer in layers] != [
+        "Q",
+        "R",
+    ]:
+        raise SystemExit("validator exam map must contain ordered Q and R layers")
+    expected_ids = [f"Q{index}" for index in range(1, 6)] + [
+        f"R{index}" for index in range(1, 16)
+    ]
+    steps = [step for layer in layers for step in layer.get("steps", [])]
+    if [step.get("id") for step in steps] != expected_ids:
+        raise SystemExit("validator exam map must contain ordered Q1-Q5 and R1-R15")
+    required = (
+        "title",
+        "input",
+        "controller",
+        "action",
+        "output",
+        "why",
+        "failure_states",
+        "investor",
+        "engineer",
+        "cfd",
+        "physics_phd",
+        "maturity_note",
+        "authority",
+    )
+    repo_root = ROOT.parents[2]
+    for step in steps:
+        missing = [field for field in required if not step.get(field)]
+        if missing:
+            raise SystemExit(f"{step.get('id', 'unknown')}: missing fields {missing}")
+        authorities = step["authority"]
+        if not isinstance(authorities, list) or not authorities:
+            raise SystemExit(f"{step['id']}: authority must be a non-empty list")
+        for authority in authorities:
+            label, raw_path = authority.get("label"), authority.get("path")
+            if not label or not raw_path or "\\" in str(raw_path):
+                raise SystemExit(f"{step['id']}: invalid authority link")
+            resolved = (ROOT / str(raw_path)).resolve()
+            if repo_root not in resolved.parents or not resolved.is_file():
+                raise SystemExit(f"{step['id']}: authority path does not resolve")
+    return exam
 
 
 def esc(value: object) -> str:
@@ -151,9 +277,82 @@ CSS = r"""
 :root{--ink:#182326;--muted:#586a70;--paper:#f4f6f5;--panel:#fff;--line:#ccd6d9;--dark:#101a1e;--blue:#155f88;--blue-soft:#e7f2f8;--green:#176847;--green-soft:#e5f3eb;--amber:#8b4d00;--amber-soft:#fff0d6;--red:#943838;--shadow:0 10px 30px rgba(16,29,35,.08);--radius:18px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}a{color:#075c89;text-decoration-thickness:.09em;text-underline-offset:.16em;overflow-wrap:anywhere}:focus-visible{outline:3px solid #f0a236;outline-offset:3px;border-radius:4px}.skip{position:absolute;top:-5rem;left:1rem;background:#fff;color:#000;padding:.8rem 1rem;z-index:100}.skip:focus{top:1rem}.hero{background:var(--dark);color:#fff;padding:2.5rem max(1.2rem,calc((100vw - 1420px)/2))}.hero h1{font-size:clamp(2.2rem,6vw,4.7rem);line-height:1;letter-spacing:-.045em;margin:.5rem 0 1rem}.hero p{max-width:1000px;color:#cfdbdf}.eyebrow{font-size:.75rem;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:#a9d8f3}.nav{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line)}.nav ul{max-width:1420px;margin:0 auto;padding:.7rem 1.2rem;display:flex;gap:.35rem;overflow-x:auto;list-style:none}.nav a{display:block;padding:.5rem .65rem;border-radius:8px;color:var(--ink);font-weight:700;text-decoration:none;white-space:nowrap}.nav a:hover{background:var(--blue-soft)}main{max-width:1420px;margin:auto;padding:1.4rem 1.2rem 5rem}.section{scroll-margin-top:5rem;margin:1.5rem 0;padding:clamp(1rem,3vw,2rem);background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}.section>h2{font-size:clamp(1.7rem,3vw,2.5rem);line-height:1.1;margin:.2rem 0 .5rem}.lede{font-size:1.08rem;color:var(--muted);max-width:1100px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem}.card{min-width:0;padding:1.1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.card h3{line-height:1.2;margin:.15rem 0 .5rem}.card h4{margin:1rem 0 .25rem}.current{background:linear-gradient(135deg,var(--dark),#1c333c);color:#fff}.current a{color:#abe0ff}.current .card{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}.current .muted{color:#c7d4d8}.status{display:inline-block;padding:.18rem .55rem;border-radius:999px;background:#e9edef;color:#34464c;text-transform:uppercase;letter-spacing:.06em;font-size:.72rem;font-weight:850}.status.closed,.status.done{background:var(--green-soft);color:var(--green)}.status.active,.status.in_progress{background:var(--amber-soft);color:var(--amber)}.badge{display:inline-block;padding:.18rem .5rem;margin:.12rem;border:1px solid var(--line);border-radius:999px;background:#f7f9f9;font-size:.82rem}.muted{color:var(--muted)}.boundary{border-left:4px solid var(--amber);background:var(--amber-soft);padding:.8rem 1rem;border-radius:0 10px 10px 0}.fail{border-left:4px solid var(--red);background:#fae9e9;color:var(--ink);padding:.8rem 1rem;border-radius:0 10px 10px 0}.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.55rem;margin:.8rem 0}.meta div{padding:.55rem .7rem;border-radius:9px;background:#eef3f4}.current .meta div{background:rgba(255,255,255,.1)}.meta strong{display:block;text-transform:uppercase;letter-spacing:.05em;font-size:.72rem;color:var(--muted)}.current .meta strong{color:#bfd0d6}.wave{border-top:5px solid #96a5aa}.wave.closed{border-top-color:var(--green)}.wave.active{border-top-color:#d7871a}.ticket{border-left:5px solid #96a5aa}.ticket.done{border-left-color:var(--green)}.ticket.in_progress{border-left-color:#d7871a}.links{padding-left:1.1rem}.links li{margin:.25rem 0}code{padding:.08rem .28rem;background:#edf1f2;border-radius:5px;overflow-wrap:anywhere}.current code{background:rgba(255,255,255,.13)}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{text-align:left;vertical-align:top;padding:.65rem;border-bottom:1px solid var(--line)}th{background:#eef3f4}.footer{padding:2rem max(1.2rem,calc((100vw - 1420px)/2));background:var(--dark);color:#d6e0e3}.footer a{color:#abe0ff}@media(max-width:700px){.nav{position:static}.nav ul{flex-wrap:wrap}.hero{padding:1.6rem 1rem}.hero h1{font-size:2.45rem}.section{padding:1rem;border-radius:12px}.grid,.meta{grid-template-columns:1fr}th,td{min-width:10rem}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}@media print{.nav{position:static}.section{box-shadow:none}.hero{background:#fff;color:#000}.hero p{color:#333}}
 """
 
+CSS += """
+.newcomer-question{margin:.6rem 0}
+details.technical{margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--line)}
+details.technical summary{cursor:pointer;color:var(--blue);font-weight:850}
+details.technical[open] summary{margin-bottom:.7rem}
+.current details.technical summary{color:#abe0ff}
+.exam-layer{margin-top:1.4rem}.exam-flow{display:grid;gap:.8rem}.exam-step{border-left:5px solid var(--blue)}
+.exam-step.qualify{border-left-color:var(--amber)}.exam-io{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem}
+.exam-io>div{padding:.65rem;background:#eef3f4;border-radius:9px}.depths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin-top:.8rem}
+.depths details{padding:.5rem .6rem;border:1px solid var(--line);border-radius:8px}.depths summary{cursor:pointer;font-weight:800}
+.science-boundary{border-top:5px double var(--red);border-bottom:5px double var(--red);padding:.9rem;margin:1.2rem 0;background:#fae9e9}
+.independence-chain{counter-reset:chain;display:grid;gap:.35rem;list-style:none;padding:0}.independence-chain li{padding:.55rem .7rem;border-left:4px solid var(--blue);background:#eef3f4;border-radius:0 8px 8px 0}
+@media(max-width:700px){.exam-io,.depths{grid-template-columns:1fr}}
+"""
 
-def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
+
+def render_exam_map(exam: dict[str, Any]) -> str:
+    """Render one process with progressive audience explanations per step."""
+    layers: list[str] = []
+    for layer in exam["layers"]:
+        cards: list[str] = []
+        for step in layer["steps"]:
+            authority_links = links_html(
+                {"label": item["label"], "url": item["path"]}
+                for item in step["authority"]
+            )
+            boundary = (
+                f'<div class="science-boundary"><strong>Science ends at R14.</strong> '
+                f'{esc(exam["science_boundary"])}</div>'
+                if step["id"] == "R15"
+                else ""
+            )
+            cards.append(
+                boundary
+                + f'<article class="card exam-step {"qualify" if layer["id"] == "Q" else "runtime"}" id="exam-{esc(step["id"])}">'
+                f'<span class="status">{esc(step["id"])}</span><h4>{esc(step["title"])}</h4>'
+                f'<div class="exam-io"><div><strong>Input</strong><br>{esc(step["input"])}</div>'
+                f'<div><strong>Validator / Carbon action</strong><br>{esc(step["action"])}</div>'
+                f'<div><strong>Output</strong><br>{esc(step["output"])}</div></div>'
+                f'<p><strong>Who controls it:</strong> {esc(step["controller"])}</p>'
+                f'<p><strong>Why it exists:</strong> {esc(step["why"])}</p>'
+                f'<p class="boundary"><strong>Failure or indeterminate states:</strong> {esc(step["failure_states"])}</p>'
+                '<div class="depths">'
+                f'<details><summary>Investor explanation</summary><p>{esc(step["investor"])}</p></details>'
+                f'<details><summary>Engineer explanation</summary><p>{esc(step["engineer"])}</p></details>'
+                f'<details><summary>CFD explanation</summary><p>{esc(step["cfd"])}</p></details>'
+                f'<details><summary>Physics PhD explanation</summary><p>{esc(step["physics_phd"])}</p></details>'
+                '</div>'
+                f'<p><strong>Maturity / authority note:</strong> {esc(step["maturity_note"])}</p>'
+                f'<h5>Technical authority</h5>{authority_links}</article>'
+            )
+        layers.append(
+            f'<section class="exam-layer" aria-labelledby="exam-layer-{esc(layer["id"])}">'
+            f'<h3 id="exam-layer-{esc(layer["id"])}">{esc(layer["title"])}</h3>'
+            f'<p><strong>Cadence:</strong> {esc(layer["cadence"])}</p>'
+            f'<p>{esc(layer["summary"])}</p><div class="exam-flow">{"".join(cards)}</div></section>'
+        )
+    chain = "".join(f"<li>{esc(item)}</li>" for item in exam["independence_chain"])
+    return (
+        '<section class="section" id="exam-map"><p class="eyebrow">Target qualified exam</p>'
+        f'<h2>{esc(exam["title"])}</h2><p class="lede">{esc(exam["purpose"])}</p>'
+        f'<p class="fail"><strong>Current maturity:</strong> {esc(exam["current_maturity"])}</p>'
+        '<details class="technical"><summary>Independence chain</summary>'
+        f'<ol class="independence-chain">{chain}</ol></details>{"".join(layers)}</section>'
+    )
+
+
+def render_static(
+    data: dict[str, Any],
+    events: list[dict[str, Any]],
+    newcomer: dict[str, Any],
+    exam: dict[str, Any],
+) -> str:
     meta, current = data["meta"], data["current"]
+    current_wave_plain = newcomer["waves"][str(current["wave"])]
+    current_ticket_plain = newcomer["tickets"][str(current["ticket"])]
     ticket_waves = ticket_inventory_label(data)
     wave_summary = wave_status_summary(data)
     snapshot_commit = str(meta["authority_snapshot_commit"])
@@ -161,6 +360,7 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     nav_items = (
         ("start", "Start here"),
         ("current", "Current"),
+        ("exam-map", "Independent exam"),
         ("waves", "Waves"),
         ("tickets", "Tickets"),
         ("changes", "Change routes"),
@@ -217,6 +417,7 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     wave_cards = []
     waves = data["waves"]
     for wave in waves:
+        plain = newcomer["waves"][str(wave["id"])]
         predecessor = wave.get("predecessor")
         successor = wave.get("successor")
         before = (
@@ -230,11 +431,12 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
             else "Only a prospectively authorized successor"
         )
         wave_cards.append(
-            f"""<article class="card wave {esc(wave["status"])}" id="wave-{esc(wave["id"])}"><span class="status {esc(wave["status"])}">{esc(wave["status"])}</span><h3>Wave {esc(wave["id"])}: {esc(wave["title"])}</h3><p><strong>Purpose:</strong> {esc(wave["one_line"])}</p><p><strong>What:</strong> {esc(wave["what"])}</p><p><strong>Why:</strong> {esc(wave["why"])}</p><p><strong>Success and unlocks:</strong> {esc(wave["success"])} {esc(wave["unlocks"])}</p><p class="boundary"><strong>Still unavailable:</strong> {esc(wave["does_not"])}</p><p><strong>Authority ceiling:</strong> {esc(ceiling(data, wave, "wave"))}</p><div class="meta"><div><strong>Predecessor</strong>{esc(before)}</div><div><strong>Successor</strong>{esc(after)}</div><div><strong>Map ref</strong><code>WAVE-{esc(wave["id"])}</code></div></div><p><strong>Key objects:</strong> {badges(wave.get("objects", []))}</p><p><strong>Captured tickets:</strong> {badges(wave.get("ticket_ids", []))}</p><h4>Repository detail</h4>{links_html(wave.get("repo_links", []))}</article>"""
+            f"""<article class="card wave {esc(wave["status"])}" id="wave-{esc(wave["id"])}"><span class="status {esc(wave["status"])}">{esc(NEWCOMER_STATUS_LABELS[str(wave["status"])])}</span><h3>Wave {esc(wave["id"])} — {esc(plain["title"])}</h3><p class="newcomer-question"><strong>What are we building?</strong> {esc(plain["what"])}</p><p class="newcomer-question"><strong>Why does Carbon need it?</strong> {esc(plain["why"])}</p><p class="newcomer-question"><strong>What will be true when it is done?</strong> {esc(plain["done_when"])}</p><p class="boundary"><strong>What is still not true yet?</strong> {esc(plain["not_yet"])}</p><details class="technical"><summary>Technical detail</summary><p><strong>Canonical Wave:</strong> Wave {esc(wave["id"])}: {esc(wave["title"])}</p><p><strong>Exact canonical status:</strong> {esc(wave["status"])}</p><p><strong>Purpose:</strong> {esc(wave["one_line"])}</p><p><strong>What:</strong> {esc(wave["what"])}</p><p><strong>Why:</strong> {esc(wave["why"])}</p><p><strong>Success and unlocks:</strong> {esc(wave["success"])} {esc(wave["unlocks"])}</p><p class="boundary"><strong>Still unavailable:</strong> {esc(wave["does_not"])}</p><p><strong>Authority ceiling:</strong> {esc(ceiling(data, wave, "wave"))}</p><div class="meta"><div><strong>Predecessor</strong>{esc(before)}</div><div><strong>Successor</strong>{esc(after)}</div><div><strong>Map ref</strong><code>{esc(plain["map_ref"])}</code></div></div><p><strong>Key objects:</strong> {badges(wave.get("objects", []))}</p><p><strong>Captured tickets:</strong> {badges(wave.get("ticket_ids", []))}</p><h4>Repository detail</h4>{links_html(wave.get("repo_links", []))}</details></article>"""
         )
 
     ticket_cards = []
     for ticket in data["tickets"]:
+        plain = newcomer["tickets"][str(ticket["id"])]
         dependencies = list(ticket.get("depends_on", [])) + list(
             ticket.get("depends_on_context", [])
         )
@@ -246,7 +448,7 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
             or "No more specific current stage is supported; use the captured status and repository evidence."
         )
         ticket_cards.append(
-            f"""<article class="card ticket {esc(ticket["status"])}" id="ticket-{esc(ticket["id"])}"><span class="status {esc(ticket["status"])}">{esc(ticket["status"])}</span><h3>{esc(ticket["id"])}: {esc(ticket["title"])}</h3><p><strong>Purpose:</strong> {esc(ticket["one_line"])}</p><p><strong>What it adds:</strong> {esc(ticket["adds"])}</p><p><strong>Why now:</strong> {esc(ticket["why"])}</p><p class="boundary"><strong>Explicit non-goals:</strong> {esc(ticket["does_not"])}</p><div class="meta"><div><strong>Map ref</strong><code>WAVE-{esc(ticket["wave"])}/{esc(ticket["id"])}</code></div><div><strong>Driver</strong>{esc(ticket["owner"])}</div><div><strong>Reviewer route</strong>{esc(ticket["reviewer"])}</div><div><strong>Target</strong>{esc(ticket["target"])}</div></div><p><strong>Dependencies:</strong> {badges(dependencies)}</p><p><strong>Downstream consumers:</strong> {badges(downstream)}</p><p><strong>Current stage:</strong> {esc(stage)}</p><p><strong>Maturity ceiling:</strong> {esc(ceiling(data, ticket, "ticket"))}</p><h4>Repository detail</h4>{links_html(ticket.get("repo_links", []))}<h4>Artifact coverage</h4>{artifact_coverage(ticket)}</article>"""
+            f"""<article class="card ticket {esc(ticket["status"])}" id="ticket-{esc(ticket["id"])}"><span class="status {esc(ticket["status"])}">{esc(NEWCOMER_STATUS_LABELS[str(ticket["status"])])}</span><h3>{esc(ticket["id"])} — {esc(plain["title"])}</h3><p class="newcomer-question"><strong>What are we doing?</strong> {esc(plain["what"])}</p><p class="newcomer-question"><strong>Why does it matter?</strong> {esc(plain["why"])}</p><p class="newcomer-question"><strong>What changes when this is finished?</strong> {esc(plain["changes"])}</p><p class="boundary"><strong>What does this ticket not do?</strong> {esc(plain["not_yet"])}</p><details class="technical"><summary>Technical detail</summary><p><strong>Canonical ticket:</strong> {esc(ticket["id"])}: {esc(ticket["title"])}</p><p><strong>Exact canonical status:</strong> {esc(ticket["status"])}</p><p><strong>Purpose:</strong> {esc(ticket["one_line"])}</p><p><strong>What it adds:</strong> {esc(ticket["adds"])}</p><p><strong>Why now:</strong> {esc(ticket["why"])}</p><p class="boundary"><strong>Explicit non-goals:</strong> {esc(ticket["does_not"])}</p><div class="meta"><div><strong>Map ref</strong><code>{esc(plain["map_ref"])}</code></div><div><strong>Driver</strong>{esc(ticket["owner"])}</div><div><strong>Reviewer route</strong>{esc(ticket["reviewer"])}</div><div><strong>Target phase</strong>{esc(ticket["target"])}</div></div><p><strong>Dependencies:</strong> {badges(dependencies)}</p><p><strong>Downstream consumers:</strong> {badges(downstream)}</p><p><strong>Exact objects / contracts:</strong> {esc(ticket["what"])}</p><p><strong>Current stage:</strong> {esc(stage)}</p><p><strong>Maturity ceiling:</strong> {esc(ceiling(data, ticket, "ticket"))}</p><h4>Repository detail</h4>{links_html(ticket.get("repo_links", []))}<h4>Artifact coverage</h4>{artifact_coverage(ticket)}</details></article>"""
         )
 
     route_cards = []
@@ -277,8 +479,9 @@ def render_static(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="description" content="Carbon Development Hub: static-first orientation, map, router, and repository handoff."><title>Carbon Development Hub v{esc(meta["version"])}</title><style>{CSS}</style></head><body><a class="skip" href="#main-content">Skip to main content</a><header class="hero"><p class="eyebrow">Orientation layer · repository authority remains controlling</p><h1>Carbon Development Hub</h1><p>{esc(meta["purpose"])}</p><p>Version {esc(meta["version"])} · authority snapshot <strong>{esc(snapshot_short)}</strong> on <strong>{esc(meta["branch"])}</strong> · captured {esc(meta["captured_at_utc"])}</p></header><nav class="nav" aria-label="Development Hub sections"><ul>{nav}</ul></nav><main id="main-content">
-<section class="section" id="start"><p class="eyebrow">New to Carbon</p><h2>Understand the layers before changing the system</h2><p class="lede">The hub answers what, why, where, status, dependency, and handoff. The repository owns how, exact semantics, code, review, tests, evidence, and implementation authority.</p><div class="grid">{orientation_html}</div><p class="boundary"><strong>Core rule:</strong> Carbon may widen what participants and agents can discover without changing who controls the official grade. The exam must be qualified before it may qualify candidates.</p></section>
-<section class="section current" id="current"><p class="eyebrow">Captured repository position</p><h2>Wave {esc(current["wave"])} · {esc(current["ticket"])}</h2><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; ticket <strong>{esc(current["ticket_status"])}</strong>.</p><p class="muted">{esc(current["maturity_summary"])}</p></article><article class="card"><h3>Completed direct dependency</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave {esc(current["wave"])} context: {badges(current["other_completed_wave_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">Every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}<p class="muted">Next selected ticket: {esc(current["next_selected_ticket"] or "none captured")}</p></article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></section>
+<section class="section" id="start"><p class="eyebrow">New to Carbon</p><h2>Understand Carbon before reading the repository</h2><p class="lede">{esc(newcomer["summary"])}</p><div class="grid">{orientation_html}</div><p class="boundary"><strong>Core rule:</strong> Carbon may widen what participants and agents can discover without changing who controls the official grade. The exam must be qualified before it may qualify candidates.</p></section>
+<section class="section current" id="current"><p class="eyebrow">Where Carbon is now</p><h2>Wave {esc(current["wave"])} · {esc(current["ticket"])}</h2><p class="lede">Carbon is <strong>{esc(NEWCOMER_STATUS_LABELS[str(current["ticket_status"])])}</strong> {esc(current_ticket_plain["title"])} inside Wave {esc(current["wave"])} — {esc(current_wave_plain["title"])}.</p><div class="grid"><article class="card"><h3>Current Wave</h3><p><strong>What are we building?</strong> {esc(current_wave_plain["what"])}</p><p><strong>Why does Carbon need it?</strong> {esc(current_wave_plain["why"])}</p><p class="boundary"><strong>What is still not true yet?</strong> {esc(current_wave_plain["not_yet"])}</p></article><article class="card"><h3>Current Ticket</h3><p><strong>What are we doing?</strong> {esc(current_ticket_plain["what"])}</p><p><strong>Why does it matter?</strong> {esc(current_ticket_plain["why"])}</p><p><strong>What changes when this is finished?</strong> {esc(current_ticket_plain["changes"])}</p><p class="boundary"><strong>What does this ticket not do?</strong> {esc(current_ticket_plain["not_yet"])}</p></article></div><details class="technical"><summary>Technical detail for the current repository position</summary><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; ticket <strong>{esc(current["ticket_status"])}</strong>.</p><p class="muted">{esc(current["maturity_summary"])}</p></article><article class="card"><h3>Completed direct dependency</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave {esc(current["wave"])} context: {badges(current["other_completed_wave_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">Every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}<p class="muted">Next selected ticket: {esc(current["next_selected_ticket"] or "none captured")}</p></article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></details></section>
+{render_exam_map(exam)}
 <section class="section" id="waves"><p class="eyebrow">Development sequence</p><h2>Wave {esc(waves[0]["id"])} through Wave {esc(waves[-1]["id"])}</h2><p class="lede">{esc(wave_summary)}</p><div class="grid">{"".join(wave_cards)}</div></section>
 <section class="section" id="tickets"><p class="eyebrow">Captured ticket map</p><h2>Captured tickets across {esc(ticket_waves)}</h2><p class="lede">Each explainer shows placement and purpose. Repository records remain authoritative; unsupported artifact links are marked missing or future.</p><div class="grid">{"".join(ticket_cards)}</div></section>
 <section class="section" id="changes"><p class="eyebrow">Protocol-change router</p><h2>Place the change before implementing it</h2><p class="lede">Choose the layer that owns the meaning. Routing does not activate a later wave or authorize work outside the selected ticket.</p><div class="grid">{"".join(route_cards)}</div></section>
@@ -657,6 +860,7 @@ schema or presentation behavior. Never hand-edit generated outputs. Then run:
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
 python docs/development/carbon_hub/tools/render_hub.py --check
+python docs/development/carbon_hub/tools/test_newcomer.py
 python docs/development/carbon_hub/tools/validate_hub.py --repo-root .
 node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py
@@ -702,8 +906,12 @@ def yaml_dump(value: Any, indent: int = 0) -> str:
 def collect_outputs(
     data: dict[str, Any], events: list[dict[str, Any]]
 ) -> dict[Path, str]:
+    newcomer = load_newcomer_projection(data)
+    exam = load_validator_exam_map()
     index_data = {
         "meta": data["meta"],
+        "presentation": data["presentation"],
+        "validator_exam_map": exam,
         "current": data["current"],
         "waves": [
             {
@@ -743,7 +951,7 @@ def collect_outputs(
         "event_schema": data.get("event_schema", {}),
     }
     outputs = {
-        ROOT / "index.html": render_static(data, events),
+        ROOT / "index.html": render_static(data, events, newcomer, exam),
         ROOT / "interactive.html": render_interactive(data, events),
         ROOT / "Carbon_Development_Hub_v2.md": render_compact(data, events),
         ROOT / "README.md": render_readme(data, events),

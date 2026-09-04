@@ -10,6 +10,19 @@
     "purpose": "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.",
     "authority_notice": "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
   },
+  "presentation": {
+    "decision": "OWNER-HUB-01",
+    "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+    "default_density": "newcomer-first",
+    "technical_detail": "inline progressive disclosure of the same canonical Wave or ticket record",
+    "wave_projection": "data/newcomer_projection_v1.json",
+    "ticket_projections": [
+      "data/newcomer_tickets_wave_a_v1.json",
+      "data/newcomer_tickets_wave_b_v1.json"
+    ],
+    "validator_exam_map": "data/validator_exam_map_v1.json",
+    "authority_ceiling": "Presentation, orientation, routing, and maintenance enforcement only; the projection cannot change canonical status, maturity, scientific meaning, sequencing, or activation."
+  },
   "current": {
     "wave": "B",
     "wave_title": "Science-ready authoring skeletons",

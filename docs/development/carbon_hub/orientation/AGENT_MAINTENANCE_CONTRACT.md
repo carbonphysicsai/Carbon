@@ -35,6 +35,9 @@ data/hub_data_v2.json
 data/change_events.json
 data/change_event_template.yaml
 data/decisions.json
+data/newcomer_projection_v1.json
+data/newcomer_tickets_wave_*_v1.json
+data/validator_exam_map_v1.json
 ```
 
 Presentation/generation source:
@@ -42,6 +45,7 @@ Presentation/generation source:
 ```text
 decisions.html
 tools/render_hub.py
+tools/render_newcomer.py
 tools/templates/interactive_template.html
 ```
 
@@ -164,6 +168,7 @@ For normal Hub structural changes, run from repository root:
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
 python docs/development/carbon_hub/tools/render_hub.py --check
+python docs/development/carbon_hub/tools/test_newcomer.py
 python docs/development/carbon_hub/tools/validate_hub.py --repo-root .
 node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py
@@ -181,10 +186,14 @@ Escalate to the full Hub suite only if the change also modifies the core Hub
 renderer, generated map state, authority snapshot, routing, or validation
 contract. This keeps routine decision-index maintenance lightweight.
 
-The primary page must stay static-first, complete with JavaScript disabled,
-usable by `file://`, responsive, keyboard-visible, reduced-motion aware, and
-free of automatic remote resources. Validation is engineering evidence only;
-it grants no later maturity.
+The primary page must stay newcomer-first and static-first, complete with
+JavaScript disabled, usable by `file://`, responsive, keyboard-visible,
+reduced-motion aware, and free of automatic remote resources. Every captured
+Wave and ticket leads with the required plain-language questions and retains
+its canonical record in an inline technical-detail disclosure. Newcomer copy
+is a projection bound to the same stable map reference, never a second
+authority record. Validation is engineering evidence only; it grants no later
+maturity.
 
 The completion report must include `Hub Impact`, the primary `map_ref`, changed
 source/events or the specific no-impact reason, regeneration status, and exact
