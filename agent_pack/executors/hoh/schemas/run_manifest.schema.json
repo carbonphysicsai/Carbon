@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carbon.example.invalid/hoh/v1/run-manifest.schema.json",
+  "title": "RunManifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "authority", "ticket", "requirements",
+    "roles", "developer_worktree", "initial_context", "context_allow_paths",
+    "permitted_change_paths", "protected_patterns", "max_iterations",
+    "authority_ceiling"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"},
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "commit", "tree"],
+      "properties": {
+        "ref": {"type": "string", "minLength": 1},
+        "commit": {"$ref": "#/$defs/oid"},
+        "tree": {"$ref": "#/$defs/oid"}
+      }
+    },
+    "ticket": {"$ref": "#/$defs/file_binding"},
+    "requirements": {"$ref": "#/$defs/file_binding"},
+    "roles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planner", "developer", "tester"],
+      "properties": {
+        "planner": {"$ref": "#/$defs/read_profile"},
+        "developer": {"$ref": "#/$defs/write_profile"},
+        "tester": {"$ref": "#/$defs/read_profile"}
+      }
+    },
+    "developer_worktree": {"type": "string", "pattern": "^/"},
+    "initial_context": {"$ref": "#/$defs/role_paths"},
+    "context_allow_paths": {"$ref": "#/$defs/role_paths"},
+    "permitted_change_paths": {"$ref": "#/$defs/paths"},
+    "protected_patterns": {"$ref": "#/$defs/paths"},
+    "max_iterations": {"type": "integer", "minimum": 1},
+    "authority_ceiling": {
+      "type": "array",
+      "uniqueItems": true,
+      "allOf": [
+        {"contains": {"const": "APPROVED_FOR_MERGE"}},
+        {"contains": {"const": "LIVE_AUTHORIZED"}},
+        {"contains": {"const": "MERGE_AUTHORIZED"}},
+        {"contains": {"const": "PRODUCTION_QUALIFIED"}},
+        {"contains": {"const": "SCIENTIFICALLY_QUALIFIED"}},
+        {"contains": {"const": "SECURITY_QUALIFIED"}}
+      ],
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "file_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "read_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executor_id", "profile_digest", "sandbox"],
+      "properties": {
+        "executor_id": {"type": "string", "minLength": 1},
+        "profile_digest": {"$ref": "#/$defs/sha256"},
+        "sandbox": {"const": "read-only"}
+      }
+    },
+    "write_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["executor_id", "profile_digest", "sandbox"],
+      "properties": {
+        "executor_id": {"type": "string", "minLength": 1},
+        "profile_digest": {"$ref": "#/$defs/sha256"},
+        "sandbox": {"const": "workspace-write"}
+      }
+    },
+    "role_paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planner", "developer", "tester"],
+      "properties": {
+        "planner": {"$ref": "#/$defs/paths"},
+        "developer": {"$ref": "#/$defs/paths"},
+        "tester": {"$ref": "#/$defs/paths"}
+      }
+    }
+  }
+}

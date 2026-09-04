@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carbon.example.invalid/hoh/v1/developer-result.schema.json",
+  "title": "DeveloperResult v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "packet_type", "run_id", "iteration", "bindings", "summary", "context_requests"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "packet_type": {"const": "developer_result"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"},
+    "iteration": {"type": "integer", "minimum": 1},
+    "bindings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_commit", "authority_tree", "ticket_sha256", "requirements_sha256", "candidate_head", "candidate_tree", "developer_profile_digest"],
+      "properties": {
+        "authority_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "authority_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "ticket_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "requirements_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "candidate_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "developer_profile_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "summary": {"type": "string", "minLength": 1},
+    "context_requests": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+  }
+}

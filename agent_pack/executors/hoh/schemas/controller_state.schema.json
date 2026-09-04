@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carbon.example.invalid/hoh/v1/controller-state.schema.json",
+  "title": "ControllerState v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "run_manifest_digest", "phase", "iteration", "candidate", "requirements", "regressions", "disclosures", "plan_digests", "evidence_digests", "active_plan", "last_error"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"},
+    "run_manifest_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "phase": {"enum": ["PLANNING", "DEVELOPING", "TESTING", "PAUSED_HUMAN", "PAUSED_INFRA", "FINAL_CANDIDATE_READY"]},
+    "iteration": {"type": "integer", "minimum": 1},
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["head", "tree", "changed_paths"],
+      "properties": {
+        "head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "changed_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+      }
+    },
+    "requirements": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/requirement_state"}},
+    "regressions": {"type": "array", "items": {"$ref": "#/$defs/regression"}},
+    "disclosures": {"type": "array", "items": {"$ref": "#/$defs/disclosure"}},
+    "plan_digests": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "evidence_digests": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "active_plan": {"type": ["object", "null"]},
+    "last_error": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "artifact", "sha256", "summary"],
+      "properties": {
+        "kind": {"enum": ["COMMAND", "FILE_ASSERTION", "STATIC_ANALYSIS", "TEST_RESULT"]},
+        "artifact": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    },
+    "requirement_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "accepted_evidence"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,63}$"},
+        "status": {"enum": ["UNTESTED", "VERIFIED", "FAILED", "BLOCKED_HUMAN", "BLOCKED_INFRA", "OUT_OF_SCOPE"]},
+        "accepted_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}}
+      }
+    },
+    "regression": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_id", "detected_iteration", "prior_evidence", "failure_status", "failure_reason", "failure_evidence", "resolved_iteration"],
+      "properties": {
+        "requirement_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,63}$"},
+        "detected_iteration": {"type": "integer", "minimum": 1},
+        "prior_evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence"}},
+        "failure_status": {"enum": ["FAILED", "BLOCKED_HUMAN", "BLOCKED_INFRA", "OUT_OF_SCOPE"]},
+        "failure_reason": {"type": "string", "minLength": 1},
+        "failure_evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "resolved_iteration": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "iteration", "path", "sha256"],
+      "properties": {
+        "role": {"enum": ["PLANNER", "DEVELOPER", "TESTER"]},
+        "iteration": {"type": "integer", "minimum": 1},
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

@@ -123,4 +123,3 @@ This branch may prepare B-01H `done` and B-05 `in_progress` as its first pilot,
 but those states remain inert until the complete delivery predicate above is
 satisfied and its external receipt records the exact new `main`. The harness
 Tester never substitutes for Carbon's final review process.
-

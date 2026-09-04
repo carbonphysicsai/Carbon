@@ -2,19 +2,19 @@
 
 ## Authority and start
 
-**Ticket / delivery mode:** B-01H / `SINGLE_TICKET_PR`  
+**Ticket / delivery mode:** B-01H / `SINGLE_TICKET_PR`
 **Starting base commit/tree:**
 `650b035dae5629ae75b9e3f549b289f28cdbb9ba` /
-`6d3664b3b29189cde8c7ffdeaa5a7c851f530955`  
+`6d3664b3b29189cde8c7ffdeaa5a7c851f530955`
 **Relevant authority/specifications:** `CONSTITUTION.md`, `AGENTS.md`,
 `.agent/INVARIANTS.md`, `.agent/WAVE.md`, `.agent/WAVE_B.md`,
 `.agent/DELEGATED_DECISION_PROTOCOL.md`, `.agent/DELIVERY_PROTOCOL.md`,
 `agent_pack/EXECUTION_PROTOCOL.md`,
 `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`, and
-the B-05 ticket only for pilot requirement navigation.  
+the B-05 ticket only for pilot requirement navigation.
 **Primary Hub map_ref / impact:** `SYSTEM/AGENT-EXECUTION`; structural update
 required for selected-ticket sequencing, new ticket placement, dependency,
-boundary, implementation maturity, and primary links.  
+boundary, implementation maturity, and primary links.
 **Human-reserved inputs:** all B-05 science and every security, production,
 rights, economic, qualification, `LIVE`, review, and merge authority remains
 unavailable to the harness.
@@ -38,7 +38,7 @@ B-05 as the next scientific ticket and first planned pilot.
 
 Material decisions are `OWNER-DX-02` and `B-01H-D1` through `B-01H-D6` in
 `.agent/DECISIONS.md`. They route to issue #42 and use `FOR_AWARENESS`; no
-reserved human value is selected.  
+reserved human value is selected.
 **Separate-contract exception:** `NOT_APPLICABLE`.
 
 ## Vertical slices
@@ -102,6 +102,18 @@ the active first pilot at the exact receipt-recorded main.
 
 ## Implementation result
 
-To be completed before final candidate freeze. Dynamic identities remain in
-the external receipt.
+Implemented the optional controller under `agent_pack/executors/hoh/` with a
+thin `scripts/dev/hoh.py` entry point. The candidate includes strict versioned
+schemas and validators, exact identity checks, atomic external state, isolated
+read-role projections, controller-mediated disclosure, evidence-artifact hash
+checks, regression-first replanning, a verified `codex exec` adapter, manual
+and deterministic test adapters, the exact-ticket B-05 manifest, and focused
+CPU coverage.
 
+The native Python 3.11.16 diagnostic reports 22 focused tests passing. Ruff
+0.16.3 passes on the new Python surface, every JSON schema parses, the real
+Codex adapter probe reports `codex-cli 0.151.0-alpha.7.2`, and diff hygiene is
+clean. The canonical wrapper remains locally `PAUSED_INFRA` because Docker is
+unavailable; exact-head GitHub checks remain required. Dynamic final
+head/tree, review, approval, merge, and exact-main identities belong only in
+the external receipt.

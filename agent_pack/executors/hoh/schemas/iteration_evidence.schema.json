@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carbon.example.invalid/hoh/v1/iteration-evidence.schema.json",
+  "title": "IterationEvidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "packet_type", "run_id", "iteration", "bindings", "results", "context_requests", "summary"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "packet_type": {"const": "iteration_evidence"},
+    "run_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"},
+    "iteration": {"type": "integer", "minimum": 1},
+    "bindings": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authority_commit", "authority_tree", "ticket_sha256", "requirements_sha256", "candidate_head", "candidate_tree", "tester_profile_digest"],
+      "properties": {
+        "authority_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "authority_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "ticket_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "requirements_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "candidate_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "tester_profile_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "results": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["requirement_id", "status", "evidence", "reason"],
+        "properties": {
+          "requirement_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9-]{2,63}$"},
+          "status": {"enum": ["VERIFIED", "FAILED", "BLOCKED_HUMAN", "BLOCKED_INFRA", "OUT_OF_SCOPE"]},
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["kind", "artifact", "sha256", "summary"],
+              "properties": {
+                "kind": {"enum": ["COMMAND", "FILE_ASSERTION", "STATIC_ANALYSIS", "TEST_RESULT"]},
+                "artifact": {"type": "string", "minLength": 1},
+                "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "summary": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "reason": {"type": "string", "minLength": 1}
+        },
+        "allOf": [{"if": {"properties": {"status": {"const": "VERIFIED"}}}, "then": {"properties": {"evidence": {"minItems": 1}}}}]
+      }
+    },
+    "context_requests": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "summary": {"type": "string", "minLength": 1}
+  }
+}
