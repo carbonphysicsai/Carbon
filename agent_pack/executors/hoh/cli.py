@@ -135,7 +135,13 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.command == "validate":
             return _validate(arguments)
         return _run_controller(arguments)
-    except (HarnessError, OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+    except (
+        HarnessError,
+        OSError,
+        TypeError,
+        ValueError,
+        json.JSONDecodeError,
+    ) as error:
         print(f"Carbon HoH failed closed: {error}", file=sys.stderr)
         return 2
 
