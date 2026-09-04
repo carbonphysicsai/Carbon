@@ -51,10 +51,13 @@ $(git rev-parse --git-common-dir)/.carbon-hoh/runs/<run-id>/
 This state is outside tracked content. Resume revalidates the exact run
 manifest digest, authority ref/commit/tree, ticket bytes, requirements bytes,
 role profiles, clean candidate head/tree, and protected-context boundary.
-`retry` rechecks those identities before returning a `PAUSED_HUMAN` or
-`PAUSED_INFRA` run to the exact active phase that paused. Failure reason and
-evidence plus complete open-regression records remain structured inputs to
-later roles.
+`resume` also recomputes the exact Git changed-path manifest, rejects
+lifecycle-incoherent phase/plan/requirement/regression state, and independently
+replays every final accepted evidence command before accepting a persisted
+`FINAL_CANDIDATE_READY` state. `retry` rechecks identities before returning a
+`PAUSED_HUMAN` or `PAUSED_INFRA` run to the exact active phase that paused.
+Failure reason and evidence plus complete open-regression records remain
+structured inputs to later roles.
 
 ## Progressive disclosure
 

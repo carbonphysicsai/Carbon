@@ -404,6 +404,101 @@ def test_resume_is_deterministic_and_manifest_bound(tmp_path: Path) -> None:
         mismatched.resume()
 
 
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda state: state.update(
+                phase="FINAL_CANDIDATE_READY",
+                evidence_digests=["0" * 64],
+            ),
+            "resolved requirement states",
+        ),
+        (
+            lambda state: state.update(phase="DEVELOPING"),
+            "requires an active plan",
+        ),
+        (
+            lambda state: state.update(run_id="another-run"),
+            "another run",
+        ),
+    ],
+)
+def test_resume_rejects_lifecycle_incoherent_persisted_state(
+    tmp_path: Path,
+    mutation,
+    message: str,
+) -> None:
+    executor = ScriptedExecutor({})
+    controller, _, manifest = _controller(tmp_path, executor)
+    state = controller.initialize()
+    mutation(state)
+    controller.store.save_state(state)
+    resumed = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    with pytest.raises((IdentityMismatch, PacketValidationError), match=message):
+        resumed.resume()
+
+
+def test_resume_recomputes_scope_and_replays_final_evidence(tmp_path: Path) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+            Role.TESTER: [
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "VERIFIED", "REQ-002": "VERIFIED"},
+                )
+            ],
+        }
+    )
+    controller, repository, manifest = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    controller.step()
+    final_state = controller.step()
+    assert final_state["phase"] == "FINAL_CANDIDATE_READY"
+
+    resumed = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    assert resumed.resume() == final_state
+
+    forged_evidence = copy.deepcopy(final_state)
+    forged_evidence["requirements"][0]["accepted_evidence"][0]["output_sha256"] = (
+        "0" * 64
+    )
+    controller.store.save_state(forged_evidence)
+    with pytest.raises(PacketValidationError, match="output digest mismatch"):
+        HarnessController(
+            manifest,
+            controller.requirements_manifest,
+            executor,
+            controller.store,
+        ).resume()
+
+    forged_scope = copy.deepcopy(final_state)
+    forged_scope["candidate"]["changed_paths"] = []
+    controller.store.save_state(forged_scope)
+    with pytest.raises(IdentityMismatch, match="changed-path manifest"):
+        HarnessController(
+            manifest,
+            controller.requirements_manifest,
+            executor,
+            controller.store,
+        ).resume()
+
+
 def test_every_role_executor_identity_is_bound(tmp_path: Path) -> None:
     executor = ScriptedExecutor({})
     repository, requirements = make_repository(tmp_path)

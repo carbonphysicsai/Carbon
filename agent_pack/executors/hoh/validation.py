@@ -8,7 +8,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from .context import DEFAULT_PROTECTED_PATTERNS
-from .identity import GIT_OID_RE, SHA256_RE, normalized_repo_path
+from .identity import GIT_OID_RE, SHA256_RE, digest_value, normalized_repo_path
 from .models import (
     ACCEPTED_EVIDENCE_KINDS,
     FORBIDDEN_AUTHORITY_WORDS,
@@ -614,6 +614,7 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             _string(item["failure_reason"], f"requirements[{index}].failure_reason")
     if seen != requirement_ids:
         raise PacketValidationError("controller state omits requirements")
+    open_regressions: set[str] = set()
     for index, raw in enumerate(_array(root["regressions"], "regressions")):
         regression = _mapping(raw, f"regressions[{index}]")
         _exact_keys(
@@ -634,11 +635,15 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
         )
         if requirement_id not in requirement_ids:
             raise PacketValidationError(f"unknown regression {requirement_id}")
-        _integer(
+        detected = _integer(
             regression["detected_iteration"],
             f"regressions[{index}].detected_iteration",
             minimum=1,
         )
+        if detected > root["iteration"]:
+            raise PacketValidationError(
+                "regression is detected after current iteration"
+            )
         try:
             failure_status = RequirementStatus(regression["failure_status"])
         except (TypeError, ValueError) as error:
@@ -669,6 +674,12 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             )
             if resolved < regression["detected_iteration"]:
                 raise PacketValidationError("regression resolves before detection")
+            if resolved > root["iteration"]:
+                raise PacketValidationError(
+                    "regression resolves after current iteration"
+                )
+        else:
+            open_regressions.add(requirement_id)
     for index, raw in enumerate(_array(root["disclosures"], "disclosures")):
         disclosure = _mapping(raw, f"disclosures[{index}]")
         _exact_keys(
@@ -680,18 +691,33 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             Role(disclosure["role"])
         except (TypeError, ValueError) as error:
             raise PacketValidationError("disclosure role is invalid") from error
-        _integer(
+        disclosure_iteration = _integer(
             disclosure["iteration"],
             f"disclosures[{index}].iteration",
             minimum=1,
         )
+        if disclosure_iteration > root["iteration"]:
+            raise PacketValidationError(
+                "disclosure is recorded after current iteration"
+            )
         normalized_repo_path(_string(disclosure["path"], f"disclosures[{index}].path"))
         _sha256(disclosure["sha256"], f"disclosures[{index}].sha256")
     for label in ("plan_digests", "evidence_digests"):
         for digest in _array(root[label], label):
             _sha256(digest, f"{label}[]")
-    if root["active_plan"] is not None:
-        validate_iteration_plan(root["active_plan"], requirement_ids)
+    active_plan = root["active_plan"]
+    if active_plan is not None:
+        active_plan = validate_iteration_plan(active_plan, requirement_ids)
+        if active_plan["run_id"] != root["run_id"]:
+            raise PacketValidationError("active plan belongs to another run")
+        if active_plan["iteration"] != root["iteration"]:
+            raise PacketValidationError("active plan belongs to another iteration")
+        if not root["plan_digests"] or root["plan_digests"][-1] != digest_value(
+            active_plan
+        ):
+            raise PacketValidationError(
+                "active plan does not match its persisted digest"
+            )
     paused_from = root["paused_from"]
     phase = ControllerPhase(root["phase"])
     paused_phases = {
@@ -712,4 +738,40 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
         raise PacketValidationError("paused phase and paused_from must appear together")
     if root["last_error"] is not None:
         _string(root["last_error"], "last_error")
+    if phase in paused_phases and root["last_error"] is None:
+        raise PacketValidationError("paused state must retain its reason")
+    if phase in {ControllerPhase.PLANNING, ControllerPhase.FINAL_CANDIDATE_READY}:
+        if active_plan is not None:
+            raise PacketValidationError("controller phase cannot retain an active plan")
+    elif phase in {ControllerPhase.DEVELOPING, ControllerPhase.TESTING}:
+        if active_plan is None:
+            raise PacketValidationError("controller phase requires an active plan")
+    elif ControllerPhase(paused_from) is ControllerPhase.PLANNING:
+        if active_plan is not None:
+            raise PacketValidationError(
+                "paused planning state cannot retain an active plan"
+            )
+    elif (
+        ControllerPhase(paused_from) is ControllerPhase.DEVELOPING
+        and active_plan is None
+    ):
+        raise PacketValidationError("paused development state requires an active plan")
+    if phase is ControllerPhase.FINAL_CANDIDATE_READY:
+        statuses = {RequirementStatus(item["status"]) for item in root["requirements"]}
+        if not statuses.issubset(
+            {RequirementStatus.VERIFIED, RequirementStatus.OUT_OF_SCOPE}
+        ):
+            raise PacketValidationError(
+                "FINAL_CANDIDATE_READY requires resolved requirement states"
+            )
+        if open_regressions:
+            raise PacketValidationError(
+                "FINAL_CANDIDATE_READY cannot retain an open regression"
+            )
+        if not root["evidence_digests"]:
+            raise PacketValidationError(
+                "FINAL_CANDIDATE_READY requires persisted Tester evidence"
+            )
+        if root["last_error"] is not None:
+            raise PacketValidationError("FINAL_CANDIDATE_READY cannot retain an error")
     return root

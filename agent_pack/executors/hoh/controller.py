@@ -163,6 +163,7 @@ class HarnessController:
         self._verify_executor_profiles()
         self._verify_candidate_identity()
         assert_payload_safe(state, self.protected_patterns)
+        self._verify_resumed_state()
         return self.snapshot()
 
     def snapshot(self) -> dict[str, Any]:
@@ -306,6 +307,111 @@ class HarnessController:
                 "candidate head/tree mismatch; refusing to resume or advance"
             )
         require_clean_worktree(self.repository)
+        actual_paths = changed_paths(
+            self.repository,
+            self.run_manifest["authority"]["commit"],
+            actual["head"],
+        )
+        if actual_paths != tuple(expected["changed_paths"]):
+            raise IdentityMismatch(
+                "candidate changed-path manifest does not match exact Git history"
+            )
+
+    def _verify_resumed_state(self) -> None:
+        """Re-establish lifecycle facts that untrusted persisted JSON cannot assert."""
+
+        assert self.state is not None
+        if self.state["run_id"] != self.run_manifest["run_id"]:
+            raise IdentityMismatch("controller state belongs to another run")
+        if self.state["iteration"] > self.run_manifest["max_iterations"]:
+            raise PacketValidationError("controller state exceeds the iteration bound")
+
+        active_plan = self.state["active_plan"]
+        if active_plan is not None:
+            expected = self._bindings(Role.PLANNER)
+            phase = ControllerPhase(self.state["phase"])
+            paused_from = self.state["paused_from"]
+            testing_candidate = phase is ControllerPhase.TESTING or (
+                paused_from == ControllerPhase.TESTING.value
+            )
+            if testing_candidate:
+                expected["candidate_head"] = resolve_commit(
+                    self.repository, f"{self.state['candidate']['head']}^"
+                )
+                expected["candidate_tree"] = resolve_tree(
+                    self.repository, expected["candidate_head"]
+                )
+            if dict(active_plan["bindings"]) != expected:
+                raise IdentityMismatch(
+                    "persisted active plan bindings do not match its candidate phase"
+                )
+            self._validate_plan_paths(active_plan)
+            open_regressions = self._open_regression_ids()
+            if (
+                tuple(active_plan["ordered_requirement_ids"][: len(open_regressions)])
+                != open_regressions
+            ):
+                raise PacketValidationError(
+                    "persisted plan does not place every open regression first"
+                )
+
+        if self.state["phase"] != ControllerPhase.FINAL_CANDIDATE_READY.value:
+            return
+        for requirement in self.state["requirements"]:
+            specification = self.requirement_by_id[requirement["id"]]
+            if specification["required"] and (
+                requirement["status"] != RequirementStatus.VERIFIED.value
+            ):
+                raise PacketValidationError(
+                    "FINAL_CANDIDATE_READY contains an unverified required requirement"
+                )
+        if self._open_regression_ids():
+            raise PacketValidationError(
+                "FINAL_CANDIDATE_READY contains an unresolved regression"
+            )
+        self._replay_final_persisted_evidence()
+
+    def _replay_final_persisted_evidence(self) -> None:
+        """Re-run final accepted evidence instead of trusting external state bytes."""
+
+        assert self.state is not None
+        tester_disclosures = [
+            item
+            for item in self.state["disclosures"]
+            if item["role"] == Role.TESTER.value
+            and item["iteration"] == self.state["iteration"]
+        ]
+        for disclosure in tester_disclosures:
+            source = self.repository / disclosure["path"]
+            if source.is_symlink() or not source.is_file():
+                raise PacketValidationError(
+                    f"persisted Tester disclosure is not a candidate file: "
+                    f"{disclosure['path']}"
+                )
+            if digest_file(source) != disclosure["sha256"]:
+                raise PacketValidationError(
+                    f"persisted Tester disclosure digest mismatch: "
+                    f"{disclosure['path']}"
+                )
+        workspace = self.context.projection(
+            Role.TESTER,
+            self.state["iteration"],
+            (item["path"] for item in tester_disclosures),
+            self.state["candidate"],
+        )
+        self._verify_evidence(
+            {
+                "results": [
+                    {
+                        "requirement_id": item["id"],
+                        "status": item["status"],
+                        "evidence": item["accepted_evidence"],
+                    }
+                    for item in self.state["requirements"]
+                ]
+            },
+            workspace,
+        )
 
     def _bindings(self, role: Role) -> dict[str, str]:
         assert self.state is not None
