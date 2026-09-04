@@ -958,47 +958,79 @@ class HarnessController:
         if not set(iteration_paths).issubset(cumulative_paths):
             raise IdentityMismatch("candidate commit omitted Developer paths")
 
-        updated = subprocess.run(
-            [
-                "git",
+        with tempfile.TemporaryDirectory(
+            prefix="candidate-install-", dir=self.store.root
+        ) as install_directory:
+            hooks_directory = Path(install_directory) / "empty-hooks"
+            hooks_directory.mkdir()
+            install_environment = {
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "HOME": install_directory,
+                "LANG": "C.UTF-8",
+                "LC_ALL": "C.UTF-8",
+                "PATH": "/usr/bin:/bin",
+            }
+
+            def run_install_git(*arguments: str):
+                return subprocess.run(
+                    [
+                        "git",
+                        "-c",
+                        "core.fsmonitor=false",
+                        "-c",
+                        f"core.hooksPath={hooks_directory}",
+                        *arguments,
+                    ],
+                    cwd=self.repository,
+                    env=install_environment,
+                    check=False,
+                    capture_output=True,
+                )
+
+            updated = run_install_git(
                 "update-ref",
                 "HEAD",
                 candidate_commit,
                 candidate_before["head"],
-            ],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if updated.returncode:
-            raise IdentityMismatch(
-                "candidate changed during atomic Developer import; no ref was overwritten"
             )
+            if updated.returncode:
+                raise IdentityMismatch(
+                    "candidate changed during atomic Developer import; "
+                    "no ref was overwritten"
+                )
+            if head_identity(self.repository) != candidate_identity:
+                raise IdentityMismatch(
+                    "candidate changed after atomic Developer import; "
+                    "refusing worktree synchronization"
+                )
+            synchronized = run_install_git(
+                "read-tree",
+                "-u",
+                "-m",
+                candidate_before["head"],
+                candidate_commit,
+            )
+            if synchronized.returncode:
+                # Move only the ref installed by this controller. A concurrent
+                # ref update wins the compare-and-swap and is never rolled back.
+                run_install_git(
+                    "update-ref",
+                    "HEAD",
+                    candidate_before["head"],
+                    candidate_commit,
+                )
+                detail = (synchronized.stderr or synchronized.stdout).decode(
+                    "utf-8", errors="replace"
+                )
+                raise IdentityMismatch(
+                    "candidate worktree synchronization failed closed: "
+                    f"{detail.strip()}"
+                )
         if head_identity(self.repository) != candidate_identity:
             raise IdentityMismatch(
-                "candidate changed after atomic Developer import; refusing worktree reset"
-            )
-        unchanged_worktree = subprocess.run(
-            ["git", "diff", "--quiet", candidate_before["head"], "--"],
-            cwd=self.repository,
-            check=False,
-        )
-        if unchanged_worktree.returncode:
-            raise IdentityMismatch(
-                "candidate worktree changed during atomic import; refusing reset"
-            )
-        synchronized = subprocess.run(
-            ["git", "reset", "--hard", candidate_commit],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if synchronized.returncode:
-            raise IdentityMismatch(
-                "candidate commit installed but worktree synchronization failed: "
-                f"{(synchronized.stderr or synchronized.stdout).strip()}"
+                "candidate changed during worktree synchronization; "
+                "no external ref was rolled back"
             )
         require_clean_worktree(self.repository)
         if head_identity(self.repository) != candidate_identity:

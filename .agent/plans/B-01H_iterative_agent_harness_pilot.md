@@ -109,7 +109,9 @@ schemas and validators, exact identity checks, atomic external state, isolated
 role projections, controller-mediated disclosure, manifest-authorized
 evidence-command replay, mandatory protected policy, trusted-shadow regular-file
 Developer patch sealing, off-ref exact-parent candidate construction and atomic
-ref compare-and-swap, structured failure/regression carry-forward,
+ref compare-and-swap with an empty hook surface, two-tree worktree
+synchronization that preserves concurrent external refs, structured
+failure/regression carry-forward,
 regression-first replanning and handoff blocking, identity-checked pause retry,
 a verified `codex exec` adapter, one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.

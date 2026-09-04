@@ -851,7 +851,7 @@ def test_external_candidate_commit_during_developer_is_preserved(
     assert git(repository, "log", "-1", "--format=%s") == "concurrent external commit"
 
 
-def test_candidate_commit_ignores_repository_git_hooks(tmp_path: Path) -> None:
+def test_candidate_import_ignores_repository_git_hooks(tmp_path: Path) -> None:
     executor = ScriptedExecutor(
         {
             Role.PLANNER: [plan_packet],
@@ -864,9 +864,10 @@ def test_candidate_commit_ignores_repository_git_hooks(tmp_path: Path) -> None:
     hooks = tmp_path / "candidate-hooks"
     hooks.mkdir()
     sentinel = tmp_path / "candidate-hook-ran"
-    hook = hooks / "pre-commit"
-    hook.write_text(f"#!/bin/sh\n/usr/bin/touch {sentinel}\n", encoding="utf-8")
-    hook.chmod(0o755)
+    for hook_name in ("pre-commit", "reference-transaction"):
+        hook = hooks / hook_name
+        hook.write_text(f"#!/bin/sh\n/usr/bin/touch {sentinel}\n", encoding="utf-8")
+        hook.chmod(0o755)
     git(repository, "config", "core.hooksPath", str(hooks))
 
     controller.step()
@@ -908,7 +909,7 @@ def test_controller_never_executes_developer_owned_git_metadata(tmp_path: Path) 
     assert (repository / "src.txt").read_text(encoding="utf-8") == "bounded change\n"
 
 
-def test_atomic_candidate_import_rejects_post_check_external_commit(
+def test_candidate_import_preserves_post_cas_external_commit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -928,7 +929,12 @@ def test_atomic_candidate_import_rejects_post_check_external_commit(
     def race(command, *args, **kwargs):
         nonlocal injected
         normalized = [str(item) for item in command]
-        if normalized[:3] == ["git", "update-ref", "HEAD"] and not injected:
+        if (
+            "read-tree" in normalized
+            and "-u" in normalized
+            and kwargs.get("cwd") == repository
+            and not injected
+        ):
             injected = True
             target = repository / "external.txt"
             target.write_text("must survive post-check race\n", encoding="utf-8")
@@ -951,7 +957,7 @@ def test_atomic_candidate_import_rejects_post_check_external_commit(
         return original_run(command, *args, **kwargs)
 
     monkeypatch.setattr("subprocess.run", race)
-    with pytest.raises(IdentityMismatch, match="atomic Developer import"):
+    with pytest.raises(IdentityMismatch, match="no external ref was rolled back"):
         controller.step()
 
     assert injected
