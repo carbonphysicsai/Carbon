@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import json
 import os
@@ -11,7 +10,12 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from .context import ContextBroker, assert_payload_safe
+from .context import (
+    DEFAULT_PROTECTED_PATTERNS,
+    ContextBroker,
+    assert_payload_safe,
+    path_matches,
+)
 from .executors import Executor, RoleInvocation
 from .identity import (
     changed_paths,
@@ -77,6 +81,11 @@ class HarnessController:
             item["id"]: item for item in self.requirements_manifest["requirements"]
         }
         self.manifest_digest = digest_value(self.run_manifest)
+        self.protected_patterns = tuple(
+            dict.fromkeys(
+                (*DEFAULT_PROTECTED_PATTERNS, *self.run_manifest["protected_patterns"])
+            )
+        )
         self.context = ContextBroker(
             self.repository,
             self.store.root,
@@ -118,6 +127,8 @@ class HarnessController:
                     "id": requirement_id,
                     "status": RequirementStatus.UNTESTED.value,
                     "accepted_evidence": [],
+                    "failure_reason": None,
+                    "failure_evidence": [],
                 }
                 for requirement_id in sorted(self.requirement_ids)
             ],
@@ -126,10 +137,11 @@ class HarnessController:
             "plan_digests": [],
             "evidence_digests": [],
             "active_plan": None,
+            "paused_from": None,
             "last_error": None,
         }
         validate_controller_state(state, self.requirement_ids)
-        assert_payload_safe(state, self.run_manifest["protected_patterns"])
+        assert_payload_safe(state, self.protected_patterns)
         self.store.initialize(self.run_manifest, state)
         self.state = state
         return self.snapshot()
@@ -150,7 +162,7 @@ class HarnessController:
         self._verify_static_identities()
         self._verify_executor_profiles()
         self._verify_candidate_identity()
-        assert_payload_safe(state, self.run_manifest["protected_patterns"])
+        assert_payload_safe(state, self.protected_patterns)
         return self.snapshot()
 
     def snapshot(self) -> dict[str, Any]:
@@ -161,11 +173,11 @@ class HarnessController:
     def step(self) -> dict[str, Any]:
         if self.state is None:
             raise IdentityMismatch("controller is not initialized or resumed")
+        phase = ControllerPhase(self.state["phase"])
         try:
             self._verify_static_identities()
             self._verify_executor_profiles()
             self._verify_candidate_identity()
-            phase = ControllerPhase(self.state["phase"])
             if phase is ControllerPhase.PLANNING:
                 self._plan()
             elif phase is ControllerPhase.DEVELOPING:
@@ -176,21 +188,52 @@ class HarnessController:
                 raise PacketValidationError(
                     f"terminal phase {phase.value} cannot advance"
                 )
-            self.state["last_error"] = None
+            if ControllerPhase(self.state["phase"]) not in {
+                ControllerPhase.PAUSED_HUMAN,
+                ControllerPhase.PAUSED_INFRA,
+            }:
+                self.state["paused_from"] = None
+                self.state["last_error"] = None
         except PauseRequested as error:
             self.state["phase"] = error.phase.value
+            self.state["paused_from"] = phase.value
             self.state["last_error"] = error.reason
         except HarnessError as error:
-            self.state["last_error"] = f"{type(error).__name__}: {error}"
+            diagnostic = f"{type(error).__name__}: {error}"
+            try:
+                assert_payload_safe(diagnostic, self.protected_patterns)
+            except PacketValidationError:
+                diagnostic = f"{type(error).__name__}: protected diagnostic redacted"
+            self.state["last_error"] = diagnostic
             self._persist()
             raise
+        self._persist()
+        return self.snapshot()
+
+    def retry(self) -> dict[str, Any]:
+        """Resume one identity-bound paused run at the phase that requested pause."""
+
+        if self.state is None:
+            raise IdentityMismatch("controller is not initialized or resumed")
+        phase = ControllerPhase(self.state["phase"])
+        if phase not in {ControllerPhase.PAUSED_HUMAN, ControllerPhase.PAUSED_INFRA}:
+            raise PacketValidationError("only a paused run can be retried")
+        self._verify_static_identities()
+        self._verify_executor_profiles()
+        self._verify_candidate_identity()
+        source = self.state["paused_from"]
+        if source is None:
+            raise PacketValidationError("paused run has no resumable source phase")
+        self.state["phase"] = ControllerPhase(source).value
+        self.state["paused_from"] = None
+        self.state["last_error"] = None
         self._persist()
         return self.snapshot()
 
     def _persist(self) -> None:
         assert self.state is not None
         validate_controller_state(self.state, self.requirement_ids)
-        assert_payload_safe(self.state, self.run_manifest["protected_patterns"])
+        assert_payload_safe(self.state, self.protected_patterns)
         self.store.save_state(self.state)
 
     def _verify_static_identities(self) -> None:
@@ -296,11 +339,16 @@ class HarnessController:
             "bindings": self._bindings(role),
             "requirement_states": self.state["requirements"],
             "open_regressions": self._open_regression_ids(),
+            "regression_records": [
+                item
+                for item in self.state["regressions"]
+                if item["resolved_iteration"] is None
+            ],
             "disclosed_paths": list(context_paths),
             "authority_ceiling": self.run_manifest["authority_ceiling"],
             "active_plan": self.state["active_plan"],
         }
-        assert_payload_safe(packet, self.run_manifest["protected_patterns"])
+        assert_payload_safe(packet, self.protected_patterns)
         return f"{template.rstrip()}\n\nCONTROLLER_PACKET\n{json.dumps(packet, sort_keys=True)}\n"
 
     def _invoke(
@@ -354,7 +402,7 @@ class HarnessController:
                 iteration=self.state["iteration"],
             )
             raw = dict(self.executor.execute(invocation))
-            assert_payload_safe(raw, self.run_manifest["protected_patterns"])
+            assert_payload_safe(raw, self.protected_patterns)
             packet = validator(raw)
             requests = tuple(packet["context_requests"])
             if not requests:
@@ -417,6 +465,7 @@ class HarnessController:
                 if blocker["status"] == RequirementStatus.BLOCKED_HUMAN.value
                 else ControllerPhase.PAUSED_INFRA.value
             )
+            self.state["paused_from"] = ControllerPhase.PLANNING.value
             self.state["last_error"] = blocker["reason"]
             return
         self._validate_plan_paths(packet)
@@ -435,32 +484,44 @@ class HarnessController:
         self._require_common_packet(packet)
         self._require_bindings(packet["bindings"], Role.DEVELOPER)
         require_clean_worktree(self.repository)
-        after, iteration_paths = self._import_developer_changes(
-            workspace,
-            workspace_before,
-            before,
-        )
-        cumulative_paths = changed_paths(
-            self.repository,
-            self.run_manifest["authority"]["commit"],
-            after["head"],
-        )
-        self._require_paths_allowed(
-            cumulative_paths,
-            tuple(self.run_manifest["permitted_change_paths"]),
-            "run manifest",
-        )
-        plan_patterns = tuple(
-            path
-            for action in self.state["active_plan"]["actions"]
-            for path in action["allowed_paths"]
-        )
-        self._require_paths_allowed(iteration_paths, plan_patterns, "iteration plan")
-        self.state["candidate"] = {
-            **after,
-            "changed_paths": list(cumulative_paths),
-        }
-        self.state["phase"] = ControllerPhase.TESTING.value
+        previous_candidate = dict(self.state["candidate"])
+        try:
+            after, iteration_paths = self._import_developer_changes(
+                workspace,
+                workspace_before,
+                before,
+            )
+            cumulative_paths = changed_paths(
+                self.repository,
+                self.run_manifest["authority"]["commit"],
+                after["head"],
+            )
+            self._require_paths_allowed(
+                cumulative_paths,
+                tuple(self.run_manifest["permitted_change_paths"]),
+                "run manifest",
+            )
+            plan_patterns = tuple(
+                path
+                for action in self.state["active_plan"]["actions"]
+                for path in action["allowed_paths"]
+            )
+            self._require_paths_allowed(
+                iteration_paths, plan_patterns, "iteration plan"
+            )
+            self.state["candidate"] = {
+                **after,
+                "changed_paths": list(cumulative_paths),
+            }
+            self.state["phase"] = ControllerPhase.TESTING.value
+            validate_controller_state(self.state, self.requirement_ids)
+            assert_payload_safe(self.state, self.protected_patterns)
+        except HarnessError:
+            if head_identity(self.repository) != before:
+                self._restore_candidate(before)
+            self.state["candidate"] = previous_candidate
+            self.state["phase"] = ControllerPhase.DEVELOPING.value
+            raise
 
     def _test(self) -> None:
         assert self.state is not None
@@ -523,6 +584,16 @@ class HarnessController:
                         if status is RequirementStatus.VERIFIED
                         else []
                     ),
+                    "failure_reason": (
+                        None
+                        if status is RequirementStatus.VERIFIED
+                        else result["reason"]
+                    ),
+                    "failure_evidence": (
+                        []
+                        if status is RequirementStatus.VERIFIED
+                        else result["evidence"]
+                    ),
                 }
             )
         self.state["requirements"] = next_states
@@ -531,9 +602,13 @@ class HarnessController:
         statuses = {RequirementStatus(item["status"]) for item in next_states}
         if RequirementStatus.BLOCKED_HUMAN in statuses:
             self.state["phase"] = ControllerPhase.PAUSED_HUMAN.value
+            self.state["paused_from"] = ControllerPhase.TESTING.value
+            self.state["last_error"] = "Tester reported a human-owned blocker"
         elif RequirementStatus.BLOCKED_INFRA in statuses:
             self.state["phase"] = ControllerPhase.PAUSED_INFRA.value
-        elif all(
+            self.state["paused_from"] = ControllerPhase.TESTING.value
+            self.state["last_error"] = "Tester reported an infrastructure blocker"
+        elif not self._open_regression_ids() and all(
             RequirementStatus(item["status"])
             in {RequirementStatus.VERIFIED, RequirementStatus.OUT_OF_SCOPE}
             for item in next_states
@@ -541,6 +616,7 @@ class HarnessController:
             self.state["phase"] = ControllerPhase.FINAL_CANDIDATE_READY.value
         elif self.state["iteration"] >= self.run_manifest["max_iterations"]:
             self.state["phase"] = ControllerPhase.PAUSED_INFRA.value
+            self.state["paused_from"] = ControllerPhase.TESTING.value
             self.state["last_error"] = "bounded iteration limit reached"
         else:
             self.state["iteration"] += 1
@@ -577,16 +653,14 @@ class HarnessController:
             "run manifest",
         )
         for path in iteration_paths:
-            if any(
-                fnmatch.fnmatchcase(path, pattern)
-                for pattern in self.run_manifest["protected_patterns"]
-            ):
+            if path_matches(path, self.protected_patterns):
                 raise ScopeViolation(f"Developer changed protected path {path}")
-            projected_path = workspace / path
-            if projected_path.exists() and (
-                projected_path.is_symlink() or not projected_path.is_file()
-            ):
-                raise ScopeViolation(f"Developer result is not a regular file: {path}")
+        self._require_regular_git_modes(
+            workspace,
+            workspace_before["head"],
+            projected_after["head"],
+            iteration_paths,
+        )
         require_clean_worktree(self.repository)
         if head_identity(self.repository) != dict(candidate_before):
             raise IdentityMismatch("candidate changed during Developer invocation")
@@ -618,6 +692,8 @@ class HarnessController:
                 detail = (applied.stderr or applied.stdout).decode(
                     "utf-8", errors="replace"
                 )
+                if arguments == ("--index",):
+                    self._restore_candidate(candidate_before)
                 raise PacketValidationError(
                     f"Developer patch import failed closed: {detail.strip()}"
                 )
@@ -632,6 +708,7 @@ class HarnessController:
             sorted(line for line in staged.stdout.splitlines() if line)
         )
         if staged.returncode or staged_paths != tuple(sorted(iteration_paths)):
+            self._restore_candidate(candidate_before)
             raise PacketValidationError(
                 "imported Developer paths do not match projection"
             )
@@ -655,12 +732,68 @@ class HarnessController:
             text=True,
         )
         if committed.returncode:
+            self._restore_candidate(candidate_before)
             raise PacketValidationError(
                 "controller could not commit imported Developer patch: "
                 f"{(committed.stderr or committed.stdout).strip()}"
             )
         require_clean_worktree(self.repository)
         return head_identity(self.repository), iteration_paths
+
+    @staticmethod
+    def _require_regular_git_modes(
+        workspace: Path,
+        before: str,
+        after: str,
+        paths: tuple[str, ...],
+    ) -> None:
+        for reference in (before, after):
+            for path in paths:
+                entry = subprocess.run(
+                    ["git", "ls-tree", "-z", reference, "--", path],
+                    cwd=workspace,
+                    check=False,
+                    capture_output=True,
+                )
+                if entry.returncode:
+                    raise PacketValidationError(
+                        f"could not inspect Developer Git mode for {path}"
+                    )
+                if not entry.stdout:
+                    continue
+                header, separator, recorded_path = entry.stdout.rstrip(b"\0").partition(
+                    b"\t"
+                )
+                fields = header.split()
+                if (
+                    not separator
+                    or recorded_path.decode("utf-8", errors="strict") != path
+                    or len(fields) != 3
+                    or fields[0] not in {b"100644", b"100755"}
+                    or fields[1] != b"blob"
+                ):
+                    raise ScopeViolation(
+                        f"Developer result has unsupported Git mode: {path}"
+                    )
+
+    def _restore_candidate(self, expected: Mapping[str, str]) -> None:
+        restored = subprocess.run(
+            ["git", "reset", "--hard", expected["head"]],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if restored.returncode:
+            raise IdentityMismatch(
+                "Developer import failed and candidate rollback also failed: "
+                f"{(restored.stderr or restored.stdout).strip()}"
+            )
+        require_clean_worktree(self.repository)
+        if head_identity(self.repository) != dict(expected):
+            raise IdentityMismatch(
+                "Developer import rollback did not restore candidate"
+            )
 
     def _verify_evidence(self, packet: Mapping[str, Any], workspace: Path) -> None:
         """Execute only manifest-authorized evidence in the isolated projection."""
@@ -798,13 +931,9 @@ class HarnessController:
             if patterns_as_paths:
                 contains_glob = any(character in path for character in "*?[")
                 allowed = (
-                    path in patterns
-                    if contains_glob
-                    else any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+                    path in patterns if contains_glob else path_matches(path, patterns)
                 )
             else:
-                allowed = any(
-                    fnmatch.fnmatchcase(path, pattern) for pattern in patterns
-                )
+                allowed = path_matches(path, patterns)
             if not allowed:
                 raise ScopeViolation(f"{label} does not permit path {path}")

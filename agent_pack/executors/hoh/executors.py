@@ -84,8 +84,15 @@ class ScriptedExecutor:
 class ManualExecutor:
     """Explicit pause adapter for externally supplied, human-reviewed packets."""
 
-    def __init__(self, identity: str = "carbon-hoh-manual-v1") -> None:
+    def __init__(
+        self,
+        identity: str = "carbon-hoh-manual-v1",
+        *,
+        packet: Mapping[str, Any] | None = None,
+    ) -> None:
         self._identity = identity
+        self._packet = dict(packet) if packet is not None else None
+        self._consumed = False
 
     def executor_id(self) -> str:
         return self._identity
@@ -101,6 +108,9 @@ class ManualExecutor:
         )
 
     def execute(self, invocation: RoleInvocation) -> Mapping[str, Any]:
+        if self._packet is not None and not self._consumed:
+            self._consumed = True
+            return dict(self._packet)
         raise PauseRequested(
             ControllerPhase.PAUSED_HUMAN,
             f"manual {invocation.role.value} packet required for iteration "

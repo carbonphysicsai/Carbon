@@ -40,7 +40,9 @@ SECRET_VALUE_MARKERS = (
 PATH_TOKEN = re.compile(r"(?<![A-Za-z0-9._-])(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+")
 
 
-def _matches(path: str, patterns: Iterable[str]) -> bool:
+def path_matches(path: str, patterns: Iterable[str]) -> bool:
+    """Match repository policy globs, where a leading ``**/`` may match zero dirs."""
+
     for pattern in patterns:
         if fnmatch.fnmatchcase(path, pattern):
             return True
@@ -80,7 +82,7 @@ def assert_payload_safe(value: Any, protected_patterns: Iterable[str]) -> None:
                     path = normalized_repo_path(candidate)
                 except ScopeViolation:
                     continue
-                if _matches(path, patterns):
+                if path_matches(path, patterns):
                     raise PacketValidationError(f"protected path at {label}: {path}")
 
     visit(value, "packet")
@@ -98,7 +100,11 @@ class ContextBroker:
         self.repository = repository.resolve()
         self.state_root = state_root.resolve()
         self.manifest = run_manifest
-        self.protected_patterns = tuple(run_manifest["protected_patterns"])
+        self.protected_patterns = tuple(
+            dict.fromkeys(
+                (*DEFAULT_PROTECTED_PATTERNS, *run_manifest["protected_patterns"])
+            )
+        )
         self._tracked = frozenset(tracked_paths(self.repository))
 
     def _expand(self, raw_path: str) -> tuple[str, ...]:
@@ -124,7 +130,7 @@ class ContextBroker:
                 for path in self._tracked
                 if path == pattern
                 or path.startswith(prefix)
-                or fnmatch.fnmatchcase(path, pattern)
+                or path_matches(path, (pattern,))
             )
         return tuple(sorted(selected))
 
@@ -141,18 +147,18 @@ class ContextBroker:
         disclosures: list[dict[str, Any]] = []
         for raw in requested:
             normalized = normalized_repo_path(raw)
-            if _matches(normalized, self.protected_patterns):
+            if path_matches(normalized, self.protected_patterns):
                 raise ScopeViolation(
                     f"protected context request rejected: {normalized}"
                 )
-            if not _matches(normalized, allowed):
+            if not path_matches(normalized, allowed):
                 raise ScopeViolation(
                     f"out-of-authority context request rejected: {normalized}"
                 )
             for path in self._expand(normalized):
-                if _matches(path, self.protected_patterns):
+                if path_matches(path, self.protected_patterns):
                     raise ScopeViolation(f"protected context path rejected: {path}")
-                if not _matches(path, allowed):
+                if not path_matches(path, allowed):
                     raise ScopeViolation(
                         f"expanded context path is out of authority: {path}"
                     )

@@ -7,6 +7,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import PurePosixPath
 from typing import Any
 
+from .context import DEFAULT_PROTECTED_PATTERNS
 from .identity import GIT_OID_RE, SHA256_RE, normalized_repo_path
 from .models import (
     ACCEPTED_EVIDENCE_KINDS,
@@ -268,7 +269,13 @@ def validate_run_manifest(value: Any) -> dict[str, Any]:
             f"context_allow_paths.{role.value.lower()}",
         )
     _paths(root["permitted_change_paths"], "permitted_change_paths")
-    _unique_strings(root["protected_patterns"], "protected_patterns")
+    protected = _unique_strings(root["protected_patterns"], "protected_patterns")
+    missing_protections = set(DEFAULT_PROTECTED_PATTERNS) - set(protected)
+    if missing_protections:
+        raise PacketValidationError(
+            "protected_patterns must include every mandatory default: "
+            f"{sorted(missing_protections)}"
+        )
     _integer(root["max_iterations"], "max_iterations", minimum=1)
     ceilings = _unique_strings(root["authority_ceiling"], "authority_ceiling")
     forbidden_missing = FORBIDDEN_AUTHORITY_WORDS - set(ceilings)
@@ -336,6 +343,7 @@ def validate_iteration_plan(value: Any, requirement_ids: set[str]) -> dict[str, 
     if not ordered or not set(ordered).issubset(requirement_ids):
         raise PacketValidationError("plan contains missing or unknown requirement ids")
     actions = _array(root["actions"], "actions")
+    action_ids: list[str] = []
     for index, raw in enumerate(actions):
         item = _mapping(raw, f"actions[{index}]")
         _exact_keys(
@@ -346,8 +354,13 @@ def validate_iteration_plan(value: Any, requirement_ids: set[str]) -> dict[str, 
         )
         if requirement_id not in requirement_ids:
             raise PacketValidationError(f"unknown action requirement {requirement_id}")
+        action_ids.append(requirement_id)
         _string(item["summary"], f"actions[{index}].summary")
         _paths(item["allowed_paths"], f"actions[{index}].allowed_paths")
+    if action_ids != list(ordered):
+        raise PacketValidationError(
+            "plan actions must exactly follow ordered_requirement_ids"
+        )
     _paths(root["context_requests"], "context_requests")
     blocker = root["blocker"]
     if blocker is not None:
@@ -531,6 +544,7 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             "plan_digests",
             "evidence_digests",
             "active_plan",
+            "paused_from",
             "last_error",
         ],
         "ControllerState",
@@ -553,7 +567,15 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
     for index, raw in enumerate(states):
         item = _mapping(raw, f"requirements[{index}]")
         _exact_keys(
-            item, ["id", "status", "accepted_evidence"], f"requirements[{index}]"
+            item,
+            [
+                "id",
+                "status",
+                "accepted_evidence",
+                "failure_reason",
+                "failure_evidence",
+            ],
+            f"requirements[{index}]",
         )
         requirement_id = _requirement_id(item["id"], f"requirements[{index}].id")
         if requirement_id not in requirement_ids or requirement_id in seen:
@@ -577,6 +599,19 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             raise PacketValidationError("persisted VERIFIED state lacks evidence")
         if status is not RequirementStatus.VERIFIED and accepted:
             raise PacketValidationError("non-VERIFIED state carries accepted evidence")
+        failure_evidence = _array(item["failure_evidence"], "failure_evidence")
+        for evidence_index, evidence in enumerate(failure_evidence):
+            _validate_accepted_evidence(
+                evidence,
+                f"requirements[{index}].failure_evidence[{evidence_index}]",
+            )
+        if status in {RequirementStatus.UNTESTED, RequirementStatus.VERIFIED}:
+            if item["failure_reason"] is not None or failure_evidence:
+                raise PacketValidationError(
+                    "UNTESTED/VERIFIED state cannot carry failure detail"
+                )
+        else:
+            _string(item["failure_reason"], f"requirements[{index}].failure_reason")
     if seen != requirement_ids:
         raise PacketValidationError("controller state omits requirements")
     for index, raw in enumerate(_array(root["regressions"], "regressions")):
@@ -657,6 +692,24 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
             _sha256(digest, f"{label}[]")
     if root["active_plan"] is not None:
         validate_iteration_plan(root["active_plan"], requirement_ids)
+    paused_from = root["paused_from"]
+    phase = ControllerPhase(root["phase"])
+    paused_phases = {
+        ControllerPhase.PAUSED_HUMAN,
+        ControllerPhase.PAUSED_INFRA,
+    }
+    if paused_from is not None:
+        try:
+            source_phase = ControllerPhase(paused_from)
+        except (TypeError, ValueError) as error:
+            raise PacketValidationError("paused_from is invalid") from error
+        if (
+            source_phase in paused_phases
+            or source_phase is ControllerPhase.FINAL_CANDIDATE_READY
+        ):
+            raise PacketValidationError("paused_from must be an active phase")
+    if (phase in paused_phases) != (paused_from is not None):
+        raise PacketValidationError("paused phase and paused_from must appear together")
     if root["last_error"] is not None:
         _string(root["last_error"], "last_error")
     return root

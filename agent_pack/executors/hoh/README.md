@@ -28,7 +28,9 @@ ephemeral invocation with user config ignored, an explicit sandbox, a fixed
 working directory, and an output JSON Schema. Planner and Tester use
 `read-only`; Developer uses `workspace-write` only in a sanitized disposable
 Git projection. The controller validates its clean commit and imports only the
-plan/run-allow-listed patch into the dedicated ticket worktree.
+plan/run-allow-listed patch into the dedicated ticket worktree. Mandatory
+protected patterns cannot be removed by a run manifest, only regular-file Git
+modes are importable, and any failed import restores the exact prior candidate.
 Role subprocesses receive a small allow-listed environment rather than
 inheriting API keys or other ambient variables. `danger-full-access` is never
 used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
@@ -36,7 +38,7 @@ and [non-interactive mode documentation](https://developers.openai.com/codex/non
 
 The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`
 provides deterministic synthetic runs, and `ManualExecutor` explicitly pauses
-for an externally supplied packet.
+for an externally supplied packet or consumes one supplied packet exactly once.
 
 ## Run state and resume
 
@@ -49,6 +51,10 @@ $(git rev-parse --git-common-dir)/.carbon-hoh/runs/<run-id>/
 This state is outside tracked content. Resume revalidates the exact run
 manifest digest, authority ref/commit/tree, ticket bytes, requirements bytes,
 role profiles, clean candidate head/tree, and protected-context boundary.
+`retry` rechecks those identities before returning a `PAUSED_HUMAN` or
+`PAUSED_INFRA` run to the exact active phase that paused. Failure reason and
+evidence plus complete open-regression records remain structured inputs to
+later roles.
 
 ## Progressive disclosure
 
@@ -79,6 +85,8 @@ python scripts/dev/hoh.py probe-codex
 python scripts/dev/hoh.py validate requirements agent_pack/executors/hoh/manifests/b05.requirements.v1.json
 python scripts/dev/hoh.py init /absolute/path/to/run-manifest.json
 python scripts/dev/hoh.py step /absolute/path/to/run-manifest.json
+python scripts/dev/hoh.py retry /absolute/path/to/run-manifest.json
+python scripts/dev/hoh.py retry /absolute/path/to/run-manifest.json --manual --packet /absolute/path/to/role-packet.json
 python scripts/dev/hoh.py run /absolute/path/to/run-manifest.json
 python scripts/dev/hoh.py status /absolute/path/to/run-manifest.json
 ```

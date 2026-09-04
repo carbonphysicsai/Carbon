@@ -2754,19 +2754,19 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "Version 1.3 records B-04 done only under its complete conditional delivery predicate. The bounded fixture-runtime candidate is prepared, but implementation/test maturity remains inert until exact-head review, normal reviewed-tree-preserving merge, exact-main requirements, and the completed external receipt all pass.",
-      "maturity_ceiling": "SPECIFIED and RATIFIED_ENGINEERING_CONTRACT are earned for the bounded engineering contract. IMPLEMENTED and TESTED remain unearned until B-04's complete conditional delivery predicate passes; REFERENCE_QUALIFIED and every scientific, security, network, commercial, production, and LIVE state remain unearned.",
+      "current_stage": "PR #75 satisfied B-04's exact-head review, distinct approval, normal reviewed-tree-preserving merge, exact-main gates, and completed receipt predicate. The bounded fixture runtime is implemented and tested; no scientific or later qualification is earned.",
+      "maturity_ceiling": "SPECIFIED, RATIFIED_ENGINEERING_CONTRACT, IMPLEMENTED, and TESTED are earned only for the bounded fixture runtime. REFERENCE_QUALIFIED and every scientific, security, network, commercial, production, and LIVE state remain unearned.",
       "maturity_states": {
         "specified": "earned",
-        "implemented": "unearned",
-        "tested": "unearned",
+        "implemented": "earned",
+        "tested": "earned",
         "scientifically_qualified": "unearned",
         "security_qualified": "unearned",
         "network_qualified": "unearned",
         "commercially_validated": "unearned",
         "production_qualified": "unearned"
       },
-      "orientation_note": "This explainer describes B-04's bounded fixture-runtime candidate and conditional closeout. The linked ticket, contract, plan, decisions, evidence record, review, and external receipt own exact implementation and completion detail.",
+      "orientation_note": "This explainer describes B-04's completed bounded fixture runtime. The linked ticket, contract, plan, decisions, evidence record, review, and external receipt own exact implementation and completion detail; qualification remains unearned.",
       "unlocks": [
         "B-01F",
         "B-01H",

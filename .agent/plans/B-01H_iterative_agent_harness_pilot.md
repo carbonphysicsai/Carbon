@@ -107,11 +107,13 @@ Implemented the optional controller under `agent_pack/executors/hoh/` with a
 thin `scripts/dev/hoh.py` entry point. The candidate includes strict versioned
 schemas and validators, exact identity checks, atomic external state, isolated
 role projections, controller-mediated disclosure, manifest-authorized
-evidence-command replay, sanitized Developer patch import, regression-first
-replanning, a verified `codex exec` adapter, manual and deterministic test
+evidence-command replay, mandatory protected policy, transactional regular-file
+Developer patch import, structured failure/regression carry-forward,
+regression-first replanning and handoff blocking, identity-checked pause retry,
+a verified `codex exec` adapter, one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 24 focused tests passing. Ruff
+The native Python 3.11.16 diagnostic reports 35 focused tests passing. Ruff
 0.16.3 passes on the new Python surface, every JSON schema parses, the real
 Codex adapter probe reports `codex-cli 0.151.0-alpha.7.2`, and diff hygiene is
 clean. The canonical wrapper remains locally `PAUSED_INFRA` because Docker is

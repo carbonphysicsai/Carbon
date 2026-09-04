@@ -82,6 +82,7 @@
       "why": "A candidate can only be judged against an adequate, registered source of truth; silent fallback would corrupt the evidence.",
       "changes": "Measurements and qualification gain an explicit truth-authority boundary.",
       "not_yet": "This does not declare one solver universally authoritative or allow an unregistered fallback.",
+      "current_stage_plain": "Completed in bounded implemented-and-tested fixture-runtime scope through PR #75; scientific, security, production, and LIVE qualification remain unearned.",
       "map_ref": "WAVE-B/B-04"
     },
     "B-05": {

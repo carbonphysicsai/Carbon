@@ -10286,7 +10286,9 @@ requirements; a model assertion cannot create `VERIFIED`, clear
 Every transition binds the authority commit/tree, ticket content digest,
 requirements-manifest digest, role/executor profile, iteration, and applicable
 candidate head/tree. Dynamic state is atomically persisted under the Git common
-directory by default and is never committed as per-iteration evidence.
+directory by default and is never committed as per-iteration evidence. A paused
+run records its exact active phase and may retry only after every identity is
+revalidated; the manual adapter consumes at most one supplied packet.
 
 ## B-01H-D3 — Regression-first evidence semantics
 
@@ -10296,7 +10298,9 @@ The controller reruns that command in the isolated candidate projection and
 matches exit status plus output digest; model labels or arbitrary disclosed
 files are insufficient. A later failure of a verified requirement creates an
 explicit regression, reopens it as `FAILED`, and requires the next plan to
-address every open regression before new work.
+address every open regression with a correspondingly ordered action before new
+work. Failure reason/evidence and full open-regression records remain structured
+role inputs, and no open regression can reach final handoff.
 
 ## B-01H-D4 — Supported Codex exec adapter with bounded sandboxes
 
@@ -10315,12 +10319,16 @@ Each role begins from a bounded context manifest. Additional normalized paths
 must match role/ticket allow-lists, cannot enter protected or out-of-authority
 namespaces, and are logged with content digests. Protected hidden-evaluation
 data, credentials, private validator state, and reconstruction-sensitive
-identifiers are rejected from packets and persisted state.
+identifiers are rejected from packets and persisted state. Run manifests cannot
+remove the mandatory protection set; Developer imports use the same root-aware
+matcher, accept regular-file Git modes only, and roll back to the exact prior
+candidate on any failed import.
 
 ## B-01H-D6 — Final candidate is delivery handoff only
 
 `FINAL_CANDIDATE_READY` means all in-scope harness requirements have accepted
-Tester evidence on one exact candidate. It grants no merge, Codex/GPT review,
+Tester evidence on one exact candidate and no regression remains open. It
+grants no merge, Codex/GPT review,
 human approval, scientific/security/production qualification, `LIVE`, network,
 economics, or rights authority and must hand off unchanged to
 `.agent/DELIVERY_PROTOCOL.md`.

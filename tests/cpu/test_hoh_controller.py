@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from agent_pack.executors.hoh.controller import HarnessController
-from agent_pack.executors.hoh.executors import ScriptedExecutor
+from agent_pack.executors.hoh.executors import ManualExecutor, ScriptedExecutor
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
     IdentityMismatch,
@@ -139,6 +139,17 @@ def test_synthetic_failure_replan_regression_repair_success(tmp_path: Path) -> N
     third_plan = executor.invocations[6]
     assert third_plan.role is Role.PLANNER
     assert controller_packet(third_plan)["open_regressions"] == ["REQ-001"]
+    second_plan_state = {
+        item["id"]: item
+        for item in controller_packet(executor.invocations[3])["requirement_states"]
+    }
+    assert second_plan_state["REQ-002"]["failure_reason"] == (
+        "Synthetic Tester result: FAILED."
+    )
+    assert second_plan_state["REQ-002"]["failure_evidence"]
+    regression_records = controller_packet(third_plan)["regression_records"]
+    assert regression_records[0]["requirement_id"] == "REQ-001"
+    assert regression_records[0]["prior_evidence"]
     assert all(item["status"] == "VERIFIED" for item in state["requirements"])
     assert state["candidate"]["head"] != manifest["authority"]["commit"]
 
@@ -247,6 +258,76 @@ def test_plan_glob_cannot_expand_beyond_run_change_scope(tmp_path: Path) -> None
     with pytest.raises(ScopeViolation, match="does not permit path \\*\\*"):
         controller.step()
     assert controller.snapshot()["phase"] == "PLANNING"
+
+
+def test_plan_actions_must_follow_ordered_requirement_ids(tmp_path: Path) -> None:
+    def metadata_only_regression_order(invocation):
+        packet = plan_packet(invocation)
+        packet["actions"] = packet["actions"][1:]
+        return packet
+
+    executor = ScriptedExecutor({Role.PLANNER: [metadata_only_regression_order]})
+    controller, _, _ = _controller(tmp_path, executor)
+    controller.initialize()
+    with pytest.raises(PacketValidationError, match="exactly follow"):
+        controller.step()
+    assert controller.snapshot()["phase"] == "PLANNING"
+
+
+def test_root_protected_developer_path_never_mutates_candidate(tmp_path: Path) -> None:
+    def protected_plan(invocation):
+        packet = plan_packet(invocation)
+        for action in packet["actions"]:
+            action["allowed_paths"] = ["hidden_*"]
+        return packet
+
+    executor = ScriptedExecutor(
+        {Role.PLANNER: [protected_plan], Role.DEVELOPER: [developer_packet]}
+    )
+    controller, repository, _ = _controller(tmp_path, executor, permitted=["hidden_*"])
+
+    def add_protected(invocation) -> None:
+        commit_file(
+            invocation.workspace,
+            "hidden_evaluation/case.json",
+            "must not import\n",
+            "protected path",
+        )
+
+    executor._hooks[Role.DEVELOPER] = add_protected
+    state = controller.initialize()
+    original_head = state["candidate"]["head"]
+    controller.step()
+    with pytest.raises(ScopeViolation, match="protected path"):
+        controller.step()
+    assert git(repository, "rev-parse", "HEAD") == original_head
+    assert not (repository / "hidden_evaluation" / "case.json").exists()
+
+
+def test_non_regular_developer_git_mode_never_mutates_candidate(tmp_path: Path) -> None:
+    def link_plan(invocation):
+        packet = plan_packet(invocation)
+        for action in packet["actions"]:
+            action["allowed_paths"] = ["link.txt"]
+        return packet
+
+    executor = ScriptedExecutor(
+        {Role.PLANNER: [link_plan], Role.DEVELOPER: [developer_packet]}
+    )
+    controller, repository, _ = _controller(tmp_path, executor, permitted=["link.txt"])
+
+    def add_link(invocation) -> None:
+        (invocation.workspace / "link.txt").symlink_to("missing-target")
+        git(invocation.workspace, "add", "link.txt")
+        git(invocation.workspace, "commit", "--quiet", "--message", "symlink")
+
+    executor._hooks[Role.DEVELOPER] = add_link
+    original_head = controller.initialize()["candidate"]["head"]
+    controller.step()
+    with pytest.raises(ScopeViolation, match="unsupported Git mode"):
+        controller.step()
+    assert git(repository, "rev-parse", "HEAD") == original_head
+    assert not (repository / "link.txt").exists()
 
 
 def test_malformed_plan_cannot_advance(tmp_path: Path) -> None:
@@ -386,6 +467,8 @@ def test_regression_must_lead_next_plan(tmp_path: Path) -> None:
         "id": "REQ-001",
         "status": "VERIFIED",
         "accepted_evidence": [accepted_evidence(repository, "REQ-001")],
+        "failure_reason": None,
+        "failure_evidence": [],
     }
     controller.state = state
     controller.step()
@@ -418,6 +501,103 @@ def test_fabricated_evidence_digest_cannot_create_verified(tmp_path: Path) -> No
     with pytest.raises(PacketValidationError, match="digest mismatch"):
         controller.step()
     assert controller.snapshot()["phase"] == "TESTING"
+
+
+def test_open_optional_regression_blocks_final_handoff(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    controller, repository, _ = _controller(tmp_path, executor)
+    controller.state = controller.initialize()
+    controller.requirements_manifest["requirements"][0]["required"] = False
+    controller.requirements_manifest["requirements"][1]["required"] = False
+    controller.requirement_by_id["REQ-001"]["required"] = False
+    controller.requirement_by_id["REQ-002"]["required"] = False
+    controller.state["phase"] = "TESTING"
+    controller.state["requirements"][1] = {
+        "id": "REQ-002",
+        "status": "VERIFIED",
+        "accepted_evidence": [accepted_evidence(repository, "REQ-002")],
+        "failure_reason": None,
+        "failure_evidence": [],
+    }
+    invocation_packet = {
+        "schema_version": "1.0",
+        "packet_type": "iteration_evidence",
+        "run_id": controller.run_manifest["run_id"],
+        "iteration": 1,
+        "bindings": controller._bindings(Role.TESTER),
+        "results": [],
+        "context_requests": [],
+        "summary": "Optional regression.",
+    }
+    for requirement_id in ("REQ-001", "REQ-002"):
+        invocation_packet["results"].append(
+            {
+                "requirement_id": requirement_id,
+                "status": "OUT_OF_SCOPE",
+                "evidence": [],
+                "reason": "Synthetic Tester result: OUT_OF_SCOPE.",
+            }
+        )
+    executor._responses = {
+        Role.TESTER: __import__("collections").deque([invocation_packet])
+    }
+    controller._test()
+    state = controller.snapshot()
+    assert state["phase"] == "PLANNING"
+    assert state["regressions"][0]["resolved_iteration"] is None
+
+
+def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    controller, _, _ = _controller(tmp_path, executor)
+    state = controller.initialize()
+    assert state["phase"] == "PLANNING"
+    paused = controller.step()
+    assert paused["phase"] == "PAUSED_INFRA"
+    assert paused["paused_from"] == "PLANNING"
+    executor._responses = {Role.PLANNER: __import__("collections").deque([plan_packet])}
+    retried = controller.retry()
+    assert retried["phase"] == "PLANNING"
+    assert retried["paused_from"] is None
+    assert controller.step()["phase"] == "DEVELOPING"
+
+
+def test_manual_packet_can_resume_identity_bound_paused_run(tmp_path: Path) -> None:
+    repository, requirements = make_repository(tmp_path)
+    waiting = ManualExecutor()
+    manifest = run_manifest(repository, requirements, waiting)
+    store = state_store(tmp_path)
+    controller = HarnessController(manifest, requirements, waiting, store)
+    controller.initialize()
+    paused = controller.step()
+    assert paused["phase"] == "PAUSED_HUMAN"
+    packet = {
+        "schema_version": "1.0",
+        "packet_type": "iteration_plan",
+        "run_id": manifest["run_id"],
+        "iteration": 1,
+        "bindings": controller._bindings(Role.PLANNER),
+        "ordered_requirement_ids": ["REQ-001", "REQ-002"],
+        "actions": [
+            {
+                "requirement_id": requirement_id,
+                "summary": f"Implement {requirement_id}",
+                "allowed_paths": ["src.txt"],
+            }
+            for requirement_id in ("REQ-001", "REQ-002")
+        ],
+        "context_requests": [],
+        "blocker": None,
+    }
+    resumed = HarnessController(
+        manifest,
+        requirements,
+        ManualExecutor(packet=packet),
+        store,
+    )
+    resumed.resume()
+    resumed.retry()
+    assert resumed.step()["phase"] == "DEVELOPING"
 
 
 def test_disclosed_file_and_fabricated_success_cannot_create_verified(

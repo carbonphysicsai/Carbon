@@ -47,7 +47,10 @@ candidate. Required requirements cannot be `OUT_OF_SCOPE`.
 
 If a later Tester result changes `VERIFIED` to another state, the controller
 records an explicit regression with prior evidence and current failure detail.
-Every unresolved regression ID must lead the next `ordered_requirement_ids`.
+Every unresolved regression ID must lead the next `ordered_requirement_ids`,
+the action sequence must exactly follow that order, and no open regression can
+reach `FINAL_CANDIDATE_READY`. Sanitized failure reason/evidence and complete
+open-regression records remain structured inputs to later roles.
 
 ## Identity and scope law
 
@@ -57,11 +60,14 @@ Every unresolved regression ID must lead the next `ordered_requirement_ids`.
 - The requirements manifest must bind the exact ticket path, bytes, and Git
   blob.
 - Resume requires the persisted manifest digest and exact clean candidate.
+- A paused run can retry only from its recorded active phase after the same
+  identity checks; a manual adapter may consume one externally supplied packet.
 - Developer output must be committed and clean; newly changed paths must match
   both the iteration plan and run-level scope. Developer operates only in a
   sanitized writable projection; the controller imports its validated patch
   and creates the candidate commit, while cumulative paths remain within the
-  run-level scope.
+  run-level scope. Only regular-file Git modes are accepted and a failed import
+  restores the exact prior candidate.
 - Planner and Tester run against read-only projections and cannot repair the
   candidate.
 - Codex role subprocesses receive only an allow-listed environment; ambient
@@ -74,7 +80,8 @@ Any mismatch fails closed without advancement.
 Protected hidden-evaluation paths, official private cases, credentials, private
 validator state, and reconstruction-sensitive material cannot be disclosed or
 persisted. Both requests and expanded tracked paths are checked. Obvious secret
-keys/values in role packets are rejected before persistence.
+keys/values in role packets are rejected before persistence. The mandatory
+default protected-pattern set cannot be removed or weakened by a run manifest.
 
 ## Maturity law
 

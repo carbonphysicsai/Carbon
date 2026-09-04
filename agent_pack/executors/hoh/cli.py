@@ -31,8 +31,13 @@ def _load(path: Path) -> dict[str, Any]:
 
 
 def _executor(arguments: argparse.Namespace):
+    packet_path = getattr(arguments, "packet", None)
+    if packet_path is not None and not arguments.manual:
+        raise ValueError("--packet requires --manual")
     if arguments.manual:
-        return ManualExecutor()
+        return ManualExecutor(
+            packet=_load(packet_path) if packet_path is not None else None
+        )
     return CodexExecAdapter(model=arguments.model)
 
 
@@ -63,6 +68,10 @@ def _run_controller(arguments: argparse.Namespace) -> int:
         _print(controller.snapshot())
         return 0
     if arguments.command == "step":
+        _print(controller.step())
+        return 0
+    if arguments.command == "retry":
+        controller.retry()
         _print(controller.step())
         return 0
     while ControllerPhase(controller.snapshot()["phase"]) not in {
@@ -106,11 +115,12 @@ def parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("path", type=Path)
     validate.add_argument("--requirement-id", action="append", default=[])
-    for name in ("init", "step", "run", "status"):
+    for name in ("init", "step", "retry", "run", "status"):
         command = commands.add_parser(name)
         command.add_argument("manifest", type=Path)
         command.add_argument("--state-dir", type=Path)
         command.add_argument("--manual", action="store_true")
+        command.add_argument("--packet", type=Path)
         command.add_argument("--model")
     return root
 

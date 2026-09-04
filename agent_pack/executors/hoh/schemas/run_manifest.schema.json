@@ -39,7 +39,22 @@
     "initial_context": {"$ref": "#/$defs/role_paths"},
     "context_allow_paths": {"$ref": "#/$defs/role_paths"},
     "permitted_change_paths": {"$ref": "#/$defs/paths"},
-    "protected_patterns": {"$ref": "#/$defs/paths"},
+    "protected_patterns": {
+      "$ref": "#/$defs/paths",
+      "allOf": [
+        {"contains": {"const": ".env"}},
+        {"contains": {"const": ".env.*"}},
+        {"contains": {"const": ".carbon-hidden/**"}},
+        {"contains": {"const": "**/*credential*"}},
+        {"contains": {"const": "**/*private_key*"}},
+        {"contains": {"const": "**/*secret*"}},
+        {"contains": {"const": "**/hidden_evaluation/**"}},
+        {"contains": {"const": "**/official_cases/**"}},
+        {"contains": {"const": "**/private_validator/**"}},
+        {"contains": {"const": "**/protected_exam/**"}},
+        {"contains": {"const": "**/reconstruction_private/**"}}
+      ]
+    },
     "max_iterations": {"type": "integer", "minimum": 1},
     "authority_ceiling": {
       "type": "array",

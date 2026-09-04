@@ -107,6 +107,23 @@ def test_manual_executor_pauses_human_without_claiming_success(tmp_path: Path) -
     assert captured.value.phase is ControllerPhase.PAUSED_HUMAN
 
 
+def test_manual_executor_consumes_one_external_packet(tmp_path: Path) -> None:
+    packet = {"externally_reviewed": True}
+    executor = ManualExecutor(packet=packet)
+    invocation = RoleInvocation(
+        role=Role.PLANNER,
+        sandbox=SandboxMode.READ_ONLY,
+        workspace=tmp_path,
+        prompt="test",
+        output_schema=tmp_path / "schema.json",
+        context_paths=(),
+        iteration=1,
+    )
+    assert executor.execute(invocation) == packet
+    with pytest.raises(PauseRequested):
+        executor.execute(invocation)
+
+
 def test_protected_context_request_is_rejected_and_not_disclosed(
     tmp_path: Path,
 ) -> None:
@@ -194,3 +211,16 @@ def test_run_manifest_explicitly_denies_final_authorities(tmp_path: Path) -> Non
     }
     serialized = json.dumps(manifest)
     assert "production credential" not in serialized.lower()
+
+
+def test_run_manifest_cannot_remove_mandatory_protected_patterns(
+    tmp_path: Path,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    manifest["protected_patterns"] = []
+    from agent_pack.executors.hoh.validation import validate_run_manifest
+
+    with pytest.raises(PacketValidationError, match="mandatory default"):
+        validate_run_manifest(manifest)
