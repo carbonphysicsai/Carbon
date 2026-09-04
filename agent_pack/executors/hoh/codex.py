@@ -48,14 +48,16 @@ class CodexExecAdapter:
         model: str | None = None,
         timeout_seconds: int = 1800,
     ) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("Codex timeout_seconds must be positive")
         resolved = shutil.which(executable)
         if resolved is None:
             raise ExecutorUnavailable(f"Codex executable is unavailable: {executable}")
         self.executable = str(Path(resolved).resolve())
         self.model = model
         self.timeout_seconds = timeout_seconds
-        self.version, self.help_text, self.sandbox_help_text = self._probe()
         try:
+            self.version, self.help_text, self.sandbox_help_text = self._probe()
             self._probe_permission_profiles()
             self._probe_exec_profile_selection()
         except (OSError, subprocess.TimeoutExpired) as error:
@@ -64,29 +66,34 @@ class CodexExecAdapter:
             ) from error
 
     def _probe(self) -> tuple[str, str, str]:
+        probe_timeout = min(self.timeout_seconds, 15)
         version = subprocess.run(
             [self.executable, "--version"],
             check=False,
             capture_output=True,
             text=True,
+            timeout=probe_timeout,
         )
         help_result = subprocess.run(
             [self.executable, "exec", "--help"],
             check=False,
             capture_output=True,
             text=True,
+            timeout=probe_timeout,
         )
         sandbox_help_result = subprocess.run(
             [self.executable, "sandbox", "--help"],
             check=False,
             capture_output=True,
             text=True,
+            timeout=probe_timeout,
         )
         features_result = subprocess.run(
             [self.executable, "features", "list"],
             check=False,
             capture_output=True,
             text=True,
+            timeout=probe_timeout,
         )
         if (
             version.returncode

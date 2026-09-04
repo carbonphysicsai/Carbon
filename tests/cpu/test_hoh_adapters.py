@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from agent_pack.executors.hoh import cli
 from agent_pack.executors.hoh.codex import (
     REQUIRED_HELP_MARKERS,
     REQUIRED_SANDBOX_HELP_MARKERS,
@@ -89,6 +90,7 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     adapter = CodexExecAdapter(model="synthetic-model")
+    assert all(kwargs["timeout"] == 15 for _command, kwargs in calls[:4])
     exec_preflights = [
         command
         for command, _kwargs in calls
@@ -200,6 +202,24 @@ def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
         CodexExecAdapter()
 
 
+def test_codex_adapter_bounds_and_wraps_initial_cli_probe(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable = tmp_path / "codex"
+    executable.write_text("synthetic executable\n", encoding="utf-8")
+    executable.chmod(0o755)
+
+    def timeout(command, **kwargs):
+        assert kwargs["timeout"] == 3
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
+    monkeypatch.setattr("subprocess.run", timeout)
+    with pytest.raises(ExecutorUnavailable, match="isolation probe failed"):
+        CodexExecAdapter(timeout_seconds=3)
+
+
 def test_codex_adapter_fails_closed_when_exec_selects_legacy_sandbox(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -296,6 +316,31 @@ def test_manual_executor_consumes_one_external_packet(tmp_path: Path) -> None:
     assert executor.execute(invocation) == packet
     with pytest.raises(PauseRequested):
         executor.execute(invocation)
+
+
+def test_cli_persists_lazy_codex_preflight_failure_and_status_still_works(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    bound = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, bound)
+    manifest_path = tmp_path / "run-manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    store = tmp_path / "run-state"
+
+    assert cli.main(["init", str(manifest_path), "--state-dir", str(store)]) == 0
+
+    def unavailable(**_kwargs):
+        raise ExecutorUnavailable("synthetic Codex preflight unavailable")
+
+    monkeypatch.setattr(cli, "CodexExecAdapter", unavailable)
+    assert cli.main(["step", str(manifest_path), "--state-dir", str(store)]) == 0
+    paused = StateStore(store).load_state()
+    assert paused["phase"] == "PAUSED_INFRA"
+    assert paused["paused_from"] == "PLANNING"
+    assert "synthetic Codex preflight unavailable" in paused["last_error"]
+    assert cli.main(["status", str(manifest_path), "--state-dir", str(store)]) == 0
 
 
 def test_protected_context_request_is_rejected_and_not_disclosed(

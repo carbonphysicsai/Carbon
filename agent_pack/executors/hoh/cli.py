@@ -6,12 +6,18 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .codex import CodexExecAdapter
 from .controller import HarnessController
-from .executors import ManualExecutor
-from .models import ControllerPhase, HarnessError, Role
+from .executors import (
+    EvidenceInvocation,
+    EvidenceResult,
+    Executor,
+    ManualExecutor,
+    RoleInvocation,
+)
+from .models import ControllerPhase, HarnessError, IdentityMismatch, Role
 from .state_store import StateStore
 from .validation import (
     validate_controller_state,
@@ -30,7 +36,49 @@ def _load(path: Path) -> dict[str, Any]:
     return value
 
 
-def _executor(arguments: argparse.Namespace):
+class _DeferredCodexExecutor:
+    """Bind manifest identity now and perform fallible Codex startup on first use."""
+
+    def __init__(self, manifest: dict[str, Any], model: str | None) -> None:
+        self._roles = manifest["roles"]
+        self._model = model
+        self._delegate: CodexExecAdapter | None = None
+        executor_ids = {profile["executor_id"] for profile in self._roles.values()}
+        if len(executor_ids) != 1:
+            raise IdentityMismatch(
+                "run manifest binds inconsistent executor identities"
+            )
+        self._executor_id = executor_ids.pop()
+
+    def executor_id(self) -> str:
+        return self._executor_id
+
+    def profile_digest(self, role: Role) -> str:
+        return cast(str, self._roles[role.value.lower()]["profile_digest"])
+
+    def _load(self) -> CodexExecAdapter:
+        if self._delegate is None:
+            delegate = CodexExecAdapter(model=self._model)
+            if delegate.executor_id() != self._executor_id:
+                raise IdentityMismatch(
+                    "available Codex executor identity differs from manifest"
+                )
+            for role in Role:
+                if delegate.profile_digest(role) != self.profile_digest(role):
+                    raise IdentityMismatch(
+                        f"available Codex {role.value} profile differs from manifest"
+                    )
+            self._delegate = delegate
+        return self._delegate
+
+    def execute(self, invocation: RoleInvocation):
+        return self._load().execute(invocation)
+
+    def execute_evidence(self, invocation: EvidenceInvocation) -> EvidenceResult:
+        return self._load().execute_evidence(invocation)
+
+
+def _executor(arguments: argparse.Namespace, manifest: dict[str, Any]) -> Executor:
     packet_path = getattr(arguments, "packet", None)
     if packet_path is not None and not arguments.manual:
         raise ValueError("--packet requires --manual")
@@ -38,10 +86,14 @@ def _executor(arguments: argparse.Namespace):
         return ManualExecutor(
             packet=_load(packet_path) if packet_path is not None else None
         )
-    return CodexExecAdapter(model=arguments.model)
+    return _DeferredCodexExecutor(manifest, arguments.model)
 
 
-def _controller(arguments: argparse.Namespace) -> HarnessController:
+def _controller(
+    arguments: argparse.Namespace,
+    *,
+    require_executor: bool = True,
+) -> HarnessController:
     manifest = validate_run_manifest(_load(arguments.manifest))
     repository = Path(manifest["developer_worktree"])
     requirements_path = repository / manifest["requirements"]["path"]
@@ -51,7 +103,8 @@ def _controller(arguments: argparse.Namespace) -> HarnessController:
         if arguments.state_dir is not None
         else StateStore.for_repository(repository, manifest["run_id"])
     )
-    return HarnessController(manifest, requirements, _executor(arguments), store)
+    executor = _executor(arguments, manifest) if require_executor else None
+    return HarnessController(manifest, requirements, executor, store)
 
 
 def _print(value: Any) -> None:
@@ -59,11 +112,14 @@ def _print(value: Any) -> None:
 
 
 def _run_controller(arguments: argparse.Namespace) -> int:
-    controller = _controller(arguments)
+    controller = _controller(
+        arguments,
+        require_executor=arguments.command != "status",
+    )
     if arguments.command == "init":
         _print(controller.initialize())
         return 0
-    controller.resume()
+    controller.resume(verify_executor=arguments.command != "status")
     if arguments.command == "status":
         _print(controller.snapshot())
         return 0

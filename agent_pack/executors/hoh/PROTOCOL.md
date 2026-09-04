@@ -73,15 +73,14 @@ open-regression records remain structured inputs to later roles.
   Step and retry additionally compare the persisted state digest with the
   controller's loaded version, so a stale controller cannot overwrite a newer
   transition.
-- Developer output must be committed and clean; newly changed paths must match
-  both the iteration plan and run-level scope. Developer operates only in a
-  sanitized writable projection; the controller imports its validated patch
-  and creates the candidate commit, while cumulative paths remain within the
-  run-level scope. Only regular-file Git modes are accepted. Rollback occurs
-  only when the current identity and dirty content are positively attributable
-  to that controller transaction; external identity/content drift is preserved
-  and fails closed. Controller-created commits force a fresh empty hooks
-  directory.
+- Developer operates only in a sanitized writable projection. The controller
+  never runs host Git against Developer-owned metadata: it discards every
+  `.git` entry, copies only regular worktree files into a controller-owned
+  shadow repository, and derives the patch there. Newly changed paths must
+  match both the iteration plan and run-level scope. The candidate commit is
+  built off-ref from the exact expected parent/tree and installed only through
+  an atomic compare-and-swap; an intervening external ref or worktree change is
+  preserved and fails closed. Only regular-file Git modes are accepted.
 - Planner and Tester run against read-only projections and cannot repair the
   candidate.
 - Codex role subprocesses receive only an allow-listed environment and private
@@ -91,7 +90,11 @@ open-regression records remain structured inputs to later roles.
   networking and host-skill discovery, and sets approval policy to `never`.
   Real sentinel probes must prove the boundary, and separate no-context
   preflights must prove the actual read-only and workspace-write `codex exec`
-  paths each selected custom permissions, or the adapter fails closed.
+  paths each selected custom permissions, or the adapter fails closed. Every
+  CLI probe is time-bounded. Operational commands defer that fallible preflight
+  until a role/evidence invocation so failure persists as resumable
+  `PAUSED_INFRA`; read-only `status` needs no live executor and grants no
+  advancement or final-evidence acceptance.
 - Controller evidence replay uses the executor evidence seam. The Codex adapter
   runs authorized verifier commands under the same read-only, root-denying,
   network-disabled profile; the manual executor fails unavailable, and direct

@@ -265,30 +265,11 @@ class ContextBroker:
             json.dumps(metadata, sort_keys=True, separators=(",", ":")) + "\n",
             encoding="utf-8",
         )
-        with tempfile.TemporaryDirectory(
-            prefix="empty-hooks-", dir=self.state_root
-        ) as hooks_directory:
-            commands = (
-                ("init", "--quiet"),
-                ("config", "user.name", "Carbon HoH Projection"),
-                ("config", "user.email", "carbon-hoh@example.invalid"),
-                ("config", "commit.gpgsign", "false"),
-                ("add", "--all"),
-                ("commit", "--quiet", "--message", "isolated role projection"),
-            )
-            for command in commands:
-                process = subprocess.run(
-                    ["git", "-c", f"core.hooksPath={hooks_directory}", *command],
-                    cwd=target,
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                )
-                if process.returncode:
-                    raise ScopeViolation(
-                        f"could not build {role.value} projection: "
-                        f"{(process.stderr or process.stdout).strip()}"
-                    )
+        self._initialize_projection_repository(target, role.value)
+        if role is Role.DEVELOPER:
+            shadow = self.developer_shadow(iteration)
+            self._remove_projection(shadow)
+            shutil.copytree(target, shadow, symlinks=True)
         if role is not Role.DEVELOPER:
             for root, directories, files in os.walk(target):
                 if Path(root).name == ".git" or ".git" in Path(root).parts:
@@ -299,3 +280,150 @@ class ContextBroker:
                     os.chmod(Path(root) / name, 0o400)
             os.chmod(target, 0o500)
         return target
+
+    def developer_shadow(self, iteration: int) -> Path:
+        """Return controller-owned Git metadata never exposed to Developer."""
+
+        return self.state_root / "developer-shadows" / str(iteration)
+
+    def seal_developer_projection(self, workspace: Path, iteration: int) -> Path:
+        """Copy only Developer worktree files into trusted controller Git metadata.
+
+        The writable role repository's entire ``.git`` directory is deliberately
+        discarded.  No host-side Git command may consume metadata controlled by
+        the role process.
+        """
+
+        shadow = self.developer_shadow(iteration)
+        if not shadow.is_dir() or not (shadow / ".git").is_dir():
+            raise ScopeViolation("trusted Developer shadow repository is missing")
+
+        for entry in tuple(shadow.iterdir()):
+            if entry.name == ".git":
+                continue
+            if entry.is_dir() and not entry.is_symlink():
+                shutil.rmtree(entry)
+            else:
+                entry.unlink()
+
+        def traversal_error(error: OSError) -> None:
+            raise ScopeViolation(
+                f"could not safely read Developer worktree: {error}"
+            ) from error
+
+        for root, directories, files in os.walk(
+            workspace,
+            topdown=True,
+            onerror=traversal_error,
+            followlinks=False,
+        ):
+            root_path = Path(root)
+            relative_root = root_path.relative_to(workspace)
+            if ".git" in relative_root.parts:
+                raise ScopeViolation("Developer worktree contains nested Git metadata")
+            for name in tuple(directories):
+                source = root_path / name
+                relative = relative_root / name
+                identity = os.lstat(source)
+                if name == ".git":
+                    directories.remove(name)
+                    if relative_root != Path("."):
+                        raise ScopeViolation(
+                            "Developer worktree contains nested Git metadata"
+                        )
+                    continue
+                if not stat.S_ISDIR(identity.st_mode):
+                    raise ScopeViolation(
+                        f"Developer worktree entry is not a regular directory: {relative}"
+                    )
+                (shadow / relative).mkdir(parents=True, exist_ok=True)
+            for name in files:
+                source = root_path / name
+                relative = relative_root / name
+                if ".git" in relative.parts:
+                    raise ScopeViolation("Developer worktree contains Git metadata")
+                identity = os.lstat(source)
+                if not stat.S_ISREG(identity.st_mode):
+                    raise ScopeViolation(
+                        f"Developer result has unsupported Git mode: {relative}"
+                    )
+                destination = shadow / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, destination, follow_symlinks=False)
+                os.chmod(destination, stat.S_IMODE(identity.st_mode))
+
+        self._commit_projection(
+            shadow,
+            "sealed Developer worktree",
+            allow_empty=True,
+        )
+        return shadow
+
+    def _initialize_projection_repository(self, target: Path, label: str) -> None:
+        commands = (
+            ("init", "--quiet"),
+            ("config", "user.name", "Carbon HoH Projection"),
+            ("config", "user.email", "carbon-hoh@example.invalid"),
+            ("config", "commit.gpgsign", "false"),
+            ("add", "--all"),
+            ("commit", "--quiet", "--message", "isolated role projection"),
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="empty-hooks-", dir=self.state_root
+        ) as hooks_directory:
+            for command in commands:
+                process = subprocess.run(
+                    ["git", "-c", f"core.hooksPath={hooks_directory}", *command],
+                    cwd=target,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                if process.returncode:
+                    raise ScopeViolation(
+                        f"could not build {label} projection: "
+                        f"{(process.stderr or process.stdout).strip()}"
+                    )
+
+    def _commit_projection(
+        self,
+        target: Path,
+        message: str,
+        *,
+        allow_empty: bool = False,
+    ) -> None:
+        with tempfile.TemporaryDirectory(
+            prefix="empty-hooks-", dir=self.state_root
+        ) as hooks_directory:
+            added = subprocess.run(
+                ["git", "-c", f"core.hooksPath={hooks_directory}", "add", "--all"],
+                cwd=target,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            command = [
+                "git",
+                "-c",
+                f"core.hooksPath={hooks_directory}",
+                "commit",
+                "--quiet",
+                "--message",
+                message,
+            ]
+            if allow_empty:
+                command.append("--allow-empty")
+            committed = subprocess.run(
+                command,
+                cwd=target,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+        if added.returncode or committed.returncode:
+            detail = (
+                added.stderr or added.stdout or committed.stderr or committed.stdout
+            )
+            raise ScopeViolation(
+                f"could not seal Developer projection: {detail.strip()}"
+            )

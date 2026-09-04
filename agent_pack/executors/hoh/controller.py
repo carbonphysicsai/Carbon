@@ -62,7 +62,7 @@ class HarnessController:
         self,
         run_manifest: Mapping[str, Any],
         requirements_manifest: Mapping[str, Any],
-        executor: Executor,
+        executor: Executor | None,
         state_store: StateStore,
     ) -> None:
         self.run_manifest = validate_run_manifest(dict(run_manifest))
@@ -149,11 +149,11 @@ class HarnessController:
         self._persisted_state_digest = digest_value(state)
         return self.snapshot()
 
-    def resume(self) -> dict[str, Any]:
+    def resume(self, *, verify_executor: bool = True) -> dict[str, Any]:
         with self.store.locked():
-            return self._resume_locked()
+            return self._resume_locked(verify_executor=verify_executor)
 
-    def _resume_locked(self) -> dict[str, Any]:
+    def _resume_locked(self, *, verify_executor: bool = True) -> dict[str, Any]:
         stored_manifest = validate_run_manifest(self.store.load_manifest())
         if digest_value(stored_manifest) != self.manifest_digest:
             raise IdentityMismatch(
@@ -167,10 +167,11 @@ class HarnessController:
             raise IdentityMismatch("controller state is bound to another run manifest")
         self.state = state
         self._verify_static_identities()
-        self._verify_executor_profiles()
+        if verify_executor:
+            self._verify_executor_profiles()
         self._verify_candidate_identity()
         assert_payload_safe(state, self.protected_patterns)
-        self._verify_resumed_state()
+        self._verify_resumed_state(replay_final_evidence=verify_executor)
         self._persisted_state_digest = digest_value(state)
         return self.snapshot()
 
@@ -329,6 +330,8 @@ class HarnessController:
             raise IdentityMismatch("requirements manifest ticket Git blob mismatch")
 
     def _verify_executor_profiles(self) -> None:
+        if self.executor is None:
+            raise ExecutorUnavailable("a live executor is required for this transition")
         roles = self.run_manifest["roles"]
         executor_id = self.executor.executor_id()
         for role in Role:
@@ -341,6 +344,11 @@ class HarnessController:
             actual = self.executor.profile_digest(role)
             if actual != expected:
                 raise IdentityMismatch(f"{role.value} executor profile drift")
+
+    def _require_executor(self) -> Executor:
+        if self.executor is None:
+            raise ExecutorUnavailable("a live executor is required for this transition")
+        return self.executor
 
     def _verify_candidate_identity(self) -> None:
         assert self.state is not None
@@ -379,7 +387,7 @@ class HarnessController:
         )
         return paths
 
-    def _verify_resumed_state(self) -> None:
+    def _verify_resumed_state(self, *, replay_final_evidence: bool = True) -> None:
         """Re-establish lifecycle facts that untrusted persisted JSON cannot assert."""
 
         assert self.state is not None
@@ -431,7 +439,8 @@ class HarnessController:
             raise PacketValidationError(
                 "FINAL_CANDIDATE_READY contains an unresolved regression"
             )
-        self._replay_final_persisted_evidence()
+        if replay_final_evidence:
+            self._replay_final_persisted_evidence()
 
     def _replay_final_persisted_evidence(self) -> None:
         """Re-run final accepted evidence instead of trusting external state bytes."""
@@ -559,7 +568,12 @@ class HarnessController:
                 context_paths,
                 before,
             )
-            workspace_before = head_identity(workspace)
+            identity_workspace = (
+                self.context.developer_shadow(self.state["iteration"])
+                if role is Role.DEVELOPER
+                else workspace
+            )
+            workspace_before = head_identity(identity_workspace)
             invocation = RoleInvocation(
                 role=role,
                 sandbox=sandbox,
@@ -569,7 +583,7 @@ class HarnessController:
                 context_paths=context_paths,
                 iteration=self.state["iteration"],
             )
-            raw = dict(self.executor.execute(invocation))
+            raw = dict(self._require_executor().execute(invocation))
             assert_payload_safe(raw, self.protected_patterns)
             packet = validator(raw)
             requests = tuple(packet["context_requests"])
@@ -584,7 +598,12 @@ class HarnessController:
             context_paths = tuple(sorted(set(context_paths) | set(newly_granted)))
         else:
             raise ScopeViolation(f"{role.value} exceeded the context-request limit")
-        if role is not Role.DEVELOPER:
+        if role is Role.DEVELOPER:
+            workspace = self.context.seal_developer_projection(
+                workspace,
+                self.state["iteration"],
+            )
+        else:
             if head_identity(workspace) != workspace_before:
                 raise ScopeViolation(f"{role.value} mutated its read-only projection")
             require_clean_worktree(workspace)
@@ -652,56 +671,29 @@ class HarnessController:
         self._require_common_packet(packet)
         self._require_bindings(packet["bindings"], Role.DEVELOPER)
         require_clean_worktree(self.repository)
-        previous_candidate = dict(self.state["candidate"])
-        imported_candidate: dict[str, str] | None = None
-        try:
-            after, iteration_paths = self._import_developer_changes(
-                workspace,
-                workspace_before,
-                before,
-            )
-            imported_candidate = after
-            cumulative_paths = changed_paths(
-                self.repository,
-                self.run_manifest["authority"]["commit"],
-                after["head"],
-            )
-            self._require_paths_allowed(
-                cumulative_paths,
-                tuple(self.run_manifest["permitted_change_paths"]),
-                "run manifest",
-            )
-            plan_patterns = tuple(
-                path
-                for action in self.state["active_plan"]["actions"]
-                for path in action["allowed_paths"]
-            )
-            self._require_paths_allowed(
-                iteration_paths, plan_patterns, "iteration plan"
-            )
-            self.state["candidate"] = {
-                **after,
-                "changed_paths": list(cumulative_paths),
-            }
-            self.state["phase"] = ControllerPhase.TESTING.value
-            validate_controller_state(self.state, self.requirement_ids)
-            assert_payload_safe(self.state, self.protected_patterns)
-        except HarnessError as error:
-            current = head_identity(self.repository)
-            if imported_candidate is not None:
-                if current == imported_candidate:
-                    self._restore_candidate(
-                        before,
-                        attributable_identity=imported_candidate,
-                    )
-                elif current != before:
-                    raise IdentityMismatch(
-                        "candidate changed after controller import; refusing "
-                        "destructive rollback"
-                    ) from error
-            self.state["candidate"] = previous_candidate
-            self.state["phase"] = ControllerPhase.DEVELOPING.value
-            raise
+        after, iteration_paths = self._import_developer_changes(
+            workspace,
+            workspace_before,
+            before,
+        )
+        cumulative_paths = changed_paths(
+            self.repository,
+            self.run_manifest["authority"]["commit"],
+            after["head"],
+        )
+        plan_patterns = tuple(
+            path
+            for action in self.state["active_plan"]["actions"]
+            for path in action["allowed_paths"]
+        )
+        self._require_paths_allowed(iteration_paths, plan_patterns, "iteration plan")
+        self.state["candidate"] = {
+            **after,
+            "changed_paths": list(cumulative_paths),
+        }
+        self.state["phase"] = ControllerPhase.TESTING.value
+        validate_controller_state(self.state, self.requirement_ids)
+        assert_payload_safe(self.state, self.protected_patterns)
 
     def _test(self) -> None:
         assert self.state is not None
@@ -861,80 +853,159 @@ class HarnessController:
         )
         if diff.returncode or not diff.stdout:
             raise PacketValidationError("Developer commit has no importable patch")
-        for arguments in (("--check", "--index"), ("--index",)):
-            applied = subprocess.run(
-                ["git", "apply", "--binary", *arguments],
-                cwd=self.repository,
-                input=diff.stdout,
-                check=False,
-                capture_output=True,
-            )
-            if applied.returncode:
-                detail = (applied.stderr or applied.stdout).decode(
-                    "utf-8", errors="replace"
+        with tempfile.TemporaryDirectory(
+            prefix="candidate-transaction-", dir=self.store.root
+        ) as transaction_directory:
+            index_path = Path(transaction_directory) / "index"
+            environment = {
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_INDEX_FILE": str(index_path),
+                "HOME": transaction_directory,
+                "LANG": "C.UTF-8",
+                "LC_ALL": "C.UTF-8",
+                "PATH": "/usr/bin:/bin",
+            }
+
+            def run_git(*arguments: str, input_bytes: bytes | None = None):
+                return subprocess.run(
+                    ["git", "-c", "core.fsmonitor=false", *arguments],
+                    cwd=self.repository,
+                    env=environment,
+                    input=input_bytes,
+                    check=False,
+                    capture_output=True,
                 )
-                if arguments == ("--index",):
-                    try:
-                        require_clean_worktree(self.repository)
-                    except IdentityMismatch:
-                        self._restore_staged_candidate(candidate_before, diff.stdout)
+
+            read_tree = run_git("read-tree", candidate_before["head"])
+            checked = run_git(
+                "apply",
+                "--binary",
+                "--cached",
+                "--check",
+                input_bytes=diff.stdout,
+            )
+            applied = run_git("apply", "--binary", "--cached", input_bytes=diff.stdout)
+            if read_tree.returncode or checked.returncode or applied.returncode:
+                detail = (
+                    read_tree.stderr
+                    or checked.stderr
+                    or applied.stderr
+                    or applied.stdout
+                ).decode("utf-8", errors="replace")
                 raise PacketValidationError(
                     f"Developer patch import failed closed: {detail.strip()}"
                 )
-        staged = subprocess.run(
+            tree_result = run_git("write-tree")
+            if tree_result.returncode:
+                detail = (tree_result.stderr or tree_result.stdout).decode(
+                    "utf-8", errors="replace"
+                )
+                raise PacketValidationError(
+                    f"controller could not write candidate tree: {detail.strip()}"
+                )
+            candidate_tree = tree_result.stdout.decode().strip()
+            commit_environment = {
+                **environment,
+                "GIT_AUTHOR_NAME": "Carbon HoH Controller",
+                "GIT_AUTHOR_EMAIL": "carbon-hoh@example.invalid",
+                "GIT_COMMITTER_NAME": "Carbon HoH Controller",
+                "GIT_COMMITTER_EMAIL": "carbon-hoh@example.invalid",
+            }
+            committed = subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "commit-tree",
+                    candidate_tree,
+                    "-p",
+                    candidate_before["head"],
+                    "-m",
+                    f"Carbon HoH iteration {self.state['iteration']}",
+                ],
+                cwd=self.repository,
+                env=commit_environment,
+                check=False,
+                capture_output=True,
+            )
+            if committed.returncode:
+                detail = (committed.stderr or committed.stdout).decode(
+                    "utf-8", errors="replace"
+                )
+                raise PacketValidationError(
+                    f"controller could not create candidate commit: {detail.strip()}"
+                )
+            candidate_commit = committed.stdout.decode().strip()
+
+        candidate_identity = {
+            "head": candidate_commit,
+            "tree": resolve_tree(self.repository, candidate_commit),
+        }
+        if (
+            resolve_commit(self.repository, f"{candidate_commit}^")
+            != candidate_before["head"]
+        ):
+            raise IdentityMismatch("off-ref candidate commit parent mismatch")
+        if candidate_identity["tree"] != candidate_tree:
+            raise IdentityMismatch("off-ref candidate commit/tree identity mismatch")
+        cumulative_paths = self._authorize_candidate(candidate_commit)
+        self._require_paths_allowed(
+            iteration_paths,
+            plan_patterns,
+            "iteration plan",
+        )
+        if not set(iteration_paths).issubset(cumulative_paths):
+            raise IdentityMismatch("candidate commit omitted Developer paths")
+
+        updated = subprocess.run(
             [
                 "git",
-                "diff",
-                "--cached",
-                "--no-renames",
-                "--name-only",
-                "--diff-filter=ACDMRTUXB",
+                "update-ref",
+                "HEAD",
+                candidate_commit,
+                candidate_before["head"],
             ],
             cwd=self.repository,
             check=False,
             capture_output=True,
             text=True,
         )
-        staged_paths = tuple(
-            sorted(line for line in staged.stdout.splitlines() if line)
+        if updated.returncode:
+            raise IdentityMismatch(
+                "candidate changed during atomic Developer import; no ref was overwritten"
+            )
+        if head_identity(self.repository) != candidate_identity:
+            raise IdentityMismatch(
+                "candidate changed after atomic Developer import; refusing worktree reset"
+            )
+        unchanged_worktree = subprocess.run(
+            ["git", "diff", "--quiet", candidate_before["head"], "--"],
+            cwd=self.repository,
+            check=False,
         )
-        if staged.returncode or staged_paths != tuple(sorted(iteration_paths)):
-            self._restore_staged_candidate(candidate_before, diff.stdout)
-            raise PacketValidationError(
-                "imported Developer paths do not match projection"
+        if unchanged_worktree.returncode:
+            raise IdentityMismatch(
+                "candidate worktree changed during atomic import; refusing reset"
             )
-        with tempfile.TemporaryDirectory(
-            prefix="empty-hooks-", dir=self.store.root
-        ) as hooks_directory:
-            committed = subprocess.run(
-                [
-                    "git",
-                    "-c",
-                    "user.name=Carbon HoH Controller",
-                    "-c",
-                    "user.email=carbon-hoh@example.invalid",
-                    "-c",
-                    "commit.gpgsign=false",
-                    "-c",
-                    f"core.hooksPath={hooks_directory}",
-                    "commit",
-                    "--quiet",
-                    "--message",
-                    f"Carbon HoH iteration {self.state['iteration']}",
-                ],
-                cwd=self.repository,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-        if committed.returncode:
-            self._restore_staged_candidate(candidate_before, diff.stdout)
-            raise PacketValidationError(
-                "controller could not commit imported Developer patch: "
-                f"{(committed.stderr or committed.stdout).strip()}"
+        synchronized = subprocess.run(
+            ["git", "reset", "--hard", candidate_commit],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if synchronized.returncode:
+            raise IdentityMismatch(
+                "candidate commit installed but worktree synchronization failed: "
+                f"{(synchronized.stderr or synchronized.stdout).strip()}"
             )
         require_clean_worktree(self.repository)
-        return head_identity(self.repository), iteration_paths
+        if head_identity(self.repository) != candidate_identity:
+            raise IdentityMismatch(
+                "candidate identity drifted during worktree synchronization"
+            )
+        return candidate_identity, iteration_paths
 
     @staticmethod
     def _require_regular_git_modes(
@@ -971,86 +1042,6 @@ class HarnessController:
                     raise ScopeViolation(
                         f"Developer result has unsupported Git mode: {path}"
                     )
-
-    def _restore_candidate(
-        self,
-        expected: Mapping[str, str],
-        *,
-        attributable_identity: Mapping[str, str],
-    ) -> None:
-        if head_identity(self.repository) != dict(attributable_identity):
-            raise IdentityMismatch(
-                "candidate identity changed; refusing destructive rollback of "
-                "non-controller work"
-            )
-        require_clean_worktree(self.repository)
-        restored = subprocess.run(
-            ["git", "reset", "--hard", expected["head"]],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if restored.returncode:
-            raise IdentityMismatch(
-                "Developer import failed and candidate rollback also failed: "
-                f"{(restored.stderr or restored.stdout).strip()}"
-            )
-        require_clean_worktree(self.repository)
-        if head_identity(self.repository) != dict(expected):
-            raise IdentityMismatch(
-                "Developer import rollback did not restore candidate"
-            )
-
-    def _restore_staged_candidate(
-        self,
-        expected: Mapping[str, str],
-        expected_patch: bytes,
-    ) -> None:
-        """Roll back only the exact staged patch applied by this transaction."""
-
-        if head_identity(self.repository) != dict(expected):
-            raise IdentityMismatch(
-                "candidate identity changed; refusing destructive rollback of "
-                "non-controller work"
-            )
-        unstaged = subprocess.run(
-            ["git", "diff", "--quiet", "--"],
-            cwd=self.repository,
-            check=False,
-        )
-        staged = subprocess.run(
-            ["git", "diff", "--cached", "--binary", "--full-index", "HEAD", "--"],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-        )
-        if (
-            unstaged.returncode != 0
-            or staged.returncode != 0
-            or staged.stdout != expected_patch
-        ):
-            raise IdentityMismatch(
-                "candidate contents changed; refusing destructive rollback of "
-                "non-controller work"
-            )
-        restored = subprocess.run(
-            ["git", "reset", "--hard", expected["head"]],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        if restored.returncode:
-            raise IdentityMismatch(
-                "Developer import failed and candidate rollback also failed: "
-                f"{(restored.stderr or restored.stdout).strip()}"
-            )
-        require_clean_worktree(self.repository)
-        if head_identity(self.repository) != dict(expected):
-            raise IdentityMismatch(
-                "Developer import rollback did not restore candidate"
-            )
 
     def _verify_evidence(self, packet: Mapping[str, Any], workspace: Path) -> None:
         """Execute only manifest-authorized evidence in the isolated projection."""
@@ -1096,7 +1087,7 @@ class HarnessController:
                     )
                 try:
                     projection_before = head_identity(workspace)
-                    completed = self.executor.execute_evidence(
+                    completed = self._require_executor().execute_evidence(
                         EvidenceInvocation(
                             command=command,
                             workspace=workspace,

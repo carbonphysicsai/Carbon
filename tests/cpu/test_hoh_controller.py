@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -871,6 +872,93 @@ def test_candidate_commit_ignores_repository_git_hooks(tmp_path: Path) -> None:
     controller.step()
     assert controller.step()["phase"] == "TESTING"
     assert not sentinel.exists()
+
+
+def test_controller_never_executes_developer_owned_git_metadata(tmp_path: Path) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+    sentinel = tmp_path / "developer-git-metadata-ran"
+
+    def poison_projection_git(invocation) -> None:
+        commit_file(
+            invocation.workspace,
+            "src.txt",
+            "bounded change\n",
+            "developer projection",
+        )
+        executable = invocation.workspace / ".git" / "malicious-fsmonitor"
+        executable.write_text(
+            f"#!/bin/sh\n/usr/bin/touch {sentinel}\n",
+            encoding="utf-8",
+        )
+        executable.chmod(0o755)
+        git(invocation.workspace, "config", "core.fsmonitor", str(executable))
+
+    executor._hooks[Role.DEVELOPER] = poison_projection_git
+    controller.initialize()
+    controller.step()
+
+    assert controller.step()["phase"] == "TESTING"
+    assert not sentinel.exists()
+    assert (repository / "src.txt").read_text(encoding="utf-8") == "bounded change\n"
+
+
+def test_atomic_candidate_import_rejects_post_check_external_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    original_run = subprocess.run
+    injected = False
+
+    def race(command, *args, **kwargs):
+        nonlocal injected
+        normalized = [str(item) for item in command]
+        if normalized[:3] == ["git", "update-ref", "HEAD"] and not injected:
+            injected = True
+            target = repository / "external.txt"
+            target.write_text("must survive post-check race\n", encoding="utf-8")
+            added = original_run(
+                ["git", "add", "external.txt"],
+                cwd=repository,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            committed = original_run(
+                ["git", "commit", "--quiet", "--message", "post-check external"],
+                cwd=repository,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            assert added.returncode == 0
+            assert committed.returncode == 0
+        return original_run(command, *args, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", race)
+    with pytest.raises(IdentityMismatch, match="atomic Developer import"):
+        controller.step()
+
+    assert injected
+    assert (repository / "external.txt").read_text(encoding="utf-8") == (
+        "must survive post-check race\n"
+    )
+    assert git(repository, "log", "-1", "--format=%s") == "post-check external"
 
 
 def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
