@@ -10305,16 +10305,24 @@ address every open regression with a correspondingly ordered action before new
 work. Failure reason/evidence and full open-regression records remain structured
 role inputs, and no open regression can reach final handoff.
 
-## B-01H-D4 — Supported Codex exec adapter with bounded sandboxes
+## B-01H-D4 — Supported Codex exec adapter with bounded permission profiles
 
 Wrap the currently installed and officially documented `codex exec` surface:
-independent ephemeral invocations, explicit `read-only` or `workspace-write`,
-ignored user config, fixed working directory, and JSON Schema output. Planner
-and Tester receive controller-created read projections; Developer receives a
-sanitized writable projection containing only disclosed paths. The controller
-imports only its plan/run-allow-listed committed patch into the dedicated
-ticket worktree. The adapter fails unavailable when its version or required
-flags cannot be verified and never uses `danger-full-access`.
+independent ephemeral invocations, ignored user config, fixed working directory,
+JSON Schema output, and an explicit least-privilege permission profile. The
+profile denies root and ambient temporary-directory access, restores only the
+minimal tool runtime, grants one controller-created projection plus its private
+runtime directory, and disables command networking. Planner and Tester receive
+read-only projections; Developer receives a sanitized writable projection
+containing only disclosed paths. The invocation also uses a private `HOME`,
+disables host-skill discovery, and sets approval policy to `never`; the explicit
+`CODEX_HOME` remains available for client authentication but is unreadable to
+sandboxed role commands. The legacy `--sandbox` flag is prohibited because it
+would replace the narrower permission profile. A real CLI startup probe must
+prove projection reads, read-only behavior, Developer writes, and
+sibling-sentinel denial for both profiles or the adapter fails unavailable.
+The controller imports only its plan/run-allow-listed committed patch into the
+dedicated ticket worktree and never uses `danger-full-access`.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 

@@ -75,8 +75,12 @@ open-regression records remain structured inputs to later roles.
   restores the exact prior candidate.
 - Planner and Tester run against read-only projections and cannot repair the
   candidate.
-- Codex role subprocesses receive only an allow-listed environment; ambient
-  API-key and credential variables are not inherited.
+- Codex role subprocesses receive only an allow-listed environment and private
+  `HOME`; ambient API-key and credential variables are not inherited. A custom
+  permission profile denies all non-projection reads except the minimal tool
+  runtime and one invocation-private temporary directory, disables command
+  networking and host-skill discovery, and sets approval policy to `never`.
+  Real sentinel probes must prove the boundary or the adapter fails closed.
 
 Any mismatch fails closed without advancement.
 

@@ -8,7 +8,11 @@ from pathlib import Path
 
 import pytest
 
-from agent_pack.executors.hoh.codex import REQUIRED_HELP_MARKERS, CodexExecAdapter
+from agent_pack.executors.hoh.codex import (
+    REQUIRED_HELP_MARKERS,
+    REQUIRED_SANDBOX_HELP_MARKERS,
+    CodexExecAdapter,
+)
 from agent_pack.executors.hoh.context import ContextBroker, assert_payload_safe
 from agent_pack.executors.hoh.executors import (
     ManualExecutor,
@@ -17,6 +21,7 @@ from agent_pack.executors.hoh.executors import (
 )
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
+    ExecutorUnavailable,
     PacketValidationError,
     PauseRequested,
     Role,
@@ -48,6 +53,27 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
                 "\n".join(REQUIRED_HELP_MARKERS),
                 "",
             )
+        if command[-2:] == ["sandbox", "--help"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                "\n".join(REQUIRED_SANDBOX_HELP_MARKERS),
+                "",
+            )
+        if command[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(
+                command, 0, "skip_host_skill_discovery under-development false\n", ""
+            )
+        if command[1] == "sandbox":
+            target = Path(command[-1])
+            if target.name == "outside-projection.txt":
+                return subprocess.CompletedProcess(command, 1, "", "denied")
+            if command[-2] == "/usr/bin/touch":
+                if "carbon-hoh-write-v1" in command:
+                    target.touch()
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                return subprocess.CompletedProcess(command, 1, "", "denied")
+            return subprocess.CompletedProcess(command, 0, "projection\n", "")
         output = Path(command[command.index("--output-last-message") + 1])
         output.write_text('{"ok":true}\n', encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, '{"ok":true}\n', "")
@@ -74,13 +100,22 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     command, kwargs = calls[-1]
     assert "--ephemeral" in command
     assert "--ignore-user-config" in command
-    assert command[command.index("--sandbox") + 1] == "read-only"
+    assert "--strict-config" in command
+    assert "--sandbox" not in command
+    assert command[command.index("--enable") + 1] == "skip_host_skill_discovery"
+    assert 'approval_policy="never"' in command
+    assert 'default_permissions="carbon-hoh-read-v1"' in command
+    profile = next(item for item in command if item.startswith("permissions."))
+    assert '":root"="deny"' in profile
+    assert '":workspace_roots"={"."="read"}' in profile
+    assert "network={enabled=false}" in profile
     assert "--output-schema" in command
     assert "danger-full-access" not in command
     assert "resume" not in command
     assert kwargs["cwd"] == workspace
     assert "OPENAI_API_KEY" not in kwargs["env"]
     assert set(kwargs["env"]) == {
+        "CODEX_HOME",
         "HOME",
         "LANG",
         "LC_ALL",
@@ -88,6 +123,39 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
         "PYTHONDONTWRITEBYTECODE",
         "TMPDIR",
     }
+    assert kwargs["env"]["HOME"] == kwargs["env"]["TMPDIR"]
+
+
+def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable = tmp_path / "codex"
+    executable.write_text("synthetic executable\n", encoding="utf-8")
+    executable.chmod(0o755)
+
+    def fake_run(command, **_kwargs):
+        command = [str(item) for item in command]
+        if command[-1] == "--version":
+            return subprocess.CompletedProcess(command, 0, "codex-cli 0.test\n", "")
+        if command[-2:] == ["exec", "--help"]:
+            return subprocess.CompletedProcess(
+                command, 0, "\n".join(REQUIRED_HELP_MARKERS), ""
+            )
+        if command[-2:] == ["sandbox", "--help"]:
+            return subprocess.CompletedProcess(
+                command, 0, "\n".join(REQUIRED_SANDBOX_HELP_MARKERS), ""
+            )
+        if command[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(
+                command, 0, "skip_host_skill_discovery under-development false\n", ""
+            )
+        return subprocess.CompletedProcess(command, 0, "sentinel leaked\n", "")
+
+    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
+    monkeypatch.setattr("subprocess.run", fake_run)
+    with pytest.raises(ExecutorUnavailable, match="projection-only"):
+        CodexExecAdapter()
 
 
 def test_manual_executor_pauses_human_without_claiming_success(tmp_path: Path) -> None:

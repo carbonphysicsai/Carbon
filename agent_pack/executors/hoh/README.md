@@ -24,16 +24,28 @@ economic, or rights authority.
 
 `CodexExecAdapter` probes the installed CLI before use and invokes only the
 supported non-interactive `codex exec` surface. Each role starts in a fresh
-ephemeral invocation with user config ignored, an explicit sandbox, a fixed
-working directory, and an output JSON Schema. Planner and Tester use
-`read-only`; Developer uses `workspace-write` only in a sanitized disposable
-Git projection. The controller validates its clean commit and imports only the
+ephemeral invocation with user config ignored, a fixed working directory, and
+an output JSON Schema. A custom Codex permission profile denies the filesystem
+root, restores only Codex's minimal tool runtime, denies ambient temporary
+directories, grants the disposable projection read-only for Planner/Tester or
+writable for Developer, grants one fresh invocation-private temporary
+directory, disables command network access and host-skill discovery, uses that
+private directory as `HOME`, and sets approval policy to `never`. Authentication
+may use the explicit `CODEX_HOME`, but sandboxed commands cannot read it. The
+adapter never passes the legacy `--sandbox` flag because it would replace this
+narrower permission profile. Before accepting the installed CLI, an adversarial
+startup probe proves projection reads, read-only enforcement, Developer
+projection writes, and denial of a sibling sentinel for both profiles;
+inability to enforce any check fails closed.
+
+The controller validates the Developer's clean commit and imports only the
 plan/run-allow-listed patch into the dedicated ticket worktree. Mandatory
 protected patterns cannot be removed by a run manifest, only regular-file Git
 modes are importable, and any failed import restores the exact prior candidate.
 Role subprocesses receive a small allow-listed environment rather than
 inheriting API keys or other ambient variables. `danger-full-access` is never
-used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
+used. See the official [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions),
+[Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk),
 and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
 
 The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`
@@ -78,8 +90,9 @@ that command in the isolated candidate projection and matches its exit status
 and stdout/stderr digest before accepting `VERIFIED`. An empty command list,
 as in the pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
 
-The Codex sandbox and projection boundary are defense in depth for this
-development pilot. They are not a production arbitrary-code security claim.
+The Codex permission-profile sandbox and projection boundary are defense in
+depth for this development pilot. They are not a production arbitrary-code
+security claim.
 
 ## CLI
 
