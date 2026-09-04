@@ -10368,7 +10368,8 @@ namespaces, and are logged with content digests. Protected hidden-evaluation
 data, credentials, private validator state, and reconstruction-sensitive
 identifiers are rejected from packets and persisted state. Run manifests cannot
 remove the mandatory protection set, including the controller-owned projection
-metadata filename; Developer imports use the same root-aware
+metadata filename; the versioned RunManifest schema requires that same complete
+set rather than describing a weaker public contract. Developer imports use the same root-aware
 matcher and accept regular-file Git modes only. Every role projection is
 materialized from immutable blobs and modes in the exact state-bound candidate
 tree, never the mutable checkout. Developer sealing uses descriptor-relative

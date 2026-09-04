@@ -56,7 +56,8 @@ so concurrent external ref, index, or worktree changes are preserved and fail
 closed. Every controller-authority Git subprocess suppresses system/global
 configuration, hooks, fsmonitor, templates, external diffs, and applicable
 filter execution. Mandatory
-protected patterns cannot be removed by a run manifest, only regular-file Git
+protected patterns cannot be removed by a run manifest and are required by the
+versioned RunManifest schema; only regular-file Git
 modes are importable, and projection cleanup never follows role-created
 symlinks. Managed state/projection directories and state files use
 descriptor-relative no-follow traversal; unsafe roots, locks, targets, or
@@ -123,7 +124,8 @@ read-only without removing executable bits. Projection bytes and executable
 modes come from the exact candidate
 tree rather than the mutable shared checkout. The controller-owned
 `.carbon-hoh-context.json` filename is mandatory protected context and cannot
-be supplied by the candidate. Developer sealing traverses and
+be supplied by the candidate; the RunManifest schema requires the same
+protection as the runtime validator. Developer sealing traverses and
 copies only through no-follow file descriptors and never applies a path-based
 mode change to role-controlled content.
 

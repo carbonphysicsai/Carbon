@@ -97,7 +97,8 @@ open-regression records remain structured inputs to later roles.
 - Planner and Tester run against read-only projections, preserve executable
   Git modes, and cannot repair the candidate. The controller-owned
   `.carbon-hoh-context.json` metadata name is mandatory protected context and
-  cannot collide with a candidate file.
+  cannot collide with a candidate file; the versioned RunManifest schema
+  requires this protection just as the runtime validator does.
 - The Codex executable must be supplied as an exact absolute path independent of
   ambient lookup. Its owned/root-owned executable regular-file identity and
   SHA-256 are bound into each role profile and revalidated before every launch.
@@ -131,7 +132,8 @@ Protected hidden-evaluation paths, official private cases, credentials, private
 validator state, and reconstruction-sensitive material cannot be disclosed or
 persisted. Both requests and expanded tracked paths are checked. Obvious secret
 keys/values in role packets are rejected before persistence. The mandatory
-default protected-pattern set cannot be removed or weakened by a run manifest.
+default protected-pattern set cannot be removed or weakened by a run manifest,
+and the RunManifest schema requires the same complete set.
 Disposable projection roots and managed parents use descriptor-relative
 no-follow traversal. Cleanup never chmods through role-created symlinks.
 

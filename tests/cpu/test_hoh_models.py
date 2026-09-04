@@ -9,6 +9,10 @@ from pathlib import Path
 
 import pytest
 
+from agent_pack.executors.hoh.context import (
+    CONTEXT_METADATA_PATH,
+    DEFAULT_PROTECTED_PATTERNS,
+)
 from agent_pack.executors.hoh.executors import ScriptedExecutor
 from agent_pack.executors.hoh.models import PacketValidationError, RequirementStatus
 from agent_pack.executors.hoh.validation import (
@@ -47,6 +51,18 @@ def test_every_versioned_schema_is_strict_json() -> None:
         value = json.loads(path.read_text(encoding="utf-8"))
         assert value["$schema"] == "https://json-schema.org/draft/2020-12/schema"
         assert value["additionalProperties"] is False
+
+
+def test_run_manifest_schema_requires_every_default_protection() -> None:
+    schema = json.loads(
+        (HOH_ROOT / "schemas" / "run_manifest.schema.json").read_text(encoding="utf-8")
+    )
+    constraints = schema["properties"]["protected_patterns"]["allOf"]
+    required_patterns = {constraint["contains"]["const"] for constraint in constraints}
+    assert required_patterns == set(DEFAULT_PROTECTED_PATTERNS)
+
+    without_metadata = set(DEFAULT_PROTECTED_PATTERNS) - {CONTEXT_METADATA_PATH}
+    assert not required_patterns.issubset(without_metadata)
 
 
 def _dod_bullets(ticket: str) -> list[str]:

@@ -118,12 +118,13 @@ sealing, structured
 failure/regression carry-forward,
 regression-first replanning and handoff blocking, transactional Tester-state
 acceptance, candidate-disclosure-bound evidence hashes and a protected
-projection-metadata namespace, identity-checked pause retry, a verified `codex exec` adapter with an
+projection-metadata namespace required by both runtime validation and the
+versioned RunManifest schema, identity-checked pause retry, a verified `codex exec` adapter with an
 explicit profile-bound absolute executable identity and trusted execution path,
 one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 78 focused tests passing. Ruff
+The native Python 3.11.16 diagnostic reports 79 focused tests passing. Ruff
 0.16.3 passes on the new Python surface, every JSON schema parses, and diff
 hygiene is clean. The real adapter probe identifies `codex-cli
 0.151.0-alpha.7.2` but safely rejects it because its actual Developer exec path

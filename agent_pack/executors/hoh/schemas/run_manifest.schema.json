@@ -43,6 +43,7 @@
     "protected_patterns": {
       "$ref": "#/$defs/paths",
       "allOf": [
+        {"contains": {"const": ".carbon-hoh-context.json"}},
         {"contains": {"const": ".env"}},
         {"contains": {"const": ".env.*"}},
         {"contains": {"const": ".carbon-hidden/**"}},
