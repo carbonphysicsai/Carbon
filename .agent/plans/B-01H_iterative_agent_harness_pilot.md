@@ -113,10 +113,13 @@ regression-first replanning and handoff blocking, identity-checked pause retry,
 a verified `codex exec` adapter, one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 46 focused tests passing. Ruff
-0.16.3 passes on the new Python surface, every JSON schema parses, the real
-Codex adapter probe reports `codex-cli 0.151.0-alpha.7.2`, and diff hygiene is
-clean. The canonical wrapper remains locally `PAUSED_INFRA` because Docker is
-unavailable; exact-head GitHub checks remain required. Dynamic final
+The native Python 3.11.16 diagnostic reports 56 focused tests passing. Ruff
+0.16.3 passes on the new Python surface, every JSON schema parses, and diff
+hygiene is clean. The real adapter probe identifies `codex-cli
+0.151.0-alpha.7.2` but safely rejects it because its actual Developer exec path
+reports legacy `workspace-write`, not the required custom permission profile.
+The canonical wrapper remains locally `PAUSED_INFRA` because Docker and a
+compatible Codex CLI are unavailable; exact-head GitHub checks remain required.
+Dynamic final
 head/tree, review, approval, merge, and exact-main identities belong only in
 the external receipt.

@@ -286,60 +286,62 @@ class CodexExecAdapter:
                 )
 
     def _probe_exec_profile_selection(self) -> None:
-        """Require the actual exec path to select custom permissions before use."""
+        """Require both actual role exec profiles to select custom permissions."""
         with tempfile.TemporaryDirectory(prefix="carbon-hoh-exec-probe-") as root:
             probe_root = Path(root)
-            workspace = probe_root / "projection"
-            runtime_directory = probe_root / "runtime"
-            workspace.mkdir()
-            runtime_directory.mkdir()
-            output = runtime_directory / "last-message.txt"
-            command = [
-                self.executable,
-                "exec",
-                *self._exec_arguments(SandboxMode.READ_ONLY, runtime_directory),
-                "--cd",
-                str(workspace),
-                "--skip-git-repo-check",
-                "--output-last-message",
-                str(output),
-                "--color",
-                "never",
-            ]
-            if self.model is not None:
-                command.extend(["--model", self.model])
-            command.append("Return exactly READY without calling any tool.")
-            try:
-                result = subprocess.run(
-                    command,
-                    cwd=workspace,
-                    env=self._role_environment(runtime_directory),
-                    check=False,
-                    capture_output=True,
-                    text=True,
-                    timeout=min(self.timeout_seconds, 15),
-                )
-                diagnostic = result.stderr
-                completed = (
-                    result.returncode == 0
-                    and output.read_text(encoding="utf-8").strip() == "READY"
-                )
-            except subprocess.TimeoutExpired as error:
-                stderr = (
-                    error.stderr.decode()
-                    if isinstance(error.stderr, bytes)
-                    else error.stderr
-                )
-                diagnostic = stderr or ""
-                completed = False
-            except (OSError, UnicodeError):
-                diagnostic = ""
-                completed = False
-            if not completed or "sandbox: custom permissions" not in diagnostic:
-                raise ExecutorUnavailable(
-                    "installed Codex exec did not complete under the required "
-                    "custom permission profile"
-                )
+            for sandbox in (SandboxMode.READ_ONLY, SandboxMode.WORKSPACE_WRITE):
+                sandbox_root = probe_root / sandbox.value
+                workspace = sandbox_root / "projection"
+                runtime_directory = sandbox_root / "runtime"
+                workspace.mkdir(parents=True)
+                runtime_directory.mkdir()
+                output = runtime_directory / "last-message.txt"
+                command = [
+                    self.executable,
+                    "exec",
+                    *self._exec_arguments(sandbox, runtime_directory),
+                    "--cd",
+                    str(workspace),
+                    "--skip-git-repo-check",
+                    "--output-last-message",
+                    str(output),
+                    "--color",
+                    "never",
+                ]
+                if self.model is not None:
+                    command.extend(["--model", self.model])
+                command.append("Return exactly READY without calling any tool.")
+                try:
+                    result = subprocess.run(
+                        command,
+                        cwd=workspace,
+                        env=self._role_environment(runtime_directory),
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=min(self.timeout_seconds, 15),
+                    )
+                    diagnostic = result.stderr
+                    completed = (
+                        result.returncode == 0
+                        and output.read_text(encoding="utf-8").strip() == "READY"
+                    )
+                except subprocess.TimeoutExpired as error:
+                    stderr = (
+                        error.stderr.decode()
+                        if isinstance(error.stderr, bytes)
+                        else error.stderr
+                    )
+                    diagnostic = stderr or ""
+                    completed = False
+                except (OSError, UnicodeError):
+                    diagnostic = ""
+                    completed = False
+                if not completed or "sandbox: custom permissions" not in diagnostic:
+                    raise ExecutorUnavailable(
+                        f"installed Codex exec {sandbox.value} profile did not "
+                        "complete under the required custom permissions"
+                    )
 
     def executor_id(self) -> str:
         return "openai-codex-exec-v2"

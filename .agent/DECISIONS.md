@@ -10286,12 +10286,17 @@ requirements; a model assertion cannot create `VERIFIED`, clear
 Every transition binds the authority commit/tree, ticket content digest,
 requirements-manifest digest, role/executor profile, iteration, and applicable
 candidate head/tree. Dynamic state is atomically persisted under the Git common
-directory by default and is never committed as per-iteration evidence. A paused
+directory by default and is never committed as per-iteration evidence. Every
+transition holds a per-run mode-0600 lock, and step/retry compare the persisted
+state digest with the controller's loaded version before writing, preventing a
+stale controller from overwriting newer state. A paused
 run records its exact coherent active phase, retains the plan needed for a
 Tester retry, and may retry only after every identity is revalidated. Candidate
 acceptance also proves authority ancestry, cumulative run scope, protected-path
 exclusion, and regular-file Git modes rather than trusting persisted path text;
-the manual adapter consumes at most one supplied packet.
+the manual adapter consumes at most one supplied packet. Executor
+unavailability, startup failure, and timeout become identity-bound resumable
+`PAUSED_INFRA` states at the originating role/evidence phase.
 
 ## B-01H-D3 — Regression-first evidence semantics
 
@@ -10321,14 +10326,17 @@ sandboxed role commands. The legacy `--sandbox` flag is prohibited because it
 would replace the narrower permission profile. A real CLI startup probe must
 prove projection reads, read-only behavior, Developer writes, and
 sibling-sentinel denial for both profiles or the adapter fails unavailable.
-A generic no-context preflight using the exact role `codex exec` configuration
-must additionally report `custom permissions` before any private role context
-is sent. Controller evidence replay uses an executor seam: Codex replays under
+A generic no-context preflight independently using each exact read-only and
+workspace-write role `codex exec` configuration must additionally report
+`custom permissions` on trusted stderr before any private role context is sent.
+Controller evidence replay uses an executor seam: Codex replays under
 the same read-only, root-denying, network-disabled profile, the manual executor
 fails unavailable, and direct subprocess replay exists only in the explicitly
 synthetic test executor. The controller imports only its plan/run-allow-listed
 committed patch into the dedicated ticket worktree and never uses
-`danger-full-access`.
+`danger-full-access`. Every controller-owned Git commit forces a fresh empty
+hooks directory so repository or ambient hooks cannot execute with controller
+authority.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 
@@ -10338,8 +10346,10 @@ namespaces, and are logged with content digests. Protected hidden-evaluation
 data, credentials, private validator state, and reconstruction-sensitive
 identifiers are rejected from packets and persisted state. Run manifests cannot
 remove the mandatory protection set; Developer imports use the same root-aware
-matcher, accept regular-file Git modes only, and roll back to the exact prior
-candidate on any failed import. Final resume re-grants persisted Tester paths
+matcher, accept regular-file Git modes only, and roll back only exact
+controller-attributable identity/content. External drift is preserved and
+fails closed. Projection cleanup never follows or chmods through role-created
+symlinks. Final resume re-grants persisted Tester paths
 through this same role allow-list before reconstructing the evidence projection.
 
 ## B-01H-D6 — Final candidate is delivery handoff only

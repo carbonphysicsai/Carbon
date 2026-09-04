@@ -7,7 +7,9 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
+import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -107,6 +109,67 @@ class ContextBroker:
         )
         self._tracked = frozenset(tracked_paths(self.repository))
 
+    @staticmethod
+    def _make_directory_removable(path: Path) -> bool:
+        """Open and chmod one directory without ever following a symlink."""
+
+        try:
+            identity = os.lstat(path)
+        except FileNotFoundError:
+            return False
+        if stat.S_ISLNK(identity.st_mode):
+            path.unlink()
+            return False
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        descriptor = os.open(path, flags)
+        try:
+            opened = os.fstat(descriptor)
+            if (opened.st_dev, opened.st_ino) != (identity.st_dev, identity.st_ino):
+                raise ScopeViolation(
+                    f"projection cleanup identity changed while opening {path}"
+                )
+            os.fchmod(descriptor, 0o700)
+        finally:
+            os.close(descriptor)
+        return True
+
+    @staticmethod
+    def _remove_projection(target: Path) -> None:
+        """Remove a prior projection without following role-created symlinks."""
+
+        try:
+            target_identity = os.lstat(target)
+        except FileNotFoundError:
+            return
+        if stat.S_ISLNK(target_identity.st_mode):
+            target.unlink()
+            return
+        try:
+            for root, directories, files in os.walk(
+                target, topdown=True, followlinks=False
+            ):
+                root_path = Path(root)
+                if not ContextBroker._make_directory_removable(root_path):
+                    directories.clear()
+                    continue
+                for name in tuple(directories):
+                    entry = root_path / name
+                    if not ContextBroker._make_directory_removable(entry):
+                        directories.remove(name)
+                for name in files:
+                    entry = root_path / name
+                    try:
+                        identity = os.lstat(entry)
+                    except FileNotFoundError:
+                        continue
+                    if stat.S_ISLNK(identity.st_mode):
+                        entry.unlink()
+            shutil.rmtree(target)
+        except OSError as error:
+            raise ScopeViolation(
+                f"could not safely remove prior role projection: {error}"
+            ) from error
+
     def _expand(self, raw_path: str) -> tuple[str, ...]:
         path = normalized_repo_path(raw_path)
         if path in self._tracked:
@@ -186,14 +249,7 @@ class ContextBroker:
         candidate: dict[str, str],
     ) -> Path:
         target = self.state_root / "projections" / str(iteration) / role.value.lower()
-        if target.exists():
-            for root, directories, files in os.walk(target):
-                os.chmod(root, 0o700)
-                for name in directories:
-                    os.chmod(Path(root) / name, 0o700)
-                for name in files:
-                    os.chmod(Path(root) / name, 0o600)
-            shutil.rmtree(target)
+        self._remove_projection(target)
         target.mkdir(parents=True, mode=0o700)
         for path in sorted(set(paths)):
             source = self.repository / normalized_repo_path(path)
@@ -209,27 +265,30 @@ class ContextBroker:
             json.dumps(metadata, sort_keys=True, separators=(",", ":")) + "\n",
             encoding="utf-8",
         )
-        commands = (
-            ("init", "--quiet"),
-            ("config", "user.name", "Carbon HoH Projection"),
-            ("config", "user.email", "carbon-hoh@example.invalid"),
-            ("config", "commit.gpgsign", "false"),
-            ("add", "--all"),
-            ("commit", "--quiet", "--message", "isolated role projection"),
-        )
-        for command in commands:
-            process = subprocess.run(
-                ["git", *command],
-                cwd=target,
-                check=False,
-                capture_output=True,
-                text=True,
+        with tempfile.TemporaryDirectory(
+            prefix="empty-hooks-", dir=self.state_root
+        ) as hooks_directory:
+            commands = (
+                ("init", "--quiet"),
+                ("config", "user.name", "Carbon HoH Projection"),
+                ("config", "user.email", "carbon-hoh@example.invalid"),
+                ("config", "commit.gpgsign", "false"),
+                ("add", "--all"),
+                ("commit", "--quiet", "--message", "isolated role projection"),
             )
-            if process.returncode:
-                raise ScopeViolation(
-                    f"could not build {role.value} projection: "
-                    f"{(process.stderr or process.stdout).strip()}"
+            for command in commands:
+                process = subprocess.run(
+                    ["git", "-c", f"core.hooksPath={hooks_directory}", *command],
+                    cwd=target,
+                    check=False,
+                    capture_output=True,
+                    text=True,
                 )
+                if process.returncode:
+                    raise ScopeViolation(
+                        f"could not build {role.value} projection: "
+                        f"{(process.stderr or process.stdout).strip()}"
+                    )
         if role is not Role.DEVELOPER:
             for root, directories, files in os.walk(target):
                 if Path(root).name == ".git" or ".git" in Path(root).parts:

@@ -36,15 +36,19 @@ adapter never passes the legacy `--sandbox` flag because it would replace this
 narrower permission profile. Before accepting the installed CLI, an adversarial
 startup probe proves projection reads, read-only enforcement, Developer
 projection writes, and denial of a sibling sentinel for both profiles. A
-generic no-context `codex exec` preflight then uses the exact role
-configuration path and must report `custom permissions` before any private
-role context is sent; inability to enforce or select either boundary fails
-closed.
+generic no-context `codex exec` preflight then independently uses both exact
+read-only and workspace-write role configuration paths. Each must report
+`custom permissions` on trusted stderr before any private role context is sent;
+inability to enforce or select either boundary fails closed.
 
 The controller validates the Developer's clean commit and imports only the
 plan/run-allow-listed patch into the dedicated ticket worktree. Mandatory
 protected patterns cannot be removed by a run manifest, only regular-file Git
-modes are importable, and any failed import restores the exact prior candidate.
+modes are importable, and rollback is permitted only while the repository still
+has the exact controller-attributable identity/content. Concurrent external
+work is preserved and causes a closed identity failure. Both controller-owned
+Git commit sites force a fresh empty hooks directory, and projection cleanup
+never follows role-created symlinks.
 Role subprocesses receive a small allow-listed environment rather than
 inheriting API keys or other ambient variables. `danger-full-access` is never
 used. See the official [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions),
@@ -75,6 +79,12 @@ identities before returning a `PAUSED_HUMAN` or `PAUSED_INFRA` run to the exact
 coherent active phase that paused; Tester-originated pauses retain their plan.
 Failure reason and evidence plus complete open-regression records remain
 structured inputs to later roles.
+Every initialize/resume/step/retry transaction holds a mode-0600 per-run lock,
+and step/retry compare the persisted state digest with the version loaded by
+that controller before writing. A stale controller therefore cannot overwrite
+a newer transition. Executor unavailability, startup failure, and timeout enter
+the typed `PAUSED_INFRA` state at the originating phase and remain eligible for
+the same identity-checked retry path.
 
 ## Progressive disclosure
 

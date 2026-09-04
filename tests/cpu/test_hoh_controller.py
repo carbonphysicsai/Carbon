@@ -12,6 +12,7 @@ from agent_pack.executors.hoh.executors import ManualExecutor, ScriptedExecutor
 from agent_pack.executors.hoh.identity import digest_file, head_identity
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
+    ExecutorUnavailable,
     IdentityMismatch,
     PacketValidationError,
     Role,
@@ -42,6 +43,13 @@ def _developer_commit(_repository: Path, contents: list[str]):
         )
 
     return hook
+
+
+def _executor_unavailable(message: str):
+    def fail(_invocation):
+        raise ExecutorUnavailable(message)
+
+    return fail
 
 
 def _controller(
@@ -663,7 +671,7 @@ def test_in_memory_requirements_must_match_bound_manifest_file(
 
 def test_regression_must_lead_next_plan(tmp_path: Path) -> None:
     executor = ScriptedExecutor({})
-    controller, repository, _ = _controller(tmp_path, executor)
+    controller, repository, manifest = _controller(tmp_path, executor)
     executor._responses = {
         Role.PLANNER: __import__("collections").deque(
             [
@@ -694,10 +702,17 @@ def test_regression_must_lead_next_plan(tmp_path: Path) -> None:
         "failure_reason": None,
         "failure_evidence": [],
     }
-    controller.state = state
-    controller.step()
+    controller.store.save_state(state)
+    resumed = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    resumed.resume()
+    resumed.step()
     with pytest.raises(PacketValidationError, match="open regression"):
-        controller.step()
+        resumed.step()
 
 
 def test_fabricated_evidence_digest_cannot_create_verified(tmp_path: Path) -> None:
@@ -771,19 +786,233 @@ def test_open_optional_regression_blocks_final_handoff(tmp_path: Path) -> None:
     assert state["regressions"][0]["resolved_iteration"] is None
 
 
+def test_stale_controller_cannot_overwrite_newer_persisted_state(
+    tmp_path: Path,
+) -> None:
+    executor = ScriptedExecutor({Role.PLANNER: [plan_packet]})
+    controller, _, manifest = _controller(tmp_path, executor)
+    controller.initialize()
+    first = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    second = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    first.resume()
+    second.resume()
+
+    assert first.step()["phase"] == "DEVELOPING"
+    with pytest.raises(IdentityMismatch, match="persisted controller state changed"):
+        second.step()
+
+
+def test_external_candidate_commit_during_developer_is_preserved(
+    tmp_path: Path,
+) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+
+    def concurrent_commit(invocation) -> None:
+        commit_file(
+            invocation.workspace,
+            "src.txt",
+            "developer change\n",
+            "developer projection",
+        )
+        commit_file(
+            repository,
+            "external.txt",
+            "must survive\n",
+            "concurrent external commit",
+        )
+
+    executor._hooks[Role.DEVELOPER] = concurrent_commit
+    controller.initialize()
+    controller.step()
+    candidate_before = controller.snapshot()["candidate"]["head"]
+
+    with pytest.raises(IdentityMismatch, match="candidate changed during"):
+        controller.step()
+
+    assert head_identity(repository)["head"] != candidate_before
+    assert (repository / "external.txt").read_text(encoding="utf-8") == "must survive\n"
+    assert git(repository, "log", "-1", "--format=%s") == "concurrent external commit"
+
+
+def test_candidate_commit_ignores_repository_git_hooks(tmp_path: Path) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    hooks = tmp_path / "candidate-hooks"
+    hooks.mkdir()
+    sentinel = tmp_path / "candidate-hook-ran"
+    hook = hooks / "pre-commit"
+    hook.write_text(f"#!/bin/sh\n/usr/bin/touch {sentinel}\n", encoding="utf-8")
+    hook.chmod(0o755)
+    git(repository, "config", "core.hooksPath", str(hooks))
+
+    controller.step()
+    assert controller.step()["phase"] == "TESTING"
+    assert not sentinel.exists()
+
+
 def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
-    executor = ScriptedExecutor({})
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [
+                _executor_unavailable("Planner startup failed"),
+                plan_packet,
+            ]
+        }
+    )
     controller, _, _ = _controller(tmp_path, executor)
     state = controller.initialize()
     assert state["phase"] == "PLANNING"
     paused = controller.step()
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "PLANNING"
-    executor._responses = {Role.PLANNER: __import__("collections").deque([plan_packet])}
+    assert "Planner startup failed" in paused["last_error"]
     retried = controller.retry()
     assert retried["phase"] == "PLANNING"
     assert retried["paused_from"] is None
     assert controller.step()["phase"] == "DEVELOPING"
+
+
+def test_executor_failure_pauses_and_retries_developer(tmp_path: Path) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [
+                _executor_unavailable("Developer startup failed"),
+                developer_packet,
+            ],
+        }
+    )
+    controller, _repository, _ = _controller(tmp_path, executor)
+    outside = tmp_path / "outside-sentinel"
+    outside.write_text("must survive\n", encoding="utf-8")
+    outside.chmod(0o640)
+    attempts = 0
+
+    def developer_attempt(invocation) -> None:
+        nonlocal attempts
+        attempts += 1
+        commit_file(
+            invocation.workspace,
+            "src.txt",
+            f"attempt {attempts}\n",
+            f"Developer attempt {attempts}",
+        )
+        if attempts == 1:
+            (invocation.workspace / "outside-link").symlink_to(outside)
+
+    executor._hooks[Role.DEVELOPER] = developer_attempt
+    controller.initialize()
+    controller.step()
+
+    paused = controller.step()
+    assert paused["phase"] == "PAUSED_INFRA"
+    assert paused["paused_from"] == "DEVELOPING"
+    assert paused["active_plan"] is not None
+    assert "Developer startup failed" in paused["last_error"]
+    controller.retry()
+    assert controller.step()["phase"] == "TESTING"
+    assert outside.read_text(encoding="utf-8") == "must survive\n"
+    assert outside.stat().st_mode & 0o777 == 0o640
+
+
+def test_executor_failure_pauses_and_retries_tester(tmp_path: Path) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+            Role.TESTER: [
+                _executor_unavailable("Tester timed out"),
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "VERIFIED", "REQ-002": "VERIFIED"},
+                ),
+            ],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    controller.step()
+
+    paused = controller.step()
+    assert paused["phase"] == "PAUSED_INFRA"
+    assert paused["paused_from"] == "TESTING"
+    assert paused["active_plan"] is not None
+    assert "Tester timed out" in paused["last_error"]
+    controller.retry()
+    assert controller.step()["phase"] == "FINAL_CANDIDATE_READY"
+
+
+def test_evidence_executor_failure_pauses_and_retries_testing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+            Role.TESTER: [
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "VERIFIED", "REQ-002": "VERIFIED"},
+                ),
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "VERIFIED", "REQ-002": "VERIFIED"},
+                ),
+            ],
+        }
+    )
+    controller, repository, _ = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    original_execute_evidence = executor.execute_evidence
+    attempts = 0
+
+    def flaky_evidence(invocation):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ExecutorUnavailable("evidence sandbox unavailable")
+        return original_execute_evidence(invocation)
+
+    monkeypatch.setattr(executor, "execute_evidence", flaky_evidence)
+    controller.initialize()
+    controller.step()
+    controller.step()
+
+    paused = controller.step()
+    assert paused["phase"] == "PAUSED_INFRA"
+    assert paused["paused_from"] == "TESTING"
+    assert "evidence sandbox unavailable" in paused["last_error"]
+    controller.retry()
+    assert controller.step()["phase"] == "FINAL_CANDIDATE_READY"
 
 
 @pytest.mark.parametrize(

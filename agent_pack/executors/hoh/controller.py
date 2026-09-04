@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import tempfile
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,7 @@ from .identity import (
 from .models import (
     SCHEMA_VERSION,
     ControllerPhase,
+    ExecutorUnavailable,
     HarnessError,
     IdentityMismatch,
     PacketValidationError,
@@ -92,6 +94,7 @@ class HarnessController:
             self.run_manifest,
         )
         self.state: dict[str, Any] | None = None
+        self._persisted_state_digest: str | None = None
 
     @property
     def schemas_root(self) -> Path:
@@ -102,6 +105,10 @@ class HarnessController:
         return Path(__file__).resolve().parent / "prompts"
 
     def initialize(self) -> dict[str, Any]:
+        with self.store.locked():
+            return self._initialize_locked()
+
+    def _initialize_locked(self) -> dict[str, Any]:
         self._verify_static_identities()
         self._verify_executor_profiles()
         require_clean_worktree(self.repository)
@@ -139,9 +146,14 @@ class HarnessController:
         assert_payload_safe(state, self.protected_patterns)
         self.store.initialize(self.run_manifest, state)
         self.state = state
+        self._persisted_state_digest = digest_value(state)
         return self.snapshot()
 
     def resume(self) -> dict[str, Any]:
+        with self.store.locked():
+            return self._resume_locked()
+
+    def _resume_locked(self) -> dict[str, Any]:
         stored_manifest = validate_run_manifest(self.store.load_manifest())
         if digest_value(stored_manifest) != self.manifest_digest:
             raise IdentityMismatch(
@@ -159,6 +171,7 @@ class HarnessController:
         self._verify_candidate_identity()
         assert_payload_safe(state, self.protected_patterns)
         self._verify_resumed_state()
+        self._persisted_state_digest = digest_value(state)
         return self.snapshot()
 
     def snapshot(self) -> dict[str, Any]:
@@ -167,8 +180,13 @@ class HarnessController:
         return json.loads(json.dumps(self.state))
 
     def step(self) -> dict[str, Any]:
+        with self.store.locked():
+            return self._step_locked()
+
+    def _step_locked(self) -> dict[str, Any]:
         if self.state is None:
             raise IdentityMismatch("controller is not initialized or resumed")
+        self._require_persisted_state_current()
         phase = ControllerPhase(self.state["phase"])
         try:
             self._verify_static_identities()
@@ -194,13 +212,12 @@ class HarnessController:
             self.state["phase"] = error.phase.value
             self.state["paused_from"] = phase.value
             self.state["last_error"] = error.reason
+        except (ExecutorUnavailable, OSError, subprocess.TimeoutExpired) as error:
+            self.state["phase"] = ControllerPhase.PAUSED_INFRA.value
+            self.state["paused_from"] = phase.value
+            self.state["last_error"] = self._safe_diagnostic(error)
         except HarnessError as error:
-            diagnostic = f"{type(error).__name__}: {error}"
-            try:
-                assert_payload_safe(diagnostic, self.protected_patterns)
-            except PacketValidationError:
-                diagnostic = f"{type(error).__name__}: protected diagnostic redacted"
-            self.state["last_error"] = diagnostic
+            self.state["last_error"] = self._safe_diagnostic(error)
             self._persist()
             raise
         self._persist()
@@ -209,8 +226,14 @@ class HarnessController:
     def retry(self) -> dict[str, Any]:
         """Resume one identity-bound paused run at the phase that requested pause."""
 
+        with self.store.locked():
+            return self._retry_locked()
+
+    def _retry_locked(self) -> dict[str, Any]:
+
         if self.state is None:
             raise IdentityMismatch("controller is not initialized or resumed")
+        self._require_persisted_state_current()
         phase = ControllerPhase(self.state["phase"])
         if phase not in {ControllerPhase.PAUSED_HUMAN, ControllerPhase.PAUSED_INFRA}:
             raise PacketValidationError("only a paused run can be retried")
@@ -228,13 +251,35 @@ class HarnessController:
         assert_payload_safe(next_state, self.protected_patterns)
         self.store.save_state(next_state)
         self.state = next_state
+        self._persisted_state_digest = digest_value(next_state)
         return self.snapshot()
+
+    def _require_persisted_state_current(self) -> None:
+        if self._persisted_state_digest is None:
+            raise IdentityMismatch("controller has no persisted-state identity")
+        persisted = validate_controller_state(
+            self.store.load_state(),
+            self.requirement_ids,
+        )
+        if digest_value(persisted) != self._persisted_state_digest:
+            raise IdentityMismatch(
+                "persisted controller state changed since this controller loaded it"
+            )
+
+    def _safe_diagnostic(self, error: BaseException) -> str:
+        diagnostic = f"{type(error).__name__}: {error}"
+        try:
+            assert_payload_safe(diagnostic, self.protected_patterns)
+        except PacketValidationError:
+            return f"{type(error).__name__}: protected diagnostic redacted"
+        return diagnostic
 
     def _persist(self) -> None:
         assert self.state is not None
         validate_controller_state(self.state, self.requirement_ids)
         assert_payload_safe(self.state, self.protected_patterns)
         self.store.save_state(self.state)
+        self._persisted_state_digest = digest_value(self.state)
 
     def _verify_static_identities(self) -> None:
         authority = self.run_manifest["authority"]
@@ -608,12 +653,14 @@ class HarnessController:
         self._require_bindings(packet["bindings"], Role.DEVELOPER)
         require_clean_worktree(self.repository)
         previous_candidate = dict(self.state["candidate"])
+        imported_candidate: dict[str, str] | None = None
         try:
             after, iteration_paths = self._import_developer_changes(
                 workspace,
                 workspace_before,
                 before,
             )
+            imported_candidate = after
             cumulative_paths = changed_paths(
                 self.repository,
                 self.run_manifest["authority"]["commit"],
@@ -639,9 +686,19 @@ class HarnessController:
             self.state["phase"] = ControllerPhase.TESTING.value
             validate_controller_state(self.state, self.requirement_ids)
             assert_payload_safe(self.state, self.protected_patterns)
-        except HarnessError:
-            if head_identity(self.repository) != before:
-                self._restore_candidate(before)
+        except HarnessError as error:
+            current = head_identity(self.repository)
+            if imported_candidate is not None:
+                if current == imported_candidate:
+                    self._restore_candidate(
+                        before,
+                        attributable_identity=imported_candidate,
+                    )
+                elif current != before:
+                    raise IdentityMismatch(
+                        "candidate changed after controller import; refusing "
+                        "destructive rollback"
+                    ) from error
             self.state["candidate"] = previous_candidate
             self.state["phase"] = ControllerPhase.DEVELOPING.value
             raise
@@ -817,12 +874,22 @@ class HarnessController:
                     "utf-8", errors="replace"
                 )
                 if arguments == ("--index",):
-                    self._restore_candidate(candidate_before)
+                    try:
+                        require_clean_worktree(self.repository)
+                    except IdentityMismatch:
+                        self._restore_staged_candidate(candidate_before, diff.stdout)
                 raise PacketValidationError(
                     f"Developer patch import failed closed: {detail.strip()}"
                 )
         staged = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACDMRTUXB"],
+            [
+                "git",
+                "diff",
+                "--cached",
+                "--no-renames",
+                "--name-only",
+                "--diff-filter=ACDMRTUXB",
+            ],
             cwd=self.repository,
             check=False,
             capture_output=True,
@@ -832,31 +899,36 @@ class HarnessController:
             sorted(line for line in staged.stdout.splitlines() if line)
         )
         if staged.returncode or staged_paths != tuple(sorted(iteration_paths)):
-            self._restore_candidate(candidate_before)
+            self._restore_staged_candidate(candidate_before, diff.stdout)
             raise PacketValidationError(
                 "imported Developer paths do not match projection"
             )
-        committed = subprocess.run(
-            [
-                "git",
-                "-c",
-                "user.name=Carbon HoH Controller",
-                "-c",
-                "user.email=carbon-hoh@example.invalid",
-                "-c",
-                "commit.gpgsign=false",
-                "commit",
-                "--quiet",
-                "--message",
-                f"Carbon HoH iteration {self.state['iteration']}",
-            ],
-            cwd=self.repository,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        with tempfile.TemporaryDirectory(
+            prefix="empty-hooks-", dir=self.store.root
+        ) as hooks_directory:
+            committed = subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=Carbon HoH Controller",
+                    "-c",
+                    "user.email=carbon-hoh@example.invalid",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "-c",
+                    f"core.hooksPath={hooks_directory}",
+                    "commit",
+                    "--quiet",
+                    "--message",
+                    f"Carbon HoH iteration {self.state['iteration']}",
+                ],
+                cwd=self.repository,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
         if committed.returncode:
-            self._restore_candidate(candidate_before)
+            self._restore_staged_candidate(candidate_before, diff.stdout)
             raise PacketValidationError(
                 "controller could not commit imported Developer patch: "
                 f"{(committed.stderr or committed.stdout).strip()}"
@@ -900,7 +972,68 @@ class HarnessController:
                         f"Developer result has unsupported Git mode: {path}"
                     )
 
-    def _restore_candidate(self, expected: Mapping[str, str]) -> None:
+    def _restore_candidate(
+        self,
+        expected: Mapping[str, str],
+        *,
+        attributable_identity: Mapping[str, str],
+    ) -> None:
+        if head_identity(self.repository) != dict(attributable_identity):
+            raise IdentityMismatch(
+                "candidate identity changed; refusing destructive rollback of "
+                "non-controller work"
+            )
+        require_clean_worktree(self.repository)
+        restored = subprocess.run(
+            ["git", "reset", "--hard", expected["head"]],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if restored.returncode:
+            raise IdentityMismatch(
+                "Developer import failed and candidate rollback also failed: "
+                f"{(restored.stderr or restored.stdout).strip()}"
+            )
+        require_clean_worktree(self.repository)
+        if head_identity(self.repository) != dict(expected):
+            raise IdentityMismatch(
+                "Developer import rollback did not restore candidate"
+            )
+
+    def _restore_staged_candidate(
+        self,
+        expected: Mapping[str, str],
+        expected_patch: bytes,
+    ) -> None:
+        """Roll back only the exact staged patch applied by this transaction."""
+
+        if head_identity(self.repository) != dict(expected):
+            raise IdentityMismatch(
+                "candidate identity changed; refusing destructive rollback of "
+                "non-controller work"
+            )
+        unstaged = subprocess.run(
+            ["git", "diff", "--quiet", "--"],
+            cwd=self.repository,
+            check=False,
+        )
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--binary", "--full-index", "HEAD", "--"],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+        )
+        if (
+            unstaged.returncode != 0
+            or staged.returncode != 0
+            or staged.stdout != expected_patch
+        ):
+            raise IdentityMismatch(
+                "candidate contents changed; refusing destructive rollback of "
+                "non-controller work"
+            )
         restored = subprocess.run(
             ["git", "reset", "--hard", expected["head"]],
             cwd=self.repository,
@@ -970,7 +1103,7 @@ class HarnessController:
                         )
                     )
                 except (OSError, subprocess.TimeoutExpired) as error:
-                    raise PacketValidationError(
+                    raise ExecutorUnavailable(
                         f"evidence command could not complete: {error}"
                     ) from error
                 output_digest = hashlib.sha256(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import subprocess
 from pathlib import Path
 
@@ -88,6 +89,17 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     adapter = CodexExecAdapter(model="synthetic-model")
+    exec_preflights = [
+        command
+        for command, _kwargs in calls
+        if len(command) > 1
+        and command[1] == "exec"
+        and "--output-last-message" in command
+        and "--output-schema" not in command
+    ]
+    assert len(exec_preflights) == 2
+    assert 'default_permissions="carbon-hoh-read-v1"' in exec_preflights[0]
+    assert 'default_permissions="carbon-hoh-write-v1"' in exec_preflights[1]
     schema = tmp_path / "schema.json"
     schema.write_text('{"type":"object"}\n', encoding="utf-8")
     workspace = tmp_path / "workspace"
@@ -231,17 +243,24 @@ def test_codex_adapter_fails_closed_when_exec_selects_legacy_sandbox(
         assert _kwargs["env"]["CODEX_HOME"] == str(conflicting_home)
         output = Path(command[command.index("--output-last-message") + 1])
         output.write_text("READY\n", encoding="utf-8")
+        diagnostic = (
+            "sandbox: custom permissions\n"
+            if any("carbon-hoh-read-v1" in item for item in command)
+            else "sandbox: workspace-write\n"
+        )
         return subprocess.CompletedProcess(
             command,
             0,
             "sandbox: custom permissions\nREADY\n",
-            "sandbox: read-only\n",
+            diagnostic,
         )
 
     monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     monkeypatch.setenv("CODEX_HOME", str(conflicting_home))
-    with pytest.raises(ExecutorUnavailable, match="did not complete"):
+    with pytest.raises(
+        ExecutorUnavailable, match="workspace-write profile did not complete"
+    ):
         CodexExecAdapter()
 
 
@@ -293,6 +312,66 @@ def test_protected_context_request_is_rejected_and_not_disclosed(
             ["private_validator/official_cases/seed.txt"],
             iteration=1,
         )
+
+
+def test_projection_commit_ignores_ambient_git_hooks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    hooks = tmp_path / "ambient-hooks"
+    hooks.mkdir()
+    sentinel = tmp_path / "hook-ran"
+    hook = hooks / "pre-commit"
+    hook.write_text(f"#!/bin/sh\n/usr/bin/touch {sentinel}\n", encoding="utf-8")
+    hook.chmod(0o755)
+    global_config = tmp_path / "global-git-config"
+    global_config.write_text(
+        f"[core]\n\thooksPath = {hooks}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+
+    broker.projection(
+        Role.PLANNER,
+        1,
+        ("ticket.md",),
+        {"head": "a" * 40, "tree": "b" * 40},
+    )
+
+    assert not sentinel.exists()
+
+
+def test_projection_cleanup_never_follows_role_created_symlinks(
+    tmp_path: Path,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+    candidate = {"head": "a" * 40, "tree": "b" * 40}
+    projection = broker.projection(
+        Role.DEVELOPER,
+        1,
+        ("ticket.md",),
+        candidate,
+    )
+    outside_file = tmp_path / "outside-file"
+    outside_file.write_text("unchanged\n", encoding="utf-8")
+    outside_file.chmod(0o640)
+    outside_directory = tmp_path / "outside-directory"
+    outside_directory.mkdir(mode=0o750)
+    (projection / "file-link").symlink_to(outside_file)
+    (projection / "directory-link").symlink_to(outside_directory)
+
+    broker.projection(Role.DEVELOPER, 1, ("ticket.md",), candidate)
+
+    assert outside_file.read_text(encoding="utf-8") == "unchanged\n"
+    assert stat.S_IMODE(outside_file.stat().st_mode) == 0o640
+    assert stat.S_IMODE(outside_directory.stat().st_mode) == 0o750
 
 
 def test_secret_values_and_protected_paths_cannot_be_persisted() -> None:

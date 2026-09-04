@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +32,23 @@ class StateStore:
     @property
     def state_path(self) -> Path:
         return self.root / "controller_state.json"
+
+    @property
+    def lock_path(self) -> Path:
+        return self.root / "controller.lock"
+
+    @contextmanager
+    def locked(self) -> Iterator[None]:
+        """Serialize every state/worktree transaction for this run."""
+
+        descriptor = os.open(self.lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            os.fchmod(descriptor, 0o600)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
 
     def _atomic_write(self, path: Path, value: Any) -> None:
         payload = canonical_json_bytes(value)
