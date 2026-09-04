@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ac33af4361537a09b3a934b3de86e236f303676c` on `main`, captured 2026-09-04T11:52:10Z.
+**Authority snapshot:** `0eae77ba2634385f7883960e7f937b9541ecaee4` on `main`, captured 2026-09-04T12:03:16Z.
 **Current:** Wave B, ticket B-01H. OWNER-DX-02 interposes B-01H after completed B-04 and before any B-05 science. The bounded harness candidate is implemented and focused host diagnostics pass, but completion and maturity remain conditional on Carbon's exact-head review, approval, merge, exact-main, and external-receipt predicate.
 
 ## Wave spine
