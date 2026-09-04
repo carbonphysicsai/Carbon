@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `44bab18a76865a6c97b24c241866c07db3b86484` on `main`, captured 2026-09-04T16:47:17Z.
+**Authority snapshot:** `5670867ceddfd11c92d08083451e131089562b8f` on `main`, captured 2026-09-04T17:34:15Z.
 **Current:** Wave B, ticket B-01H. Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate.
 
 ## Wave spine
