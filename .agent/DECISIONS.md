@@ -10321,8 +10321,14 @@ sandboxed role commands. The legacy `--sandbox` flag is prohibited because it
 would replace the narrower permission profile. A real CLI startup probe must
 prove projection reads, read-only behavior, Developer writes, and
 sibling-sentinel denial for both profiles or the adapter fails unavailable.
-The controller imports only its plan/run-allow-listed committed patch into the
-dedicated ticket worktree and never uses `danger-full-access`.
+A generic no-context preflight using the exact role `codex exec` configuration
+must additionally report `custom permissions` before any private role context
+is sent. Controller evidence replay uses an executor seam: Codex replays under
+the same read-only, root-denying, network-disabled profile, the manual executor
+fails unavailable, and direct subprocess replay exists only in the explicitly
+synthetic test executor. The controller imports only its plan/run-allow-listed
+committed patch into the dedicated ticket worktree and never uses
+`danger-full-access`.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 

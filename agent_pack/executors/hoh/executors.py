@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import tempfile
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -24,12 +27,28 @@ class RoleInvocation:
     fresh: bool = True
 
 
+@dataclass(frozen=True)
+class EvidenceInvocation:
+    command: tuple[str, ...]
+    workspace: Path
+    timeout_seconds: int = 300
+
+
+@dataclass(frozen=True)
+class EvidenceResult:
+    returncode: int
+    stdout: bytes
+    stderr: bytes
+
+
 class Executor(Protocol):
     def executor_id(self) -> str: ...
 
     def profile_digest(self, role: Role) -> str: ...
 
     def execute(self, invocation: RoleInvocation) -> Mapping[str, Any]: ...
+
+    def execute_evidence(self, invocation: EvidenceInvocation) -> EvidenceResult: ...
 
 
 class ScriptedExecutor:
@@ -62,6 +81,7 @@ class ScriptedExecutor:
                 "executor": self._identity,
                 "role": role.value,
                 "fresh_invocations": True,
+                "evidence_execution": "synthetic-test-only",
                 "schema_version": "1.0",
             }
         )
@@ -79,6 +99,33 @@ class ScriptedExecutor:
             )
         response = queue.popleft()
         return response(invocation) if callable(response) else response
+
+    def execute_evidence(self, invocation: EvidenceInvocation) -> EvidenceResult:
+        """Run fixture evidence for deterministic tests, never untrusted candidates."""
+        with tempfile.TemporaryDirectory(
+            prefix="carbon-hoh-scripted-evidence-"
+        ) as root:
+            environment = {
+                "HOME": root,
+                "LANG": "C.UTF-8",
+                "LC_ALL": "C.UTF-8",
+                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "TMPDIR": root,
+            }
+            completed = subprocess.run(
+                invocation.command,
+                cwd=invocation.workspace,
+                check=False,
+                capture_output=True,
+                env=environment,
+                timeout=invocation.timeout_seconds,
+            )
+        return EvidenceResult(
+            returncode=completed.returncode,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+        )
 
 
 class ManualExecutor:
@@ -103,6 +150,7 @@ class ManualExecutor:
                 "executor": self._identity,
                 "role": role.value,
                 "manual_packet_required": True,
+                "evidence_execution": "unavailable",
                 "schema_version": "1.0",
             }
         )
@@ -115,4 +163,10 @@ class ManualExecutor:
             ControllerPhase.PAUSED_HUMAN,
             f"manual {invocation.role.value} packet required for iteration "
             f"{invocation.iteration}",
+        )
+
+    def execute_evidence(self, invocation: EvidenceInvocation) -> EvidenceResult:
+        raise PauseRequested(
+            ControllerPhase.PAUSED_INFRA,
+            "manual role packets cannot replace isolated controller evidence replay",
         )

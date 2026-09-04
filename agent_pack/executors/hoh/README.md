@@ -35,8 +35,11 @@ may use the explicit `CODEX_HOME`, but sandboxed commands cannot read it. The
 adapter never passes the legacy `--sandbox` flag because it would replace this
 narrower permission profile. Before accepting the installed CLI, an adversarial
 startup probe proves projection reads, read-only enforcement, Developer
-projection writes, and denial of a sibling sentinel for both profiles;
-inability to enforce any check fails closed.
+projection writes, and denial of a sibling sentinel for both profiles. A
+generic no-context `codex exec` preflight then uses the exact role
+configuration path and must report `custom permissions` before any private
+role context is sent; inability to enforce or select either boundary fails
+closed.
 
 The controller validates the Developer's clean commit and imports only the
 plan/run-allow-listed patch into the dedicated ticket worktree. Mandatory
@@ -86,9 +89,13 @@ read-only.
 A requirements manifest also binds an exact closed command allow-list for each
 requirement. Tester evidence must name a disclosed verifier artifact, its
 digest, and one exact allow-listed argv. The controller independently reruns
-that command in the isolated candidate projection and matches its exit status
-and stdout/stderr digest before accepting `VERIFIED`. An empty command list,
-as in the pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
+that command through the executor evidence seam. The Codex adapter uses the
+same verified read-only, root-denying, network-disabled profile with only the
+candidate projection and a private runtime exposed; manual replay fails
+unavailable, while direct subprocess replay exists only in the explicitly
+synthetic test executor. The controller matches exit status and stdout/stderr
+digest before accepting `VERIFIED`. An empty command list, as in the
+pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
 
 The Codex permission-profile sandbox and projection boundary are defense in
 depth for this development pilot. They are not a production arbitrary-code

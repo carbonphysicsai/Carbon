@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import subprocess
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -16,7 +15,7 @@ from .context import (
     assert_payload_safe,
     path_matches,
 )
-from .executors import Executor, RoleInvocation
+from .executors import EvidenceInvocation, Executor, RoleInvocation
 from .identity import (
     changed_paths,
     digest_file,
@@ -962,28 +961,13 @@ class HarnessController:
                     raise PacketValidationError(
                         f"evidence command does not name its artifact: {artifact}"
                     )
-                environment_root = self.store.root / "command-environment"
-                home = environment_root / "home"
-                temporary = environment_root / "tmp"
-                home.mkdir(parents=True, exist_ok=True)
-                temporary.mkdir(parents=True, exist_ok=True)
-                environment = {
-                    "HOME": str(home),
-                    "LANG": "C.UTF-8",
-                    "LC_ALL": "C.UTF-8",
-                    "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                    "PYTHONDONTWRITEBYTECODE": "1",
-                    "TMPDIR": str(temporary),
-                }
                 try:
                     projection_before = head_identity(workspace)
-                    completed = subprocess.run(
-                        command,
-                        cwd=workspace,
-                        check=False,
-                        capture_output=True,
-                        env=environment,
-                        timeout=300,
+                    completed = self.executor.execute_evidence(
+                        EvidenceInvocation(
+                            command=command,
+                            workspace=workspace,
+                        )
                     )
                 except (OSError, subprocess.TimeoutExpired) as error:
                     raise PacketValidationError(

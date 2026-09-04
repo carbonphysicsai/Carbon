@@ -80,7 +80,13 @@ open-regression records remain structured inputs to later roles.
   permission profile denies all non-projection reads except the minimal tool
   runtime and one invocation-private temporary directory, disables command
   networking and host-skill discovery, and sets approval policy to `never`.
-  Real sentinel probes must prove the boundary or the adapter fails closed.
+  Real sentinel probes must prove the boundary, and a no-context preflight must
+  prove the actual `codex exec` path selected custom permissions, or the adapter
+  fails closed.
+- Controller evidence replay uses the executor evidence seam. The Codex adapter
+  runs authorized verifier commands under the same read-only, root-denying,
+  network-disabled profile; the manual executor fails unavailable, and direct
+  subprocess replay is confined to the explicitly synthetic test executor.
 
 Any mismatch fails closed without advancement.
 

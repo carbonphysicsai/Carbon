@@ -15,6 +15,7 @@ from agent_pack.executors.hoh.codex import (
 )
 from agent_pack.executors.hoh.context import ContextBroker, assert_payload_safe
 from agent_pack.executors.hoh.executors import (
+    EvidenceInvocation,
     ManualExecutor,
     RoleInvocation,
     ScriptedExecutor,
@@ -74,6 +75,12 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
                     return subprocess.CompletedProcess(command, 0, "", "")
                 return subprocess.CompletedProcess(command, 1, "", "denied")
             return subprocess.CompletedProcess(command, 0, "projection\n", "")
+        if command[1] == "exec" and "--output-schema" not in command:
+            output = Path(command[command.index("--output-last-message") + 1])
+            output.write_text("READY\n", encoding="utf-8")
+            return subprocess.CompletedProcess(
+                command, 0, "READY\n", "sandbox: custom permissions\n"
+            )
         output = Path(command[command.index("--output-last-message") + 1])
         output.write_text('{"ok":true}\n', encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, '{"ok":true}\n', "")
@@ -125,6 +132,29 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     }
     assert kwargs["env"]["HOME"] == kwargs["env"]["TMPDIR"]
 
+    evidence = adapter.execute_evidence(
+        EvidenceInvocation(command=("/bin/cat", "visible.txt"), workspace=workspace)
+    )
+    assert evidence.returncode == 0
+    evidence_command, evidence_kwargs = calls[-1]
+    assert evidence_command[1] == "sandbox"
+    assert "carbon-hoh-read-v1" in evidence_command
+    assert "--include-managed-config" in evidence_command
+    assert evidence_kwargs["cwd"] == workspace
+
+    sentinel = tmp_path / "outside-projection.txt"
+    sentinel.write_text("protected canary\n", encoding="utf-8")
+    denied_evidence = adapter.execute_evidence(
+        EvidenceInvocation(
+            command=("/bin/cat", str(sentinel)),
+            workspace=workspace,
+        )
+    )
+    assert denied_evidence.returncode != 0
+    denied_command, _ = calls[-1]
+    assert denied_command[1] == "sandbox"
+    assert "carbon-hoh-read-v1" in denied_command
+
 
 def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
     tmp_path: Path,
@@ -155,6 +185,63 @@ def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
     monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     with pytest.raises(ExecutorUnavailable, match="projection-only"):
+        CodexExecAdapter()
+
+
+def test_codex_adapter_fails_closed_when_exec_selects_legacy_sandbox(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executable = tmp_path / "codex"
+    executable.write_text("synthetic executable\n", encoding="utf-8")
+    executable.chmod(0o755)
+    conflicting_home = tmp_path / "conflicting-codex-home"
+    conflicting_home.mkdir()
+    (conflicting_home / "config.toml").write_text(
+        'sandbox_mode = "danger-full-access"\n', encoding="utf-8"
+    )
+
+    def fake_run(command, **_kwargs):
+        command = [str(item) for item in command]
+        if command[-1] == "--version":
+            return subprocess.CompletedProcess(command, 0, "codex-cli 0.test\n", "")
+        if command[-2:] == ["exec", "--help"]:
+            return subprocess.CompletedProcess(
+                command, 0, "\n".join(REQUIRED_HELP_MARKERS), ""
+            )
+        if command[-2:] == ["sandbox", "--help"]:
+            return subprocess.CompletedProcess(
+                command, 0, "\n".join(REQUIRED_SANDBOX_HELP_MARKERS), ""
+            )
+        if command[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(
+                command, 0, "skip_host_skill_discovery under-development false\n", ""
+            )
+        if command[1] == "sandbox":
+            target = Path(command[-1])
+            if target.name == "outside-projection.txt":
+                return subprocess.CompletedProcess(command, 1, b"", b"denied")
+            if command[-2] == "/usr/bin/touch":
+                if "carbon-hoh-write-v1" in command:
+                    target.touch()
+                    return subprocess.CompletedProcess(command, 0, b"", b"")
+                return subprocess.CompletedProcess(command, 1, b"", b"denied")
+            return subprocess.CompletedProcess(command, 0, b"projection\n", b"")
+        assert "--ignore-user-config" in command
+        assert _kwargs["env"]["CODEX_HOME"] == str(conflicting_home)
+        output = Path(command[command.index("--output-last-message") + 1])
+        output.write_text("READY\n", encoding="utf-8")
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            "sandbox: custom permissions\nREADY\n",
+            "sandbox: read-only\n",
+        )
+
+    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
+    monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setenv("CODEX_HOME", str(conflicting_home))
+    with pytest.raises(ExecutorUnavailable, match="did not complete"):
         CodexExecAdapter()
 
 

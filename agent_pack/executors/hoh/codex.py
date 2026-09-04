@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from .executors import RoleInvocation
+from .executors import EvidenceInvocation, EvidenceResult, RoleInvocation
 from .identity import digest_value
 from .models import ExecutorUnavailable, Role, SandboxMode
 
@@ -57,6 +57,7 @@ class CodexExecAdapter:
         self.version, self.help_text, self.sandbox_help_text = self._probe()
         try:
             self._probe_permission_profiles()
+            self._probe_exec_profile_selection()
         except (OSError, subprocess.TimeoutExpired) as error:
             raise ExecutorUnavailable(
                 f"installed Codex CLI isolation probe failed: {error}"
@@ -153,6 +154,35 @@ class CodexExecAdapter:
             f"permissions.{profile}={policy}",
         ]
 
+    @classmethod
+    def _exec_arguments(
+        cls,
+        sandbox: SandboxMode,
+        runtime_directory: Path,
+    ) -> list[str]:
+        return [
+            "--ephemeral",
+            "--ignore-user-config",
+            "--strict-config",
+            "--enable",
+            "skip_host_skill_discovery",
+            "--config",
+            'approval_policy="never"',
+            *cls._profile_arguments(sandbox, runtime_directory),
+        ]
+
+    @staticmethod
+    def _role_environment(runtime_directory: Path) -> dict[str, str]:
+        return {
+            "CODEX_HOME": os.environ.get("CODEX_HOME", str(Path.home() / ".codex")),
+            "HOME": str(runtime_directory),
+            "LANG": os.environ.get("LANG", "C.UTF-8"),
+            "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
+            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "TMPDIR": str(runtime_directory),
+        }
+
     def _sandbox_probe(
         self,
         *,
@@ -161,7 +191,8 @@ class CodexExecAdapter:
         runtime_directory: Path,
         codex_home: Path,
         command: list[str],
-    ) -> subprocess.CompletedProcess[str]:
+        timeout_seconds: int = 30,
+    ) -> subprocess.CompletedProcess[bytes]:
         profile = self._profile_name(sandbox)
         return subprocess.run(
             [
@@ -186,8 +217,7 @@ class CodexExecAdapter:
             },
             check=False,
             capture_output=True,
-            text=True,
-            timeout=min(self.timeout_seconds, 30),
+            timeout=min(self.timeout_seconds, timeout_seconds),
         )
 
     def _probe_permission_profiles(self) -> None:
@@ -255,6 +285,62 @@ class CodexExecAdapter:
                     "filesystem boundary"
                 )
 
+    def _probe_exec_profile_selection(self) -> None:
+        """Require the actual exec path to select custom permissions before use."""
+        with tempfile.TemporaryDirectory(prefix="carbon-hoh-exec-probe-") as root:
+            probe_root = Path(root)
+            workspace = probe_root / "projection"
+            runtime_directory = probe_root / "runtime"
+            workspace.mkdir()
+            runtime_directory.mkdir()
+            output = runtime_directory / "last-message.txt"
+            command = [
+                self.executable,
+                "exec",
+                *self._exec_arguments(SandboxMode.READ_ONLY, runtime_directory),
+                "--cd",
+                str(workspace),
+                "--skip-git-repo-check",
+                "--output-last-message",
+                str(output),
+                "--color",
+                "never",
+            ]
+            if self.model is not None:
+                command.extend(["--model", self.model])
+            command.append("Return exactly READY without calling any tool.")
+            try:
+                result = subprocess.run(
+                    command,
+                    cwd=workspace,
+                    env=self._role_environment(runtime_directory),
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=min(self.timeout_seconds, 15),
+                )
+                diagnostic = result.stderr
+                completed = (
+                    result.returncode == 0
+                    and output.read_text(encoding="utf-8").strip() == "READY"
+                )
+            except subprocess.TimeoutExpired as error:
+                stderr = (
+                    error.stderr.decode()
+                    if isinstance(error.stderr, bytes)
+                    else error.stderr
+                )
+                diagnostic = stderr or ""
+                completed = False
+            except (OSError, UnicodeError):
+                diagnostic = ""
+                completed = False
+            if not completed or "sandbox: custom permissions" not in diagnostic:
+                raise ExecutorUnavailable(
+                    "installed Codex exec did not complete under the required "
+                    "custom permission profile"
+                )
+
     def executor_id(self) -> str:
         return "openai-codex-exec-v2"
 
@@ -275,6 +361,7 @@ class CodexExecAdapter:
                 "codex_home_auth_only": True,
                 "host_skill_discovery": False,
                 "managed_requirements_probed": True,
+                "exec_effective_profile_probed": True,
                 "isolation_profile_version": ISOLATION_PROFILE_VERSION,
                 "filesystem": {
                     ":root": "deny",
@@ -285,7 +372,28 @@ class CodexExecAdapter:
                     "invocation_runtime": "write",
                 },
                 "command_network": False,
+                "evidence_replay": "same-read-profile",
             }
+        )
+
+    def execute_evidence(self, invocation: EvidenceInvocation) -> EvidenceResult:
+        """Replay one authorized command inside the verified read-only profile."""
+        with tempfile.TemporaryDirectory(prefix="carbon-hoh-evidence-") as root:
+            runtime_directory = Path(root)
+            codex_home = runtime_directory / "codex-home"
+            codex_home.mkdir()
+            completed = self._sandbox_probe(
+                sandbox=SandboxMode.READ_ONLY,
+                workspace=invocation.workspace,
+                runtime_directory=runtime_directory,
+                codex_home=codex_home,
+                command=list(invocation.command),
+                timeout_seconds=invocation.timeout_seconds,
+            )
+        return EvidenceResult(
+            returncode=completed.returncode,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
         )
 
     def execute(self, invocation: RoleInvocation) -> Mapping[str, Any]:
@@ -306,14 +414,7 @@ class CodexExecAdapter:
             command = [
                 self.executable,
                 "exec",
-                "--ephemeral",
-                "--ignore-user-config",
-                "--strict-config",
-                "--enable",
-                "skip_host_skill_discovery",
-                "--config",
-                'approval_policy="never"',
-                *self._profile_arguments(invocation.sandbox, Path(directory)),
+                *self._exec_arguments(invocation.sandbox, Path(directory)),
                 "--cd",
                 str(invocation.workspace),
                 "--output-schema",
@@ -326,19 +427,10 @@ class CodexExecAdapter:
             if self.model is not None:
                 command.extend(["--model", self.model])
             command.append(invocation.prompt)
-            environment = {
-                "CODEX_HOME": os.environ.get("CODEX_HOME", str(Path.home() / ".codex")),
-                "HOME": directory,
-                "LANG": os.environ.get("LANG", "C.UTF-8"),
-                "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "PYTHONDONTWRITEBYTECODE": "1",
-                "TMPDIR": directory,
-            }
             result = subprocess.run(
                 command,
                 cwd=invocation.workspace,
-                env=environment,
+                env=self._role_environment(Path(directory)),
                 check=False,
                 capture_output=True,
                 text=True,
