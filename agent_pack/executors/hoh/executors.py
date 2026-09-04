@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from .identity import digest_value
+from .identity import digest_value, sanitized_git_environment
 from .models import ControllerPhase, PauseRequested, Role, SandboxMode
 
 
@@ -106,9 +106,7 @@ class ScriptedExecutor:
             prefix="carbon-hoh-scripted-evidence-"
         ) as root:
             environment = {
-                "HOME": root,
-                "LANG": "C.UTF-8",
-                "LC_ALL": "C.UTF-8",
+                **sanitized_git_environment(home=root),
                 "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
                 "PYTHONDONTWRITEBYTECODE": "1",
                 "TMPDIR": root,

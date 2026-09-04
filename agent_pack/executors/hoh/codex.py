@@ -182,6 +182,11 @@ class CodexExecAdapter:
     def _role_environment(runtime_directory: Path) -> dict[str, str]:
         return {
             "CODEX_HOME": os.environ.get("CODEX_HOME", str(Path.home() / ".codex")),
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_TERMINAL_PROMPT": "0",
             "HOME": str(runtime_directory),
             "LANG": os.environ.get("LANG", "C.UTF-8"),
             "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),

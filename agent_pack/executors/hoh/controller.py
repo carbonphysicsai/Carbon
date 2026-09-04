@@ -19,15 +19,19 @@ from .context import (
 from .executors import EvidenceInvocation, Executor, RoleInvocation
 from .identity import (
     changed_paths,
+    digest_bytes,
     digest_file,
     digest_value,
     git_blob,
+    git_blob_bytes,
+    git_command,
     head_identity,
     require_ancestor,
     require_clean_worktree,
     resolve_commit,
     resolve_repository_root,
     resolve_tree,
+    sanitized_git_environment,
 )
 from .models import (
     SCHEMA_VERSION,
@@ -111,7 +115,6 @@ class HarnessController:
     def _initialize_locked(self) -> dict[str, Any]:
         self._verify_static_identities()
         self._verify_executor_profiles()
-        require_clean_worktree(self.repository)
         candidate = head_identity(self.repository)
         candidate_paths = self._authorize_candidate(candidate["head"])
         state = {
@@ -292,16 +295,25 @@ class HarnessController:
         if resolve_tree(self.repository, authority["commit"]) != authority["tree"]:
             raise IdentityMismatch("authority commit/tree binding is invalid")
         ticket_binding = self.run_manifest["ticket"]
-        ticket_path = self.repository / ticket_binding["path"]
-        if digest_file(ticket_path) != ticket_binding["sha256"]:
+        candidate_head = (
+            self.state["candidate"]["head"]
+            if self.state is not None
+            else resolve_commit(self.repository)
+        )
+        ticket_bytes = git_blob_bytes(
+            self.repository, candidate_head, ticket_binding["path"]
+        )
+        if digest_bytes(ticket_bytes) != ticket_binding["sha256"]:
             raise IdentityMismatch("ticket content digest mismatch")
         requirements_binding = self.run_manifest["requirements"]
-        requirements_path = self.repository / requirements_binding["path"]
-        if digest_file(requirements_path) != requirements_binding["sha256"]:
+        requirements_bytes = git_blob_bytes(
+            self.repository, candidate_head, requirements_binding["path"]
+        )
+        if digest_bytes(requirements_bytes) != requirements_binding["sha256"]:
             raise IdentityMismatch("requirements manifest digest mismatch")
         try:
             bound_requirements = validate_requirements_manifest(
-                json.loads(requirements_path.read_text(encoding="utf-8"))
+                json.loads(requirements_bytes.decode("utf-8"))
             )
         except (
             OSError,
@@ -325,7 +337,7 @@ class HarnessController:
             raise IdentityMismatch(
                 "requirements manifest is bound to other ticket bytes"
             )
-        current_blob = git_blob(self.repository, "HEAD", ticket["path"])
+        current_blob = git_blob(self.repository, candidate_head, ticket["path"])
         if current_blob != ticket["git_blob"]:
             raise IdentityMismatch("requirements manifest ticket Git blob mismatch")
 
@@ -358,12 +370,22 @@ class HarnessController:
             raise IdentityMismatch(
                 "candidate head/tree mismatch; refusing to resume or advance"
             )
-        require_clean_worktree(self.repository)
         actual_paths = self._authorize_candidate(actual["head"])
         if actual_paths != tuple(expected["changed_paths"]):
             raise IdentityMismatch(
                 "candidate changed-path manifest does not match exact Git history"
             )
+
+    def _require_candidate_ref(self, operation: str) -> None:
+        """Require HEAD to remain the exact state-bound candidate ref."""
+
+        assert self.state is not None
+        expected = {
+            "head": self.state["candidate"]["head"],
+            "tree": self.state["candidate"]["tree"],
+        }
+        if head_identity(self.repository) != expected:
+            raise IdentityMismatch(f"candidate changed during {operation}")
 
     def _authorize_candidate(self, candidate_head: str) -> tuple[str, ...]:
         """Recompute and enforce the cumulative candidate Git boundary."""
@@ -456,6 +478,7 @@ class HarnessController:
             Role.TESTER,
             (item["path"] for item in tester_disclosures),
             iteration=self.state["iteration"],
+            candidate=self.state["candidate"],
         )
         expected_disclosures = tuple(
             sorted(tester_disclosures, key=lambda item: item["path"])
@@ -548,14 +571,20 @@ class HarnessController:
                 for action in self.state["active_plan"]["actions"]
                 for path in action["allowed_paths"]
             )
-            planned = list(self.context.matching_tracked(patterns))
+            planned = list(
+                self.context.matching_tracked(patterns, self.state["candidate"])
+            )
         context_paths, disclosures = self.context.grant(
             role,
             [*initial, *previous, *planned],
             iteration=self.state["iteration"],
+            candidate=self.state["candidate"],
         )
         self._append_disclosures(disclosures)
-        before = head_identity(self.repository)
+        before = dict(self.state["candidate"])
+        before.pop("changed_paths", None)
+        if head_identity(self.repository) != before:
+            raise IdentityMismatch(f"candidate changed before {role.value} invocation")
         sandbox = (
             SandboxMode.WORKSPACE_WRITE
             if role is Role.DEVELOPER
@@ -566,7 +595,7 @@ class HarnessController:
                 role,
                 self.state["iteration"],
                 context_paths,
-                before,
+                self.state["candidate"],
             )
             identity_workspace = (
                 self.context.developer_shadow(self.state["iteration"])
@@ -593,6 +622,7 @@ class HarnessController:
                 role,
                 requests,
                 iteration=self.state["iteration"],
+                candidate=self.state["candidate"],
             )
             self._append_disclosures(new_disclosures)
             context_paths = tuple(sorted(set(context_paths) | set(newly_granted)))
@@ -610,7 +640,6 @@ class HarnessController:
             after = head_identity(self.repository)
             if after != before:
                 raise ScopeViolation(f"{role.value} mutated the candidate")
-            require_clean_worktree(self.repository)
         return packet, workspace, workspace_before
 
     def _append_disclosures(self, disclosures: tuple[dict[str, Any], ...]) -> None:
@@ -662,7 +691,10 @@ class HarnessController:
 
     def _develop(self) -> None:
         assert self.state is not None
-        before = head_identity(self.repository)
+        before = {
+            "head": self.state["candidate"]["head"],
+            "tree": self.state["candidate"]["tree"],
+        }
         packet, workspace, workspace_before = self._invoke(
             Role.DEVELOPER,
             "developer_result.schema.json",
@@ -670,7 +702,6 @@ class HarnessController:
         )
         self._require_common_packet(packet)
         self._require_bindings(packet["bindings"], Role.DEVELOPER)
-        require_clean_worktree(self.repository)
         after, iteration_paths = self._import_developer_changes(
             workspace,
             workspace_before,
@@ -834,20 +865,21 @@ class HarnessController:
             projected_after["head"],
             iteration_paths,
         )
-        require_clean_worktree(self.repository)
         if head_identity(self.repository) != dict(candidate_before):
             raise IdentityMismatch("candidate changed during Developer invocation")
         diff = subprocess.run(
-            [
-                "git",
+            git_command(
                 "diff",
                 "--binary",
                 "--full-index",
+                "--no-ext-diff",
+                "--no-textconv",
                 workspace_before["head"],
                 projected_after["head"],
                 "--",
-            ],
+            ),
             cwd=workspace,
+            env=sanitized_git_environment(),
             check=False,
             capture_output=True,
         )
@@ -858,18 +890,15 @@ class HarnessController:
         ) as transaction_directory:
             index_path = Path(transaction_directory) / "index"
             environment = {
+                **sanitized_git_environment(home=transaction_directory),
                 "GIT_CONFIG_NOSYSTEM": "1",
                 "GIT_CONFIG_GLOBAL": "/dev/null",
                 "GIT_INDEX_FILE": str(index_path),
-                "HOME": transaction_directory,
-                "LANG": "C.UTF-8",
-                "LC_ALL": "C.UTF-8",
-                "PATH": "/usr/bin:/bin",
             }
 
             def run_git(*arguments: str, input_bytes: bytes | None = None):
                 return subprocess.run(
-                    ["git", "-c", "core.fsmonitor=false", *arguments],
+                    git_command(*arguments),
                     cwd=self.repository,
                     env=environment,
                     input=input_bytes,
@@ -913,8 +942,7 @@ class HarnessController:
                 "GIT_COMMITTER_EMAIL": "carbon-hoh@example.invalid",
             }
             committed = subprocess.run(
-                [
-                    "git",
+                git_command(
                     "-c",
                     "commit.gpgsign=false",
                     "commit-tree",
@@ -923,7 +951,7 @@ class HarnessController:
                     candidate_before["head"],
                     "-m",
                     f"Carbon HoH iteration {self.state['iteration']}",
-                ],
+                ),
                 cwd=self.repository,
                 env=commit_environment,
                 check=False,
@@ -963,25 +991,15 @@ class HarnessController:
         ) as install_directory:
             hooks_directory = Path(install_directory) / "empty-hooks"
             hooks_directory.mkdir()
-            install_environment = {
-                "GIT_CONFIG_NOSYSTEM": "1",
-                "GIT_CONFIG_GLOBAL": "/dev/null",
-                "HOME": install_directory,
-                "LANG": "C.UTF-8",
-                "LC_ALL": "C.UTF-8",
-                "PATH": "/usr/bin:/bin",
-            }
+            install_environment = sanitized_git_environment(home=install_directory)
 
             def run_install_git(*arguments: str):
                 return subprocess.run(
-                    [
-                        "git",
-                        "-c",
-                        "core.fsmonitor=false",
+                    git_command(
                         "-c",
                         f"core.hooksPath={hooks_directory}",
                         *arguments,
-                    ],
+                    ),
                     cwd=self.repository,
                     env=install_environment,
                     check=False,
@@ -999,43 +1017,10 @@ class HarnessController:
                     "candidate changed during atomic Developer import; "
                     "no ref was overwritten"
                 )
-            if head_identity(self.repository) != candidate_identity:
-                raise IdentityMismatch(
-                    "candidate changed after atomic Developer import; "
-                    "refusing worktree synchronization"
-                )
-            synchronized = run_install_git(
-                "read-tree",
-                "-u",
-                "-m",
-                candidate_before["head"],
-                candidate_commit,
-            )
-            if synchronized.returncode:
-                # Move only the ref installed by this controller. A concurrent
-                # ref update wins the compare-and-swap and is never rolled back.
-                run_install_git(
-                    "update-ref",
-                    "HEAD",
-                    candidate_before["head"],
-                    candidate_commit,
-                )
-                detail = (synchronized.stderr or synchronized.stdout).decode(
-                    "utf-8", errors="replace"
-                )
-                raise IdentityMismatch(
-                    "candidate worktree synchronization failed closed: "
-                    f"{detail.strip()}"
-                )
         if head_identity(self.repository) != candidate_identity:
             raise IdentityMismatch(
-                "candidate changed during worktree synchronization; "
-                "no external ref was rolled back"
-            )
-        require_clean_worktree(self.repository)
-        if head_identity(self.repository) != candidate_identity:
-            raise IdentityMismatch(
-                "candidate identity drifted during worktree synchronization"
+                "candidate changed after atomic Developer import; "
+                "no external ref or shared checkout was modified"
             )
         return candidate_identity, iteration_paths
 
@@ -1049,8 +1034,9 @@ class HarnessController:
         for reference in (before, after):
             for path in paths:
                 entry = subprocess.run(
-                    ["git", "ls-tree", "-z", reference, "--", path],
+                    git_command("ls-tree", "-z", reference, "--", path),
                     cwd=workspace,
+                    env=sanitized_git_environment(),
                     check=False,
                     capture_output=True,
                 )
@@ -1079,6 +1065,7 @@ class HarnessController:
         """Execute only manifest-authorized evidence in the isolated projection."""
 
         assert self.state is not None
+        self._require_candidate_ref("evidence replay")
         disclosed = {
             item["path"]
             for item in self.state["disclosures"]
@@ -1152,6 +1139,8 @@ class HarnessController:
                         "evidence command mutated its projection"
                     )
                 require_clean_worktree(workspace)
+                self._require_candidate_ref("evidence replay")
+        self._require_candidate_ref("evidence replay")
 
     def _require_common_packet(self, packet: Mapping[str, Any]) -> None:
         assert self.state is not None

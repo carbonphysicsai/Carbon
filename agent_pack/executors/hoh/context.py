@@ -14,7 +14,16 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from .identity import digest_file, normalized_repo_path, tracked_paths
+from .identity import (
+    digest_bytes,
+    git_blob_bytes,
+    git_command,
+    git_file_mode,
+    normalized_repo_path,
+    resolve_tree,
+    sanitized_git_environment,
+    tracked_paths,
+)
 from .models import PacketValidationError, Role, ScopeViolation
 
 DEFAULT_PROTECTED_PATTERNS = (
@@ -107,7 +116,7 @@ class ContextBroker:
                 (*DEFAULT_PROTECTED_PATTERNS, *run_manifest["protected_patterns"])
             )
         )
-        self._tracked = frozenset(tracked_paths(self.repository))
+        self._tracked: frozenset[str] = frozenset()
 
     @staticmethod
     def _make_directory_removable(path: Path) -> bool:
@@ -180,10 +189,13 @@ class ContextBroker:
             raise ScopeViolation(f"context path is not tracked: {path}")
         return children
 
-    def matching_tracked(self, patterns: Iterable[str]) -> tuple[str, ...]:
+    def matching_tracked(
+        self, patterns: Iterable[str], candidate: dict[str, str]
+    ) -> tuple[str, ...]:
         """Return existing tracked files selected by exact, prefix, or glob paths."""
 
-        self._tracked = frozenset(tracked_paths(self.repository))
+        self._require_candidate_tree(candidate)
+        self._tracked = frozenset(tracked_paths(self.repository, candidate["head"]))
         selected: set[str] = set()
         for raw_pattern in patterns:
             pattern = normalized_repo_path(raw_pattern)
@@ -203,8 +215,10 @@ class ContextBroker:
         requested: Iterable[str],
         *,
         iteration: int,
+        candidate: dict[str, str],
     ) -> tuple[tuple[str, ...], tuple[dict[str, Any], ...]]:
-        self._tracked = frozenset(tracked_paths(self.repository))
+        self._require_candidate_tree(candidate)
+        self._tracked = frozenset(tracked_paths(self.repository, candidate["head"]))
         allowed = tuple(self.manifest["context_allow_paths"][role.value.lower()])
         granted: set[str] = set()
         disclosures: list[dict[str, Any]] = []
@@ -225,16 +239,14 @@ class ContextBroker:
                     raise ScopeViolation(
                         f"expanded context path is out of authority: {path}"
                     )
-                source = self.repository / path
-                if source.is_symlink() or not source.is_file():
-                    raise ScopeViolation(f"context path is not a regular file: {path}")
+                content = git_blob_bytes(self.repository, candidate["head"], path)
                 granted.add(path)
                 disclosures.append(
                     {
                         "role": role.value,
                         "iteration": iteration,
                         "path": path,
-                        "sha256": digest_file(source),
+                        "sha256": digest_bytes(content),
                     }
                 )
         return tuple(sorted(granted)), tuple(
@@ -248,14 +260,21 @@ class ContextBroker:
         paths: Iterable[str],
         candidate: dict[str, str],
     ) -> Path:
+        self._require_candidate_tree(candidate)
         target = self.state_root / "projections" / str(iteration) / role.value.lower()
         self._remove_projection(target)
         target.mkdir(parents=True, mode=0o700)
         for path in sorted(set(paths)):
-            source = self.repository / normalized_repo_path(path)
+            normalized = normalized_repo_path(path)
             destination = target / path
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, destination, follow_symlinks=False)
+            destination.write_bytes(
+                git_blob_bytes(self.repository, candidate["head"], normalized)
+            )
+            os.chmod(
+                destination,
+                git_file_mode(self.repository, candidate["head"], normalized),
+            )
         metadata = {
             "candidate": candidate,
             "role": role.value,
@@ -280,6 +299,10 @@ class ContextBroker:
                     os.chmod(Path(root) / name, 0o400)
             os.chmod(target, 0o500)
         return target
+
+    def _require_candidate_tree(self, candidate: dict[str, str]) -> None:
+        if resolve_tree(self.repository, candidate["head"]) != candidate["tree"]:
+            raise ScopeViolation("candidate head/tree binding is invalid")
 
     def developer_shadow(self, iteration: int) -> Path:
         """Return controller-owned Git metadata never exposed to Developer."""
@@ -306,51 +329,32 @@ class ContextBroker:
             else:
                 entry.unlink()
 
-        def traversal_error(error: OSError) -> None:
+        try:
+            source_descriptor = os.open(
+                workspace, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            )
+        except OSError as error:
             raise ScopeViolation(
-                f"could not safely read Developer worktree: {error}"
+                f"could not safely open Developer worktree: {error}"
             ) from error
-
-        for root, directories, files in os.walk(
-            workspace,
-            topdown=True,
-            onerror=traversal_error,
-            followlinks=False,
-        ):
-            root_path = Path(root)
-            relative_root = root_path.relative_to(workspace)
-            if ".git" in relative_root.parts:
-                raise ScopeViolation("Developer worktree contains nested Git metadata")
-            for name in tuple(directories):
-                source = root_path / name
-                relative = relative_root / name
-                identity = os.lstat(source)
-                if name == ".git":
-                    directories.remove(name)
-                    if relative_root != Path("."):
-                        raise ScopeViolation(
-                            "Developer worktree contains nested Git metadata"
-                        )
-                    continue
-                if not stat.S_ISDIR(identity.st_mode):
-                    raise ScopeViolation(
-                        f"Developer worktree entry is not a regular directory: {relative}"
-                    )
-                (shadow / relative).mkdir(parents=True, exist_ok=True)
-            for name in files:
-                source = root_path / name
-                relative = relative_root / name
-                if ".git" in relative.parts:
-                    raise ScopeViolation("Developer worktree contains Git metadata")
-                identity = os.lstat(source)
-                if not stat.S_ISREG(identity.st_mode):
-                    raise ScopeViolation(
-                        f"Developer result has unsupported Git mode: {relative}"
-                    )
-                destination = shadow / relative
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, destination, follow_symlinks=False)
-                os.chmod(destination, stat.S_IMODE(identity.st_mode))
+        try:
+            destination_descriptor = os.open(
+                shadow, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            )
+        except OSError as error:
+            os.close(source_descriptor)
+            raise ScopeViolation(
+                f"could not safely open Developer worktree: {error}"
+            ) from error
+        try:
+            self._copy_regular_tree(
+                source_descriptor,
+                destination_descriptor,
+                Path("."),
+            )
+        finally:
+            os.close(destination_descriptor)
+            os.close(source_descriptor)
 
         self._commit_projection(
             shadow,
@@ -358,6 +362,108 @@ class ContextBroker:
             allow_empty=True,
         )
         return shadow
+
+    @classmethod
+    def _copy_regular_tree(
+        cls,
+        source_directory: int,
+        destination_directory: int,
+        relative_root: Path,
+    ) -> None:
+        """Copy a role tree with descriptor-relative, no-follow traversal."""
+
+        try:
+            names = sorted(os.listdir(source_directory))
+        except OSError as error:
+            raise ScopeViolation(
+                f"could not enumerate Developer worktree at {relative_root}: {error}"
+            ) from error
+        for name in names:
+            relative = relative_root / name
+            if name == ".git":
+                if relative_root != Path("."):
+                    raise ScopeViolation(
+                        "Developer worktree contains nested Git metadata"
+                    )
+                continue
+            try:
+                identity = os.stat(
+                    name,
+                    dir_fd=source_directory,
+                    follow_symlinks=False,
+                )
+                if stat.S_ISDIR(identity.st_mode):
+                    source_child = os.open(
+                        name,
+                        os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                        dir_fd=source_directory,
+                    )
+                    try:
+                        opened = os.fstat(source_child)
+                        if (opened.st_dev, opened.st_ino) != (
+                            identity.st_dev,
+                            identity.st_ino,
+                        ):
+                            raise ScopeViolation(
+                                "Developer directory identity changed while sealing: "
+                                f"{relative}"
+                            )
+                        os.mkdir(name, mode=0o700, dir_fd=destination_directory)
+                        destination_child = os.open(
+                            name,
+                            os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                            dir_fd=destination_directory,
+                        )
+                        try:
+                            cls._copy_regular_tree(
+                                source_child,
+                                destination_child,
+                                relative,
+                            )
+                        finally:
+                            os.close(destination_child)
+                    finally:
+                        os.close(source_child)
+                    continue
+                if not stat.S_ISREG(identity.st_mode):
+                    raise ScopeViolation(
+                        f"Developer result has unsupported Git mode: {relative}"
+                    )
+                source_file = os.open(
+                    name,
+                    os.O_RDONLY | os.O_NOFOLLOW,
+                    dir_fd=source_directory,
+                )
+                try:
+                    opened = os.fstat(source_file)
+                    if (opened.st_dev, opened.st_ino) != (
+                        identity.st_dev,
+                        identity.st_ino,
+                    ) or not stat.S_ISREG(opened.st_mode):
+                        raise ScopeViolation(
+                            f"Developer file identity changed while sealing: {relative}"
+                        )
+                    destination_file = os.open(
+                        name,
+                        os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                        0o600,
+                        dir_fd=destination_directory,
+                    )
+                    try:
+                        while chunk := os.read(source_file, 1024 * 1024):
+                            view = memoryview(chunk)
+                            while view:
+                                written = os.write(destination_file, view)
+                                view = view[written:]
+                        os.fchmod(destination_file, stat.S_IMODE(opened.st_mode))
+                    finally:
+                        os.close(destination_file)
+                finally:
+                    os.close(source_file)
+            except OSError as error:
+                raise ScopeViolation(
+                    f"could not safely seal Developer entry {relative}: {error}"
+                ) from error
 
     def _initialize_projection_repository(self, target: Path, label: str) -> None:
         commands = (
@@ -371,10 +477,16 @@ class ContextBroker:
         with tempfile.TemporaryDirectory(
             prefix="empty-hooks-", dir=self.state_root
         ) as hooks_directory:
+            environment = sanitized_git_environment(home=hooks_directory)
             for command in commands:
                 process = subprocess.run(
-                    ["git", "-c", f"core.hooksPath={hooks_directory}", *command],
+                    git_command(
+                        "-c",
+                        f"init.templateDir={hooks_directory}",
+                        *command,
+                    ),
                     cwd=target,
+                    env=environment,
                     check=False,
                     capture_output=True,
                     text=True,
@@ -395,18 +507,17 @@ class ContextBroker:
         with tempfile.TemporaryDirectory(
             prefix="empty-hooks-", dir=self.state_root
         ) as hooks_directory:
+            environment = sanitized_git_environment(home=hooks_directory)
             added = subprocess.run(
-                ["git", "-c", f"core.hooksPath={hooks_directory}", "add", "--all"],
+                git_command("add", "--all"),
                 cwd=target,
+                env=environment,
                 check=False,
                 capture_output=True,
                 text=True,
             )
             command = [
-                "git",
-                "-c",
-                f"core.hooksPath={hooks_directory}",
-                "commit",
+                *git_command("-c", "commit.gpgsign=false", "commit"),
                 "--quiet",
                 "--message",
                 message,
@@ -416,6 +527,7 @@ class ContextBroker:
             committed = subprocess.run(
                 command,
                 cwd=target,
+                env=environment,
                 check=False,
                 capture_output=True,
                 text=True,

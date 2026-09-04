@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import stat
 import subprocess
 from pathlib import Path
@@ -22,6 +23,7 @@ from agent_pack.executors.hoh.executors import (
     RoleInvocation,
     ScriptedExecutor,
 )
+from agent_pack.executors.hoh.identity import head_identity
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
     ExecutorUnavailable,
@@ -137,6 +139,11 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     assert "OPENAI_API_KEY" not in kwargs["env"]
     assert set(kwargs["env"]) == {
         "CODEX_HOME",
+        "GIT_ATTR_NOSYSTEM",
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_NOSYSTEM",
+        "GIT_NO_REPLACE_OBJECTS",
+        "GIT_TERMINAL_PROMPT",
         "HOME",
         "LANG",
         "LC_ALL",
@@ -356,6 +363,7 @@ def test_protected_context_request_is_rejected_and_not_disclosed(
             Role.PLANNER,
             ["private_validator/official_cases/seed.txt"],
             iteration=1,
+            candidate=head_identity(repository),
         )
 
 
@@ -370,9 +378,24 @@ def test_projection_commit_ignores_ambient_git_hooks(
     hook = hooks / "pre-commit"
     hook.write_text(f"#!/bin/sh\n/usr/bin/touch {sentinel}\n", encoding="utf-8")
     hook.chmod(0o755)
+    template = tmp_path / "ambient-template"
+    template.mkdir()
+    (template / "injected-template-file").write_text("ambient\n", encoding="utf-8")
+    (repository / ".gitattributes").write_text(
+        "src.txt filter=ambient\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "add", ".gitattributes"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "commit", "--quiet", "--message", "attributes fixture"],
+        cwd=repository,
+        check=True,
+    )
     global_config = tmp_path / "global-git-config"
     global_config.write_text(
-        f"[core]\n\thooksPath = {hooks}\n",
+        f"[core]\n\thooksPath = {hooks}\n"
+        f"[init]\n\ttemplateDir = {template}\n"
+        f'[filter "ambient"]\n\tclean = /usr/bin/touch {sentinel}\n'
+        f"\tsmudge = /usr/bin/touch {sentinel}\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(global_config))
@@ -383,11 +406,80 @@ def test_projection_commit_ignores_ambient_git_hooks(
     broker.projection(
         Role.PLANNER,
         1,
-        ("ticket.md",),
-        {"head": "a" * 40, "tree": "b" * 40},
+        (".gitattributes", "src.txt", "ticket.md"),
+        head_identity(repository),
     )
 
     assert not sentinel.exists()
+    assert not (
+        broker.state_root / "projections/1/planner/.git/injected-template-file"
+    ).exists()
+
+
+def test_projection_materializes_exact_candidate_blobs_not_live_worktree(
+    tmp_path: Path,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    candidate = head_identity(repository)
+    (repository / "src.txt").write_text("uncommitted verifier swap\n", encoding="utf-8")
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+
+    projection = broker.projection(
+        Role.TESTER,
+        1,
+        ("src.txt", "verify.py"),
+        candidate,
+    )
+
+    assert (projection / "src.txt").read_text(encoding="utf-8") == "base\n"
+    assert (repository / "src.txt").read_text(encoding="utf-8") == (
+        "uncommitted verifier swap\n"
+    )
+
+
+def test_developer_seal_rejects_symlink_swap_without_touching_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, requirements = make_repository(tmp_path)
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+    workspace = broker.projection(
+        Role.DEVELOPER,
+        1,
+        ("src.txt",),
+        head_identity(repository),
+    )
+    outside = tmp_path / "outside-target"
+    outside.write_text("must survive\n", encoding="utf-8")
+    outside.chmod(0o640)
+    original_open = os.open
+    swapped = False
+
+    def swap_before_open(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal swapped
+        if (
+            path == "src.txt"
+            and dir_fd is not None
+            and flags & os.O_DIRECTORY == 0
+            and flags & os.O_ACCMODE == os.O_RDONLY
+            and not swapped
+        ):
+            swapped = True
+            (workspace / "src.txt").unlink()
+            (workspace / "src.txt").symlink_to(outside)
+        return original_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(os, "open", swap_before_open)
+    with pytest.raises(ScopeViolation, match="safely seal Developer entry"):
+        broker.seal_developer_projection(workspace, 1)
+
+    assert swapped
+    assert outside.read_text(encoding="utf-8") == "must survive\n"
+    assert stat.S_IMODE(outside.stat().st_mode) == 0o640
 
 
 def test_projection_cleanup_never_follows_role_created_symlinks(
@@ -397,7 +489,7 @@ def test_projection_cleanup_never_follows_role_created_symlinks(
     executor = ScriptedExecutor({})
     manifest = run_manifest(repository, requirements, executor)
     broker = ContextBroker(repository, tmp_path / "state", manifest)
-    candidate = {"head": "a" * 40, "tree": "b" * 40}
+    candidate = head_identity(repository)
     projection = broker.projection(
         Role.DEVELOPER,
         1,
@@ -457,7 +549,12 @@ def test_root_level_protected_context_is_rejected(tmp_path: Path) -> None:
     manifest["context_allow_paths"]["planner"] = ["**"]
     broker = ContextBroker(repository, tmp_path / "state", manifest)
     with pytest.raises(ScopeViolation, match="protected"):
-        broker.grant(Role.PLANNER, ["hidden_evaluation/case.json"], iteration=1)
+        broker.grant(
+            Role.PLANNER,
+            ["hidden_evaluation/case.json"],
+            iteration=1,
+            candidate=head_identity(repository),
+        )
 
 
 def test_default_state_store_is_under_git_common_directory(tmp_path: Path) -> None:

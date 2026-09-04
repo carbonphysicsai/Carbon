@@ -57,10 +57,42 @@ def normalized_repo_path(raw: str) -> str:
     return normalized
 
 
+def sanitized_git_environment(
+    *, home: str = "/nonexistent-carbon-hoh-home"
+) -> dict[str, str]:
+    """Return the complete environment for controller-authority Git commands."""
+
+    return {
+        "GIT_ATTR_NOSYSTEM": "1",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_NO_REPLACE_OBJECTS": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+        "HOME": home,
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PATH": "/usr/bin:/bin",
+    }
+
+
+def git_command(*arguments: str) -> list[str]:
+    """Build a Git command with executable local hooks and fsmonitor disabled."""
+
+    return [
+        "git",
+        "-c",
+        "core.fsmonitor=false",
+        "-c",
+        "core.hooksPath=/dev/null",
+        *arguments,
+    ]
+
+
 def _git(repository: Path, *arguments: str) -> str:
     process = subprocess.run(
-        ["git", *arguments],
+        git_command(*arguments),
         cwd=repository,
+        env=sanitized_git_environment(),
         check=False,
         capture_output=True,
         text=True,
@@ -71,6 +103,26 @@ def _git(repository: Path, *arguments: str) -> str:
             f"git {' '.join(arguments)!r} failed: {detail or 'no diagnostic'}"
         )
     return process.stdout.strip()
+
+
+def git_bytes(repository: Path, *arguments: str) -> bytes:
+    """Run one read-only controller Git command and return exact stdout bytes."""
+
+    process = subprocess.run(
+        git_command(*arguments),
+        cwd=repository,
+        env=sanitized_git_environment(),
+        check=False,
+        capture_output=True,
+    )
+    if process.returncode:
+        detail = (
+            (process.stderr or process.stdout).decode("utf-8", errors="replace").strip()
+        )
+        raise IdentityMismatch(
+            f"git {' '.join(arguments)!r} failed: {detail or 'no diagnostic'}"
+        )
+    return process.stdout
 
 
 def resolve_repository_root(repository: Path) -> Path:
@@ -107,8 +159,9 @@ def require_ancestor(repository: Path, ancestor: str, descendant: str) -> None:
     """Require one exact commit to be an ancestor of another exact commit."""
 
     process = subprocess.run(
-        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        git_command("merge-base", "--is-ancestor", ancestor, descendant),
         cwd=repository,
+        env=sanitized_git_environment(),
         check=False,
         capture_output=True,
         text=True,
@@ -132,6 +185,8 @@ def changed_paths(
     output = _git(
         repository,
         "diff",
+        "--no-ext-diff",
+        "--no-textconv",
         "--no-renames",
         "--name-only",
         "--diff-filter=ACDMRTUXB",
@@ -143,8 +198,8 @@ def changed_paths(
     )
 
 
-def tracked_paths(repository: Path) -> tuple[str, ...]:
-    output = _git(repository, "ls-files")
+def tracked_paths(repository: Path, reference: str = "HEAD") -> tuple[str, ...]:
+    output = _git(repository, "ls-tree", "-r", "--name-only", reference, "--")
     return tuple(normalized_repo_path(line) for line in output.splitlines() if line)
 
 
@@ -154,3 +209,40 @@ def git_blob(repository: Path, reference: str, path: str) -> str:
     if not GIT_OID_RE.fullmatch(value):
         raise IdentityMismatch(f"invalid Git blob for {reference}:{normalized}")
     return value
+
+
+def git_blob_bytes(repository: Path, reference: str, path: str) -> bytes:
+    """Read one regular-file blob from an immutable tree without filters."""
+
+    normalized = normalized_repo_path(path)
+    entry = _git(repository, "ls-tree", reference, "--", normalized)
+    fields, separator, recorded = entry.partition("\t")
+    metadata = fields.split()
+    if (
+        not separator
+        or recorded != normalized
+        or len(metadata) != 3
+        or metadata[0] not in {"100644", "100755"}
+        or metadata[1] != "blob"
+        or not GIT_OID_RE.fullmatch(metadata[2])
+    ):
+        raise ScopeViolation(f"candidate path is not a regular Git blob: {normalized}")
+    return git_bytes(repository, "cat-file", "blob", metadata[2])
+
+
+def git_file_mode(repository: Path, reference: str, path: str) -> int:
+    """Return the executable mode of one exact regular-file tree entry."""
+
+    normalized = normalized_repo_path(path)
+    entry = _git(repository, "ls-tree", reference, "--", normalized)
+    fields, separator, recorded = entry.partition("\t")
+    metadata = fields.split()
+    if (
+        not separator
+        or recorded != normalized
+        or len(metadata) != 3
+        or metadata[0] not in {"100644", "100755"}
+        or metadata[1] != "blob"
+    ):
+        raise ScopeViolation(f"candidate path is not a regular Git blob: {normalized}")
+    return 0o755 if metadata[0] == "100755" else 0o644

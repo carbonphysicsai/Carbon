@@ -86,13 +86,13 @@ def developer_packet(invocation: RoleInvocation) -> dict[str, Any]:
 
 def evidence_packet(
     invocation: RoleInvocation,
-    repository: Path,
+    _repository: Path,
     statuses: dict[str, str],
 ) -> dict[str, Any]:
     packet = controller_packet(invocation)
     results = []
     for requirement_id, status in sorted(statuses.items()):
-        evidence = accepted_evidence(repository, requirement_id)
+        evidence = accepted_evidence(invocation.workspace, requirement_id)
         results.append(
             {
                 "requirement_id": requirement_id,

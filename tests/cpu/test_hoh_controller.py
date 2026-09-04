@@ -10,7 +10,11 @@ import pytest
 
 from agent_pack.executors.hoh.controller import HarnessController
 from agent_pack.executors.hoh.executors import ManualExecutor, ScriptedExecutor
-from agent_pack.executors.hoh.identity import digest_file, head_identity
+from agent_pack.executors.hoh.identity import (
+    digest_file,
+    head_identity,
+    require_clean_worktree,
+)
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
     ExecutorUnavailable,
@@ -228,7 +232,8 @@ def test_developer_is_bound_to_workspace_and_plan_scope(tmp_path: Path) -> None:
     assert not (
         invocation.workspace / "private_validator" / "official_cases" / "seed.txt"
     ).exists()
-    assert (repository / "src.txt").read_text(encoding="utf-8") == "bounded\n"
+    assert git(repository, "show", "HEAD:src.txt") == "bounded"
+    assert (repository / "src.txt").read_text(encoding="utf-8") == "base\n"
 
 
 def test_unexpected_path_expansion_fails_closed(tmp_path: Path) -> None:
@@ -696,10 +701,16 @@ def test_regression_must_lead_next_plan(tmp_path: Path) -> None:
     controller.step()
     controller.step()
     state = controller.snapshot()
+    evidence_workspace = controller.context.projection(
+        Role.TESTER,
+        99,
+        ("src.txt", "verify.py"),
+        state["candidate"],
+    )
     state["requirements"][0] = {
         "id": "REQ-001",
         "status": "VERIFIED",
-        "accepted_evidence": [accepted_evidence(repository, "REQ-001")],
+        "accepted_evidence": [accepted_evidence(evidence_workspace, "REQ-001")],
         "failure_reason": None,
         "failure_evidence": [],
     }
@@ -851,6 +862,49 @@ def test_external_candidate_commit_during_developer_is_preserved(
     assert git(repository, "log", "-1", "--format=%s") == "concurrent external commit"
 
 
+def test_controller_git_status_ignores_candidate_local_fsmonitor(
+    tmp_path: Path,
+) -> None:
+    repository, _requirements = make_repository(tmp_path)
+    sentinel = tmp_path / "fsmonitor-ran"
+    monitor = tmp_path / "malicious-fsmonitor"
+    monitor.write_text(
+        f"#!/bin/sh\n/usr/bin/touch {sentinel}\n",
+        encoding="utf-8",
+    )
+    monitor.chmod(0o755)
+    git(repository, "config", "core.fsmonitor", str(monitor))
+
+    require_clean_worktree(repository)
+
+    assert not sentinel.exists()
+
+
+def test_candidate_ref_drift_before_projection_fails_before_role_invocation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executor = ScriptedExecutor({Role.PLANNER: [plan_packet]})
+    controller, repository, _ = _controller(tmp_path, executor)
+    controller.initialize()
+    original_grant = controller.context.grant
+    injected = False
+
+    def drift(*args, **kwargs):
+        nonlocal injected
+        if not injected:
+            injected = True
+            commit_file(repository, "external.txt", "drift\n", "external drift")
+        return original_grant(*args, **kwargs)
+
+    monkeypatch.setattr(controller.context, "grant", drift)
+    with pytest.raises(IdentityMismatch, match="changed before PLANNER invocation"):
+        controller.step()
+
+    assert injected
+    assert executor.invocations == []
+
+
 def test_candidate_import_ignores_repository_git_hooks(tmp_path: Path) -> None:
     executor = ScriptedExecutor(
         {
@@ -906,7 +960,8 @@ def test_controller_never_executes_developer_owned_git_metadata(tmp_path: Path) 
 
     assert controller.step()["phase"] == "TESTING"
     assert not sentinel.exists()
-    assert (repository / "src.txt").read_text(encoding="utf-8") == "bounded change\n"
+    assert git(repository, "show", "HEAD:src.txt") == "bounded change"
+    assert (repository / "src.txt").read_text(encoding="utf-8") == "base\n"
 
 
 def test_candidate_import_preserves_post_cas_external_commit(
@@ -929,17 +984,16 @@ def test_candidate_import_preserves_post_cas_external_commit(
     def race(command, *args, **kwargs):
         nonlocal injected
         normalized = [str(item) for item in command]
-        if (
-            "read-tree" in normalized
-            and "-u" in normalized
-            and kwargs.get("cwd") == repository
-            and not injected
-        ):
+        result = original_run(command, *args, **kwargs)
+        if "update-ref" in normalized and "HEAD" in normalized and not injected:
             injected = True
+            (repository / "src.txt").write_text(
+                "intentional external reversion\n", encoding="utf-8"
+            )
             target = repository / "external.txt"
             target.write_text("must survive post-check race\n", encoding="utf-8")
             added = original_run(
-                ["git", "add", "external.txt"],
+                ["git", "add", "--all"],
                 cwd=repository,
                 check=False,
                 capture_output=True,
@@ -954,17 +1008,24 @@ def test_candidate_import_preserves_post_cas_external_commit(
             )
             assert added.returncode == 0
             assert committed.returncode == 0
-        return original_run(command, *args, **kwargs)
+        return result
 
     monkeypatch.setattr("subprocess.run", race)
-    with pytest.raises(IdentityMismatch, match="no external ref was rolled back"):
+    with pytest.raises(
+        IdentityMismatch, match="no external ref or shared checkout was modified"
+    ):
         controller.step()
 
     assert injected
     assert (repository / "external.txt").read_text(encoding="utf-8") == (
         "must survive post-check race\n"
     )
+    assert (repository / "src.txt").read_text(encoding="utf-8") == (
+        "intentional external reversion\n"
+    )
     assert git(repository, "log", "-1", "--format=%s") == "post-check external"
+    assert git(repository, "status", "--porcelain=v1", "--untracked-files=all") == ""
+    assert git(repository, "write-tree") == git(repository, "rev-parse", "HEAD^{tree}")
 
 
 def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:

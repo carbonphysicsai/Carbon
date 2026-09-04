@@ -10334,9 +10334,11 @@ the same read-only, root-denying, network-disabled profile, the manual executor
 fails unavailable, and direct subprocess replay exists only in the explicitly
 synthetic test executor. The controller imports only its plan/run-allow-listed
 committed patch into the dedicated ticket worktree and never uses
-`danger-full-access`. Every controller-owned Git commit forces a fresh empty
-hooks directory so repository or ambient hooks cannot execute with controller
-authority.
+`danger-full-access`. Candidate installation is a ref-only compare-and-swap;
+the controller never synchronizes or resets the shared checkout. Every
+controller-authority Git command suppresses system/global configuration,
+repository fsmonitor and hooks, ambient templates, and applicable external
+filter/diff execution.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 
@@ -10346,10 +10348,12 @@ namespaces, and are logged with content digests. Protected hidden-evaluation
 data, credentials, private validator state, and reconstruction-sensitive
 identifiers are rejected from packets and persisted state. Run manifests cannot
 remove the mandatory protection set; Developer imports use the same root-aware
-matcher, accept regular-file Git modes only, and roll back only exact
-controller-attributable identity/content. External drift is preserved and
-fails closed. Projection cleanup never follows or chmods through role-created
-symlinks. Final resume re-grants persisted Tester paths
+matcher and accept regular-file Git modes only. Every role projection is
+materialized from immutable blobs and modes in the exact state-bound candidate
+tree, never the mutable checkout. Developer sealing uses descriptor-relative
+no-follow traversal, copying, and mode changes. External ref, index, and
+worktree drift is preserved and fails closed. Projection cleanup never follows
+or chmods through role-created symlinks. Final resume re-grants persisted Tester paths
 through this same role allow-list before reconstructing the evidence projection.
 
 ## B-01H-D6 — Final candidate is delivery handoff only

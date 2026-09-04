@@ -9,7 +9,7 @@ authority + ticket + requirements
 → strict IterationPlan
 → workspace-write Developer in a sanitized projection
 → controller-validated patch import into one dedicated ticket worktree
-→ exact clean candidate head/tree freeze
+→ exact candidate ref/tree freeze without shared-checkout mutation
 → fresh read-only Tester projection
 → strict IterationEvidence
 → deterministic replan / pause / final-candidate handoff
@@ -46,8 +46,12 @@ writable projection's `.git`, copies only regular worktree files into a
 controller-owned shadow repository, and imports only the plan/run-allow-listed
 patch into the dedicated ticket worktree. It constructs the candidate commit
 off-ref from the exact expected parent/tree and installs it only with an atomic
-compare-and-swap; concurrent external ref or worktree changes are preserved and
-fail closed. Mandatory
+ref-only compare-and-swap. It never synchronizes or resets the shared checkout;
+all later role context is rebuilt from immutable blobs in the state-bound tree,
+so concurrent external ref, index, or worktree changes are preserved and fail
+closed. Every controller-authority Git subprocess suppresses system/global
+configuration, hooks, fsmonitor, templates, external diffs, and applicable
+filter execution. Mandatory
 protected patterns cannot be removed by a run manifest, only regular-file Git
 modes are importable, and projection cleanup never follows role-created
 symlinks.
@@ -70,8 +74,8 @@ $(git rev-parse --git-common-dir)/.carbon-hoh/runs/<run-id>/
 ```
 
 This state is outside tracked content. Resume revalidates the exact run
-manifest digest, authority ref/commit/tree, ticket bytes, requirements bytes,
-role profiles, clean candidate head/tree, and protected-context boundary.
+manifest digest, authority ref/commit/tree, immutable ticket and requirements
+blobs, role profiles, exact candidate ref/tree, and protected-context boundary.
 `resume` also proves authority ancestry, recomputes and reauthorizes the exact
 Git changed-path manifest and regular-file modes, rejects lifecycle-incoherent
 phase/plan/requirement/regression state, reauthorizes every persisted Tester
@@ -100,7 +104,10 @@ that role's `context_allow_paths`, rejects protected/out-of-authority requests,
 records every disclosed path and SHA-256, and re-invokes the role. Every role
 receives a disposable Git projection containing only granted paths; the
 Developer projection is writable, while Planner and Tester projections are
-read-only.
+read-only. Projection bytes and executable modes come from the exact candidate
+tree rather than the mutable shared checkout. Developer sealing traverses and
+copies only through no-follow file descriptors and never applies a path-based
+mode change to role-controlled content.
 
 A requirements manifest also binds an exact closed command allow-list for each
 requirement. Tester evidence must name a disclosed verifier artifact, its
