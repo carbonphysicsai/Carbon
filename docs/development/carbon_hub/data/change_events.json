@@ -325,6 +325,33 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "OWNER-DX-02"
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "adjustment",
+      "event_id": "OWNER-HUB-01",
+      "owner_lane": "carbon_owner",
+      "status": "implemented",
+      "summary": "The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/81",
+      "affects": [
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-A",
+        "WAVE-B",
+        "WAVE-C",
+        "WAVE-D",
+        "WAVE-E",
+        "WAVE-F",
+        "WAVE-G",
+        "WAVE-H",
+        "WAVE-I",
+        "WAVE-J",
+        "WAVE-K",
+        "WAVE-L",
+        "WAVE-M",
+        "WAVE-N"
+      ],
+      "supersedes": null
     }
   ]
 }

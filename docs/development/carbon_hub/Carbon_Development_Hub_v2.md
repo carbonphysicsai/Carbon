@@ -99,6 +99,7 @@
 - `GOV-REVIEW-01-D1` — `SYSTEM/DEVELOPMENT-SEQUENCING` — The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.
 - `OWNER-DX-02` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot.
 - `B-01H-E1` — `SYSTEM/AGENT-EXECUTION` — The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted.
+- `OWNER-HUB-01` — `SYSTEM/DEVELOPMENT-HUB` — The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.
 
 ## Authority boundary
 

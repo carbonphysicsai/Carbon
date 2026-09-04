@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0",
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+  "product_decision": "OWNER-HUB-01",
+  "tickets": {
+    "A-1": {
+      "title": "Map the repository before building",
+      "what": "Identify which documents and code are authoritative, what is current, and what is legacy or future.",
+      "why": "Carbon cannot build safely if later work mistakes an old plan or future design for current truth.",
+      "changes": "The team gets one bounded starting map for the build.",
+      "not_yet": "This ticket does not implement Carbon behavior.",
+      "map_ref": "WAVE-A/A-1"
+    },
+    "A0": {
+      "title": "Give each part of Carbon a clear home",
+      "what": "Create a stable software layout so scoring, hidden-test handling, submissions, results, and later services have separate owners.",
+      "why": "Clear boundaries reduce the chance that one module silently takes authority from another.",
+      "changes": "Later work can add behavior without inventing the software structure again.",
+      "not_yet": "A clean package layout proves no scientific behavior.",
+      "map_ref": "WAVE-A/A0"
+    },
+    "A1": {
+      "title": "Create a common automated test path",
+      "what": "Set up repeatable CPU tests and preserve the code-quality pipeline.",
+      "why": "Every later change needs the same basic engineering proof before it can be called complete.",
+      "changes": "Carbon gets a shared automated evidence lane for software changes.",
+      "not_yet": "Passing software tests does not prove scientific correctness or production readiness.",
+      "map_ref": "WAVE-A/A1"
+    },
+    "A2": {
+      "title": "Define what a participant is allowed to submit",
+      "what": "Create a strict, declarative strategy format and reject malformed submissions before anything executes.",
+      "why": "Participants need freedom to propose methods without receiving arbitrary execution authority.",
+      "changes": "Carbon can accept one bounded strategy object that later stages can rebuild and test.",
+      "not_yet": "This ticket does not train, rebuild, or grade a model.",
+      "map_ref": "WAVE-A/A2"
+    },
+    "A3": {
+      "title": "Make sure Carbon knows the exact exam it is running",
+      "what": "Give every Challenge an exact registered identity and refuse activation when the required identity or qualification does not match.",
+      "why": "The system must never grade against an ambiguous or substituted exam.",
+      "changes": "Later components can bind their work to one exact Challenge version and fail closed on a mismatch.",
+      "not_yet": "An identity check does not scientifically qualify the exam.",
+      "map_ref": "WAVE-A/A3"
+    },
+    "A4": {
+      "title": "Keep training, practice, and hidden testing separate",
+      "what": "Separate the random information used for different roles and test for accidental leakage between them.",
+      "why": "A hidden evaluation stops being meaningful if competitors can infer the official test material from training or practice.",
+      "changes": "Carbon has explicit separation and leakage guards for its different sources of randomness.",
+      "not_yet": "Random-seed separation alone does not prove the entire exam is free from information leakage.",
+      "map_ref": "WAVE-A/A4"
+    },
+    "A5": {
+      "title": "Make the scoring code execute fixed rules",
+      "what": "Build a bounded scoring engine that applies registered pass/fail and ranking rules to controlled test data.",
+      "why": "The evaluator should execute scientific policy that was defined in advance, not invent rules after seeing results.",
+      "changes": "Carbon has one place that can apply fixed eligibility and ranking rules to evidence.",
+      "not_yet": "This does not create a production-qualified exam or make scores comparable across different Challenges.",
+      "map_ref": "WAVE-A/A5"
+    },
+    "A6": {
+      "title": "Keep private evidence separate from public results",
+      "what": "Store useful internal result information while exposing only fields that are safe to publish.",
+      "why": "Carbon needs detailed evidence for review without leaking hidden tests or private information.",
+      "changes": "The system gains an explicit disclosure boundary between internal records and public projections.",
+      "not_yet": "This does not authorize public production publication.",
+      "map_ref": "WAVE-A/A6"
+    },
+    "A7": {
+      "title": "Track a submission from start to finish without mixing failure types",
+      "what": "Give submissions exact identity and lifecycle states, and distinguish scientific failure from infrastructure failure, cancellation, and refund handling.",
+      "why": "A broken machine, a failed model, and an economic refund are different events and need different records.",
+      "changes": "Carbon gets a bounded lifecycle for submissions and their terminal outcomes.",
+      "not_yet": "This does not implement treasury settlement, chain economics, or live payments.",
+      "map_ref": "WAVE-A/A7"
+    },
+    "A8": {
+      "title": "Test the evaluation lifecycle with a safe fake backend",
+      "what": "Run the official-shaped workflow against deterministic fixtures before real training or participant code exists.",
+      "why": "Carbon needs to prove the pieces connect correctly before putting real execution behind them.",
+      "changes": "The team can exercise the lifecycle end to end with controlled local behavior.",
+      "not_yet": "This does not run real training, arbitrary code, production sandboxes, or emissions.",
+      "map_ref": "WAVE-A/A8"
+    },
+    "A9": {
+      "title": "Give researchers a small, stable way to interact with Carbon",
+      "what": "Expose a fixed local interface for Challenge information, practice scaffolding, validation, resource estimates, submission, and result lookup.",
+      "why": "Researchers need a stable interface before Carbon adds remote networking or richer research services.",
+      "changes": "Carbon gets a bounded participant-facing interface that later network layers can wrap.",
+      "not_yet": "This does not add authentication, remote transport, production quotas, or production content.",
+      "map_ref": "WAVE-A/A9"
+    },
+    "A10": {
+      "title": "Publish rankings without leaking the hidden exam",
+      "what": "Create a public leaderboard view that exposes only approved result fields.",
+      "why": "A leaderboard should show useful ranking information without exposing private evidence or pretending to be a frontier decision.",
+      "changes": "Carbon can publish a bounded public ranking projection.",
+      "not_yet": "This does not prove a scientific frontier advance or qualify a product.",
+      "map_ref": "WAVE-A/A10"
+    },
+    "A11": {
+      "title": "Make failures and system behavior observable without exposing protected data",
+      "what": "Record structured runtime state, failure categories, retry information, environment information, and safe evidence identifiers.",
+      "why": "Operators need enough information to diagnose the system while the hidden exam stays hidden.",
+      "changes": "Carbon gets a bounded logging and metrics contract for review and operations.",
+      "not_yet": "This does not grant access to protected cases or establish production operations.",
+      "map_ref": "WAVE-A/A11"
+    },
+    "A12": {
+      "title": "Test the boundaries themselves and close the foundation wave",
+      "what": "Check that forbidden cross-boundary behavior stays forbidden, not just that the happy path works.",
+      "why": "Individual features can pass while the system still violates a trust boundary.",
+      "changes": "Carbon gets a bounded closeout proof that the Wave A software boundaries hold in the recorded scope.",
+      "not_yet": "Wave A closeout does not advance scientific, security, network, commercial, or production qualification.",
+      "map_ref": "WAVE-A/A12"
+    }
+  }
+}
