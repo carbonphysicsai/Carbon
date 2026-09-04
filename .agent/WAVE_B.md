@@ -46,7 +46,7 @@ completion predicate and selected B-05 `in_progress but NOT STARTED` at main
 B-01H before B-05 as a bounded development-system ticket. B-05 returns to
 `todo` without changing its Definition of Done and remains the next scientific
 ticket and first planned harness pilot. B-01G remains todo and non-blocking.
-**B-01H conditional closeout:** Version 1.5 prepares B-01H `done` in bounded
+**B-01H conditional closeout:** Version 1.6 prepares B-01H `done` in bounded
 development-tooling scope and B-05 `in_progress` as its first pilot only after
 the exact B-01H final head passes scope-required checks and `Merge gate`, fresh
 complete-diff Codex/GPT review, finding closure, distinct non-author approval
