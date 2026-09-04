@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 15 map-level change events
+- 16 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-01H** (`in_progress`). OWNER-DX-02 interposes B-01H after completed B-04 and before any B-05 science. The bounded harness candidate is implemented and focused host diagnostics pass, but completion and maturity remain conditional on Carbon's exact-head review, approval, merge, exact-main, and external-receipt predicate.
+Wave **B**, ticket **B-05** (`in_progress`). Version 1.5 prepares B-01H done in bounded development-tooling scope and B-05 in_progress as the first harness pilot only after B-01H's complete delivery predicate. Before that predicate B-01H remains authoritative in_progress and B-05 remains todo and not started; no B-05 science exists.
 
 ## Maintain
 
