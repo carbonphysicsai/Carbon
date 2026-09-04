@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Contract checks for the newcomer-first static Development Hub."""
 
 from __future__ import annotations

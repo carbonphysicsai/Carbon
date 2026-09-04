@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Compatibility entry point for newcomer-aware Hub generation.
 
 The newcomer projection is part of the normal deterministic Hub build. This

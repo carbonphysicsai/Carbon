@@ -324,9 +324,9 @@ def render_exam_map(exam: dict[str, Any]) -> str:
                 f'<details><summary>Engineer explanation</summary><p>{esc(step["engineer"])}</p></details>'
                 f'<details><summary>CFD explanation</summary><p>{esc(step["cfd"])}</p></details>'
                 f'<details><summary>Physics PhD explanation</summary><p>{esc(step["physics_phd"])}</p></details>'
-                '</div>'
+                "</div>"
                 f'<p><strong>Maturity / authority note:</strong> {esc(step["maturity_note"])}</p>'
-                f'<h5>Technical authority</h5>{authority_links}</article>'
+                f"<h5>Technical authority</h5>{authority_links}</article>"
             )
         layers.append(
             f'<section class="exam-layer" aria-labelledby="exam-layer-{esc(layer["id"])}">'
