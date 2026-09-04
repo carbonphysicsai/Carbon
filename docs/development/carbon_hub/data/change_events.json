@@ -285,6 +285,28 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "decision",
+      "event_id": "OWNER-DX-02",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5540037858",
+      "affects": [
+        "WAVE-B/B-01F",
+        "WAVE-B/B-01G",
+        "WAVE-B/B-01H",
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

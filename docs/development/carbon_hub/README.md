@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 41 captured tickets across Wave A and Wave B
+- 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 14 map-level change events
+- 15 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-05** (`in_progress`). Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
+Wave **B**, ticket **B-01H** (`in_progress`). OWNER-DX-02 interposes B-01H after completed B-04 and before any B-05 science. The bounded harness candidate is implemented and focused host diagnostics pass, but completion and maturity remain conditional on Carbon's exact-head review, approval, merge, exact-main, and external-receipt predicate.
 
 ## Maintain
 
