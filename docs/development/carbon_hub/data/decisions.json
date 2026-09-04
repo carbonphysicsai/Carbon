@@ -541,7 +541,7 @@
       "status": "OWNER_AUTHORIZED_WORKING_DECISION",
       "audience": "harsh",
       "question": "Should Carbon interpose a bounded identity-bound Planner/Developer/Tester controller after completed B-04 and before B-05 without changing B-05 science or final delivery authority?",
-      "recommendation": "KEEP OWNER-DX-02 and B-01H-D1 through B-01H-D6: deterministic controller advancement, exact identities, independent hash-bound Tester evidence, regression-first replanning, bounded Codex sandboxes, audited progressive disclosure, and delivery-protocol-only final handoff.",
+      "recommendation": "KEEP OWNER-DX-02 and B-01H-D1 through B-01H-D6: deterministic controller advancement, exact identities, manifest-authorized evidence independently replayed by the controller, regression-first replanning, sanitized role projections, audited progressive disclosure, and delivery-protocol-only final handoff.",
       "why": "PR #75 completed B-04 and selected B-05 but explicitly recorded B-05 as not started, allowing the development-system interposition without rewriting scientific requirements or historical evidence.",
       "if_kept": "B-01H can complete only in bounded development-tooling scope, after which B-05 becomes the active first pilot from the receipt-recorded exact main while all scientific and later authority remains human-owned and fail closed.",
       "if_changed": "Update OWNER-DX-02 and the B-01H ticket, plan, role boundaries, schemas, tests, Hub sequencing, and B-05 pilot mapping prospectively before relying on the affected controller behavior.",
@@ -554,7 +554,7 @@
         "SYSTEM/MATURITY"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5540037858",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/commit/0f590443578e7f6bdd714ff32f3563c4fe0d4051"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/commit/8fabdc2d232e022b97070c0cfa1ec1a6a48e035b"
     }
   ]
 }

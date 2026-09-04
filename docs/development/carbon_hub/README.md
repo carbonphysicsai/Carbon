@@ -16,7 +16,7 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 
 ## Captured current position
 
-Wave **B**, ticket **B-05** (`in_progress`). Version 1.5 prepares B-01H done in bounded development-tooling scope and B-05 in_progress as the first harness pilot only after B-01H's complete delivery predicate. Before that predicate B-01H remains authoritative in_progress and B-05 remains todo and not started; no B-05 science exists.
+Wave **B**, ticket **B-01H** (`in_progress`). Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate.
 
 ## Maintain
 
