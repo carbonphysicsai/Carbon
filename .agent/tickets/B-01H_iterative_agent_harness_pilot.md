@@ -1,7 +1,8 @@
 # Ticket B-01H — Carbon Iterative Agent Harness Pilot
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`
+**Status:** `done` only under the conditional completion gate below
+**Execution state before that gate:** authoritative `in_progress`
 **Owner decision:** `OWNER-DX-02`
 **Depends on:** B-01F, completed B-04 delivery predicate
 **Blocks:** B-05 start only; B-01G remains todo and non-blocking

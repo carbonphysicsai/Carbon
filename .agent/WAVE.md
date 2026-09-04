@@ -3,19 +3,23 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.4
-**Selected ticket:** B-01H — `in_progress`
+**Controlling register:** `.agent/WAVE_B.md` version 1.5
+**Selected ticket:** B-05 — `in_progress`
 **Owner sequencing:** `OWNER-DX-02` interposes B-01H after completed B-04 and
 before B-05; B-05 remains the next scientific ticket and first planned pilot
-but is not started
-**B-01H status:** `in_progress` in bounded development-system scope
+only after B-01H's complete delivery predicate
+**Conditional authority:** B-01H `done` and B-05 `in_progress` become
+authoritative only after B-01H's exact completion predicate; before it, B-01H
+remains `in_progress` and B-05 remains `todo` and not started
+**B-01H status:** prospective conditional `done` in bounded development-system
+scope
 **B-01F status:** `done` in bounded merged development-system scope
 **B-01G status:** `todo`; non-blocking for B-04
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `todo` during the B-01H interposition; it was selected by the
-completed B-04 receipt but remained explicitly not started
+**B-05 status:** `in_progress` only under B-01H's conditional completion
+predicate as the first pilot; all scientific work remains not started before it
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -47,6 +51,21 @@ completed B-04 receipt but remained explicitly not started
 > B-01H's own exact completion predicate. B-01G remains todo and non-blocking.
 > This grants no B-05 science, security, production, network, economics,
 > rights, qualification, `LIVE`, review, or merge authority.
+
+> **B-01H bounded conditional closeout.** The optional controller candidate
+> implements strict identity-bound orchestration, external atomic resume state,
+> isolated roles, accepted-evidence checks, regression-first replanning,
+> protected progressive disclosure, a verified bounded `codex exec` adapter,
+> and the exact-ticket B-05 pilot manifest. Its prepared B-01H `done`, bounded
+> `SPECIFIED`/`IMPLEMENTED`/`TESTED`, and B-05 `in_progress` states become
+> authoritative only after the exact unchanged final head passes every
+> scope-required check and `Merge gate`; fresh read-only Codex/GPT review covers
+> the complete diff with every finding closed; a distinct non-author human
+> approval carries the closed receipt; `GPT review gate` succeeds with zero
+> unresolved threads; normal expected-head merge preserves the reviewed tree;
+> fetched exact main passes `Merge gate`; and the completed external receipt
+> records B-05's exact pilot starting main. If any predicate fails, B-01H
+> remains `in_progress` and B-05 remains `todo` and unstarted.
 
 > **B-02A closed.** PR #60 normally merged exact reviewed head
 > `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree
