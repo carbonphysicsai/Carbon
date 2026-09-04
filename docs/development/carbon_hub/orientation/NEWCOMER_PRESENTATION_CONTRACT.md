@@ -1,10 +1,10 @@
 # Carbon Hub Newcomer Presentation Contract
 
-**Decision:** `OWNER-HUB-01`  
-**Date:** 2026-09-02  
-**Status:** OWNER-DIRECTED presentation architecture  
-**Owner:** Carbon owner  
-**Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`  
+**Decision:** `OWNER-HUB-01`
+**Date:** 2026-09-02
+**Status:** OWNER-DIRECTED presentation architecture
+**Owner:** Carbon owner
+**Primary map ref:** `SYSTEM/DEVELOPMENT-HUB`
 **Authority ceiling:** presentation, orientation, and routing only
 
 ## Decision
