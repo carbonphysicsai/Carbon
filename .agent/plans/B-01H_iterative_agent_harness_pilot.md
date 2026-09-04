@@ -116,10 +116,11 @@ preserved, descriptor-relative no-follow state/projection storage and Developer
 sealing, structured
 failure/regression carry-forward,
 regression-first replanning and handoff blocking, identity-checked pause retry,
-a verified `codex exec` adapter, one-shot manual packet and deterministic test
+a verified `codex exec` adapter with a profile-bound trusted execution path,
+one-shot manual packet and deterministic test
 adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 73 focused tests passing. Ruff
+The native Python 3.11.16 diagnostic reports 74 focused tests passing. Ruff
 0.16.3 passes on the new Python surface, every JSON schema parses, and diff
 hygiene is clean. The real adapter probe identifies `codex-cli
 0.151.0-alpha.7.2` but safely rejects it because its actual Developer exec path

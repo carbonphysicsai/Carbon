@@ -14,6 +14,7 @@ from agent_pack.executors.hoh import cli
 from agent_pack.executors.hoh.codex import (
     REQUIRED_HELP_MARKERS,
     REQUIRED_SANDBOX_HELP_MARKERS,
+    TRUSTED_EXECUTION_PATH,
     CodexExecAdapter,
 )
 from agent_pack.executors.hoh.context import ContextBroker, assert_payload_safe
@@ -92,6 +93,7 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
 
     monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setenv("PATH", f".:{tmp_path}")
     adapter = CodexExecAdapter(model="synthetic-model")
     assert all(kwargs["timeout"] == 15 for _command, kwargs in calls[:4])
     exec_preflights = [
@@ -153,7 +155,11 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
         "TMPDIR",
     }
     assert kwargs["env"]["HOME"] == kwargs["env"]["TMPDIR"]
+    assert kwargs["env"]["PATH"] == TRUSTED_EXECUTION_PATH
+    profile_digest = adapter.profile_digest(Role.TESTER)
 
+    monkeypatch.setenv("PATH", str(tmp_path / "changed-after-start"))
+    assert adapter.profile_digest(Role.TESTER) == profile_digest
     evidence = adapter.execute_evidence(
         EvidenceInvocation(command=("/bin/cat", "visible.txt"), workspace=workspace)
     )
@@ -169,6 +175,7 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     assert evidence_kwargs["env"]["GIT_NO_REPLACE_OBJECTS"] == "1"
     assert evidence_kwargs["env"]["GIT_TERMINAL_PROMPT"] == "0"
     assert evidence_kwargs["env"]["HOME"] == evidence_kwargs["env"]["CODEX_HOME"]
+    assert evidence_kwargs["env"]["PATH"] == TRUSTED_EXECUTION_PATH
 
     sentinel = tmp_path / "outside-projection.txt"
     sentinel.write_text("protected canary\n", encoding="utf-8")
@@ -182,6 +189,19 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     denied_command, _ = calls[-1]
     assert denied_command[1] == "sandbox"
     assert "carbon-hoh-read-v1" in denied_command
+
+
+def test_codex_role_environment_ignores_ambient_path_changes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATH", f".:{tmp_path / 'hostile'}")
+    first = CodexExecAdapter._role_environment(tmp_path / "first")
+    monkeypatch.setenv("PATH", str(tmp_path / "changed"))
+    second = CodexExecAdapter._role_environment(tmp_path / "second")
+
+    assert first["PATH"] == TRUSTED_EXECUTION_PATH
+    assert second["PATH"] == TRUSTED_EXECUTION_PATH
 
 
 def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(

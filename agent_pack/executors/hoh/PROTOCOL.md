@@ -105,7 +105,8 @@ open-regression records remain structured inputs to later roles.
   advancement or final-evidence acceptance.
 - Controller evidence replay uses the executor evidence seam. The Codex adapter
   runs authorized verifier commands under the same read-only, root-denying,
-  network-disabled profile and sanitized Git environment; the manual executor
+  network-disabled profile, sanitized Git environment, and profile-bound fixed
+  `/usr/bin:/bin` execution path; the manual executor
   fails unavailable, and direct subprocess replay is confined to the
   explicitly synthetic test executor.
 

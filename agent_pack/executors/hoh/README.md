@@ -60,7 +60,9 @@ symlinks. Managed state/projection directories and state files use
 descriptor-relative no-follow traversal; unsafe roots, locks, targets, or
 replacement races cannot redirect chmod or state writes outside the run root.
 Role subprocesses receive a small allow-listed environment rather than
-inheriting API keys or other ambient variables. `danger-full-access` is never
+inheriting API keys or other ambient variables. Their fixed `/usr/bin:/bin`
+execution path is part of the executor profile, so ambient PATH changes cannot
+redirect an authorized evidence command. `danger-full-access` is never
 used. See the official [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions),
 [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk),
 and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
@@ -123,8 +125,8 @@ requirement. Tester evidence must name a disclosed verifier artifact, its
 digest, and one exact allow-listed argv. The controller independently reruns
 that command through the executor evidence seam. The Codex adapter uses the
 same verified read-only, root-denying, network-disabled profile and sanitized
-Git environment with only the candidate projection and a private runtime
-exposed; manual replay fails
+Git environment plus its profile-bound trusted execution path, with only the
+candidate projection and a private runtime exposed; manual replay fails
 unavailable, while direct subprocess replay exists only in the explicitly
 synthetic test executor. The controller matches exit status and stdout/stderr
 digest before accepting `VERIFIED`. An empty command list, as in the

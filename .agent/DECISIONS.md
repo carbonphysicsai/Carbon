@@ -10344,9 +10344,11 @@ committed patch into the dedicated ticket worktree and never uses
 `danger-full-access`. Candidate installation is a ref-only compare-and-swap;
 it targets the exact manifest-bound local branch and refuses a detached or
 switched worktree, while never synchronizing or resetting the shared checkout.
-Every controller-authority Git command and Codex evidence replay suppresses system/global configuration,
-repository fsmonitor and hooks, ambient templates, and applicable external
-filter/diff execution.
+Every controller-authority Git command and Codex evidence replay suppresses
+system/global configuration, repository fsmonitor and hooks, ambient templates,
+and applicable external filter/diff execution. Codex role and evidence commands
+use a fixed trusted execution path recorded in the executor profile, so ambient
+PATH cannot redirect a manifest-authorized verifier.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 

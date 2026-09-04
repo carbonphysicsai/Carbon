@@ -36,6 +36,7 @@ REQUIRED_SANDBOX_HELP_MARKERS = (
 READ_PROFILE = "carbon-hoh-read-v1"
 WRITE_PROFILE = "carbon-hoh-write-v1"
 ISOLATION_PROFILE_VERSION = "1"
+TRUSTED_EXECUTION_PATH = "/usr/bin:/bin"
 
 
 class CodexExecAdapter:
@@ -190,7 +191,7 @@ class CodexExecAdapter:
             "HOME": str(runtime_directory),
             "LANG": os.environ.get("LANG", "C.UTF-8"),
             "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+            "PATH": TRUSTED_EXECUTION_PATH,
             "PYTHONDONTWRITEBYTECODE": "1",
             "TMPDIR": str(runtime_directory),
         }
@@ -368,6 +369,7 @@ class CodexExecAdapter:
                 "approval_policy": "never",
                 "structured_output": True,
                 "sanitized_environment": True,
+                "trusted_execution_path": TRUSTED_EXECUTION_PATH,
                 "private_home": True,
                 "codex_home_auth_only": True,
                 "host_skill_discovery": False,

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 import tempfile
 from collections import deque
@@ -107,7 +106,7 @@ class ScriptedExecutor:
         ) as root:
             environment = {
                 **sanitized_git_environment(home=root),
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                "PATH": "/usr/bin:/bin",
                 "PYTHONDONTWRITEBYTECODE": "1",
                 "TMPDIR": root,
             }
