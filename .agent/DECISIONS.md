@@ -10287,8 +10287,11 @@ Every transition binds the authority commit/tree, ticket content digest,
 requirements-manifest digest, role/executor profile, iteration, and applicable
 candidate head/tree. Dynamic state is atomically persisted under the Git common
 directory by default and is never committed as per-iteration evidence. A paused
-run records its exact active phase and may retry only after every identity is
-revalidated; the manual adapter consumes at most one supplied packet.
+run records its exact coherent active phase, retains the plan needed for a
+Tester retry, and may retry only after every identity is revalidated. Candidate
+acceptance also proves authority ancestry, cumulative run scope, protected-path
+exclusion, and regular-file Git modes rather than trusting persisted path text;
+the manual adapter consumes at most one supplied packet.
 
 ## B-01H-D3 — Regression-first evidence semantics
 
@@ -10322,7 +10325,8 @@ data, credentials, private validator state, and reconstruction-sensitive
 identifiers are rejected from packets and persisted state. Run manifests cannot
 remove the mandatory protection set; Developer imports use the same root-aware
 matcher, accept regular-file Git modes only, and roll back to the exact prior
-candidate on any failed import.
+candidate on any failed import. Final resume re-grants persisted Tester paths
+through this same role allow-list before reconstructing the evidence projection.
 
 ## B-01H-D6 — Final candidate is delivery handoff only
 

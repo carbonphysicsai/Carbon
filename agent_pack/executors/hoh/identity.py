@@ -103,6 +103,24 @@ def head_identity(repository: Path) -> dict[str, str]:
     }
 
 
+def require_ancestor(repository: Path, ancestor: str, descendant: str) -> None:
+    """Require one exact commit to be an ancestor of another exact commit."""
+
+    process = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        cwd=repository,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if process.returncode:
+        detail = (process.stderr or process.stdout).strip()
+        raise IdentityMismatch(
+            "candidate does not descend from its pinned authority commit"
+            + (f": {detail}" if detail else "")
+        )
+
+
 def require_clean_worktree(repository: Path) -> None:
     if _git(repository, "status", "--porcelain=v1", "--untracked-files=all"):
         raise IdentityMismatch("candidate worktree is not clean and cannot be frozen")

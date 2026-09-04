@@ -59,11 +59,14 @@ open-regression records remain structured inputs to later roles.
 - Ticket and requirements bytes must match their SHA-256 bindings.
 - The requirements manifest must bind the exact ticket path, bytes, and Git
   blob.
-- Resume requires the persisted manifest digest, exact clean candidate,
-  recomputed Git scope, lifecycle-coherent phase/plan/state, and replayed final
-  evidence before a persisted final handoff is accepted.
-- A paused run can retry only from its recorded active phase after the same
-  identity checks; a manual adapter may consume one externally supplied packet.
+- Initialization, resume, retry, and final handoff require authority ancestry,
+  the exact clean candidate, recomputed and authorized cumulative Git scope,
+  regular-file Git modes, and the protected-path boundary. Resume additionally
+  requires the persisted manifest digest, lifecycle-coherent phase/plan/state,
+  reauthorized disclosures, and replayed final evidence before acceptance.
+- A paused run can retry only from its recorded coherent active phase after the
+  same identity checks; Tester-originated pauses retain their active plan. A
+  manual adapter may consume one externally supplied packet.
 - Developer output must be committed and clean; newly changed paths must match
   both the iteration plan and run-level scope. Developer operates only in a
   sanitized writable projection; the controller imports its validated patch

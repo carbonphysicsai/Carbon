@@ -23,6 +23,7 @@ from .identity import (
     digest_value,
     git_blob,
     head_identity,
+    require_ancestor,
     require_clean_worktree,
     resolve_commit,
     resolve_repository_root,
@@ -106,6 +107,7 @@ class HarnessController:
         self._verify_executor_profiles()
         require_clean_worktree(self.repository)
         candidate = head_identity(self.repository)
+        candidate_paths = self._authorize_candidate(candidate["head"])
         state = {
             "schema_version": SCHEMA_VERSION,
             "run_id": self.run_manifest["run_id"],
@@ -114,13 +116,7 @@ class HarnessController:
             "iteration": 1,
             "candidate": {
                 **candidate,
-                "changed_paths": list(
-                    changed_paths(
-                        self.repository,
-                        self.run_manifest["authority"]["commit"],
-                        candidate["head"],
-                    )
-                ),
+                "changed_paths": list(candidate_paths),
             },
             "requirements": [
                 {
@@ -225,10 +221,14 @@ class HarnessController:
         source = self.state["paused_from"]
         if source is None:
             raise PacketValidationError("paused run has no resumable source phase")
-        self.state["phase"] = ControllerPhase(source).value
-        self.state["paused_from"] = None
-        self.state["last_error"] = None
-        self._persist()
+        next_state = self.snapshot()
+        next_state["phase"] = ControllerPhase(source).value
+        next_state["paused_from"] = None
+        next_state["last_error"] = None
+        validate_controller_state(next_state, self.requirement_ids)
+        assert_payload_safe(next_state, self.protected_patterns)
+        self.store.save_state(next_state)
+        self.state = next_state
         return self.snapshot()
 
     def _persist(self) -> None:
@@ -307,15 +307,33 @@ class HarnessController:
                 "candidate head/tree mismatch; refusing to resume or advance"
             )
         require_clean_worktree(self.repository)
-        actual_paths = changed_paths(
-            self.repository,
-            self.run_manifest["authority"]["commit"],
-            actual["head"],
-        )
+        actual_paths = self._authorize_candidate(actual["head"])
         if actual_paths != tuple(expected["changed_paths"]):
             raise IdentityMismatch(
                 "candidate changed-path manifest does not match exact Git history"
             )
+
+    def _authorize_candidate(self, candidate_head: str) -> tuple[str, ...]:
+        """Recompute and enforce the cumulative candidate Git boundary."""
+
+        authority = self.run_manifest["authority"]["commit"]
+        require_ancestor(self.repository, authority, candidate_head)
+        paths = changed_paths(self.repository, authority, candidate_head)
+        self._require_paths_allowed(
+            paths,
+            tuple(self.run_manifest["permitted_change_paths"]),
+            "run manifest",
+        )
+        for path in paths:
+            if path_matches(path, self.protected_patterns):
+                raise ScopeViolation(f"candidate changed protected path {path}")
+        self._require_regular_git_modes(
+            self.repository,
+            authority,
+            candidate_head,
+            paths,
+        )
+        return paths
 
     def _verify_resumed_state(self) -> None:
         """Re-establish lifecycle facts that untrusted persisted JSON cannot assert."""
@@ -381,22 +399,22 @@ class HarnessController:
             if item["role"] == Role.TESTER.value
             and item["iteration"] == self.state["iteration"]
         ]
-        for disclosure in tester_disclosures:
-            source = self.repository / disclosure["path"]
-            if source.is_symlink() or not source.is_file():
-                raise PacketValidationError(
-                    f"persisted Tester disclosure is not a candidate file: "
-                    f"{disclosure['path']}"
-                )
-            if digest_file(source) != disclosure["sha256"]:
-                raise PacketValidationError(
-                    f"persisted Tester disclosure digest mismatch: "
-                    f"{disclosure['path']}"
-                )
+        authorized_paths, authorized_disclosures = self.context.grant(
+            Role.TESTER,
+            (item["path"] for item in tester_disclosures),
+            iteration=self.state["iteration"],
+        )
+        expected_disclosures = tuple(
+            sorted(tester_disclosures, key=lambda item: item["path"])
+        )
+        if authorized_disclosures != expected_disclosures:
+            raise PacketValidationError(
+                "persisted Tester disclosures do not match current authorized files"
+            )
         workspace = self.context.projection(
             Role.TESTER,
             self.state["iteration"],
-            (item["path"] for item in tester_disclosures),
+            authorized_paths,
             self.state["candidate"],
         )
         self._verify_evidence(
@@ -704,7 +722,6 @@ class HarnessController:
             )
         self.state["requirements"] = next_states
         self.state["evidence_digests"].append(digest_value(packet))
-        self.state["active_plan"] = None
         statuses = {RequirementStatus(item["status"]) for item in next_states}
         if RequirementStatus.BLOCKED_HUMAN in statuses:
             self.state["phase"] = ControllerPhase.PAUSED_HUMAN.value
@@ -719,12 +736,14 @@ class HarnessController:
             in {RequirementStatus.VERIFIED, RequirementStatus.OUT_OF_SCOPE}
             for item in next_states
         ):
+            self.state["active_plan"] = None
             self.state["phase"] = ControllerPhase.FINAL_CANDIDATE_READY.value
         elif self.state["iteration"] >= self.run_manifest["max_iterations"]:
             self.state["phase"] = ControllerPhase.PAUSED_INFRA.value
             self.state["paused_from"] = ControllerPhase.TESTING.value
             self.state["last_error"] = "bounded iteration limit reached"
         else:
+            self.state["active_plan"] = None
             self.state["iteration"] += 1
             self.state["phase"] = ControllerPhase.PLANNING.value
 

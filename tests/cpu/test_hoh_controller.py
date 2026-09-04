@@ -9,6 +9,7 @@ import pytest
 
 from agent_pack.executors.hoh.controller import HarnessController
 from agent_pack.executors.hoh.executors import ManualExecutor, ScriptedExecutor
+from agent_pack.executors.hoh.identity import digest_file, head_identity
 from agent_pack.executors.hoh.models import (
     ControllerPhase,
     IdentityMismatch,
@@ -499,6 +500,134 @@ def test_resume_recomputes_scope_and_replays_final_evidence(tmp_path: Path) -> N
         ).resume()
 
 
+def test_initialize_rejects_candidate_outside_run_scope(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    repository, requirements = make_repository(tmp_path)
+    manifest = run_manifest(repository, requirements, executor)
+    commit_file(repository, "outside.txt", "outside\n", "out of scope")
+    controller = HarnessController(
+        manifest,
+        requirements,
+        executor,
+        state_store(tmp_path),
+    )
+    with pytest.raises(ScopeViolation, match="does not permit path outside.txt"):
+        controller.initialize()
+
+
+def test_initialize_rejects_candidate_not_descended_from_authority(
+    tmp_path: Path,
+) -> None:
+    executor = ScriptedExecutor({})
+    repository, requirements = make_repository(tmp_path)
+    manifest = run_manifest(repository, requirements, executor)
+    authority = manifest["authority"]["commit"]
+    git(repository, "checkout", "--quiet", "--detach", f"{authority}^")
+    git(repository, "checkout", authority, "--", ".")
+    git(repository, "commit", "--quiet", "--message", "divergent matching tree")
+    controller = HarnessController(
+        manifest,
+        requirements,
+        executor,
+        state_store(tmp_path),
+    )
+    with pytest.raises(IdentityMismatch, match="does not descend"):
+        controller.initialize()
+
+
+def test_resume_rejects_accurate_out_of_scope_candidate_state(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    controller, repository, manifest = _controller(tmp_path, executor)
+    state = controller.initialize()
+    commit_file(repository, "outside.txt", "outside\n", "external scope expansion")
+    state["candidate"] = {
+        **head_identity(repository),
+        "changed_paths": ["outside.txt"],
+    }
+    controller.store.save_state(state)
+    with pytest.raises(ScopeViolation, match="does not permit path outside.txt"):
+        HarnessController(
+            manifest,
+            controller.requirements_manifest,
+            executor,
+            controller.store,
+        ).resume()
+
+
+def test_resume_rejects_accurate_non_regular_candidate_state(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    controller, repository, manifest = _controller(
+        tmp_path,
+        executor,
+        permitted=["link.txt"],
+    )
+    state = controller.initialize()
+    (repository / "link.txt").symlink_to("missing-target")
+    git(repository, "add", "link.txt")
+    git(repository, "commit", "--quiet", "--message", "external symlink")
+    state["candidate"] = {
+        **head_identity(repository),
+        "changed_paths": ["link.txt"],
+    }
+    controller.store.save_state(state)
+    with pytest.raises(ScopeViolation, match="unsupported Git mode"):
+        HarnessController(
+            manifest,
+            controller.requirements_manifest,
+            executor,
+            controller.store,
+        ).resume()
+
+
+def test_final_resume_reauthorizes_every_tester_disclosure(tmp_path: Path) -> None:
+    repository, requirements = make_repository(tmp_path)
+    commit_file(
+        repository, "conftest.py", "raise RuntimeError('injected')\n", "fixture"
+    )
+    git(repository, "update-ref", "refs/remotes/origin/main", "HEAD")
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+            Role.TESTER: [
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "VERIFIED", "REQ-002": "VERIFIED"},
+                )
+            ],
+        }
+    )
+    manifest = run_manifest(repository, requirements, executor)
+    controller = HarnessController(
+        manifest,
+        requirements,
+        executor,
+        state_store(tmp_path),
+    )
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    controller.step()
+    final_state = controller.step()
+    final_state["disclosures"].append(
+        {
+            "role": "TESTER",
+            "iteration": final_state["iteration"],
+            "path": "conftest.py",
+            "sha256": digest_file(repository / "conftest.py"),
+        }
+    )
+    controller.store.save_state(final_state)
+    with pytest.raises(ScopeViolation, match="out-of-authority context request"):
+        HarnessController(
+            manifest,
+            requirements,
+            executor,
+            controller.store,
+        ).resume()
+
+
 def test_every_role_executor_identity_is_bound(tmp_path: Path) -> None:
     executor = ScriptedExecutor({})
     repository, requirements = make_repository(tmp_path)
@@ -655,6 +784,54 @@ def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
     assert retried["phase"] == "PLANNING"
     assert retried["paused_from"] is None
     assert controller.step()["phase"] == "DEVELOPING"
+
+
+@pytest.mark.parametrize(
+    ("blocked_status", "paused_phase"),
+    [
+        ("BLOCKED_HUMAN", "PAUSED_HUMAN"),
+        ("BLOCKED_INFRA", "PAUSED_INFRA"),
+    ],
+)
+def test_tester_blocker_persists_resumes_and_retries_testing(
+    tmp_path: Path,
+    blocked_status: str,
+    paused_phase: str,
+) -> None:
+    executor = ScriptedExecutor(
+        {
+            Role.PLANNER: [plan_packet],
+            Role.DEVELOPER: [developer_packet],
+            Role.TESTER: [
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": blocked_status, "REQ-002": blocked_status},
+                )
+            ],
+        }
+    )
+    controller, repository, manifest = _controller(tmp_path, executor)
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    controller.step()
+    paused = controller.step()
+    assert paused["phase"] == paused_phase
+    assert paused["paused_from"] == "TESTING"
+    assert paused["active_plan"] is not None
+
+    resumed = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    assert resumed.resume() == paused
+    retried = resumed.retry()
+    assert retried["phase"] == "TESTING"
+    assert retried["paused_from"] is None
+    assert retried["active_plan"] == paused["active_plan"]
 
 
 def test_manual_packet_can_resume_identity_bound_paused_run(tmp_path: Path) -> None:

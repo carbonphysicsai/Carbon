@@ -756,6 +756,10 @@ def validate_controller_state(value: Any, requirement_ids: set[str]) -> dict[str
         and active_plan is None
     ):
         raise PacketValidationError("paused development state requires an active plan")
+    elif (
+        ControllerPhase(paused_from) is ControllerPhase.TESTING and active_plan is None
+    ):
+        raise PacketValidationError("paused testing state requires an active plan")
     if phase is ControllerPhase.FINAL_CANDIDATE_READY:
         statuses = {RequirementStatus(item["status"]) for item in root["requirements"]}
         if not statuses.issubset(
