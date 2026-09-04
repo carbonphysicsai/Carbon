@@ -1,11 +1,10 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`
-**Conditional authority:** this status and first-pilot selection take effect
-only after B-01H's complete delivery predicate
-**Execution state before that predicate:** authoritative `todo`; no B-05
-contract, decision, plan, evidence, runtime, test, or implementation has started
+**Status:** `todo`; no B-05 contract, decision, plan, evidence, runtime, test,
+or implementation has started
+**Conditional handoff:** first-pilot `in_progress` selection occurs only in the
+completed B-01H external receipt after its entire delivery predicate passes
 **Owner interposition:** `OWNER-DX-02` inserts B-01H after B-04 completion and
 before this ticket
 **Prior selection evidence:** PR #75's completed receipt selected B-05

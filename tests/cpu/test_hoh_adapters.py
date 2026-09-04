@@ -119,6 +119,11 @@ def test_secret_values_and_protected_paths_cannot_be_persisted() -> None:
         assert_payload_safe({"OPENAI_API_KEY": "not-allowed"}, patterns)
     with pytest.raises(PacketValidationError, match="protected path"):
         assert_payload_safe({"path": "data/hidden_evaluation/case.json"}, patterns)
+    with pytest.raises(PacketValidationError, match="protected path"):
+        assert_payload_safe(
+            {"summary": "Observed data/hidden_evaluation/case.json in the worktree."},
+            patterns,
+        )
 
 
 def test_default_state_store_is_under_git_common_directory(tmp_path: Path) -> None:

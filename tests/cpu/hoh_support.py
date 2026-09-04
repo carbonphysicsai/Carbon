@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -89,29 +90,47 @@ def evidence_packet(
     statuses: dict[str, str],
 ) -> dict[str, Any]:
     packet = controller_packet(invocation)
-    evidence = {
-        "kind": "TEST_RESULT",
-        "artifact": "src.txt",
-        "sha256": digest_file(repository / "src.txt"),
-        "summary": "Synthetic exact-candidate assertion.",
-    }
-    return {
-        "schema_version": "1.0",
-        "packet_type": "iteration_evidence",
-        "run_id": packet["run_id"],
-        "iteration": packet["iteration"],
-        "bindings": packet["bindings"],
-        "results": [
+    results = []
+    for requirement_id, status in sorted(statuses.items()):
+        evidence = accepted_evidence(repository, requirement_id)
+        results.append(
             {
                 "requirement_id": requirement_id,
                 "status": status,
                 "evidence": [evidence],
                 "reason": f"Synthetic Tester result: {status}.",
             }
-            for requirement_id, status in sorted(statuses.items())
-        ],
+        )
+    return {
+        "schema_version": "1.0",
+        "packet_type": "iteration_evidence",
+        "run_id": packet["run_id"],
+        "iteration": packet["iteration"],
+        "bindings": packet["bindings"],
+        "results": results,
         "context_requests": [],
         "summary": "Independent synthetic Tester pass.",
+    }
+
+
+def accepted_evidence(repository: Path, requirement_id: str) -> dict[str, Any]:
+    command = ["python3", "verify.py", requirement_id]
+    completed = subprocess.run(
+        command,
+        cwd=repository,
+        check=False,
+        capture_output=True,
+    )
+    return {
+        "kind": "TEST_RESULT",
+        "artifact": "verify.py",
+        "sha256": digest_file(repository / "verify.py"),
+        "command": command,
+        "exit_code": completed.returncode,
+        "output_sha256": hashlib.sha256(
+            completed.stdout + b"\0" + completed.stderr
+        ).hexdigest(),
+        "summary": "Controller-replayable synthetic exact-candidate test.",
     }
 
 
@@ -124,6 +143,22 @@ def make_repository(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     git(repository, "config", "commit.gpgsign", "false")
     (repository / "ticket.md").write_text("# Synthetic ticket\n", encoding="utf-8")
     (repository / "src.txt").write_text("base\n", encoding="utf-8")
+    (repository / "verify.py").write_text(
+        """from pathlib import Path
+import sys
+
+requirement = sys.argv[1]
+content = Path("src.txt").read_text(encoding="utf-8").strip()
+passed = content != "base"
+if requirement == "REQ-001" and content == "repair-b":
+    passed = False
+if requirement == "REQ-002" and content == "bad":
+    passed = False
+print(f"{requirement}:{content}:{'PASS' if passed else 'FAIL'}")
+raise SystemExit(0 if passed else 1)
+""",
+        encoding="utf-8",
+    )
     private = repository / "private_validator" / "official_cases" / "seed.txt"
     private.parent.mkdir(parents=True)
     private.write_text("protected synthetic canary\n", encoding="utf-8")
@@ -151,6 +186,10 @@ def make_repository(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
                 "authority_path": "ticket.md",
             },
         ],
+        "verification_commands": {
+            "REQ-001": [["python3", "verify.py", "REQ-001"]],
+            "REQ-002": [["python3", "verify.py", "REQ-002"]],
+        },
     }
     (repository / "requirements.json").write_text(
         json.dumps(requirements, sort_keys=True, separators=(",", ":")) + "\n",
@@ -199,12 +238,12 @@ def run_manifest(
         "initial_context": {
             "planner": ["ticket.md", "requirements.json"],
             "developer": ["ticket.md", "requirements.json"],
-            "tester": ["ticket.md", "requirements.json", "src.txt"],
+            "tester": ["ticket.md", "requirements.json", "src.txt", "verify.py"],
         },
         "context_allow_paths": {
             "planner": ["ticket.md", "requirements.json", "src.txt"],
             "developer": ["**"],
-            "tester": ["ticket.md", "requirements.json", "src.txt"],
+            "tester": ["ticket.md", "requirements.json", "src.txt", "verify.py"],
         },
         "permitted_change_paths": permitted or ["src.txt"],
         "protected_patterns": list(DEFAULT_PROTECTED_PATTERNS),

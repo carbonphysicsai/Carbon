@@ -1,8 +1,9 @@
 # Ticket B-01H — Carbon Iterative Agent Harness Pilot
 
 **Wave:** B active in bounded development scope
-**Status:** `done` only under the conditional completion gate below
-**Execution state before that gate:** authoritative `in_progress`
+**Status:** `in_progress`
+**Conditional closeout:** becomes bounded `done` only through the completed
+external receipt after every gate below passes
 **Owner decision:** `OWNER-DX-02`
 **Depends on:** B-01F, completed B-04 delivery predicate
 **Blocks:** B-05 start only; B-01G remains todo and non-blocking
@@ -51,7 +52,8 @@ accept security, create rights, choose economics, or implement B-05 science.
 current authority + selected ticket + requirements manifest
 → PLANNER (fresh/read-only projected context)
 → validated IterationPlan
-→ DEVELOPER (fresh/workspace-write dedicated ticket worktree)
+→ DEVELOPER (fresh/workspace-write sanitized projection)
+→ controller validates/imports allow-listed patch into dedicated ticket worktree
 → freeze exact candidate head/tree and changed-path manifest
 → TESTER (fresh/read-only projected candidate)
 → validated IterationEvidence
@@ -60,25 +62,28 @@ current authority + selected ticket + requirements manifest
 ```
 
 The controller, not a model assertion, owns state transitions. A requirement
-becomes `VERIFIED` only from accepted evidence in a valid Tester packet. A
-previously verified requirement that later fails becomes an explicit
+becomes `VERIFIED` only after the controller reruns a requirement-authorized
+command in the isolated Tester projection and matches its exit/output digest.
+A previously verified requirement that later fails becomes an explicit
 regression and is required ahead of new work in the next plan.
 
 ## Role boundaries
 
 - **Planner:** receives bounded disclosed context and structured prior evidence;
   cannot write the candidate and emits only a plan.
-- **Developer:** writes only in the dedicated ticket worktree; receives the
-  accepted plan and disclosed context; cannot certify requirements.
+- **Developer:** writes only in a sanitized projection containing disclosed
+  paths; the controller validates/imports only the plan/run-allow-listed patch
+  into the dedicated ticket worktree; Developer cannot certify requirements.
 - **Tester:** starts in a fresh invocation, receives the exact frozen candidate
   and prior verified states but not developer self-assessment as evidence;
   cannot write or repair the candidate.
 
 The Codex adapter uses explicit `read-only` or `workspace-write` sandbox modes,
 `--ignore-user-config`, ephemeral independent invocations, and JSON Schema
-output. Read roles operate on controller-built projections rather than the
-writable ticket worktree. Controller identity and before/after Git checks are
-additional fail-closed boundaries; they are not a production security audit.
+output. Every role operates on a controller-built projection rather than
+receiving undisclosed worktree contents. Controller identity and before/after
+Git checks are additional fail-closed boundaries; they are not a production
+security audit.
 
 ## Definition of Done
 
@@ -91,8 +96,9 @@ additional fail-closed boundaries; they are not a production security audit.
       fail closed.
 - [ ] Exact authority/head/tree, ticket, requirements, role-profile, and resume
       identities are checked at every transition.
-- [ ] Planner and Tester are read-only; Developer is confined to the dedicated
-      worktree and declared path scope.
+- [ ] Planner and Tester are read-only; Developer is confined to a sanitized
+      writable projection and only its declared-path patch can enter the
+      dedicated ticket worktree.
 - [ ] Regressions reopen verified requirements and lead the next plan.
 - [ ] Protected hidden-evaluation paths and values cannot enter role packets,
       disclosures, or persisted run state.

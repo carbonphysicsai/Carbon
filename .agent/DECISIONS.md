@@ -10290,19 +10290,24 @@ directory by default and is never committed as per-iteration evidence.
 
 ## B-01H-D3 — Regression-first evidence semantics
 
-Only accepted independent Tester evidence creates `VERIFIED`. A later failure
-of a verified requirement creates an explicit regression, reopens it as
-`FAILED`, and requires the next plan to address every open regression before
-new work.
+Only independent Tester evidence whose verifier artifact and exact argv are
+authorized by the identity-bound requirements manifest creates `VERIFIED`.
+The controller reruns that command in the isolated candidate projection and
+matches exit status plus output digest; model labels or arbitrary disclosed
+files are insufficient. A later failure of a verified requirement creates an
+explicit regression, reopens it as `FAILED`, and requires the next plan to
+address every open regression before new work.
 
 ## B-01H-D4 — Supported Codex exec adapter with bounded sandboxes
 
 Wrap the currently installed and officially documented `codex exec` surface:
 independent ephemeral invocations, explicit `read-only` or `workspace-write`,
 ignored user config, fixed working directory, and JSON Schema output. Planner
-and Tester receive controller-created read projections; Developer receives only
-the dedicated ticket worktree. The adapter fails unavailable when its version
-or required flags cannot be verified and never uses `danger-full-access`.
+and Tester receive controller-created read projections; Developer receives a
+sanitized writable projection containing only disclosed paths. The controller
+imports only its plan/run-allow-listed committed patch into the dedicated
+ticket worktree. The adapter fails unavailable when its version or required
+flags cannot be verified and never uses `danger-full-access`.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 

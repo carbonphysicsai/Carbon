@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import json
+import os
+import subprocess
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -207,6 +210,23 @@ class HarnessController:
         requirements_path = self.repository / requirements_binding["path"]
         if digest_file(requirements_path) != requirements_binding["sha256"]:
             raise IdentityMismatch("requirements manifest digest mismatch")
+        try:
+            bound_requirements = validate_requirements_manifest(
+                json.loads(requirements_path.read_text(encoding="utf-8"))
+            )
+        except (
+            OSError,
+            UnicodeError,
+            json.JSONDecodeError,
+            PacketValidationError,
+        ) as error:
+            raise IdentityMismatch(
+                f"bound requirements manifest is invalid: {error}"
+            ) from error
+        if bound_requirements != self.requirements_manifest:
+            raise IdentityMismatch(
+                "in-memory requirements do not match the bound manifest file"
+            )
         ticket = self.requirements_manifest["ticket"]
         if ticket["path"] != ticket_binding["path"]:
             raise IdentityMismatch(
@@ -284,7 +304,7 @@ class HarnessController:
         role: Role,
         schema_name: str,
         validator: Validator,
-    ) -> dict[str, Any]:
+    ) -> tuple[dict[str, Any], Path, dict[str, str]]:
         assert self.state is not None
         initial = self.run_manifest["initial_context"][role.value.lower()]
         previous = [
@@ -292,9 +312,17 @@ class HarnessController:
             for item in self.state["disclosures"]
             if item["role"] == role.value
         ]
+        planned = []
+        if role is Role.DEVELOPER and self.state["active_plan"] is not None:
+            patterns = (
+                path
+                for action in self.state["active_plan"]["actions"]
+                for path in action["allowed_paths"]
+            )
+            planned = list(self.context.matching_tracked(patterns))
         context_paths, disclosures = self.context.grant(
             role,
-            [*initial, *previous],
+            [*initial, *previous, *planned],
             iteration=self.state["iteration"],
         )
         self._append_disclosures(disclosures)
@@ -305,16 +333,13 @@ class HarnessController:
             else SandboxMode.READ_ONLY
         )
         for _attempt in range(4):
-            workspace = (
-                self.repository
-                if role is Role.DEVELOPER
-                else self.context.projection(
-                    role,
-                    self.state["iteration"],
-                    context_paths,
-                    before,
-                )
+            workspace = self.context.projection(
+                role,
+                self.state["iteration"],
+                context_paths,
+                before,
             )
+            workspace_before = head_identity(workspace)
             invocation = RoleInvocation(
                 role=role,
                 sandbox=sandbox,
@@ -340,11 +365,14 @@ class HarnessController:
         else:
             raise ScopeViolation(f"{role.value} exceeded the context-request limit")
         if role is not Role.DEVELOPER:
+            if head_identity(workspace) != workspace_before:
+                raise ScopeViolation(f"{role.value} mutated its read-only projection")
+            require_clean_worktree(workspace)
             after = head_identity(self.repository)
             if after != before:
                 raise ScopeViolation(f"{role.value} mutated the candidate")
             require_clean_worktree(self.repository)
-        return packet
+        return packet, workspace, workspace_before
 
     def _append_disclosures(self, disclosures: tuple[dict[str, Any], ...]) -> None:
         assert self.state is not None
@@ -363,7 +391,7 @@ class HarnessController:
 
     def _plan(self) -> None:
         assert self.state is not None
-        packet = self._invoke(
+        packet, _workspace, _workspace_before = self._invoke(
             Role.PLANNER,
             "iteration_plan.schema.json",
             lambda value: validate_iteration_plan(value, self.requirement_ids),
@@ -395,7 +423,7 @@ class HarnessController:
     def _develop(self) -> None:
         assert self.state is not None
         before = head_identity(self.repository)
-        packet = self._invoke(
+        packet, workspace, workspace_before = self._invoke(
             Role.DEVELOPER,
             "developer_result.schema.json",
             validate_developer_result,
@@ -403,8 +431,11 @@ class HarnessController:
         self._require_common_packet(packet)
         self._require_bindings(packet["bindings"], Role.DEVELOPER)
         require_clean_worktree(self.repository)
-        after = head_identity(self.repository)
-        iteration_paths = changed_paths(self.repository, before["head"], after["head"])
+        after, iteration_paths = self._import_developer_changes(
+            workspace,
+            workspace_before,
+            before,
+        )
         cumulative_paths = changed_paths(
             self.repository,
             self.run_manifest["authority"]["commit"],
@@ -429,14 +460,14 @@ class HarnessController:
 
     def _test(self) -> None:
         assert self.state is not None
-        packet = self._invoke(
+        packet, workspace, _workspace_before = self._invoke(
             Role.TESTER,
             "iteration_evidence.schema.json",
             lambda value: validate_iteration_evidence(value, self.requirement_ids),
         )
         self._require_common_packet(packet)
         self._require_bindings(packet["bindings"], Role.TESTER)
-        self._verify_evidence_artifacts(packet)
+        self._verify_evidence(packet, workspace)
         result_ids = {item["requirement_id"] for item in packet["results"]}
         if result_ids != self.requirement_ids:
             raise PacketValidationError(
@@ -511,8 +542,124 @@ class HarnessController:
             self.state["iteration"] += 1
             self.state["phase"] = ControllerPhase.PLANNING.value
 
-    def _verify_evidence_artifacts(self, packet: Mapping[str, Any]) -> None:
-        """Accept only hash-bound candidate artifacts disclosed to Tester."""
+    def _import_developer_changes(
+        self,
+        workspace: Path,
+        workspace_before: Mapping[str, str],
+        candidate_before: Mapping[str, str],
+    ) -> tuple[dict[str, str], tuple[str, ...]]:
+        """Validate and import one sanitized Developer projection commit."""
+
+        require_clean_worktree(workspace)
+        projected_after = head_identity(workspace)
+        if projected_after == dict(workspace_before):
+            raise PacketValidationError(
+                "Developer produced no committed candidate change"
+            )
+        iteration_paths = changed_paths(
+            workspace,
+            workspace_before["head"],
+            projected_after["head"],
+        )
+        plan_patterns = tuple(
+            path
+            for action in self.state["active_plan"]["actions"]
+            for path in action["allowed_paths"]
+        )
+        self._require_paths_allowed(iteration_paths, plan_patterns, "iteration plan")
+        self._require_paths_allowed(
+            iteration_paths,
+            tuple(self.run_manifest["permitted_change_paths"]),
+            "run manifest",
+        )
+        for path in iteration_paths:
+            if any(
+                fnmatch.fnmatchcase(path, pattern)
+                for pattern in self.run_manifest["protected_patterns"]
+            ):
+                raise ScopeViolation(f"Developer changed protected path {path}")
+            projected_path = workspace / path
+            if projected_path.exists() and (
+                projected_path.is_symlink() or not projected_path.is_file()
+            ):
+                raise ScopeViolation(f"Developer result is not a regular file: {path}")
+        require_clean_worktree(self.repository)
+        if head_identity(self.repository) != dict(candidate_before):
+            raise IdentityMismatch("candidate changed during Developer invocation")
+        diff = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--binary",
+                "--full-index",
+                workspace_before["head"],
+                projected_after["head"],
+                "--",
+            ],
+            cwd=workspace,
+            check=False,
+            capture_output=True,
+        )
+        if diff.returncode or not diff.stdout:
+            raise PacketValidationError("Developer commit has no importable patch")
+        for arguments in (("--check", "--index"), ("--index",)):
+            applied = subprocess.run(
+                ["git", "apply", "--binary", *arguments],
+                cwd=self.repository,
+                input=diff.stdout,
+                check=False,
+                capture_output=True,
+            )
+            if applied.returncode:
+                detail = (applied.stderr or applied.stdout).decode(
+                    "utf-8", errors="replace"
+                )
+                raise PacketValidationError(
+                    f"Developer patch import failed closed: {detail.strip()}"
+                )
+        staged = subprocess.run(
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACDMRTUXB"],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        staged_paths = tuple(
+            sorted(line for line in staged.stdout.splitlines() if line)
+        )
+        if staged.returncode or staged_paths != tuple(sorted(iteration_paths)):
+            raise PacketValidationError(
+                "imported Developer paths do not match projection"
+            )
+        committed = subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Carbon HoH Controller",
+                "-c",
+                "user.email=carbon-hoh@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--quiet",
+                "--message",
+                f"Carbon HoH iteration {self.state['iteration']}",
+            ],
+            cwd=self.repository,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if committed.returncode:
+            raise PacketValidationError(
+                "controller could not commit imported Developer patch: "
+                f"{(committed.stderr or committed.stdout).strip()}"
+            )
+        require_clean_worktree(self.repository)
+        return head_identity(self.repository), iteration_paths
+
+    def _verify_evidence(self, packet: Mapping[str, Any], workspace: Path) -> None:
+        """Execute only manifest-authorized evidence in the isolated projection."""
 
         assert self.state is not None
         disclosed = {
@@ -522,13 +669,20 @@ class HarnessController:
             and item["iteration"] == self.state["iteration"]
         }
         for result in packet["results"]:
+            requirement_id = result["requirement_id"]
+            allowed_commands = {
+                tuple(command)
+                for command in self.requirements_manifest["verification_commands"][
+                    requirement_id
+                ]
+            }
             for evidence in result["evidence"]:
                 artifact = evidence["artifact"]
                 if artifact not in disclosed:
                     raise PacketValidationError(
                         f"evidence artifact was not disclosed to Tester: {artifact}"
                     )
-                path = self.repository / artifact
+                path = workspace / artifact
                 if path.is_symlink() or not path.is_file():
                     raise PacketValidationError(
                         f"evidence artifact is not a candidate file: {artifact}"
@@ -537,6 +691,65 @@ class HarnessController:
                     raise PacketValidationError(
                         f"evidence artifact digest mismatch: {artifact}"
                     )
+                command = tuple(evidence["command"])
+                if command not in allowed_commands:
+                    raise PacketValidationError(
+                        f"evidence command is not authorized for {requirement_id}"
+                    )
+                if artifact not in command:
+                    raise PacketValidationError(
+                        f"evidence command does not name its artifact: {artifact}"
+                    )
+                environment_root = self.store.root / "command-environment"
+                home = environment_root / "home"
+                temporary = environment_root / "tmp"
+                home.mkdir(parents=True, exist_ok=True)
+                temporary.mkdir(parents=True, exist_ok=True)
+                environment = {
+                    "HOME": str(home),
+                    "LANG": "C.UTF-8",
+                    "LC_ALL": "C.UTF-8",
+                    "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                    "TMPDIR": str(temporary),
+                }
+                try:
+                    projection_before = head_identity(workspace)
+                    completed = subprocess.run(
+                        command,
+                        cwd=workspace,
+                        check=False,
+                        capture_output=True,
+                        env=environment,
+                        timeout=300,
+                    )
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    raise PacketValidationError(
+                        f"evidence command could not complete: {error}"
+                    ) from error
+                output_digest = hashlib.sha256(
+                    completed.stdout + b"\0" + completed.stderr
+                ).hexdigest()
+                if completed.returncode != evidence["exit_code"]:
+                    raise PacketValidationError(
+                        f"evidence exit code mismatch for {requirement_id}"
+                    )
+                if output_digest != evidence["output_sha256"]:
+                    raise PacketValidationError(
+                        f"evidence output digest mismatch for {requirement_id}"
+                    )
+                if (
+                    result["status"] == RequirementStatus.VERIFIED.value
+                    and completed.returncode != 0
+                ):
+                    raise PacketValidationError(
+                        f"VERIFIED requirement {requirement_id} has failing evidence"
+                    )
+                if head_identity(workspace) != projection_before:
+                    raise PacketValidationError(
+                        "evidence command mutated its projection"
+                    )
+                require_clean_worktree(workspace)
 
     def _require_common_packet(self, packet: Mapping[str, Any]) -> None:
         assert self.state is not None

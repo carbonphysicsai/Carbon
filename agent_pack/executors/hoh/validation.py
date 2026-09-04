@@ -131,7 +131,13 @@ def validate_requirements_manifest(value: Any) -> dict[str, Any]:
     root = dict(_mapping(value, "RequirementsManifest"))
     _exact_keys(
         root,
-        ["schema_version", "manifest_id", "ticket", "requirements"],
+        [
+            "schema_version",
+            "manifest_id",
+            "ticket",
+            "requirements",
+            "verification_commands",
+        ],
         "RequirementsManifest",
     )
     _schema_version(root["schema_version"], "RequirementsManifest")
@@ -161,6 +167,32 @@ def validate_requirements_manifest(value: Any) -> dict[str, Any]:
         normalized_repo_path(
             _string(item["authority_path"], f"requirements[{index}].authority_path")
         )
+    commands = _mapping(root["verification_commands"], "verification_commands")
+    if set(commands) != seen:
+        raise PacketValidationError(
+            "verification_commands must exactly cover every requirement id"
+        )
+    for requirement_id, raw_commands in commands.items():
+        entries = _array(raw_commands, f"verification_commands.{requirement_id}")
+        normalized: list[tuple[str, ...]] = []
+        for command_index, raw_command in enumerate(entries):
+            command = tuple(
+                _string(
+                    argument,
+                    f"verification_commands.{requirement_id}[{command_index}][]",
+                )
+                for argument in _array(
+                    raw_command,
+                    f"verification_commands.{requirement_id}[{command_index}]",
+                )
+            )
+            if not command:
+                raise PacketValidationError("verification command must not be empty")
+            normalized.append(command)
+        if len(normalized) != len(set(normalized)):
+            raise PacketValidationError(
+                f"verification_commands.{requirement_id} contains duplicates"
+            )
     return root
 
 
@@ -418,13 +450,29 @@ def validate_iteration_evidence(
             )
             _exact_keys(
                 accepted,
-                ["kind", "artifact", "sha256", "summary"],
+                [
+                    "kind",
+                    "artifact",
+                    "sha256",
+                    "command",
+                    "exit_code",
+                    "output_sha256",
+                    "summary",
+                ],
                 f"results[{index}].evidence[{evidence_index}]",
             )
             if accepted["kind"] not in ACCEPTED_EVIDENCE_KINDS:
                 raise PacketValidationError("unsupported accepted-evidence kind")
             normalized_repo_path(_string(accepted["artifact"], "evidence.artifact"))
             _sha256(accepted["sha256"], "evidence.sha256")
+            command = tuple(
+                _string(argument, "evidence.command[]")
+                for argument in _array(accepted["command"], "evidence.command")
+            )
+            if not command:
+                raise PacketValidationError("evidence.command must not be empty")
+            _integer(accepted["exit_code"], "evidence.exit_code", minimum=0)
+            _sha256(accepted["output_sha256"], "evidence.output_sha256")
             _string(accepted["summary"], "evidence.summary")
         if status is RequirementStatus.VERIFIED and not evidence:
             raise PacketValidationError(
@@ -438,11 +486,31 @@ def validate_iteration_evidence(
 
 def _validate_accepted_evidence(value: Any, label: str) -> None:
     accepted = _mapping(value, label)
-    _exact_keys(accepted, ["kind", "artifact", "sha256", "summary"], label)
+    _exact_keys(
+        accepted,
+        [
+            "kind",
+            "artifact",
+            "sha256",
+            "command",
+            "exit_code",
+            "output_sha256",
+            "summary",
+        ],
+        label,
+    )
     if accepted["kind"] not in ACCEPTED_EVIDENCE_KINDS:
         raise PacketValidationError(f"{label}.kind is unsupported")
     normalized_repo_path(_string(accepted["artifact"], f"{label}.artifact"))
     _sha256(accepted["sha256"], f"{label}.sha256")
+    command = tuple(
+        _string(argument, f"{label}.command[]")
+        for argument in _array(accepted["command"], f"{label}.command")
+    )
+    if not command:
+        raise PacketValidationError(f"{label}.command must not be empty")
+    _integer(accepted["exit_code"], f"{label}.exit_code", minimum=0)
+    _sha256(accepted["output_sha256"], f"{label}.output_sha256")
     _string(accepted["summary"], f"{label}.summary")
 
 

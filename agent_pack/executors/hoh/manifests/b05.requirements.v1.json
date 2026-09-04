@@ -3,8 +3,8 @@
   "manifest_id": "B-05-pilot-requirements-v1",
   "ticket": {
     "path": ".agent/tickets/B-05_measurement_scorepack_authoring.md",
-    "git_blob": "d4af72a34d5f315e22f1f66fe80626740e93bc10",
-    "sha256": "4c8b206edb8bfc76256672155c24d843bc2d1051c2a1e5a9a9db188b2f51c210"
+    "git_blob": "8ea74d4de44ab3f775efd2507c9d3b8328a15ed0",
+    "sha256": "6d355400d2348709d64f9df19dfd4fc295be010684f028f5bf0a826d3045c18e"
   },
   "requirements": [
     {
@@ -73,5 +73,18 @@
       "required": true,
       "authority_path": ".agent/tickets/B-05_measurement_scorepack_authoring.md"
     }
-  ]
+  ],
+  "verification_commands": {
+    "B05-D01": [],
+    "B05-D02": [],
+    "B05-D03": [],
+    "B05-D04": [],
+    "B05-D05": [],
+    "B05-D06": [],
+    "B05-D07": [],
+    "B05-D08": [],
+    "B05-D09": [],
+    "B05-D10": [],
+    "B05-D11": []
+  }
 }

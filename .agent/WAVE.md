@@ -3,23 +3,23 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.5
-**Selected ticket:** B-05 — `in_progress`
+**Controlling register:** `.agent/WAVE_B.md` version 1.6
+**Selected ticket:** B-01H — `in_progress`
 **Owner sequencing:** `OWNER-DX-02` interposes B-01H after completed B-04 and
 before B-05; B-05 remains the next scientific ticket and first planned pilot
 only after B-01H's complete delivery predicate
 **Conditional authority:** B-01H `done` and B-05 `in_progress` become
 authoritative only after B-01H's exact completion predicate; before it, B-01H
 remains `in_progress` and B-05 remains `todo` and not started
-**B-01H status:** prospective conditional `done` in bounded development-system
-scope
+**B-01H status:** `in_progress`; its prospective conditional bounded `done`
+state remains unearned before the complete delivery predicate
 **B-01F status:** `done` in bounded merged development-system scope
 **B-01G status:** `todo`; non-blocking for B-04
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `in_progress` only under B-01H's conditional completion
-predicate as the first pilot; all scientific work remains not started before it
+**B-05 status:** `todo` and not started; it becomes the first pilot only after
+B-01H's complete delivery predicate
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

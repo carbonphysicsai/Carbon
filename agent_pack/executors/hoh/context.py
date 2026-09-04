@@ -5,6 +5,7 @@ from __future__ import annotations
 import fnmatch
 import json
 import os
+import re
 import shutil
 import subprocess
 from collections.abc import Iterable
@@ -36,6 +37,8 @@ SECRET_VALUE_MARKERS = (
     "PRODUCTION_CREDENTIAL=",
 )
 
+PATH_TOKEN = re.compile(r"(?<![A-Za-z0-9._-])(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+")
+
 
 def _matches(path: str, patterns: Iterable[str]) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
@@ -61,15 +64,13 @@ def assert_payload_safe(value: Any, protected_patterns: Iterable[str]) -> None:
         elif isinstance(item, str):
             if any(marker in item for marker in SECRET_VALUE_MARKERS):
                 raise PacketValidationError(f"protected credential material at {label}")
-            if (
-                item
-                and not any(character.isspace() for character in item)
-                and "/" in item
-            ):
+            candidates = [item] if item and "/" in item else []
+            candidates.extend(match.group(0) for match in PATH_TOKEN.finditer(item))
+            for candidate in candidates:
                 try:
-                    path = normalized_repo_path(item)
+                    path = normalized_repo_path(candidate)
                 except ScopeViolation:
-                    return
+                    continue
                 if _matches(path, patterns):
                     raise PacketValidationError(f"protected path at {label}: {path}")
 
@@ -77,7 +78,7 @@ def assert_payload_safe(value: Any, protected_patterns: Iterable[str]) -> None:
 
 
 class ContextBroker:
-    """Grant exact tracked paths and build disposable read-role repositories."""
+    """Grant exact tracked paths and build disposable role repositories."""
 
     def __init__(
         self,
@@ -101,6 +102,23 @@ class ContextBroker:
             raise ScopeViolation(f"context path is not tracked: {path}")
         return children
 
+    def matching_tracked(self, patterns: Iterable[str]) -> tuple[str, ...]:
+        """Return existing tracked files selected by exact, prefix, or glob paths."""
+
+        self._tracked = frozenset(tracked_paths(self.repository))
+        selected: set[str] = set()
+        for raw_pattern in patterns:
+            pattern = normalized_repo_path(raw_pattern)
+            prefix = f"{pattern.rstrip('/')}/"
+            selected.update(
+                path
+                for path in self._tracked
+                if path == pattern
+                or path.startswith(prefix)
+                or fnmatch.fnmatchcase(path, pattern)
+            )
+        return tuple(sorted(selected))
+
     def grant(
         self,
         role: Role,
@@ -108,6 +126,7 @@ class ContextBroker:
         *,
         iteration: int,
     ) -> tuple[tuple[str, ...], tuple[dict[str, Any], ...]]:
+        self._tracked = frozenset(tracked_paths(self.repository))
         allowed = tuple(self.manifest["context_allow_paths"][role.value.lower()])
         granted: set[str] = set()
         disclosures: list[dict[str, Any]] = []
@@ -151,10 +170,6 @@ class ContextBroker:
         paths: Iterable[str],
         candidate: dict[str, str],
     ) -> Path:
-        if role is Role.DEVELOPER:
-            raise ScopeViolation(
-                "Developer must use the dedicated worktree, not a projection"
-            )
         target = self.state_root / "projections" / str(iteration) / role.value.lower()
         if target.exists():
             for root, directories, files in os.walk(target):
@@ -200,12 +215,13 @@ class ContextBroker:
                     f"could not build {role.value} projection: "
                     f"{(process.stderr or process.stdout).strip()}"
                 )
-        for root, directories, files in os.walk(target):
-            if Path(root).name == ".git" or ".git" in Path(root).parts:
-                continue
-            for name in directories:
-                os.chmod(Path(root) / name, 0o500)
-            for name in files:
-                os.chmod(Path(root) / name, 0o400)
-        os.chmod(target, 0o500)
+        if role is not Role.DEVELOPER:
+            for root, directories, files in os.walk(target):
+                if Path(root).name == ".git" or ".git" in Path(root).parts:
+                    continue
+                for name in directories:
+                    os.chmod(Path(root) / name, 0o500)
+                for name in files:
+                    os.chmod(Path(root) / name, 0o400)
+            os.chmod(target, 0o500)
         return target

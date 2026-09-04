@@ -7,7 +7,8 @@ not Carbon runtime authority and is not included in the `carbon` wheel.
 authority + ticket + requirements
 → fresh read-only Planner projection
 → strict IterationPlan
-→ workspace-write Developer in one dedicated ticket worktree
+→ workspace-write Developer in a sanitized projection
+→ controller-validated patch import into one dedicated ticket worktree
 → exact clean candidate head/tree freeze
 → fresh read-only Tester projection
 → strict IterationEvidence
@@ -25,8 +26,10 @@ economic, or rights authority.
 supported non-interactive `codex exec` surface. Each role starts in a fresh
 ephemeral invocation with user config ignored, an explicit sandbox, a fixed
 working directory, and an output JSON Schema. Planner and Tester use
-`read-only`; Developer uses `workspace-write`. `danger-full-access` is never
-used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
+`read-only`; Developer uses `workspace-write` only in a sanitized disposable
+Git projection. The controller validates its clean commit and imports only the
+plan/run-allow-listed patch into the dedicated ticket worktree.
+`danger-full-access` is never used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
 and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
 
 The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`
@@ -50,8 +53,17 @@ role profiles, clean candidate head/tree, and protected-context boundary.
 Each role starts with exact `initial_context` paths. A role can return
 `context_requests`; the controller expands only tracked regular files matching
 that role's `context_allow_paths`, rejects protected/out-of-authority requests,
-records every disclosed path and SHA-256, and re-invokes the role. Planner and
-Tester receive disposable Git projections containing only granted paths.
+records every disclosed path and SHA-256, and re-invokes the role. Every role
+receives a disposable Git projection containing only granted paths; the
+Developer projection is writable, while Planner and Tester projections are
+read-only.
+
+A requirements manifest also binds an exact closed command allow-list for each
+requirement. Tester evidence must name a disclosed verifier artifact, its
+digest, and one exact allow-listed argv. The controller independently reruns
+that command in the isolated candidate projection and matches its exit status
+and stdout/stderr digest before accepting `VERIFIED`. An empty command list,
+as in the pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
 
 The Codex sandbox and projection boundary are defense in depth for this
 development pilot. They are not a production arbitrary-code security claim.
@@ -81,4 +93,6 @@ adapter. `run` stops at `PAUSED_HUMAN`, `PAUSED_INFRA`, or
 unchanged B-05 Definition of Done and binds the exact ticket Git blob and
 SHA-256 after OWNER-DX-02's status-only sequencing interposition. It contains no
 measurement, threshold, weighting, uncertainty, reconstruction, stopping,
-qualification, physical, or production value.
+qualification, physical, or production value. Its verification-command lists
+are intentionally empty until B-05 authority supplies real requirement-owned
+verification; model prose cannot fill that gap.

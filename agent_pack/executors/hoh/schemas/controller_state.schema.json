@@ -32,11 +32,14 @@
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "artifact", "sha256", "summary"],
+      "required": ["kind", "artifact", "sha256", "command", "exit_code", "output_sha256", "summary"],
       "properties": {
-        "kind": {"enum": ["COMMAND", "FILE_ASSERTION", "STATIC_ANALYSIS", "TEST_RESULT"]},
+        "kind": {"enum": ["COMMAND", "STATIC_ANALYSIS", "TEST_RESULT"]},
         "artifact": {"type": "string", "minLength": 1},
         "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "command": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "exit_code": {"type": "integer", "minimum": 0},
+        "output_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "summary": {"type": "string", "minLength": 1}
       }
     },

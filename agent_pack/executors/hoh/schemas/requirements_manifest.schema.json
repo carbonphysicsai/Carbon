@@ -4,7 +4,7 @@
   "title": "RequirementsManifest v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "manifest_id", "ticket", "requirements"],
+  "required": ["schema_version", "manifest_id", "ticket", "requirements", "verification_commands"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "manifest_id": {"type": "string", "minLength": 1},
@@ -30,6 +30,18 @@
           "exact_text": {"type": "string", "minLength": 1},
           "required": {"type": "boolean"},
           "authority_path": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "verification_commands": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
         }
       }
     }

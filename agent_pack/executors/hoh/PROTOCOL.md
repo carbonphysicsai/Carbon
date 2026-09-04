@@ -37,9 +37,13 @@ OUT_OF_SCOPE
 Only a Tester packet can create `VERIFIED`, and every verified result must carry
 one or more accepted evidence records of a closed kind. Each evidence artifact
 must have been disclosed to Tester, must be a regular candidate file, and must
-match its recorded SHA-256. The controller requires Tester coverage of every
-manifest requirement on each candidate. Required requirements cannot be
-`OUT_OF_SCOPE`.
+match its recorded SHA-256. Its argv must exactly match a command bound to that
+requirement by the requirements manifest and name the verifier artifact. The
+controller independently reruns it in the isolated candidate projection and
+matches the claimed exit status and combined stdout/stderr digest; `VERIFIED`
+requires exit zero. An empty authoritative command list cannot verify. The
+controller requires Tester coverage of every manifest requirement on each
+candidate. Required requirements cannot be `OUT_OF_SCOPE`.
 
 If a later Tester result changes `VERIFIED` to another state, the controller
 records an explicit regression with prior evidence and current failure detail.
@@ -54,9 +58,12 @@ Every unresolved regression ID must lead the next `ordered_requirement_ids`.
   blob.
 - Resume requires the persisted manifest digest and exact clean candidate.
 - Developer output must be committed and clean; newly changed paths must match
-  both the iteration plan and run-level scope, while cumulative paths must
-  remain within the run-level scope.
-- Planner and Tester run against projections and cannot repair the candidate.
+  both the iteration plan and run-level scope. Developer operates only in a
+  sanitized writable projection; the controller imports its validated patch
+  and creates the candidate commit, while cumulative paths remain within the
+  run-level scope.
+- Planner and Tester run against read-only projections and cannot repair the
+  candidate.
 
 Any mismatch fails closed without advancement.
 

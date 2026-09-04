@@ -50,7 +50,6 @@ TERMINAL_PHASES = frozenset(
 ACCEPTED_EVIDENCE_KINDS = frozenset(
     {
         "COMMAND",
-        "FILE_ASSERTION",
         "STATIC_ANALYSIS",
         "TEST_RESULT",
     }

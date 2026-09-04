@@ -46,8 +46,9 @@ reserved human value is selected.
 1. Record OWNER-DX-02, ticket, plan, stable evidence, board sequencing, and Hub
    impact; preserve historical B-04/B-05 receipt wording.
 2. Add standard-library models, strict validation, canonical identities,
-   external state storage, disclosure policy/projections, controller, adapters,
-   prompts, schemas, and B-05 pilot manifest.
+   external state storage, disclosure policy/projections, controller-run
+   evidence commands, sanitized Developer patch import, adapters, prompts,
+   schemas, and B-05 pilot manifest.
 3. Add focused role-isolation, malformed-packet, evidence, regression,
    identity-drift, resume, scope, authority-ceiling, hidden-context, and
    synthetic multi-iteration tests.
@@ -105,12 +106,12 @@ the active first pilot at the exact receipt-recorded main.
 Implemented the optional controller under `agent_pack/executors/hoh/` with a
 thin `scripts/dev/hoh.py` entry point. The candidate includes strict versioned
 schemas and validators, exact identity checks, atomic external state, isolated
-read-role projections, controller-mediated disclosure, evidence-artifact hash
-checks, regression-first replanning, a verified `codex exec` adapter, manual
-and deterministic test adapters, the exact-ticket B-05 manifest, and focused
-CPU coverage.
+role projections, controller-mediated disclosure, manifest-authorized
+evidence-command replay, sanitized Developer patch import, regression-first
+replanning, a verified `codex exec` adapter, manual and deterministic test
+adapters, the exact-ticket B-05 manifest, and focused CPU coverage.
 
-The native Python 3.11.16 diagnostic reports 22 focused tests passing. Ruff
+The native Python 3.11.16 diagnostic reports 24 focused tests passing. Ruff
 0.16.3 passes on the new Python surface, every JSON schema parses, the real
 Codex adapter probe reports `codex-cli 0.151.0-alpha.7.2`, and diff hygiene is
 clean. The canonical wrapper remains locally `PAUSED_INFRA` because Docker is
