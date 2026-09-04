@@ -9,6 +9,9 @@ cd "${repo_root}"
 echo "==> deterministic Development Hub generation"
 python3 docs/development/carbon_hub/tools/render_hub.py --check
 
+echo "==> newcomer-first projection contract"
+python3 docs/development/carbon_hub/tools/test_newcomer.py
+
 echo "==> Development Hub Decision Console contract"
 python3 docs/development/carbon_hub/tools/test_decisions.py
 

@@ -24,8 +24,9 @@ if (/<script\b/i.test(primary)) {
 
 const staticRoutes = {
   'index.html': 'Carbon Development Hub',
-  '#start': 'Understand the layers before changing the system',
-  '#current': 'Captured repository position',
+  '#start': 'Understand Carbon before reading the repository',
+  '#current': 'Where Carbon is now',
+  '#exam-map': 'Carbon Independent Exam / Validator Execution Map',
   '#waves': `Wave ${data.waves[0].id} through Wave ${data.waves.at(-1).id}`,
   [`#wave-${currentWave.id}`]: `Wave ${currentWave.id}: ${currentWave.title}`,
   '#tickets': `Captured tickets across ${ticketWaveLabel}`,
@@ -55,9 +56,39 @@ for (const wave of data.waves) {
     failures += 1;
   }
 }
+const newcomerQuestions = [
+  'What are we building?',
+  'Why does Carbon need it?',
+  'What will be true when it is done?',
+  'What is still not true yet?',
+  'What are we doing?',
+  'Why does it matter?',
+  'What changes when this is finished?',
+  'What does this ticket not do?',
+  'Technical detail',
+  'Exact canonical status'
+];
+for (const question of newcomerQuestions) {
+  if (!primary.includes(question)) {
+    console.error(`FAIL newcomer-first static content missing ${question}`);
+    failures += 1;
+  }
+}
 for (const ticket of data.tickets) {
   if (!primary.includes(`id="ticket-${ticket.id}"`)) {
     console.error(`FAIL static missing ${ticket.id} anchor`);
+    failures += 1;
+  }
+}
+for (let index = 1; index <= 5; index += 1) {
+  if (!primary.includes(`id="exam-Q${index}"`)) {
+    console.error(`FAIL static missing exam Q${index} anchor`);
+    failures += 1;
+  }
+}
+for (let index = 1; index <= 15; index += 1) {
+  if (!primary.includes(`id="exam-R${index}"`)) {
+    console.error(`FAIL static missing exam R${index} anchor`);
     failures += 1;
   }
 }

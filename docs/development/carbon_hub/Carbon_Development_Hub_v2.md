@@ -96,6 +96,7 @@
 - `B-04-E2` — `WAVE-B/B-04` — B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.
 - `B-04-D12` — `WAVE-B/B-04` — B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset.
 - `GOV-REVIEW-01-D1` — `SYSTEM/DEVELOPMENT-SEQUENCING` — The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.
+- `OWNER-HUB-01` — `SYSTEM/DEVELOPMENT-HUB` — The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.
 
 ## Authority boundary
 

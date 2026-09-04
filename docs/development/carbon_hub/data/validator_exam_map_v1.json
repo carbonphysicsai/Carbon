@@ -1,0 +1,185 @@
+{
+  "schema_version": "1.0",
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+  "product_decision": "OWNER-HUB-01",
+  "title": "Carbon Independent Exam / Validator Execution Map",
+  "purpose": "One canonical target process for qualifying Carbon's exam and then executing that qualified exam for each candidate.",
+  "current_maturity": "Target-state orientation only. Carbon is currently in Wave B authoring work. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam.",
+  "science_boundary": "Science ends after R14 produces the canonical scientific result. R15 is a separate network and economic policy decision and cannot rewrite scientific truth.",
+  "depths": [
+    "Investor",
+    "Engineer",
+    "CFD",
+    "Physics PhD"
+  ],
+  "independence_chain": [
+    "Miner controls the proposed method",
+    "Validator controls independent reconstruction",
+    "Challenge controls what physical population counts",
+    "Generator creates fresh questions",
+    "Reference Policy creates qualified answers",
+    "Measurement Contract defines what evidence is measured",
+    "Score Pack defines how admissible evidence is combined",
+    "Uncertainty Policy defines whether a distinction is resolvable",
+    "Audit can challenge validator execution",
+    "Scientific Result crosses a hard authority boundary before network or economic policy"
+  ],
+  "layers": [
+    {
+      "id": "Q",
+      "title": "A. Qualify the exam",
+      "cadence": "Occasional and required before LIVE",
+      "summary": "Carbon must test and freeze the test before it can use that test to qualify candidates.",
+      "steps": [
+        {
+          "id": "Q1",
+          "title": "Define the physics job",
+          "input": "Physical system, governing problem, inputs, outputs, operating envelope, target population P(x), finite sampling design Q(x), evidence weighting w(x), permitted training support, and candidate interface.",
+          "controller": "Challenge scientific authority; participants do not define the official claim.",
+          "action": "Prospectively define one exact, versioned scientific claim while keeping P, Q, and w distinct.",
+          "output": "Registered Challenge definition.",
+          "why": "A score has no scientific meaning until Carbon states which physical population the claim covers.",
+          "failure_states": "Missing population, sampling, evidence, envelope, or interface authority leaves the Challenge PRE-LIVE or BLOCKED.",
+          "investor": "Write the exam syllabus before seeing contestants.",
+          "engineer": "Freeze the interface, valid operating domain, sampling design, and evidence semantics.",
+          "cfd": "Bind geometry and parameters, boundary and initial conditions, regimes, quantities of interest, exclusions, and simulation envelope.",
+          "physics_phd": "Define the target claim and distinguish target measure, finite experimental design, and evidence measure.",
+          "maturity_note": "Wave B authors bounded contracts; real scientific values and qualification remain human-owned and PRE-LIVE.",
+          "authority": [
+            {"label": "Scientific Challenge Authoring Contract", "path": "../../../Design_Specs/Scientific_Challenge_Authoring_Contract.md"},
+            {"label": "Challenge Instance Distribution", "path": "../../../Design_Specs/Challenge_Instance_Distribution.md"}
+          ]
+        },
+        {
+          "id": "Q2",
+          "title": "Qualify the question generator",
+          "input": "Challenge, target population P, sampling design Q, procedural generator, and qualification campaign.",
+          "controller": "Challenge and generator qualification authority; the candidate never controls official cases.",
+          "action": "Test support, exclusions, strata, boundary coverage, duplicate rates, censoring and failure behavior, replay, and TRAIN/EVAL/STRESS isolation.",
+          "output": "Qualified case-generation process with limitations and realized-distribution evidence.",
+          "why": "A generator can emit valid-looking cases while sampling the wrong scientific population.",
+          "failure_states": "Conformance, replay, coverage, or isolation failure blocks qualification and official use.",
+          "investor": "Prove the machine writing questions draws from the promised syllabus.",
+          "engineer": "Validate distributional conformance, not merely input validity.",
+          "cfd": "Validate the design-of-experiments and operating-condition sampler independently from the solution method.",
+          "physics_phd": "Demonstrate fidelity to the preregistered sampling design rather than to the PDE solution.",
+          "maturity_note": "B-03 provides bounded generator engineering evidence; it does not scientifically qualify the generator.",
+          "authority": [
+            {"label": "Generator Validation", "path": "../../../Design_Specs/Generator_Validation.md"},
+            {"label": "Generator Runtime Contract", "path": "../../../Design_Specs/Generator_Runtime_Contract.md"}
+          ]
+        },
+        {
+          "id": "Q3",
+          "title": "Qualify the answer-key process",
+          "input": "Canonical cases, ReferencePolicy, primary reference implementation, independent witness evidence, and convergence and uncertainty studies.",
+          "controller": "Registered reference policy and human scientific qualification; solver reputation alone has no truth authority.",
+          "action": "Determine whether the operational reference is accurate enough inside a bounded envelope to support the distinctions Carbon intends to reward. Burgers v1 proposes periodic Cole–Hopf as primary, challenged by a methodologically independent refined conservative solver.",
+          "output": "Qualified TruthAsset path with provenance, applicability, uncertainty, identity, and typed failure behavior.",
+          "why": "Carbon must independently check the answer key before grading candidates.",
+          "failure_states": "Reference divergence, timeout, disagreement, unavailable evidence, or out-of-envelope use remains a typed reference failure and cannot become candidate failure.",
+          "investor": "Independently check the answer key before grading anyone.",
+          "engineer": "A reference becomes authoritative only inside the envelope its evidence supports.",
+          "cfd": "Use grid and timestep refinement, tolerance sensitivity, conservation, and cross-code, analytic, manufactured-solution, or experimental evidence where appropriate.",
+          "physics_phd": "Treat the reference as a bounded estimator with characterized error; witness evidence constrains uncertainty rather than voting on truth.",
+          "maturity_note": "B-04 is bounded engineering only. Reference adequacy and the real Burgers TruthAsset remain unqualified.",
+          "authority": [
+            {"label": "Reference and TruthAsset Contract", "path": "../../../Design_Specs/Reference_and_TruthAsset_Contract.md"},
+            {"label": "Runtime Julia Truth Oracle", "path": "../../../Design_Specs/Runtime_Julia_Truth_Oracle.md"}
+          ]
+        },
+        {
+          "id": "Q4",
+          "title": "Qualify measurements and decision resolution",
+          "input": "Qualified reference, proposed measurements, mandatory gates, stress design, Score Pack, reference and measurement uncertainty, reconstruction variability, and finite-exam variability.",
+          "controller": "Registered Measurement Contract, Evidence Use Contract, and human scientific qualification.",
+          "action": "Define measurements, admissibility gates, ranking rules, uncertainty propagation, and the smallest difference the exam can resolve.",
+          "output": "Measurement Contract, evidence-use rules, Score Pack parameters, mandatory gates, stress definitions, and a resolvable or contested region.",
+          "why": "Carbon cannot reward differences smaller than the exam's own scientific resolution.",
+          "failure_states": "Unqualified operators, thresholds, uncertainty, weights, or evidence sufficiency leave the decision unresolved and PRE-LIVE.",
+          "investor": "Prove how precise the grading system is before assigning grades.",
+          "engineer": "Thresholds and transforms are evidence-backed frozen configuration, not validator-tunable constants.",
+          "cfd": "Candidate differences below discretization, interpolation, reference, or test-set uncertainty are not meaningful improvements.",
+          "physics_phd": "Define estimands, admissibility tests, and decision procedures with qualified uncertainty propagation.",
+          "maturity_note": "B-05 authoring is current Wave B work; no real thresholds, weights, or scientific qualification are implied.",
+          "authority": [
+            {"label": "Scoring", "path": "../../../Design_Specs/Scoring.md"},
+            {"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}
+          ]
+        },
+        {
+          "id": "Q5",
+          "title": "Freeze and approve the exam",
+          "input": "Qualified Challenge, generator, reference, measurements, uncertainty, security and leakage evidence, Score Pack, and exact implementation identities.",
+          "controller": "Human scientific and security qualification authorities under the registered activation process.",
+          "action": "Assemble the measured Validation Dossier and decide whether the exact exam has earned authority.",
+          "output": "QUALIFIED EXAM or explicit PRE-LIVE / BLOCKED state with missing evidence.",
+          "why": "Architecture, code, and passing software tests do not demonstrate scientific adequacy.",
+          "failure_states": "Any missing evidence, identity, approval, security result, or unresolved limitation keeps the exact exam unavailable.",
+          "investor": "Test the test before it can move money.",
+          "engineer": "An incomplete qualification package means no authoritative exam.",
+          "cfd": "The verification and validation package must support the claimed envelope and numerical resolution.",
+          "physics_phd": "Prospective qualification binds experiment, measurement process, and decision rule to exact identities.",
+          "maturity_note": "Burgers v1 is PRE-LIVE. A measured Validation Dossier and human decisions are still required.",
+          "authority": [
+            {"label": "Scientific Challenge Authoring Contract", "path": "../../../Design_Specs/Scientific_Challenge_Authoring_Contract.md"},
+            {"label": "Launch Bar", "path": "../../../Design_Specs/Launch_Bar.md"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "R",
+      "title": "B. Execute the exam",
+      "cadence": "Per candidate after qualification",
+      "summary": "The validator executes frozen authority for one candidate; it does not redefine the physics, answer key, measurements, or scoring ruler.",
+      "steps": [
+        {
+          "id": "R1", "title": "Receive and bind submission", "input": "Authenticated producer identity, declarative strategy, exact submitted bytes, and Challenge selection.", "controller": "Submission protocol and authenticated validator intake.", "action": "Bind producer, Challenge, strategy hash, submission ID, and candidate commitment.", "output": "Immutable candidate submission identity or typed intake/identity failure.", "why": "The evaluated method must remain the same submitted method.", "failure_states": "Authentication, byte identity, schema, or Challenge-binding failure rejects intake without creating scientific evidence.", "investor": "Seal the contestant's entry before testing it.", "engineer": "Exact producer and submission identity survives through the receipt.", "cfd": "Freeze the exact surrogate-development recipe before blind verification.", "physics_phd": "Establish treatment identity and prohibit post-outcome mutation.", "maturity_note": "A bounded submission lifecycle exists; authenticated real network intake is planned for later work.", "authority": [{"label": "Miner MCP", "path": "../../../Design_Specs/Miner_MCP.md"}]
+        },
+        {
+          "id": "R2", "title": "Validate and compile method", "input": "Submitted strategy, Challenge-supported catalog, parameter bounds, permitted training policy, and construction contracts.", "controller": "Challenge-bound catalog and deterministic compiler.", "action": "Reject malformed, unsupported, out-of-bounds, unused, silently coerced, or hidden-exam-controlling behavior and compile accepted input into one exact construction plan.", "output": "ResolvedConstructionPlan or InvalidStrategy.", "why": "Independent validators need the same interpretation of the same method.", "failure_states": "Unknown, unused, aliased, silently defaulted, coerced, or clamped input fails closed.", "investor": "Turn the recipe into one exact set of instructions.", "engineer": "Eliminate silent defaults, aliases, and coercion.", "cfd": "Normalize the submitted method into the exact executable workflow being compared.", "physics_phd": "Canonicalize the declared treatment into a reproducible intervention identity.", "maturity_note": "Wave B provides bounded compilation contracts; the real validator vertical remains planned for Wave C1.", "authority": [{"label": "Candidate Assembly and Strategy Compiler Contract", "path": "../../../Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md"}]
+        },
+        {
+          "id": "R3", "title": "Independently rebuild candidate", "input": "Resolved plan, validator-controlled TRAIN randomness, registered training support, resource budget, and pinned environment.", "controller": "Validator-controlled reconstruction environment.", "action": "Train or reconstruct from scratch, separate strategy failure from infrastructure failure, and measure stochastic reconstruction variability when required.", "output": "Candidate artifact with reconstruction evidence, or typed failure.", "why": "Carbon evaluates a method's ability to produce a model, not a producer-controlled artifact.", "failure_states": "Strategy, infrastructure, resource, and indeterminate failures remain distinct; infrastructure failure is not scientific failure.", "investor": "Carbon rebuilds the contestant's model itself.", "engineer": "Use a controlled environment, randomness, and compute ceiling.", "cfd": "Rerun the full surrogate-development procedure instead of accepting vendor-provided validation.", "physics_phd": "Use producer-independent realization of a stochastic treatment; reconstruction variance is experimental uncertainty.", "maturity_note": "Real miner training and production reconstruction are not implemented or security-qualified; Wave C1 owns the real vertical.", "authority": [{"label": "Build Out", "path": "../../../Design_Specs/Build_Out.md"}]
+        },
+        {
+          "id": "R4", "title": "Create protected exam randomness", "input": "Authorized official entropy plus exact Challenge, generator, scoring, evaluation, domain, and role identities.", "controller": "Validator-side protected seeding authority.", "action": "Derive private, role-separated randomness for TRAIN, EVAL, STRESS, and finer purposes.", "output": "Private exam randomness that is never participant-visible.", "why": "Learning the physics distribution is legitimate; learning exact future exam realizations is not.", "failure_states": "Missing authority, identity mismatch, reuse, or disclosure blocks official execution and triggers leakage handling.", "investor": "Know the subject, not tomorrow's questions.", "engineer": "No participant-controlled evaluation or stress RNG.", "cfd": "Keep the physical envelope public while blind verification cases remain fresh.", "physics_phd": "Use fresh preregistered sampling with treatment-independent outcome-case realization.", "maturity_note": "Wave A proves bounded seed separation and disclosure constraints, not production entropy or LIVE execution.", "authority": [{"label": "Data Management", "path": "../../../Design_Specs/Data_Management.md"}, {"label": "Trustless Verification", "path": "../../../Design_Specs/Trustless_Verification.md"}]
+        },
+        {
+          "id": "R5", "title": "Generate fresh hidden physics cases", "input": "Protected EVAL/STRESS randomness, qualified generator, sampling design Q, stress allocation, and Challenge envelope.", "controller": "Qualified generator executing the Challenge-owned design.", "action": "Sample strata and parameters, enforce support and exclusions, construct the canonical case, verify invariants, and bind private provenance.", "output": "Canonical hidden physical case, such as Burgers u0(x).", "why": "Carbon needs a renewable exam instead of a fixed benchmark dataset.", "failure_states": "Generator, support, duplicate, censoring, provenance, or sufficiency failure remains typed and cannot silently alter the design.", "investor": "Write a fresh valid question.", "engineer": "Deterministic from protected inputs but unpredictable beforehand.", "cfd": "Produce a blind design-of-experiments realization.", "physics_phd": "Realize one observation unit under the frozen design.", "maturity_note": "The bounded Burgers generator is not scientifically qualified; official hidden generation awaits the qualified Wave C1 vertical.", "authority": [{"label": "Generator Runtime Contract", "path": "../../../Design_Specs/Generator_Runtime_Contract.md"}]
+        },
+        {
+          "id": "R6", "title": "Produce qualified reference answer", "input": "Canonical case, exact ReferencePolicy, qualified primary reference, and registered configuration.", "controller": "Qualified reference policy and validator-controlled truth execution.", "action": "Run the authorized reference path; for Burgers, u0(x) to Cole–Hopf to u_ref(x,T). Witness execution remains qualification or audit evidence unless policy requires it at runtime.", "output": "Qualified TruthAsset realization or typed reference failure.", "why": "Failed or unavailable truth cannot be converted into candidate failure.", "failure_states": "Divergence, timeout, disagreement, unavailable truth, or out-of-envelope input produces a typed reference outcome.", "investor": "Generate the independently checked answer.", "engineer": "Reference failure and candidate failure remain separate types.", "cfd": "Run the production reference solver on the identical canonical case under its qualified configuration.", "physics_phd": "Admit the reference realization only inside registered applicability and uncertainty conditions.", "maturity_note": "The Burgers reference path remains PRE-LIVE and scientifically unqualified.", "authority": [{"label": "Reference and TruthAsset Contract", "path": "../../../Design_Specs/Reference_and_TruthAsset_Contract.md"}]
+        },
+        {
+          "id": "R7", "title": "Run candidate on the same case", "input": "Reconstructed candidate, identical canonical case, and candidate representation contract.", "controller": "Validator evaluation runtime; adapters may not change the physical case.", "action": "Execute candidate inference against the same canonical input used by the reference.", "output": "Candidate prediction, such as Burgers û(x,T), or typed candidate execution failure.", "why": "Candidate and reference must answer the identical physical question.", "failure_states": "Malformed output, runtime failure, non-finite result, or representation mismatch stays a candidate-side typed outcome.", "investor": "Contestant and answer key solve the same problem.", "engineer": "Adapters cannot change the underlying case.", "cfd": "No candidate-specific easier truth path.", "physics_phd": "Create a paired outcome on the same experimental unit.", "maturity_note": "Current execution is fixture-bounded; real candidate evaluation is planned for Wave C1 and remains non-LIVE.", "authority": [{"label": "Scientific Challenge Authoring Contract", "path": "../../../Design_Specs/Scientific_Challenge_Authoring_Contract.md"}]
+        },
+        {
+          "id": "R8", "title": "Compute validator-owned measurements", "input": "Case, candidate prediction, reference, Measurement Contract, stress label, and measurement configuration.", "controller": "Validator-owned registered measurement operators.", "action": "Calculate all official evidence, including applicable finiteness, conservation, energy, bound, field-error, and stress-tail measurements.", "output": "Authorized measurement vector and evidence-sufficiency state.", "why": "The producer does not grade itself.", "failure_states": "Inapplicable, insufficient, non-finite, reference-failed, or measurement-failed evidence cannot silently enter score.", "investor": "Carbon measures the answer, not the contestant.", "engineer": "Registered operators map raw tensors into validator-authorized scalar evidence.", "cfd": "Turn field errors, conservation, quantities of interest, and off-design behavior into V&V observables.", "physics_phd": "Map paired outcomes into preregistered estimands.", "maturity_note": "B-05 authors the contract; official measurements and thresholds remain unqualified.", "authority": [{"label": "Scoring", "path": "../../../Design_Specs/Scoring.md"}]
+        },
+        {
+          "id": "R9", "title": "Apply mandatory physics gates", "input": "Gate measurements and frozen gate definitions and thresholds.", "controller": "Registered admissibility policy; the runtime executes but does not invent thresholds.", "action": "Test scientific admissibility before ranking.", "output": "PASS, conclusive scientific failure, or a separate infrastructure, reference, or incomplete-evidence state.", "why": "Unacceptable physics cannot be compensated by average accuracy.", "failure_states": "Infrastructure, reference, and insufficient-evidence outcomes never masquerade as physics failure or success.", "investor": "Some failures are disqualifying regardless of overall grade.", "engineer": "Admissibility precedes aggregation.", "cfd": "Conservation or physical-bound failures can reject a surrogate before downstream scoring.", "physics_phd": "Define the feasible set before evaluating the objective functional.", "maturity_note": "No production gate threshold is supplied by this map; real values require qualification.", "authority": [{"label": "Scoring", "path": "../../../Design_Specs/Scoring.md"}]
+        },
+        {
+          "id": "R10", "title": "Score physics, robustness, and accuracy", "input": "Qualified soft physics defects, accuracy errors, stress mean and tail metrics, and frozen Score Pack transforms and weights.", "controller": "Challenge-specific registered Score Pack.", "action": "Compute physics, robustness, and accuracy components, then the Challenge-local combined score under the frozen aggregation rule.", "output": "Score vector and combined Challenge-local score.", "why": "One global mean error can hide physical defects and brittle regimes.", "failure_states": "Inadmissible or insufficient evidence cannot be rescued by soft score; cross-Challenge comparison is unavailable by default.", "investor": "Grade several dimensions, not one headline number.", "engineer": "ScoreEngine executes frozen policy; it does not invent it.", "cfd": "Global accuracy cannot hide catastrophic steep-gradient or off-design failure.", "physics_phd": "Use a preregistered functional of qualified estimands; weights are Challenge-specific policy, not universal constants.", "maturity_note": "The bounded scoring engine is engineering evidence only; no real Score Pack is scientifically qualified.", "authority": [{"label": "Scoring Formulas", "path": "../../../Design_Specs/Scoring_Formulas.md"}, {"label": "Scoring", "path": "../../../Design_Specs/Scoring.md"}]
+        },
+        {
+          "id": "R11", "title": "Finalize execution and sign receipt", "input": "Submission, reconstruction, Challenge, generator, reference, scoring, and environment identities; hidden-exam, prediction, reference, measurement, gate, score, and status commitments.", "controller": "Validator receipt and evidence-retention protocol.", "action": "Finalize the private transcript and sign a compact commitment.", "output": "Signed EvaluationReceipt with retained private evidence.", "why": "Carbon needs auditability without leaking the hidden exam.", "failure_states": "Incomplete identities, evidence roots, signatures, or finalization keep the result unauthoritative; signature alone never proves scientific validity.", "investor": "Create a tamper-evident receipt for the claimed exam.", "engineer": "Bind exact versions and evidence roots.", "cfd": "Audit which model, solver, configuration, and measurement produced the result.", "physics_phd": "Preserve provenance for an experimental realization without mistaking signature for validity.", "maturity_note": "Canonical signed production receipts and key custody are later, security-sensitive work.", "authority": [{"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}]
+        },
+        {
+          "id": "R12", "title": "Measure scientific variability when required", "input": "Repeated authorized reconstructions, fresh or common case sets, reference uncertainty, and finite-exam sampling evidence.", "controller": "Registered scientific uncertainty and decision-resolution policy.", "action": "Estimate reconstruction variability, reconstruction-by-case interaction, finite-exam variability, and decision or rank stability.", "output": "Scientific decision interval or contested band.", "why": "Stochastic training and finite samples can make tiny rank differences meaningless.", "failure_states": "Insufficient repetitions, dependence errors, unresolved variance, or intervals crossing the decision boundary yield INDETERMINATE or CONTESTED.", "investor": "Check whether the winner still wins when the experiment is honestly repeated.", "engineer": "Decision reproducibility matters more than byte-identical learned weights.", "cfd": "Propagate method-development, solver-reference, and sampling variability into comparison.", "physics_phd": "Estimate the sampling distribution of the candidate comparison under the registered design.", "maturity_note": "B-E1 plans this bounded harness; no production decision interval is qualified.", "authority": [{"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}]
+        },
+        {
+          "id": "R13", "title": "Audit validator execution and resolve disagreement", "input": "Receipt, committed execution identity, audit policy, and secondary validator or re-execution environment.", "controller": "Independent audit and dispute protocol, separate from the original validator.", "action": "Verify or re-execute selected evaluations and keep evaluator integrity distinct from scientific variability.", "output": "Audit agreement or disagreement, quarantine, dispute, or re-execution evidence.", "why": "A validator is not an unquestionable oracle.", "failure_states": "Identity mismatch, unverifiable receipt, execution disagreement, or unresolved dispute prevents canonical finalization.", "investor": "Check the examiner, not only the contestant.", "engineer": "R12 measures scientific variability; R13 tests evaluator integrity.", "cfd": "Reproduce the exact numerical and measurement path when validator output is challenged.", "physics_phd": "Separate uncertainty in the scientific comparison from integrity of the observation mechanism.", "maturity_note": "Full independent validator audit is planned; current bounded evidence does not establish network qualification.", "authority": [{"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}]
+        },
+        {
+          "id": "R14", "title": "Produce canonical scientific result", "input": "Valid receipts, admissibility, score, uncertainty or contested interval, and required dispute or audit result.", "controller": "Registered scientific decision rule.", "action": "Determine exactly what the qualified evidence supports.", "output": "Valid Challenge-local scientific result or INDETERMINATE / CONTESTED.", "why": "Floating-point ordering is not scientific evidence of superiority.", "failure_states": "Unresolved uncertainty, insufficient evidence, audit dispute, or non-comparability remains explicit and cannot be forced into a winner.", "investor": "If Carbon cannot tell who won, it says so.", "engineer": "A numeric score does not automatically imply resolved ranking.", "cfd": "Separation smaller than validated system resolution stays unresolved.", "physics_phd": "The qualified decision rule respects the uncertainty region instead of converting every positive delta into superiority.", "maturity_note": "Canonical real-path result production is planned for Wave C1 and remains unavailable until the exam is qualified.", "authority": [{"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}]
+        },
+        {
+          "id": "R15", "title": "Policy decides whether network action follows", "input": "Canonical scientific result only; never raw hidden material or an arbitrary score dictionary.", "controller": "Separately registered network and economic policy outside the scientific judge.", "action": "Decide whether an eligible resolved result creates a testnet event, later frontier event, later treasury obligation, or no action.", "output": "Optional typed Carbon policy event or chain intent.", "why": "Token economics must not determine scientific truth.", "failure_states": "Ineligible, fixture, stale, indeterminate, contested, identity-unbound, or non-qualified results produce no authorized network action.", "investor": "First decide what science says, then separately decide what to pay for.", "engineer": "Scientific modules do not directly write Bittensor weights.", "cfd": "Reward-policy changes cannot retroactively alter model evaluation.", "physics_phd": "Keep the scientific estimator and economic utility function in separate authority domains.", "maturity_note": "This step is future policy. It creates no current testnet, mainnet, frontier, treasury, settlement, weight, or emission authority.", "authority": [{"label": "Testnet-to-Mainnet Launch Path", "path": "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"}]
+        }
+      ]
+    }
+  ]
+}

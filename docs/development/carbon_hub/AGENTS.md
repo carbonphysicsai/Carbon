@@ -22,6 +22,11 @@ substitute for repository code, review, decisions, tests, or evidence.
 - `data/change_events.json`;
 - `data/change_event_template.yaml`;
 - `data/decisions.json` for the technical-lead Decision Console;
+- `data/newcomer_projection_v1.json` and
+  `data/newcomer_tickets_wave_*_v1.json` for newcomer copy bound to the same
+  canonical Wave and ticket map references;
+- `data/validator_exam_map_v1.json` for the single canonical target exam
+  process and its four progressive explanation depths;
 - `decisions.html` for the lightweight Decision Console presentation;
 - `tools/render_hub.py` and `tools/templates/interactive_template.html` when
   changing presentation or generation behavior;
@@ -100,6 +105,7 @@ From repository root for normal Hub structural changes:
 ```bash
 python docs/development/carbon_hub/tools/render_hub.py
 python docs/development/carbon_hub/tools/render_hub.py --check
+python docs/development/carbon_hub/tools/test_newcomer.py
 python docs/development/carbon_hub/tools/validate_hub.py --repo-root .
 node docs/development/carbon_hub/tools/test_routes.js
 python docs/development/carbon_hub/tools/browser_smoke_test.py

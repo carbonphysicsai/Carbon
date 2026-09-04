@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+  "product_decision": "OWNER-HUB-01",
+  "title": "Carbon Hub — Overview",
+  "summary": "A plain-English guide to what Carbon is building, where the work stands, and what each development step changes.",
+  "audience_rule": "Assume the reader knows nothing about Carbon, Bittensor, scientific machine learning, or the repository. Explain the idea first; expose canonical Carbon terms in Technical Detail.",
+  "waves": {
+    "A": {
+      "title": "Build the trustworthy software foundation",
+      "what": "Build the basic software boundaries Carbon needs before it can run a real scientific competition: define safe submissions, protect hidden tests, score by fixed rules, separate private evidence from public results, and track failures cleanly.",
+      "why": "Later science is only credible if the software keeps competitors, evaluators, protected test information, public outputs, and economic state from silently taking control of one another.",
+      "done_when": "Carbon can demonstrate the intended boundaries with controlled test fixtures and automated checks.",
+      "not_yet": "This does not mean Carbon has a scientifically qualified exam, a live Bittensor market, production security, or real emissions.",
+      "map_ref": "WAVE-A"
+    },
+    "B": {
+      "title": "Define the exam and research loop",
+      "what": "Define exactly how one physics problem is described, how test cases are created, what counts as a reference answer, how a candidate is measured, and how researchers can practice against the system.",
+      "why": "Carbon cannot fairly test or compare models until the problem, reference answers, measurements, resource limits, and research interface mean one exact thing.",
+      "done_when": "Carbon can run the complete research and exam workflow with controlled test fixtures while the system still refuses to call those fixtures real scientific qualification.",
+      "not_yet": "This does not yet mean Carbon can run a live scientific Challenge, publish Bittensor weights from real scientific results, or claim scientific qualification.",
+      "map_ref": "WAVE-B"
+    },
+    "C": {
+      "title": "Connect Carbon to Bittensor and run one real test path",
+      "what": "Connect participant identity and authenticated requests to Bittensor, then run one real candidate through Carbon's protected evaluation path and prove temporary testnet weight publication.",
+      "why": "Carbon needs to prove that Bittensor can carry identity and incentives without letting chain mechanics decide scientific truth.",
+      "done_when": "A real candidate can move from an authenticated Bittensor identity through protected evaluation to a temporary testnet result that can be read back and expired safely.",
+      "not_yet": "Testnet publication does not make the science live, qualify the Challenge, create a frontier advance, settle rewards, or authorize mainnet.",
+      "map_ref": "WAVE-C"
+    },
+    "D": {
+      "title": "Prove the first exam is scientifically fit for purpose",
+      "what": "Have the responsible scientific owners decide and document the real physics envelope, test population, reference hierarchy, measurements, uncertainty rules, thresholds, security evidence, and activation conditions.",
+      "why": "Passing software tests cannot prove that an exam measures the physical claim Carbon says it measures.",
+      "done_when": "The first exact Challenge has enough reviewed scientific and security evidence to be activated for its registered purpose.",
+      "not_yet": "One qualified Challenge does not prove product qualification, commercial repeatability, frontier advancement, or reward settlement.",
+      "map_ref": "WAVE-D"
+    },
+    "E": {
+      "title": "Learn from past experiments without changing the judge",
+      "what": "Store structured experiment results and use them to suggest better research directions, future experiments, and useful history.",
+      "why": "Carbon should get smarter as experiments accumulate, but learned patterns must not rewrite a live exam after results are known.",
+      "done_when": "Past evidence can produce traceable research suggestions while registered exam rules remain the authority.",
+      "not_yet": "Learned history cannot define truth, alter a current exam, expose hidden tests, or revise an existing result.",
+      "map_ref": "WAVE-E"
+    },
+    "F": {
+      "title": "Decide whether one exact model is fit for one real job",
+      "what": "Take a specific model and test the exact artifact, runtime, deployment context, limitations, and conditions under which it can support a defined engineering use.",
+      "why": "Winning a research competition is weaker evidence than showing that a specific deployed model can support a specific customer decision.",
+      "done_when": "Carbon can state what one exact model can support, where it cannot be relied on, and what changes would force re-testing.",
+      "not_yet": "A high Challenge score does not qualify a product, and evidence for one component does not qualify an entire system.",
+      "map_ref": "WAVE-F"
+    },
+    "G": {
+      "title": "Connect customer work to Carbon without weakening the science",
+      "what": "Define how enterprise programs handle privacy, rights, reference access, deliverables, payment, acceptance, and lifecycle while keeping scientific rules independent.",
+      "why": "Customers need private and contractable workflows, but commercial pressure cannot change what the evidence means.",
+      "done_when": "Carbon can structure enterprise programs with explicit rights, privacy, truth access, deliverables, payment, and lifecycle controls.",
+      "not_yet": "A designed commercial product or privacy mode is not a live capability until the required technical and commercial qualification exists.",
+      "map_ref": "WAVE-G"
+    },
+    "H": {
+      "title": "Prove when the scientific frontier really moved",
+      "what": "Separate an ordinary leaderboard result from stronger evidence that a new contender beat the accepted frontier on comparable fresh tests.",
+      "why": "A slightly higher score or temporary first place is not enough to prove a genuine scientific advance.",
+      "done_when": "Carbon can record a frontier advance only when the registered comparison resolves it, including the option to say the evidence is inconclusive.",
+      "not_yet": "Being the incumbent does not create permanent reward rights, and unresolved evidence does not create a winner.",
+      "map_ref": "WAVE-H"
+    },
+    "I": {
+      "title": "Turn verified scientific events into network settlement",
+      "what": "Build the treasury, accounting, validator-service, and payment path that converts finalized scientific events into exact network obligations without changing the underlying scientific result.",
+      "why": "Mainnet economics need auditable accounting, safe retries, custody, and proof that validators perform useful work.",
+      "done_when": "Carbon can trace a finalized scientific event through an exact obligation and settlement path, including rollback and migration evidence.",
+      "not_yet": "Treasury or chain behavior cannot create, erase, or change scientific merit, and mainnet still requires separate activation approval.",
+      "map_ref": "WAVE-I"
+    },
+    "J": {
+      "title": "Let different kinds of fast physics models compete fairly",
+      "what": "Add qualified ways to rebuild and evaluate more model families, such as neural operators, reduced-order models, and hybrid systems.",
+      "why": "Carbon should judge whether a method solves the physical job, not favor one architecture label.",
+      "done_when": "Different model families can enter through registered interfaces and face the same applicable scientific requirements.",
+      "not_yet": "No model family receives scientific preference because it is neural, mechanistic, symbolic, hybrid, or popular.",
+      "map_ref": "WAVE-J"
+    },
+    "K": {
+      "title": "Let researchers search for whole model-building methods",
+      "what": "Expand the competition from tuning a bounded training recipe toward proposing richer ways to construct a fast physical model.",
+      "why": "The best improvement may come from architecture, objectives, representations, solver hybrids, or staged procedures rather than parameter tuning.",
+      "done_when": "Researchers and agents can propose broader construction methods while Carbon's independent evaluator still controls the official measurements and grade.",
+      "not_yet": "A construction method cannot inspect the official evaluator or define the measurements that prove its own success.",
+      "map_ref": "WAVE-K"
+    },
+    "L": {
+      "title": "Run broader model-building methods in isolation",
+      "what": "Create a controlled reconstruction environment that can execute richer construction methods, record what happened, and hand the resulting model to the independent evaluator.",
+      "why": "Broader model-building freedom creates security, reproducibility, dependency, and resource risks that must be controlled before official evaluation.",
+      "done_when": "A registered construction method can produce an exact artifact and receipt inside an isolated environment, then cross a hard boundary into evaluation.",
+      "not_yet": "Arbitrary participant code is not a default capability; broader execution requires separate security and scientific qualification.",
+      "map_ref": "WAVE-L"
+    },
+    "M": {
+      "title": "Keep model evidence valid as real systems change",
+      "what": "Track deployed models and systems through changes in models, data, solvers, hardware, operating envelopes, fallbacks, and deployment context.",
+      "why": "Evidence for one exact system version can become stale when any important part of the system changes.",
+      "done_when": "Carbon can preserve a model's evidence history and trigger requalification when a material change breaks the previous identity or claim.",
+      "not_yet": "Success of an end-to-end system does not automatically validate every internal component or future version.",
+      "map_ref": "WAVE-M"
+    },
+    "N": {
+      "title": "Prove Carbon's accumulated evidence helps make better future decisions",
+      "what": "Test whether Carbon's evidence can improve choices such as which method to try, which experiment to run, where a model may fail, or which qualification evidence to collect next.",
+      "why": "A convincing historical pattern is not enough; Carbon must show that the information improves the next registered decision.",
+      "done_when": "Prospective tests show measurable decision improvement against a defined baseline, with known limits.",
+      "not_yet": "Retrospective correlations or a polished dashboard do not establish useful Physics Intelligence.",
+      "map_ref": "WAVE-N"
+    }
+  }
+}
