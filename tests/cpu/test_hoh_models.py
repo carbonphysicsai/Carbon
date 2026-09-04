@@ -20,7 +20,7 @@ from agent_pack.executors.hoh.validation import (
     validate_requirements_manifest,
     validate_run_manifest,
 )
-from tests.cpu.hoh_support import make_repository, run_manifest
+from tests.cpu.hoh_support import PYTHON_EXECUTABLE, make_repository, run_manifest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 HOH_ROOT = REPOSITORY_ROOT / "agent_pack" / "executors" / "hoh"
@@ -158,3 +158,14 @@ def test_run_manifest_rejects_unsafe_worktree_ref(tmp_path: Path) -> None:
 
     with pytest.raises(PacketValidationError, match="exact local branch ref"):
         validate_run_manifest(manifest)
+
+
+def test_synthetic_manifest_binds_exact_current_python(tmp_path: Path) -> None:
+    _, requirements = make_repository(tmp_path)
+    commands = requirements["verification_commands"]
+
+    assert commands == {
+        "REQ-001": [[PYTHON_EXECUTABLE, "verify.py", "REQ-001"]],
+        "REQ-002": [[PYTHON_EXECUTABLE, "verify.py", "REQ-002"]],
+    }
+    assert Path(PYTHON_EXECUTABLE).is_absolute()

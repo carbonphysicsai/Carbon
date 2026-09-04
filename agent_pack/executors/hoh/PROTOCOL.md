@@ -120,7 +120,8 @@ open-regression records remain structured inputs to later roles.
   network-disabled profile, sanitized Git environment, and profile-bound fixed
   `/usr/bin:/bin` execution path; the manual executor
   fails unavailable, and direct subprocess replay is confined to the
-  explicitly synthetic test executor.
+  explicitly synthetic test executor, whose fixture manifest binds the exact
+  current Python executable rather than relying on PATH lookup.
 - Evidence artifact SHA-256 must equal both the immutable candidate disclosure
   digest and the projected file digest before any verifier command is accepted.
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,8 @@ from agent_pack.executors.hoh.identity import (
 )
 from agent_pack.executors.hoh.models import Role
 from agent_pack.executors.hoh.state_store import StateStore
+
+PYTHON_EXECUTABLE = str(Path(sys.executable).resolve(strict=True))
 
 
 def git(repository: Path, *arguments: str) -> str:
@@ -119,7 +122,7 @@ def evidence_packet(
 
 
 def accepted_evidence(repository: Path, requirement_id: str) -> dict[str, Any]:
-    command = ["python3", "verify.py", requirement_id]
+    command = [PYTHON_EXECUTABLE, "verify.py", requirement_id]
     completed = subprocess.run(
         command,
         cwd=repository,
@@ -192,8 +195,8 @@ raise SystemExit(0 if passed else 1)
             },
         ],
         "verification_commands": {
-            "REQ-001": [["python3", "verify.py", "REQ-001"]],
-            "REQ-002": [["python3", "verify.py", "REQ-002"]],
+            "REQ-001": [[PYTHON_EXECUTABLE, "verify.py", "REQ-001"]],
+            "REQ-002": [[PYTHON_EXECUTABLE, "verify.py", "REQ-002"]],
         },
     }
     (repository / "requirements.json").write_text(

@@ -72,7 +72,8 @@ used. See the official [Codex permission-profile documentation](https://learn.ch
 and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
 
 The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`
-provides deterministic synthetic runs, and `ManualExecutor` explicitly pauses
+provides deterministic synthetic runs whose fixture manifest binds the exact
+current Python executable instead of relying on ambient PATH, and `ManualExecutor` explicitly pauses
 for an externally supplied packet or consumes one supplied packet exactly once.
 
 ## Run state and resume
@@ -138,7 +139,8 @@ same verified read-only, root-denying, network-disabled profile and sanitized
 Git environment plus its profile-bound trusted execution path, with only the
 candidate projection and a private runtime exposed; manual replay fails
 unavailable, while direct subprocess replay exists only in the explicitly
-synthetic test executor. The controller matches exit status and stdout/stderr
+synthetic test executor and uses an exact executable-bound fixture command.
+The controller matches exit status and stdout/stderr
 digest before accepting `VERIFIED`. An empty command list, as in the
 pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
 
