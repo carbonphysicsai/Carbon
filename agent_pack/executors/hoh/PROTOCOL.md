@@ -64,6 +64,8 @@ Every unresolved regression ID must lead the next `ordered_requirement_ids`.
   run-level scope.
 - Planner and Tester run against read-only projections and cannot repair the
   candidate.
+- Codex role subprocesses receive only an allow-listed environment; ambient
+  API-key and credential variables are not inherited.
 
 Any mismatch fails closed without advancement.
 

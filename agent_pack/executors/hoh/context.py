@@ -41,7 +41,16 @@ PATH_TOKEN = re.compile(r"(?<![A-Za-z0-9._-])(?:[A-Za-z0-9._-]+/)+[A-Za-z0-9._-]
 
 
 def _matches(path: str, patterns: Iterable[str]) -> bool:
-    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+    for pattern in patterns:
+        if fnmatch.fnmatchcase(path, pattern):
+            return True
+        # Python's fnmatch treats a leading **/ as requiring at least one
+        # directory, while repository policy uses it to mean zero or more.
+        while pattern.startswith("**/"):
+            pattern = pattern[3:]
+            if fnmatch.fnmatchcase(path, pattern):
+                return True
+    return False
 
 
 def assert_payload_safe(value: Any, protected_patterns: Iterable[str]) -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -86,6 +87,7 @@ class CodexExecAdapter:
                 "ephemeral": True,
                 "ignore_user_config": True,
                 "structured_output": True,
+                "sanitized_environment": True,
             }
         )
 
@@ -113,8 +115,18 @@ class CodexExecAdapter:
             if self.model is not None:
                 command.extend(["--model", self.model])
             command.append(invocation.prompt)
+            environment = {
+                "HOME": os.environ.get("HOME", str(invocation.workspace)),
+                "LANG": os.environ.get("LANG", "C.UTF-8"),
+                "LC_ALL": os.environ.get("LC_ALL", "C.UTF-8"),
+                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                "PYTHONDONTWRITEBYTECODE": "1",
+                "TMPDIR": directory,
+            }
             result = subprocess.run(
                 command,
+                cwd=invocation.workspace,
+                env=environment,
                 check=False,
                 capture_output=True,
                 text=True,

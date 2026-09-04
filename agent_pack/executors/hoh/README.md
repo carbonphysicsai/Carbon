@@ -29,7 +29,9 @@ working directory, and an output JSON Schema. Planner and Tester use
 `read-only`; Developer uses `workspace-write` only in a sanitized disposable
 Git projection. The controller validates its clean commit and imports only the
 plan/run-allow-listed patch into the dedicated ticket worktree.
-`danger-full-access` is never used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
+Role subprocesses receive a small allow-listed environment rather than
+inheriting API keys or other ambient variables. `danger-full-access` is never
+used. See the official [Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk)
 and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
 
 The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`

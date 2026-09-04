@@ -34,11 +34,11 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     executable = tmp_path / "codex"
     executable.write_text("synthetic executable\n", encoding="utf-8")
     executable.chmod(0o755)
-    calls: list[list[str]] = []
+    calls: list[tuple[list[str], dict]] = []
 
-    def fake_run(command, **_kwargs):
+    def fake_run(command, **kwargs):
         command = [str(item) for item in command]
-        calls.append(command)
+        calls.append((command, kwargs))
         if command[-1] == "--version":
             return subprocess.CompletedProcess(command, 0, "codex-cli 0.test\n", "")
         if command[-2:] == ["exec", "--help"]:
@@ -71,13 +71,23 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
         )
     )
     assert value == {"ok": True}
-    command = calls[-1]
+    command, kwargs = calls[-1]
     assert "--ephemeral" in command
     assert "--ignore-user-config" in command
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert "--output-schema" in command
     assert "danger-full-access" not in command
     assert "resume" not in command
+    assert kwargs["cwd"] == workspace
+    assert "OPENAI_API_KEY" not in kwargs["env"]
+    assert set(kwargs["env"]) == {
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "PATH",
+        "PYTHONDONTWRITEBYTECODE",
+        "TMPDIR",
+    }
 
 
 def test_manual_executor_pauses_human_without_claiming_success(tmp_path: Path) -> None:
@@ -124,6 +134,34 @@ def test_secret_values_and_protected_paths_cannot_be_persisted() -> None:
             {"summary": "Observed data/hidden_evaluation/case.json in the worktree."},
             patterns,
         )
+    with pytest.raises(PacketValidationError, match="protected path"):
+        assert_payload_safe(
+            {"summary": "Observed hidden_evaluation/case.json in the worktree."},
+            patterns,
+        )
+
+
+def test_root_level_protected_context_is_rejected(tmp_path: Path) -> None:
+    repository, requirements = make_repository(tmp_path)
+    protected = repository / "hidden_evaluation" / "case.json"
+    protected.parent.mkdir()
+    protected.write_text("protected\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "hidden_evaluation/case.json"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "--quiet", "--message", "root protected fixture"],
+        cwd=repository,
+        check=True,
+    )
+    executor = ScriptedExecutor({})
+    manifest = run_manifest(repository, requirements, executor)
+    manifest["context_allow_paths"]["planner"] = ["**"]
+    broker = ContextBroker(repository, tmp_path / "state", manifest)
+    with pytest.raises(ScopeViolation, match="protected"):
+        broker.grant(Role.PLANNER, ["hidden_evaluation/case.json"], iteration=1)
 
 
 def test_default_state_store_is_under_git_common_directory(tmp_path: Path) -> None:

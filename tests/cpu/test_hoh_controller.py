@@ -234,6 +234,21 @@ def test_unexpected_path_expansion_fails_closed(tmp_path: Path) -> None:
     assert controller.snapshot()["phase"] == "DEVELOPING"
 
 
+def test_plan_glob_cannot_expand_beyond_run_change_scope(tmp_path: Path) -> None:
+    def broad_plan(invocation):
+        packet = plan_packet(invocation)
+        for action in packet["actions"]:
+            action["allowed_paths"] = ["**"]
+        return packet
+
+    executor = ScriptedExecutor({Role.PLANNER: [broad_plan]})
+    controller, _, _ = _controller(tmp_path, executor, permitted=["src.txt"])
+    controller.initialize()
+    with pytest.raises(ScopeViolation, match="does not permit path \\*\\*"):
+        controller.step()
+    assert controller.snapshot()["phase"] == "PLANNING"
+
+
 def test_malformed_plan_cannot_advance(tmp_path: Path) -> None:
     def malformed(invocation):
         packet = plan_packet(invocation)
@@ -306,6 +321,21 @@ def test_resume_is_deterministic_and_manifest_bound(tmp_path: Path) -> None:
     )
     with pytest.raises(IdentityMismatch, match="stored run manifest"):
         mismatched.resume()
+
+
+def test_every_role_executor_identity_is_bound(tmp_path: Path) -> None:
+    executor = ScriptedExecutor({})
+    repository, requirements = make_repository(tmp_path)
+    manifest = run_manifest(repository, requirements, executor)
+    manifest["roles"]["tester"]["executor_id"] = "substituted-executor"
+    controller = HarnessController(
+        manifest,
+        requirements,
+        executor,
+        state_store(tmp_path),
+    )
+    with pytest.raises(IdentityMismatch, match="TESTER executor identity"):
+        controller.initialize()
 
 
 def test_in_memory_requirements_must_match_bound_manifest_file(

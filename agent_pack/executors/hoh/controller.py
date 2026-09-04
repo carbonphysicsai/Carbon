@@ -242,10 +242,14 @@ class HarnessController:
 
     def _verify_executor_profiles(self) -> None:
         roles = self.run_manifest["roles"]
-        if self.executor.executor_id() != roles["planner"]["executor_id"]:
-            raise IdentityMismatch("executor identity differs from the run manifest")
+        executor_id = self.executor.executor_id()
         for role in Role:
-            expected = roles[role.value.lower()]["profile_digest"]
+            profile = roles[role.value.lower()]
+            if executor_id != profile["executor_id"]:
+                raise IdentityMismatch(
+                    f"{role.value} executor identity differs from the run manifest"
+                )
+            expected = profile["profile_digest"]
             actual = self.executor.profile_digest(role)
             if actual != expected:
                 raise IdentityMismatch(f"{role.value} executor profile drift")
@@ -792,11 +796,11 @@ class HarnessController:
             raise ScopeViolation(f"{label} permits no changed paths")
         for path in paths:
             if patterns_as_paths:
-                allowed = any(
-                    path == pattern
-                    or fnmatch.fnmatchcase(path, pattern)
-                    or fnmatch.fnmatchcase(pattern, path)
-                    for pattern in patterns
+                contains_glob = any(character in path for character in "*?[")
+                allowed = (
+                    path in patterns
+                    if contains_glob
+                    else any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
                 )
             else:
                 allowed = any(
