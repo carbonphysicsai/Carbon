@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-04T14:55:07Z"
+  captured_at_utc: "2026-09-04T15:26:15Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "caf3b5ac105f55e2f6c8c8a7f85070d672ed17a0"
+  authority_snapshot_commit: "c78f34fb466e3d9c10635ca9eccc5167c058640a"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -1950,7 +1950,7 @@ events:
     owner_lane: "technical_lead"
     status: "active"
     summary: "The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/caf3b5ac105f55e2f6c8c8a7f85070d672ed17a0/.agent/evidence/wave_b/b-01h.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/c78f34fb466e3d9c10635ca9eccc5167c058640a/.agent/evidence/wave_b/b-01h.md"
     affects:
       - "WAVE-B/B-01H"
       - "WAVE-B/B-05"
