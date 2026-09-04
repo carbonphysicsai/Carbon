@@ -809,26 +809,30 @@ class HarnessController:
             raise PacketValidationError(
                 "Tester evidence must cover every requirement on the exact candidate"
             )
-        previous = {item["id"]: dict(item) for item in self.state["requirements"]}
-        next_states: list[dict[str, Any]] = []
-        for result in sorted(
+        ordered_results = sorted(
             packet["results"], key=lambda item: item["requirement_id"]
-        ):
+        )
+        for result in ordered_results:
             requirement_id = result["requirement_id"]
-            status = RequirementStatus(result["status"])
             if (
-                status is RequirementStatus.OUT_OF_SCOPE
+                RequirementStatus(result["status"]) is RequirementStatus.OUT_OF_SCOPE
                 and self.requirement_by_id[requirement_id]["required"]
             ):
                 raise PacketValidationError(
                     f"required requirement {requirement_id} cannot be OUT_OF_SCOPE"
                 )
+        previous = {item["id"]: dict(item) for item in self.state["requirements"]}
+        next_regressions = json.loads(json.dumps(self.state["regressions"]))
+        next_states: list[dict[str, Any]] = []
+        for result in ordered_results:
+            requirement_id = result["requirement_id"]
+            status = RequirementStatus(result["status"])
             old = RequirementStatus(previous[requirement_id]["status"])
             if (
                 old is RequirementStatus.VERIFIED
                 and status is not RequirementStatus.VERIFIED
             ):
-                self.state["regressions"].append(
+                next_regressions.append(
                     {
                         "requirement_id": requirement_id,
                         "detected_iteration": self.state["iteration"],
@@ -840,7 +844,7 @@ class HarnessController:
                     }
                 )
             if status is RequirementStatus.VERIFIED:
-                for regression in self.state["regressions"]:
+                for regression in next_regressions:
                     if (
                         regression["requirement_id"] == requirement_id
                         and regression["resolved_iteration"] is None
@@ -868,6 +872,7 @@ class HarnessController:
                 }
             )
         self.state["requirements"] = next_states
+        self.state["regressions"] = next_regressions
         self.state["evidence_digests"].append(digest_value(packet))
         statuses = {RequirementStatus(item["status"]) for item in next_states}
         if RequirementStatus.BLOCKED_HUMAN in statuses:

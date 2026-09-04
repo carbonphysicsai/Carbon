@@ -91,11 +91,14 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
         output.write_text('{"ok":true}\n', encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, '{"ok":true}\n', "")
 
-    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     monkeypatch.setenv("PATH", f".:{tmp_path}")
-    adapter = CodexExecAdapter(model="synthetic-model")
+    adapter = CodexExecAdapter(executable=executable, model="synthetic-model")
     assert all(kwargs["timeout"] == 15 for _command, kwargs in calls[:4])
+    assert all(
+        kwargs["env"]["PATH"] == TRUSTED_EXECUTION_PATH
+        for _command, kwargs in calls[:4]
+    )
     exec_preflights = [
         command
         for command, _kwargs in calls
@@ -190,6 +193,23 @@ def test_codex_adapter_probes_and_uses_only_bounded_supported_flags(
     assert denied_command[1] == "sandbox"
     assert "carbon-hoh-read-v1" in denied_command
 
+    second_executable = tmp_path / "codex-second"
+    second_executable.write_text("synthetic executable\n", encoding="utf-8")
+    second_executable.chmod(0o755)
+    second_adapter = CodexExecAdapter(
+        executable=second_executable,
+        model="synthetic-model",
+    )
+    assert second_adapter.profile_digest(Role.TESTER) != profile_digest
+
+    executable.write_text("replaced executable\n", encoding="utf-8")
+    executable.chmod(0o755)
+    with pytest.raises(ExecutorUnavailable, match="identity changed"):
+        adapter.execute_evidence(
+            EvidenceInvocation(command=("/bin/cat", "visible.txt"), workspace=workspace)
+        )
+    assert adapter.profile_digest(Role.TESTER) == profile_digest
+
 
 def test_codex_role_environment_ignores_ambient_path_changes(
     tmp_path: Path,
@@ -202,6 +222,25 @@ def test_codex_role_environment_ignores_ambient_path_changes(
 
     assert first["PATH"] == TRUSTED_EXECUTION_PATH
     assert second["PATH"] == TRUSTED_EXECUTION_PATH
+
+
+def test_codex_adapter_never_resolves_its_binary_through_hostile_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sentinel = tmp_path / "counterfeit-ran"
+    counterfeit = tmp_path / "codex"
+    counterfeit.write_text(
+        f"#!/bin/sh\n/usr/bin/touch {sentinel}\n",
+        encoding="utf-8",
+    )
+    counterfeit.chmod(0o755)
+    monkeypatch.setenv("PATH", f".:{tmp_path}:/usr/bin:/bin")
+
+    with pytest.raises(ExecutorUnavailable, match="exact absolute path"):
+        CodexExecAdapter()
+
+    assert not sentinel.exists()
 
 
 def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
@@ -230,10 +269,9 @@ def test_codex_adapter_fails_closed_when_outside_sentinel_is_readable(
             )
         return subprocess.CompletedProcess(command, 0, "sentinel leaked\n", "")
 
-    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     with pytest.raises(ExecutorUnavailable, match="projection-only"):
-        CodexExecAdapter()
+        CodexExecAdapter(executable=executable)
 
 
 def test_codex_adapter_bounds_and_wraps_initial_cli_probe(
@@ -248,10 +286,9 @@ def test_codex_adapter_bounds_and_wraps_initial_cli_probe(
         assert kwargs["timeout"] == 3
         raise subprocess.TimeoutExpired(command, kwargs["timeout"])
 
-    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", timeout)
     with pytest.raises(ExecutorUnavailable, match="isolation probe failed"):
-        CodexExecAdapter(timeout_seconds=3)
+        CodexExecAdapter(executable=executable, timeout_seconds=3)
 
 
 def test_codex_adapter_fails_closed_when_exec_selects_legacy_sandbox(
@@ -309,13 +346,12 @@ def test_codex_adapter_fails_closed_when_exec_selects_legacy_sandbox(
             diagnostic,
         )
 
-    monkeypatch.setattr("shutil.which", lambda _name: str(executable))
     monkeypatch.setattr("subprocess.run", fake_run)
     monkeypatch.setenv("CODEX_HOME", str(conflicting_home))
     with pytest.raises(
         ExecutorUnavailable, match="workspace-write profile did not complete"
     ):
-        CodexExecAdapter()
+        CodexExecAdapter(executable=executable)
 
 
 def test_manual_executor_pauses_human_without_claiming_success(tmp_path: Path) -> None:
@@ -362,14 +398,22 @@ def test_cli_persists_lazy_codex_preflight_failure_and_status_still_works(
     manifest_path = tmp_path / "run-manifest.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     store = tmp_path / "run-state"
+    executable = tmp_path / "exact-codex"
 
-    assert cli.main(["init", str(manifest_path), "--state-dir", str(store)]) == 0
+    common = [
+        str(manifest_path),
+        "--state-dir",
+        str(store),
+        "--codex-executable",
+        str(executable),
+    ]
+    assert cli.main(["init", *common]) == 0
 
     def unavailable(**_kwargs):
         raise ExecutorUnavailable("synthetic Codex preflight unavailable")
 
     monkeypatch.setattr(cli, "CodexExecAdapter", unavailable)
-    assert cli.main(["step", str(manifest_path), "--state-dir", str(store)]) == 0
+    assert cli.main(["step", *common]) == 0
     paused = StateStore(store).load_state()
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "PLANNING"

@@ -754,6 +754,73 @@ def test_fabricated_evidence_digest_cannot_create_verified(tmp_path: Path) -> No
     assert controller.snapshot()["phase"] == "TESTING"
 
 
+def test_rejected_tester_packet_cannot_partially_mutate_regressions(
+    tmp_path: Path,
+) -> None:
+    executor = ScriptedExecutor({})
+    controller, repository, manifest = _controller(tmp_path, executor)
+    executor._responses = {
+        Role.PLANNER: __import__("collections").deque([plan_packet]),
+        Role.DEVELOPER: __import__("collections").deque([developer_packet]),
+    }
+    executor._hooks[Role.DEVELOPER] = _developer_commit(repository, ["candidate"])
+    controller.initialize()
+    controller.step()
+    controller.step()
+
+    state = controller.snapshot()
+    evidence_workspace = controller.context.projection(
+        Role.TESTER,
+        99,
+        ("src.txt", "verify.py"),
+        state["candidate"],
+    )
+    state["requirements"][0] = {
+        "id": "REQ-001",
+        "status": "VERIFIED",
+        "accepted_evidence": [accepted_evidence(evidence_workspace, "REQ-001")],
+        "failure_reason": None,
+        "failure_evidence": [],
+    }
+    controller.store.save_state(state)
+
+    resumed = HarnessController(
+        manifest,
+        controller.requirements_manifest,
+        executor,
+        controller.store,
+    )
+    resumed.resume()
+    before = resumed.snapshot()
+    executor._responses = {
+        Role.TESTER: __import__("collections").deque(
+            [
+                lambda invocation: evidence_packet(
+                    invocation,
+                    repository,
+                    {"REQ-001": "FAILED", "REQ-002": "OUT_OF_SCOPE"},
+                )
+            ]
+        )
+    }
+
+    with pytest.raises(PacketValidationError, match="cannot be OUT_OF_SCOPE"):
+        resumed.step()
+
+    persisted = resumed.store.load_state()
+    for field in (
+        "phase",
+        "candidate",
+        "requirements",
+        "regressions",
+        "plan_digests",
+        "evidence_digests",
+        "active_plan",
+    ):
+        assert persisted[field] == before[field]
+    assert "cannot be OUT_OF_SCOPE" in persisted["last_error"]
+
+
 def test_open_optional_regression_blocks_final_handoff(tmp_path: Path) -> None:
     executor = ScriptedExecutor({})
     controller, repository, _ = _controller(tmp_path, executor)

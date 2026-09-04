@@ -10311,8 +10311,10 @@ Only independent Tester evidence whose verifier artifact and exact argv are
 authorized by the identity-bound requirements manifest creates `VERIFIED`.
 The controller reruns that command in the isolated candidate projection and
 matches exit status plus output digest; model labels or arbitrary disclosed
-files are insufficient. A later failure of a verified requirement creates an
-explicit regression, reopens it as `FAILED`, and requires the next plan to
+files are insufficient. The complete Tester result set is validated before
+requirements or regressions mutate, and both are installed from one detached
+next-state value only after the packet succeeds. A later failure of a verified
+requirement creates an explicit regression, reopens it as `FAILED`, and requires the next plan to
 address every open regression with a correspondingly ordered action before new
 work. Failure reason/evidence and full open-regression records remain structured
 role inputs, and no open regression can reach final handoff.
@@ -10320,7 +10322,9 @@ role inputs, and no open regression can reach final handoff.
 ## B-01H-D4 — Supported Codex exec adapter with bounded permission profiles
 
 Wrap the currently installed and officially documented `codex exec` surface:
-independent ephemeral invocations, ignored user config, fixed working directory,
+an explicitly supplied absolute executable whose no-follow regular-file
+identity and SHA-256 are profile-bound and revalidated before every launch;
+independent ephemeral invocations; ignored user config; fixed working directory;
 JSON Schema output, and an explicit least-privilege permission profile. The
 profile denies root and ambient temporary-directory access, restores only the
 minimal tool runtime, grants one controller-created projection plus its private
@@ -10344,11 +10348,13 @@ committed patch into the dedicated ticket worktree and never uses
 `danger-full-access`. Candidate installation is a ref-only compare-and-swap;
 it targets the exact manifest-bound local branch and refuses a detached or
 switched worktree, while never synchronizing or resetting the shared checkout.
-Every controller-authority Git command and Codex evidence replay suppresses
+Every bootstrap, role, and evidence subprocess receives a sanitized allow-list
+environment. Every controller-authority Git command and Codex evidence replay suppresses
 system/global configuration, repository fsmonitor and hooks, ambient templates,
 and applicable external filter/diff execution. Codex role and evidence commands
 use a fixed trusted execution path recorded in the executor profile, so ambient
-PATH cannot redirect a manifest-authorized verifier.
+PATH cannot select a counterfeit Codex binary or redirect a manifest-authorized
+verifier.
 
 ## B-01H-D5 — Progressive disclosure is allow-listed and audited
 

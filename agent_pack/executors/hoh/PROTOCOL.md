@@ -43,7 +43,9 @@ controller independently reruns it in the isolated candidate projection and
 matches the claimed exit status and combined stdout/stderr digest; `VERIFIED`
 requires exit zero. An empty authoritative command list cannot verify. The
 controller requires Tester coverage of every manifest requirement on each
-candidate. Required requirements cannot be `OUT_OF_SCOPE`.
+candidate. Required requirements cannot be `OUT_OF_SCOPE`. The complete result
+set is prevalidated and requirement/regression mutations are constructed off-state
+and installed together, so a rejected packet cannot persist a partial regression.
 
 If a later Tester result changes `VERIFIED` to another state, the controller
 records an explicit regression with prior evidence and current failure detail.
@@ -91,7 +93,10 @@ open-regression records remain structured inputs to later roles.
   regular-file Git modes are accepted.
 - Planner and Tester run against read-only projections, preserve executable
   Git modes, and cannot repair the candidate.
-- Codex role subprocesses receive only an allow-listed environment and private
+- The Codex executable must be supplied as an exact absolute path independent of
+  ambient lookup. Its owned/root-owned executable regular-file identity and
+  SHA-256 are bound into each role profile and revalidated before every launch.
+  Bootstrap, role, and evidence subprocesses receive only an allow-listed environment and private
   `HOME`; ambient API-key and credential variables are not inherited. A custom
   permission profile denies all non-projection reads except the minimal tool
   runtime and one invocation-private temporary directory, disables command
@@ -99,7 +104,8 @@ open-regression records remain structured inputs to later roles.
   Real sentinel probes must prove the boundary, and separate no-context
   preflights must prove the actual read-only and workspace-write `codex exec`
   paths each selected custom permissions, or the adapter fails closed. Every
-  CLI probe is time-bounded. Operational commands defer that fallible preflight
+  CLI probe is time-bounded. Ambient `PATH` can select neither the adapter binary
+  nor a verifier. Operational commands defer that fallible preflight
   until a role/evidence invocation so failure persists as resumable
   `PAUSED_INFRA`; read-only `status` needs no live executor and grants no
   advancement or final-evidence acceptance.

@@ -39,9 +39,15 @@ def _load(path: Path) -> dict[str, Any]:
 class _DeferredCodexExecutor:
     """Bind manifest identity now and perform fallible Codex startup on first use."""
 
-    def __init__(self, manifest: dict[str, Any], model: str | None) -> None:
+    def __init__(
+        self,
+        manifest: dict[str, Any],
+        model: str | None,
+        executable: Path,
+    ) -> None:
         self._roles = manifest["roles"]
         self._model = model
+        self._executable = executable
         self._delegate: CodexExecAdapter | None = None
         executor_ids = {profile["executor_id"] for profile in self._roles.values()}
         if len(executor_ids) != 1:
@@ -58,7 +64,10 @@ class _DeferredCodexExecutor:
 
     def _load(self) -> CodexExecAdapter:
         if self._delegate is None:
-            delegate = CodexExecAdapter(model=self._model)
+            delegate = CodexExecAdapter(
+                executable=self._executable,
+                model=self._model,
+            )
             if delegate.executor_id() != self._executor_id:
                 raise IdentityMismatch(
                     "available Codex executor identity differs from manifest"
@@ -86,7 +95,13 @@ def _executor(arguments: argparse.Namespace, manifest: dict[str, Any]) -> Execut
         return ManualExecutor(
             packet=_load(packet_path) if packet_path is not None else None
         )
-    return _DeferredCodexExecutor(manifest, arguments.model)
+    if arguments.codex_executable is None:
+        raise ValueError("--codex-executable is required unless --manual is supplied")
+    return _DeferredCodexExecutor(
+        manifest,
+        arguments.model,
+        arguments.codex_executable,
+    )
 
 
 def _controller(
@@ -164,6 +179,7 @@ def parser() -> argparse.ArgumentParser:
     commands = root.add_subparsers(dest="command", required=True)
     probe = commands.add_parser("probe-codex")
     probe.add_argument("--model")
+    probe.add_argument("--codex-executable", type=Path, required=True)
     validate = commands.add_parser("validate")
     validate.add_argument(
         "kind",
@@ -178,6 +194,7 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--manual", action="store_true")
         command.add_argument("--packet", type=Path)
         command.add_argument("--model")
+        command.add_argument("--codex-executable", type=Path)
     return root
 
 
@@ -185,7 +202,10 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser().parse_args(argv)
     try:
         if arguments.command == "probe-codex":
-            adapter = CodexExecAdapter(model=arguments.model)
+            adapter = CodexExecAdapter(
+                executable=arguments.codex_executable,
+                model=arguments.model,
+            )
             _print(
                 {
                     "available": True,

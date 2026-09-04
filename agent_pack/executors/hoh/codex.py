@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import shutil
+import stat
 import subprocess
 import tempfile
 from collections.abc import Mapping
@@ -45,16 +46,23 @@ class CodexExecAdapter:
     def __init__(
         self,
         *,
-        executable: str = "codex",
+        executable: str | Path | None = None,
         model: str | None = None,
         timeout_seconds: int = 1800,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("Codex timeout_seconds must be positive")
-        resolved = shutil.which(executable)
-        if resolved is None:
-            raise ExecutorUnavailable(f"Codex executable is unavailable: {executable}")
-        self.executable = str(Path(resolved).resolve())
+        if executable is None or not Path(executable).is_absolute():
+            raise ExecutorUnavailable(
+                "Codex executable must be supplied as an exact absolute path"
+            )
+        try:
+            self.executable = str(Path(executable).resolve(strict=True))
+        except OSError as error:
+            raise ExecutorUnavailable(
+                f"Codex executable is unavailable: {executable}"
+            ) from error
+        self.executable_identity = self._read_executable_identity()
         self.model = model
         self.timeout_seconds = timeout_seconds
         try:
@@ -66,36 +74,72 @@ class CodexExecAdapter:
                 f"installed Codex CLI isolation probe failed: {error}"
             ) from error
 
+    def _read_executable_identity(self) -> dict[str, int | str]:
+        """Read a no-follow identity for the exact explicitly selected binary."""
+
+        descriptor = -1
+        try:
+            descriptor = os.open(
+                self.executable,
+                os.O_RDONLY | os.O_NOFOLLOW,
+            )
+            identity = os.fstat(descriptor)
+            if (
+                identity.st_uid not in {0, os.getuid()}
+                or not stat.S_ISREG(identity.st_mode)
+                or identity.st_nlink != 1
+                or not stat.S_IMODE(identity.st_mode) & 0o111
+            ):
+                raise ExecutorUnavailable(
+                    "Codex executable is not one trusted executable regular file"
+                )
+            digest = hashlib.sha256()
+            while chunk := os.read(descriptor, 1024 * 1024):
+                digest.update(chunk)
+            return {
+                "device": identity.st_dev,
+                "inode": identity.st_ino,
+                "mode": stat.S_IMODE(identity.st_mode),
+                "size": identity.st_size,
+                "mtime_ns": identity.st_mtime_ns,
+                "sha256": digest.hexdigest(),
+            }
+        except OSError as error:
+            raise ExecutorUnavailable(
+                f"Codex executable identity is unavailable: {error}"
+            ) from error
+        finally:
+            if descriptor >= 0:
+                os.close(descriptor)
+
+    def _require_executable_identity(self) -> None:
+        if self._read_executable_identity() != self.executable_identity:
+            raise ExecutorUnavailable("Codex executable identity changed")
+
+    def _run_executable(
+        self, arguments: list[str], **kwargs: Any
+    ) -> subprocess.CompletedProcess[Any]:
+        """Revalidate the bound binary immediately before every execution."""
+
+        self._require_executable_identity()
+        check = bool(kwargs.pop("check"))
+        return subprocess.run([self.executable, *arguments], check=check, **kwargs)
+
     def _probe(self) -> tuple[str, str, str]:
         probe_timeout = min(self.timeout_seconds, 15)
-        version = subprocess.run(
-            [self.executable, "--version"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=probe_timeout,
-        )
-        help_result = subprocess.run(
-            [self.executable, "exec", "--help"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=probe_timeout,
-        )
-        sandbox_help_result = subprocess.run(
-            [self.executable, "sandbox", "--help"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=probe_timeout,
-        )
-        features_result = subprocess.run(
-            [self.executable, "features", "list"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=probe_timeout,
-        )
+        with tempfile.TemporaryDirectory(prefix="carbon-hoh-bootstrap-") as root:
+            environment = self._role_environment(Path(root))
+            common = {
+                "check": False,
+                "capture_output": True,
+                "text": True,
+                "timeout": probe_timeout,
+                "env": environment,
+            }
+            version = self._run_executable(["--version"], **common)
+            help_result = self._run_executable(["exec", "--help"], **common)
+            sandbox_help_result = self._run_executable(["sandbox", "--help"], **common)
+            features_result = self._run_executable(["features", "list"], **common)
         if (
             version.returncode
             or help_result.returncode
@@ -207,9 +251,8 @@ class CodexExecAdapter:
         timeout_seconds: int = 30,
     ) -> subprocess.CompletedProcess[bytes]:
         profile = self._profile_name(sandbox)
-        return subprocess.run(
+        return self._run_executable(
             [
-                self.executable,
                 "sandbox",
                 *self._profile_arguments(sandbox, runtime_directory),
                 "--permission-profile",
@@ -322,8 +365,8 @@ class CodexExecAdapter:
                     command.extend(["--model", self.model])
                 command.append("Return exactly READY without calling any tool.")
                 try:
-                    result = subprocess.run(
-                        command,
+                    result = self._run_executable(
+                        command[1:],
                         cwd=workspace,
                         env=self._role_environment(runtime_directory),
                         check=False,
@@ -361,6 +404,7 @@ class CodexExecAdapter:
             {
                 "adapter": self.executor_id(),
                 "executable": self.executable,
+                "executable_identity": self.executable_identity,
                 "version": self.version,
                 "role": role.value,
                 "model": self.model,
@@ -440,8 +484,8 @@ class CodexExecAdapter:
             if self.model is not None:
                 command.extend(["--model", self.model])
             command.append(invocation.prompt)
-            result = subprocess.run(
-                command,
+            result = self._run_executable(
+                command[1:],
                 cwd=invocation.workspace,
                 env=self._role_environment(Path(directory)),
                 check=False,
