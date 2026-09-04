@@ -90,7 +90,7 @@
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
       "changes": "The exam gains explicit measurement and evidence-use rules that later evaluation code can execute without inventing scientific policy at runtime.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Queued as the first harness pilot after B-01H completes every delivery check; its scientific contract and implementation have not started.",
+      "current_stage_plain": "Queued as the first harness pilot after B-01H completes every delivery check; its contract and implementation have not started, and no scientific work exists.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {
