@@ -315,7 +315,7 @@
       "owner_lane": "technical_lead",
       "status": "active",
       "summary": "The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/ab237a87d2df511ba509efa5766157e57777c3fd/.agent/evidence/wave_b/b-01h.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/2f6420bd8cc629022e95f100b73a30b1e592eb5d/.agent/evidence/wave_b/b-01h.md",
       "affects": [
         "WAVE-B/B-01H",
         "WAVE-B/B-05",
