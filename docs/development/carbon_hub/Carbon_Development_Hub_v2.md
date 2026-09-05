@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `7d9794e332ec4e8a044e796596118dc0e1753d33` on `main`, captured 2026-09-05T21:31:13Z.
-**Current:** Wave B, ticket B-06. Slices 1-2 are local structural checkpoints. Exact D1-D12 identity, claim/evidence non-substitution, subject versions/digests, pending dependence scope, intended/realized accounting, secrecy, limitations, fixture propagation, and canonical identity are implemented and locally tested; qualification-manifest comparison is next.
+**Authority snapshot:** `84775b459cd2cf33d115e9edfa808d8ca26bf465` on `main`, captured 2026-09-05T22:29:01Z.
+**Current:** Wave B, ticket B-06. Slices 1-3 are local structural checkpoints. Exact D1-D12 identity and typed evidence remain intact; qualification-candidate construction, closed artifact sets, external signer-result inputs, and pure exact A3 snapshot comparison are now implemented and locally tested. Campaign-specific evidence schemas are next.
 
 ## Wave spine
 
@@ -109,6 +109,7 @@
 - `B-05-E7` — `WAVE-B/B-05` — B-05-D7 repairs three complete-diff review findings by requiring exact shared B-02C construction identity, deriving no-scalar floor and uncertainty outcomes from authored authority, and replacing the unmerged cyclic uncertainty payload with an exact policy-to-measurement-to-Score-Pack DAG without changing schema/profile or selecting scientific values.
 - `B-06-E1` — `WAVE-B/B-06` — B-06-D0 records the owner-directed transition from merged PR #87 without declaring B-05's ordinary delivery predicate complete, and the first bounded B-06 slice implements exact Challenge-bound D1-D12 evidence/signature identities and deterministic Dossier serialization while qualification remains unavailable.
 - `B-06-E2` — `WAVE-B/B-06` — B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority.
+- `B-06-E3` — `WAVE-B/B-06` — B-06 Slice 3 adds deterministic qualification-candidate and closed artifact-set identity, exact cross-section bindings, external signer-result inputs, and pure fail-closed comparison with one supplied immutable A3 draft record; 1431 affected tests passed while scientific, security, registry-mutation, and LIVE authority remain unavailable.
 
 ## Authority boundary
 

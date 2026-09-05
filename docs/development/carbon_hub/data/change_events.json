@@ -528,6 +528,24 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E3",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-06 Slice 3 adds deterministic qualification-candidate and closed artifact-set identity, exact cross-section bindings, external signer-result inputs, and pure fail-closed comparison with one supplied immutable A3 draft record; 1431 affected tests passed while scientific, security, registry-mutation, and LIVE authority remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/84775b459cd2cf33d115e9edfa808d8ca26bf465/carbon/qualification/candidate.py",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E2"
     }
   ]
 }
