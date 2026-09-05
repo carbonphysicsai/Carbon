@@ -89,7 +89,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
         self.assertIn(
-            "reconstruction and Score Pack binding slices remain pending", self.output
+            "Score Pack binding remains pending", self.output
         )
         self.assertIn("no real scientific value is selected", self.output)
 

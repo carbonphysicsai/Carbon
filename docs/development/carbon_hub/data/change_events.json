@@ -395,6 +395,25 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E3",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 now has a third bounded slice implementing exact Challenge/family-bound reconstruction-evidence policy, explicit human-owned sufficiency controls, distinct base/nomination/extension/promotion stages, and fail-closed separation from B-02C resource facts.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c638e2139cdf5a5eb057161dcea72aaaeb31e2ec/carbon/measurement/model.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E2"
     }
   ]
 }

@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9c38aa691c24a1f72465e06cccbe652cf4fac209` on `main`, captured 2026-09-05T04:14:53Z.
-**Current:** Wave B, ticket B-05. PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract, B-05-D1 through D6, measurement-definition/qualification-evidence slice, and dependence-aware uncertainty-policy slice are branch-local and in progress; reconstruction and Score Pack binding slices remain pending.
+**Authority snapshot:** `c638e2139cdf5a5eb057161dcea72aaaeb31e2ec` on `main`, captured 2026-09-05T04:36:17Z.
+**Current:** Wave B, ticket B-05. PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract and first three bounded slices now cover measurement/evidence identity, dependence-aware uncertainty, and reconstruction-evidence policy; Score Pack binding remains pending.
 
 ## Wave spine
 
@@ -102,6 +102,7 @@
 - `OWNER-HUB-01` — `SYSTEM/DEVELOPMENT-HUB` — The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.
 - `B-05-E1` — `WAVE-B/B-05` — PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.
 - `B-05-E2` — `WAVE-B/B-05` — B-05 now has a second bounded slice implementing exact unresolved uncertainty components, per-stratum minima, and dependence shortcuts bound to exact incumbent/challenger evidence, case/stratum scope, assumptions, applicability tests, and B-06 Dossier qualification refs; it infers no independence and selects no real scientific value.
+- `B-05-E3` — `WAVE-B/B-05` — B-05 now has a third bounded slice implementing exact Challenge/family-bound reconstruction-evidence policy, explicit human-owned sufficiency controls, distinct base/nomination/extension/promotion stages, and fail-closed separation from B-02C resource facts.
 
 ## Authority boundary
 
