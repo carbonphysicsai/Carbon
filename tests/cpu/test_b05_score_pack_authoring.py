@@ -644,6 +644,35 @@ def materials(
     )
 
 
+def input_index_for_role(authoring, use_role):
+    return next(
+        index
+        for index, binding in enumerate(authoring.input_bindings)
+        if binding.use_role is use_role
+    )
+
+
+def stratum_minimum(
+    stratum_id: str,
+    *,
+    state: measurement.ScientificValueState = measurement.ScientificValueState.BOUND,
+):
+    return measurement.StratumEvidenceMinimumBinding(
+        definition(measurement.MeasurementDefinitionKind.STRATUM, stratum_id),
+        measurement.UncertaintyComponentBinding(
+            state,
+            (
+                definition(
+                    measurement.MeasurementDefinitionKind.STRATUM_EVIDENCE_MINIMUM,
+                    f"fixture-minimum-{stratum_id}",
+                )
+                if state is measurement.ScientificValueState.BOUND
+                else None
+            ),
+        ),
+    )
+
+
 def test_complete_synthetic_authoring_graph_is_exact_and_non_authoritative() -> None:
     graph = fixture_graph()
     store = measurement.MeasurementFixtureStore()
@@ -916,19 +945,25 @@ def test_every_unresolved_required_uncertainty_component_has_no_scalar(
         measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
     ),
 )
-def test_unresolved_stratum_minimum_has_no_scalar(state) -> None:
+@pytest.mark.parametrize(
+    "use_role",
+    (
+        measurement.ScoreUseRole.MANDATORY_GATE,
+        measurement.ScoreUseRole.SOFT_COMPONENT,
+        measurement.ScoreUseRole.DIAGNOSTIC,
+    ),
+)
+def test_unresolved_exact_stratum_minimum_has_no_scalar(state, use_role) -> None:
     measurements, uncertainties, authoring = fixture_objects()
-    minimum = uncertainties[0].stratum_minimum_bindings[0]
+    index = input_index_for_role(authoring, use_role)
     measurements, uncertainties, authoring = replace_graph_input(
         measurements,
         uncertainties,
         authoring,
+        index=index,
         uncertainty_changes={
             "stratum_minimum_bindings": (
-                replace(
-                    minimum,
-                    minimum_binding=measurement.UncertaintyComponentBinding(state),
-                ),
+                stratum_minimum("fixture-stratum", state=state),
             )
         },
     )
@@ -940,6 +975,79 @@ def test_unresolved_stratum_minimum_has_no_scalar(state) -> None:
         materials(authoring, measurements),
     )
     assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[index].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+@pytest.mark.parametrize(
+    "use_role",
+    (
+        measurement.ScoreUseRole.MANDATORY_GATE,
+        measurement.ScoreUseRole.SOFT_COMPONENT,
+        measurement.ScoreUseRole.DIAGNOSTIC,
+    ),
+)
+def test_foreign_stratum_minimum_cannot_substitute_for_exact_binding(
+    use_role,
+) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    index = input_index_for_role(authoring, use_role)
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        index=index,
+        uncertainty_changes={
+            "stratum_minimum_bindings": (stratum_minimum("fixture-foreign-stratum"),)
+        },
+    )
+
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[index].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+def test_absent_target_stratum_is_not_inferred_from_other_minima() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            "stratum_minimum_bindings": (
+                stratum_minimum("fixture-foreign-stratum-a"),
+                stratum_minimum("fixture-foreign-stratum-b"),
+            )
+        },
+    )
+
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
     assert result.blocking_input_keys == (authoring.input_bindings[0].input_key,)
     assert (
         result.mandatory_scalars
@@ -947,6 +1055,67 @@ def test_unresolved_stratum_minimum_has_no_scalar(state) -> None:
         == result.diagnostic_scalars
         == ()
     )
+
+
+def test_unrelated_resolved_minimum_does_not_replace_unresolved_exact_minimum() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            "stratum_minimum_bindings": (
+                stratum_minimum(
+                    "fixture-stratum",
+                    state=measurement.ScientificValueState.HUMAN_INPUT,
+                ),
+                stratum_minimum("fixture-foreign-stratum"),
+            )
+        },
+    )
+
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[0].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+def test_exact_resolved_minimum_with_unrelated_minimum_remains_complete() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    exact_minimum = uncertainties[0].stratum_minimum_bindings[0]
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            "stratum_minimum_bindings": (
+                exact_minimum,
+                stratum_minimum("fixture-foreign-stratum"),
+            )
+        },
+    )
+
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+
+    assert result.outcome is measurement.MeasurementMaterialState.COMPLETE
 
 
 def test_exact_not_applicable_uncertainty_component_remains_resolved() -> None:

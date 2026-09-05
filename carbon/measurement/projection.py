@@ -481,6 +481,23 @@ _OUTCOME_PRECEDENCE = (
 )
 
 
+def _has_score_authority_for_stratum(
+    policy: UncertaintyPolicy,
+    stratum_ref: MeasurementDefinitionRef,
+) -> bool:
+    """Require resolved uncertainty authority for the exact projected stratum."""
+
+    resolved_states = (
+        ScientificValueState.BOUND,
+        ScientificValueState.NOT_APPLICABLE,
+    )
+    return policy.has_complete_score_authority and any(
+        item.stratum_ref == stratum_ref
+        and item.minimum_binding.state in resolved_states
+        for item in policy.stratum_minimum_bindings
+    )
+
+
 def project_score_scalars(
     contract: ScorePackAuthoringContract,
     pack: LoadedScorePack,
@@ -587,9 +604,10 @@ def project_score_scalars(
             binding.measurement_contract_ref
         ].uncertainty_policy_binding.state
         is not ScientificValueState.BOUND
-        or not uncertainties_by_ref[
-            binding.uncertainty_policy_ref
-        ].has_complete_score_authority
+        or not _has_score_authority_for_stratum(
+            uncertainties_by_ref[binding.uncertainty_policy_ref],
+            binding.stratum_ref,
+        )
     )
     if uncertainty_blockers:
         return ScorePackProjection(

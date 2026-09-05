@@ -898,7 +898,10 @@ def assess_reconstruction_evidence(
                 is BoundReconstructionReplicate
             ):
                 stage = ReconstructionEvidenceStage.EXTENDED
-                if evidence.promotion_evidence_ref is not None:
+                if (
+                    evidence.promotion_evidence_ref is not None
+                    and not evidence.remaining_requirement_refs
+                ):
                     stage = ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
 
     status_args = (
@@ -940,6 +943,7 @@ def assess_reconstruction_evidence(
         or not base_complete
         or evidence.stop_kind is ReconstructionStopKind.HEURISTIC_FUTILITY
         or non_scientific_resource_stop
+        or evidence.remaining_requirement_refs
     ):
         return ReconstructionEvidenceStatus(
             status_args[0],

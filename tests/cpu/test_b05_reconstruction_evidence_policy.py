@@ -187,6 +187,7 @@ def evidence_input(
     nominated: bool = False,
     extended: bool = False,
     promoted: bool = False,
+    remaining_requirement_count: int = 1,
     stop_kind: measurement.ReconstructionStopKind = measurement.ReconstructionStopKind.NONE,
     family_ref: measurement.MeasurementDefinitionRef | None = None,
 ) -> measurement.ReconstructionEvidenceInput:
@@ -214,11 +215,12 @@ def evidence_input(
             if promoted
             else None
         ),
-        (
+        tuple(
             definition(
                 measurement.MeasurementDefinitionKind.REMAINING_EVIDENCE_REQUIREMENT,
-                "fixture-remaining-requirement",
-            ),
+                f"fixture-remaining-requirement-{index}",
+            )
+            for index in range(remaining_requirement_count)
         ),
         stop_kind,
         (
@@ -317,13 +319,93 @@ def test_complete_base_nomination_extension_and_promotion_are_distinct() -> None
             nominated=True,
             extended=True,
             promoted=True,
+            remaining_requirement_count=0,
         ),
     )
 
     assert base.stage is measurement.ReconstructionEvidenceStage.BASE_COMPLETE
     assert nominated.stage is measurement.ReconstructionEvidenceStage.NOMINATED
     assert promoted.stage is measurement.ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
+    assert (
+        promoted.outcome is measurement.ReconstructionEvidenceOutcome.STAGE_ESTABLISHED
+    )
+    assert promoted.remaining_requirement_refs == ()
     assert nominated.stage is not promoted.stage
+
+
+@pytest.mark.parametrize("remaining_requirement_count", (1, 2))
+def test_remaining_requirements_prevent_promotion_readiness(
+    remaining_requirement_count,
+) -> None:
+    value = policy(bound=True)
+    replicate_identity = ReconstructionReplicateIdentity(
+        _KEY,
+        _resource_identity().construction_plan_ref,
+        _resource_identity().policy_ref,
+        _resource_identity().resource_class_ref,
+        "fixture-deferred-promotion-replicate",
+        _DIGEST_B,
+    )
+    evidence = evidence_input(
+        value,
+        facts=resource_facts(
+            replicate=BoundReconstructionReplicate(replicate_identity)
+        ),
+        base=True,
+        nominated=True,
+        extended=True,
+        promoted=True,
+        remaining_requirement_count=remaining_requirement_count,
+    )
+
+    status = measurement.assess_reconstruction_evidence(value, evidence)
+
+    assert status.stage is measurement.ReconstructionEvidenceStage.EXTENDED
+    assert status.outcome is measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED
+    assert status.remaining_requirement_refs == evidence.remaining_requirement_refs
+
+
+@pytest.mark.parametrize(
+    ("evidence_changes", "expected_stage"),
+    (
+        ({"base": True}, measurement.ReconstructionEvidenceStage.BASE_COMPLETE),
+        (
+            {"base": True, "nominated": True},
+            measurement.ReconstructionEvidenceStage.NOMINATED,
+        ),
+        (
+            {"base": True, "nominated": True, "extended": True},
+            measurement.ReconstructionEvidenceStage.EXTENDED,
+        ),
+    ),
+)
+def test_remaining_requirements_defer_without_erasing_established_stage(
+    evidence_changes,
+    expected_stage,
+) -> None:
+    value = policy(bound=True)
+    facts = None
+    if evidence_changes.get("extended"):
+        build_identity = _resource_identity()
+        facts = resource_facts(
+            replicate=BoundReconstructionReplicate(
+                ReconstructionReplicateIdentity(
+                    _KEY,
+                    build_identity.construction_plan_ref,
+                    build_identity.policy_ref,
+                    build_identity.resource_class_ref,
+                    "fixture-stage-replicate",
+                    _DIGEST_B,
+                )
+            )
+        )
+    evidence = evidence_input(value, facts=facts, **evidence_changes)
+
+    status = measurement.assess_reconstruction_evidence(value, evidence)
+
+    assert status.stage is expected_stage
+    assert status.outcome is measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED
+    assert status.remaining_requirement_refs == evidence.remaining_requirement_refs
 
 
 def test_extension_is_only_established_by_a_bound_reconstruction_replicate() -> None:
