@@ -471,6 +471,26 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E5"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "adjustment",
+      "event_id": "B-05-E7",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05-D7 repairs three complete-diff review findings by requiring exact shared B-02C construction identity, deriving no-scalar floor and uncertainty outcomes from authored authority, and replacing the unmerged cyclic uncertainty payload with an exact policy-to-measurement-to-Score-Pack DAG without changing schema/profile or selecting scientific values.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/commit/5dd55978b0ab4281873231b66cf6e5073c1c9553",
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E6"
     }
   ]
 }

@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `431b041879ef601d99958d32874e44259bdb9524` on `main`, captured 2026-09-05T10:28:46Z.
-**Current:** Wave B, ticket B-05. PR #86 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; the repaired exact-ticket HoH binding preserves the unchanged requirements and identity boundary. Final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending.
+**Authority snapshot:** `5dd55978b0ab4281873231b66cf6e5073c1c9553` on `main`, captured 2026-09-05T14:23:02Z.
+**Current:** Wave B, ticket B-05. PR #86 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded slices now form a conditional delivery candidate, now including the B-05-D7 exact-identity and scalar-authority review repair: uncertainty identity is acyclic, reconstruction facts share exact construction identity, and unresolved floor or uncertainty authority exposes no scalar. Fresh exact-head CI and complete-diff rereview remain pending; no scientific, production, or LIVE authority is earned.
 
 ## Wave spine
 
@@ -106,6 +106,7 @@
 - `B-05-E4` — `WAVE-B/B-05` — B-05 now has a fourth bounded slice implementing exact content-addressed Score Pack authoring, complete ready-pack key coverage, closed measurement-material outcomes, mandatory-first scalar projection, and structural rejection of role-confused or forbidden sources while A5 remains unchanged.
 - `B-05-E5` — `WAVE-B/B-05` — B-05's fifth bounded slice composes the complete synthetic non-LIVE authoring graph, proves canonical identity and store round-trips across all B-05 objects, preserves exact A5 input coverage without constructing ScoreInput, and prepares an inert conditional closeout while every real scientific and qualification input remains unavailable.
 - `B-05-E6` — `WAVE-B/B-05` — B-05 restores all eleven authoritative ticket requirements to their unchanged unchecked form, corrects the exact B-01H activation receipt identities, and rebinds the HoH pilot manifest to the corrected ticket without weakening identity checks, changing scientific meaning, or advancing maturity.
+- `B-05-E7` — `WAVE-B/B-05` — B-05-D7 repairs three complete-diff review findings by requiring exact shared B-02C construction identity, deriving no-scalar floor and uncertainty outcomes from authored authority, and replacing the unmerged cyclic uncertainty payload with an exact policy-to-measurement-to-Score-Pack DAG without changing schema/profile or selecting scientific values.
 
 ## Authority boundary
 

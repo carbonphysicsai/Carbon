@@ -663,6 +663,24 @@
       "affects": ["WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-05-D7",
+      "map_ref": "WAVE-B/B-05",
+      "wave": "B",
+      "ticket": "B-05",
+      "title": "Acyclic uncertainty identity and exact scalar prerequisites",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should the unmerged B-05 candidate use an exact acyclic uncertainty graph and require matching construction identity plus resolved floor and uncertainty authority before scalar exposure?",
+      "recommendation": "KEEP policy-to-measurement-to-Score-Pack identity, exact plan/policy/class matching for reconstruction facts, and typed no-scalar outcomes for human-input or blocked floor and uncertainty authority.",
+      "why": "Reverse content-digest edges are unconstructable, Challenge-only matching permits evidence borrowing, and caller-labeled complete material cannot supply missing scientific authority.",
+      "if_kept": "B-05 retains exact content identity and fail-closed scalar projection without inventing floors, independence, covariance, minima, stopping rules, or qualification.",
+      "if_changed": "The candidate canonical payload, fixed vectors, reconstruction fact graph, measurement selection, Score Pack binding, projection precedence, and downstream consumers require coordinated migration.",
+      "affects": ["WAVE-B/B-02C", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5552228379",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/commit/5dd55978b0ab4281873231b66cf6e5073c1c9553"
     }
   ]
 }
