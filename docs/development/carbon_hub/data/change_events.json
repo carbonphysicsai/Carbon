@@ -510,6 +510,24 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E7"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/evidence/wave_b/b-06.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E1"
     }
   ]
 }

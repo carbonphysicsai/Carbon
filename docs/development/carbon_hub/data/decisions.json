@@ -698,7 +698,7 @@
       "if_changed": "The Wave selection, dependency status, Hub event, and B-06 opening evidence require a prospective owner correction; historical PR facts remain unchanged.",
       "affects": ["WAVE-B/B-05", "WAVE-B/B-06", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-06-D1",
@@ -716,7 +716,7 @@
       "if_changed": "The package, schema/profile, canonical bytes, refs, tests, authority map, and future comparator require versioned migration.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-06-D2",
@@ -734,7 +734,7 @@
       "if_changed": "The closed slot/evidence map, canonical profile, evidence manifests, cross-section rules, and focused tests require coordinated migration.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-06-D3",
@@ -752,7 +752,61 @@
       "if_changed": "Signer-role identity, artifact kinds, canonical bytes, authorization integration, and negative tests require a prospective schema update.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-06-D4",
+      "map_ref": "WAVE-B/B-06",
+      "wave": "B",
+      "ticket": "B-06",
+      "title": "Exact upstream evidence seams and explicit claim mappings",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should B-06 pin exact evidence subjects through existing B-02A/B-05 refs and require explicit closed evidence-to-claim mappings?",
+      "recommendation": "KEEP the exact subject graph, B-03/B-04 owner-ref seams, and source-backed one-to-many claim mappings without implicit cross-section support.",
+      "why": "Challenge-only joins admit stale or wrong-object evidence, while direct B-03/B-04 imports reverse completed package boundaries and generic evidence claims permit unsafe substitution.",
+      "if_kept": "Population, SamplingPlan, generator, reference, representation, measurement, and claim scope remain exact and separately reviewable; compatibility does not imply adequacy.",
+      "if_changed": "The evidence-manifest profile, upstream seam, closed matrix, canonical bytes, and negative tests require coordinated prospective migration.",
+      "affects": ["WAVE-B/B-03", "WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-06-D5",
+      "map_ref": "WAVE-B/B-06",
+      "wave": "B",
+      "ticket": "B-06",
+      "title": "Dependence structure remains pending owner ratification",
+      "attention": "HUMAN_REQUIRED",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "May the v2.1/v4.1 dependence proposal be treated as accepted scientific policy merely because B-06 carries its structural identities?",
+      "recommendation": "KEEP only OWNER_RATIFICATION_PENDING until Physics/SciML, statistics, and protocol owners ratify the scientific policy; structural completeness grants no method, independence, or coverage acceptance.",
+      "why": "Generator_Validation v2.1 and scientific canon v4.1 explicitly preserve v2.0/v4 as ratified authority pending named-owner acceptance.",
+      "if_kept": "Unrelated structural work proceeds, while positive dependence-policy and scientific qualification behavior remains unavailable.",
+      "if_changed": "A durable owner ratification must prospectively define the accepted policy/result state and its review evidence before B-06 can implement it.",
+      "affects": ["WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-06-D6",
+      "map_ref": "WAVE-B/B-06",
+      "wave": "B",
+      "ticket": "B-06",
+      "title": "Opaque accounting, secrecy, and scoped limitations",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Should B-06 preserve distinct attempt outcomes and exact limitation scope without embedding protected data or automatically changing the registered envelope?",
+      "recommendation": "KEEP opaque exact refs, distinct generator/reference/infrastructure/candidate dispositions, separate D11 audit roles, and non-mutating limitation bindings.",
+      "why": "Collapsed failure labels distort scientific evidence, embedded protected material creates disclosure risk, and a limitation record has no authority to rewrite the task.",
+      "if_kept": "Reviewers see exact intended/realized provenance and affected scope while security, censoring adequacy, and residual-risk acceptance stay human-owned.",
+      "if_changed": "Accounting enums, protected-field boundaries, limitation semantics, canonical bytes, and disclosure tests require prospective review.",
+      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     }
   ]
 }

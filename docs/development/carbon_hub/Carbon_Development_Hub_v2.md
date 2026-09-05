@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4` on `main`, captured 2026-09-05T20:27:03Z.
-**Current:** Wave B, ticket B-06. Selected under B-06-D0 from exact merged main 2500e510 and tree 89763523. Slice 1 implements the D1-D12 structural identity/evidence/signature foundation with focused native tests; Slice 2 typed evidence manifests and cross-section completeness are next.
+**Authority snapshot:** `7d9794e332ec4e8a044e796596118dc0e1753d33` on `main`, captured 2026-09-05T21:31:13Z.
+**Current:** Wave B, ticket B-06. Slices 1-2 are local structural checkpoints. Exact D1-D12 identity, claim/evidence non-substitution, subject versions/digests, pending dependence scope, intended/realized accounting, secrecy, limitations, fixture propagation, and canonical identity are implemented and locally tested; qualification-manifest comparison is next.
 
 ## Wave spine
 
@@ -108,6 +108,7 @@
 - `B-05-E6` — `WAVE-B/B-05` — B-05 restores all eleven authoritative ticket requirements to their unchanged unchecked form, corrects the exact B-01H activation receipt identities, and rebinds the HoH pilot manifest to the corrected ticket without weakening identity checks, changing scientific meaning, or advancing maturity.
 - `B-05-E7` — `WAVE-B/B-05` — B-05-D7 repairs three complete-diff review findings by requiring exact shared B-02C construction identity, deriving no-scalar floor and uncertainty outcomes from authored authority, and replacing the unmerged cyclic uncertainty payload with an exact policy-to-measurement-to-Score-Pack DAG without changing schema/profile or selecting scientific values.
 - `B-06-E1` — `WAVE-B/B-06` — B-06-D0 records the owner-directed transition from merged PR #87 without declaring B-05's ordinary delivery predicate complete, and the first bounded B-06 slice implements exact Challenge-bound D1-D12 evidence/signature identities and deterministic Dossier serialization while qualification remains unavailable.
+- `B-06-E2` — `WAVE-B/B-06` — B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority.
 
 ## Authority boundary
 

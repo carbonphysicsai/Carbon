@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 25 map-level change events
+- 26 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-06** (`in_progress`). Selected under B-06-D0 from exact merged main 2500e510 and tree 89763523. Slice 1 implements the D1-D12 structural identity/evidence/signature foundation with focused native tests; Slice 2 typed evidence manifests and cross-section completeness are next.
+Wave **B**, ticket **B-06** (`in_progress`). Slices 1-2 are local structural checkpoints. Exact D1-D12 identity, claim/evidence non-substitution, subject versions/digests, pending dependence scope, intended/realized accounting, secrecy, limitations, fixture propagation, and canonical identity are implemented and locally tested; qualification-manifest comparison is next.
 
 ## Maintain
 

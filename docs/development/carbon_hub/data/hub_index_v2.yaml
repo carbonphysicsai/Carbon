@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-05T20:27:03Z"
+  captured_at_utc: "2026-09-05T21:31:13Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4"
+  authority_snapshot_commit: "7d9794e332ec4e8a044e796596118dc0e1753d33"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -447,7 +447,7 @@ current:
   controlling_register: ".agent/WAVE_B.md"
   controlling_register_version: "1.9"
   controlling_board_fingerprint: "3157519edc39dc79a3f121cca2b29868c6f36dcacc012a5eda17df5885a5b490"
-  stage: "Selected under B-06-D0 from exact merged main 2500e510 and tree 89763523. Slice 1 implements the D1-D12 structural identity/evidence/signature foundation with focused native tests; Slice 2 typed evidence manifests and cross-section completeness are next."
+  stage: "Slices 1-2 are local structural checkpoints. Exact D1-D12 identity, claim/evidence non-substitution, subject versions/digests, pending dependence scope, intended/realized accounting, secrecy, limitations, fixture propagation, and canonical identity are implemented and locally tested; qualification-manifest comparison is next."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -483,6 +483,7 @@ current:
   fail_closed:
     - "PR #87 is owner-accepted as B-06's merged dependency under a narrow sequencing exception; B-05 remains in_progress because its ordinary delivery predicate is not claimed complete, and the exception changes no future delivery rule."
     - "Dossier completeness, a PASS value, a signer name, signature bytes, or an authorization-evidence link is not verified scientific approval or signer authority."
+    - "Generator_Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated statistical fields grant no acceptance, independence, coverage, or method qualification."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
@@ -496,8 +497,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-06 has a working engineering contract and one natively tested structural slice. SPECIFIED, IMPLEMENTED, and TESTED remain unearned as ticket maturity until delivery completes; scientific, security, production, qualification, and LIVE states remain unearned."
-  decision_series_status: "B-06-D0 through B-06-D3 are implemented working decisions notified through issue #42 comment 5554513577. They record the owner transition, exact Dossier identity, D1-D12 non-substitution, and populated-unverified signer boundary without granting scientific authority."
+  maturity_summary: "B-06 has a working engineering contract and two natively tested structural slices. SPECIFIED, IMPLEMENTED, and TESTED remain unearned as ticket maturity until delivery completes; scientific, security, production, qualification, and LIVE states remain unearned."
+  decision_series_status: "B-06-D0 through B-06-D6 are implemented working decisions covered by the existing non-gating issue #42 notification. They preserve exact identity, upstream package boundaries, non-substitution, pending dependence authority, accounting, secrecy, limitations, and populated-unverified signers without granting scientific authority."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -505,6 +506,9 @@ current:
     - "B-06-D1"
     - "B-06-D2"
     - "B-06-D3"
+    - "B-06-D4"
+    - "B-06-D5"
+    - "B-06-D6"
 waves:
   -
     id: "A"
@@ -2130,6 +2134,22 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/MATURITY"
     supersedes: "B-05-E7"
+  -
+    map_ref: "WAVE-B/B-06"
+    event_type: "evidence"
+    event_id: "B-06-E2"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/evidence/wave_b/b-06.md"
+    affects:
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-E1"
+      - "WAVE-B/B-E3"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-06-E1"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
