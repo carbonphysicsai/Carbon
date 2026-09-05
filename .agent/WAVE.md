@@ -8,7 +8,7 @@
 **Owner sequencing:** `OWNER-DX-02` interposed B-01H after completed B-04 and
 before B-05; B-01H's complete delivery predicate has now passed and B-05 is
 the active first harness pilot
-**Activation authority:** PR #78 comment `5548725328` records B-01H's complete
+**Activation authority:** PR #86 comment `5548725328` records B-01H's complete
 exact-head/review/approval/merge/exact-main predicate and selects B-05
 `in_progress but NOT STARTED` at exact main `f1a429de…`, tree `3e25bd65…`
 **B-01H status:** `done` in bounded merged development-tooling scope; its
@@ -46,10 +46,10 @@ only after B-05's complete conditional predicate passes
 > change Wave B, B-04 selection or runtime semantics, maturity, or future-wave
 > implementation authority.
 
-> **B-01H completed; B-05 selected.** PR #78's normalized completion receipt
+> **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
 > historical conditional text below. Reviewed head
-> `a4e2e56469f783513e4d5596753f3a973b40f03d` normally merged as
+> `a4e2e5645b565330273d0d0d0d6e28d797cc8261` normally merged as
 > `f1a429de37290b3c7615ca051661a1d727528f78`, preserving exact tree
 > `3e25bd65508c5c11d8d67558f9bd699808fc57a9`; the receipt records required
 > exact-head and exact-main gates, complete-diff review, distinct approval,

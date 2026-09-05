@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.7
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.7
+**Governance version:** 1.8
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.8
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -24,9 +24,9 @@ head/tree-bound receipt, distinct non-author human approval, and the protected
 
 ## Current transition — B-01H complete, B-05 active
 
-PR #78 comment `5548725328` is the normalized external receipt for the B-01H
+PR #86 comment `5548725328` is the normalized external receipt for the B-01H
 predicate described historically below. It records reviewed head
-`a4e2e56469f783513e4d5596753f3a973b40f03d`, normal merge
+`a4e2e5645b565330273d0d0d0d6e28d797cc8261`, normal merge
 `f1a429de37290b3c7615ca051661a1d727528f78`, exact preserved tree
 `3e25bd65508c5c11d8d67558f9bd699808fc57a9`, required exact-head and
 exact-main gates, complete-diff review, distinct approval, and zero unresolved

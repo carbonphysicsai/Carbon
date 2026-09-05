@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
+
+from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
 
@@ -160,38 +162,6 @@ def _parse(path: Path) -> ast.Module:
     return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
 
 
-def _module_name(path: Path) -> str:
-    relative = path.relative_to(_REPOSITORY_ROOT).with_suffix("")
-    parts = list(relative.parts)
-    if parts[-1] == "__init__":
-        parts.pop()
-    return ".".join(parts)
-
-
-def _from_module(path: Path, node: ast.ImportFrom) -> str:
-    if node.level == 0:
-        return node.module or ""
-    current = _module_name(path).split(".")
-    package = current if path.name == "__init__.py" else current[:-1]
-    trim = node.level - 1
-    if trim > len(package):
-        return ""
-    base = package[: len(package) - trim]
-    if node.module:
-        base.extend(node.module.split("."))
-    return ".".join(base)
-
-
-def _direct_import_modules(path: Path) -> tuple[tuple[str, int], ...]:
-    imports: list[tuple[str, int]] = []
-    for node in ast.walk(_parse(path)):
-        if isinstance(node, ast.Import):
-            imports.extend((alias.name, node.lineno) for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            imports.append((_from_module(path, node), node.lineno))
-    return tuple(imports)
-
-
 def _allowed_carbon_dependency(module_name: str) -> bool:
     return any(
         module_name == allowed or module_name.startswith(f"{allowed}.")
@@ -218,6 +188,45 @@ def _relative(path: Path) -> str:
     return path.relative_to(_REPOSITORY_ROOT).as_posix()
 
 
+@pytest.mark.parametrize(
+    ("source", "path", "expected"),
+    (
+        (
+            "from carbon import evaluation",
+            _CARBON_ROOT / "probe.py",
+            "carbon.evaluation",
+        ),
+        ("from . import evaluation", _CARBON_ROOT / "probe.py", "carbon.evaluation"),
+        (
+            "import carbon.evaluation.refs",
+            _CARBON_ROOT / "probe.py",
+            "carbon.evaluation.refs",
+        ),
+    ),
+)
+def test_import_scanner_resolves_evaluation_namespaces(
+    source: str, path: Path, expected: str
+) -> None:
+    imports = {
+        module
+        for module, _ in direct_import_modules(
+            _REPOSITORY_ROOT, path, tree=ast.parse(source)
+        )
+    }
+    assert expected in imports
+
+
+def test_import_scanner_preserves_approved_measurement_refs_seam() -> None:
+    path = _CARBON_ROOT / "measurement" / "probe.py"
+    imports = direct_import_modules(
+        _REPOSITORY_ROOT,
+        path,
+        tree=ast.parse("from carbon.evaluation.refs import ReferencePolicyRef"),
+    )
+    assert imports == (("carbon.evaluation.refs", 1),)
+    assert _is_allowed_evaluation_consumer(path, imports[0][0])
+
+
 def test_evaluation_has_the_exact_ratified_module_seams() -> None:
     assert _EVALUATION_ROOT.is_dir()
     actual = {
@@ -239,7 +248,7 @@ def test_evaluation_has_only_ratified_direct_carbon_dependencies() -> None:
     violations = [
         f"{_relative(path)}:{line}: {module_name}"
         for path in _python_files(_EVALUATION_ROOT)
-        for module_name, line in _direct_import_modules(path)
+        for module_name, line in direct_import_modules(_REPOSITORY_ROOT, path)
         if (module_name == "carbon" or module_name.startswith("carbon."))
         and not _allowed_carbon_dependency(module_name)
     ]
@@ -251,7 +260,7 @@ def test_only_measurement_may_import_exact_public_evaluation_refs() -> None:
         f"{_relative(path)}:{line}: {module_name}"
         for path in _python_files(_CARBON_ROOT)
         if _EVALUATION_ROOT not in path.parents
-        for module_name, line in _direct_import_modules(path)
+        for module_name, line in direct_import_modules(_REPOSITORY_ROOT, path)
         if _matches_namespace(module_name, ("carbon.evaluation",))
         and not _is_allowed_evaluation_consumer(path, module_name)
     ]
@@ -265,7 +274,7 @@ def test_evaluation_does_not_import_retired_namespaces() -> None:
     violations = [
         f"{_relative(path)}:{line}: {module_name}"
         for path in _python_files(_EVALUATION_ROOT)
-        for module_name, line in _direct_import_modules(path)
+        for module_name, line in direct_import_modules(_REPOSITORY_ROOT, path)
         if _matches_namespace(module_name, retired)
     ]
     assert violations == []
@@ -274,7 +283,7 @@ def test_evaluation_does_not_import_retired_namespaces() -> None:
 def test_evaluation_imports_no_dynamic_io_randomness_or_network_modules() -> None:
     violations: list[str] = []
     for path in _python_files(_EVALUATION_ROOT):
-        for module_name, line in _direct_import_modules(path):
+        for module_name, line in direct_import_modules(_REPOSITORY_ROOT, path):
             if module_name.partition(".")[0] in _FORBIDDEN_RUNTIME_MODULE_ROOTS:
                 violations.append(f"{_relative(path)}:{line}: {module_name}")
     assert violations == []
@@ -283,7 +292,7 @@ def test_evaluation_imports_no_dynamic_io_randomness_or_network_modules() -> Non
 def test_evaluation_external_dependencies_are_standard_library_only() -> None:
     violations: list[str] = []
     for path in _python_files(_EVALUATION_ROOT):
-        for module_name, line in _direct_import_modules(path):
+        for module_name, line in direct_import_modules(_REPOSITORY_ROOT, path):
             root = module_name.partition(".")[0]
             if root != "carbon" and root not in sys.stdlib_module_names:
                 violations.append(f"{_relative(path)}:{line}: {module_name}")

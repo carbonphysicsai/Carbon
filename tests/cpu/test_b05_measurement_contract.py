@@ -380,6 +380,20 @@ def test_canonical_loader_rejects_wrong_source_type_and_header() -> None:
         measurement.load_canonical_document(b"{}")
 
 
+def test_canonical_loader_translates_deep_json_and_preserves_size_limit() -> None:
+    deeply_nested = (
+        measurement.MEASUREMENT_DOCUMENT_HEADER + (b"[" * 2_000) + (b"]" * 2_000)
+    )
+    with pytest.raises(measurement.MeasurementCanonicalError) as exc_info:
+        measurement.load_canonical_document(deeply_nested)
+    assert exc_info.value.code is measurement.MeasurementInputCode.INVALID_VALUE
+
+    oversized = b"x" * (measurement.MAX_MEASUREMENT_DOCUMENT_BYTES + 1)
+    with pytest.raises(measurement.MeasurementCanonicalError) as exc_info:
+        measurement.load_canonical_document(oversized)
+    assert exc_info.value.code is measurement.MeasurementInputCode.SIZE_LIMIT
+
+
 def test_measurement_root_is_an_exact_closed_allow_list() -> None:
     expected = tuple(sorted(measurement.__all__))
     assert len(expected) == len(set(expected))

@@ -13,8 +13,9 @@ closeout and final review remain pending
 ## 1. Activation and startup
 
 1. Fetch without pull and require exact `origin/main` at the base above.
-2. Verify the external B-01H completion receipt at PR #78 comment
-   `5548725328`: reviewed head `a4e2e564…`, normal merge `f1a429d…`, exact
+2. Verify the external B-01H completion receipt at PR #86 comment
+   `5548725328`: reviewed head `a4e2e5645b565330273d0d0d0d6e28d797cc8261`,
+   normal merge `f1a429d…`, exact
    reviewed/merge tree preservation, required checks/review/approval, and
    `NEXT_SELECTED_TICKET: B-05 in_progress but NOT STARTED`.
 3. Preserve every pre-existing worktree. Create this ticket's dedicated branch

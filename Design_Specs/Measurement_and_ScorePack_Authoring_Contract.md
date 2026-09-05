@@ -124,10 +124,12 @@ reconstruction_evidence_policy
 score_pack_authoring_contract
 ```
 
-The first implementation slice freezes and implements
-`measurement_contract` and `measurement_qualification_evidence`. The
-remaining kinds are contract-defined but intentionally absent until their own
-coherent slices and tests land.
+The first implementation slice froze and implemented `measurement_contract`
+and `measurement_qualification_evidence`. Subsequent coherent slices
+implemented `uncertainty_policy`, `reconstruction_evidence_policy`, and
+`score_pack_authoring_contract`, so the current bounded candidate contains all
+five kinds. Their implementation presence grants no scientific qualification,
+production qualification, or `LIVE` authority.
 
 ## 4. MeasurementContract
 

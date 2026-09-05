@@ -8,6 +8,7 @@ import pytest
 
 from carbon import measurement
 from carbon.registry import ChallengeKey
+from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
 
@@ -22,14 +23,27 @@ UPSTREAM_ROOTS = (
 
 
 def imported_modules(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    result: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            result.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            result.add(node.module)
-    return result
+    return {module for module, _ in direct_import_modules(REPOSITORY_ROOT, path)}
+
+
+@pytest.mark.parametrize(
+    ("source", "path"),
+    (
+        ("from carbon import measurement", REPOSITORY_ROOT / "carbon" / "probe.py"),
+        ("from . import measurement", REPOSITORY_ROOT / "carbon" / "probe.py"),
+        ("import carbon.measurement", REPOSITORY_ROOT / "carbon" / "probe.py"),
+    ),
+)
+def test_import_scanner_resolves_measurement_namespaces(
+    source: str, path: Path
+) -> None:
+    imports = {
+        module
+        for module, _ in direct_import_modules(
+            REPOSITORY_ROOT, path, tree=ast.parse(source)
+        )
+    }
+    assert "carbon.measurement" in imports
 
 
 def test_completed_upstream_packages_do_not_import_measurement() -> None:

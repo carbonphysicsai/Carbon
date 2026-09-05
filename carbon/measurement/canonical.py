@@ -904,7 +904,7 @@ def load_canonical_document(source: object) -> MeasurementAuthoringObject:
         payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs)
     except MeasurementCanonicalError:
         raise
-    except (TypeError, UnicodeDecodeError, ValueError):
+    except (RecursionError, TypeError, UnicodeDecodeError, ValueError):
         raise _wrong("/") from None
     fields = _object(payload, None, "/")
     record_type = fields.get("record_type")

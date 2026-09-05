@@ -55,9 +55,9 @@ normal reviewed-tree-preserving expected-head merge, exact-main `Merge gate`,
 and the completed external receipt. Before that predicate B-01H remains the
 authoritative selected `in_progress` ticket and B-05 remains `todo` and not
 started. The transition supplies no B-05 science or later authority.
-**B-01H completed / B-05 selected:** PR #78's normalized receipt at comment
+**B-01H completed / B-05 selected:** PR #86's normalized receipt at comment
 `5548725328` satisfies the complete Version-1.6 predicate. Reviewed B-01H head
-`a4e2e56469f783513e4d5596753f3a973b40f03d` normally merged as
+`a4e2e5645b565330273d0d0d0d6e28d797cc8261` normally merged as
 `f1a429de37290b3c7615ca051661a1d727528f78` with exact tree
 `3e25bd65508c5c11d8d67558f9bd699808fc57a9`; required exact-head and
 exact-main gates, complete-diff Codex/GPT review, distinct approval, and zero
@@ -167,7 +167,7 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-01E | Canonical development environment, deterministic dependency lock, local/CI command parity, machine-enforced code-authority boundary, and legacy executable quarantine | done | `.agent/evidence/wave_b/b-01e.md` | Codex + SRE | Tech lead + SRE | B-01 | MQ-018 | L | WB-0/1 |
 | B-01F | Development throughput hardening: delivery hygiene, canonical wrapper, path-aware gates, live PR validation, bounded Hub fan-out, external receipts, and stable Merge gate | done | `.agent/evidence/wave_b/b-01f.md`; PR #73 receipt comment `5497405775` records the satisfied predicate and bounded merged scope | Codex + SRE | Tech lead + SRE | B-01E, ratified B-04 engineering contract | MQ-018 | L | WB-1/2 |
 | B-01G | Deterministic checked-in static schema-codegen shadow proof | todo | — | Codex | Tech lead + domain owners | B-01F; non-blocking for B-04 | MQ-018 | S | future tooling |
-| B-01H | Carbon-native iterative Planner/Developer/Tester harness, identity-bound resume, and B-05 pilot manifest | done | `.agent/evidence/wave_b/b-01h.md`; PR #78 comment `5548725328` (bounded merged development-tooling scope; installed Codex remains fail-closed incompatible) | Codex | Tech lead + SRE + security | B-01F, completed B-04 predicate | MQ-018 | L | development tooling |
+| B-01H | Carbon-native iterative Planner/Developer/Tester harness, identity-bound resume, and B-05 pilot manifest | done | `.agent/evidence/wave_b/b-01h.md`; PR #86 comment `5548725328` (bounded merged development-tooling scope; installed Codex remains fail-closed incompatible) | Codex | Tech lead + SRE + security | B-01F, completed B-04 predicate | MQ-018 | L | development tooling |
 | B-02A | Physical task, candidate output, population, SamplingPlan, and canonical-case identities | done | `.agent/evidence/wave_b/b-02a.md` (PR #60 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded engineering scope only) | Codex + SciML | SciML + statistics + protocol | B-01E | MQ-001, MQ-002 | L | WB-1 |
 | B-02B | Candidate assembly, ParameterCatalog, optional structural-component refs, StrategyCompiler, and resolved-plan contracts | done | `.agent/evidence/wave_b/b-02b.md` (PR #64 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded engineering scope only) | Codex + SciML | Protocol + SciML + security | B-02A, B-07R, A2 | MQ-005, MQ-008, MQ-015, MQ-024 | L | WB-2 |
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | done | `.agent/evidence/wave_b/b-02c.md` (PR #66 repaired exact-head review, normal exact-tree-preserving merge, and exact-main CI recorded; bounded engineering scope only) | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
@@ -232,7 +232,7 @@ all required Wave B tickets except non-blocking B-01G, including B-01H → B-GAT
 B-03, B-01F, B-04, and B-01H are closed in their bounded merged scopes. PR
 #75's normalized receipt satisfied B-04's full completion predicate and
 selected B-05 `in_progress but NOT STARTED`; `OWNER-DX-02` subsequently
-interposed B-01H. PR #78 comment `5548725328` now proves B-01H's complete
+interposed B-01H. PR #86 comment `5548725328` now proves B-01H's complete
 predicate and selects B-05 `in_progress` from exact main `f1a429de…`. B-05
 working-contract and first-slice work has started on its dedicated branch.
 B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
