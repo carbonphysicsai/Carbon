@@ -200,6 +200,91 @@ qualification.
 role-separation adequacy, residual-risk acceptance, and any envelope or
 population revision remain human-owned.
 
+## 2026-09-06 — B-06-D7: Compare caller-supplied A3 values without entering the registry lifecycle
+
+**Problem.** B-06 must compare its exact evidence candidate with A3 while A3
+alone owns registry storage, artifact-byte verification, and lifecycle
+activation. Importing the A3 store or gate would let a structural evidence
+package acquire authority or hidden I/O.
+
+**Recommendation.** KEEP/WRAP only A3's current immutable public
+`ChallengeRecord`, `QualificationManifest`, `QualificationEvidence`,
+`ArtifactBinding`, `ChallengeKey`, and required-slot/state values. Require the
+caller to supply one exact record snapshot. Implement a pure comparison that
+never searches global state, dereferences an artifact path, mutates a record,
+or changes lifecycle. Only a pre-activation `draft` snapshot is structurally
+compatible; fixture and already-`live` states fail closed.
+
+**Alternatives rejected.** A parallel registry would duplicate A3 authority.
+Calling `ChallengeRegistry.assess_live_eligibility` would perform filesystem
+work outside this evidence layer and still would not establish scientific
+adequacy. Hidden lookup of a “current” record would weaken exact identity.
+
+**Interfaces, impact, and reversibility.** The dependency remains one way from
+B-06 to `carbon.registry.model`; package invariants prohibit gate/store/I/O
+imports. The comparison returns immutable reason values only and has no
+activation operation. A3 can later consume a reviewed B-06 result through an
+explicit owner-approved adapter without changing this historical candidate.
+
+**Human-reserved input.** Which registry snapshot is authoritative, artifact
+trust, qualification, and activation remain external human/A3 decisions.
+
+## 2026-09-06 — B-06-D8: Domain-separate candidate identity from A3 qualification snapshot drift detection
+
+**Problem.** B-06 needs deterministic candidate identity and exact comparison,
+but current A3 publishes no qualification-manifest digest function. Treating a
+new B-06 digest as A3's qualification hash would invent authority.
+
+**Recommendation.** Give the B-06 qualification candidate and its artifact set
+closed, versioned, domain-framed canonical identities. Separately fingerprint
+the exact current public A3 qualification fields under a B-06-owned snapshot
+domain and compare that expected fingerprint with the supplied record. Also
+compare the required A3 slot states/artifact IDs and every closed artifact ID
+and digest independently.
+
+**Alternatives rejected.** Reusing an unrelated canonical domain permits
+cross-type identity confusion. Omitting the snapshot comparison misses changes
+to A3 mode, challenge binding, authoring fingerprint, and slot references.
+Calling the new fingerprint an A3 qualification hash would overstate its
+meaning.
+
+**Interfaces, impact, and reversibility.** Schema/profile version `1.0` fixes
+candidate bytes and snapshot fields prospectively. The snapshot fingerprint is
+drift detection only: not artifact-byte verification, trust, signature,
+scientific approval, production qualification, or LIVE capability. A later A3
+digest API can be wrapped under a prospective B-06 schema/version.
+
+**Human-reserved input.** The truth of A3's human-owned state strings and every
+underlying evidence/artifact remains unverified by this fingerprint.
+
+## 2026-09-06 — B-06-D9: Keep signer population, authorization, verification, and approval distinct
+
+**Problem.** A populated Dossier signer slot cannot prove identity, exact-role
+authority, valid cryptography, or scientific approval. B-06 nonetheless needs
+a fail-closed machine seam for trusted external authorization results.
+
+**Recommendation.** Accept an exact per-role immutable result binding the same
+Challenge, signer identity ref, signature ref, and optional authorization-
+evidence ref. Keep identity structural validity, exact-role authorization, and
+cryptographic signature verification as three separate closed states. Missing,
+unverified, unauthorized, role-confused, duplicated, or differently bound
+results make machine prerequisites unsatisfied. Represent no scientific-
+approval state.
+
+**Alternatives rejected.** A single `authorized` Boolean erases independent
+failure causes. Implementing trust roots, certificate policy, reviewer
+identity, quorum, or cryptography would invent security/governance authority.
+Counting signer fields or artifacts would confuse presence with proof.
+
+**Interfaces, impact, and reversibility.** B-06 implements only the typed input
+boundary and deterministic mismatch reasons. An external trusted layer can
+later produce these values under separately approved policy without changing
+candidate identity semantics.
+
+**Human-reserved input.** Identity proofing, key custody, role assignment,
+trust roots, signature validation, separation of duties, scientific signoff,
+security acceptance, and activation remain human/external.
+
 ## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
 
 **Problem.** B-05 must own measurement and Score Pack authoring semantics

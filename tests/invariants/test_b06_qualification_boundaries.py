@@ -95,6 +95,34 @@ def test_public_surface_has_no_qualification_registry_or_live_operation() -> Non
     )
 
 
+def test_candidate_slice_does_not_import_a3_store_gate_or_io_modules() -> None:
+    forbidden = {
+        "carbon.registry.digest",
+        "carbon.registry.gate",
+        "carbon.registry.store",
+        "os",
+        "pathlib",
+        "socket",
+        "urllib",
+        "urllib.request",
+    }
+    for name in ("candidate.py", "candidate_canonical.py"):
+        imports = imported_modules(QUALIFICATION_ROOT / name)
+        assert not imports & forbidden, (name, imports & forbidden)
+
+
+def test_candidate_public_surface_has_no_mutation_or_activation_operation() -> None:
+    forbidden_tokens = (
+        "activate",
+        "go_live",
+        "registry_store",
+        "set_live",
+        "write_registry",
+    )
+    public_names = tuple(name.lower() for name in qualification.__all__)
+    assert not any(token in name for token in forbidden_tokens for name in public_names)
+
+
 def test_refs_are_protected_and_nonpickleable() -> None:
     ref = qualification.ValidationDossierRef(
         ChallengeKey("fixture-burgers", "1.0"),

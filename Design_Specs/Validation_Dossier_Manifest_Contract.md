@@ -1,19 +1,21 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery  
-**Contract version:** 0.2
+**Contract version:** 0.3
 **Status:** agent-selected working engineering contract  
 **Maturity ceiling:** bounded structural engineering only  
 **Implementation owner:** `carbon.qualification`  
-**Registry owner:** `carbon.registry` remains unchanged through the second slice
+**Registry owner:** `carbon.registry` remains unchanged; Slice 3 wraps only its
+public immutable value types
 
 This contract defines the exact Challenge-bound D1–D12 evidence layout and
 signer-role boundary that B-06 may implement without deciding whether any
 evidence, signer, Challenge, or exam is scientifically adequate. The first two
 slices are an identity, typed-evidence-binding, and serialization foundation.
-They contain no
-qualification-manifest issuer, active-registry comparator, signature verifier,
-scientific pass/fail engine, or `LIVE` transition.
+They contain no qualification-manifest issuer, active-registry comparator,
+signature verifier, scientific pass/fail engine, or `LIVE` transition. Slice 3
+adds only a structural candidate and a pure comparison against an explicitly
+supplied A3 record snapshot.
 
 ## 1. Authority and owner-directed opening
 
@@ -358,32 +360,59 @@ missing/populated-unverified values and are not inputs to evidence-manifest
 completeness. No public projection, resolver, filesystem/network fetch, or
 untrusted reference dereference is added.
 
-## 13. Later qualification-manifest and active-registry seam
+## 13. Slice-3 qualification-manifest and active-registry seam
 
-A later B-06 slice may define an immutable `QualificationManifestCandidate`
-that references one exact `ValidationDossierRef` and the exact qualified exam
-artifacts required by Build Out and Launch Bar. A separately configured,
-fail-closed comparator will accept:
+Slice 3 defines an immutable `QualificationManifestCandidate` that references
+one exact `ValidationDossierRef`, exact D1-D12 evidence-manifest bindings,
+exact scientific-object identities, signer records, and a closed deterministic
+artifact set. A pure fail-closed comparator accepts:
 
 ```text
 exact active A3 ChallengeRecord snapshot
 + exact expected ChallengeKey
-+ exact ValidationDossier bytes/ref
++ exact ValidationDossier ref and structural state captured by the candidate
 + exact qualification-manifest candidate bytes/ref
 + externally verified signer authorization results
-+ exact artifact bytes/digests
++ exact artifact identifiers/digests from the candidate and record snapshot
 ```
 
-and return only a typed comparison result. It must reject missing,
+and returns only a typed comparison result. It rejects missing,
 placeholder, fixture, unsigned, unauthorized, wrong-version, stale,
 cross-Challenge, malformed, role-confused, or digest-mismatched input. It may
 not infer scientific sufficiency from schema completeness or execute a LIVE
 transition. A3 remains lifecycle owner; integration requires an explicit
-prospective adapter/migration that preserves legacy history and compares the
-exact active registry record rather than creating a parallel registry.
+one-way B-06 adapter that preserves legacy history and compares the exact
+caller-supplied registry record rather than creating or searching a parallel
+registry.
 
-This seam remains contractual only through Slice 2. No registry, store, signer, key,
-execution, or activation implementation is authorized here.
+The current A3 public surface has no qualification-manifest digest function.
+Slice 3 therefore defines a separate B-06 domain-framed fingerprint over the
+exact current public `QualificationManifest` fields. It exists only to detect
+snapshot drift. It is not an A3-owned qualification hash, an artifact-byte
+check, a signature, an approval, or a LIVE capability. Exact A3 slot/state and
+artifact-ID bindings remain independently compared.
+The record-level and qualification-manifest scientific-authoring graph
+fingerprints must both be present and equal, matching A3's existing gate
+invariant. B-06 does not recompute or verify that graph.
+
+The comparator accepts only a pre-activation `draft` record as lifecycle
+compatible. `fixture` and already-`live` records reject. It does not call the
+A3 store or gate, read artifact paths, hash artifact files, mutate the supplied
+record, or activate anything. A3 retains its independent artifact-byte,
+authoring-graph, lifecycle, and activation gates.
+
+Signer authorization input preserves five separate facts: the signer slot is
+populated, the identity structure was externally validated, that identity was
+externally authorized for the exact role, the signature was externally
+cryptographically verified, and scientific approval remains unrepresented.
+No certificate authority, trust root, organization policy, reviewer identity,
+quorum, role assignment, or cryptographic implementation is added.
+
+An incomplete candidate may remain canonically representable, but
+`machine_prerequisites_satisfied` is false. A positive value means only that
+the exact represented machine-checkable inputs match. It does not mean
+scientifically qualified, security qualified, production qualified, approved,
+or LIVE.
 
 ## 14. Slice tests
 
@@ -407,16 +436,27 @@ intended/realized accounting, failure-class separation, scoped limitations,
 manifest canonical ordering/round trip/tamper behavior, honest incomplete
 states, and fixture propagation.
 
+Slice 3 additionally proves deterministic candidate/artifact-set identity,
+exact nested-object coverage, duplicate/orphan rejection, exact A3
+qualification snapshot and required-slot comparison, missing/extra/wrong-
+digest artifacts, distinct dossier and measurement mismatches, draft-only
+lifecycle compatibility, fixture/placeholder/stale rejection, exact external
+signer-result binding, fail-closed unverified authorization, deterministic
+multi-mismatch ordering, byte-exact round trip, and no registry mutation or
+LIVE side effect.
+
 Native tests on this macOS host are diagnostic only. Canonical Linux checks,
 complete-diff review, human delivery approval, merge, and closeout are reserved
 for the mature B-06 candidate.
 
 ## 15. Deferred and human-reserved work
 
-Deferred B-06 slices own any campaign manifests not represented by Slice 2,
-exact qualification-manifest construction; signer-authorization verification seam;
-active-registry comparison; lifecycle and negative integration tests; and
-final validation/review.
+Deferred B-06 slices own the campaign-specific manifests not represented by
+Slice 2, complete synthetic integration, and final validation/review. Slice 3
+implements candidate construction and a pure exact A3 snapshot comparison.
+Actual signer identity/role authorization and cryptographic verification stay
+external; B-06 consumes their exact typed results but does not implement or
+claim them.
 
 Slice 2 represents every ticket-named supplemental campaign as an exact typed
 evidence ref plus explicit claim mapping, and gives decision-resolution

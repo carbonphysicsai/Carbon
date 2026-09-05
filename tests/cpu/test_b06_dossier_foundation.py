@@ -368,7 +368,9 @@ def test_fixture_origin_propagates_without_qualification() -> None:
         for name in (
             "activate",
             "qualify",
-            "QualificationManifestCandidate",
             "ActiveRegistryComparator",
+            "ChallengeRegistry",
+            "RegistryStore",
         )
     )
+    assert qualification.QualificationManifestCandidate is not None

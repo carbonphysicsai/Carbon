@@ -231,6 +231,107 @@ class AttemptDisposition(str, Enum):
     EXCLUDED_BY_REGISTERED_POLICY = "EXCLUDED_BY_REGISTERED_POLICY"
 
 
+class QualificationCandidateState(str, Enum):
+    INCOMPLETE = "INCOMPLETE"
+    COMPLETE_STRUCTURAL = "COMPLETE_STRUCTURAL"
+
+
+class ArtifactCurrentness(str, Enum):
+    CURRENT = "CURRENT"
+    SUPERSEDED = "SUPERSEDED"
+    REVOKED = "REVOKED"
+
+
+class QualificationArtifactKind(str, Enum):
+    PHYSICAL_SYSTEM_SPEC = "PHYSICAL_SYSTEM_SPEC"
+    CLAIM_SCOPE = "CLAIM_SCOPE"
+    TARGET_POPULATION = "TARGET_POPULATION"
+    SAMPLING_PLAN = "SAMPLING_PLAN"
+    GENERATOR = "GENERATOR"
+    REFERENCE_POLICY = "REFERENCE_POLICY"
+    CANDIDATE_OUTPUT_CONTRACT = "CANDIDATE_OUTPUT_CONTRACT"
+    REPRESENTATION_ADAPTER = "REPRESENTATION_ADAPTER"
+    APPLICABILITY_RATIONALE = "APPLICABILITY_RATIONALE"
+    MEASUREMENT_CONTRACT = "MEASUREMENT_CONTRACT"
+    VALIDATION_DOSSIER = "VALIDATION_DOSSIER"
+    EVIDENCE_MANIFEST = "EVIDENCE_MANIFEST"
+    SIGNER_IDENTITY = "SIGNER_IDENTITY"
+    SIGNER_SIGNATURE = "SIGNER_SIGNATURE"
+    SIGNER_AUTHORIZATION_EVIDENCE = "SIGNER_AUTHORIZATION_EVIDENCE"
+    A3_QUALIFICATION_ARTIFACT = "A3_QUALIFICATION_ARTIFACT"
+
+
+class RepresentationApplicability(str, Enum):
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE_WITH_RATIONALE = "NOT_APPLICABLE_WITH_RATIONALE"
+
+
+class SignerIdentityValidation(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    STRUCTURALLY_VALID = "STRUCTURALLY_VALID"
+
+
+class SignerRoleAuthorization(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    AUTHORIZED_FOR_ROLE = "AUTHORIZED_FOR_ROLE"
+
+
+class SignatureVerification(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    CRYPTOGRAPHICALLY_VERIFIED = "CRYPTOGRAPHICALLY_VERIFIED"
+
+
+class QualificationMismatchReason(str, Enum):
+    CHALLENGE_KEY_MISMATCH = "qualification.challenge_key_mismatch"
+    CANDIDATE_INCOMPLETE = "qualification.candidate_incomplete"
+    DOSSIER_INCOMPLETE = "qualification.dossier_incomplete"
+    DOSSIER_FIXTURE_DERIVED = "qualification.dossier_fixture_derived"
+    DOSSIER_STALE_OR_SUPERSEDED = "qualification.dossier_stale_or_superseded"
+    EVIDENCE_MISSING = "qualification.evidence_missing"
+    EVIDENCE_PLACEHOLDER = "qualification.evidence_placeholder"
+    EVIDENCE_FIXTURE_DERIVED = "qualification.evidence_fixture_derived"
+    EVIDENCE_STALE_OR_SUPERSEDED = "qualification.evidence_stale_or_superseded"
+    SIGNER_SLOT_MISSING = "qualification.signer_slot_missing"
+    SIGNER_FIXTURE_DERIVED = "qualification.signer_fixture_derived"
+    SIGNER_AUTHORIZATION_MISSING = "qualification.signer_authorization_missing"
+    SIGNER_AUTHORIZATION_BINDING_MISMATCH = (
+        "qualification.signer_authorization_binding_mismatch"
+    )
+    SIGNER_IDENTITY_UNVERIFIED = "qualification.signer_identity_unverified"
+    SIGNER_ROLE_UNAUTHORIZED = "qualification.signer_role_unauthorized"
+    SIGNATURE_UNVERIFIED = "qualification.signature_unverified"
+    ARTIFACT_FIXTURE_DERIVED = "qualification.artifact_fixture_derived"
+    ARTIFACT_STALE_OR_SUPERSEDED = "qualification.artifact_stale_or_superseded"
+    REGISTRY_LIFECYCLE_INCOMPATIBLE = "qualification.registry_lifecycle_incompatible"
+    REGISTRY_FIXTURE_ORIGIN = "qualification.registry_fixture_origin"
+    REGISTRY_QUALIFICATION_MISSING = "qualification.registry_manifest_missing"
+    REGISTRY_QUALIFICATION_CHALLENGE_MISMATCH = (
+        "qualification.registry_manifest_challenge_mismatch"
+    )
+    REGISTRY_QUALIFICATION_MODE_MISMATCH = (
+        "qualification.registry_manifest_mode_mismatch"
+    )
+    REGISTRY_QUALIFICATION_DIGEST_MISMATCH = (
+        "qualification.registry_manifest_digest_mismatch"
+    )
+    REGISTRY_AUTHORING_GRAPH_FINGERPRINT_MISSING = (
+        "qualification.registry_authoring_graph_fingerprint_missing"
+    )
+    REGISTRY_AUTHORING_GRAPH_FINGERPRINT_MISMATCH = (
+        "qualification.registry_authoring_graph_fingerprint_mismatch"
+    )
+    REGISTRY_SLOT_MISSING = "qualification.registry_slot_missing"
+    REGISTRY_SLOT_STATE_MISMATCH = "qualification.registry_slot_state_mismatch"
+    REGISTRY_SLOT_ARTIFACT_MISMATCH = "qualification.registry_slot_artifact_mismatch"
+    REGISTRY_ARTIFACT_MISSING = "qualification.registry_artifact_missing"
+    REGISTRY_ARTIFACT_UNEXPECTED = "qualification.registry_artifact_unexpected"
+    DOSSIER_DIGEST_MISMATCH = "qualification.dossier_digest_mismatch"
+    MEASUREMENT_SET_MISMATCH = "qualification.measurement_set_mismatch"
+    REGISTRY_ARTIFACT_DIGEST_MISMATCH = (
+        "qualification.registry_artifact_digest_mismatch"
+    )
+
+
 __all__ = (
     "DOSSIER_PRIMARY_CLAIM_ROLE",
     "DOSSIER_PRIMARY_EVIDENCE_CLASS",
@@ -238,6 +339,7 @@ __all__ = (
     "DOSSIER_SLOT_TITLES",
     "EVIDENCE_CLASS_ALLOWED_CLAIMS",
     "REQUIRED_SIGNER_ROLE_ORDER",
+    "ArtifactCurrentness",
     "AttemptDisposition",
     "DependencePolicyAuthorityStatus",
     "DossierClaimRole",
@@ -246,8 +348,15 @@ __all__ = (
     "EvidenceCompleteness",
     "EvidenceRequirement",
     "EvidenceSectionStatus",
+    "QualificationArtifactKind",
+    "QualificationCandidateState",
+    "QualificationMismatchReason",
+    "RepresentationApplicability",
+    "SignatureVerification",
     "SignerArtifactKind",
     "SignerBindingState",
+    "SignerIdentityValidation",
     "SignerRole",
+    "SignerRoleAuthorization",
     "StructuralOrigin",
 )

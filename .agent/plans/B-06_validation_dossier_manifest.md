@@ -1,7 +1,7 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06  
-**Status:** second coherent structural slice implemented; Slice 3 next
+**Status:** third coherent structural slice implemented; campaign schemas next
 **Branch:** `agent/b-06-dossier-manifest`  
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked  
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`  
@@ -50,6 +50,14 @@ failure changes the B-06 structural dependency.
 - **B-06-D6:** keep intended/realized attempt accounting, secrecy evidence,
   and scoped limitations opaque, typed, non-substitutable, and
   non-authorizing.
+- **B-06-D7:** KEEP/WRAP A3's immutable public values only; compare one
+  caller-supplied snapshot without store/gate imports, lookup, I/O, mutation,
+  or activation.
+- **B-06-D8:** domain-separate the B-06 candidate and exact A3 qualification
+  snapshot fingerprints; neither fingerprint establishes trust or approval.
+- **B-06-D9:** consume external identity-validation, exact-role authorization,
+  and cryptographic-verification facts as separate typed inputs without
+  implementing their trust policy or scientific signoff.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -110,13 +118,66 @@ must expose no accepted/qualified alternative.
 
 ### Slice 3 — qualification-manifest candidate and registry comparison
 
-Define an exact manifest candidate, verified signer-authorization input seam,
-artifact set, active A3 record snapshot comparison, deterministic mismatch
-reasons, and fail-closed lifecycle tests. Extend A3 only through an explicit
-one-way adapter after the contract is updated prospectively; do not create a
-second registry or activate LIVE.
+**Selected implementation decisions before code:**
 
-### Slice 4 — integration and mature candidate
+- **B-06-D7 — KEEP/WRAP A3 values, not its store or gate.** Consume only the
+  exact public `ChallengeRecord`, `QualificationManifest`,
+  `QualificationEvidence`, `ArtifactBinding`, required-slot constants, and
+  digest grammar. The caller supplies one exact record snapshot. B-06 performs
+  no lookup, filesystem verification, registry mutation, or LIVE transition.
+- **B-06-D8 — domain-separate the B-06 candidate and A3 snapshot fingerprints.**
+  Current A3 exposes no public qualification-manifest digest API. B-06 may
+  canonically fingerprint the exact current public A3 manifest fields solely
+  as a comparison input. That fingerprint is not an A3 qualification hash,
+  artifact-byte verification, scientific verdict, or activation token.
+- **B-06-D9 — external authorization is a typed input, not a signer.** A pure
+  comparison accepts exact per-role results that keep identity structure,
+  role authorization, and cryptographic signature verification distinct.
+  It implements none of those trust decisions and records no scientific
+  approval state.
+
+#### Slice-3 source-to-rule-to-test matrix
+
+| Rule | Controlling source and existing A3 seam | Structural accept / reject | Human-owned decision | Positive / negative proof |
+|---|---|---|---|---|
+| S3-R1 candidate identity | B-06 ticket; Build Out §8; A3 `ChallengeKey` and tagged digest grammar | Exact candidate id/version/profile and domain-framed digest; reject malformed, duplicate, tampered, or trailing bytes | Whether the candidate should be issued or accepted | deterministic round trip / malformed, tampered, duplicate-key, trailing-byte tests |
+| S3-R2 exact Challenge binding | Generator Validation v2.0 §5; A3 `ChallengeKey` | Every nested dossier, evidence, artifact, signer, subject, measurement, and authorization input equals one exact key | Whether that Challenge is scientifically defensible | matching key / wrong challenge and version tests |
+| S3-R3 dossier binding | Generator Validation v2.0 §§5, 14-15; B-06 `ValidationDossierRef` | Exact dossier id/version/digest/currentness and structural completeness; reject missing, placeholder, fixture, stale, or registry-digest mismatch | D1-D12 adequacy and signoff | exact dossier artifact / wrong digest, fixture, stale, incomplete tests |
+| S3-R4 exact artifact set | Build Out §8; A3 `ChallengeRecord.artifacts` and `ArtifactBinding` | Closed ordered refs with exact id/version/digest/kind/origin/currentness; reject duplicates, implicit latest, missing/extra registry IDs, or digest mismatch | Trust, provenance authenticity, and artifact adequacy | exact set equality / missing, extra, duplicate, stale and wrong-digest tests |
+| S3-R5 signer population vs authorization | B-06 signer contract; A3 reserved-binding boundary | Exact five populated signer roles plus exact external identity-valid, role-authorized, signature-verified results | Identity proof, trust roots, role policy, crypto verification, and scientific approval | all exact results / missing, wrong-role, unverified and unauthorized tests |
+| S3-R6 active-record comparison | Build Out/overlay A3 KEEP+EXTEND; exact public `ChallengeRecord` snapshot | Pure caller-supplied snapshot comparison only; reject wrong key, fixture provenance, or incompatible lifecycle | Registry selection and whether supplied snapshot is authoritative/current | compatible draft snapshot / wrong key, fixture, lifecycle tests |
+| S3-R7 qualification/hash comparison | Build Out §8; A3 public `QualificationManifest`, record/manifest authoring-graph fingerprint, required slots/states, artifact IDs/digests | Exact B-06-domain snapshot fingerprint, equal non-missing A3 record/manifest graph fingerprint, and slot/artifact binding; reject missing/wrong state, artifact, graph, mode, or digest | Truth of human-owned A3 state strings and artifact contents | exact fingerprint / changed graph, slot, state, ref and digest tests |
+| S3-R8 lifecycle compatibility | A3 `LIFECYCLE_STATES` and checked draft-to-LIVE activation ownership | Candidate comparison accepts only exact pre-activation `draft`; fixture/live reject; no state is mutated | Activation and LIVE decision | draft comparison / fixture and live tests, before/after record equality |
+| S3-R9 fixture/placeholder isolation | Constitution; Generator Validation v2.0; B-06 origin/completeness types; A3 `fixture_origin` | Represent incomplete candidates honestly but never ready; any fixture or placeholder input rejects | Whether non-fixture evidence is authentic and sufficient | incomplete round trip / fixture and placeholder readiness tests |
+| S3-R10 stale/superseded rejection | Constitution historical-evidence invariant; B-06 prospective versioning | Exact currentness enum and predecessor refs; non-current inputs and record digest drift reject; no `latest` lookup | Which version is the approved active scientific version | current exact refs / superseded, revoked, wrong-version tests |
+| S3-R11 deterministic reasons | A3 deterministic diagnostic precedent; disclosure invariants | Closed enum in fixed evaluation order; no paths, protected bytes, signer secrets, or free text | Meaning/acceptance of underlying evidence | stable multi-error tuple / ordering and no-leakage tests |
+| S3-R12 readiness ceiling | Constitution; Generator Validation §§15, 18-19; A3 reserved-binding boundary | `machine_prerequisites_satisfied` means only represented structural checks succeeded | Scientific/security adequacy, approval, production qualification, and LIVE | fully matching synthetic graph / assertions that no approval/LIVE API or side effect exists |
+
+The A3 record's artifact paths and artifact bytes remain owned and verified by
+the existing A3 gate. The pure B-06 comparator sees only artifact identifiers
+and expected digests. A positive structural comparison is therefore not a
+replacement for `ChallengeRegistry.assess_live_eligibility`, and neither
+operation establishes scientific adequacy.
+
+Checkpoint result: implemented. The candidate pins the exact dossier,
+scientific objects, applicability-qualified representations, measurement set,
+D1-D12 evidence manifests, signer records, closed artifact set, A3 slot
+bindings, expected A3 snapshot fingerprint, and prospective supersession.
+Canonical decode is byte-exact and the pure comparator returns a fixed-order
+closed mismatch enum. A matching result is named only
+`machine_prerequisites_satisfied`; the supplied A3 record remains `draft` and
+is unchanged. Focused B-06/A3/boundary validation passed locally. The earlier
+canonical Docker limitation was unchanged and was not retried.
+
+### Slice 4 — campaign-specific evidence schemas
+
+Implement the remaining bounded acquisition/result schemas for MMS observed
+order, mutation, analytic anchors, witness convergence/disagreement,
+generator-oracle adversarial studies, and measurement-floor studies. Preserve
+the current common evidence ref/claim graph and leave campaign execution and
+scientific conclusions to B-E1/humans.
+
+### Slice 5 — integration and mature candidate
 
 Compose a fully synthetic fixture graph, prove it cannot satisfy a production
 qualification path, add package/wheel and cross-owner tests, reconcile the
@@ -136,8 +197,12 @@ development environment ran the focused registry/B-05/invariant baseline:
 
 After each slice, run the new B-06 tests and directly affected registry,
 package, code-authority, and predecessor-boundary tests. Slice 2's expanded
-local run passed 815 tests. Native results remain diagnostic. No full
-canonical run or complete-diff review occurs at this checkpoint.
+local run passed 815 tests. Slice 3's final focused invocation passed 270 tests and
+its expanded affected predecessor/package/authority invocation passed 1431
+tests in 651.55 seconds; the final post-repair B-06/A3 focus passed 233 tests.
+Counts are per overlapping invocation, not a summed
+unique-test total. Native results remain diagnostic. No full canonical run or
+complete-diff review occurs at this checkpoint.
 
 ## 5. Hub and commit shape
 

@@ -34,6 +34,16 @@ EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE = (
 EVIDENCE_MANIFEST_DOCUMENT_HEADER = (
     b"carbon.qualification.evidence-manifest.canonical.v1\x00"
 )
+QUALIFICATION_CANDIDATE_SCHEMA_VERSION = "1.0"
+QUALIFICATION_CANDIDATE_CANONICALIZATION_PROFILE = (
+    "carbon_qualification_manifest_candidate_canonical_v1"
+)
+QUALIFICATION_CANDIDATE_DOCUMENT_HEADER = (
+    b"carbon.qualification.manifest-candidate.canonical.v1\x00"
+)
+A3_QUALIFICATION_SNAPSHOT_DOCUMENT_HEADER = (
+    b"carbon.qualification.a3-manifest-snapshot.canonical.v1\x00"
+)
 
 _PLACEHOLDER_IDS = frozenset({"none", "placeholder", "tbd", "todo", "unknown", "unset"})
 
@@ -239,15 +249,57 @@ class DossierEvidenceManifestRef(_ProtectedRef):
         return "dossier_evidence_manifest_ref"
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class QualificationManifestCandidateRef(_ProtectedRef):
+    challenge_key: ChallengeKey
+    candidate_id: str
+    candidate_version: str
+    content_digest: str
+    schema_version: str = QUALIFICATION_CANDIDATE_SCHEMA_VERSION
+    canonicalization_profile: str = QUALIFICATION_CANDIDATE_CANONICALIZATION_PROFILE
+
+    def __post_init__(self) -> None:
+        if type(self) is not QualificationManifestCandidateRef:
+            raise _invalid("/ref_type", DossierInputCode.WRONG_TYPE)
+        schema_value = _version(self.schema_version, "/schema_version")
+        if (
+            schema_value != QUALIFICATION_CANDIDATE_SCHEMA_VERSION
+            or type(self.canonicalization_profile) is not str
+            or self.canonicalization_profile
+            != QUALIFICATION_CANDIDATE_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
+        object.__setattr__(self, "challenge_key", _challenge(self.challenge_key))
+        object.__setattr__(
+            self, "candidate_id", _identifier(self.candidate_id, "/candidate_id")
+        )
+        object.__setattr__(
+            self,
+            "candidate_version",
+            _version(self.candidate_version, "/candidate_version"),
+        )
+        object.__setattr__(self, "content_digest", _digest(self.content_digest))
+        object.__setattr__(self, "schema_version", schema_value)
+
+    @property
+    def ref_type(self) -> str:
+        return "qualification_manifest_candidate_ref"
+
+
 __all__ = (
+    "A3_QUALIFICATION_SNAPSHOT_DOCUMENT_HEADER",
     "DOSSIER_CANONICALIZATION_PROFILE",
     "DOSSIER_DOCUMENT_HEADER",
     "DOSSIER_SCHEMA_VERSION",
     "EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE",
     "EVIDENCE_MANIFEST_DOCUMENT_HEADER",
     "EVIDENCE_MANIFEST_SCHEMA_VERSION",
+    "QUALIFICATION_CANDIDATE_CANONICALIZATION_PROFILE",
+    "QUALIFICATION_CANDIDATE_DOCUMENT_HEADER",
+    "QUALIFICATION_CANDIDATE_SCHEMA_VERSION",
     "DossierEvidenceManifestRef",
     "DossierEvidenceRef",
+    "QualificationManifestCandidateRef",
     "SignerArtifactRef",
     "ValidationDossierRef",
 )

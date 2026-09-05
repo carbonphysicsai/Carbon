@@ -72,16 +72,25 @@ Scientific, statistics, security, launch, and independent-review owners produce 
 
 ## Current structural checkpoint
 
-Slices 1 and 2 are implemented locally on the B-06 branch. Slice 2 adds the
+Slices 1 through 3 are implemented locally on the B-06 branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
 pending-ratification statistical/dependence scope, intended/realized attempt
 accounting, secrecy/role-separation bindings, scoped limitations, and a
 separate deterministic canonical profile. The D1-D12 identities are unchanged.
 
-This is not ticket completion. Qualification-manifest construction, externally
-verified signer authorization, active A3 record comparison, complete synthetic
-integration, canonical Linux validation, final review, approval, merge, and
-closeout remain future B-06 work. `Generator_Validation.md` v2.1 dependence
+Slice 3 adds an exact qualification-manifest candidate, closed artifact set,
+external per-role signer-authorization result seam, deterministic candidate
+identity, and a pure comparison with an explicitly supplied immutable A3
+`ChallengeRecord`. It compares exact qualification snapshot, required slots,
+artifact IDs/digests, dossier, measurement set, fixture/currentness, and draft
+lifecycle compatibility. It performs no registry lookup or mutation, artifact
+dereference, signature verification, scientific approval, or LIVE transition.
+
+This is not ticket completion. Campaign-specific evidence schemas, complete
+synthetic integration, canonical Linux validation, final review, approval,
+merge, and closeout remain future B-06 work. Real signer authorization and
+signature verification remain external and human/security-owned.
+`Generator_Validation.md` v2.1 dependence
 policy and the corresponding scientific-canon v4.1 additions remain pending
 owner ratification; populated structural fields grant no acceptance.
 
