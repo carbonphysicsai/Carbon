@@ -1,10 +1,15 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `todo`; no B-05 contract, decision, plan, evidence, runtime, test,
-or implementation has started
-**Conditional handoff:** first-pilot `in_progress` selection occurs only in the
-completed B-01H external receipt after its entire delivery predicate passes
+**Status:** `in_progress`
+**Conditional target:** `done` only under the conditional completion gate below;
+the bounded implementation candidate has not earned merged maturity
+**Current phase:** final implementation/integration candidate prepared for
+delivery review
+**Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
+delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
+main `f1a429de37290b3c7615ca051661a1d727528f78`, tree
+`3e25bd65508c5c11d8d67558f9bd699808fc57a9`
 **Owner interposition:** `OWNER-DX-02` inserts B-01H after B-04 completion and
 before this ticket
 **Prior selection evidence:** PR #75's completed receipt selected B-05
@@ -25,6 +30,17 @@ B-01H's complete delivery predicate and exact pilot base are recorded. This
 sequencing supplies no B-05 contract or runtime implementation and no human-
 reserved measurement, uncertainty, scoring, reconstruction-evidence, or
 qualification value.
+
+PR #86 comment `5548725328` later satisfies that complete B-01H predicate:
+reviewed head `a4e2e5645b565330273d0d0d0d6e28d797cc8261` normally merged as exact
+activation base `f1a429de37290b3c7615ca051661a1d727528f78`, preserving reviewed
+tree `3e25bd65508c5c11d8d67558f9bd699808fc57a9`, with required exact-head
+gates, complete-diff review, distinct approval, and zero unresolved
+findings/threads. Its exact-main run was canceled by owner direction after
+exact-head delivery passed. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress
+but NOT STARTED`. The working contract, decisions, plan/evidence, and first
+bounded slice begin only after that receipt; the historical conditional text
+above is not rewritten into pre-receipt authority.
 
 ## Goal
 
@@ -85,6 +101,38 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
 - [ ] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
+
+The first delivery-lifecycle item remains unchecked until its external
+exact-head review, approval, normal merge, exact-main, and receipt facts exist.
+No tracked file guesses those dynamic identities.
+
+## Implemented bounded architecture
+
+`carbon.measurement` now owns five canonical Challenge-bound authoring object
+kinds, explicit unresolved scientific-value bindings, a closed evidence-role
+claim matrix, dependence-aware uncertainty and reconstruction-evidence policy,
+exact A5 Score Pack input-use bindings, and mandatory-first no-scalar failure
+projection. A complete test-owned fixture graph composes every B-05 object,
+exact canonical refs/digests/store round trips, B-02C deferral facts, and the
+unchanged A5 pack-compatible scalar projection. It remains visibly synthetic,
+fixture-origin, protected, non-LIVE, and scientifically unqualified.
+
+No `ScoreInput`, scorer, resolved-plan consumer, reconstruction runner,
+Dossier qualification issuer, coverage/power harness, official lifecycle,
+frontier, network, treasury, settlement, weight, emission, product,
+commercial, production, or LIVE implementation is present.
+
+## Conditional completion and B-06 selection
+
+Prepared B-05 `done` and B-06 `in_progress but NOT STARTED` become
+authoritative only after one exact unchanged B-05 final head/tree passes every
+scope-required check and `Merge gate`; fresh read-only Codex/GPT review covers
+the complete diff with all findings closed; a distinct non-author human
+approval carries the closed receipt; `GPT review gate` succeeds with zero
+unresolved threads; normal expected-head merge preserves the reviewed tree;
+fetched exact main passes `Merge gate`; and the completed normalized external
+receipt is posted. Until that complete predicate passes, B-05 remains
+`in_progress` and B-06 remains `todo` and unstarted.
 
 ## Human input
 

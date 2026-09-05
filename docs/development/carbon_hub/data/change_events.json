@@ -352,6 +352,145 @@
         "WAVE-N"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "PR #86's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/evidence/wave_b/b-05.md",
+      "affects": [
+        "WAVE-B/B-01H",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-01H-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 now has a second bounded slice implementing exact unresolved uncertainty components, per-stratum minima, and dependence shortcuts bound to exact incumbent/challenger evidence, case/stratum scope, assumptions, applicability tests, and B-06 Dossier qualification refs; it infers no independence and selects no real scientific value.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/carbon/measurement/model.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E3",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 now has a third bounded slice implementing exact Challenge/family-bound reconstruction-evidence policy, explicit human-owned sufficiency controls, distinct base/nomination/extension/promotion stages, and fail-closed separation from B-02C resource facts.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c638e2139cdf5a5eb057161dcea72aaaeb31e2ec/carbon/measurement/model.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E2"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E4",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 now has a fourth bounded slice implementing exact content-addressed Score Pack authoring, complete ready-pack key coverage, closed measurement-material outcomes, mandatory-first scalar projection, and structural rejection of role-confused or forbidden sources while A5 remains unchanged.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/carbon/measurement/projection.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E3"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E5",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05's fifth bounded slice composes the complete synthetic non-LIVE authoring graph, proves canonical identity and store round-trips across all B-05 objects, preserves exact A5 input coverage without constructing ScoreInput, and prepares an inert conditional closeout while every real scientific and qualification input remains unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/64f8fad28e484dc73bd5c0eaef3193ff93de2c17/tests/cpu/test_b05_score_pack_authoring.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E4"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E6",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 restores all eleven authoritative ticket requirements to their unchanged unchecked form, corrects the exact B-01H activation receipt identities, and rebinds the HoH pilot manifest to the corrected ticket without weakening identity checks, changing scientific meaning, or advancing maturity.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/268c1f375e175791b81e45dc929b7575f984e239/agent_pack/executors/hoh/manifests/b05.requirements.v1.json",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E5"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "adjustment",
+      "event_id": "B-05-E7",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05-D7 repairs three complete-diff review findings by requiring exact shared B-02C construction identity, deriving no-scalar floor and uncertainty outcomes from authored authority, and replacing the unmerged cyclic uncertainty payload with an exact policy-to-measurement-to-Score-Pack DAG without changing schema/profile or selecting scientific values.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/commit/5dd55978b0ab4281873231b66cf6e5073c1c9553",
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E6"
     }
   ]
 }
