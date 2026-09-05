@@ -1,9 +1,9 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `done` only under the conditional completion gate below
-**Execution state before that gate:** authoritative `in_progress`; the bounded
-implementation candidate is prepared but has not earned merged maturity
+**Status:** `in_progress`
+**Conditional target:** `done` only under the conditional completion gate below;
+the bounded implementation candidate has not earned merged maturity
 **Current phase:** final implementation/integration candidate prepared for
 delivery review
 **Activation receipt:** PR #78 comment `5548725328` completed B-01H's entire
