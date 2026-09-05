@@ -30,9 +30,11 @@ from carbon.resource_policy.refs import (
     ObservedResourceReceiptRef,
     StaticResourceAssessmentRef,
 )
+from carbon.scoring.model import ScorePackPin
 
 from .enums import (
     MEASUREMENT_EVIDENCE_ROLE_CLAIMS,
+    A5DestinationKind,
     DependenceShortcutKind,
     MeasurementClaimClass,
     MeasurementDefinitionKind,
@@ -42,6 +44,12 @@ from .enums import (
     ReconstructionEvidenceStage,
     ReconstructionStopKind,
     ScientificValueState,
+    ScoreAggregationRole,
+    ScoreDisclosureClass,
+    ScoreEligibilityRole,
+    ScoreRankingRole,
+    ScoreScalarKind,
+    ScoreUseRole,
     StratumApplicabilityStatus,
 )
 from .errors import MeasurementInputCode, MeasurementValidationError
@@ -863,13 +871,13 @@ def assess_reconstruction_evidence(
         stage = ReconstructionEvidenceStage.BASE_COMPLETE
         if evidence.nomination_evidence_ref is not None:
             stage = ReconstructionEvidenceStage.NOMINATED
-            if evidence.extension_evidence_ref is not None:
+            if (
+                evidence.extension_evidence_ref is not None
+                and type(evidence.resource_facts.reconstruction_replicate)
+                is BoundReconstructionReplicate
+            ):
                 stage = ReconstructionEvidenceStage.EXTENDED
-                if (
-                    evidence.promotion_evidence_ref is not None
-                    and type(evidence.resource_facts.reconstruction_replicate)
-                    is BoundReconstructionReplicate
-                ):
+                if evidence.promotion_evidence_ref is not None:
                     stage = ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
 
     status_args = (
@@ -1283,11 +1291,258 @@ class MeasurementQualificationEvidence:
             raise _invalid("/schema_version")
 
 
+@dataclass(frozen=True, slots=True)
+class ScorePackInputBinding:
+    """One exact qualified measurement-output ownership of one A5 input key."""
+
+    measurement_contract_ref: MeasurementContractRef
+    measurement_output_ref: MeasurementDefinitionRef
+    input_key: str
+    scalar_kind: ScoreScalarKind
+    use_role: ScoreUseRole
+    estimand_ref: MeasurementDefinitionRef
+    case_scope_ref: MeasurementDefinitionRef
+    stratum_ref: MeasurementDefinitionRef
+    uncertainty_policy_ref: UncertaintyPolicyRef
+    admissibility_policy_ref: MeasurementDefinitionRef
+    admissibility_evidence_ref: MeasurementDefinitionRef
+    aggregation_role: ScoreAggregationRole
+    ranking_role: ScoreRankingRole
+    disclosure_class: ScoreDisclosureClass
+    eligibility_role: ScoreEligibilityRole
+    disclosure_policy_ref: MeasurementDefinitionRef
+    destination_kind: A5DestinationKind
+    destination_id: str
+    applicability_evidence_ref: MeasurementDefinitionRef
+    qualification_ref: MeasurementDefinitionRef
+    provenance_ref: MeasurementDefinitionRef
+    fixture_origin: bool
+
+    def __post_init__(self) -> None:
+        contract_ref = _exact(
+            self.measurement_contract_ref,
+            MeasurementContractRef,
+            "/measurement_contract_ref",
+        )
+        challenge_key = contract_ref.challenge_key
+        for name, kind in (
+            ("measurement_output_ref", MeasurementDefinitionKind.MEASUREMENT_OUTPUT),
+            ("estimand_ref", MeasurementDefinitionKind.ESTIMAND),
+            ("case_scope_ref", MeasurementDefinitionKind.CASE_SCOPE),
+            ("stratum_ref", MeasurementDefinitionKind.STRATUM),
+            (
+                "admissibility_policy_ref",
+                MeasurementDefinitionKind.SCORE_ADMISSIBILITY_POLICY,
+            ),
+            (
+                "admissibility_evidence_ref",
+                MeasurementDefinitionKind.SCORE_ADMISSIBILITY_EVIDENCE,
+            ),
+            (
+                "disclosure_policy_ref",
+                MeasurementDefinitionKind.SCORE_DISCLOSURE_POLICY,
+            ),
+            (
+                "applicability_evidence_ref",
+                MeasurementDefinitionKind.APPLICABILITY_EVIDENCE,
+            ),
+            ("qualification_ref", MeasurementDefinitionKind.DOSSIER_QUALIFICATION),
+            ("provenance_ref", MeasurementDefinitionKind.EVIDENCE_SOURCE),
+        ):
+            object.__setattr__(
+                self,
+                name,
+                _definition(getattr(self, name), kind, challenge_key, f"/{name}"),
+            )
+        uncertainty_ref = _exact(
+            self.uncertainty_policy_ref,
+            UncertaintyPolicyRef,
+            "/uncertainty_policy_ref",
+        )
+        _same_challenge(
+            uncertainty_ref.challenge_key, challenge_key, "/uncertainty_policy_ref"
+        )
+        object.__setattr__(self, "input_key", _identifier(self.input_key, "/input_key"))
+        object.__setattr__(
+            self, "destination_id", _identifier(self.destination_id, "/destination_id")
+        )
+        _exact(self.scalar_kind, ScoreScalarKind, "/scalar_kind")
+        _exact(self.use_role, ScoreUseRole, "/use_role")
+        _exact(self.aggregation_role, ScoreAggregationRole, "/aggregation_role")
+        _exact(self.ranking_role, ScoreRankingRole, "/ranking_role")
+        _exact(self.disclosure_class, ScoreDisclosureClass, "/disclosure_class")
+        _exact(self.eligibility_role, ScoreEligibilityRole, "/eligibility_role")
+        _exact(self.destination_kind, A5DestinationKind, "/destination_kind")
+        expected = {
+            ScoreUseRole.MANDATORY_GATE: (
+                {ScoreAggregationRole.MANDATORY_ADMISSIBILITY},
+                {ScoreRankingRole.ADMISSIBILITY_ONLY},
+                {A5DestinationKind.MANDATORY_GATE},
+                {ScoreEligibilityRole.MANDATORY_ADMISSIBILITY},
+            ),
+            ScoreUseRole.SOFT_COMPONENT: (
+                {
+                    ScoreAggregationRole.PHYSICS,
+                    ScoreAggregationRole.ROBUSTNESS_MEAN,
+                    ScoreAggregationRole.ROBUSTNESS_TAIL,
+                    ScoreAggregationRole.ACCURACY,
+                },
+                {ScoreRankingRole.RANKING_INPUT},
+                {
+                    A5DestinationKind.PHYSICS_COMPONENT,
+                    A5DestinationKind.ROBUSTNESS_MEAN,
+                    A5DestinationKind.ROBUSTNESS_TAIL,
+                    A5DestinationKind.ACCURACY_COMPONENT,
+                },
+                {ScoreEligibilityRole.ELIGIBLE_AFTER_MANDATORY_ADMISSIBILITY},
+            ),
+            ScoreUseRole.DIAGNOSTIC: (
+                {ScoreAggregationRole.NONE},
+                {ScoreRankingRole.NON_RANKING_DIAGNOSTIC},
+                {A5DestinationKind.DIAGNOSTIC_GATE},
+                {ScoreEligibilityRole.NON_SCORE_DIAGNOSTIC},
+            ),
+        }[self.use_role]
+        if (
+            self.aggregation_role not in expected[0]
+            or self.ranking_role not in expected[1]
+            or self.destination_kind not in expected[2]
+            or self.eligibility_role not in expected[3]
+        ):
+            raise _invalid("/use_role", MeasurementInputCode.ROLE_CONFUSION)
+        destination_aggregation = {
+            A5DestinationKind.PHYSICS_COMPONENT: ScoreAggregationRole.PHYSICS,
+            A5DestinationKind.ROBUSTNESS_MEAN: ScoreAggregationRole.ROBUSTNESS_MEAN,
+            A5DestinationKind.ROBUSTNESS_TAIL: ScoreAggregationRole.ROBUSTNESS_TAIL,
+            A5DestinationKind.ACCURACY_COMPONENT: ScoreAggregationRole.ACCURACY,
+        }
+        required_aggregation = destination_aggregation.get(self.destination_kind)
+        if (
+            required_aggregation is not None
+            and self.aggregation_role is not required_aggregation
+        ):
+            raise _invalid("/aggregation_role", MeasurementInputCode.ROLE_CONFUSION)
+        object.__setattr__(
+            self, "fixture_origin", _boolean(self.fixture_origin, "/fixture_origin")
+        )
+
+
+_SCORE_POLICY_AUTHORITY_FIELDS = (
+    ("threshold_authority_binding", MeasurementDefinitionKind.SCORE_THRESHOLD_POLICY),
+    ("transform_authority_binding", MeasurementDefinitionKind.SCORE_TRANSFORM_POLICY),
+    ("weight_authority_binding", MeasurementDefinitionKind.SCORE_WEIGHT_POLICY),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ScorePackAuthoringContract:
+    """Content-addressed B-05 binding to one exact fixture A5 Score Pack."""
+
+    challenge_key: ChallengeKey
+    contract_id: str
+    contract_version: str
+    score_pack_pin: ScorePackPin
+    input_bindings: tuple[ScorePackInputBinding, ...]
+    threshold_authority_binding: UncertaintyComponentBinding
+    transform_authority_binding: UncertaintyComponentBinding
+    weight_authority_binding: UncertaintyComponentBinding
+    fixture_origin: bool
+    schema_version: str = MEASUREMENT_SCHEMA_VERSION
+    canonicalization_profile: str = MEASUREMENT_CANONICALIZATION_PROFILE
+
+    RECORD_TYPE = "score_pack_authoring_contract"
+
+    def __post_init__(self) -> None:
+        if type(self) is not ScorePackAuthoringContract:
+            raise _invalid("/record_type", MeasurementInputCode.WRONG_TYPE)
+        challenge_key = _challenge(self.challenge_key)
+        object.__setattr__(self, "challenge_key", challenge_key)
+        object.__setattr__(
+            self, "contract_id", _identifier(self.contract_id, "/contract_id")
+        )
+        object.__setattr__(
+            self,
+            "contract_version",
+            _version(self.contract_version, "/contract_version"),
+        )
+        pin = _exact(self.score_pack_pin, ScorePackPin, "/score_pack_pin")
+        _same_challenge(
+            pin.challenge_key, challenge_key, "/score_pack_pin/challenge_key"
+        )
+        if type(self.input_bindings) is not tuple or not self.input_bindings:
+            raise _invalid("/input_bindings", MeasurementInputCode.WRONG_TYPE)
+        if len(self.input_bindings) > MAX_CANONICAL_TUPLE_ITEMS:
+            raise _invalid("/input_bindings")
+        bindings = tuple(
+            _exact(item, ScorePackInputBinding, f"/input_bindings/{index}")
+            for index, item in enumerate(self.input_bindings)
+        )
+        for index, binding in enumerate(bindings):
+            _same_challenge(
+                binding.measurement_contract_ref.challenge_key,
+                challenge_key,
+                f"/input_bindings/{index}/measurement_contract_ref",
+            )
+            if binding.fixture_origin != pin.fixture_origin:
+                raise _invalid(
+                    f"/input_bindings/{index}/fixture_origin",
+                    MeasurementInputCode.FIXTURE_REQUIRED,
+                )
+        if len({item.input_key for item in bindings}) != len(bindings):
+            raise _invalid("/input_bindings", MeasurementInputCode.DUPLICATE_IDENTITY)
+        destinations = tuple(
+            (item.destination_kind, item.destination_id) for item in bindings
+        )
+        if len(set(destinations)) != len(destinations):
+            raise _invalid("/input_bindings", MeasurementInputCode.DUPLICATE_IDENTITY)
+        object.__setattr__(
+            self,
+            "input_bindings",
+            tuple(sorted(bindings, key=lambda item: item.input_key)),
+        )
+        for name, expected_kind in _SCORE_POLICY_AUTHORITY_FIELDS:
+            binding = _exact(
+                getattr(self, name), UncertaintyComponentBinding, f"/{name}"
+            )
+            if binding.state is ScientificValueState.NOT_APPLICABLE:
+                raise _invalid(f"/{name}/state")
+            if binding.component_ref is not None:
+                _same_challenge(
+                    binding.component_ref.challenge_key,
+                    challenge_key,
+                    f"/{name}/component_ref",
+                )
+                if binding.component_ref.definition_kind is not expected_kind:
+                    raise _invalid(
+                        f"/{name}/component_ref",
+                        MeasurementInputCode.ROLE_CONFUSION,
+                    )
+        fixture_origin = _boolean(self.fixture_origin, "/fixture_origin")
+        if fixture_origin != pin.fixture_origin:
+            raise _invalid("/fixture_origin", MeasurementInputCode.FIXTURE_REQUIRED)
+        object.__setattr__(self, "fixture_origin", fixture_origin)
+        if (
+            self.schema_version != MEASUREMENT_SCHEMA_VERSION
+            or self.canonicalization_profile != MEASUREMENT_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
+
+    @property
+    def has_complete_score_policy_authority(self) -> bool:
+        """Whether threshold, transform, and weight authority is exact."""
+
+        return all(
+            getattr(self, name).state is ScientificValueState.BOUND
+            for name, _ in _SCORE_POLICY_AUTHORITY_FIELDS
+        )
+
+
 MeasurementAuthoringObject = (
     MeasurementContract
     | MeasurementQualificationEvidence
     | UncertaintyPolicy
     | ReconstructionEvidencePolicy
+    | ScorePackAuthoringContract
 )
 
 
@@ -1302,6 +1557,8 @@ __all__ = (
     "ReconstructionEvidenceStatus",
     "ReconstructionResourceFacts",
     "ScientificValueBinding",
+    "ScorePackAuthoringContract",
+    "ScorePackInputBinding",
     "StratumApplicabilityBinding",
     "StratumEvidenceMinimumBinding",
     "UncertaintyComponentBinding",

@@ -10,15 +10,24 @@ from .canonical import (
 )
 from .enums import (
     MEASUREMENT_EVIDENCE_ROLE_CLAIMS,
+    A5DestinationKind,
     DependenceShortcutKind,
     MeasurementClaimClass,
     MeasurementDefinitionKind,
     MeasurementEvidenceRole,
+    MeasurementMaterialSource,
+    MeasurementMaterialState,
     MeasurementRole,
     ReconstructionEvidenceOutcome,
     ReconstructionEvidenceStage,
     ReconstructionStopKind,
     ScientificValueState,
+    ScoreAggregationRole,
+    ScoreDisclosureClass,
+    ScoreEligibilityRole,
+    ScoreRankingRole,
+    ScoreScalarKind,
+    ScoreUseRole,
     StratumApplicabilityStatus,
 )
 from .errors import (
@@ -39,12 +48,21 @@ from .model import (
     ReconstructionEvidenceStatus,
     ReconstructionResourceFacts,
     ScientificValueBinding,
+    ScorePackAuthoringContract,
+    ScorePackInputBinding,
     StratumApplicabilityBinding,
     StratumEvidenceMinimumBinding,
     UncertaintyComponentBinding,
     UncertaintyPolicy,
     UncertaintyPolicyBinding,
     assess_reconstruction_evidence,
+)
+from .projection import (
+    MeasurementMaterial,
+    ScorePackProjection,
+    ScoreScalarProjection,
+    project_score_scalars,
+    validate_score_pack_coverage,
 )
 from .refs import (
     MEASUREMENT_CANONICALIZATION_PROFILE,
@@ -63,6 +81,7 @@ from .refs import (
 from .store import MAX_MEASUREMENT_STORE_OBJECTS, MeasurementFixtureStore
 
 __all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
+    "A5DestinationKind",
     "DependenceShortcutBinding",
     "DependenceShortcutKind",
     "MAX_MEASUREMENT_DOCUMENT_BYTES",
@@ -84,6 +103,9 @@ __all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
     "MeasurementEvidenceRole",
     "MeasurementFixtureStore",
     "MeasurementInputCode",
+    "MeasurementMaterial",
+    "MeasurementMaterialSource",
+    "MeasurementMaterialState",
     "MeasurementQualificationEvidence",
     "MeasurementQualificationEvidenceRef",
     "MeasurementRole",
@@ -100,7 +122,17 @@ __all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
     "ReconstructionStopKind",
     "ScientificValueBinding",
     "ScientificValueState",
+    "ScoreAggregationRole",
+    "ScoreDisclosureClass",
+    "ScoreEligibilityRole",
+    "ScorePackAuthoringContract",
     "ScorePackAuthoringContractRef",
+    "ScorePackInputBinding",
+    "ScorePackProjection",
+    "ScoreRankingRole",
+    "ScoreScalarKind",
+    "ScoreScalarProjection",
+    "ScoreUseRole",
     "StratumApplicabilityBinding",
     "StratumApplicabilityStatus",
     "StratumEvidenceMinimumBinding",
@@ -114,5 +146,7 @@ __all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
     "canonical_payload",
     "load_canonical_document",
     "measurement_ref",
+    "project_score_scalars",
     "reconstruct_measurement_ref",
+    "validate_score_pack_coverage",
 )

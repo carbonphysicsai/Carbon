@@ -9,14 +9,22 @@ from typing import Any
 
 from carbon.evaluation.refs import ReferencePolicyRef
 from carbon.registry.model import ChallengeKey
+from carbon.scoring.model import ScorePackPin
 
 from .enums import (
+    A5DestinationKind,
     DependenceShortcutKind,
     MeasurementClaimClass,
     MeasurementDefinitionKind,
     MeasurementEvidenceRole,
     MeasurementRole,
     ScientificValueState,
+    ScoreAggregationRole,
+    ScoreDisclosureClass,
+    ScoreEligibilityRole,
+    ScoreRankingRole,
+    ScoreScalarKind,
+    ScoreUseRole,
     StratumApplicabilityStatus,
 )
 from .errors import MeasurementCanonicalError, MeasurementInputCode
@@ -28,6 +36,8 @@ from .model import (
     MeasurementQualificationEvidence,
     ReconstructionEvidencePolicy,
     ScientificValueBinding,
+    ScorePackAuthoringContract,
+    ScorePackInputBinding,
     StratumApplicabilityBinding,
     StratumEvidenceMinimumBinding,
     UncertaintyComponentBinding,
@@ -40,6 +50,7 @@ from .refs import (
     MeasurementDefinitionRef,
     MeasurementQualificationEvidenceRef,
     ReconstructionEvidencePolicyRef,
+    ScorePackAuthoringContractRef,
     UncertaintyPolicyRef,
 )
 
@@ -174,6 +185,170 @@ def _reference_policy_from_dict(value: object, path: str) -> ReferencePolicyRef:
             fields["schema_version"],
             fields["canonicalization_profile"],
         )
+    except (AttributeError, TypeError, ValueError):
+        raise _wrong(path, MeasurementInputCode.WRONG_TYPE) from None
+
+
+def _score_pack_pin_to_dict(value: ScorePackPin) -> dict[str, object]:
+    return {
+        "challenge_key": _challenge_to_dict(value.challenge_key),
+        "fixture_origin": value.fixture_origin,
+        "generator_digest_required": value.generator_digest_required,
+        "generator_version_required": value.generator_version_required,
+        "numerical_profile": value.numerical_profile,
+        "schema_version": value.schema_version,
+        "scoring_digest": value.scoring_digest,
+        "scoring_version": value.scoring_version,
+    }
+
+
+def _score_pack_pin_from_dict(value: object, path: str) -> ScorePackPin:
+    fields = _object(
+        value,
+        {
+            "challenge_key",
+            "fixture_origin",
+            "generator_digest_required",
+            "generator_version_required",
+            "numerical_profile",
+            "schema_version",
+            "scoring_digest",
+            "scoring_version",
+        },
+        path,
+    )
+    try:
+        return ScorePackPin(
+            _challenge_from_dict(fields["challenge_key"], f"{path}/challenge_key"),
+            fields["scoring_version"],
+            fields["scoring_digest"],
+            fields["generator_version_required"],
+            fields["generator_digest_required"],
+            fields["schema_version"],
+            fields["numerical_profile"],
+            fields["fixture_origin"],
+        )
+    except MeasurementCanonicalError:
+        raise
+    except (AttributeError, TypeError, ValueError):
+        raise _wrong(path, MeasurementInputCode.WRONG_TYPE) from None
+
+
+def _score_binding_to_dict(value: ScorePackInputBinding) -> dict[str, object]:
+    return {
+        "admissibility_policy_ref": _definition_to_dict(value.admissibility_policy_ref),
+        "admissibility_evidence_ref": _definition_to_dict(
+            value.admissibility_evidence_ref
+        ),
+        "aggregation_role": value.aggregation_role.value,
+        "applicability_evidence_ref": _definition_to_dict(
+            value.applicability_evidence_ref
+        ),
+        "case_scope_ref": _definition_to_dict(value.case_scope_ref),
+        "destination_id": value.destination_id,
+        "destination_kind": value.destination_kind.value,
+        "disclosure_class": value.disclosure_class.value,
+        "disclosure_policy_ref": _definition_to_dict(value.disclosure_policy_ref),
+        "eligibility_role": value.eligibility_role.value,
+        "estimand_ref": _definition_to_dict(value.estimand_ref),
+        "fixture_origin": value.fixture_origin,
+        "input_key": value.input_key,
+        "measurement_contract_ref": _top_ref_to_dict(value.measurement_contract_ref),
+        "measurement_output_ref": _definition_to_dict(value.measurement_output_ref),
+        "provenance_ref": _definition_to_dict(value.provenance_ref),
+        "qualification_ref": _definition_to_dict(value.qualification_ref),
+        "ranking_role": value.ranking_role.value,
+        "scalar_kind": value.scalar_kind.value,
+        "stratum_ref": _definition_to_dict(value.stratum_ref),
+        "uncertainty_policy_ref": _top_ref_to_dict(value.uncertainty_policy_ref),
+        "use_role": value.use_role.value,
+    }
+
+
+def _score_binding_from_dict(value: object, path: str) -> ScorePackInputBinding:
+    names = {
+        "admissibility_policy_ref",
+        "admissibility_evidence_ref",
+        "aggregation_role",
+        "applicability_evidence_ref",
+        "case_scope_ref",
+        "destination_id",
+        "destination_kind",
+        "disclosure_class",
+        "disclosure_policy_ref",
+        "eligibility_role",
+        "estimand_ref",
+        "fixture_origin",
+        "input_key",
+        "measurement_contract_ref",
+        "measurement_output_ref",
+        "provenance_ref",
+        "qualification_ref",
+        "ranking_role",
+        "scalar_kind",
+        "stratum_ref",
+        "uncertainty_policy_ref",
+        "use_role",
+    }
+    fields = _object(value, names, path)
+    try:
+        return ScorePackInputBinding(
+            measurement_contract_ref=_top_ref_from_dict(
+                fields["measurement_contract_ref"],
+                MeasurementContractRef,
+                f"{path}/measurement_contract_ref",
+            ),
+            measurement_output_ref=_definition_from_dict(
+                fields["measurement_output_ref"], f"{path}/measurement_output_ref"
+            ),
+            input_key=fields["input_key"],
+            scalar_kind=ScoreScalarKind(fields["scalar_kind"]),
+            use_role=ScoreUseRole(fields["use_role"]),
+            estimand_ref=_definition_from_dict(
+                fields["estimand_ref"], f"{path}/estimand_ref"
+            ),
+            case_scope_ref=_definition_from_dict(
+                fields["case_scope_ref"], f"{path}/case_scope_ref"
+            ),
+            stratum_ref=_definition_from_dict(
+                fields["stratum_ref"], f"{path}/stratum_ref"
+            ),
+            uncertainty_policy_ref=_top_ref_from_dict(
+                fields["uncertainty_policy_ref"],
+                UncertaintyPolicyRef,
+                f"{path}/uncertainty_policy_ref",
+            ),
+            admissibility_policy_ref=_definition_from_dict(
+                fields["admissibility_policy_ref"],
+                f"{path}/admissibility_policy_ref",
+            ),
+            admissibility_evidence_ref=_definition_from_dict(
+                fields["admissibility_evidence_ref"],
+                f"{path}/admissibility_evidence_ref",
+            ),
+            aggregation_role=ScoreAggregationRole(fields["aggregation_role"]),
+            ranking_role=ScoreRankingRole(fields["ranking_role"]),
+            disclosure_class=ScoreDisclosureClass(fields["disclosure_class"]),
+            disclosure_policy_ref=_definition_from_dict(
+                fields["disclosure_policy_ref"], f"{path}/disclosure_policy_ref"
+            ),
+            eligibility_role=ScoreEligibilityRole(fields["eligibility_role"]),
+            destination_kind=A5DestinationKind(fields["destination_kind"]),
+            destination_id=fields["destination_id"],
+            applicability_evidence_ref=_definition_from_dict(
+                fields["applicability_evidence_ref"],
+                f"{path}/applicability_evidence_ref",
+            ),
+            qualification_ref=_definition_from_dict(
+                fields["qualification_ref"], f"{path}/qualification_ref"
+            ),
+            provenance_ref=_definition_from_dict(
+                fields["provenance_ref"], f"{path}/provenance_ref"
+            ),
+            fixture_origin=fields["fixture_origin"],
+        )
+    except MeasurementCanonicalError:
+        raise
     except (AttributeError, TypeError, ValueError):
         raise _wrong(path, MeasurementInputCode.WRONG_TYPE) from None
 
@@ -658,6 +833,29 @@ def canonical_payload(value: MeasurementAuthoringObject) -> dict[str, object]:
                 value.stratum_coverage_requirement_binding
             ),
         }
+    if type(value) is ScorePackAuthoringContract:
+        return {
+            "canonicalization_profile": value.canonicalization_profile,
+            "challenge_key": _challenge_to_dict(value.challenge_key),
+            "contract_id": value.contract_id,
+            "contract_version": value.contract_version,
+            "fixture_origin": value.fixture_origin,
+            "input_bindings": [
+                _score_binding_to_dict(item) for item in value.input_bindings
+            ],
+            "record_type": value.RECORD_TYPE,
+            "schema_version": value.schema_version,
+            "score_pack_pin": _score_pack_pin_to_dict(value.score_pack_pin),
+            "threshold_authority_binding": _component_to_dict(
+                value.threshold_authority_binding
+            ),
+            "transform_authority_binding": _component_to_dict(
+                value.transform_authority_binding
+            ),
+            "weight_authority_binding": _component_to_dict(
+                value.weight_authority_binding
+            ),
+        }
     raise _wrong("/record_type", MeasurementInputCode.WRONG_TYPE)
 
 
@@ -689,6 +887,8 @@ def measurement_ref(value: MeasurementAuthoringObject):
         return UncertaintyPolicyRef(value.challenge_key, digest)
     if type(value) is ReconstructionEvidencePolicy:
         return ReconstructionEvidencePolicyRef(value.challenge_key, digest)
+    if type(value) is ScorePackAuthoringContract:
+        return ScorePackAuthoringContractRef(value.challenge_key, digest)
     raise _wrong("/record_type", MeasurementInputCode.WRONG_TYPE)
 
 
@@ -716,6 +916,8 @@ def load_canonical_document(source: object) -> MeasurementAuthoringObject:
         value = _uncertainty_policy_from_dict(fields)
     elif record_type == ReconstructionEvidencePolicy.RECORD_TYPE:
         value = _reconstruction_policy_from_dict(fields)
+    elif record_type == ScorePackAuthoringContract.RECORD_TYPE:
+        value = _score_pack_authoring_from_dict(fields)
     else:
         raise _wrong("/record_type", MeasurementInputCode.UNKNOWN_OBJECT)
     if canonical_bytes(value) != source:
@@ -1039,6 +1241,61 @@ def _reconstruction_policy_from_dict(
                 fields["construction_family_ref"], "/construction_family_ref"
             ),
             **components,
+            fixture_origin=fields["fixture_origin"],
+            schema_version=fields["schema_version"],
+            canonicalization_profile=fields["canonicalization_profile"],
+        )
+    except MeasurementCanonicalError:
+        raise
+    except (AttributeError, TypeError, ValueError):
+        raise _wrong("/", MeasurementInputCode.WRONG_TYPE) from None
+
+
+def _score_pack_authoring_from_dict(
+    fields: Mapping[str, Any],
+) -> ScorePackAuthoringContract:
+    names = {
+        "canonicalization_profile",
+        "challenge_key",
+        "contract_id",
+        "contract_version",
+        "fixture_origin",
+        "input_bindings",
+        "record_type",
+        "schema_version",
+        "score_pack_pin",
+        "threshold_authority_binding",
+        "transform_authority_binding",
+        "weight_authority_binding",
+    }
+    fields = _object(fields, names, "/")
+    try:
+        return ScorePackAuthoringContract(
+            challenge_key=_challenge_from_dict(
+                fields["challenge_key"], "/challenge_key"
+            ),
+            contract_id=fields["contract_id"],
+            contract_version=fields["contract_version"],
+            score_pack_pin=_score_pack_pin_from_dict(
+                fields["score_pack_pin"], "/score_pack_pin"
+            ),
+            input_bindings=tuple(
+                _score_binding_from_dict(item, f"/input_bindings/{index}")
+                for index, item in enumerate(
+                    _array(fields["input_bindings"], "/input_bindings")
+                )
+            ),
+            threshold_authority_binding=_component_from_dict(
+                fields["threshold_authority_binding"],
+                "/threshold_authority_binding",
+            ),
+            transform_authority_binding=_component_from_dict(
+                fields["transform_authority_binding"],
+                "/transform_authority_binding",
+            ),
+            weight_authority_binding=_component_from_dict(
+                fields["weight_authority_binding"], "/weight_authority_binding"
+            ),
             fixture_origin=fields["fixture_origin"],
             schema_version=fields["schema_version"],
             canonicalization_profile=fields["canonicalization_profile"],

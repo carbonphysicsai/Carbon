@@ -91,8 +91,9 @@ ownership. Adding physical thresholds or transforms to engine code would make
 A5 invent science.
 
 **Interfaces, impact, and reversibility.** Contract §§8–9 fix the planned
-binding and precedence. Slice 4 will implement pack coverage and typed scalar
-projection without modifying A5. A future change can supersede the B-05
+binding and precedence. Slice 4 implements pack coverage and typed scalar
+projection without modifying A5 through exact public A5 pack types while
+exposing neither engine nor input construction. A future change can supersede the B-05
 binding profile while preserving A5 pins; changing A5 itself requires its own
 authority/version migration. Update this heading, contract §§8–9, plan slice
 4, implementation, and tests if changed.
@@ -145,6 +146,14 @@ receipt facts only. The stage order is `BASE_REQUIRED -> BASE_COMPLETE ->
 NOMINATED -> EXTENDED -> PROMOTION_ELIGIBLE`. Heuristic futility may advise
 scheduling but can neither stop under scientific authority nor convert
 insufficient evidence to pass/fail.
+
+`EXTENDED` is established only by the exact registered extension-evidence ref
+plus a `BoundReconstructionReplicate`: it is the required separately realized
+promotion-evidence transition, not an arbitrary repeat-build requirement.
+Additional repeats remain controlled solely by the prospective scientific
+stopping/extension rule. `PROMOTION_ELIGIBLE` is evidence readiness only and
+creates no frontier, ranking, entitlement, economic, production, or LIVE
+authority.
 
 **Alternatives rejected.** Letting B-02C forecasts or receipts establish
 evidence sufficiency violates its boundary. Treating nomination as promotion

@@ -159,10 +159,12 @@ def resource_facts(
     return measurement.ReconstructionResourceFacts(
         build if build is not None else CompleteBuild(_resource_identity()),
         reuse if reuse is not None else NoReuse(),
-        replicate
-        if replicate is not None
-        else ReplicateNotApplicable(
-            ReplicateNotApplicableReason.NOT_A_RECONSTRUCTION_REPLICATE
+        (
+            replicate
+            if replicate is not None
+            else ReplicateNotApplicable(
+                ReplicateNotApplicableReason.NOT_A_RECONSTRUCTION_REPLICATE
+            )
         ),
         stop,
         None,
@@ -192,18 +194,26 @@ def evidence_input(
         measurement.measurement_ref(value),
         family_ref or value.construction_family_ref,
         facts or resource_facts(),
-        stage_ref(measurement.MeasurementDefinitionKind.COMPLETE_BASE_EVIDENCE)
-        if base
-        else None,
-        stage_ref(measurement.MeasurementDefinitionKind.NOMINATION_EVIDENCE)
-        if nominated
-        else None,
-        stage_ref(measurement.MeasurementDefinitionKind.EXTENSION_EVIDENCE)
-        if extended
-        else None,
-        stage_ref(measurement.MeasurementDefinitionKind.PROMOTION_EVIDENCE)
-        if promoted
-        else None,
+        (
+            stage_ref(measurement.MeasurementDefinitionKind.COMPLETE_BASE_EVIDENCE)
+            if base
+            else None
+        ),
+        (
+            stage_ref(measurement.MeasurementDefinitionKind.NOMINATION_EVIDENCE)
+            if nominated
+            else None
+        ),
+        (
+            stage_ref(measurement.MeasurementDefinitionKind.EXTENSION_EVIDENCE)
+            if extended
+            else None
+        ),
+        (
+            stage_ref(measurement.MeasurementDefinitionKind.PROMOTION_EVIDENCE)
+            if promoted
+            else None
+        ),
         (
             definition(
                 measurement.MeasurementDefinitionKind.REMAINING_EVIDENCE_REQUIREMENT,
@@ -211,12 +221,14 @@ def evidence_input(
             ),
         ),
         stop_kind,
-        stage_ref(
-            measurement.MeasurementDefinitionKind.RECONSTRUCTION_EXECUTION_FAILURE
-        )
-        if stop_kind
-        is measurement.ReconstructionStopKind.RECONSTRUCTION_EXECUTION_FAILURE
-        else None,
+        (
+            stage_ref(
+                measurement.MeasurementDefinitionKind.RECONSTRUCTION_EXECUTION_FAILURE
+            )
+            if stop_kind
+            is measurement.ReconstructionStopKind.RECONSTRUCTION_EXECUTION_FAILURE
+            else None
+        ),
     )
 
 
@@ -312,6 +324,41 @@ def test_complete_base_nomination_extension_and_promotion_are_distinct() -> None
     assert nominated.stage is measurement.ReconstructionEvidenceStage.NOMINATED
     assert promoted.stage is measurement.ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
     assert nominated.stage is not promoted.stage
+
+
+def test_extension_is_only_established_by_a_bound_reconstruction_replicate() -> None:
+    value = policy(bound=True)
+    without_replicate = measurement.assess_reconstruction_evidence(
+        value,
+        evidence_input(value, base=True, nominated=True, extended=True),
+    )
+    replicate_identity = ReconstructionReplicateIdentity(
+        _KEY,
+        _resource_identity().construction_plan_ref,
+        _resource_identity().policy_ref,
+        _resource_identity().resource_class_ref,
+        "fixture-promotion-replicate",
+        _DIGEST_B,
+    )
+    with_replicate = measurement.assess_reconstruction_evidence(
+        value,
+        evidence_input(
+            value,
+            facts=resource_facts(
+                replicate=BoundReconstructionReplicate(replicate_identity)
+            ),
+            base=True,
+            nominated=True,
+            extended=True,
+        ),
+    )
+
+    assert without_replicate.stage is measurement.ReconstructionEvidenceStage.NOMINATED
+    assert with_replicate.stage is measurement.ReconstructionEvidenceStage.EXTENDED
+    assert (
+        with_replicate.stage
+        is not measurement.ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
+    )
 
 
 def test_frozen_reuse_is_explicit_and_does_not_require_one_build_per_case() -> None:

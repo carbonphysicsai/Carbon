@@ -16,6 +16,10 @@ class MeasurementInputCode(str, Enum):
     DIGEST_MISMATCH = "measurement.digest_mismatch"
     UNKNOWN_OBJECT = "measurement.unknown_object"
     SIZE_LIMIT = "measurement.size_limit"
+    PACK_NOT_READY = "measurement.pack_not_ready"
+    PACK_COVERAGE_MISMATCH = "measurement.pack_coverage_mismatch"
+    FORBIDDEN_SOURCE = "measurement.forbidden_source"
+    MATERIAL_UNRESOLVED = "measurement.material_unresolved"
 
 
 class MeasurementError(Exception):

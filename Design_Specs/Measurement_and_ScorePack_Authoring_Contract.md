@@ -293,6 +293,17 @@ recommend delaying or ceasing further resource expenditure, but it cannot
 convert insufficient evidence to a scientific failure or pass. Scientific
 stopping/extension is coverage-qualified under the exact authored policy.
 
+`EXTENDED` is the single registered transition showing that the separately
+realized, producer-independent reconstruction evidence required for a
+promotion decision exists. It requires the exact extension-evidence ref and a
+`BoundReconstructionReplicate`; a generic evidence ref or resource receipt
+cannot establish it. It does not impose an arbitrary second extension or make
+all later sequential repeats mandatory. Any repeats after that registered
+transition occur only under the prospective scientific stopping/extension
+rule. `PROMOTION_ELIGIBLE` additionally requires the exact promotion-evidence
+ref and means downstream evidence readiness only; it creates no ranking win,
+frontier event, entitlement, weight, settlement, production, or LIVE authority.
+
 B-02C's `CompleteBuild`, `BoundReconstructionReplicate`, frozen-reuse window,
 resource stop, and `ObservedResourceReceiptRef` are accepted only as exact
 resource facts. Forecasts, budgets, receipts, timeouts, or resource ceilings
@@ -432,6 +443,12 @@ Any semantic or byte-shape change requires a versioned decision and fresh
 tests. Real scientific values or qualification outcomes are never a condition
 for completing the bounded engineering ticket; affected behavior remains
 explicitly unresolved and fail closed.
+
+Slice 4 implements item 4 as an outward validation seam against A5's unchanged
+`LoadedScorePack` schema. The content-addressed authoring record owns no
+runtime formula and the projection result remains role-separated; it cannot
+construct `ScoreInput` or invoke `ScoreEngine`. Threshold, transform, and
+weight authority is an exact typed ref or an explicit unresolved state.
 
 ## 12. Explicit exclusions
 

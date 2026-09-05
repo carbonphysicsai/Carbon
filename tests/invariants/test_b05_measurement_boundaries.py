@@ -42,9 +42,8 @@ def test_completed_upstream_packages_do_not_import_measurement() -> None:
             ), path
 
 
-def test_measurement_has_only_the_authorized_b02c_resource_fact_imports() -> None:
+def test_measurement_has_only_authorized_upstream_type_and_pack_imports() -> None:
     forbidden = (
-        "carbon.scoring",
         "carbon.qualification",
         "carbon.mcp",
     )
@@ -67,6 +66,24 @@ def test_measurement_has_only_the_authorized_b02c_resource_fact_imports() -> Non
             or module.startswith("carbon.resource_policy.")
         }
         assert resource_imports <= allowed_resource_imports, (path, resource_imports)
+
+    allowed_scoring_imports = {
+        "carbon.scoring.model",
+        "carbon.scoring.pack",
+    }
+    for path in MEASUREMENT_ROOT.rglob("*.py"):
+        scoring_imports = {
+            module
+            for module in imported_modules(path)
+            if module == "carbon.scoring" or module.startswith("carbon.scoring.")
+        }
+        assert scoring_imports <= allowed_scoring_imports, (path, scoring_imports)
+
+    source = "\n".join(
+        path.read_text(encoding="utf-8") for path in MEASUREMENT_ROOT.rglob("*.py")
+    )
+    assert "ScoreEngine" not in source
+    assert "ScoreInput(" not in source
 
 
 def test_public_surface_exposes_no_a5_constructor_or_engine() -> None:
@@ -91,6 +108,23 @@ def test_reconstruction_policy_exposes_no_later_ticket_authority() -> None:
             token in field
             for token in ("bittensor", "commercial", "frontier", "network", "treasury")
         )
+    for public_type in (
+        measurement.ScorePackAuthoringContract,
+        measurement.ScorePackInputBinding,
+        measurement.ScorePackProjection,
+    ):
+        for field in public_type.__dataclass_fields__:
+            assert not any(
+                token in field
+                for token in (
+                    "bittensor",
+                    "commercial",
+                    "frontier",
+                    "network",
+                    "settlement",
+                    "treasury",
+                )
+            )
 
 
 def test_measurement_refs_are_protected_and_nonpickleable() -> None:

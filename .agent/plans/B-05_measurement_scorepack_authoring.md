@@ -1,7 +1,7 @@
 # B-05 plan — measurement contract and Score Pack authoring
 
 **Ticket:** B-05
-**Status:** in progress; working-contract and third-slice phase
+**Status:** in progress; working-contract and fourth-slice phase
 **Branch:** `agent/b-05-measurement-scorepack`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact base commit:** `f1a429de37290b3c7615ca051661a1d727528f78`
@@ -90,6 +90,16 @@ expected A5 input key. Validate numeric/Boolean kind, estimand, stratum,
 uncertainty, aggregation/ranking/disclosure use, mandatory-first admissibility,
 and forbidden inputs. Expose no public way to instantiate A5 `ScoreInput` or
 invoke the engine; B-07F owns the official adapter.
+
+Implemented as a content-addressed `ScorePackAuthoringContract`, exact
+ready-pack coverage validator, closed typed measurement-material outcomes,
+and mandatory/soft/diagnostic scalar projection. Exact A5 key, scalar kind,
+operator destination, measurement/output, estimand, case/stratum,
+uncertainty, applicability, qualification, admissibility, ranking,
+disclosure, eligibility, and provenance roles must agree. Threshold,
+transform, and weight authority remains ref-bound or explicitly unresolved.
+A5 parsing, formulas, execution, `ScoreInput`, and scoring outcomes are
+unchanged.
 
 ### Slice 5 — fixture integration and review candidate
 

@@ -9,6 +9,7 @@ from .model import (
     MeasurementContract,
     MeasurementQualificationEvidence,
     ReconstructionEvidencePolicy,
+    ScorePackAuthoringContract,
     UncertaintyPolicy,
 )
 from .refs import MeasurementTopLevelRef, reconstruct_measurement_ref
@@ -27,6 +28,7 @@ class MeasurementFixtureStore:
             MeasurementContract,
             MeasurementQualificationEvidence,
             ReconstructionEvidencePolicy,
+            ScorePackAuthoringContract,
             UncertaintyPolicy,
         ):
             raise MeasurementStoreError(MeasurementInputCode.WRONG_TYPE, path="/")
