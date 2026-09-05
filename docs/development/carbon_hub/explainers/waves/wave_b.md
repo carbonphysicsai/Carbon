@@ -53,13 +53,13 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-01E](../tickets/b_01e.md): Canonical development environment and legacy quarantine [done]
 - [B-01F](../tickets/b_01f.md): Development throughput hardening [done]
 - [B-01G](../tickets/b_01g.md): Static schema codegen proof [todo]
-- [B-01H](../tickets/b_01h.md): Carbon Iterative Agent Harness Pilot [in_progress]
+- [B-01H](../tickets/b_01h.md): Carbon Iterative Agent Harness Pilot [done]
 - [B-02A](../tickets/b_02a.md): Scientific Challenge authoring contracts [done]
 - [B-02B](../tickets/b_02b.md): Candidate assembly and strategy compilation [done]
 - [B-02C](../tickets/b_02c.md): Research resource policy [done]
 - [B-03](../tickets/b_03.md): Generator API and fixed-viscosity Burgers fixture [done]
 - [B-04](../tickets/b_04.md): Reference and truth contracts [done]
-- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [todo]
+- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [in_progress]
 - [B-06](../tickets/b_06.md): Validation Dossier and qualification manifest [todo]
 - [B-07R](../tickets/b_07r.md): Miner research architecture ratification [done]
 - [B-07S](../tickets/b_07s.md): Exact v2 research-service protocol [todo]
@@ -80,8 +80,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

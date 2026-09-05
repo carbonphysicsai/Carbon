@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 17 map-level change events
+- 18 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-01H** (`in_progress`). Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate.
+Wave **B**, ticket **B-05** (`in_progress`). PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract, B-05-D1 through D6, and first measurement-definition/qualification-evidence slice are branch-local and in progress; uncertainty, reconstruction, and Score Pack binding slices remain pending.
 
 ## Maintain
 

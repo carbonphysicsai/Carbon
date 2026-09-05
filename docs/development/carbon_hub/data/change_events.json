@@ -352,6 +352,30 @@
         "WAVE-N"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/evidence/wave_b/b-05.md",
+      "affects": [
+        "WAVE-B/B-01H",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-01H-E1"
     }
   ]
 }
