@@ -116,6 +116,90 @@ persisted.
 separation-of-duties exceptions, signatures, approvals, and activation remain
 human/security/launch owned.
 
+## 2026-09-06 — B-06-D4: Bind typed evidence through existing upstream seams and explicit claim roles
+
+**Problem.** A shared Challenge ID or a populated evidence section does not
+prove that the evidence concerns the exact population, SamplingPlan,
+implementation, reference, representation, measurement, or claim scope. Direct
+imports from B-03/B-04 would also violate their ratified one-way package
+boundaries.
+
+**Recommendation.** Add a separate canonical `DossierEvidenceManifest` that
+pins the exact applicable B-02A top-level/owner refs, including the
+`DistributionConformanceRef` and `ReferenceQualificationPolicyRef` seams
+already populated by B-03/B-04, plus exact public B-05 measurement refs. Map
+each included evidence ref explicitly to a closed claim role and exact
+`ClaimScopeRef`. Permit explicit one-to-many use only where the closed matrix
+allows it; presence in one section creates no implicit support elsewhere.
+
+**Alternatives rejected.** Direct generator/evaluation imports would reverse
+completed package boundaries. Free-form claims, Challenge-only joins, and a
+blanket ban on evidence reuse would respectively lose type safety, admit stale
+or wrong-object evidence, or prohibit source-backed multi-role evidence.
+
+**Interfaces, impact, and reversibility.** Slice 2 adds an independently
+framed v1 evidence-manifest domain without changing Slice-1 Dossier bytes or
+D1-D12 identities. Semantic changes require a new manifest profile/version.
+B-03/B-04 remain owners of their records and B-06 does not dereference them.
+
+**Human-reserved input.** Structural compatibility is not sufficiency.
+Evidence relevance, adequacy, applicability, and every section verdict remain
+human-owned.
+
+## 2026-09-06 — B-06-D5: Preserve dependence fields under explicit pending ratification
+
+**Problem.** The active B-06 ticket requires dependence, coverage, stopping,
+and missing-cell identities, while `Generator_Validation.md` v2.1 and the
+scientific canon v4.1 label the prescriptive dependence amendment as an
+owner-ratification proposal; v2.0 remains ratified.
+
+**Recommendation.** Reuse the merged B-05 `UncertaintyPolicyRef` and exact
+measurement-definition refs for the full structural statistical scope, but
+expose only `OWNER_RATIFICATION_PENDING` as the dependence-policy authority
+state. Require a distinct decision-resolution evidence ref; a component
+uncertainty record cannot substitute for coverage. Do not offer an accepted,
+qualified, or inferred-independence state.
+
+**Alternatives rejected.** Treating the proposal's presence, the active ticket,
+or B-05's merged types as scientific ratification would rewrite authority.
+Omitting the fields would lose the exact future review seam required by the
+ticket. Inferring independence from seeds or execution topology is prohibited.
+
+**Interfaces, impact, and reversibility.** The v1 statistical submanifest is
+identity/provenance only. A future owner-ratified scientific policy must add a
+prospective authority/result workflow; it cannot mutate historical pending
+records. B-E1 retains campaign execution and coverage analysis.
+
+**Human-reserved input.** Method choice, dependence, covariance, applicability,
+coverage, power, minima, stopping/error control, and scientific conclusions
+remain unresolved.
+
+## 2026-09-06 — B-06-D6: Keep accounting, secrecy, and limitations opaque and non-authorizing
+
+**Problem.** Aggregation can silently convert reference or infrastructure
+failure into candidate failure, erase censored hard cases, leak protected exam
+material, or treat a limitation record as an automatic envelope change.
+
+**Recommendation.** Bind exact prospective/realized accounting and policy refs
+plus opaque attempt refs carrying distinct closed dispositions. Bind D11 to
+separate disclosure, blinding, decontamination, and role-separation refs. Bind
+limitations to non-empty affected evidence, claim roles, and exact scope. Add
+no seed, case, realization, truth payload, path, locator, resolver, network, or
+filesystem field and no automatic population/envelope mutation.
+
+**Alternatives rejected.** Boolean success/failure, shared audit refs, embedded
+protected payloads, and inferred scope changes collapse authority or create a
+disclosure channel.
+
+**Interfaces, impact, and reversibility.** These immutable submanifests are
+canonical components of the v1 evidence-manifest digest. They can be
+superseded prospectively; they cannot cleanse fixture origin or authorize
+qualification.
+
+**Human-reserved input.** Censoring/missingness acceptability, security and
+role-separation adequacy, residual-risk acceptance, and any envelope or
+population revision remain human-owned.
+
 ## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
 
 **Problem.** B-05 must own measurement and Score Pack authoring semantics

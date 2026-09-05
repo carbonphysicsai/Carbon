@@ -17,7 +17,7 @@ QUALIFICATION_ROOT = REPOSITORY_ROOT / "carbon" / "qualification"
 COMPLETED_UPSTREAM_ROOTS = (
     REPOSITORY_ROOT / "carbon" / "authoring",
     REPOSITORY_ROOT / "carbon" / "evaluation",
-    REPOSITORY_ROOT / "carbon" / "generator",
+    REPOSITORY_ROOT / "carbon" / "generators",
     REPOSITORY_ROOT / "carbon" / "measurement",
     REPOSITORY_ROOT / "carbon" / "registry",
     REPOSITORY_ROOT / "carbon" / "scoring",
@@ -58,9 +58,12 @@ def test_completed_upstream_packages_do_not_import_qualification() -> None:
             ), path
 
 
-def test_qualification_imports_only_identity_primitives_and_stdlib() -> None:
+def test_qualification_imports_only_exact_upstream_value_type_modules() -> None:
     allowed = {
         "carbon.authoring.primitives",
+        "carbon.authoring.refs",
+        "carbon.measurement.enums",
+        "carbon.measurement.refs",
         "carbon.registry.model",
     }
     for path in QUALIFICATION_ROOT.rglob("*.py"):
@@ -103,3 +106,15 @@ def test_refs_are_protected_and_nonpickleable() -> None:
     assert "fixture-burgers" not in str(ref)
     with pytest.raises(TypeError):
         pickle.dumps(ref)
+
+    manifest_ref = qualification.DossierEvidenceManifestRef(
+        ChallengeKey("fixture-burgers", "1.0"),
+        qualification.DossierSlot.D10,
+        "statistical-manifest",
+        "1.0",
+        "sha256:" + "b" * 64,
+        qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    assert "fixture-burgers" not in repr(manifest_ref)
+    with pytest.raises(TypeError):
+        pickle.dumps(manifest_ref)

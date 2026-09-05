@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from carbon.authoring.primitives import (
     reconstruct_challenge_key,
@@ -20,9 +21,19 @@ from .enums import (
 )
 from .errors import DossierInputCode, DossierValidationError
 
+if TYPE_CHECKING:
+    from .enums import DossierSlot
+
 DOSSIER_SCHEMA_VERSION = "1.0"
 DOSSIER_CANONICALIZATION_PROFILE = "carbon_validation_dossier_canonical_v1"
 DOSSIER_DOCUMENT_HEADER = b"carbon.qualification.validation-dossier.canonical.v1\x00"
+EVIDENCE_MANIFEST_SCHEMA_VERSION = "1.0"
+EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE = (
+    "carbon_dossier_evidence_manifest_canonical_v1"
+)
+EVIDENCE_MANIFEST_DOCUMENT_HEADER = (
+    b"carbon.qualification.evidence-manifest.canonical.v1\x00"
+)
 
 _PLACEHOLDER_IDS = frozenset({"none", "placeholder", "tbd", "todo", "unknown", "unset"})
 
@@ -183,10 +194,59 @@ class ValidationDossierRef(_ProtectedRef):
         return "validation_dossier_ref"
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class DossierEvidenceManifestRef(_ProtectedRef):
+    challenge_key: ChallengeKey
+    slot: DossierSlot
+    manifest_id: str
+    manifest_version: str
+    content_digest: str
+    origin: StructuralOrigin
+    schema_version: str = EVIDENCE_MANIFEST_SCHEMA_VERSION
+    canonicalization_profile: str = EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE
+
+    def __post_init__(self) -> None:
+        from .enums import DossierSlot, StructuralOrigin
+
+        if type(self) is not DossierEvidenceManifestRef:
+            raise _invalid("/ref_type", DossierInputCode.WRONG_TYPE)
+        if type(self.slot) is not DossierSlot:
+            raise _invalid("/slot", DossierInputCode.WRONG_TYPE)
+        if type(self.origin) is not StructuralOrigin:
+            raise _invalid("/origin", DossierInputCode.WRONG_TYPE)
+        schema_value = _version(self.schema_version, "/schema_version")
+        if (
+            schema_value != EVIDENCE_MANIFEST_SCHEMA_VERSION
+            or type(self.canonicalization_profile) is not str
+            or self.canonicalization_profile
+            != EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
+        object.__setattr__(self, "challenge_key", _challenge(self.challenge_key))
+        object.__setattr__(
+            self, "manifest_id", _identifier(self.manifest_id, "/manifest_id")
+        )
+        object.__setattr__(
+            self,
+            "manifest_version",
+            _version(self.manifest_version, "/manifest_version"),
+        )
+        object.__setattr__(self, "content_digest", _digest(self.content_digest))
+        object.__setattr__(self, "schema_version", schema_value)
+
+    @property
+    def ref_type(self) -> str:
+        return "dossier_evidence_manifest_ref"
+
+
 __all__ = (
     "DOSSIER_CANONICALIZATION_PROFILE",
     "DOSSIER_DOCUMENT_HEADER",
     "DOSSIER_SCHEMA_VERSION",
+    "EVIDENCE_MANIFEST_CANONICALIZATION_PROFILE",
+    "EVIDENCE_MANIFEST_DOCUMENT_HEADER",
+    "EVIDENCE_MANIFEST_SCHEMA_VERSION",
+    "DossierEvidenceManifestRef",
     "DossierEvidenceRef",
     "SignerArtifactRef",
     "ValidationDossierRef",

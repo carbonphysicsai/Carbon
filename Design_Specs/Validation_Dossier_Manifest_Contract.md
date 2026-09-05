@@ -1,16 +1,17 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery  
-**Contract version:** 0.1  
+**Contract version:** 0.2
 **Status:** agent-selected working engineering contract  
 **Maturity ceiling:** bounded structural engineering only  
 **Implementation owner:** `carbon.qualification`  
-**Registry owner:** `carbon.registry` remains unchanged in the first slice
+**Registry owner:** `carbon.registry` remains unchanged through the second slice
 
 This contract defines the exact Challenge-bound D1–D12 evidence layout and
 signer-role boundary that B-06 may implement without deciding whether any
-evidence, signer, Challenge, or exam is scientifically adequate. The first
-slice is an identity and serialization foundation. It contains no
+evidence, signer, Challenge, or exam is scientifically adequate. The first two
+slices are an identity, typed-evidence-binding, and serialization foundation.
+They contain no
 qualification-manifest issuer, active-registry comparator, signature verifier,
 scientific pass/fail engine, or `LIVE` transition.
 
@@ -49,13 +50,15 @@ Dependency direction is one way:
 
 ```text
 carbon.registry identity/digest primitives ─┐
-carbon.authoring strict value primitives ───┼─> carbon.qualification
+carbon.authoring exact public refs ─────────┤
+carbon.measurement exact public refs ───────┼─> carbon.qualification
 Python standard library ────────────────────┘
 ```
 
-The first slice does not import registry store/gate classes, generator,
-evaluation, measurement, scoring, TrainEval, MCP, cards, fees, leaderboard,
-chain, network, frontier, product, settlement, or legacy code.
+Neither slice imports registry store/gate classes, generator/evaluation
+runtime packages, scoring, TrainEval, MCP, cards, fees, leaderboard, chain,
+network, frontier, product, settlement, or legacy code. Slice 2 imports only
+the B-05 public nominal measurement refs and B-02A public owner/top-level refs.
 
 ## 3. Exact identity and canonical profile
 
@@ -224,7 +227,138 @@ registry record, verify a signer, activate a Challenge, or return a positive
 qualification result. Fixtures may therefore exercise every structural path
 without becoming evidence that can qualify a real Challenge.
 
-## 8. Later qualification-manifest and active-registry seam
+## 8. Slice-2 evidence-manifest identity
+
+The second slice adds a separate exact canonical domain for
+`DossierEvidenceManifest`. It does not change or renumber D1-D12 and does not
+change the Slice-1 `ValidationDossier` bytes. Each manifest binds exactly one
+existing `DossierSlot`, its own canonical ID/version, structural origin,
+optional same-Challenge/same-ID predecessor, a typed subject graph, a
+canonical set of evidence refs, and explicit claim mappings.
+
+The evidence-manifest schema version is exact string `"1.0"`, canonical
+profile is exact string `carbon_dossier_evidence_manifest_canonical_v1`, and
+domain header is exact bytes
+`carbon.qualification.evidence-manifest.canonical.v1\x00`. A helper may create
+the corresponding `DossierEvidenceRef`; the exact manifest ref also preserves
+structural origin so a fixture predecessor cannot be cleansed by supersession.
+Neither helper dereferences the evidence or asserts adequacy.
+
+The subject graph reuses, rather than redefines, exact refs owned by B-02A,
+B-03, B-04, and B-05:
+
+- `PhysicalSystemSpecRef`, `CandidateOutputContractRef`,
+  `InstanceDistributionContractRef`, and `SamplingPlanRef`;
+- B-02A exact `ClaimScopeRef`, `GeneratorRef`, `RepresentationRef`,
+  `DistributionConformanceRef`, and `ReferenceQualificationPolicyRef` seams
+  already populated by the B-03/B-04 implementations; and
+- B-05 `MeasurementContractRef` and
+  `MeasurementQualificationEvidenceRef`.
+
+Every supplied ref has the manifest's exact Challenge. D3 target-population
+manifests require `TARGET_WORKLOAD_P`; D4 binds that exact population and an
+exact SamplingPlan; D6 additionally binds the exact generator and conformance
+facts; D7 binds the exact reference policy; D8 binds the candidate-output and
+representation refs; and D9 binds the target population, measurement contract,
+and separate qualification-evidence inventory. A shared Challenge ID without
+these slot-specific object/version/digest bindings is incomplete and rejects a
+complete manifest.
+
+## 9. Claim/evidence compatibility and non-substitution
+
+`EvidenceClaimBinding` maps one included evidence ref to one closed
+`DossierClaimRole` and the manifest's exact `ClaimScopeRef`. The same artifact
+may have multiple explicit mappings where the closed matrix permits it. Its
+presence in one manifest or section supplies no implicit mapping elsewhere.
+
+The twelve primary evidence classes may map to their own D1-D12 claim role.
+Supplemental campaigns map only to the narrow roles justified by the evidence
+standards and the merged B-05 evidence-role matrix: implementation
+verification, discretization convergence, reference agreement, limiting-case
+behavior, generator-conformance diagnostics, measurement-floor diagnostics,
+decision-resolution diagnostics, or residual-limitation disclosure. No
+supplemental class can map to physical-system adequacy, claim/envelope
+adequacy, target-population adequacy, SamplingPlan adequacy, customer context
+of use, product qualification, or LIVE activation. No evidence class in this
+slice can map to customer context, product qualification, or LIVE activation.
+
+Generator conformance, reference adequacy, representation fidelity, and
+measurement adequacy remain distinct primary roles. Agreement across two
+layers cannot fill the missing third layer. MMS, analytic anchors, mutation,
+convergence, and passing fixtures can support only their registered narrow
+diagnostic roles; they cannot establish a whole-section or broader physical
+claim.
+
+Compatibility is structural eligibility, never sufficiency. A manifest does
+not return `PASS`, `QUALIFIED`, `AUTHORIZED`, or `LIVE`.
+
+## 10. Statistical scope and pending dependence authority
+
+`StatisticalScopeManifest` reuses one exact B-05 `UncertaintyPolicyRef` and
+exact `MeasurementDefinitionRef` values for estimand, sampling unit,
+resampling unit, independence unit, case scope, stratum, decision-interval
+method, dependence assumption, applicability test, reconstruction-by-case and
+reconstruction-by-stratum interaction, coverage evidence, stopping rule,
+missing-cell/censoring policy, and evidence set. Every ref kind is checked
+exactly and every ref is bound to the manifest Challenge.
+
+The v2.0 ratified architecture requires statistical sufficiency, estimand
+clarity, prospective SamplingPlan/censoring semantics, and distinct intended
+and realized evidence. The more prescriptive dependence text added by
+`Generator_Validation.md` v2.1 and scientific canon v4.1 is still labelled an
+owner-ratification proposal. The active B-06 ticket and merged B-05 contract
+authorize structural fields for later review, not acceptance of that policy.
+Therefore the only Slice-2 dependence-policy state is
+`OWNER_RATIFICATION_PENDING`. A populated statistical manifest cannot claim
+that separate seeds prove independence, component uncertainty proves interval
+coverage, an applicability test passed, or a method is qualified.
+
+No numeric sample size, coverage target, covariance, power threshold,
+decision formula, minimum resolvable improvement, or stopping value is stored
+or inferred by this layer. B-E1 retains campaign execution and empirical or
+simulated coverage analysis.
+
+## 11. Intended/realized accounting, secrecy, and limitations
+
+`EvidenceAccountingManifest` binds the exact SamplingPlan plus B-02A exact
+owner refs for the protected intended-unit manifest, realized-evidence
+accounting, censoring policy, missingness adjustment, and exclusion assessment.
+Its opaque attempt evidence refs carry a closed disposition. Generator,
+reference, infrastructure, candidate, timeout, invalid-case,
+measurement-non-applicability, corrupted-observation, registered exclusion,
+and valid-evidence dispositions remain distinct. The structure cannot convert
+one disposition to another and exposes no case, seed, realization, truth
+payload, filesystem path, network locator, or private provenance field.
+
+`SecrecyEvidenceManifest` binds exact disclosure and blinding policies plus
+distinct decontamination and role-separation audit evidence. It is evidence
+inventory only. It does not evaluate security, verify a role, or authorize a
+signer.
+
+Each `LimitationBinding` pins one residual-limitation ref to non-empty affected
+evidence refs, affected claim roles, and the exact claim scope. Dangling,
+cross-Challenge, duplicate, or empty-scope bindings reject. Recording a
+limitation does not alter a population, SamplingPlan, claim envelope, registry
+record, or scientific status; any such prospective change requires its owning
+versioned workflow.
+
+## 12. Slice-2 completeness, fixture, and disclosure boundary
+
+A typed evidence manifest can be represented as explicit
+`INCOMPLETE_MISSING`, `INCOMPLETE_PLACEHOLDER`, or `COMPLETE_REFERENCED`.
+Incomplete states carry no evidence or claim mappings and remain blocked for
+qualification. A complete manifest must contain its own slot-primary evidence
+class, every slot-required exact subject binding, every referenced optional
+submanifest required by its slot, and only compatible explicit claim mappings.
+
+Fixture origin propagates from the manifest, evidence, accounting attempts,
+or limitation evidence and cannot be cleansed by canonicalization,
+aggregation, or supersession. Signer records remain the Slice-1
+missing/populated-unverified values and are not inputs to evidence-manifest
+completeness. No public projection, resolver, filesystem/network fetch, or
+untrusted reference dereference is added.
+
+## 13. Later qualification-manifest and active-registry seam
 
 A later B-06 slice may define an immutable `QualificationManifestCandidate`
 that references one exact `ValidationDossierRef` and the exact qualified exam
@@ -248,10 +382,10 @@ transition. A3 remains lifecycle owner; integration requires an explicit
 prospective adapter/migration that preserves legacy history and compares the
 exact active registry record rather than creating a parallel registry.
 
-This seam is contractual only in Slice 1. No registry, store, signer, key,
+This seam remains contractual only through Slice 2. No registry, store, signer, key,
 execution, or activation implementation is authorized here.
 
-## 9. First-slice tests
+## 14. Slice tests
 
 Focused proof must cover:
 
@@ -266,17 +400,33 @@ Focused proof must cover:
 - fixture origin propagation and absence of a qualification/LIVE API; and
 - package/dependency/root-export boundaries.
 
+Slice 2 additionally proves exact subject/version binding, the closed
+claim/evidence matrix, explicit one-to-many mappings, wrong-layer
+substitution, pending dependence authority, exact statistical ref kinds,
+intended/realized accounting, failure-class separation, scoped limitations,
+manifest canonical ordering/round trip/tamper behavior, honest incomplete
+states, and fixture propagation.
+
 Native tests on this macOS host are diagnostic only. Canonical Linux checks,
 complete-diff review, human delivery approval, merge, and closeout are reserved
 for the mature B-06 candidate.
 
-## 10. Deferred and human-reserved work
+## 15. Deferred and human-reserved work
 
-Deferred B-06 slices own the full evidence inventories and cross-section
-claim-adequacy checks; statistical/dependence/coverage manifests; exact
-qualification-manifest construction; signer-authorization verification seam;
+Deferred B-06 slices own any campaign manifests not represented by Slice 2,
+exact qualification-manifest construction; signer-authorization verification seam;
 active-registry comparison; lifecycle and negative integration tests; and
 final validation/review.
+
+Slice 2 represents every ticket-named supplemental campaign as an exact typed
+evidence ref plus explicit claim mapping, and gives decision-resolution
+coverage its statistical-scope binding. It does not yet define specialized
+acquisition/result manifests for MMS observed order, planted-defect mutation,
+analytic anchors, primary/witness convergence or disagreement,
+generator-oracle adversarial studies, or measurement-floor studies. Those
+campaign-specific shapes, their execution, and their scientific conclusions
+remain later B-06/B-E1 work; the generic representation is not a claim that
+the whole campaign-manifest family is implemented.
 
 Humans retain every real physical claim, envelope, population, SamplingPlan,
 generator/reference/measurement adequacy decision, uncertainty/dependence and
@@ -285,4 +435,3 @@ authority, security acceptance, scientific signoff, launch decision, and
 `LIVE` activation. B-E1 retains statistical campaigns; B-07F retains official
 execution composition. Bittensor, frontier, treasury, settlement, product,
 commercial, and later-wave behavior remain out of scope.
-
