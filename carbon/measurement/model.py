@@ -1,4 +1,4 @@
-"""Immutable B-05 measurement-definition and evidence records."""
+"""Immutable B-05 measurement, evidence, and uncertainty-policy records."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from carbon.registry.model import ChallengeKey
 
 from .enums import (
     MEASUREMENT_EVIDENCE_ROLE_CLAIMS,
+    DependenceShortcutKind,
     MeasurementClaimClass,
     MeasurementDefinitionKind,
     MeasurementEvidenceRole,
@@ -180,6 +181,343 @@ class UncertaintyPolicyBinding:
                 raise _invalid("/policy_ref")
         else:
             raise _invalid("/state")
+
+
+@dataclass(frozen=True, slots=True)
+class UncertaintyComponentBinding:
+    """One exact approved policy component or an explicit unresolved state."""
+
+    state: ScientificValueState
+    component_ref: MeasurementDefinitionRef | None = None
+
+    def __post_init__(self) -> None:
+        _exact(self.state, ScientificValueState, "/state")
+        if self.state is ScientificValueState.BOUND:
+            _exact(self.component_ref, MeasurementDefinitionRef, "/component_ref")
+        elif self.state is ScientificValueState.NOT_APPLICABLE:
+            if (
+                type(self.component_ref) is not MeasurementDefinitionRef
+                or self.component_ref.definition_kind
+                is not MeasurementDefinitionKind.APPLICABILITY_REASON
+            ):
+                raise _invalid("/component_ref", MeasurementInputCode.ROLE_CONFUSION)
+        elif self.state in (
+            ScientificValueState.HUMAN_INPUT,
+            ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+        ):
+            if self.component_ref is not None:
+                raise _invalid("/component_ref")
+        else:
+            raise _invalid("/state")
+
+
+@dataclass(frozen=True, slots=True)
+class StratumEvidenceMinimumBinding:
+    stratum_ref: MeasurementDefinitionRef
+    minimum_binding: UncertaintyComponentBinding
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.stratum_ref) is not MeasurementDefinitionRef
+            or self.stratum_ref.definition_kind is not MeasurementDefinitionKind.STRATUM
+        ):
+            raise _invalid("/stratum_ref", MeasurementInputCode.ROLE_CONFUSION)
+        _exact(
+            self.minimum_binding,
+            UncertaintyComponentBinding,
+            "/minimum_binding",
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DependenceShortcutBinding:
+    """Exact, scope-limited evidence binding for one qualified shortcut."""
+
+    shortcut_id: str
+    shortcut_version: str
+    shortcut_kind: DependenceShortcutKind
+    incumbent_evidence_ref: MeasurementDefinitionRef
+    challenger_evidence_ref: MeasurementDefinitionRef
+    case_scope_refs: tuple[MeasurementDefinitionRef, ...]
+    stratum_scope_refs: tuple[MeasurementDefinitionRef, ...]
+    assumption_ref: MeasurementDefinitionRef
+    applicability_test_ref: MeasurementDefinitionRef
+    dossier_qualification_ref: MeasurementDefinitionRef
+    fixture_origin: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "shortcut_id", _identifier(self.shortcut_id, "/shortcut_id")
+        )
+        object.__setattr__(
+            self,
+            "shortcut_version",
+            _version(self.shortcut_version, "/shortcut_version"),
+        )
+        _exact(self.shortcut_kind, DependenceShortcutKind, "/shortcut_kind")
+        incumbent = _exact(
+            self.incumbent_evidence_ref,
+            MeasurementDefinitionRef,
+            "/incumbent_evidence_ref",
+        )
+        challenge_key = incumbent.challenge_key
+        fields = (
+            (
+                "incumbent_evidence_ref",
+                MeasurementDefinitionKind.EVIDENCE_SET,
+            ),
+            (
+                "challenger_evidence_ref",
+                MeasurementDefinitionKind.EVIDENCE_SET,
+            ),
+            ("assumption_ref", MeasurementDefinitionKind.DEPENDENCE_ASSUMPTION),
+            ("applicability_test_ref", MeasurementDefinitionKind.APPLICABILITY_TEST),
+            (
+                "dossier_qualification_ref",
+                MeasurementDefinitionKind.DOSSIER_QUALIFICATION,
+            ),
+        )
+        for name, kind in fields:
+            object.__setattr__(
+                self,
+                name,
+                _definition(getattr(self, name), kind, challenge_key, f"/{name}"),
+            )
+        if self.incumbent_evidence_ref == self.challenger_evidence_ref:
+            raise _invalid(
+                "/challenger_evidence_ref", MeasurementInputCode.DUPLICATE_IDENTITY
+            )
+        object.__setattr__(
+            self,
+            "case_scope_refs",
+            _definition_tuple(
+                self.case_scope_refs,
+                MeasurementDefinitionKind.CASE_SCOPE,
+                challenge_key,
+                "/case_scope_refs",
+                nonempty=True,
+            ),
+        )
+        object.__setattr__(
+            self,
+            "stratum_scope_refs",
+            _definition_tuple(
+                self.stratum_scope_refs,
+                MeasurementDefinitionKind.STRATUM,
+                challenge_key,
+                "/stratum_scope_refs",
+                nonempty=True,
+            ),
+        )
+        object.__setattr__(
+            self, "fixture_origin", _boolean(self.fixture_origin, "/fixture_origin")
+        )
+
+
+_UNCERTAINTY_COMPONENT_FIELDS = (
+    ("estimand_binding", MeasurementDefinitionKind.ESTIMAND),
+    ("measurement_output_binding", MeasurementDefinitionKind.MEASUREMENT_OUTPUT),
+    ("sampling_unit_binding", MeasurementDefinitionKind.SAMPLING_UNIT),
+    ("resampling_unit_binding", MeasurementDefinitionKind.RESAMPLING_UNIT),
+    ("independence_unit_binding", MeasurementDefinitionKind.INDEPENDENCE_UNIT),
+    ("common_case_pairing_binding", MeasurementDefinitionKind.COMMON_CASE_PAIRING),
+    (
+        "reconstruction_case_interaction_binding",
+        MeasurementDefinitionKind.RECONSTRUCTION_CASE_INTERACTION,
+    ),
+    (
+        "reconstruction_stratum_interaction_binding",
+        MeasurementDefinitionKind.RECONSTRUCTION_STRATUM_INTERACTION,
+    ),
+    (
+        "joint_reference_uncertainty_binding",
+        MeasurementDefinitionKind.JOINT_REFERENCE_UNCERTAINTY,
+    ),
+    (
+        "reference_candidate_covariance_binding",
+        MeasurementDefinitionKind.REFERENCE_CANDIDATE_COVARIANCE,
+    ),
+    (
+        "representation_dependence_binding",
+        MeasurementDefinitionKind.REPRESENTATION_DEPENDENCE,
+    ),
+    ("execution_dependence_binding", MeasurementDefinitionKind.EXECUTION_DEPENDENCE),
+    ("censoring_accounting_binding", MeasurementDefinitionKind.CENSORING_ACCOUNTING),
+    ("minimum_evidence_binding", MeasurementDefinitionKind.EVIDENCE_MINIMUM),
+    ("stopping_rule_binding", MeasurementDefinitionKind.STOPPING_RULE),
+    (
+        "evidence_extension_rule_binding",
+        MeasurementDefinitionKind.EVIDENCE_EXTENSION_RULE,
+    ),
+    (
+        "interval_error_control_binding",
+        MeasurementDefinitionKind.INTERVAL_ERROR_CONTROL,
+    ),
+    ("multiplicity_policy_binding", MeasurementDefinitionKind.MULTIPLICITY_POLICY),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class UncertaintyPolicy:
+    challenge_key: ChallengeKey
+    policy_id: str
+    policy_version: str
+    measurement_contract_ref: MeasurementContractRef
+    estimand_binding: UncertaintyComponentBinding
+    measurement_output_binding: UncertaintyComponentBinding
+    sampling_unit_binding: UncertaintyComponentBinding
+    resampling_unit_binding: UncertaintyComponentBinding
+    independence_unit_binding: UncertaintyComponentBinding
+    common_case_pairing_binding: UncertaintyComponentBinding
+    reconstruction_case_interaction_binding: UncertaintyComponentBinding
+    reconstruction_stratum_interaction_binding: UncertaintyComponentBinding
+    joint_reference_uncertainty_binding: UncertaintyComponentBinding
+    reference_candidate_covariance_binding: UncertaintyComponentBinding
+    representation_dependence_binding: UncertaintyComponentBinding
+    execution_dependence_binding: UncertaintyComponentBinding
+    censoring_accounting_binding: UncertaintyComponentBinding
+    minimum_evidence_binding: UncertaintyComponentBinding
+    stratum_minimum_bindings: tuple[StratumEvidenceMinimumBinding, ...]
+    stopping_rule_binding: UncertaintyComponentBinding
+    evidence_extension_rule_binding: UncertaintyComponentBinding
+    interval_error_control_binding: UncertaintyComponentBinding
+    multiplicity_policy_binding: UncertaintyComponentBinding
+    dependence_shortcuts: tuple[DependenceShortcutBinding, ...]
+    fixture_origin: bool
+    schema_version: str = MEASUREMENT_SCHEMA_VERSION
+    canonicalization_profile: str = MEASUREMENT_CANONICALIZATION_PROFILE
+
+    RECORD_TYPE = "uncertainty_policy"
+
+    def __post_init__(self) -> None:
+        if type(self) is not UncertaintyPolicy:
+            raise _invalid("/record_type", MeasurementInputCode.WRONG_TYPE)
+        challenge_key = _challenge(self.challenge_key)
+        object.__setattr__(self, "challenge_key", challenge_key)
+        object.__setattr__(self, "policy_id", _identifier(self.policy_id, "/policy_id"))
+        object.__setattr__(
+            self,
+            "policy_version",
+            _version(self.policy_version, "/policy_version"),
+        )
+        contract_ref = _exact(
+            self.measurement_contract_ref,
+            MeasurementContractRef,
+            "/measurement_contract_ref",
+        )
+        _same_challenge(
+            contract_ref.challenge_key, challenge_key, "/measurement_contract_ref"
+        )
+        for name, expected_kind in _UNCERTAINTY_COMPONENT_FIELDS:
+            binding = _exact(
+                getattr(self, name), UncertaintyComponentBinding, f"/{name}"
+            )
+            if binding.component_ref is not None:
+                _same_challenge(
+                    binding.component_ref.challenge_key,
+                    challenge_key,
+                    f"/{name}/component_ref",
+                )
+                if (
+                    binding.state is ScientificValueState.BOUND
+                    and binding.component_ref.definition_kind is not expected_kind
+                ):
+                    raise _invalid(
+                        f"/{name}/component_ref", MeasurementInputCode.ROLE_CONFUSION
+                    )
+        if (
+            type(self.stratum_minimum_bindings) is not tuple
+            or not self.stratum_minimum_bindings
+            or len(self.stratum_minimum_bindings) > MAX_CANONICAL_TUPLE_ITEMS
+        ):
+            raise _invalid("/stratum_minimum_bindings", MeasurementInputCode.WRONG_TYPE)
+        minima = tuple(
+            _exact(
+                item, StratumEvidenceMinimumBinding, f"/stratum_minimum_bindings/{i}"
+            )
+            for i, item in enumerate(self.stratum_minimum_bindings)
+        )
+        if len({item.stratum_ref for item in minima}) != len(minima):
+            raise _invalid(
+                "/stratum_minimum_bindings", MeasurementInputCode.DUPLICATE_IDENTITY
+            )
+        for index, item in enumerate(minima):
+            _same_challenge(
+                item.stratum_ref.challenge_key,
+                challenge_key,
+                f"/stratum_minimum_bindings/{index}/stratum_ref",
+            )
+            component_ref = item.minimum_binding.component_ref
+            if component_ref is not None:
+                _same_challenge(
+                    component_ref.challenge_key,
+                    challenge_key,
+                    f"/stratum_minimum_bindings/{index}/minimum_binding/component_ref",
+                )
+                if (
+                    item.minimum_binding.state is ScientificValueState.BOUND
+                    and component_ref.definition_kind
+                    is not MeasurementDefinitionKind.STRATUM_EVIDENCE_MINIMUM
+                ):
+                    raise _invalid(
+                        f"/stratum_minimum_bindings/{index}/minimum_binding/component_ref",
+                        MeasurementInputCode.ROLE_CONFUSION,
+                    )
+        object.__setattr__(
+            self,
+            "stratum_minimum_bindings",
+            tuple(
+                sorted(minima, key=lambda item: _definition_sort_key(item.stratum_ref))
+            ),
+        )
+        if (
+            type(self.dependence_shortcuts) is not tuple
+            or len(self.dependence_shortcuts) > MAX_CANONICAL_TUPLE_ITEMS
+        ):
+            raise _invalid("/dependence_shortcuts", MeasurementInputCode.WRONG_TYPE)
+        shortcuts = tuple(
+            _exact(item, DependenceShortcutBinding, f"/dependence_shortcuts/{i}")
+            for i, item in enumerate(self.dependence_shortcuts)
+        )
+        shortcut_keys = tuple(
+            (item.shortcut_id, item.shortcut_version) for item in shortcuts
+        )
+        if len(set(shortcut_keys)) != len(shortcut_keys):
+            raise _invalid(
+                "/dependence_shortcuts", MeasurementInputCode.DUPLICATE_IDENTITY
+            )
+        fixture_origin = _boolean(self.fixture_origin, "/fixture_origin")
+        for index, item in enumerate(shortcuts):
+            _same_challenge(
+                item.incumbent_evidence_ref.challenge_key,
+                challenge_key,
+                f"/dependence_shortcuts/{index}/incumbent_evidence_ref",
+            )
+            if not fixture_origin and item.fixture_origin:
+                raise _invalid(
+                    f"/dependence_shortcuts/{index}/fixture_origin",
+                    MeasurementInputCode.FIXTURE_REQUIRED,
+                )
+        object.__setattr__(
+            self,
+            "dependence_shortcuts",
+            tuple(
+                sorted(
+                    shortcuts,
+                    key=lambda item: (
+                        item.shortcut_id,
+                        item.shortcut_version,
+                        item.shortcut_kind.value,
+                    ),
+                )
+            ),
+        )
+        object.__setattr__(self, "fixture_origin", fixture_origin)
+        if (
+            self.schema_version != MEASUREMENT_SCHEMA_VERSION
+            or self.canonicalization_profile != MEASUREMENT_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
 
 
 @dataclass(frozen=True, slots=True)
@@ -541,15 +879,21 @@ class MeasurementQualificationEvidence:
             raise _invalid("/schema_version")
 
 
-MeasurementAuthoringObject = MeasurementContract | MeasurementQualificationEvidence
+MeasurementAuthoringObject = (
+    MeasurementContract | MeasurementQualificationEvidence | UncertaintyPolicy
+)
 
 
 __all__ = (
+    "DependenceShortcutBinding",
     "MeasurementAuthoringObject",
     "MeasurementContract",
     "MeasurementEvidenceItem",
     "MeasurementQualificationEvidence",
     "ScientificValueBinding",
     "StratumApplicabilityBinding",
+    "StratumEvidenceMinimumBinding",
+    "UncertaintyComponentBinding",
+    "UncertaintyPolicy",
     "UncertaintyPolicyBinding",
 )

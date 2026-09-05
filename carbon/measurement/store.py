@@ -8,6 +8,7 @@ from .model import (
     MeasurementAuthoringObject,
     MeasurementContract,
     MeasurementQualificationEvidence,
+    UncertaintyPolicy,
 )
 from .refs import MeasurementTopLevelRef, reconstruct_measurement_ref
 
@@ -21,7 +22,11 @@ class MeasurementFixtureStore:
         self._documents: dict[MeasurementTopLevelRef, bytes] = {}
 
     def put(self, value: MeasurementAuthoringObject) -> MeasurementTopLevelRef:
-        if type(value) not in (MeasurementContract, MeasurementQualificationEvidence):
+        if type(value) not in (
+            MeasurementContract,
+            MeasurementQualificationEvidence,
+            UncertaintyPolicy,
+        ):
             raise MeasurementStoreError(MeasurementInputCode.WRONG_TYPE, path="/")
         if value.fixture_origin is not True:
             raise MeasurementStoreError(

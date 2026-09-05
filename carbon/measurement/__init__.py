@@ -10,6 +10,7 @@ from .canonical import (
 )
 from .enums import (
     MEASUREMENT_EVIDENCE_ROLE_CLAIMS,
+    DependenceShortcutKind,
     MeasurementClaimClass,
     MeasurementDefinitionKind,
     MeasurementEvidenceRole,
@@ -25,12 +26,16 @@ from .errors import (
     MeasurementValidationError,
 )
 from .model import (
+    DependenceShortcutBinding,
     MeasurementAuthoringObject,
     MeasurementContract,
     MeasurementEvidenceItem,
     MeasurementQualificationEvidence,
     ScientificValueBinding,
     StratumApplicabilityBinding,
+    StratumEvidenceMinimumBinding,
+    UncertaintyComponentBinding,
+    UncertaintyPolicy,
     UncertaintyPolicyBinding,
 )
 from .refs import (
@@ -49,7 +54,9 @@ from .refs import (
 )
 from .store import MAX_MEASUREMENT_STORE_OBJECTS, MeasurementFixtureStore
 
-__all__ = (
+__all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
+    "DependenceShortcutBinding",
+    "DependenceShortcutKind",
     "MAX_MEASUREMENT_DOCUMENT_BYTES",
     "MAX_MEASUREMENT_STORE_OBJECTS",
     "MEASUREMENT_CANONICALIZATION_PROFILE",
@@ -81,6 +88,9 @@ __all__ = (
     "ScorePackAuthoringContractRef",
     "StratumApplicabilityBinding",
     "StratumApplicabilityStatus",
+    "StratumEvidenceMinimumBinding",
+    "UncertaintyComponentBinding",
+    "UncertaintyPolicy",
     "UncertaintyPolicyBinding",
     "UncertaintyPolicyRef",
     "canonical_bytes",
