@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 21 map-level change events
+- 22 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-05** (`in_progress`). PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract and first four bounded slices now cover measurement/evidence identity, dependence-aware uncertainty, reconstruction-evidence policy, and exact Score Pack authoring/projection bindings; fixture composition and mature-candidate review remain pending.
+Wave **B**, ticket **B-05** (`in_progress`). PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending.
 
 ## Maintain
 

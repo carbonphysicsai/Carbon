@@ -433,6 +433,26 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E3"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E5",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05's fifth bounded slice composes the complete synthetic non-LIVE authoring graph, proves canonical identity and store round-trips across all B-05 objects, preserves exact A5 input coverage without constructing ScoreInput, and prepares an inert conditional closeout while every real scientific and qualification input remains unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/64f8fad28e484dc73bd5c0eaef3193ff93de2c17/tests/cpu/test_b05_score_pack_authoring.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E4"
     }
   ]
 }

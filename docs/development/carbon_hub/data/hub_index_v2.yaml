@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-05T05:15:49Z"
+  captured_at_utc: "2026-09-05T05:48:46Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "0aceb92fb05469d5654a9e2447a063eb3d68c38c"
+  authority_snapshot_commit: "64f8fad28e484dc73bd5c0eaef3193ff93de2c17"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -445,9 +445,9 @@ current:
   ticket_title: "Measurement and Score Pack authoring"
   ticket_status: "in_progress"
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "1.7"
-  controlling_board_fingerprint: "05eeb845080ad7fb3ab3c54b764cb06383d526c6ee8bd0505555a83a07033318"
-  stage: "PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract and first four bounded slices now cover measurement/evidence identity, dependence-aware uncertainty, reconstruction-evidence policy, and exact Score Pack authoring/projection bindings; fixture composition and mature-candidate review remain pending."
+  controlling_register_version: "1.8"
+  controlling_board_fingerprint: "94ae276cb24500dbe522a16c5666e4322b9c331b763187579b2ab6ada4070c65"
+  stage: "PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -483,7 +483,7 @@ current:
     - "B-01G remains todo as a future non-blocking tooling proof."
   next_selected_ticket: null
   fail_closed:
-    - "B-05's working contract and first four slices are branch-local engineering candidates; they remain unratified and earn no final review, merge, scientific qualification, production, or LIVE authority."
+    - "B-05's five-slice delivery candidate and prepared conditional closeout remain branch-local and inert until the complete exact-head review, approval, gate, merge, exact-main, and external-receipt predicate passes; they earn no scientific qualification, production, or LIVE authority."
     - "Every real measurement, floor, applicability, stratum, uncertainty/dependence assumption, evidence minimum, build count, stopping/error control, score threshold, transform, weight, and qualification outcome remains HUMAN_INPUT or BLOCKED_FOR_LIVE_UNTIL_SET."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
@@ -497,7 +497,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-05 has a working engineering contract and four tested branch-local slices covering measurement/evidence identity, uncertainty-policy binding, reconstruction-evidence policy, and exact Score Pack authoring/projection bindings, but bounded SPECIFIED, IMPLEMENTED, and TESTED maturity remain unearned until complete delivery. Every qualification and LIVE state remains unearned."
+  maturity_summary: "B-05's working engineering contract and five tested branch-local slices form a bounded delivery candidate, including a complete synthetic non-LIVE fixture graph. Bounded SPECIFIED, IMPLEMENTED, and TESTED maturity remain unearned until the full conditional delivery predicate passes; every qualification and LIVE state remains unearned."
   decision_series_status: "B-05-D1 through B-05-D6 are implemented working engineering decisions notified through issue #42 comment 5548824971. They reserve every real scientific value and positive qualification outcome to humans and B-06."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -2064,6 +2064,24 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/MATURITY"
     supersedes: "B-05-E3"
+  -
+    map_ref: "WAVE-B/B-05"
+    event_type: "evidence"
+    event_id: "B-05-E5"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-05's fifth bounded slice composes the complete synthetic non-LIVE authoring graph, proves canonical identity and store round-trips across all B-05 objects, preserves exact A5 input coverage without constructing ScoreInput, and prepares an inert conditional closeout while every real scientific and qualification input remains unavailable."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/64f8fad28e484dc73bd5c0eaef3193ff93de2c17/tests/cpu/test_b05_score_pack_authoring.py"
+    affects:
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-E1"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-05-E4"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
