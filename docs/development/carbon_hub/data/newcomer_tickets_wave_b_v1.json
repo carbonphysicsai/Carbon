@@ -89,9 +89,9 @@
       "title": "Decide how the exam measures a model",
       "what": "Define the rules that turn reference answers and model outputs into scientific measurements and a final evaluation result.",
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
-      "changes": "The active branch now has a working measurement/evidence-use contract and a first exact definition, evidence-role, canonical identity, and fixture-store slice.",
+      "changes": "The active branch now has a working measurement/evidence-use contract, an exact measurement/evidence identity slice, and a dependence-aware uncertainty-policy slice whose real inputs remain unresolved.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Active from PR #78's receipt. The working contract and first bounded slice are implemented on the ticket branch; uncertainty, reconstruction, and Score Pack binding slices remain pending, and no real scientific value is selected.",
+      "current_stage_plain": "Active from PR #78's receipt. The working contract and first two bounded slices are implemented on the ticket branch; reconstruction and Score Pack binding slices remain pending, and no real scientific value is selected.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {

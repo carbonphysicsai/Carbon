@@ -572,7 +572,7 @@
       "if_changed": "The namespace, canonical profile, code-authority entry, public refs, persisted fixture pins, tests, and downstream imports require a versioned migration.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-07A", "WAVE-B/B-07F", "SYSTEM/DEVELOPMENT-HUB"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-05-D2",
@@ -590,7 +590,7 @@
       "if_changed": "The evidence enums, compatibility matrix, canonical bytes, fixtures, B-06 consumer, and role-confusion tests require a schema migration.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-05-D3",
@@ -608,7 +608,7 @@
       "if_changed": "Score-use records, pack coverage, projection precedence, B-07F integration, forbidden-input tests, and possibly A5 authority require coordinated review.",
       "affects": ["WAVE-B/B-07A", "WAVE-B/B-07C", "WAVE-B/B-07F", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-05-D4",
@@ -626,7 +626,7 @@
       "if_changed": "The uncertainty policy, Dossier binding, comparison consumer, canonical schema, and statistical tests require a prospective version.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-05-D5",
@@ -644,7 +644,7 @@
       "if_changed": "Reconstruction stage records, B-02C adapters, B-E1 harness assumptions, stopping outcomes, canonical bytes, and tests require migration.",
       "affects": ["WAVE-B/B-02C", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-05-D6",
@@ -662,7 +662,7 @@
       "if_changed": "The material union, canonical registry, projection, B-07F/B-E1 exhaustiveness, disclosure, and tests require a new schema version.",
       "affects": ["WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/e80cf2a7046fdbc8bf41100f5fa18144b5a44312/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/DECISIONS.md"
     }
   ]
 }
