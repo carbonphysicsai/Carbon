@@ -2,7 +2,8 @@
 
 **Ticket:** B-05 — MeasurementContract and Score Pack authoring bindings
 **Version:** 0.1 working engineering contract
-**Status:** SPECIFIED working candidate; not ratified, qualified, production-ready, or LIVE
+**Status:** SPECIFIED bounded delivery candidate; conditional review/merge
+predicate pending; not scientifically qualified, production-ready, or LIVE
 **Starting authority:** `origin/main` commit
 `f1a429de37290b3c7615ca051661a1d727528f78`, tree
 `3e25bd65508c5c11d8d67558f9bd699808fc57a9`
@@ -449,6 +450,14 @@ Slice 4 implements item 4 as an outward validation seam against A5's unchanged
 runtime formula and the projection result remains role-separated; it cannot
 construct `ScoreInput` or invoke `ScoreEngine`. Threshold, transform, and
 weight authority is an exact typed ref or an explicit unresolved state.
+
+Slice 5 implements item 5 as one test-owned synthetic authoring graph. It
+composes measurement contracts, evidence-role inventories, applicability and
+stratum scope, uncertainty policies, reconstruction-evidence deferral, the
+Score Pack authoring contract, complete A5-compatible scalar projection, and
+exact canonical bytes/digests/refs/store round trips. The graph is not a
+public constructor, does not create `ScoreInput`, and cannot issue positive
+Dossier qualification or any production/LIVE authority.
 
 ## 12. Explicit exclusions
 

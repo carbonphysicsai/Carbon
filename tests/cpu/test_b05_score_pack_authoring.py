@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -9,6 +9,13 @@ import pytest
 from carbon import measurement
 from carbon.evaluation.refs import ReferencePolicyRef
 from carbon.registry import ChallengeKey
+from carbon.resource_policy import (
+    NoBuildStarted,
+    NoReuse,
+    ReplicateNotApplicable,
+    ReplicateNotApplicableReason,
+    ResourceStopCause,
+)
 from carbon.scoring.model import ScorePackPin
 from carbon.scoring.pack import load_score_pack
 
@@ -131,6 +138,37 @@ UNCERTAINTY_KINDS = {
     "interval_error_control_binding": measurement.MeasurementDefinitionKind.INTERVAL_ERROR_CONTROL,
     "multiplicity_policy_binding": measurement.MeasurementDefinitionKind.MULTIPLICITY_POLICY,
 }
+
+RECONSTRUCTION_KINDS = {
+    "complete_base_minimum_binding": measurement.MeasurementDefinitionKind.COMPLETE_BASE_MINIMUM,
+    "build_completeness_criteria_binding": measurement.MeasurementDefinitionKind.BUILD_COMPLETENESS_CRITERIA,
+    "frozen_artifact_reuse_policy_binding": measurement.MeasurementDefinitionKind.FROZEN_ARTIFACT_REUSE_POLICY,
+    "nomination_criteria_binding": measurement.MeasurementDefinitionKind.NOMINATION_CRITERIA,
+    "promotion_criteria_binding": measurement.MeasurementDefinitionKind.PROMOTION_CRITERIA,
+    "case_coverage_requirement_binding": measurement.MeasurementDefinitionKind.CASE_COVERAGE_REQUIREMENT,
+    "stratum_coverage_requirement_binding": measurement.MeasurementDefinitionKind.STRATUM_COVERAGE_REQUIREMENT,
+    "evidence_extension_rule_binding": measurement.MeasurementDefinitionKind.EVIDENCE_EXTENSION_RULE,
+    "scientific_stopping_rule_binding": measurement.MeasurementDefinitionKind.STOPPING_RULE,
+    "stability_audit_rate_binding": measurement.MeasurementDefinitionKind.STABILITY_AUDIT_RATE,
+    "audit_selection_policy_binding": measurement.MeasurementDefinitionKind.AUDIT_SELECTION_POLICY,
+    "error_control_binding": measurement.MeasurementDefinitionKind.INTERVAL_ERROR_CONTROL,
+    "power_requirement_binding": measurement.MeasurementDefinitionKind.POWER_REQUIREMENT,
+    "minimum_resolvable_improvement_binding": measurement.MeasurementDefinitionKind.MINIMUM_RESOLVABLE_IMPROVEMENT,
+    "sequential_stopping_rule_binding": measurement.MeasurementDefinitionKind.SEQUENTIAL_STOPPING_RULE,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class SyntheticB05AuthoringGraph:
+    """One test-owned graph; it is not a production authoring constructor."""
+
+    measurements: tuple[measurement.MeasurementContract, ...]
+    qualification_evidence: tuple[measurement.MeasurementQualificationEvidence, ...]
+    uncertainty_policies: tuple[measurement.UncertaintyPolicy, ...]
+    reconstruction_policy: measurement.ReconstructionEvidencePolicy
+    reconstruction_status: measurement.ReconstructionEvidenceStatus
+    score_pack_authoring: measurement.ScorePackAuthoringContract
+    score_pack_projection: measurement.ScorePackProjection
 
 
 def definition(kind: measurement.MeasurementDefinitionKind, object_id: str):
@@ -377,6 +415,119 @@ def fixture_objects():
     return measurements, uncertainties, authoring
 
 
+def qualification_evidence(
+    value: measurement.MeasurementContract, input_key: str
+) -> measurement.MeasurementQualificationEvidence:
+    supported = (measurement.MeasurementClaimClass.IMPLEMENTATION_CORRECTNESS,)
+    unsupported = tuple(
+        claim for claim in measurement.MeasurementClaimClass if claim not in supported
+    )
+    return measurement.MeasurementQualificationEvidence(
+        challenge_key=KEY,
+        evidence_id=f"fixture-qualification-inventory-{input_key}",
+        evidence_version="1.0",
+        measurement_contract_ref=measurement.measurement_ref(value),
+        evidence_items=(
+            measurement.MeasurementEvidenceItem(
+                evidence_id=f"fixture-mms-verification-{input_key}",
+                source_ref=definition(
+                    measurement.MeasurementDefinitionKind.EVIDENCE_SOURCE,
+                    f"fixture-mms-source-{input_key}",
+                ),
+                role=measurement.MeasurementEvidenceRole.ANALYTIC_OR_MANUFACTURED_VERIFICATION,
+                supported_claims=supported,
+                unsupported_claims=unsupported,
+                case_scope_refs=(
+                    definition(
+                        measurement.MeasurementDefinitionKind.CASE_SCOPE,
+                        "fixture-case-scope",
+                    ),
+                ),
+                stratum_scope_refs=(
+                    definition(
+                        measurement.MeasurementDefinitionKind.STRATUM,
+                        "fixture-stratum",
+                    ),
+                ),
+                fixture_origin=True,
+            ),
+        ),
+        fixture_origin=True,
+    )
+
+
+def reconstruction_policy() -> measurement.ReconstructionEvidencePolicy:
+    return measurement.ReconstructionEvidencePolicy(
+        challenge_key=KEY,
+        policy_id="fixture-reconstruction-evidence-policy",
+        policy_version="1.0",
+        construction_family_ref=definition(
+            measurement.MeasurementDefinitionKind.CONSTRUCTION_FAMILY,
+            "fixture-construction-family",
+        ),
+        **{
+            name: measurement.UncertaintyComponentBinding(
+                measurement.ScientificValueState.HUMAN_INPUT
+            )
+            for name in RECONSTRUCTION_KINDS
+        },
+        fixture_origin=True,
+    )
+
+
+def fixture_graph() -> SyntheticB05AuthoringGraph:
+    measurements, uncertainties, authoring = fixture_objects()
+    qualifications = tuple(
+        qualification_evidence(value, input_key)
+        for value, (input_key, *_) in zip(measurements, EXPECTED, strict=True)
+    )
+    reconstruction = reconstruction_policy()
+    reconstruction_input = measurement.ReconstructionEvidenceInput(
+        policy_ref=measurement.measurement_ref(reconstruction),
+        construction_family_ref=reconstruction.construction_family_ref,
+        resource_facts=measurement.ReconstructionResourceFacts(
+            build_completion=NoBuildStarted(),
+            frozen_artifact_reuse=NoReuse(),
+            reconstruction_replicate=ReplicateNotApplicable(
+                ReplicateNotApplicableReason.NO_WORK_STARTED
+            ),
+            resource_stop_cause=ResourceStopCause.EVIDENCE_DEFERRED,
+            static_assessment_ref=None,
+            fixture_decision_ref=None,
+            observed_receipt_ref=None,
+        ),
+        complete_base_evidence_ref=None,
+        nomination_evidence_ref=None,
+        extension_evidence_ref=None,
+        promotion_evidence_ref=None,
+        remaining_requirement_refs=(
+            definition(
+                measurement.MeasurementDefinitionKind.REMAINING_EVIDENCE_REQUIREMENT,
+                "fixture-human-scientific-authority-required",
+            ),
+        ),
+        stop_kind=measurement.ReconstructionStopKind.NONE,
+    )
+    projection = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    return SyntheticB05AuthoringGraph(
+        measurements,
+        qualifications,
+        uncertainties,
+        reconstruction,
+        measurement.assess_reconstruction_evidence(
+            reconstruction, reconstruction_input
+        ),
+        authoring,
+        projection,
+    )
+
+
 def materials(
     authoring, measurements, *, state=measurement.MeasurementMaterialState.COMPLETE
 ):
@@ -434,6 +585,79 @@ def materials(
         )
         for binding in authoring.input_bindings
     )
+
+
+def test_complete_synthetic_authoring_graph_is_exact_and_non_authoritative() -> None:
+    graph = fixture_graph()
+    store = measurement.MeasurementFixtureStore()
+    authoring_objects = (
+        graph.measurements
+        + graph.qualification_evidence
+        + graph.uncertainty_policies
+        + (graph.reconstruction_policy, graph.score_pack_authoring)
+    )
+    refs = tuple(store.put(value) for value in authoring_objects)
+
+    assert len(refs) == len(authoring_objects) == len(set(refs))
+    for value, ref in zip(authoring_objects, refs, strict=True):
+        source = measurement.canonical_bytes(value)
+        assert store.get(ref) == value
+        assert measurement.load_canonical_document(source) == value
+        assert measurement.measurement_ref(value) == ref
+        assert measurement.canonical_digest(value) == (
+            "sha256:" + hashlib.sha256(source).hexdigest()
+        )
+
+    assert tuple(
+        evidence.measurement_contract_ref for evidence in graph.qualification_evidence
+    ) == tuple(measurement.measurement_ref(value) for value in graph.measurements)
+    unsupported_by_mms = {
+        measurement.MeasurementClaimClass.PHYSICAL_MODEL_VALIDITY,
+        measurement.MeasurementClaimClass.TARGET_WORKLOAD_APPLICABILITY,
+        measurement.MeasurementClaimClass.ENGINEERING_CONTEXT_OF_USE,
+    }
+    assert all(
+        unsupported_by_mms <= set(evidence.evidence_items[0].unsupported_claims)
+        for evidence in graph.qualification_evidence
+    )
+
+    assert not graph.reconstruction_policy.has_complete_human_authority
+    assert (
+        graph.reconstruction_status.outcome
+        is measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED
+    )
+    assert (
+        graph.reconstruction_status.stage
+        is measurement.ReconstructionEvidenceStage.BASE_REQUIRED
+    )
+    assert graph.score_pack_projection.pack_pin == pin()
+    assert (
+        graph.score_pack_projection.outcome
+        is measurement.MeasurementMaterialState.COMPLETE
+    )
+    for role, values in (
+        (
+            measurement.ScoreUseRole.MANDATORY_GATE,
+            graph.score_pack_projection.mandatory_scalars,
+        ),
+        (
+            measurement.ScoreUseRole.SOFT_COMPONENT,
+            graph.score_pack_projection.soft_scalars,
+        ),
+        (
+            measurement.ScoreUseRole.DIAGNOSTIC,
+            graph.score_pack_projection.diagnostic_scalars,
+        ),
+    ):
+        assert tuple(item.input_key for item in values) == tuple(
+            item[0] for item in EXPECTED if item[2] is role
+        )
+    assert all(value.fixture_origin is True for value in authoring_objects)
+    assert all(
+        binding.disclosure_class is measurement.ScoreDisclosureClass.PROTECTED
+        for binding in graph.score_pack_authoring.input_bindings
+    )
+    assert "ScoreInput" not in type(graph.score_pack_projection).__name__
 
 
 def test_authoring_contract_is_canonical_content_addressed_and_stored() -> None:
@@ -696,6 +920,17 @@ def test_cross_challenge_fixture_mismatch_and_unresolved_policy_authority_reject
             unresolved, pack(), measurements, uncertainties
         )
     assert exc_info.value.code is measurement.MeasurementInputCode.MATERIAL_UNRESOLVED
+
+
+def test_evidence_inventory_ref_cannot_masquerade_as_dossier_qualification() -> None:
+    graph = fixture_graph()
+    evidence_ref = measurement.measurement_ref(graph.qualification_evidence[0])
+    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
+        replace(
+            graph.score_pack_authoring.input_bindings[0],
+            qualification_ref=evidence_ref,
+        )
+    assert exc_info.value.code is measurement.MeasurementInputCode.WRONG_TYPE
 
 
 def test_missing_human_score_values_have_no_equal_or_unit_defaults() -> None:

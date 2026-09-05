@@ -3,7 +3,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.7
+**Controlling register:** `.agent/WAVE_B.md` version 1.8
 **Selected ticket:** B-05 — `in_progress`
 **Owner sequencing:** `OWNER-DX-02` interposed B-01H after completed B-04 and
 before B-05; B-01H's complete delivery predicate has now passed and B-05 is
@@ -18,8 +18,11 @@ installed-Codex compatibility result remains fail-closed and unqualified
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `in_progress`; working-contract and first coherent
-implementation-slice phase from the exact selected base
+**B-05 status:** `in_progress`; the bounded implementation candidate is
+prepared, and its conditional closeout remains inert until the full delivery
+predicate below passes
+**B-06 status:** `todo` and unstarted; prepared as the next selected ticket
+only after B-05's complete conditional predicate passes
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -55,6 +58,23 @@ implementation-slice phase from the exact selected base
 > transition grants bounded development authority only and no scientific,
 > security, qualification, product, production, network, economic, or `LIVE`
 > authority.
+
+> **B-05 bounded conditional closeout.** The candidate implements the working
+> measurement/evidence-use contract, exact canonical object graph,
+> dependence-aware uncertainty and reconstruction-evidence policies, exact A5
+> authoring/projection bindings, and a complete synthetic non-LIVE fixture
+> graph. Its prepared B-05 `done`, bounded `SPECIFIED`/`IMPLEMENTED`/`TESTED`,
+> and B-06 `in_progress but NOT STARTED` states become authoritative only after
+> one exact unchanged final head passes every scope-required check and `Merge
+> gate`; fresh read-only Codex/GPT review covers the complete diff with every
+> finding repaired or dispositioned; a distinct non-author human approval
+> carries the closed receipt; `GPT review gate` succeeds with zero unresolved
+> threads; normal expected-head merge preserves the reviewed tree; fetched
+> exact main passes `Merge gate`; and the completed external receipt is posted.
+> Until then B-05 remains the selected `in_progress` ticket and B-06 remains
+> `todo` and unstarted. Every scientific, qualification, security, production,
+> network, economic, frontier, settlement, emission, and `LIVE` authority
+> remains unavailable.
 
 > **OWNER-DX-02 — Carbon Iterative Agent Harness Pilot.** PR #75 comment
 > `5513643185` established B-04's completed predicate and selected B-05

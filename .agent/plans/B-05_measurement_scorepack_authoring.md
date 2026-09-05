@@ -1,7 +1,8 @@
 # B-05 plan — measurement contract and Score Pack authoring
 
 **Ticket:** B-05
-**Status:** in progress; working-contract and fourth-slice phase
+**Status:** bounded implementation candidate prepared; conditional delivery
+closeout and final review remain pending
 **Branch:** `agent/b-05-measurement-scorepack`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact base commit:** `f1a429de37290b3c7615ca051661a1d727528f78`
@@ -107,6 +108,15 @@ Compose a visibly synthetic fixture across all B-05 objects; run focused and
 affected tests, invariants, package/wheel checks, strict formatting/linting,
 canonical CI, Hub validation, and a complete-diff review. Repair every valid
 finding and preserve the delivery protocol's exact-head requirements.
+
+Implemented as one test-owned `SyntheticB05AuthoringGraph` composing all five
+canonical object kinds, qualification-role inventories, applicability and
+stratum bindings, explicit unresolved scientific authority, a typed
+`EVIDENCE_DEFERRED` reconstruction state from exact B-02C facts, complete A5
+authoring coverage, and a mandatory/soft/diagnostic scalar projection. The
+graph round-trips every canonical object through exact bytes, digest, ref, and
+the bounded fixture store. It constructs no A5 `ScoreInput` and adds no
+production abstraction.
 
 ## 4. Human-reserved inputs
 

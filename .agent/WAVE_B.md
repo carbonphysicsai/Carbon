@@ -1,7 +1,7 @@
 # Carbon Wave B Board
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 1.7
+**Version:** 1.8
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -66,6 +66,17 @@ NOT STARTED` from that exact main. Version 1.7 records B-01H `done` in bounded
 development-tooling scope and B-05 active in working-contract/first-slice
 phase. Historical conditional text remains evidence of the earlier gate, not
 the current state.
+**B-05 bounded conditional closeout:** Version 1.8 prepares B-05 `done` in its
+bounded engineering scope and B-06 `in_progress but NOT STARTED` only after
+the exact B-05 final head passes every scope-required check and `Merge gate`,
+fresh complete-diff Codex/GPT review, finding closure, distinct non-author
+approval carrying the closed receipt, successful `GPT review gate`, zero
+unresolved threads, normal reviewed-tree-preserving expected-head merge,
+exact-main `Merge gate`, and the completed external receipt. Before that full
+predicate B-05 remains the authoritative selected `in_progress` ticket and
+B-06 remains `todo` and unstarted. The transition supplies no scientific,
+qualification, security, production, network, economic, frontier, settlement,
+emission, or `LIVE` authority.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
