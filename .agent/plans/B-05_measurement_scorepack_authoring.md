@@ -47,6 +47,10 @@ closeout and final review remain pending
   heuristic futility, and typed `EVIDENCE_DEFERRED`.
 - **B-05-D6:** use closed typed non-complete outcomes with no scalar payload;
   reserve real values and qualification outcomes to humans and B-06.
+- **B-05-D7:** keep the candidate canonical graph acyclic by directing exact
+  policy identity from `UncertaintyPolicy` to `MeasurementContract` to Score
+  Pack bindings; require exact B-02C construction identity and resolved floor
+  and uncertainty authority before any scalar projection.
 
 These are reversible engineering selections within the active ticket. Post
 the required issue #42 notification mentioning `@harshaa765`; silence is not
@@ -112,12 +116,24 @@ finding and preserve the delivery protocol's exact-head requirements.
 
 Implemented as one test-owned `SyntheticB05AuthoringGraph` composing all five
 canonical object kinds, qualification-role inventories, applicability and
-stratum bindings, explicit unresolved scientific authority, a typed
-`EVIDENCE_DEFERRED` reconstruction state from exact B-02C facts, complete A5
-authoring coverage, and a mandatory/soft/diagnostic scalar projection. The
+stratum bindings, exact synthetic score-bearing authority, a human-unresolved
+reconstruction policy, a typed `EVIDENCE_DEFERRED` state from exact B-02C facts,
+complete A5 authoring coverage, and a mandatory/soft/diagnostic scalar projection. The
 graph round-trips every canonical object through exact bytes, digest, ref, and
 the bounded fixture store. It constructs no A5 `ScoreInput` and adds no
 production abstraction.
+
+### Review repair — exact identity and scalar prerequisites
+
+Repair B05-REVIEW-006 through B05-REVIEW-008 as one coherent candidate-local
+migration. A complete build and bound reconstruction replicate must share exact
+construction-plan, resource-policy, and resource-class refs. Caller-labeled
+complete material produces typed no-scalar floor or uncertainty outcomes while
+authored authority remains human-input or blocked. The v1 uncertainty payload
+has no reverse measurement-contract digest edge: policies are content-addressed
+first, measurements select them exactly, and Score Pack bindings prove both
+refs and exact estimand/output bindings. Candidate fixtures and vectors migrate
+without aliases or a schema/profile bump because no B-05 payload is merged.
 
 ## 4. Human-reserved inputs
 

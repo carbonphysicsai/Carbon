@@ -198,6 +198,49 @@ canonical registry, B-07F/B-E1 consumers, and tests.
 **Human-reserved input.** No qualification outcome is selected. Fixture-only
 complete values remain structurally testable but scientifically unqualified.
 
+## 2026-09-05 — B-05-D7: Keep canonical uncertainty identity acyclic and enforce exact scalar prerequisites
+
+**Problem.** The unmerged B-05 candidate gave both `MeasurementContract` and
+`UncertaintyPolicy` content-addressed reverse references, creating a digest
+cycle with no valid construction order. The same candidate could also expose
+a caller-labeled complete scalar while its human-owned numerical floor or
+uncertainty components remained unresolved, and could join a complete build
+to a reconstruction replicate from a different B-02C construction identity.
+
+**Recommendation.** Keep schema `1.0` and canonical profile
+`carbon_measurement_canonical_v1`, but correct the unmerged candidate payload
+to an exact directed acyclic graph: `UncertaintyPolicy` owns estimand, output,
+component, minima, and shortcut semantics; `MeasurementContract` selects its
+exact `UncertaintyPolicyRef`; and `ScorePackAuthoringContract` binds both exact
+top-level refs. Before scalar exposure, require an exact selected policy, all
+required uncertainty components and per-stratum minima to be bound or carry
+an explicitly authorized exact not-applicable reason, and the numerical floor
+to be bound. Human-input or blocked authority yields the existing typed
+no-scalar outcome. When complete-build and bound-replicate facts coexist,
+require exact construction-plan, resource-policy, and resource-class refs.
+
+**Alternatives rejected.** Placeholder, zero, mutable, latest, caller-asserted,
+post-hoc, or compatibility-alias digests would weaken content identity.
+Inventing a nesting/version workaround or retaining the defective candidate
+hashes would preserve an unconstructable graph. Default floors, independence,
+covariance, minima, or stopping values would invent science. Challenge-only
+resource matching would permit evidence borrowing across construction facts.
+
+**Interfaces, impact, and reversibility.** This is a candidate-local canonical
+migration before B-05 merge or any production consumer. It removes only the
+reverse `measurement_contract_ref` from the `UncertaintyPolicy` v1 payload and
+regenerates candidate fixtures, bytes, refs, and digests; no merged v1
+compatibility alias is needed and no schema/profile bump is required. The
+change updates contract §§3–9, plan/evidence, model/canonical/projection code,
+tests, and Hub projections. A later post-merge payload change would require a
+prospective schema/profile migration.
+
+**Human-reserved input.** None is selected. Exact fixture refs are visibly
+synthetic. Real floors, uncertainty/dependence choices, covariance, minima,
+stopping/error control, reconstruction sufficiency, and qualification remain
+human/B-06-owned and fail closed. B-02C refs remain identity facts only; A5 is
+unchanged.
+
 ## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval
 
 **Problem.** Carbon's live delivery contract depended on a Greptile workspace

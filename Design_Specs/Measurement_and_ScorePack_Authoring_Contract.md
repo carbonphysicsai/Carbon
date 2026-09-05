@@ -131,6 +131,15 @@ implemented `uncertainty_policy`, `reconstruction_evidence_policy`, and
 five kinds. Their implementation presence grants no scientific qualification,
 production qualification, or `LIVE` authority.
 
+The unmerged candidate's v1 identity graph is directed and acyclic.
+`UncertaintyPolicy` owns exact estimand, output, component, minimum, and
+shortcut semantics without a reverse `MeasurementContractRef`.
+`MeasurementContract` selects the exact content-addressed
+`UncertaintyPolicyRef`, and `ScorePackAuthoringContract` binds both exact
+top-level refs. This candidate-local correction replaces defective candidate
+digests without aliases; because no B-05 payload is merged or production-used,
+schema `1.0` and profile `carbon_measurement_canonical_v1` remain unchanged.
+
 ## 4. MeasurementContract
 
 `MeasurementContract` defines one scientific quantity and its deterministic
@@ -150,7 +159,7 @@ measurement recipe. It contains no observed candidate value.
 | `reference_policy_ref` | Exact B-04 `ReferencePolicyRef`; no path-only or solver-reputation reference. |
 | `numerical_floor_binding` | Exact resolved scientific-value ref or explicit unresolved state. Zero/epsilon is never implicit. |
 | `applicability_policy_ref` | Challenge-scoped B-05 policy definition ref for case and context applicability. |
-| `uncertainty_policy_ref` | Exact B-05 `UncertaintyPolicyRef` or explicit unresolved state. |
+| `uncertainty_policy_binding` | Exact B-05 `UncertaintyPolicyRef` selection or explicit unresolved state. |
 | `stratum_applicability` | Non-empty explicit bindings for applicable, not-applicable-with-reason, or human-input strata. |
 | `known_limitation_refs` | Canonical set; an empty set is explicit, not omitted. |
 | `implementation_refs` | Non-empty canonical set of immutable implementation/provenance refs. |
@@ -263,6 +272,14 @@ evidence being compared must exactly match the Dossier applicability scope.
 Missing, broader, narrower, stale, or cross-version evidence yields
 `UNCERTAINTY_UNRESOLVED`, never an assumed zero covariance.
 
+For score-bearing projection, `HUMAN_INPUT` or
+`BLOCKED_FOR_LIVE_UNTIL_SET` in any required component or per-stratum minimum
+yields `UNCERTAINTY_UNRESOLVED` with no scalar. An exact
+`NOT_APPLICABLE(reason_ref)` remains resolved only where the component schema
+already admits it; omission or inference never creates N/A. The measurement's
+selected policy ref, the Score Pack binding's policy ref, and the canonical ref
+derived from the supplied policy must be exactly equal.
+
 B-05 performs no mechanical combination of uncertainty components unless an
 exact approved policy explicitly defines the combination. It does not infer
 independence from separate processes, separate seeds, separate solvers, or
@@ -313,6 +330,11 @@ resource facts. Forecasts, budgets, receipts, timeouts, or resource ceilings
 cannot satisfy complete-base minimums or coverage predicates on their own.
 Where the resource policy stops before scientific sufficiency, the outcome is
 `EVIDENCE_DEFERRED` with exact provenance and remaining requirement refs.
+
+When a complete build and bound reconstruction replicate coexist in one B-05
+evidence graph, their exact B-02C `construction_plan_ref`, `policy_ref`, and
+`resource_class_ref` must all match. This proves only common construction
+identity; those resource refs still grant no scientific sufficiency.
 
 The exact minimum build count, strata, coverage thresholds, stopping/error
 control, and stability-audit rate are human-reserved. This ticket supplies
@@ -398,6 +420,13 @@ identity and origin
 A resource or infrastructure failure is not a scientific failure. A reference
 failure is not a candidate score. An inapplicable measurement is not a pass or
 failure. A missing soft component is not silently renormalized.
+
+A caller-supplied `COMPLETE` material state cannot override unresolved authored
+authority. A `HUMAN_INPUT` or `BLOCKED_FOR_LIVE_UNTIL_SET` numerical-floor
+binding yields `NUMERICAL_FLOOR_UNRESOLVED`; an unresolved selected uncertainty
+policy, required uncertainty component, or per-stratum minimum yields
+`UNCERTAINTY_UNRESOLVED`. Both outcomes expose no mandatory, soft, or
+diagnostic scalar and select no substitute numeric value.
 
 ## 10. Fixture, qualification, and maturity limits
 

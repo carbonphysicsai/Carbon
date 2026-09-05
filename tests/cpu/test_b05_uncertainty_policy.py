@@ -148,9 +148,6 @@ def policy(
         challenge_key=challenge,
         policy_id="fixture-uncertainty",
         policy_version="1.0",
-        measurement_contract_ref=measurement.MeasurementContractRef(
-            challenge, _DIGEST_B
-        ),
         **{name: unresolved() for name in _COMPONENT_FIELDS},
         stratum_minimum_bindings=(
             measurement.StratumEvidenceMinimumBinding(
@@ -176,10 +173,12 @@ def test_uncertainty_policy_canonical_round_trip_and_pin_are_exact() -> None:
     assert measurement.measurement_ref(value) == measurement.UncertaintyPolicyRef(
         value.challenge_key, measurement.canonical_digest(value)
     )
-    assert len(source) == 2484
+    assert len(source) == 2175
     assert measurement.canonical_digest(value) == (
-        "sha256:1f2d54e924b947265a2ff4b8260233f33364c27e31bb2a19b8c5c135e0393e8f"
+        "sha256:77b76335e5be7256f055675ab1917eddd357d21353ae754fdef61e0d9e90b9d9"
     )
+    assert b'"measurement_contract_ref"' not in source
+    assert value.schema_version == measurement.MEASUREMENT_SCHEMA_VERSION == "1.0"
 
 
 def test_every_scientific_component_remains_explicitly_human_owned() -> None:
@@ -232,7 +231,7 @@ def test_not_applicable_component_requires_an_exact_reason() -> None:
         )
 
 
-def test_cross_challenge_component_and_contract_refs_reject() -> None:
+def test_cross_challenge_component_refs_reject() -> None:
     other = ChallengeKey("other-fixture", "1.0")
     binding = measurement.UncertaintyComponentBinding(
         measurement.ScientificValueState.BOUND,
@@ -244,15 +243,6 @@ def test_cross_challenge_component_and_contract_refs_reject() -> None:
     )
     with pytest.raises(measurement.MeasurementValidationError) as exc_info:
         replace(policy(), estimand_binding=binding)
-    assert exc_info.value.code is measurement.MeasurementInputCode.CROSS_CHALLENGE
-
-    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
-        replace(
-            policy(),
-            measurement_contract_ref=measurement.MeasurementContractRef(
-                other, _DIGEST_A
-            ),
-        )
     assert exc_info.value.code is measurement.MeasurementInputCode.CROSS_CHALLENGE
 
 
@@ -305,9 +295,9 @@ def test_shortcut_binds_exact_evidence_scope_assumption_test_and_dossier() -> No
         item.dossier_qualification_ref.definition_kind
         is measurement.MeasurementDefinitionKind.DOSSIER_QUALIFICATION
     )
-    assert len(measurement.canonical_bytes(value)) == 5437
+    assert len(measurement.canonical_bytes(value)) == 5128
     assert measurement.canonical_digest(value) == (
-        "sha256:3f10f529326fb75a4c24a91b671724d6ac9bcdb112c5900c01c18e78a26008c5"
+        "sha256:af0d5ac207169434715f0793c09cdeb66b88cf9a9a127b7a5fc188908dddf476"
     )
 
 
@@ -380,6 +370,21 @@ def test_uncertainty_policy_loader_rejects_missing_or_unknown_fields() -> None:
     )
     with pytest.raises(measurement.MeasurementCanonicalError):
         measurement.load_canonical_document(malformed)
+
+    payload = json.loads(source[len(measurement.MEASUREMENT_DOCUMENT_HEADER) :])
+    payload["measurement_contract_ref"] = {
+        "canonicalization_profile": "carbon_measurement_canonical_v1",
+        "challenge_key": {"challenge_id": "fixture-burgers", "version": "1.0"},
+        "content_digest": _DIGEST_B,
+        "ref_type": "measurement_contract_ref",
+        "schema_version": "1.0",
+    }
+    obsolete_cycle_payload = (
+        measurement.MEASUREMENT_DOCUMENT_HEADER
+        + json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
+    )
+    with pytest.raises(measurement.MeasurementCanonicalError):
+        measurement.load_canonical_document(obsolete_cycle_payload)
 
 
 def test_uncertainty_public_surface_is_closed_and_has_no_a5_engine() -> None:

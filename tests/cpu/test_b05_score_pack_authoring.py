@@ -198,7 +198,11 @@ def bound(kind: measurement.MeasurementDefinitionKind, object_id: str):
     )
 
 
-def measurement_contract(input_key: str, role: measurement.MeasurementRole):
+def measurement_contract(
+    input_key: str,
+    role: measurement.MeasurementRole,
+    uncertainty_policy_ref: measurement.UncertaintyPolicyRef,
+):
     return measurement.MeasurementContract(
         challenge_key=KEY,
         measurement_id=f"fixture-measurement-{input_key}",
@@ -243,14 +247,19 @@ def measurement_contract(input_key: str, role: measurement.MeasurementRole):
         ),
         reference_policy_ref=ReferencePolicyRef(KEY, DIGEST_B),
         numerical_floor_binding=measurement.ScientificValueBinding(
-            measurement.ScientificValueState.HUMAN_INPUT
+            measurement.ScientificValueState.BOUND,
+            definition(
+                measurement.MeasurementDefinitionKind.SCIENTIFIC_VALUE,
+                f"fixture-synthetic-numerical-floor-{input_key}",
+            ),
         ),
         applicability_policy_ref=definition(
             measurement.MeasurementDefinitionKind.APPLICABILITY_POLICY,
             "fixture-applicability-policy",
         ),
         uncertainty_policy_binding=measurement.UncertaintyPolicyBinding(
-            measurement.ScientificValueState.HUMAN_INPUT
+            measurement.ScientificValueState.BOUND,
+            uncertainty_policy_ref,
         ),
         stratum_applicability=(
             measurement.StratumApplicabilityBinding(
@@ -277,9 +286,7 @@ def measurement_contract(input_key: str, role: measurement.MeasurementRole):
     )
 
 
-def uncertainty_policy(
-    value: measurement.MeasurementContract, input_key: str
-) -> measurement.UncertaintyPolicy:
+def uncertainty_policy(input_key: str) -> measurement.UncertaintyPolicy:
     components = {
         name: bound(kind, f"fixture-{kind.value.casefold().replace('_', '-')}")
         for name, kind in UNCERTAINTY_KINDS.items()
@@ -288,7 +295,6 @@ def uncertainty_policy(
         challenge_key=KEY,
         policy_id=f"fixture-uncertainty-{input_key}",
         policy_version="1.0",
-        measurement_contract_ref=measurement.measurement_ref(value),
         estimand_binding=bound(
             measurement.MeasurementDefinitionKind.ESTIMAND,
             f"fixture-estimand-{input_key}",
@@ -316,6 +322,7 @@ def uncertainty_policy(
 
 
 def fixture_objects():
+    uncertainties = tuple(uncertainty_policy(input_key) for input_key, *_ in EXPECTED)
     measurements = tuple(
         measurement_contract(
             input_key,
@@ -324,12 +331,11 @@ def fixture_objects():
                 measurement.ScoreUseRole.SOFT_COMPONENT: measurement.MeasurementRole.SOFT,
                 measurement.ScoreUseRole.DIAGNOSTIC: measurement.MeasurementRole.DIAGNOSTIC,
             }[use_role],
+            measurement.measurement_ref(uncertainty_value),
         )
-        for input_key, _, use_role, *_ in EXPECTED
-    )
-    uncertainties = tuple(
-        uncertainty_policy(value, input_key)
-        for value, (input_key, *_) in zip(measurements, EXPECTED, strict=True)
+        for uncertainty_value, (input_key, _, use_role, *_) in zip(
+            uncertainties, EXPECTED, strict=True
+        )
     )
     bindings = tuple(
         measurement.ScorePackInputBinding(
@@ -413,6 +419,57 @@ def fixture_objects():
         fixture_origin=True,
     )
     return measurements, uncertainties, authoring
+
+
+def replace_graph_input(
+    measurements,
+    uncertainties,
+    authoring,
+    *,
+    index=0,
+    measurement_changes=None,
+    uncertainty_changes=None,
+):
+    binding = authoring.input_bindings[index]
+    measurement_index = next(
+        item_index
+        for item_index, item in enumerate(measurements)
+        if measurement.measurement_ref(item) == binding.measurement_contract_ref
+    )
+    uncertainty_index = next(
+        item_index
+        for item_index, item in enumerate(uncertainties)
+        if measurement.measurement_ref(item) == binding.uncertainty_policy_ref
+    )
+    changed_uncertainty = replace(
+        uncertainties[uncertainty_index], **(uncertainty_changes or {})
+    )
+    selected_policy = measurement.UncertaintyPolicyBinding(
+        measurement.ScientificValueState.BOUND,
+        measurement.measurement_ref(changed_uncertainty),
+    )
+    changes = {"uncertainty_policy_binding": selected_policy}
+    changes.update(measurement_changes or {})
+    changed_measurement = replace(measurements[measurement_index], **changes)
+    changed_binding = replace(
+        binding,
+        measurement_contract_ref=measurement.measurement_ref(changed_measurement),
+        uncertainty_policy_ref=measurement.measurement_ref(changed_uncertainty),
+    )
+    return (
+        measurements[:measurement_index]
+        + (changed_measurement,)
+        + measurements[measurement_index + 1 :],
+        uncertainties[:uncertainty_index]
+        + (changed_uncertainty,)
+        + uncertainties[uncertainty_index + 1 :],
+        replace(
+            authoring,
+            input_bindings=authoring.input_bindings[:index]
+            + (changed_binding,)
+            + authoring.input_bindings[index + 1 :],
+        ),
+    )
 
 
 def qualification_evidence(
@@ -705,6 +762,290 @@ def test_complete_material_projects_by_mandatory_soft_diagnostic_role() -> None:
         "diagnostic_error"
     ]
     assert "ScoreInput" not in type(result).__name__
+
+
+@pytest.mark.parametrize(
+    "state",
+    (
+        measurement.ScientificValueState.HUMAN_INPUT,
+        measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+    ),
+)
+@pytest.mark.parametrize(
+    "use_role",
+    (
+        measurement.ScoreUseRole.MANDATORY_GATE,
+        measurement.ScoreUseRole.SOFT_COMPONENT,
+        measurement.ScoreUseRole.DIAGNOSTIC,
+    ),
+)
+def test_unresolved_numerical_floor_overrides_complete_material(
+    state, use_role
+) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    index = next(
+        item_index
+        for item_index, item in enumerate(authoring.input_bindings)
+        if item.use_role is use_role
+    )
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        index=index,
+        measurement_changes={
+            "numerical_floor_binding": measurement.ScientificValueBinding(state)
+        },
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    assert (
+        result.outcome
+        is measurement.MeasurementMaterialState.NUMERICAL_FLOOR_UNRESOLVED
+    )
+    assert result.blocking_input_keys == (authoring.input_bindings[index].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+def test_resolved_synthetic_numerical_floor_permits_complete_projection() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    assert all(
+        item.numerical_floor_binding.state is measurement.ScientificValueState.BOUND
+        and item.numerical_floor_binding.value_ref.object_id.startswith(
+            "fixture-synthetic-numerical-floor-"
+        )
+        for item in measurements
+    )
+    assert (
+        measurement.project_score_scalars(
+            authoring,
+            pack(),
+            measurements,
+            uncertainties,
+            materials(authoring, measurements),
+        ).outcome
+        is measurement.MeasurementMaterialState.COMPLETE
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    (
+        measurement.ScientificValueState.HUMAN_INPUT,
+        measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+    ),
+)
+def test_unresolved_measurement_policy_selection_has_no_scalar(state) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        measurement_changes={
+            "uncertainty_policy_binding": measurement.UncertaintyPolicyBinding(state)
+        },
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[0].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+@pytest.mark.parametrize("field_name", tuple(UNCERTAINTY_KINDS))
+@pytest.mark.parametrize(
+    "state",
+    (
+        measurement.ScientificValueState.HUMAN_INPUT,
+        measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+    ),
+)
+def test_every_unresolved_required_uncertainty_component_has_no_scalar(
+    field_name, state
+) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            field_name: measurement.UncertaintyComponentBinding(state)
+        },
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[0].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    (
+        measurement.ScientificValueState.HUMAN_INPUT,
+        measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+    ),
+)
+def test_unresolved_stratum_minimum_has_no_scalar(state) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    minimum = uncertainties[0].stratum_minimum_bindings[0]
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            "stratum_minimum_bindings": (
+                replace(
+                    minimum,
+                    minimum_binding=measurement.UncertaintyComponentBinding(state),
+                ),
+            )
+        },
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    assert result.outcome is measurement.MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+    assert result.blocking_input_keys == (authoring.input_bindings[0].input_key,)
+    assert (
+        result.mandatory_scalars
+        == result.soft_scalars
+        == result.diagnostic_scalars
+        == ()
+    )
+
+
+def test_exact_not_applicable_uncertainty_component_remains_resolved() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    reason = definition(
+        measurement.MeasurementDefinitionKind.APPLICABILITY_REASON,
+        "fixture-execution-dependence-not-applicable",
+    )
+    measurements, uncertainties, authoring = replace_graph_input(
+        measurements,
+        uncertainties,
+        authoring,
+        uncertainty_changes={
+            "execution_dependence_binding": measurement.UncertaintyComponentBinding(
+                measurement.ScientificValueState.NOT_APPLICABLE, reason
+            )
+        },
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        materials(authoring, measurements),
+    )
+    assert result.outcome is measurement.MeasurementMaterialState.COMPLETE
+
+
+def test_bound_measurement_policy_mismatch_rejects() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    binding = authoring.input_bindings[0]
+    measurement_index = next(
+        index
+        for index, item in enumerate(measurements)
+        if measurement.measurement_ref(item) == binding.measurement_contract_ref
+    )
+    mismatched = replace(
+        measurements[measurement_index],
+        uncertainty_policy_binding=measurement.UncertaintyPolicyBinding(
+            measurement.ScientificValueState.BOUND,
+            measurement.UncertaintyPolicyRef(KEY, DIGEST_A),
+        ),
+    )
+    changed_binding = replace(
+        binding,
+        measurement_contract_ref=measurement.measurement_ref(mismatched),
+    )
+    changed_authoring = replace(
+        authoring,
+        input_bindings=(changed_binding,) + authoring.input_bindings[1:],
+    )
+    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
+        measurement.validate_score_pack_coverage(
+            changed_authoring,
+            pack(),
+            measurements[:measurement_index]
+            + (mismatched,)
+            + measurements[measurement_index + 1 :],
+            uncertainties,
+        )
+    assert exc_info.value.code is measurement.MeasurementInputCode.ROLE_CONFUSION
+
+
+def test_bound_policy_ref_without_matching_supplied_policy_rejects() -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    binding = authoring.input_bindings[0]
+    measurement_index = next(
+        index
+        for index, item in enumerate(measurements)
+        if measurement.measurement_ref(item) == binding.measurement_contract_ref
+    )
+    foreign_ref = measurement.UncertaintyPolicyRef(KEY, DIGEST_A)
+    changed_measurement = replace(
+        measurements[measurement_index],
+        uncertainty_policy_binding=measurement.UncertaintyPolicyBinding(
+            measurement.ScientificValueState.BOUND, foreign_ref
+        ),
+    )
+    changed_binding = replace(
+        binding,
+        measurement_contract_ref=measurement.measurement_ref(changed_measurement),
+        uncertainty_policy_ref=foreign_ref,
+    )
+    changed_authoring = replace(
+        authoring,
+        input_bindings=(changed_binding,) + authoring.input_bindings[1:],
+    )
+    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
+        measurement.validate_score_pack_coverage(
+            changed_authoring,
+            pack(),
+            measurements[:measurement_index]
+            + (changed_measurement,)
+            + measurements[measurement_index + 1 :],
+            uncertainties,
+        )
+    assert (
+        exc_info.value.code is measurement.MeasurementInputCode.PACK_COVERAGE_MISMATCH
+    )
 
 
 @pytest.mark.parametrize(

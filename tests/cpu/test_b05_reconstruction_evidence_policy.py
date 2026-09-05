@@ -361,6 +361,46 @@ def test_extension_is_only_established_by_a_bound_reconstruction_replicate() -> 
     )
 
 
+@pytest.mark.parametrize(
+    "mismatched_field",
+    ("construction_plan_ref", "policy_ref", "resource_class_ref"),
+)
+def test_bound_replicate_must_match_complete_build_construction_identity(
+    mismatched_field,
+) -> None:
+    build_identity = _resource_identity()
+    identity_values = {
+        "construction_plan_ref": build_identity.construction_plan_ref,
+        "policy_ref": build_identity.policy_ref,
+        "resource_class_ref": build_identity.resource_class_ref,
+    }
+    replacements = {
+        "construction_plan_ref": replace(
+            build_identity.construction_plan_ref, content_digest=_DIGEST_B
+        ),
+        "policy_ref": replace(build_identity.policy_ref, content_digest=_DIGEST_B),
+        "resource_class_ref": replace(
+            build_identity.resource_class_ref, content_digest=_DIGEST_B
+        ),
+    }
+    identity_values[mismatched_field] = replacements[mismatched_field]
+    replicate = BoundReconstructionReplicate(
+        ReconstructionReplicateIdentity(
+            _KEY,
+            identity_values["construction_plan_ref"],
+            identity_values["policy_ref"],
+            identity_values["resource_class_ref"],
+            "fixture-foreign-replicate",
+            _DIGEST_B,
+        )
+    )
+
+    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
+        resource_facts(build=CompleteBuild(build_identity), replicate=replicate)
+    assert exc_info.value.code is measurement.MeasurementInputCode.ROLE_CONFUSION
+    assert exc_info.value.path.endswith(mismatched_field)
+
+
 def test_frozen_reuse_is_explicit_and_does_not_require_one_build_per_case() -> None:
     value = policy(bound=True)
     build = CompleteBuild(_resource_identity())

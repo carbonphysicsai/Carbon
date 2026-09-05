@@ -443,9 +443,17 @@ def validate_score_pack_coverage(
                 f"/input_bindings/{input_key}/stratum_ref",
                 MeasurementInputCode.MATERIAL_UNRESOLVED,
             )
+        selected_policy = measurement.uncertainty_policy_binding
         if (
-            uncertainty.measurement_contract_ref != binding.measurement_contract_ref
-            or uncertainty.fixture_origin != binding.fixture_origin
+            selected_policy.state is ScientificValueState.BOUND
+            and selected_policy.policy_ref != binding.uncertainty_policy_ref
+        ):
+            raise _invalid(
+                f"/input_bindings/{input_key}/uncertainty_policy_ref",
+                MeasurementInputCode.ROLE_CONFUSION,
+            )
+        if (
+            uncertainty.fixture_origin != binding.fixture_origin
             or uncertainty.measurement_output_binding.state
             is not ScientificValueState.BOUND
             or uncertainty.measurement_output_binding.component_ref
@@ -535,7 +543,65 @@ def project_score_scalars(
             )
         matched.append((binding, material))
 
-    for outcome in _OUTCOME_PRECEDENCE:
+    for outcome in _OUTCOME_PRECEDENCE[:4]:
+        blockers = tuple(
+            binding.input_key
+            for binding, material in matched
+            if material.state is outcome
+        )
+        if blockers:
+            return ScorePackProjection(
+                contract.score_pack_pin, outcome, blockers, (), (), ()
+            )
+
+    measurements_by_ref = {
+        measurement_ref(item): item for item in measurement_contracts
+    }
+    uncertainties_by_ref = {
+        measurement_ref(item): item for item in uncertainty_policies
+    }
+    floor_blockers = tuple(
+        binding.input_key
+        for binding, material in matched
+        if material.state is MeasurementMaterialState.NUMERICAL_FLOOR_UNRESOLVED
+        or measurements_by_ref[
+            binding.measurement_contract_ref
+        ].numerical_floor_binding.state
+        is not ScientificValueState.BOUND
+    )
+    if floor_blockers:
+        return ScorePackProjection(
+            contract.score_pack_pin,
+            MeasurementMaterialState.NUMERICAL_FLOOR_UNRESOLVED,
+            floor_blockers,
+            (),
+            (),
+            (),
+        )
+
+    uncertainty_blockers = tuple(
+        binding.input_key
+        for binding, material in matched
+        if material.state is MeasurementMaterialState.UNCERTAINTY_UNRESOLVED
+        or measurements_by_ref[
+            binding.measurement_contract_ref
+        ].uncertainty_policy_binding.state
+        is not ScientificValueState.BOUND
+        or not uncertainties_by_ref[
+            binding.uncertainty_policy_ref
+        ].has_complete_score_authority
+    )
+    if uncertainty_blockers:
+        return ScorePackProjection(
+            contract.score_pack_pin,
+            MeasurementMaterialState.UNCERTAINTY_UNRESOLVED,
+            uncertainty_blockers,
+            (),
+            (),
+            (),
+        )
+
+    for outcome in _OUTCOME_PRECEDENCE[6:]:
         blockers = tuple(
             binding.input_key
             for binding, material in matched

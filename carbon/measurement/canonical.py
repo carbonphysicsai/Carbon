@@ -739,9 +739,6 @@ def canonical_payload(value: MeasurementAuthoringObject) -> dict[str, object]:
             "joint_reference_uncertainty_binding": _component_to_dict(
                 value.joint_reference_uncertainty_binding
             ),
-            "measurement_contract_ref": _top_ref_to_dict(
-                value.measurement_contract_ref
-            ),
             "measurement_output_binding": _component_to_dict(
                 value.measurement_output_binding
             ),
@@ -1078,7 +1075,6 @@ def _uncertainty_policy_from_dict(fields: Mapping[str, Any]) -> UncertaintyPolic
         "independence_unit_binding",
         "interval_error_control_binding",
         "joint_reference_uncertainty_binding",
-        "measurement_contract_ref",
         "measurement_output_binding",
         "minimum_evidence_binding",
         "multiplicity_policy_binding",
@@ -1101,11 +1097,6 @@ def _uncertainty_policy_from_dict(fields: Mapping[str, Any]) -> UncertaintyPolic
             _challenge_from_dict(fields["challenge_key"], "/challenge_key"),
             fields["policy_id"],
             fields["policy_version"],
-            _top_ref_from_dict(
-                fields["measurement_contract_ref"],
-                MeasurementContractRef,
-                "/measurement_contract_ref",
-            ),
             _component_from_dict(fields["estimand_binding"], "/estimand_binding"),
             _component_from_dict(
                 fields["measurement_output_binding"], "/measurement_output_binding"

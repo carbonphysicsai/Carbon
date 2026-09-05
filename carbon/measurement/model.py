@@ -390,7 +390,6 @@ class UncertaintyPolicy:
     challenge_key: ChallengeKey
     policy_id: str
     policy_version: str
-    measurement_contract_ref: MeasurementContractRef
     estimand_binding: UncertaintyComponentBinding
     measurement_output_binding: UncertaintyComponentBinding
     sampling_unit_binding: UncertaintyComponentBinding
@@ -427,14 +426,6 @@ class UncertaintyPolicy:
             self,
             "policy_version",
             _version(self.policy_version, "/policy_version"),
-        )
-        contract_ref = _exact(
-            self.measurement_contract_ref,
-            MeasurementContractRef,
-            "/measurement_contract_ref",
-        )
-        _same_challenge(
-            contract_ref.challenge_key, challenge_key, "/measurement_contract_ref"
         )
         for name, expected_kind in _UNCERTAINTY_COMPONENT_FIELDS:
             binding = _exact(
@@ -546,6 +537,20 @@ class UncertaintyPolicy:
             or self.canonicalization_profile != MEASUREMENT_CANONICALIZATION_PROFILE
         ):
             raise _invalid("/schema_version")
+
+    @property
+    def has_complete_score_authority(self) -> bool:
+        resolved_states = (
+            ScientificValueState.BOUND,
+            ScientificValueState.NOT_APPLICABLE,
+        )
+        return all(
+            getattr(self, name).state in resolved_states
+            for name, _ in _UNCERTAINTY_COMPONENT_FIELDS
+        ) and all(
+            item.minimum_binding.state in resolved_states
+            for item in self.stratum_minimum_bindings
+        )
 
 
 _RECONSTRUCTION_COMPONENT_FIELDS = (
@@ -732,6 +737,22 @@ class ReconstructionResourceFacts:
             != self.build_completion.build_identity
         ):
             raise _invalid("/frozen_artifact_reuse")
+        if (
+            type(self.build_completion) is CompleteBuild
+            and type(self.reconstruction_replicate) is BoundReconstructionReplicate
+        ):
+            build_identity = self.build_completion.build_identity
+            replicate_identity = self.reconstruction_replicate.replicate_identity
+            for name in (
+                "construction_plan_ref",
+                "policy_ref",
+                "resource_class_ref",
+            ):
+                if getattr(build_identity, name) != getattr(replicate_identity, name):
+                    raise _invalid(
+                        f"/reconstruction_replicate/replicate_identity/{name}",
+                        MeasurementInputCode.ROLE_CONFUSION,
+                    )
 
     def validate_challenge(self, challenge_key: ChallengeKey) -> None:
         facts = (
