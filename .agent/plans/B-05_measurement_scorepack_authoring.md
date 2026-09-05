@@ -1,7 +1,7 @@
 # B-05 plan — measurement contract and Score Pack authoring
 
 **Ticket:** B-05
-**Status:** in progress; working-contract and first-slice phase
+**Status:** in progress; working-contract and third-slice phase
 **Branch:** `agent/b-05-measurement-scorepack`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact base commit:** `f1a429de37290b3c7615ca051661a1d727528f78`
@@ -76,6 +76,12 @@ Implement Challenge/family-scoped complete-base, reuse, nomination,
 extension, promotion, coverage, stability-audit, deferred, and fail-closed
 policy records. Consume only public B-02C resource facts and refs. Do not
 modify B-02C decisions or make receipts scientifically authoritative.
+
+Implemented on the ticket branch as a canonical `ReconstructionEvidencePolicy`
+plus a non-authoritative assessment seam. Every human-owned minimum, coverage,
+stopping, error-control, power, resolvability, and stability-audit input is an
+exact bound ref or explicit unresolved state. Exact B-02C resource facts can
+preserve or defer a scientific stage but cannot establish one by themselves.
 
 ### Slice 4 — Score Pack authoring and projection
 

@@ -26,6 +26,7 @@ from .model import (
     MeasurementContract,
     MeasurementEvidenceItem,
     MeasurementQualificationEvidence,
+    ReconstructionEvidencePolicy,
     ScientificValueBinding,
     StratumApplicabilityBinding,
     StratumEvidenceMinimumBinding,
@@ -38,6 +39,7 @@ from .refs import (
     MeasurementContractRef,
     MeasurementDefinitionRef,
     MeasurementQualificationEvidenceRef,
+    ReconstructionEvidencePolicyRef,
     UncertaintyPolicyRef,
 )
 
@@ -600,6 +602,62 @@ def canonical_payload(value: MeasurementAuthoringObject) -> dict[str, object]:
                 for item in value.stratum_minimum_bindings
             ],
         }
+    if type(value) is ReconstructionEvidencePolicy:
+        return {
+            "audit_selection_policy_binding": _component_to_dict(
+                value.audit_selection_policy_binding
+            ),
+            "build_completeness_criteria_binding": _component_to_dict(
+                value.build_completeness_criteria_binding
+            ),
+            "canonicalization_profile": value.canonicalization_profile,
+            "case_coverage_requirement_binding": _component_to_dict(
+                value.case_coverage_requirement_binding
+            ),
+            "challenge_key": _challenge_to_dict(value.challenge_key),
+            "complete_base_minimum_binding": _component_to_dict(
+                value.complete_base_minimum_binding
+            ),
+            "construction_family_ref": _definition_to_dict(
+                value.construction_family_ref
+            ),
+            "error_control_binding": _component_to_dict(value.error_control_binding),
+            "evidence_extension_rule_binding": _component_to_dict(
+                value.evidence_extension_rule_binding
+            ),
+            "fixture_origin": value.fixture_origin,
+            "frozen_artifact_reuse_policy_binding": _component_to_dict(
+                value.frozen_artifact_reuse_policy_binding
+            ),
+            "minimum_resolvable_improvement_binding": _component_to_dict(
+                value.minimum_resolvable_improvement_binding
+            ),
+            "nomination_criteria_binding": _component_to_dict(
+                value.nomination_criteria_binding
+            ),
+            "policy_id": value.policy_id,
+            "policy_version": value.policy_version,
+            "power_requirement_binding": _component_to_dict(
+                value.power_requirement_binding
+            ),
+            "promotion_criteria_binding": _component_to_dict(
+                value.promotion_criteria_binding
+            ),
+            "record_type": value.RECORD_TYPE,
+            "schema_version": value.schema_version,
+            "scientific_stopping_rule_binding": _component_to_dict(
+                value.scientific_stopping_rule_binding
+            ),
+            "sequential_stopping_rule_binding": _component_to_dict(
+                value.sequential_stopping_rule_binding
+            ),
+            "stability_audit_rate_binding": _component_to_dict(
+                value.stability_audit_rate_binding
+            ),
+            "stratum_coverage_requirement_binding": _component_to_dict(
+                value.stratum_coverage_requirement_binding
+            ),
+        }
     raise _wrong("/record_type", MeasurementInputCode.WRONG_TYPE)
 
 
@@ -629,6 +687,8 @@ def measurement_ref(value: MeasurementAuthoringObject):
         return MeasurementQualificationEvidenceRef(value.challenge_key, digest)
     if type(value) is UncertaintyPolicy:
         return UncertaintyPolicyRef(value.challenge_key, digest)
+    if type(value) is ReconstructionEvidencePolicy:
+        return ReconstructionEvidencePolicyRef(value.challenge_key, digest)
     raise _wrong("/record_type", MeasurementInputCode.WRONG_TYPE)
 
 
@@ -654,6 +714,8 @@ def load_canonical_document(source: object) -> MeasurementAuthoringObject:
         value = _qualification_from_dict(fields)
     elif record_type == UncertaintyPolicy.RECORD_TYPE:
         value = _uncertainty_policy_from_dict(fields)
+    elif record_type == ReconstructionEvidencePolicy.RECORD_TYPE:
+        value = _reconstruction_policy_from_dict(fields)
     else:
         raise _wrong("/record_type", MeasurementInputCode.UNKNOWN_OBJECT)
     if canonical_bytes(value) != source:
@@ -923,6 +985,63 @@ def _uncertainty_policy_from_dict(fields: Mapping[str, Any]) -> UncertaintyPolic
             fields["fixture_origin"],
             fields["schema_version"],
             fields["canonicalization_profile"],
+        )
+    except MeasurementCanonicalError:
+        raise
+    except (AttributeError, TypeError, ValueError):
+        raise _wrong("/", MeasurementInputCode.WRONG_TYPE) from None
+
+
+def _reconstruction_policy_from_dict(
+    fields: Mapping[str, Any],
+) -> ReconstructionEvidencePolicy:
+    component_names = (
+        "audit_selection_policy_binding",
+        "build_completeness_criteria_binding",
+        "case_coverage_requirement_binding",
+        "complete_base_minimum_binding",
+        "error_control_binding",
+        "evidence_extension_rule_binding",
+        "frozen_artifact_reuse_policy_binding",
+        "minimum_resolvable_improvement_binding",
+        "nomination_criteria_binding",
+        "power_requirement_binding",
+        "promotion_criteria_binding",
+        "scientific_stopping_rule_binding",
+        "sequential_stopping_rule_binding",
+        "stability_audit_rate_binding",
+        "stratum_coverage_requirement_binding",
+    )
+    names = {
+        "canonicalization_profile",
+        "challenge_key",
+        "construction_family_ref",
+        "fixture_origin",
+        "policy_id",
+        "policy_version",
+        "record_type",
+        "schema_version",
+        *component_names,
+    }
+    fields = _object(fields, names, "/")
+    try:
+        components = {
+            name: _component_from_dict(fields[name], f"/{name}")
+            for name in component_names
+        }
+        return ReconstructionEvidencePolicy(
+            challenge_key=_challenge_from_dict(
+                fields["challenge_key"], "/challenge_key"
+            ),
+            policy_id=fields["policy_id"],
+            policy_version=fields["policy_version"],
+            construction_family_ref=_definition_from_dict(
+                fields["construction_family_ref"], "/construction_family_ref"
+            ),
+            **components,
+            fixture_origin=fields["fixture_origin"],
+            schema_version=fields["schema_version"],
+            canonicalization_profile=fields["canonicalization_profile"],
         )
     except MeasurementCanonicalError:
         raise

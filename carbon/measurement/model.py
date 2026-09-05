@@ -14,6 +14,22 @@ from carbon.authoring.primitives import (
 )
 from carbon.evaluation.refs import ReferencePolicyRef
 from carbon.registry.model import ChallengeKey
+from carbon.resource_policy.model import (
+    BoundReconstructionReplicate,
+    CompleteBuild,
+    FrozenArtifactReuseWindow,
+    IncompleteBuild,
+    IncompleteReconstructionReplicate,
+    NoBuildStarted,
+    NoReuse,
+    ReplicateNotApplicable,
+    ResourceStopCause,
+)
+from carbon.resource_policy.refs import (
+    FixtureResourceDecisionRef,
+    ObservedResourceReceiptRef,
+    StaticResourceAssessmentRef,
+)
 
 from .enums import (
     MEASUREMENT_EVIDENCE_ROLE_CLAIMS,
@@ -22,6 +38,9 @@ from .enums import (
     MeasurementDefinitionKind,
     MeasurementEvidenceRole,
     MeasurementRole,
+    ReconstructionEvidenceOutcome,
+    ReconstructionEvidenceStage,
+    ReconstructionStopKind,
     ScientificValueState,
     StratumApplicabilityStatus,
 )
@@ -31,6 +50,7 @@ from .refs import (
     MEASUREMENT_SCHEMA_VERSION,
     MeasurementContractRef,
     MeasurementDefinitionRef,
+    ReconstructionEvidencePolicyRef,
     UncertaintyPolicyRef,
 )
 
@@ -520,6 +540,390 @@ class UncertaintyPolicy:
             raise _invalid("/schema_version")
 
 
+_RECONSTRUCTION_COMPONENT_FIELDS = (
+    ("complete_base_minimum_binding", MeasurementDefinitionKind.COMPLETE_BASE_MINIMUM),
+    (
+        "build_completeness_criteria_binding",
+        MeasurementDefinitionKind.BUILD_COMPLETENESS_CRITERIA,
+    ),
+    (
+        "frozen_artifact_reuse_policy_binding",
+        MeasurementDefinitionKind.FROZEN_ARTIFACT_REUSE_POLICY,
+    ),
+    ("nomination_criteria_binding", MeasurementDefinitionKind.NOMINATION_CRITERIA),
+    ("promotion_criteria_binding", MeasurementDefinitionKind.PROMOTION_CRITERIA),
+    (
+        "case_coverage_requirement_binding",
+        MeasurementDefinitionKind.CASE_COVERAGE_REQUIREMENT,
+    ),
+    (
+        "stratum_coverage_requirement_binding",
+        MeasurementDefinitionKind.STRATUM_COVERAGE_REQUIREMENT,
+    ),
+    (
+        "evidence_extension_rule_binding",
+        MeasurementDefinitionKind.EVIDENCE_EXTENSION_RULE,
+    ),
+    ("scientific_stopping_rule_binding", MeasurementDefinitionKind.STOPPING_RULE),
+    ("stability_audit_rate_binding", MeasurementDefinitionKind.STABILITY_AUDIT_RATE),
+    (
+        "audit_selection_policy_binding",
+        MeasurementDefinitionKind.AUDIT_SELECTION_POLICY,
+    ),
+    ("error_control_binding", MeasurementDefinitionKind.INTERVAL_ERROR_CONTROL),
+    ("power_requirement_binding", MeasurementDefinitionKind.POWER_REQUIREMENT),
+    (
+        "minimum_resolvable_improvement_binding",
+        MeasurementDefinitionKind.MINIMUM_RESOLVABLE_IMPROVEMENT,
+    ),
+    (
+        "sequential_stopping_rule_binding",
+        MeasurementDefinitionKind.SEQUENTIAL_STOPPING_RULE,
+    ),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ReconstructionEvidencePolicy:
+    """Challenge/family-bound authorship of scientific evidence sufficiency."""
+
+    challenge_key: ChallengeKey
+    policy_id: str
+    policy_version: str
+    construction_family_ref: MeasurementDefinitionRef
+    complete_base_minimum_binding: UncertaintyComponentBinding
+    build_completeness_criteria_binding: UncertaintyComponentBinding
+    frozen_artifact_reuse_policy_binding: UncertaintyComponentBinding
+    nomination_criteria_binding: UncertaintyComponentBinding
+    promotion_criteria_binding: UncertaintyComponentBinding
+    case_coverage_requirement_binding: UncertaintyComponentBinding
+    stratum_coverage_requirement_binding: UncertaintyComponentBinding
+    evidence_extension_rule_binding: UncertaintyComponentBinding
+    scientific_stopping_rule_binding: UncertaintyComponentBinding
+    stability_audit_rate_binding: UncertaintyComponentBinding
+    audit_selection_policy_binding: UncertaintyComponentBinding
+    error_control_binding: UncertaintyComponentBinding
+    power_requirement_binding: UncertaintyComponentBinding
+    minimum_resolvable_improvement_binding: UncertaintyComponentBinding
+    sequential_stopping_rule_binding: UncertaintyComponentBinding
+    fixture_origin: bool
+    schema_version: str = MEASUREMENT_SCHEMA_VERSION
+    canonicalization_profile: str = MEASUREMENT_CANONICALIZATION_PROFILE
+
+    RECORD_TYPE = "reconstruction_evidence_policy"
+
+    def __post_init__(self) -> None:
+        if type(self) is not ReconstructionEvidencePolicy:
+            raise _invalid("/record_type", MeasurementInputCode.WRONG_TYPE)
+        challenge_key = _challenge(self.challenge_key)
+        object.__setattr__(self, "challenge_key", challenge_key)
+        object.__setattr__(self, "policy_id", _identifier(self.policy_id, "/policy_id"))
+        object.__setattr__(
+            self,
+            "policy_version",
+            _version(self.policy_version, "/policy_version"),
+        )
+        object.__setattr__(
+            self,
+            "construction_family_ref",
+            _definition(
+                self.construction_family_ref,
+                MeasurementDefinitionKind.CONSTRUCTION_FAMILY,
+                challenge_key,
+                "/construction_family_ref",
+            ),
+        )
+        for name, expected_kind in _RECONSTRUCTION_COMPONENT_FIELDS:
+            binding = _exact(
+                getattr(self, name), UncertaintyComponentBinding, f"/{name}"
+            )
+            if binding.state is ScientificValueState.NOT_APPLICABLE:
+                raise _invalid(f"/{name}/state")
+            if binding.component_ref is not None:
+                _same_challenge(
+                    binding.component_ref.challenge_key,
+                    challenge_key,
+                    f"/{name}/component_ref",
+                )
+                if (
+                    binding.state is ScientificValueState.BOUND
+                    and binding.component_ref.definition_kind is not expected_kind
+                ):
+                    raise _invalid(
+                        f"/{name}/component_ref",
+                        MeasurementInputCode.ROLE_CONFUSION,
+                    )
+        object.__setattr__(
+            self, "fixture_origin", _boolean(self.fixture_origin, "/fixture_origin")
+        )
+        if (
+            self.schema_version != MEASUREMENT_SCHEMA_VERSION
+            or self.canonicalization_profile != MEASUREMENT_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
+
+    @property
+    def has_complete_human_authority(self) -> bool:
+        """Whether every mandatory human/qualification-owned component is bound."""
+
+        return all(
+            getattr(self, name).state is ScientificValueState.BOUND
+            for name, _ in _RECONSTRUCTION_COMPONENT_FIELDS
+        )
+
+
+_BUILD_TYPES = (NoBuildStarted, IncompleteBuild, CompleteBuild)
+_REUSE_TYPES = (NoReuse, FrozenArtifactReuseWindow)
+_REPLICATE_TYPES = (
+    ReplicateNotApplicable,
+    IncompleteReconstructionReplicate,
+    BoundReconstructionReplicate,
+)
+
+
+def _resource_challenge(value: object) -> ChallengeKey | None:
+    identity = getattr(value, "build_identity", None)
+    if identity is None:
+        identity = getattr(value, "complete_build_identity", None)
+    if identity is None:
+        identity = getattr(value, "replicate_identity", None)
+    return getattr(identity, "challenge_key", None)
+
+
+@dataclass(frozen=True, slots=True)
+class ReconstructionResourceFacts:
+    """Exact B-02C facts; these fields grant no scientific authority."""
+
+    build_completion: object
+    frozen_artifact_reuse: object
+    reconstruction_replicate: object
+    resource_stop_cause: ResourceStopCause
+    static_assessment_ref: StaticResourceAssessmentRef | None
+    fixture_decision_ref: FixtureResourceDecisionRef | None
+    observed_receipt_ref: ObservedResourceReceiptRef | None
+
+    def __post_init__(self) -> None:
+        if type(self.build_completion) not in _BUILD_TYPES:
+            raise _invalid("/build_completion", MeasurementInputCode.WRONG_TYPE)
+        if type(self.frozen_artifact_reuse) not in _REUSE_TYPES:
+            raise _invalid("/frozen_artifact_reuse", MeasurementInputCode.WRONG_TYPE)
+        if type(self.reconstruction_replicate) not in _REPLICATE_TYPES:
+            raise _invalid("/reconstruction_replicate", MeasurementInputCode.WRONG_TYPE)
+        _exact(self.resource_stop_cause, ResourceStopCause, "/resource_stop_cause")
+        for name, expected in (
+            ("static_assessment_ref", StaticResourceAssessmentRef),
+            ("fixture_decision_ref", FixtureResourceDecisionRef),
+            ("observed_receipt_ref", ObservedResourceReceiptRef),
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                _exact(value, expected, f"/{name}")
+        if type(self.frozen_artifact_reuse) is FrozenArtifactReuseWindow and (
+            type(self.build_completion) is not CompleteBuild
+            or self.frozen_artifact_reuse.complete_build_identity
+            != self.build_completion.build_identity
+        ):
+            raise _invalid("/frozen_artifact_reuse")
+
+    def validate_challenge(self, challenge_key: ChallengeKey) -> None:
+        facts = (
+            self.build_completion,
+            self.frozen_artifact_reuse,
+            self.reconstruction_replicate,
+            self.static_assessment_ref,
+            self.fixture_decision_ref,
+            self.observed_receipt_ref,
+        )
+        for index, value in enumerate(facts):
+            if value is None:
+                continue
+            fact_challenge = getattr(value, "challenge_key", None)
+            if fact_challenge is None:
+                fact_challenge = _resource_challenge(value)
+            if fact_challenge is not None:
+                _same_challenge(
+                    fact_challenge, challenge_key, f"/resource_facts/{index}"
+                )
+
+
+_STAGE_EVIDENCE_FIELDS = (
+    ("complete_base_evidence_ref", MeasurementDefinitionKind.COMPLETE_BASE_EVIDENCE),
+    ("nomination_evidence_ref", MeasurementDefinitionKind.NOMINATION_EVIDENCE),
+    ("extension_evidence_ref", MeasurementDefinitionKind.EXTENSION_EVIDENCE),
+    ("promotion_evidence_ref", MeasurementDefinitionKind.PROMOTION_EVIDENCE),
+)
+
+
+@dataclass(frozen=True, slots=True)
+class ReconstructionEvidenceInput:
+    policy_ref: ReconstructionEvidencePolicyRef
+    construction_family_ref: MeasurementDefinitionRef
+    resource_facts: ReconstructionResourceFacts
+    complete_base_evidence_ref: MeasurementDefinitionRef | None
+    nomination_evidence_ref: MeasurementDefinitionRef | None
+    extension_evidence_ref: MeasurementDefinitionRef | None
+    promotion_evidence_ref: MeasurementDefinitionRef | None
+    remaining_requirement_refs: tuple[MeasurementDefinitionRef, ...]
+    stop_kind: ReconstructionStopKind
+    reconstruction_failure_ref: MeasurementDefinitionRef | None = None
+
+    def __post_init__(self) -> None:
+        policy_ref = _exact(
+            self.policy_ref, ReconstructionEvidencePolicyRef, "/policy_ref"
+        )
+        family_ref = _definition(
+            self.construction_family_ref,
+            MeasurementDefinitionKind.CONSTRUCTION_FAMILY,
+            policy_ref.challenge_key,
+            "/construction_family_ref",
+        )
+        object.__setattr__(self, "construction_family_ref", family_ref)
+        resource_facts = _exact(
+            self.resource_facts, ReconstructionResourceFacts, "/resource_facts"
+        )
+        resource_facts.validate_challenge(policy_ref.challenge_key)
+        for name, kind in _STAGE_EVIDENCE_FIELDS:
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(
+                    self,
+                    name,
+                    _definition(value, kind, policy_ref.challenge_key, f"/{name}"),
+                )
+        if (
+            self.nomination_evidence_ref is not None
+            and self.complete_base_evidence_ref is None
+        ):
+            raise _invalid("/nomination_evidence_ref")
+        if (
+            self.extension_evidence_ref is not None
+            and self.nomination_evidence_ref is None
+        ):
+            raise _invalid("/extension_evidence_ref")
+        if (
+            self.promotion_evidence_ref is not None
+            and self.extension_evidence_ref is None
+        ):
+            raise _invalid("/promotion_evidence_ref")
+        object.__setattr__(
+            self,
+            "remaining_requirement_refs",
+            _definition_tuple(
+                self.remaining_requirement_refs,
+                MeasurementDefinitionKind.REMAINING_EVIDENCE_REQUIREMENT,
+                policy_ref.challenge_key,
+                "/remaining_requirement_refs",
+            ),
+        )
+        _exact(self.stop_kind, ReconstructionStopKind, "/stop_kind")
+        if self.stop_kind is ReconstructionStopKind.RECONSTRUCTION_EXECUTION_FAILURE:
+            if self.reconstruction_failure_ref is None:
+                raise _invalid("/reconstruction_failure_ref")
+            object.__setattr__(
+                self,
+                "reconstruction_failure_ref",
+                _definition(
+                    self.reconstruction_failure_ref,
+                    MeasurementDefinitionKind.RECONSTRUCTION_EXECUTION_FAILURE,
+                    policy_ref.challenge_key,
+                    "/reconstruction_failure_ref",
+                ),
+            )
+        elif self.reconstruction_failure_ref is not None:
+            raise _invalid("/reconstruction_failure_ref")
+
+
+@dataclass(frozen=True, slots=True)
+class ReconstructionEvidenceStatus:
+    stage: ReconstructionEvidenceStage
+    outcome: ReconstructionEvidenceOutcome
+    remaining_requirement_refs: tuple[MeasurementDefinitionRef, ...]
+    resource_receipt_ref: ObservedResourceReceiptRef | None
+
+
+def assess_reconstruction_evidence(
+    policy: ReconstructionEvidencePolicy,
+    evidence: ReconstructionEvidenceInput,
+) -> ReconstructionEvidenceStatus:
+    """Classify fixture evidence without turning resource facts into science."""
+
+    policy = _exact(policy, ReconstructionEvidencePolicy, "/policy")
+    evidence = _exact(evidence, ReconstructionEvidenceInput, "/evidence")
+    from .canonical import measurement_ref
+
+    if evidence.policy_ref != measurement_ref(policy):
+        raise _invalid("/policy_ref", MeasurementInputCode.DIGEST_MISMATCH)
+    if evidence.construction_family_ref != policy.construction_family_ref:
+        raise _invalid("/construction_family_ref", MeasurementInputCode.ROLE_CONFUSION)
+
+    complete_build = type(evidence.resource_facts.build_completion) is CompleteBuild
+    base_complete = complete_build and evidence.complete_base_evidence_ref is not None
+    stage = ReconstructionEvidenceStage.BASE_REQUIRED
+    if base_complete:
+        stage = ReconstructionEvidenceStage.BASE_COMPLETE
+        if evidence.nomination_evidence_ref is not None:
+            stage = ReconstructionEvidenceStage.NOMINATED
+            if evidence.extension_evidence_ref is not None:
+                stage = ReconstructionEvidenceStage.EXTENDED
+                if (
+                    evidence.promotion_evidence_ref is not None
+                    and type(evidence.resource_facts.reconstruction_replicate)
+                    is BoundReconstructionReplicate
+                ):
+                    stage = ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
+
+    status_args = (
+        stage,
+        evidence.remaining_requirement_refs,
+        evidence.resource_facts.observed_receipt_ref,
+    )
+    if (
+        evidence.resource_facts.resource_stop_cause
+        is ResourceStopCause.INFRASTRUCTURE_FAILURE
+    ):
+        return ReconstructionEvidenceStatus(
+            status_args[0],
+            ReconstructionEvidenceOutcome.INFRASTRUCTURE_FAILURE,
+            *status_args[1:],
+        )
+    if evidence.stop_kind is ReconstructionStopKind.RECONSTRUCTION_EXECUTION_FAILURE:
+        return ReconstructionEvidenceStatus(
+            status_args[0],
+            ReconstructionEvidenceOutcome.RECONSTRUCTION_FAILURE,
+            *status_args[1:],
+        )
+    if (
+        evidence.stop_kind is ReconstructionStopKind.SCIENTIFIC_EVIDENCE_EXHAUSTED
+        and base_complete
+        and policy.has_complete_human_authority
+    ):
+        return ReconstructionEvidenceStatus(
+            status_args[0],
+            ReconstructionEvidenceOutcome.INDETERMINATE_INSUFFICIENT_EVIDENCE,
+            *status_args[1:],
+        )
+    non_scientific_resource_stop = (
+        evidence.resource_facts.resource_stop_cause
+        is not ResourceStopCause.COMPLETED_RESOURCE_ACCOUNTING
+    )
+    if (
+        not policy.has_complete_human_authority
+        or not base_complete
+        or evidence.stop_kind is ReconstructionStopKind.HEURISTIC_FUTILITY
+        or non_scientific_resource_stop
+    ):
+        return ReconstructionEvidenceStatus(
+            status_args[0],
+            ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+            *status_args[1:],
+        )
+    return ReconstructionEvidenceStatus(
+        status_args[0],
+        ReconstructionEvidenceOutcome.STAGE_ESTABLISHED,
+        *status_args[1:],
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class StratumApplicabilityBinding:
     stratum_ref: MeasurementDefinitionRef
@@ -880,7 +1284,10 @@ class MeasurementQualificationEvidence:
 
 
 MeasurementAuthoringObject = (
-    MeasurementContract | MeasurementQualificationEvidence | UncertaintyPolicy
+    MeasurementContract
+    | MeasurementQualificationEvidence
+    | UncertaintyPolicy
+    | ReconstructionEvidencePolicy
 )
 
 
@@ -890,10 +1297,15 @@ __all__ = (
     "MeasurementContract",
     "MeasurementEvidenceItem",
     "MeasurementQualificationEvidence",
+    "ReconstructionEvidenceInput",
+    "ReconstructionEvidencePolicy",
+    "ReconstructionEvidenceStatus",
+    "ReconstructionResourceFacts",
     "ScientificValueBinding",
     "StratumApplicabilityBinding",
     "StratumEvidenceMinimumBinding",
     "UncertaintyComponentBinding",
     "UncertaintyPolicy",
     "UncertaintyPolicyBinding",
+    "assess_reconstruction_evidence",
 )

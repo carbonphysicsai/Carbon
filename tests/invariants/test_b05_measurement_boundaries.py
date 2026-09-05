@@ -42,9 +42,8 @@ def test_completed_upstream_packages_do_not_import_measurement() -> None:
             ), path
 
 
-def test_first_slice_has_no_resource_scoring_or_later_ticket_import() -> None:
+def test_measurement_has_only_the_authorized_b02c_resource_fact_imports() -> None:
     forbidden = (
-        "carbon.resource_policy",
         "carbon.scoring",
         "carbon.qualification",
         "carbon.mcp",
@@ -56,6 +55,19 @@ def test_first_slice_has_no_resource_scoring_or_later_ticket_import() -> None:
                 for prefix in forbidden
             ), (path, module)
 
+    allowed_resource_imports = {
+        "carbon.resource_policy.model",
+        "carbon.resource_policy.refs",
+    }
+    for path in MEASUREMENT_ROOT.rglob("*.py"):
+        resource_imports = {
+            module
+            for module in imported_modules(path)
+            if module == "carbon.resource_policy"
+            or module.startswith("carbon.resource_policy.")
+        }
+        assert resource_imports <= allowed_resource_imports, (path, resource_imports)
+
 
 def test_public_surface_exposes_no_a5_constructor_or_engine() -> None:
     assert "ScoreInput" not in measurement.__all__
@@ -63,6 +75,22 @@ def test_public_surface_exposes_no_a5_constructor_or_engine() -> None:
     assert "LoadedScorePack" not in measurement.__all__
     assert not hasattr(measurement, "ScoreInput")
     assert not hasattr(measurement, "ScoreEngine")
+
+
+def test_reconstruction_policy_exposes_no_later_ticket_authority() -> None:
+    forbidden = {
+        "CoverageHarness",
+        "DossierQualification",
+        "FrontierPromotionEvent",
+        "ScoreInput",
+        "TreasurySettlement",
+    }
+    assert forbidden.isdisjoint(measurement.__all__)
+    for field in measurement.ReconstructionEvidencePolicy.__dataclass_fields__:
+        assert not any(
+            token in field
+            for token in ("bittensor", "commercial", "frontier", "network", "treasury")
+        )
 
 
 def test_measurement_refs_are_protected_and_nonpickleable() -> None:

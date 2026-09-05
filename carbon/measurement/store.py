@@ -8,6 +8,7 @@ from .model import (
     MeasurementAuthoringObject,
     MeasurementContract,
     MeasurementQualificationEvidence,
+    ReconstructionEvidencePolicy,
     UncertaintyPolicy,
 )
 from .refs import MeasurementTopLevelRef, reconstruct_measurement_ref
@@ -25,6 +26,7 @@ class MeasurementFixtureStore:
         if type(value) not in (
             MeasurementContract,
             MeasurementQualificationEvidence,
+            ReconstructionEvidencePolicy,
             UncertaintyPolicy,
         ):
             raise MeasurementStoreError(MeasurementInputCode.WRONG_TYPE, path="/")
