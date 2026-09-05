@@ -491,6 +491,25 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E6"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-06-D0 records the owner-directed transition from merged PR #87 without declaring B-05's ordinary delivery predicate complete, and the first bounded B-06 slice implements exact Challenge-bound D1-D12 evidence/signature identities and deterministic Dossier serialization while qualification remains unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/carbon/qualification/__init__.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E7"
     }
   ]
 }

@@ -89,17 +89,18 @@
       "title": "Decide how the exam measures a model",
       "what": "Define the rules that turn reference answers and model outputs into scientific measurements and a final evaluation result.",
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
-      "changes": "The active branch now has exact acyclic measurement/uncertainty identity, construction-matched reconstruction evidence, fail-closed floor and uncertainty checks, Score Pack authoring/projection bindings, and a complete synthetic non-LIVE fixture graph.",
+      "changes": "PR #87 merged the repaired measurement tree, which the owner accepts as the B-06 dependency under a narrow sequencing exception.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Active from PR #86's receipt. The five-slice conditional candidate now includes the B-05-D7 semantic review repair. Fresh exact-head CI and complete-diff rereview remain pending, and no real scientific value is selected.",
+      "current_stage_plain": "Merged and owner-accepted as the B-06 dependency, while B-05 remains in progress because its ordinary delivery record is not declared complete. No B-05 review loop is active.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {
       "title": "Assemble the evidence needed to decide whether an exam is qualified",
       "what": "Create one auditable package that brings together evidence about case generation, reference truth, measurements, uncertainty, attacks, coverage, and limitations.",
       "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
-      "changes": "Carbon gains an explicit evidence package and a fail-closed qualification state.",
-      "not_yet": "A populated template or fixture evidence does not make an exam live or scientifically qualified.",
+      "changes": "The first bounded slice adds exact D1-D12 identities, typed evidence and signer references, version history, fixture tracking, and deterministic Dossier serialization.",
+      "not_yet": "A populated template, PASS label, signer name, signature, or fixture does not prove authorization, scientific qualification, or LIVE readiness.",
+      "current_stage_plain": "B-06 is active under the owner-directed transition. The first structural Dossier slice is implemented and natively tested; typed evidence manifests and cross-section completeness are next.",
       "map_ref": "WAVE-B/B-06"
     },
     "B-07R": {

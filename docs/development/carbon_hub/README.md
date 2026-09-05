@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 24 map-level change events
+- 25 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-05** (`in_progress`). PR #86 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded slices now form a conditional delivery candidate, now including the B-05-D7 exact-identity and scalar-authority review repair: uncertainty identity is acyclic, reconstruction facts share exact construction identity, and unresolved floor or uncertainty authority exposes no scalar. Fresh exact-head CI and complete-diff rereview remain pending; no scientific, production, or LIVE authority is earned.
+Wave **B**, ticket **B-06** (`in_progress`). Selected under B-06-D0 from exact merged main 2500e510 and tree 89763523. Slice 1 implements the D1-D12 structural identity/evidence/signature foundation with focused native tests; Slice 2 typed evidence manifests and cross-section completeness are next.
 
 ## Maintain
 
