@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-05T05:48:46Z"
+  captured_at_utc: "2026-09-05T08:28:37Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "64f8fad28e484dc73bd5c0eaef3193ff93de2c17"
+  authority_snapshot_commit: "268c1f375e175791b81e45dc929b7575f984e239"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -447,7 +447,7 @@ current:
   controlling_register: ".agent/WAVE_B.md"
   controlling_register_version: "1.8"
   controlling_board_fingerprint: "94ae276cb24500dbe522a16c5666e4322b9c331b763187579b2ab6ada4070c65"
-  stage: "PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending."
+  stage: "PR #86 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; the repaired exact-ticket HoH binding preserves the unchanged requirements and identity boundary. Final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -2082,6 +2082,22 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/MATURITY"
     supersedes: "B-05-E4"
+  -
+    map_ref: "WAVE-B/B-05"
+    event_type: "evidence"
+    event_id: "B-05-E6"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-05 restores all eleven authoritative ticket requirements to their unchanged unchecked form, corrects the exact B-01H activation receipt identities, and rebinds the HoH pilot manifest to the corrected ticket without weakening identity checks, changing scientific meaning, or advancing maturity."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/268c1f375e175791b81e45dc929b7575f984e239/agent_pack/executors/hoh/manifests/b05.requirements.v1.json"
+    affects:
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-05-E5"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

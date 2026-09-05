@@ -453,6 +453,24 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E4"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E6",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 restores all eleven authoritative ticket requirements to their unchanged unchecked form, corrects the exact B-01H activation receipt identities, and rebinds the HoH pilot manifest to the corrected ticket without weakening identity checks, changing scientific meaning, or advancing maturity.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/268c1f375e175791b81e45dc929b7575f984e239/agent_pack/executors/hoh/manifests/b05.requirements.v1.json",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E5"
     }
   ]
 }

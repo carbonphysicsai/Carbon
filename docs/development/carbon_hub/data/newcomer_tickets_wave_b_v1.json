@@ -91,7 +91,7 @@
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
       "changes": "The active branch now has exact measurement/evidence identity, dependence-aware uncertainty, reconstruction-evidence policy, Score Pack authoring/projection bindings, and a complete synthetic non-LIVE fixture graph whose real scientific inputs remain unresolved.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Active from PR #78's receipt. Five bounded slices now form a conditional delivery candidate on the ticket branch, including the complete synthetic non-LIVE fixture graph. Final review and merge remain pending, and no real scientific value is selected.",
+      "current_stage_plain": "Active from PR #86's receipt. Five bounded slices now form a conditional delivery candidate on the ticket branch, and the repaired exact-ticket HoH binding preserves the unchanged requirements and identity boundary. Final review and merge remain pending, and no real scientific value is selected.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {
