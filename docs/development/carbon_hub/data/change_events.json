@@ -414,6 +414,25 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-05-E2"
+    },
+    {
+      "map_ref": "WAVE-B/B-05",
+      "event_type": "evidence",
+      "event_id": "B-05-E4",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-05 now has a fourth bounded slice implementing exact content-addressed Score Pack authoring, complete ready-pack key coverage, closed measurement-material outcomes, mandatory-first scalar projection, and structural rejection of role-confused or forbidden sources while A5 remains unchanged.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/carbon/measurement/projection.py",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-05-E3"
     }
   ]
 }

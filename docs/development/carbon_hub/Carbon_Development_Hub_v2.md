@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `c638e2139cdf5a5eb057161dcea72aaaeb31e2ec` on `main`, captured 2026-09-05T04:36:17Z.
-**Current:** Wave B, ticket B-05. PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract and first three bounded slices now cover measurement/evidence identity, dependence-aware uncertainty, and reconstruction-evidence policy; Score Pack binding remains pending.
+**Authority snapshot:** `0aceb92fb05469d5654a9e2447a063eb3d68c38c` on `main`, captured 2026-09-05T05:15:49Z.
+**Current:** Wave B, ticket B-05. PR #78 comment 5548725328 selected B-05 from exact main f1a429de. Its working contract and first four bounded slices now cover measurement/evidence identity, dependence-aware uncertainty, reconstruction-evidence policy, and exact Score Pack authoring/projection bindings; fixture composition and mature-candidate review remain pending.
 
 ## Wave spine
 
@@ -103,6 +103,7 @@
 - `B-05-E1` — `WAVE-B/B-05` — PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.
 - `B-05-E2` — `WAVE-B/B-05` — B-05 now has a second bounded slice implementing exact unresolved uncertainty components, per-stratum minima, and dependence shortcuts bound to exact incumbent/challenger evidence, case/stratum scope, assumptions, applicability tests, and B-06 Dossier qualification refs; it infers no independence and selects no real scientific value.
 - `B-05-E3` — `WAVE-B/B-05` — B-05 now has a third bounded slice implementing exact Challenge/family-bound reconstruction-evidence policy, explicit human-owned sufficiency controls, distinct base/nomination/extension/promotion stages, and fail-closed separation from B-02C resource facts.
+- `B-05-E4` — `WAVE-B/B-05` — B-05 now has a fourth bounded slice implementing exact content-addressed Score Pack authoring, complete ready-pack key coverage, closed measurement-material outcomes, mandatory-first scalar projection, and structural rejection of role-confused or forbidden sources while A5 remains unchanged.
 
 ## Authority boundary
 

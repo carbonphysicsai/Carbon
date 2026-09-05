@@ -88,9 +88,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn(
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
-        self.assertIn(
-            "Score Pack binding remains pending", self.output
-        )
+        self.assertIn("fixture composition and mature-candidate review remain pending", self.output)
         self.assertIn("no real scientific value is selected", self.output)
 
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:
