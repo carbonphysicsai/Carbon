@@ -901,6 +901,7 @@ def assess_reconstruction_evidence(
                 if (
                     evidence.promotion_evidence_ref is not None
                     and not evidence.remaining_requirement_refs
+                    and policy.has_complete_human_authority
                 ):
                     stage = ReconstructionEvidenceStage.PROMOTION_ELIGIBLE
 

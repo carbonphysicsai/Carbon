@@ -234,6 +234,28 @@ def evidence_input(
     )
 
 
+def promotion_resource_facts(
+    *,
+    stop: ResourceStopCause = ResourceStopCause.COMPLETED_RESOURCE_ACCOUNTING,
+    receipt: ObservedResourceReceiptRef | None = None,
+) -> measurement.ReconstructionResourceFacts:
+    build_identity = _resource_identity()
+    return resource_facts(
+        replicate=BoundReconstructionReplicate(
+            ReconstructionReplicateIdentity(
+                _KEY,
+                build_identity.construction_plan_ref,
+                build_identity.policy_ref,
+                build_identity.resource_class_ref,
+                "fixture-promotion-authority-replicate",
+                _DIGEST_B,
+            )
+        ),
+        stop=stop,
+        receipt=receipt,
+    )
+
+
 def test_policy_is_challenge_family_bound_canonical_and_content_addressed() -> None:
     value = policy()
     source = measurement.canonical_bytes(value)
@@ -289,6 +311,185 @@ def test_missing_stability_stopping_or_error_authority_fails_closed(field_name) 
         value, evidence_input(value, base=True)
     )
     assert status.outcome is measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED
+
+
+def test_required_component_inventory_covers_current_policy_contract() -> None:
+    metadata_fields = {
+        "challenge_key",
+        "policy_id",
+        "policy_version",
+        "construction_family_ref",
+        "fixture_origin",
+        "schema_version",
+        "canonicalization_profile",
+    }
+    assert set(_COMPONENTS) == (
+        set(measurement.ReconstructionEvidencePolicy.__dataclass_fields__)
+        - metadata_fields
+    )
+
+
+@pytest.mark.parametrize("field_name", tuple(_COMPONENTS))
+@pytest.mark.parametrize(
+    "state",
+    (
+        measurement.ScientificValueState.HUMAN_INPUT,
+        measurement.ScientificValueState.BLOCKED_FOR_LIVE_UNTIL_SET,
+    ),
+)
+def test_each_unresolved_policy_component_blocks_promotion_readiness(
+    field_name,
+    state,
+) -> None:
+    value = replace(
+        policy(bound=True),
+        **{field_name: measurement.UncertaintyComponentBinding(state)},
+    )
+    receipt = ObservedResourceReceiptRef(_KEY, content_digest=_DIGEST_B)
+    evidence = evidence_input(
+        value,
+        facts=promotion_resource_facts(receipt=receipt),
+        base=True,
+        nominated=True,
+        extended=True,
+        promoted=True,
+        remaining_requirement_count=0,
+    )
+
+    assert not value.has_complete_human_authority
+    assert evidence.policy_ref == measurement.measurement_ref(value)
+    status = measurement.assess_reconstruction_evidence(value, evidence)
+    assert status.stage is measurement.ReconstructionEvidenceStage.EXTENDED
+    assert status.outcome is measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED
+    assert status.remaining_requirement_refs == evidence.remaining_requirement_refs
+    assert status.resource_receipt_ref == receipt
+
+
+@pytest.mark.parametrize(
+    (
+        "bound",
+        "promoted",
+        "remaining_requirement_count",
+        "expected_stage",
+        "expected_outcome",
+    ),
+    (
+        (
+            True,
+            True,
+            0,
+            measurement.ReconstructionEvidenceStage.PROMOTION_ELIGIBLE,
+            measurement.ReconstructionEvidenceOutcome.STAGE_ESTABLISHED,
+        ),
+        (
+            False,
+            True,
+            0,
+            measurement.ReconstructionEvidenceStage.EXTENDED,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+        (
+            True,
+            True,
+            1,
+            measurement.ReconstructionEvidenceStage.EXTENDED,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+        (
+            False,
+            True,
+            1,
+            measurement.ReconstructionEvidenceStage.EXTENDED,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+        (
+            True,
+            False,
+            0,
+            measurement.ReconstructionEvidenceStage.EXTENDED,
+            measurement.ReconstructionEvidenceOutcome.STAGE_ESTABLISHED,
+        ),
+    ),
+)
+def test_promotion_requires_joint_evidence_requirements_and_policy_authority(
+    bound,
+    promoted,
+    remaining_requirement_count,
+    expected_stage,
+    expected_outcome,
+) -> None:
+    value = policy(bound=bound)
+    evidence = evidence_input(
+        value,
+        facts=promotion_resource_facts(),
+        base=True,
+        nominated=True,
+        extended=True,
+        promoted=promoted,
+        remaining_requirement_count=remaining_requirement_count,
+    )
+
+    status = measurement.assess_reconstruction_evidence(value, evidence)
+
+    assert status.stage is expected_stage
+    assert status.outcome is expected_outcome
+    assert status.remaining_requirement_refs == evidence.remaining_requirement_refs
+
+
+@pytest.mark.parametrize(
+    ("resource_stop", "stop_kind", "expected_outcome"),
+    (
+        (
+            ResourceStopCause.INFRASTRUCTURE_FAILURE,
+            measurement.ReconstructionStopKind.NONE,
+            measurement.ReconstructionEvidenceOutcome.INFRASTRUCTURE_FAILURE,
+        ),
+        (
+            ResourceStopCause.COMPLETED_RESOURCE_ACCOUNTING,
+            measurement.ReconstructionStopKind.RECONSTRUCTION_EXECUTION_FAILURE,
+            measurement.ReconstructionEvidenceOutcome.RECONSTRUCTION_FAILURE,
+        ),
+        (
+            ResourceStopCause.COMPLETED_RESOURCE_ACCOUNTING,
+            measurement.ReconstructionStopKind.SCIENTIFIC_EVIDENCE_EXHAUSTED,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+        (
+            ResourceStopCause.COMPLETED_RESOURCE_ACCOUNTING,
+            measurement.ReconstructionStopKind.HEURISTIC_FUTILITY,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+        (
+            ResourceStopCause.POLICY_LIMIT_REACHED,
+            measurement.ReconstructionStopKind.NONE,
+            measurement.ReconstructionEvidenceOutcome.EVIDENCE_DEFERRED,
+        ),
+    ),
+)
+def test_unresolved_policy_full_evidence_preserves_failure_precedence_without_promotion(
+    resource_stop,
+    stop_kind,
+    expected_outcome,
+) -> None:
+    value = policy()
+    receipt = ObservedResourceReceiptRef(_KEY, content_digest=_DIGEST_B)
+    evidence = evidence_input(
+        value,
+        facts=promotion_resource_facts(stop=resource_stop, receipt=receipt),
+        base=True,
+        nominated=True,
+        extended=True,
+        promoted=True,
+        remaining_requirement_count=0,
+        stop_kind=stop_kind,
+    )
+
+    status = measurement.assess_reconstruction_evidence(value, evidence)
+
+    assert status.stage is measurement.ReconstructionEvidenceStage.EXTENDED
+    assert status.outcome is expected_outcome
+    assert status.remaining_requirement_refs == ()
+    assert status.resource_receipt_ref == receipt
 
 
 def test_complete_base_nomination_extension_and_promotion_are_distinct() -> None:
