@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 
 from carbon import measurement
-from tests.cpu.test_b05_measurement_contract import contract
+from carbon.registry import ChallengeKey
+
+pytestmark = pytest.mark.invariant
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 MEASUREMENT_ROOT = REPOSITORY_ROOT / "carbon" / "measurement"
@@ -30,7 +32,6 @@ def imported_modules(path: Path) -> set[str]:
     return result
 
 
-@pytest.mark.invariant
 def test_completed_upstream_packages_do_not_import_measurement() -> None:
     for root in UPSTREAM_ROOTS:
         for path in root.rglob("*.py"):
@@ -41,7 +42,6 @@ def test_completed_upstream_packages_do_not_import_measurement() -> None:
             ), path
 
 
-@pytest.mark.invariant
 def test_first_slice_has_no_resource_scoring_or_later_ticket_import() -> None:
     forbidden = (
         "carbon.resource_policy",
@@ -57,7 +57,6 @@ def test_first_slice_has_no_resource_scoring_or_later_ticket_import() -> None:
             ), (path, module)
 
 
-@pytest.mark.invariant
 def test_public_surface_exposes_no_a5_constructor_or_engine() -> None:
     assert "ScoreInput" not in measurement.__all__
     assert "ScoreEngine" not in measurement.__all__
@@ -66,10 +65,19 @@ def test_public_surface_exposes_no_a5_constructor_or_engine() -> None:
     assert not hasattr(measurement, "ScoreEngine")
 
 
-@pytest.mark.invariant
 def test_measurement_refs_are_protected_and_nonpickleable() -> None:
-    value = contract()
-    refs = (value.unit_ref, measurement.measurement_ref(value))
+    challenge = ChallengeKey("fixture-burgers", "1.0")
+    digest = "sha256:" + "a" * 64
+    refs = (
+        measurement.MeasurementDefinitionRef(
+            challenge,
+            measurement.MeasurementDefinitionKind.UNIT,
+            "synthetic-unit",
+            "1.0",
+            digest,
+        ),
+        measurement.MeasurementContractRef(challenge, digest),
+    )
     for ref in refs:
         assert "fixture-burgers" not in repr(ref)
         assert "fixture-burgers" not in str(ref)

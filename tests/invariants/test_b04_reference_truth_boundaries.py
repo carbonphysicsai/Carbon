@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 pytestmark = pytest.mark.invariant
 
@@ -199,26 +199,12 @@ def _allowed_carbon_dependency(module_name: str) -> bool:
     )
 
 
-def _imports_evaluation(path: Path) -> tuple[int, ...]:
-    lines: list[int] = []
-    for node in ast.walk(_parse(path)):
-        if isinstance(node, ast.Import):
-            if any(
-                alias.name == "carbon.evaluation"
-                or alias.name.startswith("carbon.evaluation.")
-                for alias in node.names
-            ):
-                lines.append(node.lineno)
-        elif isinstance(node, ast.ImportFrom):
-            base = _from_module(path, node)
-            if (
-                base == "carbon.evaluation"
-                or base.startswith("carbon.evaluation.")
-                or base == "carbon"
-                and any(alias.name == "evaluation" for alias in node.names)
-            ):
-                lines.append(node.lineno)
-    return tuple(lines)
+def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
+    """Permit only B-05's ratified public reference seam."""
+    return (
+        path.is_relative_to(_CARBON_ROOT / "measurement")
+        and module_name == "carbon.evaluation.refs"
+    )
 
 
 def _matches_namespace(module_name: str, namespaces: tuple[str, ...]) -> bool:
@@ -260,14 +246,15 @@ def test_evaluation_has_only_ratified_direct_carbon_dependencies() -> None:
     assert violations == []
 
 
-def test_existing_carbon_packages_do_not_reverse_import_evaluation() -> None:
-    violations: list[str] = []
-    for path in _python_files(_CARBON_ROOT):
-        if _EVALUATION_ROOT in path.parents:
-            continue
-        violations.extend(
-            f"{_relative(path)}:{line}" for line in _imports_evaluation(path)
-        )
+def test_only_measurement_may_import_exact_public_evaluation_refs() -> None:
+    violations = [
+        f"{_relative(path)}:{line}: {module_name}"
+        for path in _python_files(_CARBON_ROOT)
+        if _EVALUATION_ROOT not in path.parents
+        for module_name, line in _direct_import_modules(path)
+        if _matches_namespace(module_name, ("carbon.evaluation",))
+        and not _is_allowed_evaluation_consumer(path, module_name)
+    ]
     assert violations == []
 
 
