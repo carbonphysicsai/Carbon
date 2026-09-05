@@ -1,5 +1,194 @@
 # Agent decisions log
 
+## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
+
+**Problem.** B-05 must own measurement and Score Pack authoring semantics
+without widening B-02A's closed authoring schema, confusing B-04 truth
+authority, transferring B-02C resource facts into scientific sufficiency, or
+turning A5 into a measurement engine.
+
+**Recommendation.** Add a standard-library-only `carbon.measurement` package
+with schema `1.0`, canonical profile `carbon_measurement_canonical_v1`, its own
+domain header and nominal refs, and one-way imports from public upstream value
+types. Keep `carbon.scoring` byte-for-byte unchanged: B-05 will later bind
+qualified measurement outputs to an exact `ScorePackPin` and declared scalar
+keys but will not construct `ScoreInput` or call `ScoreEngine`.
+
+**Alternatives rejected.** Extending `carbon.authoring` would reopen a completed
+closed schema and mix generic Challenge definition with measurement policy.
+Adding fields to A5 would violate its ratified closed schema and executor-only
+role. Placing B-05 under `carbon.evaluation` would collapse measurement into
+reference/truth ownership. An untyped adapter module would lose independent
+identity, canonical history, and role checks.
+
+**Interfaces, impact, and reversibility.** The first slice changes
+`.agent/CODE_AUTHORITY.toml`, adds `carbon/measurement`, package/authority
+tests, and the B-05 contract. B-06, B-07F, B-07A/C, and B-E1 consume nominal
+refs later. Reversal is a bounded namespace/canonical-profile migration before
+downstream persisted objects exist; after persistence, it requires explicit
+versioned migration. A lead can supersede this decision in this heading, the
+working contract §§2–3, plan §2, code-authority root, package, and tests.
+
+**Human-reserved input.** None is selected. Package placement and byte-shape
+mechanics are delegated engineering decisions; every real scientific value
+remains unavailable.
+
+## 2026-09-05 — B-05-D2: Separate measurement definition from an explicit evidence-role/claim matrix
+
+**Problem.** A successful implementation-verification exercise can be
+mistaken for evidence that a physical model is valid or suitable for customer
+workloads. Free-form evidence descriptions cannot enforce that boundary.
+
+**Recommendation.** Make `MeasurementContract` an immutable definition of a
+scientific property and recipe, separate from
+`MeasurementQualificationEvidence`. Each evidence item has exactly one closed
+role, explicit supported and unsupported claim-class sets, exact scope and
+provenance. Enforce a closed compatibility matrix. Analytic/manufactured,
+refinement, witness, and limiting-case evidence cannot support
+`PHYSICAL_MODEL_VALIDITY`, `TARGET_WORKLOAD_APPLICABILITY`, or
+`ENGINEERING_CONTEXT_OF_USE`; only separately identified
+experimental/industrial validation may be eligible to support those classes.
+Eligibility is not qualification—B-06 owns the positive decision.
+
+**Alternatives rejected.** A free-text caveat is not machine enforceable.
+Treating any B-04 truth or solver agreement as physical validation transfers
+authority it does not possess. Embedding evidence in the measurement identity
+would force a new scientific definition whenever evidence accumulates and
+would erase historical distinction between definition and qualification.
+
+**Interfaces, impact, and reversibility.** The decision fixes the v1 evidence
+role and claim-class enums, compatibility matrix, explicit negative claims,
+and separate top-level refs in contract §§4–5 and the first implementation
+slice. B-06 consumes the inventory and issues any qualification; B-E1 tests
+coverage behavior. A semantic change requires a new schema/profile and updates
+to the same contract, models, canonical registry, fixtures, and tests.
+
+**Human-reserved input.** Source adequacy, evidence sufficiency, applicability,
+and qualification outcomes remain human/B-06-owned. The matrix only prevents
+known invalid authority transfer.
+
+## 2026-09-05 — B-05-D3: Author exact A5 input use and preserve mandatory admissibility before aggregation
+
+**Problem.** A5 deliberately accepts only validator-authorized finite scalar
+inputs. B-05 must define where those scalars come from without allowing raw
+predictions, self-reported metrics, diagnostics, or non-scientific fields to
+enter a score.
+
+**Recommendation.** Define a separate `ScorePackAuthoringContract` that covers
+exactly one ready A5 pack's input keys. Each binding names one qualified
+measurement output plus its scalar kind, mandatory/soft/diagnostic use,
+estimand, stratum, uncertainty, admissibility, aggregation/ranking,
+disclosure, and consuming A5 identity. Only complete, applicable, reference-
+valid, floor-resolved, uncertainty-resolved, qualified material can project a
+scalar. All mandatory bindings pass before any optional soft projection or A5
+execution. B-07F remains the only future owner of official `ScoreInput`
+construction.
+
+**Alternatives rejected.** Directly exposing A5's private constructor, accepting
+a generic metric dictionary, key-name inference, soft renormalization, or
+calling A5 from B-05 would bypass provenance/admissibility or transfer B-07F
+ownership. Adding physical thresholds or transforms to engine code would make
+A5 invent science.
+
+**Interfaces, impact, and reversibility.** Contract §§8–9 fix the planned
+binding and precedence. Slice 4 will implement pack coverage and typed scalar
+projection without modifying A5. A future change can supersede the B-05
+binding profile while preserving A5 pins; changing A5 itself requires its own
+authority/version migration. Update this heading, contract §§8–9, plan slice
+4, implementation, and tests if changed.
+
+**Human-reserved input.** Real gates, thresholds, transforms, strata, weights,
+admissibility criteria, and ranking/disclosure policies remain human-owned.
+
+## 2026-09-05 — B-05-D4: Require exact dependence policy and Dossier applicability for covariance shortcuts
+
+**Problem.** Mechanical uncertainty combination or an assumed zero covariance
+can materially change incumbent/challenger conclusions. Separate seeds,
+processes, solvers, or machines do not prove independence.
+
+**Recommendation.** `UncertaintyPolicy` binds estimand, sampling/resampling and
+independence units, common-case pairing, reconstruction-by-case and -stratum
+interaction, joint reference uncertainty, representation/execution
+dependence, censoring, minima, stopping/extension, and error control. Every
+component is an exact approved ref or explicit unresolved state. Any
+quadrature, independence, or zero-covariance shortcut additionally binds the
+exact incumbent/challenger evidence and scopes to a B-06 Dossier applicability
+test; any mismatch returns `UNCERTAINTY_UNRESOLVED`.
+
+**Alternatives rejected.** Default independence, automatic quadrature,
+correlation guessed from execution topology, or global Dossier applicability
+are scientifically unsafe. Rejecting every shortcut would also exceed the
+ticket by prohibiting a later evidence-qualified choice.
+
+**Interfaces, impact, and reversibility.** Contract §6 and slice 2 own the
+policy and shortcut binding. B-06 owns Dossier qualification; B-E1 owns
+coverage testing. Versioned policy replacement is reversible prospectively;
+historical bindings remain pinned. A change updates this decision, contract
+§6, plan slice 2, models/canonical refs, and tests.
+
+**Human-reserved input.** All dependence assumptions, combination methods,
+minimums, stopping/error control, and shortcut applicability remain unresolved
+until approved by the named scientific/statistical owners.
+
+## 2026-09-05 — B-05-D5: Separate scientific reconstruction stages from B-02C resource facts and heuristic futility
+
+**Problem.** A complete build or resource receipt does not prove sufficient
+scientific evidence, while resource exhaustion must not be recorded as a
+candidate's scientific failure. Nomination and promotion also require distinct
+authority.
+
+**Recommendation.** `ReconstructionEvidencePolicy` owns Challenge/family-
+specific complete-base, frozen-reuse, nomination, extension, promotion,
+coverage, scientific stopping, stability-audit, typed `EVIDENCE_DEFERRED`, and
+fail-closed behavior. It consumes exact B-02C build/replicate/reuse/stop/
+receipt facts only. The stage order is `BASE_REQUIRED -> BASE_COMPLETE ->
+NOMINATED -> EXTENDED -> PROMOTION_ELIGIBLE`. Heuristic futility may advise
+scheduling but can neither stop under scientific authority nor convert
+insufficient evidence to pass/fail.
+
+**Alternatives rejected.** Letting B-02C forecasts or receipts establish
+evidence sufficiency violates its boundary. Treating nomination as promotion
+or resource stop as scientific failure fails open. Making B-E1 author policy
+confuses fixture coverage testing with policy ownership.
+
+**Interfaces, impact, and reversibility.** Contract §7 and slice 3 own the
+record and adapters. B-E1 supplies the later coverage/false-elimination
+harness; B-06 qualifies evidence. Policy versions are prospectively
+replaceable with pinned history. A change updates this decision, contract §7,
+plan slice 3, B-02C adapter boundary, and tests.
+
+**Human-reserved input.** Minimum builds, coverage, reuse acceptability,
+promotion criteria, stopping/error control, and stability-audit rate remain
+explicitly unresolved.
+
+## 2026-09-05 — B-05-D6: Represent non-admissible material as closed no-scalar outcomes
+
+**Problem.** Partial, non-finite, inapplicable, failed-reference, unresolved-
+floor, unresolved-uncertainty, unqualified, or deferred material must not leak
+into scoring through `None`, zero, infinity, or a generic exception.
+
+**Recommendation.** Use the closed outcomes `COMPLETE`, `PARTIAL`,
+`NON_FINITE`, `INAPPLICABLE`, `REFERENCE_FAILED`,
+`NUMERICAL_FLOOR_UNRESOLVED`, `UNCERTAINTY_UNRESOLVED`,
+`QUALIFICATION_UNRESOLVED`, and `EVIDENCE_DEFERRED`. Only `COMPLETE` may carry
+a scalar, and it remains subject to exact identity, scope, qualification, and
+binding checks. Every other variant carries a typed reason/ref and no scalar.
+Validation follows contract §9's fixed fail-closed precedence.
+
+**Alternatives rejected.** Nullable scalars, sentinel floats, zero filling,
+generic “invalid,” scientific gate failure for infrastructure/reference
+failure, or implicit soft-component renormalization destroy auditability and
+can change rank.
+
+**Interfaces, impact, and reversibility.** Slice 4 implements the material
+union and projection after prerequisite policies land. B-07F consumes only the
+admissible projection. Adding or changing outcomes is a versioned schema and
+downstream exhaustiveness change. Update this heading, contract §9, models,
+canonical registry, B-07F/B-E1 consumers, and tests.
+
+**Human-reserved input.** No qualification outcome is selected. Fixture-only
+complete values remain structurally testable but scientifically unqualified.
+
 ## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval
 
 **Problem.** Carbon's live delivery contract depended on a Greptile workspace

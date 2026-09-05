@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.3
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.3
+**Governance version:** 1.7
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.7
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
@@ -21,6 +21,19 @@ security, rights, economic, network, or launch decision.
 with fresh read-only Codex/GPT review of the complete exact-head diff, a closed
 head/tree-bound receipt, distinct non-author human approval, and the protected
 `GPT review gate`. Historical Greptile records remain immutable evidence.
+
+## Current transition — B-01H complete, B-05 active
+
+PR #78 comment `5548725328` is the normalized external receipt for the B-01H
+predicate described historically below. It records reviewed head
+`a4e2e56469f783513e4d5596753f3a973b40f03d`, normal merge
+`f1a429de37290b3c7615ca051661a1d727528f78`, exact preserved tree
+`3e25bd65508c5c11d8d67558f9bd699808fc57a9`, required exact-head and
+exact-main gates, complete-diff review, distinct approval, and zero unresolved
+findings/threads. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress but NOT
+STARTED`. B-05 is therefore the only current selected ticket and begins from
+that exact main. The installed-Codex HoH probe remains fail-closed unavailable;
+this is a separate infrastructure fact and does not weaken B-05 boundaries.
 
 ## 1. Completed foundations, B-04 runtime, and B-01F completion
 

@@ -1,10 +1,12 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `todo`; no B-05 contract, decision, plan, evidence, runtime, test,
-or implementation has started
-**Conditional handoff:** first-pilot `in_progress` selection occurs only in the
-completed B-01H external receipt after its entire delivery predicate passes
+**Status:** `in_progress`; working-contract and first coherent implementation-
+slice phase
+**Activation receipt:** PR #78 comment `5548725328` completed B-01H's entire
+delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
+main `f1a429de37290b3c7615ca051661a1d727528f78`, tree
+`3e25bd65508c5c11d8d67558f9bd699808fc57a9`
 **Owner interposition:** `OWNER-DX-02` inserts B-01H after B-04 completion and
 before this ticket
 **Prior selection evidence:** PR #75's completed receipt selected B-05
@@ -25,6 +27,15 @@ B-01H's complete delivery predicate and exact pilot base are recorded. This
 sequencing supplies no B-05 contract or runtime implementation and no human-
 reserved measurement, uncertainty, scoring, reconstruction-evidence, or
 qualification value.
+
+PR #78 comment `5548725328` later satisfies that complete B-01H predicate:
+reviewed head `a4e2e56469f783513e4d5596753f3a973b40f03d` normally merged as the exact
+activation base above with reviewed-tree preservation, required exact-head and
+exact-main gates, complete-diff review, distinct approval, and zero unresolved
+findings/threads. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress but NOT
+STARTED`. The working contract, decisions, plan/evidence, and first bounded
+slice begin only after that receipt; the historical conditional text above is
+not rewritten into pre-receipt authority.
 
 ## Goal
 
