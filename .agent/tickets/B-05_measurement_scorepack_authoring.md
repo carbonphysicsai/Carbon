@@ -6,7 +6,7 @@
 the bounded implementation candidate has not earned merged maturity
 **Current phase:** final implementation/integration candidate prepared for
 delivery review
-**Activation receipt:** PR #78 comment `5548725328` completed B-01H's entire
+**Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
 delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
 main `f1a429de37290b3c7615ca051661a1d727528f78`, tree
 `3e25bd65508c5c11d8d67558f9bd699808fc57a9`
@@ -31,14 +31,16 @@ sequencing supplies no B-05 contract or runtime implementation and no human-
 reserved measurement, uncertainty, scoring, reconstruction-evidence, or
 qualification value.
 
-PR #78 comment `5548725328` later satisfies that complete B-01H predicate:
-reviewed head `a4e2e56469f783513e4d5596753f3a973b40f03d` normally merged as the exact
-activation base above with reviewed-tree preservation, required exact-head and
-exact-main gates, complete-diff review, distinct approval, and zero unresolved
-findings/threads. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress but NOT
-STARTED`. The working contract, decisions, plan/evidence, and first bounded
-slice begin only after that receipt; the historical conditional text above is
-not rewritten into pre-receipt authority.
+PR #86 comment `5548725328` later satisfies that complete B-01H predicate:
+reviewed head `a4e2e5645b565330273d0d0d0d6e28d797cc8261` normally merged as exact
+activation base `f1a429de37290b3c7615ca051661a1d727528f78`, preserving reviewed
+tree `3e25bd65508c5c11d8d67558f9bd699808fc57a9`, with required exact-head
+gates, complete-diff review, distinct approval, and zero unresolved
+findings/threads. Its exact-main run was canceled by owner direction after
+exact-head delivery passed. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress
+but NOT STARTED`. The working contract, decisions, plan/evidence, and first
+bounded slice begin only after that receipt; the historical conditional text
+above is not rewritten into pre-receipt authority.
 
 ## Goal
 
@@ -61,29 +63,29 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       not ratification and silence is no gate. Real measurement, uncertainty,
       score-policy values, and scientific qualification remain human-owned and
       fail closed.
-- [x] Define exact `MeasurementContract` identity, scientific property claimed,
+- [ ] Define exact `MeasurementContract` identity, scientific property claimed,
       required observables, coordinates/units, numerical operator,
       discretization, sampling/quadrature, normalization, aggregation,
       precision, reference and numerical floor, applicability, uncertainty,
       stratum/subpopulation applicability, known limitations, implementation
       refs, and intended mandatory/soft/diagnostic role.
-- [x] Bind measurement-qualification evidence by role, including analytic or
+- [ ] Bind measurement-qualification evidence by role, including analytic or
       manufactured verification, refinement/convergence, independent witness,
       limiting-case/invariance, and experimental or industrial validation where
       applicable. The evidence record must state what each source supports and
       what it cannot support.
-- [x] Prevent MMS or another implementation-verification result from satisfying
+- [ ] Prevent MMS or another implementation-verification result from satisfying
       customer-workload applicability, physical model validation, or an
       engineering context-of-use claim without separate evidence.
-- [x] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
-- [x] Define the Score Pack `UncertaintyPolicy` bindings for independence and
+- [ ] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
+- [ ] Define the Score Pack `UncertaintyPolicy` bindings for independence and
       resampling units, common-case pairing, reconstruction-by-case and
       reconstruction-by-stratum interaction, joint reference uncertainty,
       representation/execution dependence, censoring, minimum evidence, and
       prospective stopping or evidence-extension rules. Bind a Dossier-
       qualified applicability test that the exact incumbent-challenger
       evidence must satisfy before any quadrature or zero-covariance shortcut.
-- [x] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
+- [ ] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
       including Challenge/family-specific complete-base minimums of one or more
       builds, frozen-artifact reuse, nomination and promotion stages,
       coverage-qualified scientific stopping/extension, typed
@@ -91,12 +93,12 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       and fail-closed outcome. Consume B-02C resource facts without giving its
       forecasts or receipts scientific authority. B-E1 owns the fixture
       coverage and false-elimination harness, not policy authorship.
-- [x] Preserve mandatory admissibility before soft aggregation.
-- [x] Reject partial, non-finite, inapplicable, reference-failed, numerical-
+- [ ] Preserve mandatory admissibility before soft aggregation.
+- [ ] Reject partial, non-finite, inapplicable, reference-failed, numerical-
       floor-unresolved, and uncertainty-unresolved measurement material through
       typed paths.
-- [x] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
-- [x] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
+- [ ] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
+- [ ] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
 
