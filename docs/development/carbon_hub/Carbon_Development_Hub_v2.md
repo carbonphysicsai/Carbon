@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `268c1f375e175791b81e45dc929b7575f984e239` on `main`, captured 2026-09-05T08:28:37Z.
+**Authority snapshot:** `431b041879ef601d99958d32874e44259bdb9524` on `main`, captured 2026-09-05T10:28:46Z.
 **Current:** Wave B, ticket B-05. PR #86 comment 5548725328 selected B-05 from exact main f1a429de. Five bounded implementation slices now form a conditional delivery candidate, including the complete synthetic non-LIVE fixture graph; the repaired exact-ticket HoH binding preserves the unchanged requirements and identity boundary. Final complete-diff review, approval, gates, merge, exact-main validation, and external receipt remain pending.
 
 ## Wave spine
@@ -100,7 +100,7 @@
 - `OWNER-DX-02` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot.
 - `B-01H-E1` — `SYSTEM/AGENT-EXECUTION` — The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted.
 - `OWNER-HUB-01` — `SYSTEM/DEVELOPMENT-HUB` — The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.
-- `B-05-E1` — `WAVE-B/B-05` — PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.
+- `B-05-E1` — `WAVE-B/B-05` — PR #86's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.
 - `B-05-E2` — `WAVE-B/B-05` — B-05 now has a second bounded slice implementing exact unresolved uncertainty components, per-stratum minima, and dependence shortcuts bound to exact incumbent/challenger evidence, case/stratum scope, assumptions, applicability tests, and B-06 Dossier qualification refs; it infers no independence and selects no real scientific value.
 - `B-05-E3` — `WAVE-B/B-05` — B-05 now has a third bounded slice implementing exact Challenge/family-bound reconstruction-evidence policy, explicit human-owned sufficiency controls, distinct base/nomination/extension/promotion stages, and fail-closed separation from B-02C resource facts.
 - `B-05-E4` — `WAVE-B/B-05` — B-05 now has a fourth bounded slice implementing exact content-addressed Score Pack authoring, complete ready-pack key coverage, closed measurement-material outcomes, mandatory-first scalar projection, and structural rejection of role-confused or forbidden sources while A5 remains unchanged.

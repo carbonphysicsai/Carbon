@@ -359,7 +359,7 @@
       "event_id": "B-05-E1",
       "owner_lane": "sciml_technical_lead",
       "status": "active",
-      "summary": "PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.",
+      "summary": "PR #86's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/evidence/wave_b/b-05.md",
       "affects": [
         "WAVE-B/B-01H",

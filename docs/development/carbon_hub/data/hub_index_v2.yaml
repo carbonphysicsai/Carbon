@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-05T08:28:37Z"
+  captured_at_utc: "2026-09-05T10:28:46Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "268c1f375e175791b81e45dc929b7575f984e239"
+  authority_snapshot_commit: "431b041879ef601d99958d32874e44259bdb9524"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -1997,7 +1997,7 @@ events:
     event_id: "B-05-E1"
     owner_lane: "sciml_technical_lead"
     status: "active"
-    summary: "PR #78's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable."
+    summary: "PR #86's external receipt completed B-01H and selected B-05 from exact main f1a429de; B-05 now has a working contract, six notified engineering decisions, and a first Challenge-bound measurement-definition and qualification-evidence slice while all real scientific values and qualification remain unavailable."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/9c38aa691c24a1f72465e06cccbe652cf4fac209/.agent/evidence/wave_b/b-05.md"
     affects:
       - "WAVE-B/B-01H"
