@@ -1,0 +1,181 @@
+# Carbon Harness-of-Harness controller
+
+This directory contains optional, bounded development tooling for B-01H. It is
+not Carbon runtime authority and is not included in the `carbon` wheel.
+
+```text
+authority + ticket + requirements
+→ fresh read-only Planner projection
+→ strict IterationPlan
+→ workspace-write Developer in a sanitized projection
+→ controller-validated patch import into one dedicated ticket worktree
+→ exact candidate ref/tree freeze without shared-checkout mutation
+→ fresh read-only Tester projection
+→ strict IterationEvidence
+→ deterministic replan / pause / final-candidate handoff
+```
+
+The controller owns advancement. A model cannot promote a requirement, clear a
+human block, approve a pull request, satisfy the final GPT review gate, merge,
+qualify science/security/production, activate `LIVE`, or create network,
+economic, or rights authority.
+
+## Supported executor surface
+
+`CodexExecAdapter` requires an explicit absolute CLI path, binds its regular-file
+identity and SHA-256 into the executor profile, revalidates that identity before
+every execution, probes it with the sanitized role environment, and invokes only
+the supported non-interactive `codex exec` surface. Each role starts in a fresh
+ephemeral invocation with user config ignored, a fixed working directory, and
+an output JSON Schema. A custom Codex permission profile denies the filesystem
+root, restores only Codex's minimal tool runtime, denies ambient temporary
+directories, grants the disposable projection read-only for Planner/Tester or
+writable for Developer, grants one fresh invocation-private temporary
+directory, disables command network access and host-skill discovery, uses that
+private directory as `HOME`, and sets approval policy to `never`. Authentication
+may use the explicit `CODEX_HOME`, but sandboxed commands cannot read it. The
+adapter never passes the legacy `--sandbox` flag because it would replace this
+narrower permission profile. Before accepting the installed CLI, an adversarial
+startup probe proves projection reads, read-only enforcement, Developer
+projection writes, and denial of a sibling sentinel for both profiles. A
+generic no-context `codex exec` preflight then independently uses both exact
+read-only and workspace-write role configuration paths. Each must report
+`custom permissions` on trusted stderr before any private role context is sent;
+inability to enforce or select either boundary fails closed.
+
+The controller never consumes Developer-owned Git metadata. It discards the
+writable projection's `.git`, copies only regular worktree files into a
+controller-owned shadow repository, and imports only the plan/run-allow-listed
+patch into the dedicated ticket worktree. It constructs the candidate commit
+off-ref from the exact expected parent/tree and installs it only with an atomic
+compare-and-swap of the exact local branch bound in the run manifest. A
+detached or switched worktree fails closed. It never synchronizes or resets the
+shared checkout;
+all later role context is rebuilt from immutable blobs in the state-bound tree,
+so concurrent external ref, index, or worktree changes are preserved and fail
+closed. Every controller-authority Git subprocess suppresses system/global
+configuration, hooks, fsmonitor, templates, external diffs, and applicable
+filter execution. Mandatory
+protected patterns cannot be removed by a run manifest and are required by the
+versioned RunManifest schema; only regular-file Git
+modes are importable, and projection cleanup never follows role-created
+symlinks. Managed state/projection directories and state files use
+descriptor-relative no-follow traversal; unsafe roots, locks, targets, or
+replacement races cannot redirect chmod or state writes outside the run root.
+Role and bootstrap-probe subprocesses receive a small allow-listed environment rather than
+inheriting API keys or other ambient variables. Their fixed `/usr/bin:/bin`
+execution path is part of the executor profile, so ambient PATH changes cannot
+select a counterfeit Codex binary or redirect an authorized evidence command.
+`danger-full-access` is never
+used. See the official [Codex permission-profile documentation](https://learn.chatgpt.com/docs/permissions),
+[Codex SDK and programmatic control documentation](https://developers.openai.com/codex/sdk),
+and [non-interactive mode documentation](https://developers.openai.com/codex/noninteractive).
+
+The adapter is executor-agnostic at the controller boundary. `ScriptedExecutor`
+provides deterministic synthetic runs whose fixture manifest binds the exact
+current Python executable instead of relying on ambient PATH, and `ManualExecutor` explicitly pauses
+for an externally supplied packet or consumes one supplied packet exactly once.
+
+## Run state and resume
+
+By default `StateStore.for_repository()` writes atomic mode-0600 JSON under:
+
+```text
+$(git rev-parse --git-common-dir)/.carbon-hoh/runs/<run-id>/
+```
+
+This state is outside tracked content. Resume revalidates the exact run
+manifest digest, authority ref/commit/tree, manifest-bound attached worktree
+ref, immutable ticket and requirements blobs, role profiles, exact candidate
+head/tree, and protected-context boundary.
+`resume` also proves authority ancestry, recomputes and reauthorizes the exact
+Git changed-path manifest and regular-file modes, rejects lifecycle-incoherent
+phase/plan/requirement/regression state, reauthorizes every persisted Tester
+disclosure, and independently replays every final accepted evidence command
+before accepting a persisted `FINAL_CANDIDATE_READY` state. `retry` rechecks
+identities before returning a `PAUSED_HUMAN` or `PAUSED_INFRA` run to the exact
+coherent active phase that paused; Tester-originated pauses retain their plan.
+Failure reason and evidence plus complete open-regression records remain
+structured inputs to later roles.
+Every initialize/resume/step/retry transaction holds a mode-0600 per-run lock,
+and step/retry compare the persisted state digest with the version loaded by
+that controller before writing. A stale controller therefore cannot overwrite
+a newer transition. The initial manifest/state pair is journaled first; resume
+completes a matching interrupted install, so a partial first write cannot
+strand the run ID. Candidate installation durably journals its intended
+before/after state before the ref compare-and-swap; resume clears an unapplied
+intent or rolls state forward after a completed ref update. Executor
+unavailability, startup failure, and timeout enter
+the typed `PAUSED_INFRA` state at the originating phase and remain eligible for
+the same identity-checked retry path. The CLI defers bounded Codex preflight
+until an invocation, so preflight failure is persisted through that path;
+`status` can inspect an existing run without a live executor. Status inspection
+does not replay final evidence or authorize advancement; resume, retry, step,
+and run retain live executor/profile checks and final-evidence replay.
+
+## Progressive disclosure
+
+Each role starts with exact `initial_context` paths. A role can return
+`context_requests`; the controller expands only tracked regular files matching
+that role's `context_allow_paths`, rejects protected/out-of-authority requests,
+records every disclosed path and SHA-256, and re-invokes the role. Every role
+receives a disposable Git projection containing only granted paths; the
+Developer projection is writable, while Planner and Tester projections are
+read-only without removing executable bits. Projection bytes and executable
+modes come from the exact candidate
+tree rather than the mutable shared checkout. The controller-owned
+`.carbon-hoh-context.json` filename is mandatory protected context and cannot
+be supplied by the candidate; the RunManifest schema requires the same
+protection as the runtime validator. Developer sealing traverses and
+copies only through no-follow file descriptors and never applies a path-based
+mode change to role-controlled content.
+
+A requirements manifest also binds an exact closed command allow-list for each
+requirement. Tester evidence must name a disclosed verifier artifact, its
+digest, and one exact allow-listed argv. That digest must equal both the
+candidate disclosure and projected file before the controller independently reruns
+that command through the executor evidence seam. The Codex adapter uses the
+same verified read-only, root-denying, network-disabled profile and sanitized
+Git environment plus its profile-bound trusted execution path, with only the
+candidate projection and a private runtime exposed; manual replay fails
+unavailable, while direct subprocess replay exists only in the explicitly
+synthetic test executor and uses an exact executable-bound fixture command.
+The controller matches exit status and stdout/stderr
+digest before accepting `VERIFIED`. An empty command list, as in the
+pre-science B-05 navigation manifest, cannot produce `VERIFIED`.
+
+The Codex permission-profile sandbox and projection boundary are defense in
+depth for this development pilot. They are not a production arbitrary-code
+security claim.
+
+## CLI
+
+From the repository root:
+
+```bash
+python scripts/dev/hoh.py probe-codex --codex-executable /absolute/path/to/codex
+python scripts/dev/hoh.py validate requirements agent_pack/executors/hoh/manifests/b05.requirements.v1.json
+python scripts/dev/hoh.py init /absolute/path/to/run-manifest.json --codex-executable /absolute/path/to/codex
+python scripts/dev/hoh.py step /absolute/path/to/run-manifest.json --codex-executable /absolute/path/to/codex
+python scripts/dev/hoh.py retry /absolute/path/to/run-manifest.json --codex-executable /absolute/path/to/codex
+python scripts/dev/hoh.py retry /absolute/path/to/run-manifest.json --manual --packet /absolute/path/to/role-packet.json
+python scripts/dev/hoh.py run /absolute/path/to/run-manifest.json --codex-executable /absolute/path/to/codex
+python scripts/dev/hoh.py status /absolute/path/to/run-manifest.json
+```
+
+`init`, `step`, `retry`, and `run` use the Codex adapter unless `--manual` is
+supplied and therefore require the exact absolute `--codex-executable` path.
+The run manifest must bind the executor/profile digests reported by the chosen
+adapter. `run` stops at `PAUSED_HUMAN`, `PAUSED_INFRA`, or
+`FINAL_CANDIDATE_READY`; the last state is only a handoff to
+`.agent/DELIVERY_PROTOCOL.md`.
+
+## B-05 pilot manifest
+
+`manifests/b05.requirements.v1.json` maps `B05-D01` through `B05-D11` to the
+unchanged B-05 Definition of Done and binds the exact ticket Git blob and
+SHA-256 after OWNER-DX-02's status-only sequencing interposition. It contains no
+measurement, threshold, weighting, uncertainty, reconstruction, stopping,
+qualification, physical, or production value. Its verification-command lists
+are intentionally empty until B-05 authority supplies real requirement-owned
+verification; model prose cannot fill that gap.

@@ -41,6 +41,7 @@ fixture_roots = [
     "tests/fixtures",
 ]
 script_roots = [
+    "agent_pack/executors/hoh",
     "scripts/check_quality.py",
     "scripts/dev",
 ]

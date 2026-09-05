@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-02T14:59:35Z"
+  captured_at_utc: "2026-09-04T23:14:34Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "9f4c00e39275798b7075eb238226299460737143"
+  authority_snapshot_commit: "e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -441,13 +441,13 @@ current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
   wave_status: "active in bounded development scope"
-  ticket: "B-05"
-  ticket_title: "Measurement and Score Pack authoring"
+  ticket: "B-01H"
+  ticket_title: "Carbon Iterative Agent Harness Pilot"
   ticket_status: "in_progress"
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "1.3"
-  controlling_board_fingerprint: "8a57d42f4a56e89a0a6c354a0619b37e3e8c644029ab151f4307b6e70d5a9971"
-  stage: "Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started."
+  controlling_register_version: "1.6"
+  controlling_board_fingerprint: "1f078f9d19d3511b543937f8a75dcbfe1f47beb60ebb6c784063354d25789672"
+  stage: "Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -460,29 +460,25 @@ current:
     - "B-04"
     - "B-07R"
   recent_dependencies:
-    - "B-02C"
+    - "B-01F"
     - "B-04"
   other_completed_wave_context:
     - "B-01"
     - "B-01E"
-    - "B-01F"
     - "B-02A"
     - "B-02B"
+    - "B-02C"
     - "B-03"
     - "B-07R"
   downstream_handoffs:
-    - "B-06"
-    - "B-07A"
-    - "B-07C"
-    - "B-07F"
-    - "B-E1"
-    - "B-GATE"
+    - "B-05"
   parallel_context:
-    - "B-01G remains todo as a future non-blocking tooling proof and is not a prerequisite for the selected ticket."
+    - "B-01G remains todo as a future non-blocking tooling proof."
   next_selected_ticket: null
   fail_closed:
-    - "B-04's prepared done, bounded implementation/test maturity, and B-05 selection remain inert until B-04's exact-head checks and Merge gate, fresh complete-diff Codex/GPT review, distinct non-author approval with the closed receipt, successful GPT review gate, zero unresolved review threads, normal reviewed-tree-preserving merge, exact-main requirements, and completed external receipt all pass."
-    - "No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started; every measurement, uncertainty, evidence-use, scoring, reconstruction, and qualification input remains unavailable or HUMAN_INPUT_REQUIRED."
+    - "B-01H's prepared bounded implementation/test maturity and B-05 pilot selection remain inert until B-01H's exact-head checks and Merge gate, fresh complete-diff Codex/GPT review, distinct non-author approval with the closed receipt, successful GPT review gate, zero unresolved review threads, normal reviewed-tree-preserving merge, exact-main requirements, and completed external receipt all pass."
+    - "No B-05 scientific contract, decision, plan, evidence, runtime, test, or implementation work has started; every measurement, uncertainty, evidence-use, scoring, reconstruction, and qualification input remains unavailable or HUMAN_INPUT_REQUIRED."
+    - "FINAL_CANDIDATE_READY is only a handoff to Carbon's existing delivery protocol and creates no review, approval, merge, qualification, production, or LIVE authority."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
@@ -494,12 +490,17 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-05 is selected only under B-04's conditional completion predicate, and no B-05 contract or implementation work has started. All B-05 maturity states and every scientific, security, network, commercial, and production qualification state remain unearned."
-  decision_series_status: "No B-05 decision has been recorded. B-04-D1 through B-04-D12 are implemented working decisions only for B-04's bounded fixture-runtime candidate and grant no B-05 measurement, scoring, qualification, retry, operations, or human-reserved authority."
+  maturity_summary: "B-01H is an in-progress bounded development-tooling candidate. Its implementation/test maturity remains unearned until complete delivery; B-05 remains todo and every scientific, security, network, commercial, production, and LIVE qualification state remains unearned."
+  decision_series_status: "OWNER-DX-02 and B-01H-D1 through B-01H-D6 govern bounded development orchestration only. The repaired candidate grants no B-05 measurement, scoring, uncertainty, reconstruction, qualification, or human-reserved value."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
-    []
+    - "B-01H-D1"
+    - "B-01H-D2"
+    - "B-01H-D3"
+    - "B-01H-D4"
+    - "B-01H-D5"
+    - "B-01H-D6"
 waves:
   -
     id: "A"
@@ -531,6 +532,7 @@ waves:
       - "B-01E"
       - "B-01F"
       - "B-01G"
+      - "B-01H"
       - "B-02A"
       - "B-02B"
       - "B-02C"
@@ -983,6 +985,7 @@ tickets:
       - "B-04's ratified bounded engineering contract; B-01F precedes only its runtime phase"
     unlocks:
       - "B-01G"
+      - "B-01H"
       - "B-04"
       - "B-GATE"
     unlocks_context:
@@ -1000,6 +1003,22 @@ tickets:
       - "B-01F delivery hardening; explicitly non-blocking for B-04"
     unlocks:
       []
+    unlocks_context:
+      []
+  -
+    id: "B-01H"
+    wave: "B"
+    title: "Carbon Iterative Agent Harness Pilot"
+    status: "in_progress"
+    explainer: "explainers/tickets/b_01h.md"
+    repo_path: ".agent/tickets/B-01H_iterative_agent_harness_pilot.md"
+    depends_on:
+      - "B-01F"
+      - "B-04"
+    depends_on_context:
+      - "B-01F delivery hardening and PR #75's completed B-04 predicate"
+    unlocks:
+      - "B-05"
     unlocks_context:
       []
   -
@@ -1106,6 +1125,7 @@ tickets:
       - "B-01F satisfied the runtime-phase delivery prerequisite after contract ratification"
     unlocks:
       - "B-01F"
+      - "B-01H"
       - "B-05"
       - "B-06"
       - "B-07F"
@@ -1118,12 +1138,13 @@ tickets:
     id: "B-05"
     wave: "B"
     title: "Measurement and Score Pack authoring"
-    status: "in_progress"
+    status: "todo"
     explainer: "explainers/tickets/b_05.md"
     repo_path: ".agent/tickets/B-05_measurement_scorepack_authoring.md"
     depends_on:
       - "B-02C"
       - "B-04"
+      - "B-01H"
     depends_on_context:
       []
     unlocks:
@@ -1902,6 +1923,42 @@ events:
       - "WAVE-B/B-07S"
       - "WAVE-B/B-GATE"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-DX-02"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5540037858"
+    affects:
+      - "WAVE-B/B-01F"
+      - "WAVE-B/B-01G"
+      - "WAVE-B/B-01H"
+      - "WAVE-B/B-04"
+      - "WAVE-B/B-05"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "B-01H-E1"
+    owner_lane: "technical_lead"
+    status: "active"
+    summary: "The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1/.agent/evidence/wave_b/b-01h.md"
+    affects:
+      - "WAVE-B/B-01H"
+      - "WAVE-B/B-05"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+    supersedes: "OWNER-DX-02"
   -
     map_ref: "SYSTEM/DEVELOPMENT-HUB"
     event_type: "adjustment"

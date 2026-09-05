@@ -10237,3 +10237,154 @@ These decisions govern A0 planning; they do not implement A0 or qualify any scie
 | Date | Ticket | Why stop/escalate | Outcome |
 |------|--------|-------------------|---------|
 | | | | |
+# OWNER-DX-02 — Carbon Iterative Agent Harness Pilot
+
+**Date:** 2026-09-04
+**Status:** owner-authorized sequencing and bounded development-system decision
+**Ticket:** B-01H
+**Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
+
+**Decision.** After B-04's completed external predicate and before any B-05
+scientific work, insert B-01H to implement a bounded Carbon-native iterative
+Planner/Developer/Tester controller. B-05 remains the next scientific ticket
+and becomes the first planned live harness pilot after B-01H closes. B-01G
+remains todo and non-blocking.
+
+**Why.** PR #75's receipt proved B-04 completed and selected B-05 but explicitly
+recorded it as not started. The interposition can therefore improve development
+control without rewriting B-05 science or historical B-04 evidence.
+
+**Authority ceiling.** The harness may orchestrate independent development
+roles, validate engineering packets and evidence, freeze candidates, and hand a
+final candidate to Carbon's existing delivery protocol. It cannot implement
+B-05 science, choose reserved values, approve/merge, satisfy final review,
+qualify science/security/production, activate `LIVE`, create rights/economics,
+or access/persist protected hidden evaluation.
+
+**Alternatives rejected.** Starting B-05 before the harness would defeat the
+authorized pilot sequencing. Folding B-01H into B-01G would mix unrelated
+static-codegen and orchestration scopes. Treating a model loop as final review
+would violate the delivery protocol.
+
+**Reversibility / migration.** B-01H is optional development tooling under
+`agent_pack/executors/hoh/`; removing it does not change Carbon runtime or
+scientific contracts. B-05's exact DoD remains authoritative and unchanged.
+
+**Human-reserved input.** None is required for the bounded controller. Every
+B-05 scientific value and every later authority remains unavailable and fail
+closed.
+
+## B-01H-D1 — Deterministic controller owns advancement
+
+Only strict controller logic advances requirement or run state. Planner and
+Tester produce schema-valid proposals/evidence; Developer cannot certify
+requirements; a model assertion cannot create `VERIFIED`, clear
+`BLOCKED_HUMAN`, or create final/merge/qualification authority.
+
+## B-01H-D2 — Exact identities and external atomic state
+
+Every transition binds the authority commit/tree, ticket content digest,
+requirements-manifest digest, role/executor profile, iteration, exact attached
+local worktree ref, and applicable candidate head/tree. Dynamic state is
+atomically persisted under the Git common directory by default and is never
+committed as per-iteration evidence. The state root and managed entries are
+opened descriptor-relatively without following links; unsafe roots, locks,
+targets, or replacement races fail closed without chmodding an external target.
+The first manifest/state pair is installed through a durable initialization
+journal; resume completes an interrupted first install only when every existing
+file matches that journal, so a crash cannot strand the run ID.
+Every transition holds a per-run mode-0600 lock, and step/retry compare the persisted
+state digest with the controller's loaded version before writing, preventing a
+stale controller from overwriting newer state. A paused
+run records its exact coherent active phase, retains the plan needed for a
+Tester retry, and may retry only after every identity is revalidated. Candidate
+acceptance also proves authority ancestry, cumulative run scope, protected-path
+exclusion, and regular-file Git modes rather than trusting persisted path text;
+the manual adapter consumes at most one supplied packet. Executor
+unavailability, startup failure, and timeout become identity-bound resumable
+`PAUSED_INFRA` states at the originating role/evidence phase. Candidate ref
+installation writes a durable intent journal before its exact-ref
+compare-and-swap; resume deterministically clears an unapplied intent or rolls
+the durable state forward after a completed ref update, so a crash cannot leave
+the ref advanced behind stale controller state.
+
+## B-01H-D3 — Regression-first evidence semantics
+
+Only independent Tester evidence whose verifier artifact and exact argv are
+authorized by the identity-bound requirements manifest creates `VERIFIED`.
+The controller reruns that command in the isolated candidate projection and
+requires the artifact digest to match both the projected file and its exact
+candidate disclosure before matching exit status plus output digest; model
+labels, controller metadata, or arbitrary disclosed files are insufficient. The complete Tester result set is validated before
+requirements or regressions mutate, and both are installed from one detached
+next-state value only after the packet succeeds. A later failure of a verified
+requirement creates an explicit regression, reopens it as `FAILED`, and requires the next plan to
+address every open regression with a correspondingly ordered action before new
+work. Failure reason/evidence and full open-regression records remain structured
+role inputs, and no open regression can reach final handoff.
+
+## B-01H-D4 — Supported Codex exec adapter with bounded permission profiles
+
+Wrap the currently installed and officially documented `codex exec` surface:
+an explicitly supplied absolute executable whose no-follow regular-file
+identity and SHA-256 are profile-bound and revalidated before every launch;
+independent ephemeral invocations; ignored user config; fixed working directory;
+JSON Schema output, and an explicit least-privilege permission profile. The
+profile denies root and ambient temporary-directory access, restores only the
+minimal tool runtime, grants one controller-created projection plus its private
+runtime directory, and disables command networking. Planner and Tester receive
+read-only projections; Developer receives a sanitized writable projection
+containing only disclosed paths. The invocation also uses a private `HOME`,
+disables host-skill discovery, and sets approval policy to `never`; the explicit
+`CODEX_HOME` remains available for client authentication but is unreadable to
+sandboxed role commands. The legacy `--sandbox` flag is prohibited because it
+would replace the narrower permission profile. A real CLI startup probe must
+prove projection reads, read-only behavior, Developer writes, and
+sibling-sentinel denial for both profiles or the adapter fails unavailable.
+A generic no-context preflight independently using each exact read-only and
+workspace-write role `codex exec` configuration must additionally report
+`custom permissions` on trusted stderr before any private role context is sent.
+Controller evidence replay uses an executor seam: Codex replays under
+the same read-only, root-denying, network-disabled profile, the manual executor
+fails unavailable, and direct subprocess replay exists only in the explicitly
+synthetic test executor. The controller imports only its plan/run-allow-listed
+committed patch into the dedicated ticket worktree and never uses
+`danger-full-access`. Candidate installation is a ref-only compare-and-swap;
+it targets the exact manifest-bound local branch and refuses a detached or
+switched worktree, while never synchronizing or resetting the shared checkout.
+Every bootstrap, role, and evidence subprocess receives a sanitized allow-list
+environment. Every controller-authority Git command and Codex evidence replay suppresses
+system/global configuration, repository fsmonitor and hooks, ambient templates,
+and applicable external filter/diff execution. Codex role and evidence commands
+use a fixed trusted execution path recorded in the executor profile, so ambient
+PATH cannot select a counterfeit Codex binary or redirect a manifest-authorized
+verifier.
+
+## B-01H-D5 — Progressive disclosure is allow-listed and audited
+
+Each role begins from a bounded context manifest. Additional normalized paths
+must match role/ticket allow-lists, cannot enter protected or out-of-authority
+namespaces, and are logged with content digests. Protected hidden-evaluation
+data, credentials, private validator state, and reconstruction-sensitive
+identifiers are rejected from packets and persisted state. Run manifests cannot
+remove the mandatory protection set, including the controller-owned projection
+metadata filename; the versioned RunManifest schema requires that same complete
+set rather than describing a weaker public contract. Developer imports use the same root-aware
+matcher and accept regular-file Git modes only. Every role projection is
+materialized from immutable blobs and modes in the exact state-bound candidate
+tree, never the mutable checkout. Developer sealing uses descriptor-relative
+no-follow traversal, copying, and mode changes. External ref, index, and
+worktree drift is preserved and fails closed. Projection cleanup never follows
+or chmods through role-created symlinks; managed projection parents reject
+intermediate links, and read-only projections preserve executable Git modes.
+Final resume re-grants persisted Tester paths
+through this same role allow-list before reconstructing the evidence projection.
+
+## B-01H-D6 — Final candidate is delivery handoff only
+
+`FINAL_CANDIDATE_READY` means all in-scope harness requirements have accepted
+Tester evidence on one exact candidate and no regression remains open. It
+grants no merge, Codex/GPT review,
+human approval, scientific/security/production qualification, `LIVE`, network,
+economics, or rights authority and must hand off unchanged to
+`.agent/DELIVERY_PROTOCOL.md`.

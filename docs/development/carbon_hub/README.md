@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 41 captured tickets across Wave A and Wave B
+- 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 15 map-level change events
+- 17 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-05** (`in_progress`). Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
+Wave **B**, ticket **B-01H** (`in_progress`). Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate.
 
 ## Maintain
 

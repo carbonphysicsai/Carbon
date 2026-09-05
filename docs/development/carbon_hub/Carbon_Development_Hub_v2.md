@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9f4c00e39275798b7075eb238226299460737143` on `main`, captured 2026-09-02T14:59:35Z.
-**Current:** Wave B, ticket B-05. Version 1.3 prepares B-04's bounded runtime closeout and selects B-05 in_progress only after B-04's complete delivery predicate. No B-05 contract, decision, plan, evidence, runtime, test, or implementation work has started.
+**Authority snapshot:** `e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1` on `main`, captured 2026-09-04T23:14:34Z.
+**Current:** Wave B, ticket B-01H. Version 1.6 records B-01H as the authoritative in_progress ticket while its repaired bounded harness candidate completes exact-head review and delivery. B-05 remains todo, not started, and the first planned pilot only after B-01H's complete external predicate.
 
 ## Wave spine
 
@@ -46,12 +46,13 @@
 | [B-01E](explainers/tickets/b_01e.md) | Make local and CI commands deterministic, pin dependencies, enforce code authority, and quarantine legacy executable paths. | done |
 | [B-01F](explainers/tickets/b_01f.md) | Make Carbon's owner-directed delivery lifecycle durable, machine-enforced, and lower-churn without weakening substantive gates. | done |
 | [B-01G](explainers/tickets/b_01g.md) | Prove deterministic checked-in static generation for repeated nominal reference and canonical registry patterns. | todo |
+| [B-01H](explainers/tickets/b_01h.md) | Build a deterministic, identity-bound Planner/Developer/Tester controller and prepare B-05 as its first bounded pilot. | in_progress |
 | [B-02A](explainers/tickets/b_02a.md) | Define the physical task, candidate output, target population, SamplingPlan, canonical cases, and their exact identities. | done |
 | [B-02B](explainers/tickets/b_02b.md) | Define CandidateAssemblyContract, ParameterCatalog, optional structural components, StrategyCompiler, and ResolvedConstructionPlan. | done |
 | [B-02C](explainers/tickets/b_02c.md) | Define resource classes, ceilings, reconstruction-stage receipt seams, enforcement outcomes, and non-scientific resource receipts. | done |
 | [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | done |
 | [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | done |
-| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | in_progress |
+| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | todo |
 | [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | todo |
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
 | [B-07S](explainers/tickets/b_07s.md) | Ratify the exact v2 operation set, wire types, lifecycle, errors, canonicalization, bounds, and local-adapter contract. | todo |
@@ -96,6 +97,8 @@
 - `B-04-E2` — `WAVE-B/B-04` — B-04's bounded fixture-runtime candidate implements the D11 contract and prepares B-04 done plus B-05 in_progress only after the exact-head review, normal reviewed-tree-preserving merge, exact-main, and completed-receipt predicate; no B-05 work has started.
 - `B-04-D12` — `WAVE-B/B-04` — B-04 keeps admission at most once and replaces hostile issuer, admission, or disclosure control flow with a fixed protected signal without creating a decision, retry, or TruthAsset.
 - `GOV-REVIEW-01-D1` — `SYSTEM/DEVELOPMENT-SEQUENCING` — The owner-selected delivery process prospectively replaces the unavailable Greptile service with fresh complete-diff Codex/GPT review, a closed exact-head receipt, distinct non-author human approval, and the protected GPT review gate without changing B-04 semantics or maturity.
+- `OWNER-DX-02` — `SYSTEM/AGENT-EXECUTION` — OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot.
+- `B-01H-E1` — `SYSTEM/AGENT-EXECUTION` — The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted.
 - `OWNER-HUB-01` — `SYSTEM/DEVELOPMENT-HUB` — The owner-directed Hub now leads every captured Wave and ticket with newcomer questions and adds one 20-step target qualified-exam map with four explanation depths, while retaining canonical status, maturity, authority boundaries, and repository handoffs.
 
 ## Authority boundary

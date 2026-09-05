@@ -35,6 +35,15 @@
       "not_yet": "This is queued tooling work; it does not migrate current scientific domains or block the active scientific work.",
       "map_ref": "WAVE-B/B-01G"
     },
+    "B-01H": {
+      "title": "Coordinate bounded development without giving agents final authority",
+      "what": "Run separate Planner, Developer, and Tester roles through a deterministic controller that binds exact identities, limits context, replays authorized evidence, and hands a verified candidate to Carbon's existing delivery process.",
+      "why": "An iterative agent loop is useful only if model assertions cannot replace evidence, protected material stays outside role context, and final review and merge remain independent gates.",
+      "changes": "Carbon gains optional, resumable development tooling for bounded multi-iteration implementation work.",
+      "not_yet": "This does not start B-05 science, approve or merge a change, qualify any behavior, expose hidden evaluation, or create LIVE authority.",
+      "current_stage_plain": "B-01H is the active ticket while its repaired candidate completes exact-head review and delivery. B-05 remains queued and unstarted.",
+      "map_ref": "WAVE-B/B-01H"
+    },
     "B-02A": {
       "title": "Define the exact physics job",
       "what": "Specify the physical problem, what a candidate must output, which situations the exam represents, and how test cases are selected.",
@@ -73,6 +82,7 @@
       "why": "A candidate can only be judged against an adequate, registered source of truth; silent fallback would corrupt the evidence.",
       "changes": "Measurements and qualification gain an explicit truth-authority boundary.",
       "not_yet": "This does not declare one solver universally authoritative or allow an unregistered fallback.",
+      "current_stage_plain": "Completed in bounded implemented-and-tested fixture-runtime scope through PR #75; scientific, security, production, and LIVE qualification remain unearned.",
       "map_ref": "WAVE-B/B-04"
     },
     "B-05": {
@@ -81,7 +91,7 @@
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
       "changes": "The exam gains explicit measurement and evidence-use rules that later evaluation code can execute without inventing scientific policy at runtime.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Selected as the next ticket, but its contract and implementation have not started. The prior ticket must still finish its delivery checks.",
+      "current_stage_plain": "Queued as the first harness pilot after B-01H completes every delivery check; its contract and implementation have not started, and no scientific work exists.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {

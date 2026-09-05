@@ -287,6 +287,46 @@
       "supersedes": null
     },
     {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "decision",
+      "event_id": "OWNER-DX-02",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "OWNER-DX-02 interposes the bounded B-01H iterative Planner/Developer/Tester harness after completed B-04 and before B-05, which remains the next scientific ticket, explicitly unstarted, and the first planned pilot.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5540037858",
+      "affects": [
+        "WAVE-B/B-01F",
+        "WAVE-B/B-01G",
+        "WAVE-B/B-01H",
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "evidence",
+      "event_id": "B-01H-E1",
+      "owner_lane": "technical_lead",
+      "status": "active",
+      "summary": "The bounded B-01H harness candidate prepares B-01H done and B-05 in_progress as its first pilot only after Carbon's complete exact-head review, non-author approval, merge, exact-main, and external-receipt predicate; B-05 science remains unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/e6af4aad9d44a9210e80ef3bce7c9d3ba6e88ac1/.agent/evidence/wave_b/b-01h.md",
+      "affects": [
+        "WAVE-B/B-01H",
+        "WAVE-B/B-05",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "OWNER-DX-02"
+    },
+    {
       "map_ref": "SYSTEM/DEVELOPMENT-HUB",
       "event_type": "adjustment",
       "event_id": "OWNER-HUB-01",
