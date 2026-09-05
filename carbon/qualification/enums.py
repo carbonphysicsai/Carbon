@@ -1,0 +1,140 @@
+"""Closed vocabularies for the B-06 Validation Dossier foundation."""
+
+from __future__ import annotations
+
+from enum import Enum
+from types import MappingProxyType
+
+
+class DossierSlot(str, Enum):
+    D1 = "D1"
+    D2 = "D2"
+    D3 = "D3"
+    D4 = "D4"
+    D5 = "D5"
+    D6 = "D6"
+    D7 = "D7"
+    D8 = "D8"
+    D9 = "D9"
+    D10 = "D10"
+    D11 = "D11"
+    D12 = "D12"
+
+
+DOSSIER_SLOT_ORDER = tuple(DossierSlot)
+DOSSIER_SLOT_TITLES = MappingProxyType(
+    {
+        DossierSlot.D1: "Physical-system adequacy",
+        DossierSlot.D2: "Claim / envelope adequacy",
+        DossierSlot.D3: "Target-population adequacy",
+        DossierSlot.D4: "SamplingPlan / finite-evidence adequacy",
+        DossierSlot.D5: "Generator implementation integrity",
+        DossierSlot.D6: "Generator distribution conformance",
+        DossierSlot.D7: "Reference / truth adequacy",
+        DossierSlot.D8: "Representation fidelity",
+        DossierSlot.D9: "Measurement adequacy and applicability",
+        DossierSlot.D10: "Statistical sufficiency and estimand clarity",
+        DossierSlot.D11: ("Evaluation secrecy, decontamination, and role separation"),
+        DossierSlot.D12: "Censoring, limitations, and residual uncertainty",
+    }
+)
+
+
+class DossierEvidenceClass(str, Enum):
+    PHYSICAL_SYSTEM_ADEQUACY = "PHYSICAL_SYSTEM_ADEQUACY"
+    CLAIM_ENVELOPE_ADEQUACY = "CLAIM_ENVELOPE_ADEQUACY"
+    TARGET_POPULATION_ADEQUACY = "TARGET_POPULATION_ADEQUACY"
+    SAMPLING_PLAN_FINITE_EVIDENCE_ADEQUACY = "SAMPLING_PLAN_FINITE_EVIDENCE_ADEQUACY"
+    GENERATOR_IMPLEMENTATION_INTEGRITY = "GENERATOR_IMPLEMENTATION_INTEGRITY"
+    GENERATOR_DISTRIBUTION_CONFORMANCE = "GENERATOR_DISTRIBUTION_CONFORMANCE"
+    REFERENCE_TRUTH_ADEQUACY = "REFERENCE_TRUTH_ADEQUACY"
+    REPRESENTATION_FIDELITY = "REPRESENTATION_FIDELITY"
+    MEASUREMENT_ADEQUACY_APPLICABILITY = "MEASUREMENT_ADEQUACY_APPLICABILITY"
+    STATISTICAL_SUFFICIENCY_ESTIMAND_CLARITY = (
+        "STATISTICAL_SUFFICIENCY_ESTIMAND_CLARITY"
+    )
+    EVALUATION_SECRECY_DECONTAMINATION_ROLE_SEPARATION = (
+        "EVALUATION_SECRECY_DECONTAMINATION_ROLE_SEPARATION"
+    )
+    CENSORING_LIMITATIONS_RESIDUAL_UNCERTAINTY = (
+        "CENSORING_LIMITATIONS_RESIDUAL_UNCERTAINTY"
+    )
+    MMS_REFINEMENT_OBSERVED_ORDER = "MMS_REFINEMENT_OBSERVED_ORDER"
+    PLANTED_DEFECT_MUTATION_CAMPAIGN = "PLANTED_DEFECT_MUTATION_CAMPAIGN"
+    ANALYTIC_LIMITING_CASE_ANCHOR = "ANALYTIC_LIMITING_CASE_ANCHOR"
+    PRIMARY_WITNESS_CONVERGENCE = "PRIMARY_WITNESS_CONVERGENCE"
+    REFERENCE_DISAGREEMENT = "REFERENCE_DISAGREEMENT"
+    GENERATOR_ORACLE_ADVERSARIAL_TEST = "GENERATOR_ORACLE_ADVERSARIAL_TEST"
+    MEASUREMENT_FLOOR = "MEASUREMENT_FLOOR"
+    DECISION_RESOLUTION_STUDY = "DECISION_RESOLUTION_STUDY"
+    RESIDUAL_LIMITATION = "RESIDUAL_LIMITATION"
+
+
+DOSSIER_PRIMARY_EVIDENCE_CLASS = MappingProxyType(
+    dict(zip(DOSSIER_SLOT_ORDER, tuple(DossierEvidenceClass)[:12], strict=True))
+)
+
+
+class EvidenceRequirement(str, Enum):
+    REQUIRED = "REQUIRED"
+    NOT_APPLICABLE_WITH_RATIONALE = "NOT_APPLICABLE_WITH_RATIONALE"
+    DEFERRED_BLOCKING_LIVE = "DEFERRED_BLOCKING_LIVE"
+
+
+class EvidenceCompleteness(str, Enum):
+    INCOMPLETE_MISSING = "INCOMPLETE_MISSING"
+    INCOMPLETE_PLACEHOLDER = "INCOMPLETE_PLACEHOLDER"
+    COMPLETE_REFERENCED = "COMPLETE_REFERENCED"
+
+
+class EvidenceSectionStatus(str, Enum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    BLOCKED = "BLOCKED"
+    PASS_WITH_LIMITATIONS = "PASS_WITH_LIMITATIONS"
+
+
+class StructuralOrigin(str, Enum):
+    FIXTURE_ONLY = "FIXTURE_ONLY"
+    DRAFT_OR_UNRESOLVED = "DRAFT_OR_UNRESOLVED"
+    REGISTERED_REFERENCE = "REGISTERED_REFERENCE"
+
+
+class SignerRole(str, Enum):
+    PHYSICS_SCIML = "PHYSICS_SCIML"
+    STATISTICS = "STATISTICS"
+    PROTOCOL = "PROTOCOL"
+    SECURITY = "SECURITY"
+    INDEPENDENT_REVIEW = "INDEPENDENT_REVIEW"
+
+
+REQUIRED_SIGNER_ROLE_ORDER = tuple(SignerRole)
+
+
+class SignerArtifactKind(str, Enum):
+    SIGNER_IDENTITY = "SIGNER_IDENTITY"
+    SIGNATURE = "SIGNATURE"
+    AUTHORIZATION_EVIDENCE = "AUTHORIZATION_EVIDENCE"
+
+
+class SignerBindingState(str, Enum):
+    REQUIRED_MISSING = "REQUIRED_MISSING"
+    POPULATED_UNVERIFIED = "POPULATED_UNVERIFIED"
+
+
+__all__ = (
+    "DOSSIER_PRIMARY_EVIDENCE_CLASS",
+    "DOSSIER_SLOT_ORDER",
+    "DOSSIER_SLOT_TITLES",
+    "REQUIRED_SIGNER_ROLE_ORDER",
+    "DossierEvidenceClass",
+    "DossierSlot",
+    "EvidenceCompleteness",
+    "EvidenceRequirement",
+    "EvidenceSectionStatus",
+    "SignerArtifactKind",
+    "SignerBindingState",
+    "SignerRole",
+    "StructuralOrigin",
+)

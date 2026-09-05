@@ -1,1 +1,75 @@
-"""Human-owned qualification boundary; no scientific claims are made here."""
+"""Public B-06 structural Dossier surface; no qualification authority."""
+
+from .canonical import (
+    MAX_DOSSIER_DOCUMENT_BYTES,
+    canonical_bytes,
+    canonical_digest,
+    canonical_payload,
+    dossier_ref,
+    load_canonical_document,
+)
+from .enums import (
+    DOSSIER_PRIMARY_EVIDENCE_CLASS,
+    DOSSIER_SLOT_ORDER,
+    DOSSIER_SLOT_TITLES,
+    REQUIRED_SIGNER_ROLE_ORDER,
+    DossierEvidenceClass,
+    DossierSlot,
+    EvidenceCompleteness,
+    EvidenceRequirement,
+    EvidenceSectionStatus,
+    SignerArtifactKind,
+    SignerBindingState,
+    SignerRole,
+    StructuralOrigin,
+)
+from .errors import (
+    DossierCanonicalError,
+    DossierError,
+    DossierInputCode,
+    DossierValidationError,
+)
+from .model import DossierSection, SignerBinding, ValidationDossier
+from .refs import (
+    DOSSIER_CANONICALIZATION_PROFILE,
+    DOSSIER_DOCUMENT_HEADER,
+    DOSSIER_SCHEMA_VERSION,
+    DossierEvidenceRef,
+    SignerArtifactRef,
+    ValidationDossierRef,
+)
+
+__all__ = (
+    "DOSSIER_CANONICALIZATION_PROFILE",
+    "DOSSIER_DOCUMENT_HEADER",
+    "DOSSIER_PRIMARY_EVIDENCE_CLASS",
+    "DOSSIER_SCHEMA_VERSION",
+    "DOSSIER_SLOT_ORDER",
+    "DOSSIER_SLOT_TITLES",
+    "MAX_DOSSIER_DOCUMENT_BYTES",
+    "REQUIRED_SIGNER_ROLE_ORDER",
+    "DossierCanonicalError",
+    "DossierError",
+    "DossierEvidenceClass",
+    "DossierEvidenceRef",
+    "DossierInputCode",
+    "DossierSection",
+    "DossierSlot",
+    "DossierValidationError",
+    "EvidenceCompleteness",
+    "EvidenceRequirement",
+    "EvidenceSectionStatus",
+    "SignerArtifactKind",
+    "SignerArtifactRef",
+    "SignerBinding",
+    "SignerBindingState",
+    "SignerRole",
+    "StructuralOrigin",
+    "ValidationDossier",
+    "ValidationDossierRef",
+    "canonical_bytes",
+    "canonical_digest",
+    "canonical_payload",
+    "dossier_ref",
+    "load_canonical_document",
+)

@@ -3,14 +3,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.8
-**Selected ticket:** B-05 — `in_progress`
+**Controlling register:** `.agent/WAVE_B.md` version 1.9
+**Selected ticket:** B-06 — `in_progress`
 **Owner sequencing:** `OWNER-DX-02` interposed B-01H after completed B-04 and
 before B-05; B-01H's complete delivery predicate has now passed and B-05 is
 the active first harness pilot
-**Activation authority:** PR #86 comment `5548725328` records B-01H's complete
-exact-head/review/approval/merge/exact-main predicate and selects B-05
-`in_progress but NOT STARTED` at exact main `f1a429de…`, tree `3e25bd65…`
+**Activation authority:** owner direction recorded in B-06-D0 accepts merged
+PR #87 commit `2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
+`89763523576cef09f40fd8a205aa86d169d679de`, as the B-05 dependency and
+selects B-06 without asserting B-05's ordinary delivery predicate completed
 **B-01H status:** `done` in bounded merged development-tooling scope; its
 installed-Codex compatibility result remains fail-closed and unqualified
 **B-01F status:** `done` in bounded merged development-system scope
@@ -18,11 +19,11 @@ installed-Codex compatibility result remains fail-closed and unqualified
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `in_progress`; the bounded implementation candidate is
-prepared, and its conditional closeout remains inert until the full delivery
-predicate below passes
-**B-06 status:** `todo` and unstarted; prepared as the next selected ticket
-only after B-05's complete conditional predicate passes
+**B-05 status:** `in_progress` for its incomplete ordinary delivery record;
+PR #87 is merged and owner-accepted as B-06's dependency, with no B-05 work or
+review loop active
+**B-06 status:** `in_progress` in bounded working-contract and first-slice
+development scope
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -46,6 +47,17 @@ only after B-05's complete conditional predicate passes
 > change Wave B, B-04 selection or runtime semantics, maturity, or future-wave
 > implementation authority.
 
+> **B-06 owner-directed transition.** The repository owner explicitly accepts
+> PR #87's merged B-05 implementation as the dependency for beginning B-06 and
+> supersedes the historical B-05 conditional below for this transition only.
+> Main commit `2500e51042f39a31f5056c74ce2ac5065657ec2a` preserves B-05 tree
+> `89763523576cef09f40fd8a205aa86d169d679de`. B-05 remains `in_progress`
+> because its ordinary delivery predicate is not being declared complete;
+> B-06 is selected `in_progress`, and no retrospective B-05 review is a
+> prerequisite. This exception grants no scientific, security, production,
+> qualification, network, economic, review, merge, or `LIVE` authority and
+> does not alter delivery governance for any future ticket.
+
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
 > historical conditional text below. Reviewed head
@@ -59,7 +71,8 @@ only after B-05's complete conditional predicate passes
 > security, qualification, product, production, network, economic, or `LIVE`
 > authority.
 
-> **B-05 bounded conditional closeout.** The candidate implements the working
+> **B-05 bounded conditional closeout (historical; superseded only for the
+> B-06 advancement decision above).** The candidate implements the working
 > measurement/evidence-use contract, exact canonical object graph,
 > dependence-aware uncertainty and reconstruction-evidence policies, exact A5
 > authoring/projection bindings, and a complete synthetic non-LIVE fixture

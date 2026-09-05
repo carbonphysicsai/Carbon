@@ -1,12 +1,21 @@
 # Ticket B-06 - Validation Dossier and qualification-manifest machinery
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** in_progress
 **Depends on:** B-02A, B-03, B-04, B-05, A3
 **Build Out:** C4
 **Master questions:** MQ-003 through MQ-008, MQ-018
 **Authority:** `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Launch_Bar.md`
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
+
+**Selected from:** owner-accepted merged B-05 dependency at main
+`2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
+`89763523576cef09f40fd8a205aa86d169d679de`, under B-06-D0. This does not
+assert that B-05's ordinary delivery predicate completed.
+
+**Working contract:** `Design_Specs/Validation_Dossier_Manifest_Contract.md`
+**Implementation plan:** `.agent/plans/B-06_validation_dossier_manifest.md`
+**Evidence:** `.agent/evidence/wave_b/b-06.md`
 
 ## Goal
 

@@ -1,5 +1,121 @@
 # Agent decisions log
 
+## 2026-09-06 — B-06-D0: Advance from merged B-05 to B-06 under the owner's narrow exception
+
+**Problem.** PR #87 merged the accepted B-05 implementation, but the ordinary
+B-05 delivery predicate still lacks some routine review and closeout facts.
+The previous conditional text would otherwise keep B-06 unstarted even though
+the repository owner explicitly directed this transition.
+
+**Recommendation.** Select B-06 `in_progress` from merged main
+`2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
+`89763523576cef09f40fd8a205aa86d169d679de`. Treat that merged B-05 tree as
+the owner-accepted dependency for this transition only. Preserve B-05 as
+`in_progress` for its incomplete ordinary delivery record, but conduct no new
+B-05 work or retrospective review before B-06. The one-time observed PR #87
+status is recorded in `.agent/evidence/wave_b/b-06.md` without converting
+missing or incomplete facts into successes.
+
+**Alternatives rejected.** Reopening B-05 review contradicts the owner
+direction. Marking B-05 `done` would falsely assert its ordinary predicate.
+Rewriting the general delivery protocol would broaden a ticket-specific
+exception into future governance.
+
+**Interfaces, impact, and reversibility.** This decision changes only Wave-B
+selection and the B-05-to-B-06 dependency edge. It grants bounded B-06
+development authority and no scientific, security, qualification, production,
+network, economic, review, merge, or `LIVE` authority. The owner may supersede
+it in this record and the Wave registers; historical facts remain immutable.
+
+**Human-reserved input.** The owner supplied the sequencing decision. No
+scientific or qualification decision was supplied.
+
+## 2026-09-06 — B-06-D1: Isolate deterministic Dossier identity in `carbon.qualification`
+
+**Problem.** B-06 needs an exact Challenge-bound Dossier identity without
+changing A3's active qualification registry or reopening completed upstream
+schemas.
+
+**Recommendation.** Add a standard-library-only `carbon.qualification`
+Dossier object graph with schema `1.0`, canonical profile
+`carbon_validation_dossier_canonical_v1`, a distinct domain header, strict
+canonical JSON, duplicate-key rejection, and exact decode/re-encode checking.
+Reuse `ChallengeKey` and upstream canonical conventions. Leave A3's manifest,
+gate, store, and active-registry semantics unchanged.
+
+**Alternatives rejected.** Extending A3 would conflate a validation evidence
+record with activation state. Untyped dictionaries would lose nominal role,
+slot, version, and Challenge binding. Reusing another package's domain header
+would weaken cross-type identity separation.
+
+**Interfaces, impact, and reversibility.** The first slice adds only the
+reserved `carbon.qualification` namespace and focused tests. Future persisted
+schema changes require a new profile/version; before external persistence the
+package is locally replaceable. The later manifest/active-record comparator is
+a contract seam, not part of this slice.
+
+**Human-reserved input.** No real evidence, verdict, threshold, authorization,
+or qualification value is selected.
+
+## 2026-09-06 — B-06-D2: Make D1–D12 completeness structural and non-substitutable
+
+**Problem.** A populated Dossier can be mistaken for scientific adequacy, and
+a verification campaign can be incorrectly substituted for physical,
+population, reference, measurement, or context-of-use evidence.
+
+**Recommendation.** Encode the specification's exact D1–D12 identities and
+titles in fixed order. Give each slot a distinct primary evidence class and
+make the named campaign artifacts supplemental. Track requirement,
+completeness, and scientific section status as separate closed enums. A
+`COMPLETE_REFERENCED` required slot must carry its own primary evidence class;
+MMS, mutation, convergence, or another campaign cannot satisfy a different
+slot. Missing, placeholder, cross-Challenge, and role-substituted material
+fails construction.
+
+**Alternatives rejected.** Free-form section names, one generic evidence
+class, evidence-count thresholds, or inference from unit-test success would
+invent scientific policy and permit unsafe substitution. Treating completeness
+as `PASS` would automate human signoff.
+
+**Interfaces, impact, and reversibility.** The closed slot/evidence-class map
+is part of the v1 canonical identity. A semantic change requires a new schema
+profile and coordinated contract/model/canonical/test update. B-E1 retains
+campaign execution and coverage analysis.
+
+**Human-reserved input.** Evidence adequacy, applicability, uncertainty,
+coverage, minima, stopping rules, and every real section verdict remain human-
+owned.
+
+## 2026-09-06 — B-06-D3: Bind required signer roles without representing verified authority
+
+**Problem.** A signer name or populated signature slot is not proof that the
+person or key has the required role or authorization. The structural Dossier
+must expose missing and populated states without manufacturing approval.
+
+**Recommendation.** Require exactly the B-06 accountable roles—Physics/SciML,
+statistics, protocol, security, and independent review—in fixed order. Bind
+typed identity, signature, and optional authorization-evidence refs to the
+same Challenge and role. Expose only `REQUIRED_MISSING` and
+`POPULATED_UNVERIFIED`; do not define a verified, approved, qualified, or LIVE
+state. Fixture origin propagates through the Dossier and cannot qualify a real
+Challenge.
+
+**Alternatives rejected.** A boolean `signed`, free-text role, signer-name
+presence, or signature-byte presence would imply authority not verified by
+this layer. Adding launch/infrastructure roles or an authorization verifier
+would exceed the first slice and pre-empt the later qualification-manifest
+contract.
+
+**Interfaces, impact, and reversibility.** The v1 signer-role and artifact-kind
+sets are canonical. The working contract reserves a future comparator that
+consumes externally verified authorization and the exact active A3 registry
+record; it is not implemented here. Changes require profile migration once
+persisted.
+
+**Human-reserved input.** Identity proofing, key custody, role authority,
+separation-of-duties exceptions, signatures, approvals, and activation remain
+human/security/launch owned.
+
 ## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
 
 **Problem.** B-05 must own measurement and Score Pack authoring semantics
