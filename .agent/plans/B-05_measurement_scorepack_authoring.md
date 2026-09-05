@@ -1,12 +1,12 @@
 # B-05 plan — measurement contract and Score Pack authoring
 
-**Ticket:** B-05  
-**Status:** in progress; working-contract and first-slice phase  
-**Branch:** `agent/b-05-measurement-scorepack`  
-**Worktree:** dedicated worktree; absolute host path intentionally not tracked  
-**Exact base commit:** `f1a429de37290b3c7615ca051661a1d727528f78`  
-**Exact base tree:** `3e25bd65508c5c11d8d67558f9bd699808fc57a9`  
-**Working contract:** `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`  
+**Ticket:** B-05
+**Status:** in progress; working-contract and first-slice phase
+**Branch:** `agent/b-05-measurement-scorepack`
+**Worktree:** dedicated worktree; absolute host path intentionally not tracked
+**Exact base commit:** `f1a429de37290b3c7615ca051661a1d727528f78`
+**Exact base tree:** `3e25bd65508c5c11d8d67558f9bd699808fc57a9`
+**Working contract:** `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`
 **Evidence:** `.agent/evidence/wave_b/b-05.md`
 
 ## 1. Activation and startup

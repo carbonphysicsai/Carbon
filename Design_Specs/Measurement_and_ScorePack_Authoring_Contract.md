@@ -1,14 +1,14 @@
 # Measurement and Score Pack Authoring Contract
 
-**Ticket:** B-05 — MeasurementContract and Score Pack authoring bindings  
-**Version:** 0.1 working engineering contract  
-**Status:** SPECIFIED working candidate; not ratified, qualified, production-ready, or LIVE  
+**Ticket:** B-05 — MeasurementContract and Score Pack authoring bindings
+**Version:** 0.1 working engineering contract
+**Status:** SPECIFIED working candidate; not ratified, qualified, production-ready, or LIVE
 **Starting authority:** `origin/main` commit
 `f1a429de37290b3c7615ca051661a1d727528f78`, tree
-`3e25bd65508c5c11d8d67558f9bd699808fc57a9`  
-**Runtime namespace:** `carbon.measurement`  
+`3e25bd65508c5c11d8d67558f9bd699808fc57a9`
+**Runtime namespace:** `carbon.measurement`
 **Upstream owners:** B-02A authoring, B-02C resource policy, B-04
-reference/truth, and A5 scoring  
+reference/truth, and A5 scoring
 **Downstream owners:** B-06 qualification, B-07F official fixture
 composition, B-07A/C discovery and practice, B-E1 coverage/failure harness,
 and B-GATE closeout
