@@ -794,6 +794,96 @@ def test_complete_material_projects_by_mandatory_soft_diagnostic_role() -> None:
 
 
 @pytest.mark.parametrize(
+    "use_role",
+    (
+        measurement.ScoreUseRole.MANDATORY_GATE,
+        measurement.ScoreUseRole.SOFT_COMPONENT,
+        measurement.ScoreUseRole.DIAGNOSTIC,
+    ),
+)
+def test_score_binding_requires_exact_measurement_applicability_evidence(
+    use_role,
+) -> None:
+    measurements, uncertainties, authoring = fixture_objects()
+    index = input_index_for_role(authoring, use_role)
+    binding = authoring.input_bindings[index]
+    measurement_contract = next(
+        item
+        for item in measurements
+        if measurement.measurement_ref(item) == binding.measurement_contract_ref
+    )
+    applicability = next(
+        item
+        for item in measurement_contract.stratum_applicability
+        if item.stratum_ref == binding.stratum_ref
+    )
+    complete_materials = materials(authoring, measurements)
+    material = next(
+        item
+        for item in complete_materials
+        if item.measurement_contract_ref == binding.measurement_contract_ref
+        and item.measurement_output_ref == binding.measurement_output_ref
+    )
+    assert (
+        applicability.evidence_or_reason_ref
+        == binding.applicability_evidence_ref
+        == material.applicability_evidence_ref
+    )
+    result = measurement.project_score_scalars(
+        authoring,
+        pack(),
+        measurements,
+        uncertainties,
+        complete_materials,
+    )
+    assert result.outcome is measurement.MeasurementMaterialState.COMPLETE
+    assert binding.input_key in {
+        item.input_key
+        for item in (
+            result.mandatory_scalars + result.soft_scalars + result.diagnostic_scalars
+        )
+    }
+
+    foreign_evidence = replace(
+        binding.applicability_evidence_ref,
+        object_id=f"fixture-foreign-applicability-evidence-{use_role.value.lower()}",
+        content_digest=DIGEST_B,
+    )
+    changed_binding = replace(
+        binding,
+        applicability_evidence_ref=foreign_evidence,
+    )
+    changed_authoring = replace(
+        authoring,
+        input_bindings=authoring.input_bindings[:index]
+        + (changed_binding,)
+        + authoring.input_bindings[index + 1 :],
+    )
+    changed_material = next(
+        item
+        for item in materials(changed_authoring, measurements)
+        if item.measurement_contract_ref == changed_binding.measurement_contract_ref
+        and item.measurement_output_ref == changed_binding.measurement_output_ref
+    )
+    assert changed_binding.applicability_evidence_ref == (
+        changed_material.applicability_evidence_ref
+    )
+    assert applicability.evidence_or_reason_ref != (
+        changed_binding.applicability_evidence_ref
+    )
+    with pytest.raises(measurement.MeasurementValidationError) as exc_info:
+        measurement.project_score_scalars(
+            changed_authoring,
+            pack(),
+            measurements,
+            uncertainties,
+            materials(changed_authoring, measurements),
+        )
+    assert exc_info.value.code is measurement.MeasurementInputCode.ROLE_CONFUSION
+    assert exc_info.value.path.endswith("/applicability_evidence_ref")
+
+
+@pytest.mark.parametrize(
     "state",
     (
         measurement.ScientificValueState.HUMAN_INPUT,

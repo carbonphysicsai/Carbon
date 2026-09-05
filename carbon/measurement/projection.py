@@ -432,16 +432,24 @@ def validate_score_pack_coverage(
                 f"/input_bindings/{input_key}/fixture_origin",
                 MeasurementInputCode.FIXTURE_REQUIRED,
             )
-        applicable = {
-            item.stratum_ref: item.status for item in measurement.stratum_applicability
+        applicability = {
+            item.stratum_ref: item for item in measurement.stratum_applicability
         }
-        if (
-            applicable.get(binding.stratum_ref)
-            is not StratumApplicabilityStatus.APPLICABLE
+        selected_applicability = applicability.get(binding.stratum_ref)
+        if selected_applicability is None or (
+            selected_applicability.status is not StratumApplicabilityStatus.APPLICABLE
         ):
             raise _invalid(
                 f"/input_bindings/{input_key}/stratum_ref",
                 MeasurementInputCode.MATERIAL_UNRESOLVED,
+            )
+        if (
+            selected_applicability.evidence_or_reason_ref
+            != binding.applicability_evidence_ref
+        ):
+            raise _invalid(
+                f"/input_bindings/{input_key}/applicability_evidence_ref",
+                MeasurementInputCode.ROLE_CONFUSION,
             )
         selected_policy = measurement.uncertainty_policy_binding
         if (
