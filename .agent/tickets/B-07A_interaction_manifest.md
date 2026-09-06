@@ -1,7 +1,7 @@
 # Ticket B-07A - v2 protocol core, interaction manifest, and capability discovery
 
 **Wave:** B candidate
-**Status:** done under the OWNER-DX-03 shipping predicate
+**Status:** done
 **Depends on:** B-02A, B-02B, B-02C, B-05, B-07R, B-07S, A3, A9
 **Build Out:** C9 public research discovery
 **Master questions:** MQ-005, MQ-006, MQ-015, MQ-016, MQ-017, MQ-024
