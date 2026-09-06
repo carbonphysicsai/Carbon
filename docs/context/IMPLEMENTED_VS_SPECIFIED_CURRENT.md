@@ -11,7 +11,8 @@ main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
 > bounded development scope with B-06 selected `in_progress` under the narrow
 > B-06-D0 owner transition. B-05 remains `in_progress` because its ordinary
 > delivery predicate is not claimed complete; no B-05 review loop is active.
-> B-06 Slices 1-3 are a local structural engineering checkpoint only.
+> B-06 is a reconciled final-review candidate; exact-head CI, fresh review,
+> approval, merge, and closeout remain incomplete.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -350,7 +351,7 @@ the bounded implementation.
 | Challenge-specific `ReferencePolicy` | Yes | partial/adapters | No | no universal truth backend |
 | `MeasurementContract` | Yes | partial/design | No | future first-class runtime binding |
 | Score Pack Evidence Use Contract | Yes target | A5 bounded current form | No LIVE pack | migration must preserve A5 engine boundary |
-| Validation Dossier structural machinery | Working B-06 contract | Local Slices 1-4: exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; explicit non-substitution; pending dependence authority; deterministic serialization; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison | No | machine-implementable ticket features are present but full reconciliation/review/delivery remain; no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
+| Validation Dossier structural machinery | Reconciled B-06 contract | Final-review candidate: exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; explicit non-substitution; pending dependence authority; deterministic serialization; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison | No | machine-implementable ticket features are present and reconciled; exact-head CI/review/delivery remain, with no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |

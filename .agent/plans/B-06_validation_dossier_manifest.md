@@ -1,14 +1,14 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
-**Ticket:** B-06  
-**Status:** fourth substantive implementation slice implemented; full-ticket
-reconciliation and final review preparation remain
-**Branch:** `agent/b-06-dossier-manifest`  
-**Worktree:** dedicated worktree; absolute host path intentionally not tracked  
-**Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`  
-**Exact starting tree:** `89763523576cef09f40fd8a205aa86d169d679de`  
-**Working contract:** `Design_Specs/Validation_Dossier_Manifest_Contract.md`  
-**Evidence:** `.agent/evidence/wave_b/b-06.md`  
+**Ticket:** B-06
+**Status:** complete candidate reconciled and prepared for final review; final
+review not yet started
+**Branch:** `agent/b-06-dossier-manifest`
+**Worktree:** dedicated worktree; absolute host path intentionally not tracked
+**Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`
+**Exact starting tree:** `89763523576cef09f40fd8a205aa86d169d679de`
+**Working contract:** `Design_Specs/Validation_Dossier_Manifest_Contract.md`
+**Evidence:** `.agent/evidence/wave_b/b-06.md`
 **Primary Hub map_ref:** `WAVE-B/B-06`
 
 ## 1. Owner-directed activation
@@ -232,11 +232,31 @@ added.
 
 ### Slice 5 — reconciliation and mature candidate (no feature scope)
 
-Reconcile the complete ticket, contract, implementation ledger, evidence, Hub,
-and tests against one stable tree and prepare the complete candidate for fresh
-exact-head review. The Slice-4 audit below found no remaining
-machine-implementable B-06 feature requirement. This phase may repair a
-reconciliation defect but must not expand into B-E1, B-07F, or new scope.
+The complete ticket, contract, implementation ledger, evidence, Hub, code, and
+tests were reconciled as one base-to-head candidate. The audit found no
+machine-implementable feature gap or authority conflict. It found one bounded
+diff-hygiene defect: Markdown hard-break trailing spaces in three new tracked
+documents. Those spaces were removed without semantic change. This phase did
+not expand into B-E1, B-07F, or new scope.
+
+### Complete-candidate reconciliation
+
+| Source / requirement | Intended and actual candidate behavior | Tests / evidence | Maturity | Result |
+|---|---|---|---|---|
+| Generator Validation v2.0 D1-D12 | Exact ordered slots, typed primary evidence, status, signer, supersession, and Challenge binding in `model.py`, `refs.py`, and `evidence.py` | B-06 dossier/evidence CPU tests and contract §§3-12 | Implemented and native-tested structurally | `NO_CONFLICT` |
+| Evidence and Envelope Standards | Explicit claim mappings, reference roles, disagreement, applicability, and scoped limitations without source-count voting | Evidence/campaign negative tests; contract §§9, 11, 14 | Implemented and native-tested structurally | `NO_CONFLICT` |
+| B-02A/B-03/B-04/B-05 ownership | Existing exact authoring and measurement refs are reconstructed; runtime owners remain upstream | B-06 invariant import tests and predecessor boundary suites | Implemented dependency seam | `NO_CONFLICT` |
+| A3 registry/qualification | Pure comparison consumes one supplied `ChallengeRecord`; no store/gate import, mutation, lookup, or LIVE transition | qualification-candidate and A3 registry tests; contract §13 | Implemented and native-tested structurally | `NO_CONFLICT` |
+| Ticket campaign families | Eight closed acquisition/result families with externally supplied outcomes and no engines | campaign tests and contract §14 | Implemented and native-tested structurally | `NO_CONFLICT` |
+| Canonical/security boundary | Four domain-framed strict serializers reject duplicate, malformed, numeric, tampered, trailing, oversized, and disclosure-unsafe input | all B-06 canonical and invariant tests | Implemented and native-tested structurally | `NO_CONFLICT` |
+| Generator Validation v2.1 / canon v4.1 additions | Dependence fields remain structural and `OWNER_RATIFICATION_PENDING`; no policy acceptance is encoded | pending-authority tests and B-06-D5/D10 | Proposal only | `HUMAN_RESERVED` |
+| Tracked checkpoint wording | Slice-4/local wording lagged the reconciled final-candidate phase | ticket, plan, evidence, contract, Wave, ledger, and Hub source reconciled prospectively | Documentation | `DOCUMENTATION_LAG` repaired |
+| Complete-range whitespace hygiene | Prior slice checks inspected a clean worktree, not the committed base-to-head range | `check_diff_hygiene.py --base origin/main` exposed three files | Delivery hygiene | `TEST_LAG` repaired |
+| Exact-head CI, fresh review, human approval, merge, closeout | Candidate is prepared; no future receipt or outcome is recorded in-tree | Delivery protocol and external receipt template | Not yet earned | `FINAL_REVIEW_REQUIRED` |
+| Scientific/security/signer/production/LIVE judgments | Remain external and fail closed | Contract §§6, 10, 13, 16 | Not earned | `HUMAN_RESERVED` |
+
+No `AUTHORITY_CONFLICT`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`,
+`NEW_OWNER_DECISION_REQUIRED`, or remaining machine `TEST_LAG` was found.
 
 ### Final-slice Definition-of-Done criterion audit
 
@@ -254,6 +274,64 @@ reconciliation defect but must not expand into B-E1, B-07F, or new scope.
 | Human approval distinct from schema completeness/execution | `SATISFIED_BY_CURRENT_TREE`; real signoff `HUMAN_RESERVED` | No scientific-approval state or LIVE/mutation operation exists |
 | Lifecycle/signature/mismatch/MMS-only/substitution/no-LIVE fixture tests | `SATISFIED_BY_CURRENT_TREE` | Focused B-06 and A3 suites cover the ticket's structural cases |
 
+#### Individual B-06 criterion disposition at reconciliation
+
+`SATISFIED` below is bounded to machine-checkable structure. Governing sources
+are the B-06 ticket and contract plus Generator Validation v2.0 unless a more
+specific source is named.
+
+| # | Criterion | Disposition | Exact implementation and test proof |
+|---:|---|---|---|
+| 1 | D1-D12 identities | `SATISFIED` | `enums.py:DossierSlot`, `DOSSIER_SLOT_TITLES`; `test_exact_slot_order_titles_and_primary_classes` |
+| 2 | Exact Challenge binding | `SATISFIED` | `model.py:ValidationDossier`, `evidence.py:DossierEvidenceManifest`; cross-Challenge tests in all four B-06 CPU files |
+| 3 | Evidence references | `SATISFIED` | `refs.py:DossierEvidenceRef`, `DossierEvidenceManifestRef`; dossier/evidence round-trip tests |
+| 4 | Section status | `SATISFIED` structurally; scientific status `HUMAN_RESERVED` | `enums.py:EvidenceSectionStatus`, `model.py:DossierSection`; missing/placeholder and rationale tests |
+| 5 | Signer roles | `SATISFIED` structurally; authorization `HUMAN_RESERVED` | `SignerRole`, `SignerBinding`; signer-order and populated-unverified tests |
+| 6 | Supersession/currentness | `SATISFIED` | dossier/evidence/candidate/campaign refs and `ArtifactCurrentness`; supersession/currentness tests across all B-06 CPU files |
+| 7 | Population | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | `EvidenceSubjectBindings.target_population_ref`; exact subject-graph tests |
+| 8 | SamplingPlan | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | `EvidenceSubjectBindings.sampling_plan_ref`; plan/version and accounting tests |
+| 9 | Generator conformance | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | B-02A `GeneratorRef`/`DistributionConformanceRef` seams; generator separation tests |
+| 10 | Reference | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | B-04 `ReferenceQualificationPolicyRef` owner seam; D7 and disagreement tests |
+| 11 | Representation | `SATISFIED` structurally; fidelity `HUMAN_RESERVED` | `EvidenceSubjectBindings.representation_refs`, `candidate.py:RepresentationBinding`; D8 and applicability tests |
+| 12 | Measurement | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | B-05 `MeasurementContractRef` and qualification-evidence refs; D9 and floor tests |
+| 13 | Statistical sufficiency/reproducibility | `SATISFIED` structurally; adequacy `HUMAN_RESERVED` | `StatisticalScopeManifest`; complete/pending statistical-scope tests |
+| 14 | Secrecy | `SATISFIED` structurally; security acceptance `HUMAN_RESERVED` | `SecrecyEvidenceManifest`; serialized-surface and disclosure invariant tests |
+| 15 | Censoring | `SATISFIED` structurally; policy acceptance `HUMAN_RESERVED` | `EvidenceAccountingManifest`; attempt-disposition and missingness tests |
+| 16 | Limitations | `SATISFIED` structurally; residual-risk acceptance `HUMAN_RESERVED` | `LimitationBinding`; scoped/dangling limitation tests |
+| 17 | MMS/refinement/observed order | `SATISFIED` structurally | MMS family matrices and campaign manifests; MMS valid/malformed/non-substitution tests |
+| 18 | Mutation/planted defect | `SATISFIED` structurally | mutation family matrices; duplicate/wrong-measurement/non-qualification tests |
+| 19 | Analytic/limiting anchors | `SATISFIED` structurally | analytic family matrices; applicability/reference-binding tests |
+| 20 | Primary/witness convergence | `SATISFIED` structurally | combined reference family with `PRIMARY_WITNESS_CONVERGENCE`; role-confusion tests |
+| 21 | Reference disagreement | `SATISFIED` structurally | distinct `REFERENCE_DISAGREEMENT` class; disagreement/reference-failure tests |
+| 22 | Generator-oracle adversarial evidence | `SATISFIED` structurally | generator-oracle family; exact population/plan/generator and no-self-certification tests |
+| 23 | Measurement floors | `SATISFIED` structurally | measurement-floor family; contract/scope/no-score-eligibility tests |
+| 24 | Decision-resolution evidence | `SATISFIED` structurally; policy `HUMAN_RESERVED` | pending-authority family; audit-ref/no-computation tests |
+| 25 | Residual limitations | `SATISFIED` structurally; acceptance `HUMAN_RESERVED` | residual-limitation family; exact claim/evidence/scope tests |
+| 26 | Cross-section non-substitution | `SATISFIED` | `EVIDENCE_CLASS_ALLOWED_CLAIMS`, `EvidenceClaimBinding`; forbidden-role tests |
+| 27 | Generator/reference/measurement separation | `SATISFIED` | distinct primary classes/subject refs; `test_generator_reference_and_measurement_primary_roles_do_not_substitute` |
+| 28 | Qualification-manifest construction | `SATISFIED` structurally | `build_qualification_manifest_candidate`; candidate construction/round-trip tests |
+| 29 | Exact A3 registry comparison | `SATISFIED` structurally | `compare_qualification_candidate`, `a3_qualification_snapshot_digest`; matching/mismatch/no-mutation tests |
+| 30 | Missing evidence | `SATISFIED` | `EVIDENCE_MISSING` and completeness validation; missing-evidence tests |
+| 31 | Placeholder evidence | `SATISFIED` | placeholder states/identifier rejection; placeholder tests |
+| 32 | Fixture evidence | `SATISFIED` | recursive `fixture_derived` properties and mismatch reasons; fixture-propagation tests |
+| 33 | Unsigned/unverified signer handling | `SATISFIED` structurally; real verification `HUMAN_RESERVED` | `SignerAuthorizationResult` states; missing/unverified signer tests |
+| 34 | Wrong-version/stale evidence | `SATISFIED` | exact versions, currentness, supersession rules; wrong-version/stale tests |
+| 35 | Malformed/mismatched evidence | `SATISFIED` | strict model/canonical validation and typed error codes; hostile/tamper tests |
+| 36 | Role confusion | `SATISFIED` | nominal role matrices and `ROLE_CONFUSION`; cross-role negative tests |
+| 37 | Claim inadequacy | `SATISFIED` structurally; adequacy judgment `HUMAN_RESERVED` | closed claim matrix rejects unsupported roles; substitution tests |
+| 38 | Human approval separation | `SATISFIED`; approval `HUMAN_RESERVED` | no scientific-approval field/API; readiness-ceiling tests and invariant surface scan |
+| 39 | Lifecycle tests | `SATISFIED` | draft-only comparator and A3 record immutability; lifecycle tests |
+| 40 | Signature-slot tests | `SATISFIED` | signer artifact kinds, exact roles, external auth states; signature-slot tests |
+| 41 | Mismatch tests | `SATISFIED` | `QualificationMismatchReason` closed ordering; exact and multi-mismatch tests |
+| 42 | MMS-only qualification rejection | `SATISFIED` | MMS allowed-claim set excludes qualification/LIVE; MMS substitution tests |
+| 43 | Generator/reference collapse rejection | `SATISFIED` | distinct primary classes and exact required subject bindings; collapse tests |
+| 44 | No LIVE with fixtures | `SATISFIED` structurally; LIVE decision `HUMAN_RESERVED` | fixture rejection plus absence of activation API; B-06 invariants and A3 fixture tests |
+
+The first ticket checkbox remains `FINAL_REVIEW_REQUIRED` because exact-head
+CI, fresh complete-diff review, distinct non-author approval, protected review
+gate, merge, external receipt, and closeout are intentionally not performed by
+this reconciliation phase.
+
 `NOT_YET_IMPLEMENTED`: none for machine-implementable B-06 scope.
 `BLOCKED`: none for structural implementation. Real evidence production,
 scientific/security judgments, signer authority, pending dependence
@@ -263,10 +341,12 @@ gaps.
 
 ## 4. Baseline and validation
 
-The canonical wrapper was attempted once and correctly failed because Docker
-or the exact Dev Container is unavailable. It will not be retried in this
-checkpoint. Native Python 3.11.11 with the existing repository-pinned B-05
-development environment ran the focused registry/B-05/invariant baseline:
+The canonical wrapper was attempted once during implementation and correctly
+failed because Docker or the exact Dev Container was unavailable. The final-
+candidate phase re-evaluates that environment once, without repeated retry if
+the limitation is unchanged. Native Python 3.11.11 with the existing
+repository-pinned B-05 development environment ran the focused
+registry/B-05/invariant baseline:
 
 ```text
 242 passed in 1.14s

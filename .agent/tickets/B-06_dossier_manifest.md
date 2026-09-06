@@ -38,31 +38,31 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
       `.agent/DELIVERY_PROTOCOL.md`. Notification is not ratification and
       silence is no gate. Scientific/security qualification and Challenge
       activation remain human-owned and fail closed.
-- [ ] Implement D1-D12 Dossier slot identities, evidence refs, status, signer roles, supersession, and exact Challenge binding.
-- [ ] Include population, SamplingPlan, generator conformance, reference, representation, measurement, statistical sufficiency, secrecy, censoring, limitations, and reproducibility sections.
-- [ ] Add explicit evidence slots and typed manifests for manufactured-solution
+- [x] Implement D1-D12 Dossier slot identities, evidence refs, status, signer roles, supersession, and exact Challenge binding.
+- [x] Include population, SamplingPlan, generator conformance, reference, representation, measurement, statistical sufficiency, secrecy, censoring, limitations, and reproducibility sections.
+- [x] Add explicit evidence slots and typed manifests for manufactured-solution
       refinement and observed-order studies, planted-defect/mutation campaigns,
       analytic or limiting-case anchors, primary/witness convergence,
       reference disagreement, generator-oracle adversarial tests, measurement
       floors, decision-resolution studies, and residual limitations.
-- [ ] Enforce cross-section non-substitution: MMS or another verification
+- [x] Enforce cross-section non-substitution: MMS or another verification
       campaign alone cannot pass physical-model validation, target-population
       adequacy, SamplingPlan adequacy, customer context-of-use adequacy,
       product qualification, or a LIVE decision. Every claim must reference the
       evidence class that can support it.
-- [ ] Require generator-conformance evidence to remain distinct from reference
+- [x] Require generator-conformance evidence to remain distinct from reference
       adequacy and require both to remain distinct from measurement adequacy.
       Agreement between two layers cannot satisfy the missing layer's section.
-- [ ] Require the statistical-sufficiency and reproducibility sections to bind
+- [x] Require the statistical-sufficiency and reproducibility sections to bind
       the exact decision-interval method, dependence assumptions and evidence,
       reconstruction-by-case and reconstruction-by-stratum interaction
       diagnostics, empirical or
       simulated interval coverage, power by stratum, censoring/missing-cell
       treatment, and any sequential stopping or false-elimination audit.
-- [ ] Implement qualification-manifest construction and exact hash checks against the active registry record.
-- [ ] Reject missing, placeholder, fixture, unsigned, wrong-version, stale, malformed, mismatched, role-confused, or claim-inadequate evidence.
-- [ ] Keep human approval distinct from schema completeness and code execution.
-- [ ] Add lifecycle, signature-slot, mismatch, placeholder,
+- [x] Implement qualification-manifest construction and exact hash checks against the active registry record.
+- [x] Reject missing, placeholder, fixture, unsigned, wrong-version, stale, malformed, mismatched, role-confused, or claim-inadequate evidence.
+- [x] Keep human approval distinct from schema completeness and code execution.
+- [x] Add lifecycle, signature-slot, mismatch, placeholder,
       MMS-only-qualification, evidence-role-substitution,
       generator/reference-collapse, and no-LIVE-with-fixtures tests.
 
@@ -70,9 +70,9 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 
 Scientific, statistics, security, launch, and independent-review owners produce and sign the required evidence. Agents never set pass/fail.
 
-## Current structural checkpoint
+## Final-review candidate checkpoint
 
-Slices 1 through 4 are implemented locally on the B-06 branch. Slice 2 adds the
+Slices 1 through 4 are implemented on the B-06 ticket branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
 pending-ratification statistical/dependence scope, intended/realized attempt
 accounting, secrecy/role-separation bindings, scoped limitations, and a
@@ -97,10 +97,10 @@ threshold, computed interval, winner selection, scientific verdict, or
 qualification path. Unusable, fixture, placeholder, stale, or failed records
 cannot satisfy the dossier boundary.
 
-The final-slice audit records no remaining machine-implementable B-06 feature
-criterion. This is still not ticket completion: full-ticket reconciliation,
-canonical Linux validation when available, exact-head review, approval, PR,
-merge, and closeout remain future B-06 delivery work. Real signer authorization
+The end-to-end reconciliation records no remaining machine-implementable B-06
+feature criterion. This is still not ticket completion: exact-head checks,
+fresh complete-diff review, approval, merge, and closeout remain future B-06
+delivery work. Real signer authorization
 and signature verification remain external and human/security-owned.
 `Generator_Validation.md` v2.1 dependence
 policy and the corresponding scientific-canon v4.1 additions remain pending

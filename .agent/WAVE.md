@@ -22,12 +22,12 @@ unearned
 **B-05 status:** `in_progress` for its incomplete ordinary delivery record;
 PR #87 is merged and owner-accepted as B-06's dependency, with no B-05 work or
 review loop active
-**B-06 status:** `in_progress` through the fourth bounded structural slice:
-campaign acquisition/result manifests now join the existing exact D1-D12,
-qualification-candidate, and pure A3-comparison machinery locally; full-ticket
-reconciliation and final review remain, and no campaign engine, registry
-mutation, scientific/security acceptance, production qualification, or LIVE
-authority exists
+**B-06 status:** `in_progress` as a reconciled final-review candidate: campaign
+acquisition/result manifests join the exact D1-D12, qualification-candidate,
+and pure A3-comparison machinery; exact-head CI, fresh final review, approval,
+merge, and closeout remain, and no campaign engine, registry mutation,
+scientific/security acceptance, production qualification, or LIVE authority
+exists
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

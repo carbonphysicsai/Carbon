@@ -1,10 +1,10 @@
 # Validation Dossier and Qualification Manifest Contract
 
-**Ticket:** B-06 — Validation Dossier and qualification-manifest machinery  
-**Contract version:** 0.4
-**Status:** agent-selected working engineering contract  
-**Maturity ceiling:** bounded structural engineering only  
-**Implementation owner:** `carbon.qualification`  
+**Ticket:** B-06 — Validation Dossier and qualification-manifest machinery
+**Contract version:** 0.5
+**Status:** reconciled final-review candidate; final review not yet started
+**Maturity ceiling:** bounded structural engineering only
+**Implementation owner:** `carbon.qualification`
 **Registry owner:** `carbon.registry` remains unchanged; Slice 3 wraps only its
 public immutable value types
 
@@ -514,17 +514,20 @@ cross-claim non-substitution. It proves decision-resolution remains pending
 authority and imports or implements no execution, statistical, registry, or
 LIVE engine.
 
-Native tests on this macOS host are diagnostic only. Canonical Linux checks,
-complete-diff review, human delivery approval, merge, and closeout are reserved
-for the mature B-06 candidate.
+Native tests on this macOS host are diagnostic only. The complete candidate is
+prepared for exact-head CI and a later fresh complete-diff review. Canonical
+Linux evidence, human delivery approval, merge, and closeout remain external
+delivery predicates and are not asserted by this contract.
 
 ## 16. Deferred and human-reserved work
 
 Slice 4 owns the campaign-specific manifests not represented by Slice 2.
-Full-ticket reconciliation and final review preparation remain the next
-non-feature phase. Slice 3 implements candidate construction and a pure exact
-A3 snapshot comparison; Slice 4's synthetic D7 test proves campaign-digest
-projection into that existing evidence graph.
+The complete ticket has been reconciled as a final-review candidate; no
+machine-implementable B-06 feature requirement remains. Fresh complete-diff
+review and the remaining delivery predicate have not started. Slice 3
+implements candidate construction and a pure exact A3 snapshot comparison;
+Slice 4's synthetic D7 test proves campaign-digest projection into that
+existing evidence graph.
 Actual signer identity/role authorization and cryptographic verification stay
 external; B-06 consumes their exact typed results but does not implement or
 claim them.
