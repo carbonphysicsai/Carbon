@@ -648,6 +648,11 @@ def _validate_semantics(value: _ExactRecord) -> None:
         }[value.task_kind]
         if tuple(binding.role for binding in value.strategy_bindings) != expected_roles:
             raise ValueError("strategy binding roles conflict with the task kind")
+        if value.task_kind is ResearchTaskKind.RESOURCE_CALIBRATION:
+            if value.practice_scope_ref is not None:
+                raise ValueError("resource calibration has no practice scope")
+        elif value.practice_scope_ref is None:
+            raise ValueError("practice execution requires an exact practice scope")
         if (value.prior_index_snapshot_ref is None) != (value.prior_pack_ref is None):
             raise ValueError("prior index and pack refs must be present together")
     elif type(value) is PriorPack:

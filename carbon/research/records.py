@@ -18,6 +18,7 @@ from carbon.authoring.primitives import validate_canonical_id, validate_tagged_s
 from carbon.authoring.refs import SamplingPlanRef, TrainingSupportContractRef
 from carbon.construction.canonical import encode_model
 from carbon.construction.plan import ResolvedConstructionPlan
+from carbon.construction.policy import ResolvedTrainingSamplingPolicy
 from carbon.construction.refs import (
     ResolvedConstructionPlanRef,
     TrainingSamplingPolicyRef,
@@ -27,7 +28,11 @@ from carbon.measurement.refs import MeasurementContractRef
 from carbon.registry import ChallengeKey
 from carbon.resource_policy.refs import ObservedResourceReceiptRef
 
-from .model import EpistemicType, InfrastructureFailureClass
+from .model import (
+    EpistemicType,
+    InfrastructureFailureClass,
+    ResearchTaskBindings,
+)
 from .refs import PriorIndexSnapshotRef, PriorPackRef, ResearchTaskId
 
 
@@ -286,6 +291,7 @@ class ResolvedStrategy:
     training_sampling_policy_ref: TrainingSamplingPolicyRef
     resolved_plan_ref: ResolvedConstructionPlanRef
     resolved_plan: ResolvedConstructionPlan
+    training_sampling_policy: ResolvedTrainingSamplingPolicy
 
     def __post_init__(self) -> None:
         if type(self) is not ResolvedStrategy:
@@ -298,11 +304,19 @@ class ResolvedStrategy:
             raise TypeError("resolved plan ref must use its exact nominal type")
         if type(self.resolved_plan) is not ResolvedConstructionPlan:
             raise TypeError("resolved plan must use its exact nominal type")
+        if type(self.training_sampling_policy) is not ResolvedTrainingSamplingPolicy:
+            raise TypeError("training policy must use its exact nominal type")
         if (
             self.resolved_plan.strategy_hash != self.strategy_hash
             or self.resolved_plan.training_sampling_policy_ref
             != self.training_sampling_policy_ref
             or self.resolved_plan.to_ref() != self.resolved_plan_ref
+            or self.training_sampling_policy.to_ref()
+            != self.training_sampling_policy_ref
+            or self.training_sampling_policy.challenge_key
+            != self.resolved_plan.challenge_key
+            or self.training_sampling_policy.training_support_ref
+            != self.resolved_plan.training_support_ref
         ):
             raise ValueError("resolved strategy identities disagree")
 
@@ -358,6 +372,7 @@ class AuthorizedResearchOutcome:
     observed_resource_receipt_ref: ObservedResourceReceiptRef | None
     resource_observations: tuple[ResourceObservation, ...]
     scientific_failure_category: ResearchFailureCategory | None = None
+    finding_measurements: tuple[FindingMeasurement, ...] = ()
 
     def __post_init__(self) -> None:
         if type(self) is not AuthorizedResearchOutcome:
@@ -393,6 +408,15 @@ class AuthorizedResearchOutcome:
             and type(self.scientific_failure_category) is not ResearchFailureCategory
         ):
             raise TypeError("scientific failure must use its exact enum")
+        if type(self.finding_measurements) is not tuple or any(
+            type(item) is not FindingMeasurement for item in self.finding_measurements
+        ):
+            raise TypeError("finding measurements must use exact private records")
+        measured_ids = tuple(item.finding_id for item in self.finding_measurements)
+        if len(measured_ids) != len(set(measured_ids)) or set(measured_ids) & set(
+            self.finding_ids
+        ):
+            raise ValueError("finding projections must be unique")
         if (
             self.evidence_context.evidence_role
             is EvidenceRole.MANUFACTURED_SOLUTION_VERIFICATION
@@ -427,9 +451,33 @@ ExecutionOutcome = AuthorizedResearchOutcome | InfrastructureExecutionFailure
 
 
 @dataclass(frozen=True, slots=True)
+class FindingMeasurement:
+    """Numeric-only input to a provider-owned registered finding projection."""
+
+    finding_id: str
+    uncertainty_band: tuple[float, ...]
+
+    def __post_init__(self) -> None:
+        if type(self) is not FindingMeasurement:
+            raise TypeError("finding measurement subclasses are rejected")
+        validate_canonical_id(self.finding_id, "finding_id")
+        if (
+            type(self.uncertainty_band) is not tuple
+            or len(self.uncertainty_band) != 2
+            or any(
+                type(item) is not float or not math.isfinite(item)
+                for item in self.uncertainty_band
+            )
+            or self.uncertainty_band[0] > self.uncertainty_band[1]
+        ):
+            raise ValueError("finding uncertainty must be one finite ordered band")
+
+
+@dataclass(frozen=True, slots=True)
 class ResearchExecutionAttempt:
     task_id: ResearchTaskId
     attempt: int
+    task_bindings: ResearchTaskBindings
     challenge_key: ChallengeKey
     training_support_ref: TrainingSupportContractRef
     sampling_plan_ref: SamplingPlanRef
@@ -437,6 +485,28 @@ class ResearchExecutionAttempt:
     resolved_strategies: tuple[ResolvedStrategy, ...]
     parent_strategy_hashes: tuple[StrategyHash | None, ...]
     prior_resolution: PriorResolution
+
+    def __post_init__(self) -> None:
+        if type(self) is not ResearchExecutionAttempt:
+            raise TypeError("execution attempt subclasses are rejected")
+        if type(self.task_bindings) is not ResearchTaskBindings:
+            raise TypeError("task_bindings must use the exact wire record")
+        if self.task_bindings.challenge_info_ref.challenge_key != self.challenge_key:
+            raise ValueError("execution bindings conflict with the attempt Challenge")
+        if type(self.attempt) is not int or not 1 <= self.attempt <= 3:
+            raise ValueError("execution attempt is outside the provider retry cap")
+        if len(self.resolved_strategies) != len(self.task_bindings.strategy_bindings):
+            raise ValueError("execution bindings and resolved strategies disagree")
+        for resolved, binding in zip(
+            self.resolved_strategies, self.task_bindings.strategy_bindings, strict=True
+        ):
+            if (
+                resolved.strategy_hash != binding.strategy_hash
+                or resolved.training_sampling_policy_ref
+                != binding.training_sampling_policy_ref
+                or resolved.resolved_plan_ref != binding.resolved_plan_ref
+            ):
+                raise ValueError("execution strategy binding mismatch")
 
 
 class ResearchExecutor(Protocol):
@@ -449,6 +519,7 @@ class ExperimentRecord:
 
     task_id: ResearchTaskId
     challenge_key: ChallengeKey
+    task_bindings: ResearchTaskBindings
     training_support_ref: TrainingSupportContractRef
     sampling_plan_ref: SamplingPlanRef
     measurement_contract_ref: MeasurementContractRef
@@ -473,6 +544,11 @@ class ExperimentRecord:
             raise TypeError("task_id must use its exact nominal type")
         if type(self.challenge_key) is not ChallengeKey:
             raise TypeError("challenge_key must use its exact nominal type")
+        if (
+            type(self.task_bindings) is not ResearchTaskBindings
+            or self.task_bindings.challenge_info_ref.challenge_key != self.challenge_key
+        ):
+            raise ValueError("task bindings must exactly bind the record Challenge")
         for value, expected, label in (
             (
                 self.training_support_ref,
@@ -567,6 +643,7 @@ __all__ = (
     "EvidenceQualityMetadata",
     "ExecutionIdentity",
     "ExperimentRecord",
+    "FindingMeasurement",
     "InfrastructureExecutionFailure",
     "PriorResolution",
     "PrivateIdentityRef",

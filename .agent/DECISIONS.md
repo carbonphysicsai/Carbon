@@ -1,5 +1,80 @@
 # Agent decisions log
 
+## 2026-09-07 — OWNER-B05-B07C-01: Reconcile B-05 before B-07C in one delivery
+
+**Problem.** B-05's merged engineering tree is the substantive dependency for
+B-07C, but its status still reflects a historical delivery lifecycle that
+OWNER-DX-03 supersedes. The owner selected B-05 reconciliation followed by
+B-07C on one candidate ahead of the previously selected B-07D1.
+
+**Recommendation.** Audit B-05's current implementation and tests against its
+unchanged substantive Definition of Done, repair only genuine gaps, and close
+its bounded engineering scope prospectively when this combined candidate
+passes applicable acceptance and normally merges. Implement B-07C only after
+that audit passes, on the same branch and PR. Preserve old evidence without
+fabricating its missing review, approval, or receipt facts. Leave B-07D1
+`todo` and unstarted.
+
+**Alternatives rejected.** Replaying the obsolete review ceremony would
+contradict OWNER-DX-03. Treating historical evidence as automatic proof would
+skip current verification. A separate B-05 PR and merge would contradict the
+owner's packaging direction without improving the substantive dependency.
+
+**Implementation, impact, and reversibility.** The audit and conditional
+closeout are recorded in `.agent/evidence/wave_b/b-05.md`, the B-05 ticket,
+`.agent/WAVE.md`, `.agent/WAVE_B.md`, and the implementation ledger; B-07C is
+implemented and tested only after the focused B-05 suite passes. This changes
+sequencing and delivery packaging, not measurement bytes, scientific meaning,
+security, rights, qualification, production, or LIVE authority. A future owner
+decision can change the next-ticket order prospectively by superseding this
+heading and the two Wave registers; historical records remain intact.
+
+**Human-reserved input.** The owner supplied the sequencing and packaging
+decision. Every real measurement value, practice population, uncertainty rule,
+rights determination, security acceptance, and qualification remains absent.
+
+## 2026-09-07 — B-07C-D1: Wrap B-07B with a nominal mock-only practice executor
+
+**Problem.** B-07C needs real fixture execution while B-07B must remain the
+sole owner of task identity, idempotency, lifecycle, cancellation, retries,
+private experiment records, and terminal receipt projection. The shared B-07S
+wire vocabulary cannot be widened, and practice must not acquire A5-A7 or
+official entropy authority.
+
+**Recommendation.** Add `carbon.practice` as an in-process, nominal mock-only
+domain. Resolve exact versioned practice scopes and packs, derive role-separated
+A4 mock draws from B-07B's private task identity and the compiler's registered
+abstract randomness purposes, and execute reconstruction, single practice,
+paired common-case comparison, and resource-facts-only calibration. Carry the
+resolved sampling policy and immutable task bindings into B-07B's private
+attempt/record seam. Project only registered findings with executor-supplied
+finite numeric bands; never project raw text or caller authority labels.
+
+**Alternatives rejected.** A second dispatcher, task store, or receipt model
+would split B-07B ownership. New wire records or aliases would violate B-07S.
+Official or fixture-official contexts, Score Packs, A5 calls, caller seeds,
+filesystem or remote execution, and canned success responses would violate the
+ticket's isolation and execution requirements. Treating resource calibration
+as a scientific comparison would give resource facts unearned meaning.
+
+**Implementation, impact, and reversibility.** The additive implementation is
+in `carbon/practice/{model,registry,service}.py`; the narrow upstream adapters
+are in `carbon/research/{model,records,lifecycle}.py`. Tests live in
+`tests/cpu/test_b07c_mock_practice.py`, the package-install suite, and
+`tests/invariants/test_b07c_practice_boundaries.py`. B-07A/B-07S wire bytes are
+unchanged; B-07B remains the lifecycle owner; B-02C remains the resource-policy
+and observed-receipt owner. B-07D1 and later B-07 operations remain untouched.
+The package is removable before external persistence; a persisted schema
+change would require a new practice profile/version. To change this decision,
+supersede this heading, the B-07C contract/plan, and the three named practice
+modules; the smallest alternative is another executor behind the unchanged
+B-07B protocols.
+
+**Human-reserved input.** Real practice populations, reference adequacy,
+numerical floors, tolerances, uncertainty and disclosure policies,
+qualification, production sandbox security, rights, network/commercial use,
+and LIVE activation remain unavailable and fail closed.
+
 ## 2026-09-06 — B-E3-D1: Wrap B-06 with a deterministic, non-authorizing credibility crosswalk
 
 **Problem.** B-E3 must connect every Dossier claim to exact evidence, owners,

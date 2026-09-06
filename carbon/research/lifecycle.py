@@ -7,7 +7,7 @@ import secrets
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from carbon.fees import StrategyHash
@@ -300,6 +300,7 @@ class InMemoryResearchTaskProvider:
         request: StartResearchTaskRequest,
         info: ChallengeInfo,
         manifest: InteractionManifest,
+        kind: ResearchTaskKind,
     ) -> None:
         if (
             type(info) is not ChallengeInfo
@@ -318,7 +319,14 @@ class InMemoryResearchTaskProvider:
             or request.resource_policy_ref != manifest.resource_policy_ref
         ):
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
-        if request.practice_scope_ref != manifest.practice_scope_ref:
+        expected_scope = (
+            None
+            if kind is ResearchTaskKind.RESOURCE_CALIBRATION
+            else manifest.practice_scope_ref
+        )
+        if request.practice_scope_ref != expected_scope or (
+            kind is not ResearchTaskKind.RESOURCE_CALIBRATION and expected_scope is None
+        ):
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
 
     def _resolve_start(self, request: StartResearchTaskRequest) -> tuple[
@@ -333,8 +341,8 @@ class InMemoryResearchTaskProvider:
         try:
             info = self._catalog.get_challenge_info(request.challenge_key)
             manifest = self._manifests.get_interaction_manifest(request.challenge_key)
-            self._check_discovery(request, info, manifest)
             kind, roles, strategies, parents = self._spec_parts(request)
+            self._check_discovery(request, info, manifest, kind)
             availability = manifest.prior_availability
             if type(availability) is NoPriorAvailability:
                 if type(request.prior_selector) is not NoPriorSelector:
@@ -505,10 +513,18 @@ class InMemoryResearchTaskProvider:
                 )
             try:
                 findings = tuple(self._findings[item] for item in outcome.finding_ids)
+                measured_findings = tuple(
+                    replace(
+                        self._findings[item.finding_id],
+                        uncertainty_band=item.uncertainty_band,
+                    )
+                    for item in outcome.finding_measurements
+                )
             except KeyError:
                 raise ResearchTaskProviderError(
                     ResearchServiceErrorCode.DISCLOSURE_REJECTED
                 ) from None
+            findings += measured_findings
             if any(
                 finding.measurement_ref != task.info.measurement_contract_ref
                 for finding in findings
@@ -772,6 +788,7 @@ class InMemoryResearchTaskProvider:
                     ResearchExecutionAttempt(
                         task_id=task.task_id,
                         attempt=attempt_number,
+                        task_bindings=task.bindings,
                         challenge_key=task.challenge_key,
                         training_support_ref=task.bindings.training_support_ref,
                         sampling_plan_ref=task.info.sampling_plan_ref,
@@ -836,6 +853,7 @@ class InMemoryResearchTaskProvider:
                     record = ExperimentRecord(
                         task_id=task.task_id,
                         challenge_key=task.challenge_key,
+                        task_bindings=task.bindings,
                         training_support_ref=task.bindings.training_support_ref,
                         sampling_plan_ref=task.info.sampling_plan_ref,
                         measurement_contract_ref=task.info.measurement_contract_ref,

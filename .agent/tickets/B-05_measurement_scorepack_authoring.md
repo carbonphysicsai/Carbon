@@ -1,11 +1,10 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`
-**Conditional target:** `done` only under the conditional completion gate below;
-the bounded implementation candidate has not earned merged maturity
-**Current phase:** final implementation/integration candidate prepared for
-delivery review
+**Status:** `in_progress`; this combined B-05/B-07C candidate prepares bounded
+`done` after applicable OWNER-DX-03 acceptance and normal merge
+**Current phase:** current implementation reverified; delivery reconciliation
+is conditional on the combined candidate's acceptance and merge
 **Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
 delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
 main `f1a429de37290b3c7615ca051661a1d727528f78`, tree
@@ -48,44 +47,37 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
 
 ## Definition of Done
 
-- [ ] Begin the single-ticket PR with the working
-      `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`, material
-      decisions, plan, and SciML/statistics/protocol notification; implement
-      coherent vertical slices against that contract; then review the final
-      contract, implementation, tests, and stable evidence together. Require
-      applicable validation and exact-head `Merge gate`; obtain fresh read-
-      only Codex/GPT review of the complete diff; repair or disposition every
-      finding; require distinct non-author human approval carrying the closed
-      receipt, successful `GPT review gate`, and zero unresolved review
-      threads; and normally merge the exact reviewed tree. Any tree change
-      requires rereview, and a separate contract PR
-      requires an exception in `.agent/DELIVERY_PROTOCOL.md`. Notification is
-      not ratification and silence is no gate. Real measurement, uncertainty,
-      score-policy values, and scientific qualification remain human-owned and
-      fail closed.
-- [ ] Define exact `MeasurementContract` identity, scientific property claimed,
+- [x] Maintain the working authoring contract, material decisions, plan, and
+      stable evidence; verify the current implementation against the substantive
+      Definition of Done; repair genuine gaps; pass applicable automated
+      acceptance and `Merge gate`; and normally merge the expected candidate
+      under OWNER-DX-03. Historical review/approval/receipt language remains in
+      the evidence record but is superseded as a current delivery predicate.
+      Real measurement, uncertainty, score-policy values, and scientific
+      qualification remain human-owned and fail closed.
+- [x] Define exact `MeasurementContract` identity, scientific property claimed,
       required observables, coordinates/units, numerical operator,
       discretization, sampling/quadrature, normalization, aggregation,
       precision, reference and numerical floor, applicability, uncertainty,
       stratum/subpopulation applicability, known limitations, implementation
       refs, and intended mandatory/soft/diagnostic role.
-- [ ] Bind measurement-qualification evidence by role, including analytic or
+- [x] Bind measurement-qualification evidence by role, including analytic or
       manufactured verification, refinement/convergence, independent witness,
       limiting-case/invariance, and experimental or industrial validation where
       applicable. The evidence record must state what each source supports and
       what it cannot support.
-- [ ] Prevent MMS or another implementation-verification result from satisfying
+- [x] Prevent MMS or another implementation-verification result from satisfying
       customer-workload applicability, physical model validation, or an
       engineering context-of-use claim without separate evidence.
-- [ ] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
-- [ ] Define the Score Pack `UncertaintyPolicy` bindings for independence and
+- [x] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
+- [x] Define the Score Pack `UncertaintyPolicy` bindings for independence and
       resampling units, common-case pairing, reconstruction-by-case and
       reconstruction-by-stratum interaction, joint reference uncertainty,
       representation/execution dependence, censoring, minimum evidence, and
       prospective stopping or evidence-extension rules. Bind a Dossier-
       qualified applicability test that the exact incumbent-challenger
       evidence must satisfy before any quadrature or zero-covariance shortcut.
-- [ ] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
+- [x] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
       including Challenge/family-specific complete-base minimums of one or more
       builds, frozen-artifact reuse, nomination and promotion stages,
       coverage-qualified scientific stopping/extension, typed
@@ -93,18 +85,19 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       and fail-closed outcome. Consume B-02C resource facts without giving its
       forecasts or receipts scientific authority. B-E1 owns the fixture
       coverage and false-elimination harness, not policy authorship.
-- [ ] Preserve mandatory admissibility before soft aggregation.
-- [ ] Reject partial, non-finite, inapplicable, reference-failed, numerical-
+- [x] Preserve mandatory admissibility before soft aggregation.
+- [x] Reject partial, non-finite, inapplicable, reference-failed, numerical-
       floor-unresolved, and uncertainty-unresolved measurement material through
       typed paths.
-- [ ] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
-- [ ] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
+- [x] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
+- [x] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
 
-The first delivery-lifecycle item remains unchecked until its external
-exact-head review, approval, normal merge, exact-main, and receipt facts exist.
-No tracked file guesses those dynamic identities.
+The substantive criteria are verified in the candidate. Bounded completion is
+prospective: it becomes authoritative only after the combined candidate passes
+applicable automated acceptance and normally merges. No historical review,
+approval, receipt, or test fact is fabricated.
 
 ## Implemented bounded architecture
 

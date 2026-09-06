@@ -7,7 +7,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 2.5
+**Version:** 2.6
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -133,6 +133,21 @@ remains todo because B-05's ordinary delivery record is incomplete and the
 B-06-D0 exception was narrow. No practice execution, prior publication,
 dispatcher, official score/submission, scientific/security/rights/network/
 production qualification, or LIVE authority is added.
+**Combined B-05 reconciliation / B-07C conditional closeout:** Version 2.6
+records `OWNER-B05-B07C-01`: the owner selects current B-05 verification and
+prospective closeout followed by B-07C, in one candidate and delivery, ahead of
+B-07D1. The audit confirms B-05's substantive measurement-authoring scope is
+implemented and focused-tested; no measurement runtime repair is required.
+The candidate implements B-07C's four exact task kinds with mock-only packs,
+role-separated fresh draws, a non-champion scaffold, B-07B lifecycle/record/
+receipt ownership, bounded registered findings, and resource-facts-only
+calibration. After the unchanged ready revision passes applicable automated
+acceptance and `Merge gate` and normally merges with the expected-head guard,
+B-05 and B-07C are `done` only in their bounded engineering and in-process
+fixture scopes. B-07D1 remains next, `todo`, and unstarted. Real scientific
+values, practice populations, uncertainty/disclosure policy, security and
+rights acceptance, qualification, production, network, commercial, and LIVE
+authority remain unavailable.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -151,8 +166,9 @@ delivery record remains `in_progress`. PR #88 completed B-06 in bounded merged
 engineering scope and selected B-E3. This merged snapshot completes B-E3's
 crosswalk, validation, canonicalization, and audience-safe reporting scope.
 Version 2.3 ratified B-07S through its completed shipping predicate. This
-Version 2.4 completed B-07A as above. This Version-2.5 shipping snapshot
-conditionally completes B-07B and leaves B-07D1 next, `todo`, and unstarted.
+Version 2.4 completed B-07A as above. Version 2.5 completed B-07B. This
+Version-2.6 combined shipping snapshot conditionally reconciles B-05 and
+completes B-07C while leaving B-07D1 next, `todo`, and unstarted.
 Campaign-specific acquisition/result
 manifests and all other machine-implementable B-06 features are present. The five historical
 complete-diff reviews found nine actionable defects, all repaired; their
@@ -241,13 +257,13 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-02C | ResearchResourcePolicy, resource classes, ceilings, reconstruction-stage receipt seams, enforcement, and receipts | done | `.agent/evidence/wave_b/b-02c.md` (PR #66 repaired exact-head review, normal exact-tree-preserving merge, and exact-main CI recorded; bounded engineering scope only) | Codex + SRE | Protocol + SRE + security + operations + economics | B-02B, B-07R | MQ-008, MQ-015, MQ-017, MQ-024 | M | WB-2 |
 | B-03 | Generator API and fixed-viscosity Burgers fixture implementation | done | `.agent/evidence/wave_b/b-03.md` (PR #69 exact reviewed-tree-preserving normal merge, exact-head CI/Greptile, exact-main CI, and issue #42 closeout recorded; bounded engineering scope only) | Codex + SciML | SciML + statistics + protocol | B-02A | MQ-002, MQ-003 | L | WB-1/2 |
 | B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | done | `.agent/evidence/wave_b/b-04.md` (PR #75 satisfied the exact-head review, distinct approval, normal reviewed-tree-preserving merge, exact-main gates, and receipt predicate; bounded fixture runtime is `IMPLEMENTED` and `TESTED`, while every scientific/security/production qualification remains unearned) | Codex + SciML | SciML + statistics + protocol + independent reviewer | B-02A; B-01F satisfied for runtime | MQ-004 | L | WB-1/2 |
-| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | in_progress | PR #87 merged the owner-accepted dependency tree; ordinary delivery predicate remains incomplete and no B-05 work is active; `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`; `.agent/evidence/wave_b/b-05.md` | Codex + SciML | SciML + statistics + protocol + SRE | B-02C, B-04, B-01H | MQ-005, MQ-006, MQ-007, MQ-008 | L | WB-2 |
+| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | in_progress | PR #87 merged the substantive tree; current verification found no runtime gap; bounded done is conditional on the combined B-05/B-07C acceptance and merge; `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`; `.agent/evidence/wave_b/b-05.md` | Codex + SciML | SciML + statistics + protocol + SRE | B-02C, B-04, B-01H | MQ-005, MQ-006, MQ-007, MQ-008 | L | WB-2 |
 | B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | done | `Design_Specs/Validation_Dossier_Manifest_Contract.md`; `.agent/plans/B-06_validation_dossier_manifest.md`; `.agent/evidence/wave_b/b-06.md`; PR #88 completion comment `5560216570` | Codex | SciML + statistics + protocol + security + independent reviewer | B-02A, B-03, B-04, B-05, A3; merged predecessor dependency is owner-accepted by the recorded decision | MQ-003 through MQ-008, MQ-018 | M | WB-2/3 |
 | B-07R | Ratify the miner research architecture and authority boundaries | done | `.agent/evidence/wave_b/b-07r.md` (PR #62 exact reviewed/merge tree, Greptile, exact-head and exact-main CI recorded; bounded architecture only) | Protocol lead + Codex | Protocol + science + security + rights | B-01, B-02A | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-1 |
 | B-07S | Ratify the exact v2 wire, lifecycle, error, canonicalization, bound, and local-adapter contract | done | `Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`; `.agent/plans/B-07S_research_service_protocol.md`; `.agent/evidence/wave_b/b-07s.md`; `tests/invariants/test_b07s_research_service_protocol.py` | Protocol lead + Codex | Protocol + science + security + rights/counsel | B-07R, B-02A, B-02B, B-02C | MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045 | M | WB-2 |
 | B-07A | Shared v2 protocol primitives, InteractionManifest, and public research-capability discovery | done | `carbon/research`; `.agent/plans/B-07A_interaction_manifest.md`; `.agent/evidence/wave_b/b-07a.md`; `tests/cpu/test_b07a_protocol_core.py`; `tests/cpu/test_b07a_discovery_adapter.py`; `tests/invariants/test_b07a_research_discovery_boundaries.py` | Codex | Protocol + security | B-02A, B-02B, B-02C, B-05, B-07R, B-07S, A3, A9 | MQ-005, MQ-006, MQ-015, MQ-016, MQ-017, MQ-024 | L | WB-3 |
 | B-07B | ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, and lineage | done | `carbon/research/lifecycle.py`; `carbon/research/records.py`; `.agent/plans/B-07B_research_records.md`; `.agent/evidence/wave_b/b-07b.md`; `tests/cpu/test_b07b_research_task_lifecycle.py`; `tests/invariants/test_b07b_research_task_boundaries.py` | Codex | Protocol + science + security + rights/counsel | B-02B, B-07R, B-07S, B-07A, A11 | MQ-016, MQ-026, MQ-045 | M | WB-3 |
-| B-07C | Nominal mock/practice service, practice pack, scaffold, rehearsal, and paired comparison | todo | — | Codex + SciML | Science + statistics + security | B-02C, B-03, B-05, B-07A, B-07B, B-07S, A4, A8, A9 | MQ-002 through MQ-005, MQ-015, MQ-016 | L | WB-3/4 |
+| B-07C | Nominal mock/practice service, practice pack, scaffold, rehearsal, and paired comparison | in_progress | `Design_Specs/Mock_Practice_Execution_Contract.md`; `.agent/plans/B-07C_mock_practice.md`; `.agent/evidence/wave_b/b-07c.md`; `carbon/practice`; bounded done is conditional on combined acceptance and merge | Codex + SciML | Science + statistics + security | B-02C, B-03, B-05, B-07A, B-07B, B-07S, A4, A8, A9 | MQ-002 through MQ-005, MQ-015, MQ-016 | L | WB-3/4 |
 | B-07D1 | PriorPack schema, immutable store/index, estimands, receipts, and offline compatibility projection | todo | — | Codex + Landscape | Science + security + protocol | B-07A, B-07B, B-07S, A6, A9, A11 | MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051 | L | WB-3/4 |
 | B-07D2 | TEST_ONLY publisher and persistent cumulative-disclosure ledger | todo | — | Codex + Landscape | Science + statistics + security + protocol + rights | B-07D1, B-07B | MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051 | L | WB-4 |
 | B-07D3 | Static exact/active provider, historical retrieval, and deterministic prior alignment | todo | — | Codex + Landscape | Protocol + security | B-07D1, B-07D2, B-07S, A9 | MQ-016, MQ-017, MQ-025, MQ-026 | M | WB-4 |
