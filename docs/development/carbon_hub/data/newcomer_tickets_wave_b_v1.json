@@ -98,9 +98,9 @@
       "title": "Assemble the evidence needed to decide whether an exam is qualified",
       "what": "Create one auditable package that brings together evidence about case generation, reference truth, measurements, uncertainty, attacks, coverage, and limitations.",
       "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
-      "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. Both findings-bearing complete-diff reviews have bounded repairs in the current candidate.",
+      "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. All three findings-bearing complete-diff reviews have bounded repairs in the current candidate.",
       "not_yet": "A populated template, compatible evidence mapping, pending dependence field, PASS label, external signer-result flag, matching registry snapshot, signature, or fixture does not prove authorization, scientific or security qualification, production readiness, or LIVE activation.",
-      "current_stage_plain": "B-06 remains active under the owner-directed transition. Its second complete-diff review found three defects now repaired, and the first review's repairs remain verified. All earlier CI and reviews are stale; fresh exact-head CI plus a completely fresh review remain. Scientific and security judgments stay human-owned.",
+      "current_stage_plain": "B-06 remains active under the owner-directed transition. Its third complete-diff review found two defects now repaired, and the first and second reviews' repairs remain verified. All earlier CI and reviews are stale; fresh exact-head CI plus a fourth completely fresh review remain. Scientific and security judgments stay human-owned.",
       "map_ref": "WAVE-B/B-06"
     },
     "B-07R": {

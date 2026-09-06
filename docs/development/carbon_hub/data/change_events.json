@@ -615,6 +615,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E6"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "bug",
+      "event_id": "B-06-E8",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-06's third complete-diff review found two further structural defects; the bounded repair rejects results on merely specified campaigns and requires nominally distinct D11 decontamination and role-separation audits. B06-CR-001 through B06-CR-006 remain verified repaired, while every earlier CI/review is stale and fresh exact-head CI plus a fourth fresh review are required.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/1679a0c9825ce4f31335b6a3c0772900ab5e34b0/.agent/evidence/wave_b/b-06.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E7"
     }
   ]
 }
