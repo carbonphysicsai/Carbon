@@ -2,10 +2,10 @@
   "meta": {
     "title": "Carbon Development Hub",
     "version": "2.1",
-    "captured_at_utc": "2026-09-06T22:13:24Z",
+    "captured_at_utc": "2026-09-06T23:54:07Z",
     "repository": "https://github.com/carbonphysicsai/Carbon",
     "branch": "main",
-    "authority_snapshot_commit": "debf3653df6e9370f0b0614971bd32ca9d43df60",
+    "authority_snapshot_commit": "7aa2e20299606a6520ea6c6766d4195e8a0f0070",
     "hub_build_commit": null,
     "purpose": "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.",
     "authority_notice": "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -27,13 +27,13 @@
     "wave": "B",
     "wave_title": "Science-ready authoring skeletons",
     "wave_status": "active in bounded development scope",
-    "ticket": "B-07B",
-    "ticket_title": "Research tasks, records, receipts, and lineage",
-    "ticket_status": "done",
+    "ticket": "B-07C",
+    "ticket_title": "Nominal mock and practice service",
+    "ticket_status": "in_progress",
     "controlling_register": ".agent/WAVE_B.md",
-    "controlling_register_version": "2.5",
-    "controlling_board_fingerprint": "f70dfac778001569a34cb32a7d35ba1d137cb6695878c7ae5c1b3cff2ea1b969",
-    "stage": "B-07B is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED local lifecycle, private-record, and receipt scope. B-07D1 is next, todo, and unstarted; B-07C remains todo behind B-05's incomplete ordinary delivery record.",
+    "controlling_register_version": "2.6",
+    "controlling_board_fingerprint": "4c46da18de89e1f0dfe5a5c6e89ff6b655ad54be9d6eb4119a0386fc480f80c7",
+    "stage": "The combined candidate implements all four exact fixture task kinds after revalidating B-05. Bounded fixture-only done remains conditional on applicable acceptance and normal merge; B-07D1 remains next, todo, and unstarted.",
     "most_recent_closed_wave": "A",
     "completed_wave_tickets": [
       "B-01",
@@ -53,11 +53,15 @@
       "B-E3"
     ],
     "recent_dependencies": [
-      "B-02B",
-      "B-07R",
-      "B-07S",
+      "B-02C",
+      "B-03",
+      "B-05",
       "B-07A",
-      "A11"
+      "B-07B",
+      "B-07S",
+      "A4",
+      "A8",
+      "A9"
     ],
     "other_completed_wave_context": [
       "B-01",
@@ -65,17 +69,13 @@
       "B-01F",
       "B-01H",
       "B-02A",
-      "B-02C",
-      "B-03",
+      "B-02B",
       "B-04",
       "B-06",
-      "B-07B",
+      "B-07R",
       "B-E3"
     ],
     "downstream_handoffs": [
-      "B-07C",
-      "B-07D1",
-      "B-07D2",
       "B-07E",
       "B-07G",
       "B-E4",
@@ -86,8 +86,8 @@
     ],
     "next_selected_ticket": "B-07D1",
     "fail_closed": [
-      "PR #88 completes B-06 in bounded merged engineering scope; B-05 remains in_progress because its ordinary delivery predicate is not claimed complete, and no B-05 work or retrospective review is active.",
-      "B-07A implements only shared wire vocabulary/discovery and B-07B implements only the constructor-bound local task lifecycle, private records, and bounded receipts; neither task success nor a receipt establishes scientific validity, qualification, official outcome, security acceptance, production readiness, or LIVE.",
+      "B-05 remains in_progress until the combined candidate passes applicable acceptance and normally merges; its current audit found delivery/status lag only and did not fabricate historical review or receipt facts.",
+      "B-07C remains in_progress until the combined merge and is limited to in-process synthetic fixtures; task completion and bounded findings establish no scientific validity, qualification, official outcome, security acceptance, production readiness, or LIVE.",
       "The public publication lag/policy, real miner identity, authenticated remote transport, production signing/key custody/credentials, quote/economics, network listener, and production deployment remain unavailable later-owner seams.",
       "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance.",
       "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned.",
@@ -105,106 +105,106 @@
       "commercially_validated": "unearned",
       "production_qualified": "unearned"
     },
-    "maturity_summary": "B-07B is implemented and tested only for the constructor-bound local task lifecycle, private ExperimentRecords, and bounded terminal receipts behind B-07A's shared v2 core. Practice, prior publication/provider, resource forecasting, dispatch, external identity/transport, and all qualification and LIVE states remain unearned.",
-    "decision_series_status": "B-07B-D1..D6 are implemented working engineering decisions: one linearizable local provider, transactional immutable pins, private non-wire records, allow-list receipts, rights-fail-closed reuse, and a narrow shared-codec completion. They create no qualification authority.",
+    "maturity_summary": "B-05 is reverified in bounded measurement-authoring scope and B-07C is implemented and tested only for in-process synthetic fixture reconstruction, practice, paired comparison, and resource calibration behind B-07B. Both are conditional on the combined merge; prior publication/provider, forecasting, dispatch, external identity/transport, real science/security/rights qualification, production, and LIVE remain unearned.",
+    "decision_series_status": "OWNER-B05-B07C-01 and B-07C-D1 are implemented working decisions: current-policy B-05 reconciliation followed by one nominal mock-only practice executor behind unchanged domain owners. They create no scientific, security, rights, production, or LIVE authority.",
     "technical_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/42",
     "owner_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/41",
     "decision_series": [
-      "B-07B-D1..D6"
+      "B-07C-D1"
     ]
   },
   "sources": {
     "constitution": {
       "label": "Repository constitution",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/CONSTITUTION.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/CONSTITUTION.md"
     },
     "invariants": {
       "label": "Always-on agent invariants",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/INVARIANTS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/INVARIANTS.md"
     },
     "build_out": {
       "label": "Current Build Out",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Build_Out.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Build_Out.md"
     },
     "constitutional_overlay": {
       "label": "Build Out Constitutional Overlay",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Build_Out_Constitutional_Overlay.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Build_Out_Constitutional_Overlay.md"
     },
     "protocol_extension": {
       "label": "Build Out Protocol Extension",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Build_Out_Protocol_Extension.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Build_Out_Protocol_Extension.md"
     },
     "scientific_canon": {
       "label": "Scientific Reference Canon v4",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md"
     },
     "master_plan": {
       "label": "Agentic Development Master Plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Agentic_Development_Master_Plan.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Agentic_Development_Master_Plan.md"
     },
     "launch_plan": {
       "label": "Current testnet-to-mainnet launch path",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
     },
     "open_questions": {
       "label": "Master open design questions",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md"
     },
     "governance_ticket": {
       "label": "GOV-NET-01 roadmap ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
     },
     "governance_plan": {
       "label": "GOV-NET-01 delivery plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/GOV-NET-01_post_wave_b_bittensor_roadmap.md"
     },
     "governance_evidence": {
       "label": "GOV-NET-01 stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/governance/gov-net-01.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/governance/gov-net-01.md"
     },
     "maturity_ledger": {
       "label": "Current implemented-vs-specified ledger",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md"
     },
     "current_wave": {
       "label": "Current wave register",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE.md"
     },
     "wave_a_report": {
       "label": "Wave A closeout report",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE_A_REPORT.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_A_REPORT.md"
     },
     "controlling_board": {
       "label": "Current controlling board",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE_B.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_B.md"
     },
     "b_01f_ticket": {
       "label": "B-01F delivery hardening ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-01F_development_throughput_hardening.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-01F_development_throughput_hardening.md"
     },
     "b_01f_evidence": {
       "label": "B-01F stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-01f.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-01f.md"
     },
     "b_01g_ticket": {
       "label": "B-01G non-blocking tooling ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-01G_static_schema_codegen_proof.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-01G_static_schema_codegen_proof.md"
     },
     "b_01h_ticket": {
       "label": "B-01H iterative-agent-harness ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-01H_iterative_agent_harness_pilot.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-01H_iterative_agent_harness_pilot.md"
     },
     "b_01h_plan": {
       "label": "B-01H implementation plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/B-01H_iterative_agent_harness_pilot.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-01H_iterative_agent_harness_pilot.md"
     },
     "b_01h_evidence": {
       "label": "B-01H stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-01h.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-01h.md"
     },
     "b_01h_harness": {
       "label": "Bounded B-01H harness documentation",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/agent_pack/executors/hoh/README.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/agent_pack/executors/hoh/README.md"
     },
     "b_01h_decision_notice": {
       "label": "OWNER-DX-02 and B-01H working-decision notice",
@@ -212,47 +212,71 @@
     },
     "b_05_ticket": {
       "label": "B-05 measurement-authoring ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-05_measurement_scorepack_authoring.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-05_measurement_scorepack_authoring.md"
     },
     "b_05_contract": {
       "label": "B-05 measurement and Score Pack authoring contract",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md"
     },
     "b_05_plan": {
       "label": "B-05 implementation plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/B-05_measurement_scorepack_authoring.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-05_measurement_scorepack_authoring.md"
     },
     "b_05_evidence": {
       "label": "B-05 stable slice evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-05.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-05.md"
     },
     "b_05_package": {
       "label": "B-05 measurement package public surface",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/carbon/measurement/__init__.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/measurement/__init__.py"
     },
     "b_05_decision_notice": {
       "label": "B-05-D1 through B-05-D7 working-decision notices",
       "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
     },
+    "b_07c_ticket": {
+      "label": "B-07C mock-practice ticket",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-07C_mock_practice.md"
+    },
+    "b_07c_contract": {
+      "label": "B-07C mock practice execution contract",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Mock_Practice_Execution_Contract.md"
+    },
+    "b_07c_plan": {
+      "label": "B-07C implementation plan",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-07C_mock_practice.md"
+    },
+    "b_07c_evidence": {
+      "label": "B-07C stable evidence",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07c.md"
+    },
+    "b_07c_package": {
+      "label": "B-07C practice package",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/practice/__init__.py"
+    },
+    "b_07c_decision_notice": {
+      "label": "B-07C working-decision notification",
+      "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
+    },
     "b_07s_ticket": {
       "label": "B-07S exact research-service protocol ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-07S_research_service_protocol.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-07S_research_service_protocol.md"
     },
     "b_07s_protocol": {
       "label": "B-07S normative local v2 service protocol",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md"
     },
     "b_07s_plan": {
       "label": "B-07S delivery plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/B-07S_research_service_protocol.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-07S_research_service_protocol.md"
     },
     "b_07s_evidence": {
       "label": "B-07S stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-07s.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07s.md"
     },
     "b_07s_conformance": {
       "label": "B-07S protocol conformance invariants",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/tests/invariants/test_b07s_research_service_protocol.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/tests/invariants/test_b07s_research_service_protocol.py"
     },
     "b_07s_decision_notice": {
       "label": "B-07S-D1..D6 working-decision notification",
@@ -260,19 +284,19 @@
     },
     "code_authority": {
       "label": "Current executable-code authority map",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/CODE_AUTHORITY.toml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/CODE_AUTHORITY.toml"
     },
     "generator_package": {
       "label": "Bounded generator package public surface",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/carbon/generators/__init__.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/generators/__init__.py"
     },
     "decision_log": {
       "label": "Agent decisions log",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DECISIONS.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/DECISIONS.md"
     },
     "delegated_decisions": {
       "label": "Delegated decision protocol",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DELEGATED_DECISION_PROTOCOL.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/DELEGATED_DECISION_PROTOCOL.md"
     },
     "harsh_inbox": {
       "label": "SciML / Technical Lead Decision Inbox #42",
@@ -284,59 +308,59 @@
     },
     "operations": {
       "label": "Operations and deployment guide",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Operations.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Operations.md"
     },
     "commercial_model": {
       "label": "Commercial Operating Model",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Business/Commercial_Operating_Model.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Business/Commercial_Operating_Model.md"
     },
     "business_canon": {
       "label": "Business Canon",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Business/Business_Canon.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Business/Business_Canon.md"
     },
     "hub_validation_workflow": {
       "label": "Development Hub validation workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.github/workflows/development-hub.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.github/workflows/development-hub.yml"
     },
     "ci_workflow": {
       "label": "Canonical CI and stable Merge gate workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.github/workflows/ci.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.github/workflows/ci.yml"
     },
     "main_ruleset": {
       "label": "Main branch ruleset artifact",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.github/rulesets/main.v1.json"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.github/rulesets/main.v1.json"
     },
     "hub_publication_workflow": {
       "label": "Development Hub publication workflow",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.github/workflows/development-hub-pages.yml"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.github/workflows/development-hub-pages.yml"
     },
     "b_04_ticket": {
       "label": "B-04 reference and truth ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-04_reference_truth_contracts.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-04_reference_truth_contracts.md"
     },
     "b_04_evidence": {
       "label": "B-04 stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-04.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-04.md"
     },
     "evaluation_package": {
       "label": "Bounded B-04 evaluation package public surface",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/carbon/evaluation/__init__.py"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/evaluation/__init__.py"
     },
     "review_governance_ticket": {
       "label": "GOV-REVIEW-01 delivery-review migration ticket",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/GOV-REVIEW-01_manual_gpt_review.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/GOV-REVIEW-01_manual_gpt_review.md"
     },
     "review_governance_plan": {
       "label": "GOV-REVIEW-01 delivery plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/GOV-REVIEW-01_manual_gpt_review.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/GOV-REVIEW-01_manual_gpt_review.md"
     },
     "review_governance_evidence": {
       "label": "GOV-REVIEW-01 stable evidence",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/governance/gov-review-01.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/governance/gov-review-01.md"
     },
     "gpt_review_workflow": {
       "label": "Owner-directed delivery, superseding the GPT receipt gate",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DELIVERY_PROTOCOL.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/DELIVERY_PROTOCOL.md"
     }
   },
   "authority_source_checks": [
@@ -345,47 +369,50 @@
       "path": ".agent/WAVE.md",
       "required_markers": [
         "**Current wave:** B",
-      "**Selected ticket:** B-07B — `done`",
-      "**Next selected ticket:** `B-07D1`",
-      "**Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while",
-      "**Activation authority:** owner direction recorded in B-06-D0 accepts merged",
-      "**Controlling register:** `.agent/WAVE_B.md` version 2.5",
+        "**Selected ticket:** B-07C — `in_progress`",
+        "**Next selected ticket:** `B-07D1`",
+        "**Owner sequencing:** `OWNER-B05-B07C-01` selects current B-05 verification and",
+        "**Activation authority:** owner direction recorded in B-06-D0 accepts merged",
+        "**Controlling register:** `.agent/WAVE_B.md` version 2.6",
         "**B-01F status:** `done` in bounded merged development-system scope",
         "**B-01G status:** `todo`; non-blocking for B-04",
         "**B-01H status:** `done` in bounded merged development-tooling scope; its",
         "**B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture",
-      "**B-05 status:** `in_progress` for its incomplete ordinary delivery record;",
-      "**B-06 status:** `done` in bounded merged engineering scope.",
-      "**B-E3 status:** `done` in this merged snapshot for the bounded structural",
-      "**B-07S status:** `done` in this shipping snapshot after applicable automated",
-      "**B-07A status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,",
-      "**B-07B status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,",
-      "**B-07D1 status:** `todo` and unstarted; it is the next eligible ticket after"
+        "**B-05 status:** `in_progress`; its substantive merged engineering scope has",
+        "**B-06 status:** `done` in bounded merged engineering scope.",
+        "**B-E3 status:** `done` in this merged snapshot for the bounded structural",
+        "**B-07S status:** `done` in this shipping snapshot after applicable automated",
+        "**B-07A status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,",
+        "**B-07B status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,",
+        "**B-07C status:** `in_progress`; the combined candidate implements its bounded",
+        "**B-07D1 status:** `todo` and unstarted; it remains next after the combined"
       ]
     },
     {
       "id": "controlling-board-selection",
       "path": ".agent/WAVE_B.md",
       "required_markers": [
-      "**Version:** 2.5",
+        "**Version:** 2.6",
         "| B-03 | Generator API and fixed-viscosity Burgers fixture implementation | done |",
         "| B-01F | Development throughput hardening:",
         "| B-01G | Deterministic checked-in static schema-codegen shadow proof | todo |",
         "| B-01H | Carbon-native iterative Planner/Developer/Tester harness, identity-bound resume, and B-05 pilot manifest | done |",
         "| B-04 | ReferencePolicy, TruthAsset, primary/witness runner interfaces, and typed reference failure | done |",
-      "| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | in_progress |",
-      "| B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | done |",
-      "| B-E3 | Credibility crosswalk and evidence manifest | done |",
-      "| B-07S | Ratify the exact v2 wire, lifecycle, error, canonicalization, bound, and local-adapter contract | done |",
-      "| B-07A | Shared v2 protocol primitives, InteractionManifest, and public research-capability discovery | done |",
-      "| B-07B | ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, and lineage | done |",
+        "| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | in_progress |",
+        "| B-06 | D1-D12 Dossier, interval-coverage evidence, and qualification-manifest machinery | done |",
+        "| B-E3 | Credibility crosswalk and evidence manifest | done |",
+        "| B-07S | Ratify the exact v2 wire, lifecycle, error, canonicalization, bound, and local-adapter contract | done |",
+        "| B-07A | Shared v2 protocol primitives, InteractionManifest, and public research-capability discovery | done |",
+        "| B-07B | ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, and lineage | done |",
+        "| B-07C | Nominal mock/practice service, practice pack, scaffold, rehearsal, and paired comparison | in_progress |",
         "**B-01H completed / B-05 selected:** PR #86's normalized receipt at comment",
-      "**B-05 bounded conditional closeout:** Version 1.8 prepares B-05 `done` in its",
-      "**B-06 owner-directed transition:** Version 1.9 records the repository owner's",
-      "**B-06 completion / B-E3 closeout:** PR #88 normally merged B-06 as",
-      "**B-07S conditional closeout / B-07A next:** Version 2.3 is the B-07S shipping",
-      "**B-07A conditional closeout / B-07B next:** Version 2.4 is the B-07A shipping",
-      "**B-07B conditional closeout / B-07D1 next:** Version 2.5 is the B-07B shipping"
+        "**B-05 bounded conditional closeout:** Version 1.8 prepares B-05 `done` in its",
+        "**B-06 owner-directed transition:** Version 1.9 records the repository owner's",
+        "**B-06 completion / B-E3 closeout:** PR #88 normally merged B-06 as",
+        "**B-07S conditional closeout / B-07A next:** Version 2.3 is the B-07S shipping",
+        "**B-07A conditional closeout / B-07B next:** Version 2.4 is the B-07A shipping",
+        "**B-07B conditional closeout / B-07D1 next:** Version 2.5 is the B-07B shipping",
+        "**Combined B-05 reconciliation / B-07C conditional closeout:** Version 2.6"
       ]
     },
     {
@@ -446,6 +473,48 @@
         "## Native diagnostic evidence",
         "IMPLEMENTED: YES",
         "TESTED: YES"
+      ]
+    },
+    {
+      "id": "b-05-ticket-state",
+      "path": ".agent/tickets/B-05_measurement_scorepack_authoring.md",
+      "required_markers": [
+        "**Status:** `in_progress`",
+        "**Conditional target:** bounded `done` after the combined B-05/B-07C candidate",
+        "Historical review/approval/receipt language remains in",
+        "The substantive criteria are verified in the candidate.",
+        "## Human input"
+      ]
+    },
+    {
+      "id": "b-07c-ticket-state",
+      "path": ".agent/tickets/B-07C_mock_practice.md",
+      "required_markers": [
+        "**Status:** `in_progress`",
+        "**Conditional target:** fixture-only `done` after this candidate passes",
+        "MockTrainEvalService",
+        "resource calibration",
+        "These engineering criteria are implemented and focused-tested"
+      ]
+    },
+    {
+      "id": "b-07c-stable-evidence",
+      "path": ".agent/evidence/wave_b/b-07c.md",
+      "required_markers": [
+        "**Primary Hub map_ref:** `WAVE-B/B-07C`",
+        "## Implemented fixture path",
+        "## Isolation and negative boundaries",
+        "B-07D1 remains `todo`"
+      ]
+    },
+    {
+      "id": "b-07c-working-contract",
+      "path": "Design_Specs/Mock_Practice_Execution_Contract.md",
+      "required_markers": [
+        "**Authority ceiling:** in-process, synthetic, fixture-only, `MOCK_ONLY`",
+        "## 2. Closed execution scope",
+        "`RESOURCE_CALIBRATION` has no practice-scope reference",
+        "## 5. Mechanical non-authority"
       ]
     },
     {
@@ -604,7 +673,9 @@
         "## 2026-09-06 — B-E3-D1: Wrap B-06 with a deterministic, non-authorizing credibility crosswalk",
         "## 2026-09-06 — B-E3-D2: Treat audience disclosure and MMS non-substitution as structural rules",
         "## 2026-09-06 - OWNER-DX-03: tested ticket delivery without mandatory reviewers",
-        "## 2026-09-07 - B-07S-D1..D6: exact local research-service protocol"
+        "## 2026-09-07 - B-07S-D1..D6: exact local research-service protocol",
+        "## 2026-09-07 — OWNER-B05-B07C-01: Reconcile B-05 before B-07C in one delivery",
+        "## 2026-09-07 — B-07C-D1: Wrap B-07B with a nominal mock-only practice executor"
       ]
     },
     {
@@ -1341,15 +1412,15 @@
       "repo_links": [
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_B.md"
         },
         {
           "label": "Current wave register",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE.md"
         },
         {
           "label": "Agentic Development Master Plan",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/Design_Specs/Agentic_Development_Master_Plan.md"
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Agentic_Development_Master_Plan.md"
         }
       ]
     },
@@ -3034,46 +3105,46 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/tickets/B-05_measurement_scorepack_authoring.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-05_measurement_scorepack_authoring.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_B.md"
         },
         {
           "label": "Working contract",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md"
         },
         {
           "label": "Implementation plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/plans/B-05_measurement_scorepack_authoring.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-05_measurement_scorepack_authoring.md"
         },
         {
           "label": "B-05 stable slice evidence",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/evidence/wave_b/b-05.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-05.md"
         },
         {
           "label": "Measurement package surface",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/carbon/measurement/__init__.py"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/measurement/__init__.py"
         },
         {
           "label": "Working-decision notice",
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "PR #87 merged the repaired B-05 tree. Under B-06-D0 the owner accepts it as B-06's dependency while preserving that B-05's ordinary delivery predicate is incomplete. B-05 remains in_progress as a factual delivery-record state, with no active B-05 work or retrospective review prerequisite.",
-      "maturity_ceiling": "The working contract, five implementation slices, and semantic review repair form a conditional candidate only. Bounded SPECIFIED, IMPLEMENTED, and TESTED remain unearned until the full delivery predicate passes; every scientific, security, network, commercial, production, LIVE, review, and merge state remains unearned.",
+      "current_stage": "The combined B-05/B-07C candidate has reverified every substantive B-05 requirement against current code and tests. No measurement runtime repair was required; bounded done remains conditional on applicable acceptance and normal merge under OWNER-DX-03.",
+      "maturity_ceiling": "The merged B-05 implementation and current verification support bounded SPECIFIED, IMPLEMENTED, and TESTED engineering maturity after the combined merge only. Real scientific values, qualification, security, network, commercial, production, and LIVE remain unearned.",
       "maturity_states": {
-        "specified": "unearned",
-        "implemented": "unearned",
-        "tested": "unearned",
+        "specified": "earned",
+        "implemented": "earned",
+        "tested": "earned",
         "scientifically_qualified": "unearned",
         "security_qualified": "unearned",
         "network_qualified": "unearned",
         "commercially_validated": "unearned",
         "production_qualified": "unearned"
       },
-      "orientation_note": "This explainer preserves B-05's ordinary delivery state and prior evidence. PR #87 is merged and owner-accepted only as the B-06 dependency under B-06-D0; B-05 is not declared done, and no missing review, approval, check, or receipt is invented.",
+      "orientation_note": "This explainer preserves the historical B-05 delivery evidence without inventing missing facts. OWNER-B05-B07C-01 applies OWNER-DX-03 prospectively: current verification found delivery/status lag only, and bounded closeout waits for the combined merge.",
       "unlocks": [
         "B-06",
         "B-07A",
@@ -3134,11 +3205,11 @@
         },
         {
           "label": "B-06 stable evidence",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-06.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-06.md"
         },
         {
           "label": "Dossier package surface",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/carbon/qualification/__init__.py"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/qualification/__init__.py"
         },
         {
           "label": "Working-decision notice",
@@ -3352,7 +3423,7 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-07A_interaction_manifest.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-07A_interaction_manifest.md"
         },
         {
           "label": "Wave B controlling board",
@@ -3368,7 +3439,7 @@
         },
         {
           "label": "Stable evidence",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-07a.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07a.md"
         },
         {
           "label": "Working-decision notification",
@@ -3429,19 +3500,19 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-07B_research_records.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-07B_research_records.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_B.md"
         },
         {
           "label": "Implementation plan",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/plans/B-07B_research_records.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-07B_research_records.md"
         },
         {
           "label": "Stable evidence",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-07b.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07b.md"
         }
       ],
       "current_stage": "B-07B is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED local lifecycle, private-record, and receipt scope. B-07D1 is next, todo, and unstarted; B-07C remains todo behind B-05's incomplete ordinary delivery record.",
@@ -3471,13 +3542,13 @@
       "id": "B-07C",
       "wave": "B",
       "title": "Nominal mock and practice service",
-      "status": "todo",
+      "status": "in_progress",
       "phase": "WB-3/4",
       "one_line": "Implement mock-only practice tasks, practice packs, scaffold, rehearsal, and paired comparison on common fresh public cases.",
       "what": "Implement mock-only practice tasks, practice packs, scaffold, rehearsal, and paired comparison on common fresh public cases.",
       "why": "Miners need useful feedback and experimentation support without learning protected cases, official mixtures, exact margins, or official result ordering.",
-      "adds": "A nominal practice loop with bounded aggregate evidence.",
-      "does_not": "Practice cannot prequalify, prioritize, admit, reject, score, or submit an official candidate.",
+      "adds": "Exact mock-only scope and measurement packs, a versioned registry, non-champion scaffold, and coherent in-process reconstruction, practice, paired common-case comparison, and resource calibration through B-07B.",
+      "does_not": "Practice cannot prequalify, prioritize, admit, reject, score, publish, or submit an official candidate; it supplies no production sandbox or real scientific policy.",
       "depends_on": [
         "B-02C",
         "B-03",
@@ -3505,15 +3576,46 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-07C_mock_practice.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-07C_mock_practice.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/WAVE_B.md"
+        },
+        {
+          "label": "Mock practice execution contract",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/Design_Specs/Mock_Practice_Execution_Contract.md"
+        },
+        {
+          "label": "Implementation plan",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/plans/B-07C_mock_practice.md"
+        },
+        {
+          "label": "Stable evidence",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07c.md"
+        },
+        {
+          "label": "Practice package",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/practice/__init__.py"
+        },
+        {
+          "label": "Working-decision notification",
+          "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": null,
-      "orientation_note": "This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.",
+      "current_stage": "The combined candidate implements all four exact fixture task kinds after revalidating B-05. Bounded fixture-only done remains conditional on applicable acceptance and normal merge; B-07D1 remains next, todo, and unstarted.",
+      "maturity_ceiling": "B-07C may earn IMPLEMENTED and TESTED only for in-process synthetic fixtures. Real science, uncertainty/disclosure policy, security, rights, network, production, official evaluation, and LIVE remain unearned.",
+      "maturity_states": {
+        "specified": "earned",
+        "implemented": "earned",
+        "tested": "earned",
+        "scientifically_qualified": "unearned",
+        "security_qualified": "unearned",
+        "network_qualified": "unearned",
+        "commercially_validated": "unearned",
+        "production_qualified": "unearned"
+      },
+      "orientation_note": "Task completion is operational only. Exact mock contexts and private case material cannot act as A5-A7 inputs or official, publication, ranking, frontier, network, commercial, or LIVE evidence.",
       "unlocks": [
         "B-07E",
         "B-07G",
@@ -3929,7 +4031,7 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/tickets/B-E3_credibility_crosswalk.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/tickets/B-E3_credibility_crosswalk.md"
         },
         {
           "label": "Wave B controlling board",
@@ -3945,11 +4047,11 @@
         },
         {
           "label": "B-E3 stable evidence",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/evidence/wave_b/b-e3.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-e3.md"
         },
         {
           "label": "Credibility package surface",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/carbon/qualification/__init__.py"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/carbon/qualification/__init__.py"
         },
         {
           "label": "Working-decision notification",
