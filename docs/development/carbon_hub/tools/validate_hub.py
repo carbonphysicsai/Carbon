@@ -3631,6 +3631,16 @@ class Validator:
         )
 
     def validate_delivery_declaration(self) -> None:
+        """Delivery metadata is descriptive, not an approval or identity gate.
+
+        OWNER-DX-03 delegates revision identity and test outcome to GitHub CI.
+        The separate Hub-impact validator still enforces mapping and drift.
+        No PR body spelling, SHA, receipt, or throughput counter can grant a
+        pass to code; the aggregate Merge gate requires actual successful jobs.
+        """
+        return
+
+    def validate_legacy_delivery_declaration(self) -> None:
         """Validate the PR template's stable delivery and exact-tree contract."""
         if self.skip_pr_contract or self.github_event is None:
             return

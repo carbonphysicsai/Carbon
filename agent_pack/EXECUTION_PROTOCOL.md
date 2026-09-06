@@ -1,5 +1,11 @@
 # Execution Protocol — Carbon Wave work
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Executor-agnostic.** Use with Codex, Hermes, Claude Code, Cursor agents, or a human developer.
 
 Model choice, API keys, and vendor harness config are **out of band** (see optional `agent_pack/executors/`). This file is only: how to take tickets safely against Carbon.

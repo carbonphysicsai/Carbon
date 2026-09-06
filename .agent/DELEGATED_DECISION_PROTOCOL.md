@@ -1,5 +1,11 @@
 # Delegated Development Decision Protocol
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Status:** governance correction for active Carbon development
 **Applies to:** coding agents, ticket executors, technical leads, and owner decision routing
 **Owner inbox:** GitHub issue #41

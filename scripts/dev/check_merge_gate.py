@@ -30,10 +30,16 @@ REQUIRED_JOBS = {
 }
 
 
-def gate_failures(scope: ChangeScope, statuses: Mapping[str, str]) -> tuple[str, ...]:
+def gate_failures(
+    scope: ChangeScope, statuses: Mapping[str, str], *, dev_image_required: bool = True
+) -> tuple[str, ...]:
     """Return exact job/result mismatches for a scope-specific workflow run."""
 
+    if type(dev_image_required) is not bool:
+        raise ValueError("dev_image_required must be a bool")
     required = REQUIRED_JOBS[scope]
+    if scope is ChangeScope.RUNTIME_FULL and not dev_image_required:
+        required = required - {"dev_image"}
     failures: list[str] = []
     for job in JOB_NAMES:
         observed = statuses.get(job, "")
@@ -50,6 +56,9 @@ def gate_failures(scope: ChangeScope, statuses: Mapping[str, str]) -> tuple[str,
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scope", required=True, choices=tuple(ChangeScope))
+    parser.add_argument(
+        "--dev-image-required", choices=("true", "false"), default="true"
+    )
     for job in JOB_NAMES:
         parser.add_argument(
             f"--{job.replace('_', '-')}",
@@ -63,7 +72,9 @@ def main() -> int:
     args = _parse_args()
     scope = ChangeScope(args.scope)
     statuses = {job: getattr(args, job) for job in JOB_NAMES}
-    failures = gate_failures(scope, statuses)
+    failures = gate_failures(
+        scope, statuses, dev_image_required=args.dev_image_required == "true"
+    )
     if failures:
         print(f"Merge gate rejected {scope.value} results:", file=sys.stderr)
         for failure in failures:

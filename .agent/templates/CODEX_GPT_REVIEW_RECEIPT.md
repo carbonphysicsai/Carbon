@@ -1,3 +1,7 @@
+> **Historical template, not a delivery gate.** OWNER-DX-03 retires the
+> mandatory human approval and GPT receipt. Retain old receipts as evidence;
+> do not request a new one to merge an engineering PR.
+
 # Codex/GPT Review Receipt
 
 Place the block below, with every placeholder resolved, in one GitHub

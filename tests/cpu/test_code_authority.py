@@ -986,11 +986,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
 
-    assert _inline_run_commands(jobs["preflight"]) == (
-        "./scripts/dev/ci_preflight.sh",
-        "./scripts/dev/bootstrap.sh",
-        "./scripts/dev/preflight.sh",
-    )
+    assert _inline_run_commands(jobs["preflight"]) == ("./scripts/dev/ci_preflight.sh",)
     assert _inline_run_commands(jobs["canonical"]) == (
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
@@ -1001,7 +997,6 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
-        "./scripts/dev/preflight.sh",
         "./scripts/dev/ci.sh",
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
         "./scripts/dev/ci_contract_authority.sh",
@@ -1044,9 +1039,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "concurrency:" in trigger_contract
 
     assert workflow.count("name: Merge gate") == 1
-    assert (
-        "types: [opened, synchronize, reopened, edited, ready_for_review]" in workflow
-    )
+    assert "types: [opened, synchronize, reopened, ready_for_review]" in workflow
     assert "pull-requests: read" in workflow
     assert 'gh api "${endpoint}" --jq .head.sha' in workflow
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
@@ -1055,12 +1048,13 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 6
     assert workflow.count("fetch-depth: 0") == 7
     assert workflow.count("persist-credentials: false") == 8
-    assert (
-        jobs["preflight"].count(
-            "if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'"
-        )
-        == 3
-    )
+    assert "Install pinned uv" not in jobs["preflight"]
+    assert "github.event.pull_request.draft == false" in jobs["preflight"]
+    assert "dev_image_required == 'true'" in jobs["dev-image"]
+    assert "--dev-image-required false" in jobs["merge-gate"]
+    assert '[[ "${PREFLIGHT_IMAGE}" == "${derived_image}" ]]' in workflow
+    assert "  push:" not in trigger_contract
+    assert " edited," not in trigger_contract
     assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
     assert "github.event.pull_request.number || github.sha" in workflow
     assert 'CARBON_REQUIRE_DOCKER_TESTS: "1"' in workflow

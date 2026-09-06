@@ -1,5 +1,11 @@
 # Carbon Agent Wave Status
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope

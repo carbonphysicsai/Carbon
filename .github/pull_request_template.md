@@ -1,66 +1,17 @@
-## Summary
+## Ticket and change
 
-<!-- What changed, why, and which bounded authority permits it? -->
+<!-- Link the ticket. Summarize the implemented behavior and scope. -->
 
-## Delivery mode
+## Tests
 
-DELIVERY_MODE: SINGLE_TICKET_PR
-SEPARATE_CONTRACT_PR_REASON: NOT_APPLICABLE
+<!-- Focused tests, regressions, and CI. Do not paste SHA inventories or receipts. -->
 
-<!--
-For SEPARATE_CONTRACT_PR, replace NOT_APPLICABLE with exactly one:
-CONTRACT_ONLY_TICKET
-CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT
-CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE
-AUTHORITATIVE_SEQUENCING | AUTHORITY: <normalized repo-relative current sequencing authority path> | DETAILS: <specific reason of at least four words that equals a complete SEPARATE_CONTRACT_PR_EXCEPTION marker value in that file at candidate HEAD>
-DETAILS and marker values must be plain single-line prose without Markdown/HTML metacharacters <, >, &, *, backtick, or underscore.
-Ticket size is never a valid reason.
--->
+## Risks and remaining work
 
-## Exact candidate
-
-BASE:
-FINAL_HEAD:
-FINAL_TREE:
-
-## Canonical validation
-
-CHANGE_SCOPE:
-CANONICAL_LOCAL_VALIDATION:
-MERGE_GATE:
-CODEX_GPT_REVIEW_RECEIPT:
-HUMAN_APPROVAL_REVIEW:
-GPT_REVIEW_GATE:
-UNRESOLVED_THREADS:
-BLOCKING_DIRECTION:
-
-<!-- List exact commands/results. Native-host output is not canonical. -->
-
-## Completion receipt
-
-DYNAMIC_COMPLETION_EVIDENCE: EXTERNAL
-COMPLETION_RECEIPT_LOCATION:
-
-## Lead notification
-
-<!-- Link the applicable decision-inbox notification, or explain why none is required. -->
+<!-- Keep scientific/security/production limitations explicit. -->
 
 ## Development Hub impact
 
-Complete exactly one line below and delete the other line. Replace every
-placeholder with a specific map reference, source file, or no-impact reason.
-
-HUB_UPDATE_REQUIRED: <map refs and changed hub source files>
-
-HUB_IMPACT_NONE: <specific reason the hub's purpose, placement, status, dependencies, boundaries, maturity, routes, and primary links remain accurate>
-
-## Maturity ceiling
-
-<!-- State what remains unavailable or fail closed. -->
-
-## Throughput observations
-
-CODE_BEARING_COMMITS:
-POST_FREEZE_TREE_CHANGES:
-FULL_CI_RUNS:
-AVOIDABLE_RERUN_REASON:
+<!-- Complete one line and remove the other. -->
+HUB_UPDATE_REQUIRED: <map refs and changed Hub source files>
+HUB_IMPACT_NONE: <map owner and specific reason the Hub remains accurate>

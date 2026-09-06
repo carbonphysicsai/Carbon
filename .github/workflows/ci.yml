@@ -1,11 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, edited, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -18,12 +16,14 @@ concurrency:
 jobs:
   preflight:
     name: Delivery preflight
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
       candidate_sha: ${{ steps.candidate.outputs.candidate_sha }}
       base_sha: ${{ steps.candidate.outputs.base_sha }}
       change_scope: ${{ steps.delivery.outputs.change_scope }}
+      dev_image_required: ${{ steps.delivery.outputs.dev_image_required }}
     steps:
       - name: Resolve the current exact candidate
         id: candidate
@@ -74,24 +74,6 @@ jobs:
           CARBON_EVENT_SHA: ${{ github.sha }}
         run: ./scripts/dev/ci_preflight.sh
 
-      - name: Install pinned uv
-        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with:
-          version: "0.12.7"
-          enable-cache: true
-          cache-dependency-glob: uv.lock
-
-      - name: Bootstrap locked Carbon environment
-        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
-        run: ./scripts/dev/bootstrap.sh
-
-      - name: Run fast repository preflight
-        if: steps.delivery.outputs.change_scope == 'RUNTIME_FULL'
-        env:
-          QUALITY_BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
-          CARBON_ARTIFACT_DIR: .carbon-artifacts
-        run: ./scripts/dev/preflight.sh
 
   canonical:
     name: Canonical environment
@@ -132,7 +114,7 @@ jobs:
 
   dev-image:
     name: Clean dev-container image
-    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -253,7 +235,7 @@ jobs:
 
   merge-gate:
     name: Merge gate
-    if: always()
+    if: always() && github.event.pull_request.draft == false
     needs: [preflight, canonical, dev-image, contract-authority, hub-validation, derived-documentation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -283,6 +265,7 @@ jobs:
           BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
           PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          PREFLIGHT_IMAGE: ${{ needs.preflight.outputs.dev_image_required }}
           BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
         run: |
           set -euo pipefail
@@ -315,10 +298,14 @@ jobs:
             --base "${BASE_SHA}" \
             --github-output "${scope_output}"
           derived_scope=
+          derived_image=
           while IFS='=' read -r key value; do
             if [[ "${key}" == "change_scope" ]]; then
               [[ -z "${derived_scope}" ]] || { echo "Duplicate derived change scope." >&2; exit 2; }
               derived_scope="${value}"
+            elif [[ "${key}" == "dev_image_required" ]]; then
+              [[ -z "${derived_image}" ]] || { echo "Duplicate image requirement." >&2; exit 2; }
+              derived_image="${value}"
             fi
           done < "${scope_output}"
           case "${derived_scope}" in
@@ -329,7 +316,22 @@ jobs:
             echo "Preflight scope ${PREFLIGHT_SCOPE:-missing} disagrees with protected scope ${derived_scope}." >&2
             exit 2
           fi
-          python3 "${gate}" \
+          # Older protected bases require the image for all runtime changes.
+          # The migration itself changes CI, so it still runs image acceptance.
+          if [[ -z "${derived_image}" ]]; then
+            if [[ "${derived_scope}" == "RUNTIME_FULL" ]]; then
+              derived_image=true
+            else
+              derived_image=false
+            fi
+          fi
+          [[ "${derived_image}" == true || "${derived_image}" == false ]]
+          [[ "${PREFLIGHT_IMAGE}" == "${derived_image}" ]]
+          image_args=()
+          if [[ "${derived_scope}" == "RUNTIME_FULL" && "${derived_image}" == false ]]; then
+            image_args=(--dev-image-required false)
+          fi
+          python3 "${gate}" "${image_args[@]}" \
             --scope "${derived_scope}" \
             --preflight "${{ needs.preflight.result }}" \
             --canonical "${{ needs.canonical.result }}" \

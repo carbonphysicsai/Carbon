@@ -1,5 +1,11 @@
 # Codex ticket launcher
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 Use this launcher only with the current repository authority. Detailed rules
 live in `AGENTS.md`, `.agent/DELIVERY_PROTOCOL.md`, and
 `agent_pack/EXECUTION_PROTOCOL.md`.

@@ -1,5 +1,11 @@
 # Carbon Wave B Board
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
 **Version:** 1.8
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.

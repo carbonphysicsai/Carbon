@@ -1,0 +1,33 @@
+name: Main smoke
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Main integration smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: ./scripts/dev/bootstrap.sh
+      - name: Check integration invariants and public import
+        run: |
+          set -euo pipefail
+          .venv/bin/python -c 'import carbon'
+          .venv/bin/python -m pytest tests/invariants -m invariant -q
