@@ -10,7 +10,7 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 2.6
-**Selected ticket:** B-07C — `in_progress` on the combined B-05/B-07C candidate
+**Selected ticket:** B-07C — `in_progress`
 **Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
 shipping predicate
 **Next selected ticket:** `B-07D1`
