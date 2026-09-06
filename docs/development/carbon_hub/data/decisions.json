@@ -1022,7 +1022,7 @@
       "if_changed": "The two Wave registers, both tickets/evidence records, Hub current state, and combined PR packaging must be superseded prospectively.",
       "affects": ["WAVE-B/B-05", "WAVE-B/B-07C", "WAVE-B/B-07D1", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/db6180149da8f1c54ca2021ce5b417e04700694b/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-07C-D1",
@@ -1040,7 +1040,7 @@
       "if_changed": "The practice contract/profile, package modules, narrow B-07B private adapters, tests, and later B-07E/B-07G consumers require a prospective migration.",
       "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/db6180149da8f1c54ca2021ce5b417e04700694b/.agent/DECISIONS.md"
     }
   ]
 }

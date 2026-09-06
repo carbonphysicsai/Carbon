@@ -818,7 +818,7 @@
       "owner_lane": "sciml_technical_lead",
       "status": "implemented",
       "summary": "The owner-directed combined candidate reverifies B-05 with no measurement runtime repair and implements B-07C mock-only scopes, packs, scaffold, reconstruction, practice, paired common-case comparison, and resource-facts-only calibration; both bounded closeouts await acceptance and merge, and B-07D1 remains todo and unstarted.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7aa2e20299606a6520ea6c6766d4195e8a0f0070/.agent/evidence/wave_b/b-07c.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/db6180149da8f1c54ca2021ce5b417e04700694b/.agent/evidence/wave_b/b-07c.md",
       "affects": [
         "WAVE-B/B-05",
         "WAVE-B/B-06",
@@ -831,6 +831,7 @@
         "WAVE-B/B-E4",
         "WAVE-B/B-E3",
         "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-SEQUENCING",
         "SYSTEM/MATURITY"
