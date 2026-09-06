@@ -3,7 +3,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 1.9
+**Controlling register:** `.agent/WAVE_B.md` version 2.0
 **Selected ticket:** B-06 — `in_progress`
 **Owner sequencing:** `OWNER-DX-02` interposed B-01H after completed B-04 and
 before B-05; B-01H's complete delivery predicate has now passed and B-05 is
