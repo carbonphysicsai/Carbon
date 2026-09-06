@@ -546,6 +546,24 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E2"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E4",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-06 Slice 4 adds exact prospective acquisition and externally supplied result manifests for every ticket-named campaign family, strict canonical identity and cross-campaign non-substitution, with 1480 affected local tests passing; no campaign engine, scientific verdict, qualification, or LIVE authority is added.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/carbon/qualification/campaign.py",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E3"
     }
   ]
 }
