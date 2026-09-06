@@ -122,11 +122,9 @@ def test_missing_tooling_test_fails_closed(
     monkeypatch.setattr(
         "select_cpu_profile.changed_paths", lambda *_: ("scripts/dev/ci.sh",)
     )
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["selector", "--repository", str(tmp_path), "--base", "HEAD", "--tooling-tests"],
-    )
+    arguments = ["selector", "--repository", str(tmp_path), "--base", "HEAD"]
+    arguments.append("--tooling-tests")
+    monkeypatch.setattr(sys, "argv", arguments)
     assert main() == 2
     assert "Required tooling test is missing" in capsys.readouterr().err
 
