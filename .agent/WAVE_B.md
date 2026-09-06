@@ -104,7 +104,9 @@ satisfied, and PR #75's receipt establishes B-04's bounded completed state.
 B-01H's complete conditional predicate has passed at the identities above.
 Under B-06-D0, merged B-05 is the owner-accepted dependency while its ordinary
 delivery record remains `in_progress`; B-06 is the selected `in_progress`
-ticket. Working engineering decisions may proceed
+ticket through four local bounded structural slices. Campaign-specific
+acquisition/result manifests are implemented, while full-ticket reconciliation
+and final review remain. Working engineering decisions may proceed
 after durable record and applicable notification without
 affirmative lead response. A human-reserved value remains unavailable and
 blocks its affected behavior, not unrelated bounded work.
