@@ -146,6 +146,9 @@ B-05/B-07C shipping predicate.
 > the expected-head guard. B-07D1 remains `todo` and unstarted. No real science,
 > security, rights, qualification, production, network, commercial, or LIVE
 > authority is supplied.
+> The merged B-05 tree remains owner-accepted as the substantive dependency;
+> the historical ordinary delivery predicate is superseded prospectively only
+> by this OWNER-DX-03 closeout.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
