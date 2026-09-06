@@ -1,13 +1,13 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-05T14:23:02Z"
+  captured_at_utc: "2026-09-06T13:12:35Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5dd55978b0ab4281873231b66cf6e5073c1c9553"
+  authority_snapshot_commit: "0a139bbb00cd589a06b1ea3e84938f687d33cc6b"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
-  authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
+  authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
 presentation:
   decision: "OWNER-HUB-01"
   map_ref: "SYSTEM/DEVELOPMENT-HUB"
@@ -481,6 +481,7 @@ current:
     - "B-GATE"
   parallel_context:
     - "B-01G remains todo as a future non-blocking tooling proof."
+    - "OWNER-DX-03 replaces mandatory human/GPT review receipts and repeated CI with tested ticket delivery; scientific-ticket selection is unchanged."
   next_selected_ticket: null
   fail_closed:
     - "B-05's repaired five-slice delivery candidate and prepared conditional closeout remain branch-local and inert until fresh exact-head CI, complete-diff rereview, approval, gates, merge, exact-main, and external receipt pass; they earn no scientific qualification, production, or LIVE authority."
@@ -2117,6 +2118,23 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/MATURITY"
     supersedes: "B-05-E6"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "decision"
+    event_id: "OWNER-DX-03"
+    owner_lane: "owner"
+    status: "implemented"
+    summary: "The owner removes mandatory human approval and GPT receipts, metadata-triggered full CI, unconditional clean-image builds, duplicate automatic Hub runs, and post-merge full-CI closeout gates while preserving required tests."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/0a139bbb00cd589a06b1ea3e84938f687d33cc6b/.agent/DELIVERY_PROTOCOL.md"
+    affects:
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/CI"
+      - "SYSTEM/PR-MAINTENANCE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/MATURITY"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
