@@ -8,8 +8,14 @@ main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
 > **Current development state.** `.agent/WAVE.md` records Wave B active in
-> bounded development scope with B-04 selected `in_progress`; B-04 runtime and
-> the B-01F conditional completion predicate remain exactly governed there.
+> bounded development scope with B-06 selected `in_progress` under the narrow
+> B-06-D0 owner transition. B-05 remains `in_progress` because its ordinary
+> delivery predicate is not claimed complete; no B-05 review loop is active.
+> B-06's five historical complete-diff reviews found nine actionable defects,
+> all repaired on the pre-integration tree. Their receipts and approvals remain
+> historical evidence only under OWNER-DX-03. Current-main integration,
+> applicable automated acceptance, normal expected-head merge, and completion
+> confirmation remain incomplete.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -348,6 +354,7 @@ the bounded implementation.
 | Challenge-specific `ReferencePolicy` | Yes | partial/adapters | No | no universal truth backend |
 | `MeasurementContract` | Yes | partial/design | No | future first-class runtime binding |
 | Score Pack Evidence Use Contract | Yes target | A5 bounded current form | No LIVE pack | migration must preserve A5 engine boundary |
+| Validation Dossier structural machinery | Reconciled B-06 contract | Exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits and campaign PRIMARY/WITNESS roles require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks; all nine historical review findings repaired | No | current-main integration and applicable automated acceptance/merge remain; historical review/approval evidence is not a current predicate under OWNER-DX-03; no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |

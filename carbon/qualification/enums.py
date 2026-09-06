@@ -1,0 +1,615 @@
+"""Closed vocabularies for the B-06 Validation Dossier foundation."""
+
+from __future__ import annotations
+
+from enum import Enum
+from types import MappingProxyType
+
+
+class DossierSlot(str, Enum):
+    D1 = "D1"
+    D2 = "D2"
+    D3 = "D3"
+    D4 = "D4"
+    D5 = "D5"
+    D6 = "D6"
+    D7 = "D7"
+    D8 = "D8"
+    D9 = "D9"
+    D10 = "D10"
+    D11 = "D11"
+    D12 = "D12"
+
+
+DOSSIER_SLOT_ORDER = tuple(DossierSlot)
+DOSSIER_SLOT_TITLES = MappingProxyType(
+    {
+        DossierSlot.D1: "Physical-system adequacy",
+        DossierSlot.D2: "Claim / envelope adequacy",
+        DossierSlot.D3: "Target-population adequacy",
+        DossierSlot.D4: "SamplingPlan / finite-evidence adequacy",
+        DossierSlot.D5: "Generator implementation integrity",
+        DossierSlot.D6: "Generator distribution conformance",
+        DossierSlot.D7: "Reference / truth adequacy",
+        DossierSlot.D8: "Representation fidelity",
+        DossierSlot.D9: "Measurement adequacy and applicability",
+        DossierSlot.D10: "Statistical sufficiency and estimand clarity",
+        DossierSlot.D11: ("Evaluation secrecy, decontamination, and role separation"),
+        DossierSlot.D12: "Censoring, limitations, and residual uncertainty",
+    }
+)
+
+
+class DossierEvidenceClass(str, Enum):
+    PHYSICAL_SYSTEM_ADEQUACY = "PHYSICAL_SYSTEM_ADEQUACY"
+    CLAIM_ENVELOPE_ADEQUACY = "CLAIM_ENVELOPE_ADEQUACY"
+    TARGET_POPULATION_ADEQUACY = "TARGET_POPULATION_ADEQUACY"
+    SAMPLING_PLAN_FINITE_EVIDENCE_ADEQUACY = "SAMPLING_PLAN_FINITE_EVIDENCE_ADEQUACY"
+    GENERATOR_IMPLEMENTATION_INTEGRITY = "GENERATOR_IMPLEMENTATION_INTEGRITY"
+    GENERATOR_DISTRIBUTION_CONFORMANCE = "GENERATOR_DISTRIBUTION_CONFORMANCE"
+    REFERENCE_TRUTH_ADEQUACY = "REFERENCE_TRUTH_ADEQUACY"
+    REPRESENTATION_FIDELITY = "REPRESENTATION_FIDELITY"
+    MEASUREMENT_ADEQUACY_APPLICABILITY = "MEASUREMENT_ADEQUACY_APPLICABILITY"
+    STATISTICAL_SUFFICIENCY_ESTIMAND_CLARITY = (
+        "STATISTICAL_SUFFICIENCY_ESTIMAND_CLARITY"
+    )
+    EVALUATION_SECRECY_DECONTAMINATION_ROLE_SEPARATION = (
+        "EVALUATION_SECRECY_DECONTAMINATION_ROLE_SEPARATION"
+    )
+    CENSORING_LIMITATIONS_RESIDUAL_UNCERTAINTY = (
+        "CENSORING_LIMITATIONS_RESIDUAL_UNCERTAINTY"
+    )
+    MMS_REFINEMENT_OBSERVED_ORDER = "MMS_REFINEMENT_OBSERVED_ORDER"
+    PLANTED_DEFECT_MUTATION_CAMPAIGN = "PLANTED_DEFECT_MUTATION_CAMPAIGN"
+    ANALYTIC_LIMITING_CASE_ANCHOR = "ANALYTIC_LIMITING_CASE_ANCHOR"
+    PRIMARY_WITNESS_CONVERGENCE = "PRIMARY_WITNESS_CONVERGENCE"
+    REFERENCE_DISAGREEMENT = "REFERENCE_DISAGREEMENT"
+    GENERATOR_ORACLE_ADVERSARIAL_TEST = "GENERATOR_ORACLE_ADVERSARIAL_TEST"
+    MEASUREMENT_FLOOR = "MEASUREMENT_FLOOR"
+    DECISION_RESOLUTION_STUDY = "DECISION_RESOLUTION_STUDY"
+    RESIDUAL_LIMITATION = "RESIDUAL_LIMITATION"
+
+
+DOSSIER_PRIMARY_EVIDENCE_CLASS = MappingProxyType(
+    dict(zip(DOSSIER_SLOT_ORDER, tuple(DossierEvidenceClass)[:12], strict=True))
+)
+
+
+class EvidenceRequirement(str, Enum):
+    REQUIRED = "REQUIRED"
+    NOT_APPLICABLE_WITH_RATIONALE = "NOT_APPLICABLE_WITH_RATIONALE"
+    DEFERRED_BLOCKING_LIVE = "DEFERRED_BLOCKING_LIVE"
+
+
+class EvidenceCompleteness(str, Enum):
+    INCOMPLETE_MISSING = "INCOMPLETE_MISSING"
+    INCOMPLETE_PLACEHOLDER = "INCOMPLETE_PLACEHOLDER"
+    COMPLETE_REFERENCED = "COMPLETE_REFERENCED"
+
+
+class EvidenceSectionStatus(str, Enum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    BLOCKED = "BLOCKED"
+    PASS_WITH_LIMITATIONS = "PASS_WITH_LIMITATIONS"
+
+
+class StructuralOrigin(str, Enum):
+    FIXTURE_ONLY = "FIXTURE_ONLY"
+    DRAFT_OR_UNRESOLVED = "DRAFT_OR_UNRESOLVED"
+    REGISTERED_REFERENCE = "REGISTERED_REFERENCE"
+
+
+def effective_structural_origin(
+    *origins: StructuralOrigin,
+) -> StructuralOrigin:
+    """Return the fail-closed origin for one complete contributing graph."""
+    if not origins or any(type(item) is not StructuralOrigin for item in origins):
+        raise TypeError("origins must be non-empty exact StructuralOrigin values")
+    if StructuralOrigin.FIXTURE_ONLY in origins:
+        return StructuralOrigin.FIXTURE_ONLY
+    if StructuralOrigin.DRAFT_OR_UNRESOLVED in origins:
+        return StructuralOrigin.DRAFT_OR_UNRESOLVED
+    return StructuralOrigin.REGISTERED_REFERENCE
+
+
+class SignerRole(str, Enum):
+    PHYSICS_SCIML = "PHYSICS_SCIML"
+    STATISTICS = "STATISTICS"
+    PROTOCOL = "PROTOCOL"
+    SECURITY = "SECURITY"
+    INDEPENDENT_REVIEW = "INDEPENDENT_REVIEW"
+
+
+REQUIRED_SIGNER_ROLE_ORDER = tuple(SignerRole)
+
+
+class SignerArtifactKind(str, Enum):
+    SIGNER_IDENTITY = "SIGNER_IDENTITY"
+    SIGNATURE = "SIGNATURE"
+    AUTHORIZATION_EVIDENCE = "AUTHORIZATION_EVIDENCE"
+
+
+class SignerBindingState(str, Enum):
+    REQUIRED_MISSING = "REQUIRED_MISSING"
+    POPULATED_UNVERIFIED = "POPULATED_UNVERIFIED"
+
+
+class DossierClaimRole(str, Enum):
+    PHYSICAL_SYSTEM_ADEQUACY = "PHYSICAL_SYSTEM_ADEQUACY"
+    CLAIM_ENVELOPE_ADEQUACY = "CLAIM_ENVELOPE_ADEQUACY"
+    TARGET_POPULATION_ADEQUACY = "TARGET_POPULATION_ADEQUACY"
+    SAMPLING_PLAN_ADEQUACY = "SAMPLING_PLAN_ADEQUACY"
+    GENERATOR_IMPLEMENTATION_INTEGRITY = "GENERATOR_IMPLEMENTATION_INTEGRITY"
+    GENERATOR_DISTRIBUTION_CONFORMANCE = "GENERATOR_DISTRIBUTION_CONFORMANCE"
+    REFERENCE_ADEQUACY = "REFERENCE_ADEQUACY"
+    REPRESENTATION_FIDELITY = "REPRESENTATION_FIDELITY"
+    MEASUREMENT_ADEQUACY = "MEASUREMENT_ADEQUACY"
+    STATISTICAL_SUFFICIENCY = "STATISTICAL_SUFFICIENCY"
+    SECRECY_ROLE_SEPARATION = "SECRECY_ROLE_SEPARATION"
+    CENSORING_LIMITATIONS = "CENSORING_LIMITATIONS"
+    IMPLEMENTATION_VERIFICATION = "IMPLEMENTATION_VERIFICATION"
+    DISCRETIZATION_CONVERGENCE = "DISCRETIZATION_CONVERGENCE"
+    REFERENCE_AGREEMENT = "REFERENCE_AGREEMENT"
+    LIMITING_CASE_BEHAVIOR = "LIMITING_CASE_BEHAVIOR"
+    GENERATOR_CONFORMANCE_DIAGNOSTIC = "GENERATOR_CONFORMANCE_DIAGNOSTIC"
+    MEASUREMENT_FLOOR_DIAGNOSTIC = "MEASUREMENT_FLOOR_DIAGNOSTIC"
+    DECISION_RESOLUTION_DIAGNOSTIC = "DECISION_RESOLUTION_DIAGNOSTIC"
+    RESIDUAL_LIMITATION_DISCLOSURE = "RESIDUAL_LIMITATION_DISCLOSURE"
+    CUSTOMER_CONTEXT_OF_USE = "CUSTOMER_CONTEXT_OF_USE"
+    PRODUCT_QUALIFICATION = "PRODUCT_QUALIFICATION"
+    LIVE_ACTIVATION = "LIVE_ACTIVATION"
+
+
+DOSSIER_PRIMARY_CLAIM_ROLE = MappingProxyType(
+    dict(
+        zip(
+            DOSSIER_SLOT_ORDER,
+            tuple(DossierClaimRole)[:12],
+            strict=True,
+        )
+    )
+)
+
+
+EVIDENCE_CLASS_ALLOWED_CLAIMS = MappingProxyType(
+    {
+        **{
+            DOSSIER_PRIMARY_EVIDENCE_CLASS[slot]: frozenset(
+                {DOSSIER_PRIMARY_CLAIM_ROLE[slot]}
+            )
+            for slot in DOSSIER_SLOT_ORDER
+        },
+        DossierEvidenceClass.MMS_REFINEMENT_OBSERVED_ORDER: frozenset(
+            {
+                DossierClaimRole.IMPLEMENTATION_VERIFICATION,
+                DossierClaimRole.DISCRETIZATION_CONVERGENCE,
+                DossierClaimRole.REFERENCE_AGREEMENT,
+                DossierClaimRole.LIMITING_CASE_BEHAVIOR,
+            }
+        ),
+        DossierEvidenceClass.PLANTED_DEFECT_MUTATION_CAMPAIGN: frozenset(
+            {DossierClaimRole.IMPLEMENTATION_VERIFICATION}
+        ),
+        DossierEvidenceClass.ANALYTIC_LIMITING_CASE_ANCHOR: frozenset(
+            {
+                DossierClaimRole.IMPLEMENTATION_VERIFICATION,
+                DossierClaimRole.REFERENCE_AGREEMENT,
+                DossierClaimRole.LIMITING_CASE_BEHAVIOR,
+            }
+        ),
+        DossierEvidenceClass.PRIMARY_WITNESS_CONVERGENCE: frozenset(
+            {
+                DossierClaimRole.DISCRETIZATION_CONVERGENCE,
+                DossierClaimRole.REFERENCE_AGREEMENT,
+            }
+        ),
+        DossierEvidenceClass.REFERENCE_DISAGREEMENT: frozenset(
+            {DossierClaimRole.REFERENCE_AGREEMENT}
+        ),
+        DossierEvidenceClass.GENERATOR_ORACLE_ADVERSARIAL_TEST: frozenset(
+            {
+                DossierClaimRole.IMPLEMENTATION_VERIFICATION,
+                DossierClaimRole.GENERATOR_CONFORMANCE_DIAGNOSTIC,
+            }
+        ),
+        DossierEvidenceClass.MEASUREMENT_FLOOR: frozenset(
+            {DossierClaimRole.MEASUREMENT_FLOOR_DIAGNOSTIC}
+        ),
+        DossierEvidenceClass.DECISION_RESOLUTION_STUDY: frozenset(
+            {DossierClaimRole.DECISION_RESOLUTION_DIAGNOSTIC}
+        ),
+        DossierEvidenceClass.RESIDUAL_LIMITATION: frozenset(
+            {DossierClaimRole.RESIDUAL_LIMITATION_DISCLOSURE}
+        ),
+    }
+)
+
+
+class DependencePolicyAuthorityStatus(str, Enum):
+    OWNER_RATIFICATION_PENDING = "OWNER_RATIFICATION_PENDING"
+
+
+class CampaignFamily(str, Enum):
+    MMS_REFINEMENT_OBSERVED_ORDER = "MMS_REFINEMENT_OBSERVED_ORDER"
+    PLANTED_DEFECT_MUTATION = "PLANTED_DEFECT_MUTATION"
+    ANALYTIC_LIMITING_CASE_ANCHOR = "ANALYTIC_LIMITING_CASE_ANCHOR"
+    PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT = (
+        "PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT"
+    )
+    GENERATOR_ORACLE_ADVERSARIAL = "GENERATOR_ORACLE_ADVERSARIAL"
+    MEASUREMENT_FLOOR = "MEASUREMENT_FLOOR"
+    DECISION_RESOLUTION = "DECISION_RESOLUTION"
+    RESIDUAL_LIMITATION = "RESIDUAL_LIMITATION"
+
+
+CAMPAIGN_FAMILY_EVIDENCE_CLASS = MappingProxyType(
+    {
+        CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER: (
+            DossierEvidenceClass.MMS_REFINEMENT_OBSERVED_ORDER
+        ),
+        CampaignFamily.PLANTED_DEFECT_MUTATION: (
+            DossierEvidenceClass.PLANTED_DEFECT_MUTATION_CAMPAIGN
+        ),
+        CampaignFamily.ANALYTIC_LIMITING_CASE_ANCHOR: (
+            DossierEvidenceClass.ANALYTIC_LIMITING_CASE_ANCHOR
+        ),
+        CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT: (
+            DossierEvidenceClass.PRIMARY_WITNESS_CONVERGENCE
+        ),
+        CampaignFamily.GENERATOR_ORACLE_ADVERSARIAL: (
+            DossierEvidenceClass.GENERATOR_ORACLE_ADVERSARIAL_TEST
+        ),
+        CampaignFamily.MEASUREMENT_FLOOR: DossierEvidenceClass.MEASUREMENT_FLOOR,
+        CampaignFamily.DECISION_RESOLUTION: (
+            DossierEvidenceClass.DECISION_RESOLUTION_STUDY
+        ),
+        CampaignFamily.RESIDUAL_LIMITATION: (DossierEvidenceClass.RESIDUAL_LIMITATION),
+    }
+)
+
+CAMPAIGN_FAMILY_EVIDENCE_CLASSES = MappingProxyType(
+    {
+        family: (
+            frozenset(
+                {
+                    DossierEvidenceClass.PRIMARY_WITNESS_CONVERGENCE,
+                    DossierEvidenceClass.REFERENCE_DISAGREEMENT,
+                }
+            )
+            if family is CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+            else frozenset({evidence_class})
+        )
+        for family, evidence_class in CAMPAIGN_FAMILY_EVIDENCE_CLASS.items()
+    }
+)
+
+
+class CampaignAuthorityStatus(str, Enum):
+    RATIFIED_V2_0_STRUCTURE = "RATIFIED_V2_0_STRUCTURE"
+    OWNER_RATIFICATION_PENDING = "OWNER_RATIFICATION_PENDING"
+
+
+class CampaignAcquisitionState(str, Enum):
+    CAMPAIGN_SPECIFIED = "CAMPAIGN_SPECIFIED"
+    ACQUISITION_ATTEMPTED = "ACQUISITION_ATTEMPTED"
+    ACQUISITION_PARTIALLY_COMPLETED = "ACQUISITION_PARTIALLY_COMPLETED"
+    ACQUISITION_COMPLETED = "ACQUISITION_COMPLETED"
+
+
+class CampaignResultStatus(str, Enum):
+    MMS_OBSERVED_ORDER_RECORDED = "MMS_OBSERVED_ORDER_RECORDED"
+    MUTATION_DETECTED = "MUTATION_DETECTED"
+    MUTATION_NOT_DETECTED = "MUTATION_NOT_DETECTED"
+    ANALYTIC_COMPARISON_RECORDED = "ANALYTIC_COMPARISON_RECORDED"
+    REFERENCE_AGREEMENT_OBSERVED = "REFERENCE_AGREEMENT_OBSERVED"
+    REFERENCE_DISAGREEMENT_OBSERVED = "REFERENCE_DISAGREEMENT_OBSERVED"
+    REFERENCE_FAILURE = "REFERENCE_FAILURE"
+    ADVERSARIAL_VIOLATION_OBSERVED = "ADVERSARIAL_VIOLATION_OBSERVED"
+    ADVERSARIAL_NO_VIOLATION_OBSERVED = "ADVERSARIAL_NO_VIOLATION_OBSERVED"
+    GENERATOR_FAILURE = "GENERATOR_FAILURE"
+    MEASUREMENT_FLOOR_RECORDED = "MEASUREMENT_FLOOR_RECORDED"
+    DECISION_SUPERIOR = "DECISION_SUPERIOR"
+    DECISION_NOT_SUPERIOR = "DECISION_NOT_SUPERIOR"
+    EVIDENCE_DEFERRED = "EVIDENCE_DEFERRED"
+    RESIDUAL_LIMITATION_RECORDED = "RESIDUAL_LIMITATION_RECORDED"
+    INDETERMINATE = "INDETERMINATE"
+    BLOCKED = "BLOCKED"
+    INVALID = "INVALID"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    SCIENTIFIC_JUDGMENT_PENDING = "SCIENTIFIC_JUDGMENT_PENDING"
+
+
+_COMMON_CAMPAIGN_RESULT_STATUSES = frozenset(
+    {
+        CampaignResultStatus.INDETERMINATE,
+        CampaignResultStatus.BLOCKED,
+        CampaignResultStatus.INVALID,
+        CampaignResultStatus.NOT_APPLICABLE,
+        CampaignResultStatus.SCIENTIFIC_JUDGMENT_PENDING,
+    }
+)
+
+CAMPAIGN_ALLOWED_RESULT_STATUSES = MappingProxyType(
+    {
+        CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {CampaignResultStatus.MMS_OBSERVED_ORDER_RECORDED}
+        ),
+        CampaignFamily.PLANTED_DEFECT_MUTATION: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {
+                CampaignResultStatus.MUTATION_DETECTED,
+                CampaignResultStatus.MUTATION_NOT_DETECTED,
+            }
+        ),
+        CampaignFamily.ANALYTIC_LIMITING_CASE_ANCHOR: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {CampaignResultStatus.ANALYTIC_COMPARISON_RECORDED}
+        ),
+        CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {
+                CampaignResultStatus.REFERENCE_AGREEMENT_OBSERVED,
+                CampaignResultStatus.REFERENCE_DISAGREEMENT_OBSERVED,
+                CampaignResultStatus.REFERENCE_FAILURE,
+            }
+        ),
+        CampaignFamily.GENERATOR_ORACLE_ADVERSARIAL: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {
+                CampaignResultStatus.ADVERSARIAL_VIOLATION_OBSERVED,
+                CampaignResultStatus.ADVERSARIAL_NO_VIOLATION_OBSERVED,
+                CampaignResultStatus.GENERATOR_FAILURE,
+            }
+        ),
+        CampaignFamily.MEASUREMENT_FLOOR: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {CampaignResultStatus.MEASUREMENT_FLOOR_RECORDED}
+        ),
+        CampaignFamily.DECISION_RESOLUTION: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {
+                CampaignResultStatus.DECISION_SUPERIOR,
+                CampaignResultStatus.DECISION_NOT_SUPERIOR,
+                CampaignResultStatus.EVIDENCE_DEFERRED,
+            }
+        ),
+        CampaignFamily.RESIDUAL_LIMITATION: (
+            _COMMON_CAMPAIGN_RESULT_STATUSES
+            | {CampaignResultStatus.RESIDUAL_LIMITATION_RECORDED}
+        ),
+    }
+)
+
+
+class CampaignSubjectRole(str, Enum):
+    CLAIM_SCOPE = "CLAIM_SCOPE"
+    PHYSICAL_SYSTEM = "PHYSICAL_SYSTEM"
+    TARGET_POPULATION = "TARGET_POPULATION"
+    SAMPLING_PLAN = "SAMPLING_PLAN"
+    GENERATOR = "GENERATOR"
+    REFERENCE_POLICY = "REFERENCE_POLICY"
+    REPRESENTATION = "REPRESENTATION"
+    MEASUREMENT_CONTRACT = "MEASUREMENT_CONTRACT"
+
+
+class CampaignArtifactRole(str, Enum):
+    CAMPAIGN_DEFINITION = "CAMPAIGN_DEFINITION"
+    ACQUISITION_OPERATION = "ACQUISITION_OPERATION"
+    PROVENANCE = "PROVENANCE"
+    ENVIRONMENT_TOOL = "ENVIRONMENT_TOOL"
+    IMPLEMENTATION_UNDER_TEST = "IMPLEMENTATION_UNDER_TEST"
+    MANUFACTURED_ANALYTIC_DEFINITION = "MANUFACTURED_ANALYTIC_DEFINITION"
+    REFINEMENT_FAMILY = "REFINEMENT_FAMILY"
+    FIT_ESTIMATION_METHOD = "FIT_ESTIMATION_METHOD"
+    SYSTEM_COMPONENT = "SYSTEM_COMPONENT"
+    MUTATION_OPERATOR = "MUTATION_OPERATOR"
+    PLANTED_DEFECT = "PLANTED_DEFECT"
+    AFFECTED_PROPERTY = "AFFECTED_PROPERTY"
+    ANALYTIC_LIMITING_AUTHORITY = "ANALYTIC_LIMITING_AUTHORITY"
+    APPLICABILITY_DOMAIN = "APPLICABILITY_DOMAIN"
+    ACQUISITION_CONFIGURATION = "ACQUISITION_CONFIGURATION"
+    COMPARISON_METHOD = "COMPARISON_METHOD"
+    PRIMARY_REFERENCE = "PRIMARY_REFERENCE"
+    WITNESS_REFERENCE = "WITNESS_REFERENCE"
+    CONVERGENCE_CONFIGURATION = "CONVERGENCE_CONFIGURATION"
+    ORACLE_CHECKER = "ORACLE_CHECKER"
+    TARGETED_PROPERTY_INVARIANT = "TARGETED_PROPERTY_INVARIANT"
+    ADVERSARIAL_CONFIGURATION = "ADVERSARIAL_CONFIGURATION"
+    FLOOR_STUDY = "FLOOR_STUDY"
+    SOURCE_REFERENCE_CONFIGURATION = "SOURCE_REFERENCE_CONFIGURATION"
+    DISCRETIZATION_CONFIGURATION = "DISCRETIZATION_CONFIGURATION"
+    SAMPLING_CONFIGURATION = "SAMPLING_CONFIGURATION"
+    DECISION_METHOD = "DECISION_METHOD"
+    COMPARED_OBJECT = "COMPARED_OBJECT"
+    COVERAGE_POWER_DIAGNOSTIC = "COVERAGE_POWER_DIAGNOSTIC"
+    CENSORING_MISSINGNESS = "CENSORING_MISSINGNESS"
+    STOPPING_FALSE_ELIMINATION_AUDIT = "STOPPING_FALSE_ELIMINATION_AUDIT"
+    AFFECTED_EVIDENCE = "AFFECTED_EVIDENCE"
+    AFFECTED_CLAIM = "AFFECTED_CLAIM"
+    AFFECTED_SCOPE = "AFFECTED_SCOPE"
+    PER_LEVEL_RESULT = "PER_LEVEL_RESULT"
+    OBSERVED_ORDER_RESULT = "OBSERVED_ORDER_RESULT"
+    CAMPAIGN_RESULT = "CAMPAIGN_RESULT"
+    COMPARISON_RESULT = "COMPARISON_RESULT"
+    DISAGREEMENT_RESULT = "DISAGREEMENT_RESULT"
+    ADVERSARIAL_RESULT = "ADVERSARIAL_RESULT"
+    FLOOR_RESULT = "FLOOR_RESULT"
+    DECISION_RESULT = "DECISION_RESULT"
+    UNCERTAINTY = "UNCERTAINTY"
+    EXCLUSION = "EXCLUSION"
+    FAILURE = "FAILURE"
+    LIMITATION = "LIMITATION"
+
+
+class CampaignFieldAuthority(str, Enum):
+    STRUCTURAL_IDENTITY_PROVENANCE = "STRUCTURAL_IDENTITY_PROVENANCE"
+    EXTERNALLY_SUPPLIED_SCIENTIFIC_RESULT = "EXTERNALLY_SUPPLIED_SCIENTIFIC_RESULT"
+    HUMAN_OWNED_JUDGMENT = "HUMAN_OWNED_JUDGMENT"
+    OWNER_RATIFICATION_PENDING = "OWNER_RATIFICATION_PENDING"
+
+
+class AttemptDisposition(str, Enum):
+    VALID_EVIDENCE = "VALID_EVIDENCE"
+    GENERATOR_FAILURE = "GENERATOR_FAILURE"
+    REFERENCE_FAILURE = "REFERENCE_FAILURE"
+    INFRASTRUCTURE_FAILURE = "INFRASTRUCTURE_FAILURE"
+    CANDIDATE_FAILURE = "CANDIDATE_FAILURE"
+    TIMEOUT = "TIMEOUT"
+    INVALID_CASE = "INVALID_CASE"
+    MEASUREMENT_NOT_APPLICABLE = "MEASUREMENT_NOT_APPLICABLE"
+    CORRUPTED_OBSERVATION = "CORRUPTED_OBSERVATION"
+    EXCLUDED_BY_REGISTERED_POLICY = "EXCLUDED_BY_REGISTERED_POLICY"
+
+
+class QualificationCandidateState(str, Enum):
+    INCOMPLETE = "INCOMPLETE"
+    COMPLETE_STRUCTURAL = "COMPLETE_STRUCTURAL"
+
+
+class ArtifactCurrentness(str, Enum):
+    CURRENT = "CURRENT"
+    SUPERSEDED = "SUPERSEDED"
+    REVOKED = "REVOKED"
+
+
+class QualificationArtifactKind(str, Enum):
+    PHYSICAL_SYSTEM_SPEC = "PHYSICAL_SYSTEM_SPEC"
+    CLAIM_SCOPE = "CLAIM_SCOPE"
+    TARGET_POPULATION = "TARGET_POPULATION"
+    SAMPLING_PLAN = "SAMPLING_PLAN"
+    GENERATOR = "GENERATOR"
+    REFERENCE_POLICY = "REFERENCE_POLICY"
+    CANDIDATE_OUTPUT_CONTRACT = "CANDIDATE_OUTPUT_CONTRACT"
+    REPRESENTATION_ADAPTER = "REPRESENTATION_ADAPTER"
+    APPLICABILITY_RATIONALE = "APPLICABILITY_RATIONALE"
+    MEASUREMENT_CONTRACT = "MEASUREMENT_CONTRACT"
+    VALIDATION_DOSSIER = "VALIDATION_DOSSIER"
+    EVIDENCE_MANIFEST = "EVIDENCE_MANIFEST"
+    SIGNER_IDENTITY = "SIGNER_IDENTITY"
+    SIGNER_SIGNATURE = "SIGNER_SIGNATURE"
+    SIGNER_AUTHORIZATION_EVIDENCE = "SIGNER_AUTHORIZATION_EVIDENCE"
+    A3_QUALIFICATION_ARTIFACT = "A3_QUALIFICATION_ARTIFACT"
+
+
+class RepresentationApplicability(str, Enum):
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE_WITH_RATIONALE = "NOT_APPLICABLE_WITH_RATIONALE"
+
+
+class SignerIdentityValidation(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    STRUCTURALLY_VALID = "STRUCTURALLY_VALID"
+
+
+class SignerRoleAuthorization(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    AUTHORIZED_FOR_ROLE = "AUTHORIZED_FOR_ROLE"
+
+
+class SignatureVerification(str, Enum):
+    UNVERIFIED = "UNVERIFIED"
+    CRYPTOGRAPHICALLY_VERIFIED = "CRYPTOGRAPHICALLY_VERIFIED"
+
+
+class QualificationMismatchReason(str, Enum):
+    CHALLENGE_KEY_MISMATCH = "qualification.challenge_key_mismatch"
+    CANDIDATE_INCOMPLETE = "qualification.candidate_incomplete"
+    DOSSIER_INCOMPLETE = "qualification.dossier_incomplete"
+    DOSSIER_FIXTURE_DERIVED = "qualification.dossier_fixture_derived"
+    DOSSIER_DRAFT_OR_UNRESOLVED = "qualification.dossier_draft_or_unresolved"
+    DOSSIER_STALE_OR_SUPERSEDED = "qualification.dossier_stale_or_superseded"
+    EVIDENCE_MISSING = "qualification.evidence_missing"
+    EVIDENCE_PLACEHOLDER = "qualification.evidence_placeholder"
+    EVIDENCE_FIXTURE_DERIVED = "qualification.evidence_fixture_derived"
+    EVIDENCE_DRAFT_OR_UNRESOLVED = "qualification.evidence_draft_or_unresolved"
+    EVIDENCE_STALE_OR_SUPERSEDED = "qualification.evidence_stale_or_superseded"
+    SIGNER_SLOT_MISSING = "qualification.signer_slot_missing"
+    SIGNER_FIXTURE_DERIVED = "qualification.signer_fixture_derived"
+    SIGNER_DRAFT_OR_UNRESOLVED = "qualification.signer_draft_or_unresolved"
+    SIGNER_AUTHORIZATION_MISSING = "qualification.signer_authorization_missing"
+    SIGNER_AUTHORIZATION_BINDING_MISMATCH = (
+        "qualification.signer_authorization_binding_mismatch"
+    )
+    SIGNER_IDENTITY_UNVERIFIED = "qualification.signer_identity_unverified"
+    SIGNER_ROLE_UNAUTHORIZED = "qualification.signer_role_unauthorized"
+    SIGNATURE_UNVERIFIED = "qualification.signature_unverified"
+    ARTIFACT_FIXTURE_DERIVED = "qualification.artifact_fixture_derived"
+    ARTIFACT_DRAFT_OR_UNRESOLVED = "qualification.artifact_draft_or_unresolved"
+    ARTIFACT_STALE_OR_SUPERSEDED = "qualification.artifact_stale_or_superseded"
+    REGISTRY_LIFECYCLE_INCOMPATIBLE = "qualification.registry_lifecycle_incompatible"
+    REGISTRY_FIXTURE_ORIGIN = "qualification.registry_fixture_origin"
+    REGISTRY_QUALIFICATION_MISSING = "qualification.registry_manifest_missing"
+    REGISTRY_QUALIFICATION_CHALLENGE_MISMATCH = (
+        "qualification.registry_manifest_challenge_mismatch"
+    )
+    REGISTRY_QUALIFICATION_MODE_MISMATCH = (
+        "qualification.registry_manifest_mode_mismatch"
+    )
+    REGISTRY_QUALIFICATION_DIGEST_MISMATCH = (
+        "qualification.registry_manifest_digest_mismatch"
+    )
+    REGISTRY_AUTHORING_GRAPH_FINGERPRINT_MISSING = (
+        "qualification.registry_authoring_graph_fingerprint_missing"
+    )
+    REGISTRY_AUTHORING_GRAPH_FINGERPRINT_MISMATCH = (
+        "qualification.registry_authoring_graph_fingerprint_mismatch"
+    )
+    REGISTRY_SLOT_MISSING = "qualification.registry_slot_missing"
+    REGISTRY_SLOT_STATE_MISMATCH = "qualification.registry_slot_state_mismatch"
+    REGISTRY_SLOT_ARTIFACT_MISSING = "qualification.registry_slot_artifact_missing"
+    REGISTRY_SLOT_ARTIFACT_MISMATCH = "qualification.registry_slot_artifact_mismatch"
+    REGISTRY_SLOT_REFERENCE_MISSING = "qualification.registry_slot_reference_missing"
+    REGISTRY_SLOT_REFERENCE_PLACEHOLDER = (
+        "qualification.registry_slot_reference_placeholder"
+    )
+    REGISTRY_ARTIFACT_MISSING = "qualification.registry_artifact_missing"
+    REGISTRY_ARTIFACT_UNEXPECTED = "qualification.registry_artifact_unexpected"
+    DOSSIER_DIGEST_MISMATCH = "qualification.dossier_digest_mismatch"
+    MEASUREMENT_SET_MISMATCH = "qualification.measurement_set_mismatch"
+    REGISTRY_ARTIFACT_DIGEST_MISMATCH = (
+        "qualification.registry_artifact_digest_mismatch"
+    )
+
+
+__all__ = (
+    "CAMPAIGN_ALLOWED_RESULT_STATUSES",
+    "CAMPAIGN_FAMILY_EVIDENCE_CLASS",
+    "CAMPAIGN_FAMILY_EVIDENCE_CLASSES",
+    "DOSSIER_PRIMARY_CLAIM_ROLE",
+    "DOSSIER_PRIMARY_EVIDENCE_CLASS",
+    "DOSSIER_SLOT_ORDER",
+    "DOSSIER_SLOT_TITLES",
+    "EVIDENCE_CLASS_ALLOWED_CLAIMS",
+    "REQUIRED_SIGNER_ROLE_ORDER",
+    "ArtifactCurrentness",
+    "AttemptDisposition",
+    "CampaignAcquisitionState",
+    "CampaignArtifactRole",
+    "CampaignAuthorityStatus",
+    "CampaignFamily",
+    "CampaignFieldAuthority",
+    "CampaignResultStatus",
+    "CampaignSubjectRole",
+    "DependencePolicyAuthorityStatus",
+    "DossierClaimRole",
+    "DossierEvidenceClass",
+    "DossierSlot",
+    "EvidenceCompleteness",
+    "EvidenceRequirement",
+    "EvidenceSectionStatus",
+    "QualificationArtifactKind",
+    "QualificationCandidateState",
+    "QualificationMismatchReason",
+    "RepresentationApplicability",
+    "SignatureVerification",
+    "SignerArtifactKind",
+    "SignerBindingState",
+    "SignerIdentityValidation",
+    "SignerRole",
+    "SignerRoleAuthorization",
+    "StructuralOrigin",
+    "effective_structural_origin",
+)

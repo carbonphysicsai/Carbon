@@ -2545,7 +2545,15 @@ class Validator:
             for dependency in selected_dependencies
             if all_tickets.get(dependency, {}).get("status") != "done"
         ]
-        if incomplete_dependencies:
+        owner_accepted_b05_transition = (
+            authoritative_ticket == "B-06"
+            and incomplete_dependencies == ["B-05"]
+            and board_rows.get("B-05", {}).get("status") == "in_progress"
+            and "B-06-D0" in view["wave_text"]
+            and "owner-accepted" in view["wave_text"]
+            and "ordinary delivery predicate" in view["wave_text"]
+        )
+        if incomplete_dependencies and not owner_accepted_b05_transition:
             self.fail(
                 f"{source_label}: selected ticket has non-done dependencies {incomplete_dependencies!r}"
             )

@@ -89,9 +89,9 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
         self.assertIn(
-            "Five bounded slices now form a conditional delivery candidate", self.output
+            "fourth complete-diff review found one defect now repaired", self.output
         )
-        self.assertIn("no real scientific value is selected", self.output)
+        self.assertIn("does not prove authorization", self.output)
 
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:
         self.assertIsNone(re.search(r"<script\b", self.output, flags=re.IGNORECASE))

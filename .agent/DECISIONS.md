@@ -1,5 +1,368 @@
 # Agent decisions log
 
+## 2026-09-06 — B-06-D0: Advance from merged B-05 to B-06 under the owner's narrow exception
+
+**Problem.** PR #87 merged the accepted B-05 implementation, but the ordinary
+B-05 delivery predicate still lacks some routine review and closeout facts.
+The previous conditional text would otherwise keep B-06 unstarted even though
+the repository owner explicitly directed this transition.
+
+**Recommendation.** Select B-06 `in_progress` from merged main
+`2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
+`89763523576cef09f40fd8a205aa86d169d679de`. Treat that merged B-05 tree as
+the owner-accepted dependency for this transition only. Preserve B-05 as
+`in_progress` for its incomplete ordinary delivery record, but conduct no new
+B-05 work or retrospective review before B-06. The one-time observed PR #87
+status is recorded in `.agent/evidence/wave_b/b-06.md` without converting
+missing or incomplete facts into successes.
+
+**Alternatives rejected.** Reopening B-05 review contradicts the owner
+direction. Marking B-05 `done` would falsely assert its ordinary predicate.
+Rewriting the general delivery protocol would broaden a ticket-specific
+exception into future governance.
+
+**Interfaces, impact, and reversibility.** This decision changes only Wave-B
+selection and the B-05-to-B-06 dependency edge. It grants bounded B-06
+development authority and no scientific, security, qualification, production,
+network, economic, review, merge, or `LIVE` authority. The owner may supersede
+it in this record and the Wave registers; historical facts remain immutable.
+
+**Human-reserved input.** The owner supplied the sequencing decision. No
+scientific or qualification decision was supplied.
+
+## 2026-09-06 — B-06-D1: Isolate deterministic Dossier identity in `carbon.qualification`
+
+**Problem.** B-06 needs an exact Challenge-bound Dossier identity without
+changing A3's active qualification registry or reopening completed upstream
+schemas.
+
+**Recommendation.** Add a standard-library-only `carbon.qualification`
+Dossier object graph with schema `1.0`, canonical profile
+`carbon_validation_dossier_canonical_v1`, a distinct domain header, strict
+canonical JSON, duplicate-key rejection, and exact decode/re-encode checking.
+Reuse `ChallengeKey` and upstream canonical conventions. Leave A3's manifest,
+gate, store, and active-registry semantics unchanged.
+
+**Alternatives rejected.** Extending A3 would conflate a validation evidence
+record with activation state. Untyped dictionaries would lose nominal role,
+slot, version, and Challenge binding. Reusing another package's domain header
+would weaken cross-type identity separation.
+
+**Interfaces, impact, and reversibility.** The first slice adds only the
+reserved `carbon.qualification` namespace and focused tests. Future persisted
+schema changes require a new profile/version; before external persistence the
+package is locally replaceable. The later manifest/active-record comparator is
+a contract seam, not part of this slice.
+
+**Human-reserved input.** No real evidence, verdict, threshold, authorization,
+or qualification value is selected.
+
+## 2026-09-06 — B-06-D2: Make D1–D12 completeness structural and non-substitutable
+
+**Problem.** A populated Dossier can be mistaken for scientific adequacy, and
+a verification campaign can be incorrectly substituted for physical,
+population, reference, measurement, or context-of-use evidence.
+
+**Recommendation.** Encode the specification's exact D1–D12 identities and
+titles in fixed order. Give each slot a distinct primary evidence class and
+make the named campaign artifacts supplemental. Track requirement,
+completeness, and scientific section status as separate closed enums. A
+`COMPLETE_REFERENCED` required slot must carry its own primary evidence class;
+MMS, mutation, convergence, or another campaign cannot satisfy a different
+slot. Missing, placeholder, cross-Challenge, and role-substituted material
+fails construction.
+
+**Alternatives rejected.** Free-form section names, one generic evidence
+class, evidence-count thresholds, or inference from unit-test success would
+invent scientific policy and permit unsafe substitution. Treating completeness
+as `PASS` would automate human signoff.
+
+**Interfaces, impact, and reversibility.** The closed slot/evidence-class map
+is part of the v1 canonical identity. A semantic change requires a new schema
+profile and coordinated contract/model/canonical/test update. B-E1 retains
+campaign execution and coverage analysis.
+
+**Human-reserved input.** Evidence adequacy, applicability, uncertainty,
+coverage, minima, stopping rules, and every real section verdict remain human-
+owned.
+
+## 2026-09-06 — B-06-D3: Bind required signer roles without representing verified authority
+
+**Problem.** A signer name or populated signature slot is not proof that the
+person or key has the required role or authorization. The structural Dossier
+must expose missing and populated states without manufacturing approval.
+
+**Recommendation.** Require exactly the B-06 accountable roles—Physics/SciML,
+statistics, protocol, security, and independent review—in fixed order. Bind
+typed identity, signature, and optional authorization-evidence refs to the
+same Challenge and role. Expose only `REQUIRED_MISSING` and
+`POPULATED_UNVERIFIED`; do not define a verified, approved, qualified, or LIVE
+state. Fixture origin propagates through the Dossier and cannot qualify a real
+Challenge.
+
+**Alternatives rejected.** A boolean `signed`, free-text role, signer-name
+presence, or signature-byte presence would imply authority not verified by
+this layer. Adding launch/infrastructure roles or an authorization verifier
+would exceed the first slice and pre-empt the later qualification-manifest
+contract.
+
+**Interfaces, impact, and reversibility.** The v1 signer-role and artifact-kind
+sets are canonical. The working contract reserves a future comparator that
+consumes externally verified authorization and the exact active A3 registry
+record; it is not implemented here. Changes require profile migration once
+persisted.
+
+**Human-reserved input.** Identity proofing, key custody, role authority,
+separation-of-duties exceptions, signatures, approvals, and activation remain
+human/security/launch owned.
+
+## 2026-09-06 — B-06-D4: Bind typed evidence through existing upstream seams and explicit claim roles
+
+**Problem.** A shared Challenge ID or a populated evidence section does not
+prove that the evidence concerns the exact population, SamplingPlan,
+implementation, reference, representation, measurement, or claim scope. Direct
+imports from B-03/B-04 would also violate their ratified one-way package
+boundaries.
+
+**Recommendation.** Add a separate canonical `DossierEvidenceManifest` that
+pins the exact applicable B-02A top-level/owner refs, including the
+`DistributionConformanceRef` and `ReferenceQualificationPolicyRef` seams
+already populated by B-03/B-04, plus exact public B-05 measurement refs. Map
+each included evidence ref explicitly to a closed claim role and exact
+`ClaimScopeRef`. Permit explicit one-to-many use only where the closed matrix
+allows it; presence in one section creates no implicit support elsewhere.
+
+**Alternatives rejected.** Direct generator/evaluation imports would reverse
+completed package boundaries. Free-form claims, Challenge-only joins, and a
+blanket ban on evidence reuse would respectively lose type safety, admit stale
+or wrong-object evidence, or prohibit source-backed multi-role evidence.
+
+**Interfaces, impact, and reversibility.** Slice 2 adds an independently
+framed v1 evidence-manifest domain without changing Slice-1 Dossier bytes or
+D1-D12 identities. Semantic changes require a new manifest profile/version.
+B-03/B-04 remain owners of their records and B-06 does not dereference them.
+
+**Human-reserved input.** Structural compatibility is not sufficiency.
+Evidence relevance, adequacy, applicability, and every section verdict remain
+human-owned.
+
+## 2026-09-06 — B-06-D5: Preserve dependence fields under explicit pending ratification
+
+**Problem.** The active B-06 ticket requires dependence, coverage, stopping,
+and missing-cell identities, while `Generator_Validation.md` v2.1 and the
+scientific canon v4.1 label the prescriptive dependence amendment as an
+owner-ratification proposal; v2.0 remains ratified.
+
+**Recommendation.** Reuse the merged B-05 `UncertaintyPolicyRef` and exact
+measurement-definition refs for the full structural statistical scope, but
+expose only `OWNER_RATIFICATION_PENDING` as the dependence-policy authority
+state. Require a distinct decision-resolution evidence ref; a component
+uncertainty record cannot substitute for coverage. Do not offer an accepted,
+qualified, or inferred-independence state.
+
+**Alternatives rejected.** Treating the proposal's presence, the active ticket,
+or B-05's merged types as scientific ratification would rewrite authority.
+Omitting the fields would lose the exact future review seam required by the
+ticket. Inferring independence from seeds or execution topology is prohibited.
+
+**Interfaces, impact, and reversibility.** The v1 statistical submanifest is
+identity/provenance only. A future owner-ratified scientific policy must add a
+prospective authority/result workflow; it cannot mutate historical pending
+records. B-E1 retains campaign execution and coverage analysis.
+
+**Human-reserved input.** Method choice, dependence, covariance, applicability,
+coverage, power, minima, stopping/error control, and scientific conclusions
+remain unresolved.
+
+## 2026-09-06 — B-06-D6: Keep accounting, secrecy, and limitations opaque and non-authorizing
+
+**Problem.** Aggregation can silently convert reference or infrastructure
+failure into candidate failure, erase censored hard cases, leak protected exam
+material, or treat a limitation record as an automatic envelope change.
+
+**Recommendation.** Bind exact prospective/realized accounting and policy refs
+plus opaque attempt refs carrying distinct closed dispositions. Bind D11 to
+separate disclosure, blinding, decontamination, and role-separation refs. Bind
+limitations to non-empty affected evidence, claim roles, and exact scope. Add
+no seed, case, realization, truth payload, path, locator, resolver, network, or
+filesystem field and no automatic population/envelope mutation.
+
+**Alternatives rejected.** Boolean success/failure, shared audit refs, embedded
+protected payloads, and inferred scope changes collapse authority or create a
+disclosure channel.
+
+**Interfaces, impact, and reversibility.** These immutable submanifests are
+canonical components of the v1 evidence-manifest digest. They can be
+superseded prospectively; they cannot cleanse fixture origin or authorize
+qualification.
+
+**Human-reserved input.** Censoring/missingness acceptability, security and
+role-separation adequacy, residual-risk acceptance, and any envelope or
+population revision remain human-owned.
+
+## 2026-09-06 — B-06-D7: Compare caller-supplied A3 values without entering the registry lifecycle
+
+**Problem.** B-06 must compare its exact evidence candidate with A3 while A3
+alone owns registry storage, artifact-byte verification, and lifecycle
+activation. Importing the A3 store or gate would let a structural evidence
+package acquire authority or hidden I/O.
+
+**Recommendation.** KEEP/WRAP only A3's current immutable public
+`ChallengeRecord`, `QualificationManifest`, `QualificationEvidence`,
+`ArtifactBinding`, `ChallengeKey`, and required-slot/state values. Require the
+caller to supply one exact record snapshot. Implement a pure comparison that
+never searches global state, dereferences an artifact path, mutates a record,
+or changes lifecycle. Only a pre-activation `draft` snapshot is structurally
+compatible; fixture and already-`live` states fail closed.
+
+**Alternatives rejected.** A parallel registry would duplicate A3 authority.
+Calling `ChallengeRegistry.assess_live_eligibility` would perform filesystem
+work outside this evidence layer and still would not establish scientific
+adequacy. Hidden lookup of a “current” record would weaken exact identity.
+
+**Interfaces, impact, and reversibility.** The dependency remains one way from
+B-06 to `carbon.registry.model`; package invariants prohibit gate/store/I/O
+imports. The comparison returns immutable reason values only and has no
+activation operation. A3 can later consume a reviewed B-06 result through an
+explicit owner-approved adapter without changing this historical candidate.
+
+**Human-reserved input.** Which registry snapshot is authoritative, artifact
+trust, qualification, and activation remain external human/A3 decisions.
+
+## 2026-09-06 — B-06-D8: Domain-separate candidate identity from A3 qualification snapshot drift detection
+
+**Problem.** B-06 needs deterministic candidate identity and exact comparison,
+but current A3 publishes no qualification-manifest digest function. Treating a
+new B-06 digest as A3's qualification hash would invent authority.
+
+**Recommendation.** Give the B-06 qualification candidate and its artifact set
+closed, versioned, domain-framed canonical identities. Separately fingerprint
+the exact current public A3 qualification fields under a B-06-owned snapshot
+domain and compare that expected fingerprint with the supplied record. Also
+compare the required A3 slot states/artifact IDs and every closed artifact ID
+and digest independently.
+
+**Alternatives rejected.** Reusing an unrelated canonical domain permits
+cross-type identity confusion. Omitting the snapshot comparison misses changes
+to A3 mode, challenge binding, authoring fingerprint, and slot references.
+Calling the new fingerprint an A3 qualification hash would overstate its
+meaning.
+
+**Interfaces, impact, and reversibility.** Schema/profile version `1.0` fixes
+candidate bytes and snapshot fields prospectively. The snapshot fingerprint is
+drift detection only: not artifact-byte verification, trust, signature,
+scientific approval, production qualification, or LIVE capability. A later A3
+digest API can be wrapped under a prospective B-06 schema/version.
+
+**Human-reserved input.** The truth of A3's human-owned state strings and every
+underlying evidence/artifact remains unverified by this fingerprint.
+
+## 2026-09-06 — B-06-D9: Keep signer population, authorization, verification, and approval distinct
+
+**Problem.** A populated Dossier signer slot cannot prove identity, exact-role
+authority, valid cryptography, or scientific approval. B-06 nonetheless needs
+a fail-closed machine seam for trusted external authorization results.
+
+**Recommendation.** Accept an exact per-role immutable result binding the same
+Challenge, signer identity ref, signature ref, and optional authorization-
+evidence ref. Keep identity structural validity, exact-role authorization, and
+cryptographic signature verification as three separate closed states. Missing,
+unverified, unauthorized, role-confused, duplicated, or differently bound
+results make machine prerequisites unsatisfied. Represent no scientific-
+approval state.
+
+**Alternatives rejected.** A single `authorized` Boolean erases independent
+failure causes. Implementing trust roots, certificate policy, reviewer
+identity, quorum, or cryptography would invent security/governance authority.
+Counting signer fields or artifacts would confuse presence with proof.
+
+**Interfaces, impact, and reversibility.** B-06 implements only the typed input
+boundary and deterministic mismatch reasons. An external trusted layer can
+later produce these values under separately approved policy without changing
+candidate identity semantics.
+
+**Human-reserved input.** Identity proofing, key custody, role assignment,
+trust roots, signature validation, separation of duties, scientific signoff,
+security acceptance, and activation remain human/external.
+
+## 2026-09-06 — B-06-D10: Keep dependence-aware decision evidence pending and execution-free
+
+**Problem.** The ticket requires decision-resolution evidence fields, while
+the controlling v2.1 dependence language remains an owner-ratification
+proposal and B-E1 owns the actual harness.
+
+**Recommendation.** Represent exact decision method, compared objects,
+estimand, resampling/dependence, coverage/power diagnostics,
+censoring/missingness, stopping/false-elimination audit, external result, and
+limitations only under `OWNER_RATIFICATION_PENDING`. Add no computation or
+accepted-policy state.
+
+**Alternatives rejected.** Omitting the structural seam would leave B-06
+incomplete. Treating populated fields as ratified, or implementing bootstrap,
+covariance, interval, power, promotion, or winner logic, would exceed current
+authority.
+
+**Interfaces, impact, and reversibility.** This extends the existing pending
+statistical identity graph without changing B-E1 or historical records. Later
+ratification must be prospective.
+
+**Human-reserved input.** Dependence policy, coverage, power, stopping,
+false-elimination control, decision interpretation, and promotion remain
+unresolved.
+
+## 2026-09-06 — B-06-D11: Treat campaign outcomes as externally supplied observations, never self-qualification
+
+**Problem.** Result presence can be mistaken for adequacy, and reference or
+campaign failure can be collapsed into candidate failure.
+
+**Recommendation.** Use a closed family-compatible outcome vocabulary with
+distinct produced, detected/not-detected, agreement/disagreement, reference
+failure, violation/no-observed-violation, floor recorded, decision labels,
+blocked, invalid, inapplicable, indeterminate, deferred, and judgment-pending
+states. Results bind exact acquisition and scope. They do not assert adequacy.
+
+**Alternatives rejected.** Free text, `passed: bool`, evidence-count rules, or
+implicit outcome conversion would permit authority transfer and failure-class
+collapse.
+
+**Interfaces, impact, and reversibility.** Existing D1-D12 section/status and
+claim compatibility remain unchanged. Result enums and family compatibility
+are part of the new v1 campaign canonical identity.
+
+**Human-reserved input.** Whether an observation supports a scientific claim,
+whether evidence is sufficient, and whether a limitation is acceptable remain
+human-owned.
+
+## 2026-09-06 — B-06-D12: Compose closed campaign acquisition/result manifests without campaign engines
+
+**Problem.** B-06 must represent eight scientifically distinct campaign
+families without duplicating upstream identities, reducing results to a
+Boolean, or absorbing B-E1's statistical/runtime authority.
+
+**Recommendation.** Add one separately canonicalized B-06 campaign manifest
+with distinct acquisition and externally supplied result records. A closed
+family matrix requires exact upstream refs and family-specific artifact roles
+for MMS/refinement, mutation, analytic anchors, primary/witness comparison,
+generator-oracle adversarial work, measurement floors, decision resolution,
+and residual limitations. Derive the existing supplemental
+`DossierEvidenceRef` from the complete manifest digest so the Slice-2 claim
+matrix remains the only claim-compatibility path.
+
+**Alternatives rejected.** Eight unrelated schemas would duplicate identity
+and canonical logic. One opaque evidence bag would erase scientific role
+differences. Numeric thresholds, computed intervals, winner selection, or a
+`passed` Boolean would invent science and trespass on B-E1/human authority.
+
+**Interfaces, impact, and reversibility.** The new campaign domain is additive
+and imports only existing authoring/measurement/registry value seams. It adds
+no generator, reference, measurement, statistical, registry, filesystem, or
+network execution. Any semantic change requires a prospective campaign schema
+version/profile change.
+
+**Human-reserved input.** Expected orders, tolerances, mutation sufficiency,
+disagreement/floor acceptance, sample size, coverage, power, dependence,
+stopping, scientific verdicts, qualification, and LIVE remain external.
+
 ## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
 
 **Problem.** B-05 must own measurement and Score Pack authoring semantics

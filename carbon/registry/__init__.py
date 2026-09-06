@@ -15,6 +15,7 @@ from carbon.registry.gate import (
 from carbon.registry.model import (
     LIFECYCLE_STATES,
     QUALIFICATION_MODES,
+    QUALIFICATION_PLACEHOLDER_VALUES,
     REQUIRED_QUALIFICATION_SLOTS,
     REQUIRED_QUALIFICATION_STATES,
     ArtifactBinding,
@@ -25,6 +26,8 @@ from carbon.registry.model import (
     ScientificAuthoringEligibility,
     ScientificAuthoringGraphOrigin,
     ScientificAuthoringReason,
+    qualification_value_is_missing,
+    qualification_value_is_placeholder,
     validate_canonical_identifier,
     validate_version,
 )
@@ -33,6 +36,7 @@ from carbon.registry.store import RegistryError, serialize_record
 __all__ = (
     "LIFECYCLE_STATES",
     "QUALIFICATION_MODES",
+    "QUALIFICATION_PLACEHOLDER_VALUES",
     "REQUIRED_QUALIFICATION_SLOTS",
     "REQUIRED_QUALIFICATION_STATES",
     "ArtifactAccessError",
@@ -51,6 +55,8 @@ __all__ = (
     "ScientificAuthoringReason",
     "ScientificAuthoringVerifier",
     "is_sha256_digest",
+    "qualification_value_is_missing",
+    "qualification_value_is_placeholder",
     "read_verified_artifact_bytes",
     "serialize_record",
     "validate_canonical_identifier",
