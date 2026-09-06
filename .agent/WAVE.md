@@ -9,13 +9,13 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.3
-**Selected ticket:** B-07S — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 2.4
+**Selected ticket:** B-07A — `done`
 **Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
 shipping predicate
-**Next selected ticket:** `B-07A`
-**Next eligible status:** B-07A is `todo` and unstarted; B-07S authorizes no
-runtime implementation
+**Next selected ticket:** `B-07B`
+**Next eligible status:** B-07B is `todo` and unstarted; B-07A authorizes no
+task-lifecycle implementation
 **Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while
 preserving B-05's incomplete historical delivery state; PR #88 completes B-06,
 and its completion note selects B-E3. OWNER-DX-03 controls engineering delivery.
@@ -44,8 +44,11 @@ LIVE authority.
 **B-07S status:** `done` in this shipping snapshot after applicable automated
 acceptance and normal merge; it ratifies the exact local v2 engineering
 protocol but implements no B-07 runtime and grants no qualification.
-**B-07A status:** `todo` and unstarted; it is the next eligible implementation
-ticket after the B-07S shipping predicate.
+**B-07A status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,
+only for the shared v2 core, discovery resources, and local two-operation
+adapter.
+**B-07B status:** `todo` and unstarted; it is the next eligible ticket after
+the B-07A shipping predicate.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -102,6 +105,17 @@ ticket after the B-07S shipping predicate.
 > head guard. No B-07A-G runtime is implemented here. Every scientific,
 > security, network, production, qualification, economic, rights, launch, and
 > LIVE authority remains unearned.
+
+> **B-07A conditional closeout and B-07B transition under OWNER-DX-03.** This
+> shipping snapshot implements the shared exact `carbon_research_v2` nominal
+> core once, the sole `InteractionManifest` wire resource, immutable historical
+> discovery, and a local-only adapter for B-07A's two operations. Its bounded
+> `done` state and B-07B `todo` next-selection become authoritative only after
+> the unchanged ready revision passes applicable automated acceptance and
+> `Merge gate` and normally merges with the expected-head guard. The full
+> dispatcher, task lifecycle, downstream providers/stores, practice, prior,
+> resources, network, credentials, qualification, production, and LIVE remain
+> unavailable or assigned to later tickets.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

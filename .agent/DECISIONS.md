@@ -11140,3 +11140,65 @@ publication policy, rights/legal policy, economics, real identity, production
 signing/key custody/credentials, remote transport, launch, and LIVE authority
 remain unavailable and fail closed. A lead notification is posted to issue
 #42; development continues under OWNER-DX-03 unless an explicit block appears.
+
+## 2026-09-07 - B-07A-D1..D4: one exact v2 core and bounded discovery
+
+**Ticket:** B-07A
+**Status:** implemented working engineering decisions
+**Implementation:** `carbon/research`,
+`tests/cpu/test_b07a_protocol_core.py`,
+`tests/cpu/test_b07a_discovery_adapter.py`, and
+`.agent/evidence/wave_b/b-07a.md`.
+
+**Problem.** B-07S ratified exact wire behavior, while B-07A must implement the
+shared vocabulary and only two discovery operations without taking ownership
+of the later dispatcher, task, practice, prior, resource, or execution domains.
+The B-07A ticket also retained the older `ChallengeInteractionManifest`
+shorthand after the ratified wire contract named the resource
+`InteractionManifest`.
+
+**Agent recommendation and decisions.** Keep the ratified protocol unchanged:
+
+- **B-07A-D1:** own all shared v2 wire primitives in one standard-library-only
+  `carbon.research` package, importing the exact existing Challenge, Strategy,
+  construction, resource, and measurement identities rather than defining
+  structural substitutes.
+- **B-07A-D2:** expose only the ratified `InteractionManifest` wire resource;
+  treat `ChallengeInteractionManifest` as documentation lag and add no alias or
+  second schema.
+- **B-07A-D3:** make discovery immutable and exact-version keyed. Historical
+  Challenge identities resolve to their own bytes and never redirect to a
+  latest version; absent, wrong-Challenge, cross-bound, or conflicting objects
+  fail with closed errors.
+- **B-07A-D4:** execute only `get_challenge_info` and
+  `get_interaction_manifest` in the bounded local adapter. Preserve all twelve
+  frozen operation names and represent the remaining ten as
+  `CAPABILITY_UNAVAILABLE`; allow-listed reconstruction at the provider
+  boundary returns no partial output or private exception text.
+
+**Alternatives rejected.** A second manifest name would create two wire
+identities. A latest-version alias would break historical retrieval. Successful
+stubs, a reduced operation list, provider registries, caller flags, or a broad
+dispatcher would either fabricate capability or absorb later-ticket authority.
+Generic maps or copied domain refs would break nominal identity and digest
+semantics.
+
+**Affected interfaces and invariants.** These decisions establish the public
+`carbon.research` package, exact v2 canonical bytes and ref verification,
+`ChallengeInfo`, `InteractionManifest`, provider protocols, immutable discovery
+fixtures, and `LocalDiscoveryAdapter`. They preserve INV-004, INV-008, INV-012,
+INV-013, INV-016, INV-017, and INV-019 and leave A9's official v1 interface
+unchanged.
+
+**Reversibility and migration.** Any wire field, enum, error, limit, ref,
+namespace, or canonicalization change requires a prospective protocol version
+and migration. Package placement or adapter composition can change
+prospectively only while keeping the single shared owner and exact historical
+bytes. Later tickets import this core and implement their assigned operations.
+
+**Human-reserved input.** None is required for this bounded engineering
+delivery. Scientific values and qualification, security acceptance, public
+prior policy, rights, real identity, signing, credentials, networking,
+economics, production, launch, and LIVE remain unavailable. The required lead
+notification is posted to issue #42; no response is required under
+OWNER-DX-03 unless an explicit block appears.
