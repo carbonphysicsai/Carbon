@@ -564,6 +564,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E3"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E5",
+      "owner_lane": "sciml_technical_lead",
+      "status": "active",
+      "summary": "B-06 is reconciled end to end as a final-review candidate with all 44 machine-checkable ticket criteria accounted for and no machine-implementable feature gap; exact-head CI and final review/delivery remain, while scientific, security, signer, production, and LIVE authority stay human-owned.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64/.agent/plans/B-06_validation_dossier_manifest.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E4"
     }
   ]
 }

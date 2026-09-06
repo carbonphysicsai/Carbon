@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `76d08ca4b397fea41fc2dd43c8700419a7dd41e0` on `main`, captured 2026-09-06T02:00:00Z.
-**Current:** Wave B, ticket B-06. Slices 1-4 are local structural checkpoints with no machine-implementable feature criterion left in the local audit. Full-ticket reconciliation, canonical Linux validation when available, exact-head review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop.
+**Authority snapshot:** `d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64` on `main`, captured 2026-09-06T02:27:41Z.
+**Current:** Wave B, ticket B-06. B-06 is a reconciled final-review candidate with no machine-implementable feature criterion remaining. Exact-head CI, fresh complete-diff review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop.
 
 ## Wave spine
 
@@ -111,6 +111,7 @@
 - `B-06-E2` — `WAVE-B/B-06` — B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority.
 - `B-06-E3` — `WAVE-B/B-06` — B-06 Slice 3 adds deterministic qualification-candidate and closed artifact-set identity, exact cross-section bindings, external signer-result inputs, and pure fail-closed comparison with one supplied immutable A3 draft record; 1431 affected tests passed while scientific, security, registry-mutation, and LIVE authority remain unavailable.
 - `B-06-E4` — `WAVE-B/B-06` — B-06 Slice 4 adds exact prospective acquisition and externally supplied result manifests for every ticket-named campaign family, strict canonical identity and cross-campaign non-substitution, with 1480 affected local tests passing; no campaign engine, scientific verdict, qualification, or LIVE authority is added.
+- `B-06-E5` — `WAVE-B/B-06` — B-06 is reconciled end to end as a final-review candidate with all 44 machine-checkable ticket criteria accounted for and no machine-implementable feature gap; exact-head CI and final review/delivery remain, while scientific, security, signer, production, and LIVE authority stay human-owned.
 
 ## Authority boundary
 

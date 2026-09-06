@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-06T02:00:00Z"
+  captured_at_utc: "2026-09-06T02:27:41Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "76d08ca4b397fea41fc2dd43c8700419a7dd41e0"
+  authority_snapshot_commit: "d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -447,7 +447,7 @@ current:
   controlling_register: ".agent/WAVE_B.md"
   controlling_register_version: "1.9"
   controlling_board_fingerprint: "3157519edc39dc79a3f121cca2b29868c6f36dcacc012a5eda17df5885a5b490"
-  stage: "Slices 1-4 are local structural checkpoints with no machine-implementable feature criterion left in the local audit. Full-ticket reconciliation, canonical Linux validation when available, exact-head review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop."
+  stage: "B-06 is a reconciled final-review candidate with no machine-implementable feature criterion remaining. Exact-head CI, fresh complete-diff review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -499,7 +499,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-06 has a working engineering contract and four natively tested structural slices with no machine-implementable feature criterion left in the local audit. SPECIFIED, IMPLEMENTED, and TESTED remain unearned as ticket maturity until reconciliation and delivery complete; scientific, security, production, qualification, and LIVE states remain unearned."
+  maturity_summary: "B-06 has a reconciled working contract and four natively tested structural slices with no machine-implementable feature criterion remaining. The bounded structural candidate is present, but ticket-level SPECIFIED, IMPLEMENTED, and TESTED remain unearned until delivery completes. Scientific, security, production, qualification, and LIVE states remain unearned."
   decision_series_status: "B-06-D0 through B-06-D12 are implemented working decisions under the existing non-gating issue #42 route. They preserve exact identity, upstream boundaries, non-substitution, pending dependence authority, pure A3 comparison, external signer-result separation, and execution-free campaign evidence without granting scientific or lifecycle authority."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -2190,6 +2190,21 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/MATURITY"
     supersedes: "B-06-E3"
+  -
+    map_ref: "WAVE-B/B-06"
+    event_type: "evidence"
+    event_id: "B-06-E5"
+    owner_lane: "sciml_technical_lead"
+    status: "active"
+    summary: "B-06 is reconciled end to end as a final-review candidate with all 44 machine-checkable ticket criteria accounted for and no machine-implementable feature gap; exact-head CI and final review/delivery remain, while scientific, security, signer, production, and LIVE authority stay human-owned."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64/.agent/plans/B-06_validation_dossier_manifest.md"
+    affects:
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-E3"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-06-E4"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
