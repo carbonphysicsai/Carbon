@@ -23,8 +23,8 @@ identifies itself:
 5. expected manifest, validation commands, invariants, and protected-field
    acceptance;
 6. inherited failures and required before/after deltas;
-7. required review role, exact-head predicate, Accountable-reviewer routing,
-   and handling for an explicit blocking direction;
+7. applicable automated-acceptance predicate, Accountable lead-notification
+   routing, and handling for an explicit blocking direction;
 8. separate maturity ceilings for specification, implementation, testing,
    scientific qualification, security qualification, network qualification,
    commercial validation, and production qualification; and
@@ -36,34 +36,27 @@ The implementation merge must preserve the reviewed tree exactly.
 
 ## External dynamic completion receipt
 
-Final reviewed head/tree, CI/check/job identities, Codex/GPT review receipt,
-human approval and `GPT review gate` identities, finding disposition,
-unresolved review-thread count, merge commit/ordered parents/tree, exact-main
-checks, notification identity, final maturity, and next-ticket
-selection are dynamic completion facts. Record them outside the reviewed tree
+Final accepted head/tree, CI/check/job identities, merge commit/ordered
+parents/tree, notification identity, final maturity, and next-ticket selection
+are dynamic completion facts. Record them outside the accepted tree
 using `.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`, in the PR body, one
 normalized PR completion comment, issue #42, or a retained GitHub Actions
 artifact.
 
 A ticket candidate may coordinate its bounded `done` state and the next-ticket
-selection. The transition becomes authoritative only after the exact reviewed
-tree passes scope-required exact-head checks and `Merge gate`, fresh read-only
-Codex/GPT review covers the complete diff, every finding is repaired or
-dispositioned, a distinct non-author human approval carries the closed receipt,
-`GPT review gate` passes with zero unresolved review threads, normal merge
-preserves exact second-parent/tree identity, exact-main `Merge gate` passes,
-and the completed normalized external receipt is posted. Do not require a
-recursive closeout pull request or an evidence-only commit merely to restate
-those facts.
+selection. Under OWNER-DX-03 the transition becomes authoritative only after
+the final ready revision passes its applicable automated acceptance and
+`Merge gate` and normally merges with the expected-head guard. No mandatory
+review receipt, human approval, `GPT review gate`, post-merge full-CI run,
+recursive closeout pull request, or evidence-only commit applies.
 
 PR-body and issue-comment edits do not change the reviewed Git tree. Correct a
 stale declaration and validate the current live body/head without an empty
 commit. A declaration edit cannot substitute for required repository content.
 
-Resolve every explicit blocking direction and route Accountable reviewers.
-The distinct non-author human delivery approval is required, while domain-lead
-routing and silence remain separate from reserved acceptance. Human-reserved
-authority stays fail closed.
+Resolve every explicit blocking direction and route applicable Accountable
+lead notifications. Notification and silence remain separate from reserved
+acceptance. Human-reserved authority stays fail closed.
 
 This directory stores engineering and review evidence. It cannot create
 scientific truth, security acceptance, `LIVE` authority, frontier status,

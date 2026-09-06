@@ -115,8 +115,9 @@
       "title": "Define the exact research-service protocol",
       "what": "Specify the exact operations, request and response shapes, lifecycle, errors, bounds, and local adapter that all later research-service pieces must follow.",
       "why": "An architecture diagram is not enough to guarantee interoperable or fail-closed behavior.",
-      "changes": "Later research-service tickets get one protocol owner instead of redefining the interface themselves.",
-      "not_yet": "This does not authorize a network listener, credentials, remote quotas, official submission operations, or production service.",
+      "changes": "The exact local v2 protocol is ratified: twelve operations, closed types and bounds, deterministic task/prior rules, fixture capability separation, and one semantic owner per operation.",
+      "not_yet": "This does not implement B-07A-G, alter official v1, publish a public prior, or authorize identity, signing, transport, credentials, quoting, qualification, production service, or LIVE.",
+      "current_stage_plain": "B-07S is complete in bounded specification and ratification scope after its shipping predicate. B-07A is next but has not started.",
       "map_ref": "WAVE-B/B-07S"
     },
     "B-07A": {
@@ -213,7 +214,7 @@
       "why": "A technically complete system can still overclaim if nobody can show which evidence supports each statement and which evidence is missing.",
       "changes": "Carbon gains an exact claim-to-source crosswalk, distinct evidence categories and maturity, permitted-use records, explicit absent or pending evidence, fail-closed validation, strict canonical bytes, and audience-safe reports.",
       "not_yet": "A crosswalk cannot fill an evidence gap, make MMS prove physical validity, trust an asserted owner or approval, disclose protected identities, or turn design intent into scientific or production qualification.",
-      "current_stage_plain": "B-E3 is complete in bounded structural engineering scope. B-07S is next but has not started; its exact protocol remains mandatory before any B-07 service implementation.",
+      "current_stage_plain": "B-E3 is complete in bounded structural engineering scope. B-07S has now ratified the exact local protocol under its shipping predicate, and B-07A is next but unstarted.",
       "map_ref": "WAVE-B/B-E3"
     },
     "B-E4": {
