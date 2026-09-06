@@ -2384,6 +2384,7 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
       - "SYSTEM/MATURITY"
     supersedes: null
 event_schema:
