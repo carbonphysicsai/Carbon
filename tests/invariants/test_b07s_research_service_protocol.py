@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = ROOT / "Design_Specs" / "Miner_MCP_Wave_B_Service_Protocol.md"
 BEGIN = "<!-- B07S-CONFORMANCE-MANIFEST-BEGIN -->"
@@ -61,7 +60,12 @@ def test_every_operation_has_one_complete_owner_contract() -> None:
     owners = {contract[2] for contract in contracts.values()}
     assert owners == {"B-07A", "B-07D3", "B-07C", "A2", "B-02B", "B-07E", "B-07B"}
     assert all(contract[3] for contract in contracts.values())
-    assert {contract[4] for contract in contracts.values()} == {"none", "create", "read", "cancel"}
+    assert {contract[4] for contract in contracts.values()} == {
+        "none",
+        "create",
+        "read",
+        "cancel",
+    }
 
 
 def test_requests_cannot_select_context_provider_or_scientific_control() -> None:
