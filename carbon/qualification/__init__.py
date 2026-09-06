@@ -97,6 +97,7 @@ from .enums import (
     SignerRole,
     SignerRoleAuthorization,
     StructuralOrigin,
+    effective_structural_origin,
 )
 from .errors import (
     DossierCanonicalError,
@@ -145,6 +146,7 @@ from .refs import (
     QualificationManifestCandidateRef,
     SignerArtifactRef,
     ValidationDossierRef,
+    validate_dossier_identifier,
 )
 
 __all__ = (
@@ -264,6 +266,7 @@ __all__ = (
     "dossier_completeness",
     "dossier_evidence_ref",
     "dossier_ref",
+    "effective_structural_origin",
     "evidence_manifest_bytes",
     "evidence_manifest_digest",
     "evidence_manifest_payload",
@@ -276,4 +279,5 @@ __all__ = (
     "qualification_candidate_digest",
     "qualification_candidate_payload",
     "qualification_candidate_ref",
+    "validate_dossier_identifier",
 )

@@ -104,9 +104,11 @@ satisfied, and PR #75's receipt establishes B-04's bounded completed state.
 B-01H's complete conditional predicate has passed at the identities above.
 Under B-06-D0, merged B-05 is the owner-accepted dependency while its ordinary
 delivery record remains `in_progress`; B-06 is the selected `in_progress`
-ticket as a reconciled final-review candidate. Campaign-specific
+ticket as a reconciled second-review repair candidate. Campaign-specific
 acquisition/result manifests and all other machine-implementable B-06 features
-are present, while exact-head CI and final review/delivery remain. Working
+are present; `B06-CR-001/002/003` remain verified repaired and
+`B06-CR-004/005/006` are repaired in the changed tree. Earlier CI/reviews are
+stale, while fresh exact-head CI and final review/delivery remain. Working
 engineering decisions may proceed after durable record and applicable
 notification without affirmative lead response. A human-reserved value remains unavailable and
 blocks its affected behavior, not unrelated bounded work.

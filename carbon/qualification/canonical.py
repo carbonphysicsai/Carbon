@@ -348,7 +348,7 @@ def dossier_ref(value: ValidationDossier) -> ValidationDossierRef:
         value.dossier_id,
         value.dossier_version,
         canonical_digest(value),
-        (StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin),
+        value.effective_origin,
         value.schema_version,
         value.canonicalization_profile,
     )

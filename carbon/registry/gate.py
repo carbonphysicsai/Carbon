@@ -19,21 +19,11 @@ from carbon.registry.model import (
     QualificationEvidence,
     ScientificAuthoringEligibility,
     ScientificAuthoringReason,
+    qualification_value_is_missing,
+    qualification_value_is_placeholder,
     validate_canonical_identifier,
 )
 from carbon.registry.store import RegistryError, RegistryStore
-
-_PLACEHOLDERS = frozenset(
-    {
-        "BLOCKED_FOR_LIVE_UNTIL_SET",
-        "HUMAN_INPUT",
-        "PLACEHOLDER",
-        "TODO",
-        "TODO(sciml)",
-        "FIXTURE",
-        "fixture",
-    }
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,11 +73,11 @@ def _reason(code: str, path: str, message: str) -> EligibilityReason:
 
 
 def _is_empty(value: str | None) -> bool:
-    return value is None or not value.strip()
+    return qualification_value_is_missing(value)
 
 
 def _is_placeholder(value: str | None) -> bool:
-    return value is not None and value.strip() in _PLACEHOLDERS
+    return qualification_value_is_placeholder(value)
 
 
 class ChallengeRegistry(RegistryStore):

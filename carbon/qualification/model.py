@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 from carbon.authoring.primitives import (
     reconstruct_challenge_key,
-    validate_canonical_id,
     validate_version_token,
 )
 from carbon.registry.model import ChallengeKey
@@ -23,6 +22,7 @@ from .enums import (
     SignerBindingState,
     SignerRole,
     StructuralOrigin,
+    effective_structural_origin,
 )
 from .errors import DossierInputCode, DossierValidationError
 from .refs import (
@@ -31,6 +31,7 @@ from .refs import (
     DossierEvidenceRef,
     SignerArtifactRef,
     ValidationDossierRef,
+    validate_dossier_identifier,
 )
 
 
@@ -52,10 +53,7 @@ def _challenge(value: object, path: str = "/challenge_key") -> ChallengeKey:
 
 
 def _identifier(value: object, path: str) -> str:
-    try:
-        return validate_canonical_id(value, path.rsplit("/", 1)[-1])
-    except (TypeError, ValueError):
-        raise _invalid(path) from None
+    return validate_dossier_identifier(value, path)
 
 
 def _version(value: object, path: str) -> str:
@@ -187,10 +185,16 @@ class DossierSection:
 
     @property
     def fixture_derived(self) -> bool:
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
         refs = self.evidence_refs + (
             () if self.rationale_ref is None else (self.rationale_ref,)
         )
-        return any(ref.origin is StructuralOrigin.FIXTURE_ONLY for ref in refs)
+        return effective_structural_origin(
+            *(ref.origin for ref in refs), StructuralOrigin.REGISTERED_REFERENCE
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -252,6 +256,10 @@ class SignerBinding:
 
     @property
     def fixture_derived(self) -> bool:
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
         refs = tuple(
             ref
             for ref in (
@@ -261,7 +269,9 @@ class SignerBinding:
             )
             if ref is not None
         )
-        return any(ref.origin is StructuralOrigin.FIXTURE_ONLY for ref in refs)
+        return effective_structural_origin(
+            *(ref.origin for ref in refs), StructuralOrigin.REGISTERED_REFERENCE
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,14 +351,15 @@ class ValidationDossier:
 
     @property
     def fixture_derived(self) -> bool:
-        return (
-            self.origin is StructuralOrigin.FIXTURE_ONLY
-            or any(section.fixture_derived for section in self.sections)
-            or any(binding.fixture_derived for binding in self.signer_bindings)
-            or (
-                self.supersedes is not None
-                and self.supersedes.origin is StructuralOrigin.FIXTURE_ONLY
-            )
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            self.origin,
+            *(section.effective_origin for section in self.sections),
+            *(binding.effective_origin for binding in self.signer_bindings),
+            *(() if self.supersedes is None else (self.supersedes.origin,)),
         )
 
 

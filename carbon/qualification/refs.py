@@ -71,7 +71,7 @@ def _challenge(value: object, path: str = "/challenge_key") -> ChallengeKey:
         raise _invalid(path, DossierInputCode.WRONG_TYPE) from None
 
 
-def _identifier(value: object, path: str) -> str:
+def validate_dossier_identifier(value: object, path: str) -> str:
     try:
         result = validate_canonical_id(value, path.rsplit("/", 1)[-1])
     except (TypeError, ValueError):
@@ -79,6 +79,9 @@ def _identifier(value: object, path: str) -> str:
     if result in _PLACEHOLDER_IDS or result.startswith("placeholder-"):
         raise _invalid(path, DossierInputCode.PLACEHOLDER_EVIDENCE)
     return result
+
+
+_identifier = validate_dossier_identifier
 
 
 def _version(value: object, path: str) -> str:
@@ -373,4 +376,5 @@ __all__ = (
     "QualificationManifestCandidateRef",
     "SignerArtifactRef",
     "ValidationDossierRef",
+    "validate_dossier_identifier",
 )

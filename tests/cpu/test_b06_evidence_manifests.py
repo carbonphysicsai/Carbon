@@ -643,6 +643,198 @@ def test_fixture_propagation_and_supersession_cannot_cleanse_origin() -> None:
         replace(successor, manifest_version="1.0")
 
 
+def test_unresolved_evidence_graph_projects_monotonically() -> None:
+    primary_value = manifest(qualification.DossierSlot.D1)
+    primary = primary_value.evidence_refs[0]
+    unresolved_primary = replace(
+        primary, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    primary_value = replace(
+        primary_value,
+        evidence_refs=(unresolved_primary,),
+        claim_bindings=(
+            replace(primary_value.claim_bindings[0], evidence_ref=unresolved_primary),
+        ),
+    )
+    assert (
+        primary_value.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    value = manifest(qualification.DossierSlot.D10)
+    coverage = value.statistical_scope.coverage_evidence_ref
+    unresolved_coverage = replace(
+        coverage, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    unresolved = replace(
+        value,
+        evidence_refs=tuple(
+            unresolved_coverage if item == coverage else item
+            for item in value.evidence_refs
+        ),
+        claim_bindings=tuple(
+            (
+                replace(item, evidence_ref=unresolved_coverage)
+                if item.evidence_ref == coverage
+                else item
+            )
+            for item in value.claim_bindings
+        ),
+        statistical_scope=replace(
+            value.statistical_scope, coverage_evidence_ref=unresolved_coverage
+        ),
+    )
+    assert (
+        unresolved.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.evidence_manifest_ref(unresolved).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.dossier_evidence_ref(unresolved).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    loaded = qualification.load_evidence_manifest(
+        qualification.evidence_manifest_bytes(unresolved)
+    )
+    assert loaded.effective_origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+
+    accounting_value = manifest(qualification.DossierSlot.D4)
+    first_attempt = accounting_value.accounting.attempts[0]
+    unresolved_attempt = replace(
+        first_attempt,
+        attempt_ref=replace(
+            first_attempt.attempt_ref,
+            origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+        ),
+    )
+    accounting_value = replace(
+        accounting_value,
+        accounting=replace(
+            accounting_value.accounting,
+            attempts=(unresolved_attempt, *accounting_value.accounting.attempts[1:]),
+        ),
+    )
+    assert (
+        accounting_value.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    predecessor = replace(
+        manifest(qualification.DossierSlot.D11),
+        origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    successor = manifest(
+        qualification.DossierSlot.D11,
+        version="2.0",
+        supersedes=qualification.evidence_manifest_ref(predecessor),
+    )
+    assert (
+        successor.effective_origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+
+def test_unresolved_limitation_and_affected_evidence_propagate() -> None:
+    base = manifest(qualification.DossierSlot.D12)
+    limitation_ref = evidence_ref(
+        base.challenge_key,
+        qualification.DossierEvidenceClass.RESIDUAL_LIMITATION,
+        "residual-limitation",
+        origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    limitation = qualification.LimitationBinding(
+        base.challenge_key,
+        limitation_ref,
+        (base.evidence_refs[0],),
+        (qualification.DossierClaimRole.CENSORING_LIMITATIONS,),
+        base.subject_bindings.claim_scope_ref,
+    )
+    value = replace(
+        base,
+        evidence_refs=(*base.evidence_refs, limitation_ref),
+        claim_bindings=(
+            *base.claim_bindings,
+            qualification.EvidenceClaimBinding(
+                base.challenge_key,
+                limitation_ref,
+                qualification.DossierClaimRole.RESIDUAL_LIMITATION_DISCLOSURE,
+                base.subject_bindings.claim_scope_ref,
+            ),
+        ),
+        limitations=(limitation,),
+    )
+    assert (
+        limitation.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert value.effective_origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+
+    affected = replace(
+        base.evidence_refs[0],
+        origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    affected_limitation = replace(limitation, affected_evidence_refs=(affected,))
+    assert (
+        affected_limitation.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+
+def test_nominal_evidence_conflicts_reject_before_canonical_ordering() -> None:
+    value = manifest(qualification.DossierSlot.D1)
+    primary = value.evidence_refs[0]
+    for conflict in (
+        replace(primary, content_digest=DIGEST_A),
+        replace(primary, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED),
+        replace(
+            primary,
+            content_digest=DIGEST_A,
+            origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+        ),
+    ):
+        with pytest.raises(qualification.DossierValidationError) as caught:
+            replace(value, evidence_refs=(primary, conflict))
+        assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    accounting_value = manifest(qualification.DossierSlot.D4)
+    attempt = accounting_value.accounting.attempts[0]
+    conflicting_attempt = replace(
+        attempt,
+        attempt_ref=replace(attempt.attempt_ref, content_digest=DIGEST_A),
+    )
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(
+            accounting_value.accounting,
+            attempts=(attempt, conflicting_attempt),
+        )
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    affected = value.evidence_refs[0]
+    limitation = evidence_ref(
+        value.challenge_key,
+        qualification.DossierEvidenceClass.RESIDUAL_LIMITATION,
+        "limitation",
+    )
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        qualification.LimitationBinding(
+            value.challenge_key,
+            limitation,
+            (affected, replace(affected, content_digest=DIGEST_A)),
+            (qualification.DossierClaimRole.PHYSICAL_SYSTEM_ADEQUACY,),
+            value.subject_bindings.claim_scope_ref,
+        )
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    distinct = evidence_ref(
+        value.challenge_key,
+        qualification.DossierEvidenceClass.MMS_REFINEMENT_OBSERVED_ORDER,
+        "distinct-evidence",
+    )
+    assert replace(value, evidence_refs=(primary, distinct)).evidence_refs
+
+
 def test_serialized_surface_contains_no_secret_or_locator_fields() -> None:
     payload = qualification.evidence_manifest_payload(
         manifest(qualification.DossierSlot.D11)

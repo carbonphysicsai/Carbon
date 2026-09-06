@@ -101,6 +101,19 @@ class StructuralOrigin(str, Enum):
     REGISTERED_REFERENCE = "REGISTERED_REFERENCE"
 
 
+def effective_structural_origin(
+    *origins: StructuralOrigin,
+) -> StructuralOrigin:
+    """Return the fail-closed origin for one complete contributing graph."""
+    if not origins or any(type(item) is not StructuralOrigin for item in origins):
+        raise TypeError("origins must be non-empty exact StructuralOrigin values")
+    if StructuralOrigin.FIXTURE_ONLY in origins:
+        return StructuralOrigin.FIXTURE_ONLY
+    if StructuralOrigin.DRAFT_OR_UNRESOLVED in origins:
+        return StructuralOrigin.DRAFT_OR_UNRESOLVED
+    return StructuralOrigin.REGISTERED_REFERENCE
+
+
 class SignerRole(str, Enum):
     PHYSICS_SCIML = "PHYSICS_SCIML"
     STATISTICS = "STATISTICS"
@@ -506,13 +519,16 @@ class QualificationMismatchReason(str, Enum):
     CANDIDATE_INCOMPLETE = "qualification.candidate_incomplete"
     DOSSIER_INCOMPLETE = "qualification.dossier_incomplete"
     DOSSIER_FIXTURE_DERIVED = "qualification.dossier_fixture_derived"
+    DOSSIER_DRAFT_OR_UNRESOLVED = "qualification.dossier_draft_or_unresolved"
     DOSSIER_STALE_OR_SUPERSEDED = "qualification.dossier_stale_or_superseded"
     EVIDENCE_MISSING = "qualification.evidence_missing"
     EVIDENCE_PLACEHOLDER = "qualification.evidence_placeholder"
     EVIDENCE_FIXTURE_DERIVED = "qualification.evidence_fixture_derived"
+    EVIDENCE_DRAFT_OR_UNRESOLVED = "qualification.evidence_draft_or_unresolved"
     EVIDENCE_STALE_OR_SUPERSEDED = "qualification.evidence_stale_or_superseded"
     SIGNER_SLOT_MISSING = "qualification.signer_slot_missing"
     SIGNER_FIXTURE_DERIVED = "qualification.signer_fixture_derived"
+    SIGNER_DRAFT_OR_UNRESOLVED = "qualification.signer_draft_or_unresolved"
     SIGNER_AUTHORIZATION_MISSING = "qualification.signer_authorization_missing"
     SIGNER_AUTHORIZATION_BINDING_MISMATCH = (
         "qualification.signer_authorization_binding_mismatch"
@@ -521,6 +537,7 @@ class QualificationMismatchReason(str, Enum):
     SIGNER_ROLE_UNAUTHORIZED = "qualification.signer_role_unauthorized"
     SIGNATURE_UNVERIFIED = "qualification.signature_unverified"
     ARTIFACT_FIXTURE_DERIVED = "qualification.artifact_fixture_derived"
+    ARTIFACT_DRAFT_OR_UNRESOLVED = "qualification.artifact_draft_or_unresolved"
     ARTIFACT_STALE_OR_SUPERSEDED = "qualification.artifact_stale_or_superseded"
     REGISTRY_LIFECYCLE_INCOMPATIBLE = "qualification.registry_lifecycle_incompatible"
     REGISTRY_FIXTURE_ORIGIN = "qualification.registry_fixture_origin"
@@ -542,7 +559,12 @@ class QualificationMismatchReason(str, Enum):
     )
     REGISTRY_SLOT_MISSING = "qualification.registry_slot_missing"
     REGISTRY_SLOT_STATE_MISMATCH = "qualification.registry_slot_state_mismatch"
+    REGISTRY_SLOT_ARTIFACT_MISSING = "qualification.registry_slot_artifact_missing"
     REGISTRY_SLOT_ARTIFACT_MISMATCH = "qualification.registry_slot_artifact_mismatch"
+    REGISTRY_SLOT_REFERENCE_MISSING = "qualification.registry_slot_reference_missing"
+    REGISTRY_SLOT_REFERENCE_PLACEHOLDER = (
+        "qualification.registry_slot_reference_placeholder"
+    )
     REGISTRY_ARTIFACT_MISSING = "qualification.registry_artifact_missing"
     REGISTRY_ARTIFACT_UNEXPECTED = "qualification.registry_artifact_unexpected"
     DOSSIER_DIGEST_MISMATCH = "qualification.dossier_digest_mismatch"
@@ -589,4 +611,5 @@ __all__ = (
     "SignerRole",
     "SignerRoleAuthorization",
     "StructuralOrigin",
+    "effective_structural_origin",
 )

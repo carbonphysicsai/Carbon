@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -175,6 +176,84 @@ def test_placeholder_reference_identity_is_rejected() -> None:
             identity="placeholder",
         )
     assert caught.value.code is qualification.DossierInputCode.PLACEHOLDER_EVIDENCE
+
+
+def test_effective_origin_is_monotonic_for_sections_and_predecessors() -> None:
+    assert (
+        qualification.effective_structural_origin(
+            qualification.StructuralOrigin.REGISTERED_REFERENCE,
+            qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+        )
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.effective_structural_origin(
+            qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+            qualification.StructuralOrigin.FIXTURE_ONLY,
+        )
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
+    registered = replace(
+        dossier(), origin=qualification.StructuralOrigin.REGISTERED_REFERENCE
+    )
+    assert (
+        registered.effective_origin
+        is qualification.StructuralOrigin.REGISTERED_REFERENCE
+    )
+
+    first = registered.sections[0]
+    unresolved_ref = replace(
+        first.evidence_refs[0],
+        origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    unresolved = replace(
+        registered,
+        sections=(
+            replace(first, evidence_refs=(unresolved_ref,)),
+            *registered.sections[1:],
+        ),
+    )
+    assert (
+        unresolved.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.dossier_ref(unresolved).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.dossier_ref(
+            qualification.load_canonical_document(
+                qualification.canonical_bytes(unresolved)
+            )
+        ).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    fixture_ref = replace(
+        unresolved_ref, origin=qualification.StructuralOrigin.FIXTURE_ONLY
+    )
+    fixture = replace(
+        unresolved,
+        sections=(
+            replace(first, evidence_refs=(fixture_ref,)),
+            *registered.sections[1:],
+        ),
+    )
+    assert fixture.effective_origin is qualification.StructuralOrigin.FIXTURE_ONLY
+
+    successor = replace(
+        registered,
+        dossier_version="2.0",
+        supersedes=qualification.dossier_ref(unresolved),
+    )
+    assert (
+        successor.effective_origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.dossier_ref(successor).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
 
 
 def test_supplemental_or_wrong_slot_evidence_cannot_substitute() -> None:

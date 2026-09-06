@@ -301,6 +301,207 @@ def test_honest_pre_result_campaign_states_are_representable_but_not_evidence(
     assert caught.value.code is qualification.DossierInputCode.MISSING_EVIDENCE
 
 
+def test_campaign_effective_origin_covers_all_nested_paths() -> None:
+    original = manifest(qualification.CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER)
+    acquired = original.acquisition
+    first_artifact = acquired.artifact_refs[0]
+    unresolved_artifact = replace(
+        first_artifact, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    unresolved_acquisition = replace(
+        acquired,
+        artifact_refs=(unresolved_artifact, *acquired.artifact_refs[1:]),
+    )
+    unresolved_result = replace(
+        original.result,
+        acquisition_digest=qualification.campaign_acquisition_digest(
+            unresolved_acquisition
+        ),
+    )
+    acquisition_manifest = replace(
+        original,
+        acquisition=unresolved_acquisition,
+        result=unresolved_result,
+    )
+    assert (
+        acquisition_manifest.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    attempt_ref = qualification.DossierEvidenceRef(
+        CHALLENGE,
+        qualification.DossierEvidenceClass.MMS_REFINEMENT_OBSERVED_ORDER,
+        "unresolved-attempt",
+        "1.0",
+        DIGESTS[5],
+        qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+    )
+    attempt = qualification.EvidenceAttemptBinding(
+        CHALLENGE, attempt_ref, qualification.AttemptDisposition.VALID_EVIDENCE
+    )
+    attempt_acquisition = replace(acquired, attempts=(attempt,))
+    attempt_manifest = replace(
+        original,
+        acquisition=attempt_acquisition,
+        result=replace(
+            original.result,
+            acquisition_digest=qualification.campaign_acquisition_digest(
+                attempt_acquisition
+            ),
+        ),
+    )
+    assert (
+        attempt_manifest.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    result_artifact = original.result.artifact_refs[0]
+    unresolved_result_artifact = replace(
+        result_artifact, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    result_manifest = replace(
+        original,
+        result=replace(
+            original.result,
+            artifact_refs=(
+                unresolved_result_artifact,
+                *original.result.artifact_refs[1:],
+            ),
+        ),
+    )
+    assert (
+        result_manifest.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    result_attempt_manifest = replace(
+        original,
+        result=replace(original.result, attempts=(attempt,)),
+    )
+    assert (
+        result_attempt_manifest.effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    predecessor = replace(
+        original, origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    successor = replace(
+        original,
+        manifest_version="2.0",
+        supersedes=qualification.campaign_manifest_ref(predecessor),
+    )
+    assert (
+        successor.effective_origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.campaign_manifest_ref(successor).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.campaign_evidence_ref(successor).origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        qualification.load_campaign_manifest(
+            qualification.campaign_manifest_bytes(successor)
+        ).effective_origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    fixture_acquisition = replace(
+        unresolved_acquisition,
+        artifact_refs=(
+            replace(
+                unresolved_artifact, origin=qualification.StructuralOrigin.FIXTURE_ONLY
+            ),
+            *unresolved_acquisition.artifact_refs[1:],
+        ),
+    )
+    assert (
+        fixture_acquisition.effective_origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
+
+
+def test_campaign_nominal_definition_attempt_and_artifact_conflicts_reject() -> None:
+    acquired = acquisition(qualification.CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER)
+    definition_ref = acquired.definition_refs[0]
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(
+            acquired,
+            definition_refs=(
+                *acquired.definition_refs,
+                replace(definition_ref, content_digest=DIGESTS[5]),
+            ),
+        )
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    attempt_ref = qualification.DossierEvidenceRef(
+        CHALLENGE,
+        qualification.DossierEvidenceClass.MMS_REFINEMENT_OBSERVED_ORDER,
+        "campaign-attempt",
+        "1.0",
+        DIGESTS[5],
+        qualification.StructuralOrigin.REGISTERED_REFERENCE,
+    )
+    attempt = qualification.EvidenceAttemptBinding(
+        CHALLENGE, attempt_ref, qualification.AttemptDisposition.VALID_EVIDENCE
+    )
+    conflicting_attempt = replace(
+        attempt,
+        attempt_ref=replace(
+            attempt_ref,
+            content_digest=DIGESTS[4],
+            origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+        ),
+    )
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(acquired, attempts=(attempt, conflicting_attempt))
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    produced = result(acquired)
+    scope = produced.scope_refs[0]
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(
+            produced,
+            scope_refs=(
+                *produced.scope_refs,
+                replace(scope, content_digest=DIGESTS[5]),
+            ),
+        )
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(produced, attempts=(attempt, conflicting_attempt))
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    multi = next(
+        item
+        for item in produced.artifact_refs
+        if item.artifact_role is qualification.CampaignArtifactRole.PER_LEVEL_RESULT
+    )
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        replace(
+            produced,
+            artifact_refs=(
+                *produced.artifact_refs,
+                replace(multi, content_digest=DIGESTS[5]),
+            ),
+        )
+    assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
+
+    distinct = replace(multi, artifact_id="per-level-result-distinct")
+    accepted = replace(produced, artifact_refs=(*produced.artifact_refs, distinct))
+    assert (
+        sum(
+            item.artifact_role is qualification.CampaignArtifactRole.PER_LEVEL_RESULT
+            for item in accepted.artifact_refs
+        )
+        >= 2
+    )
+
+
 def test_mms_wrong_implementation_and_malformed_refinement_reject() -> None:
     value = acquisition(qualification.CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER)
     wrong = tuple(

@@ -47,6 +47,7 @@ from .enums import (
     DossierSlot,
     EvidenceCompleteness,
     StructuralOrigin,
+    effective_structural_origin,
 )
 from .errors import DossierInputCode, DossierValidationError
 from .refs import (
@@ -54,6 +55,7 @@ from .refs import (
     EVIDENCE_MANIFEST_SCHEMA_VERSION,
     DossierEvidenceManifestRef,
     DossierEvidenceRef,
+    validate_dossier_identifier,
 )
 
 
@@ -82,12 +84,7 @@ def _same_challenge(value: ChallengeKey, expected: ChallengeKey, path: str) -> N
 
 
 def _identifier(value: object, path: str) -> str:
-    try:
-        from carbon.authoring.primitives import validate_canonical_id
-
-        return validate_canonical_id(value, path.rsplit("/", 1)[-1])
-    except (TypeError, ValueError):
-        raise _invalid(path) from None
+    return validate_dossier_identifier(value, path)
 
 
 def _version(value: object, path: str) -> str:
@@ -186,11 +183,17 @@ def _copy_evidence(value: object, challenge: ChallengeKey, path: str):
     )
 
 
-def _evidence_identity(value: DossierEvidenceRef) -> tuple[object, ...]:
+def _evidence_nominal_key(value: DossierEvidenceRef) -> tuple[object, ...]:
     return (
         value.evidence_class,
         value.evidence_id,
         value.evidence_version,
+    )
+
+
+def _evidence_sort_key(value: DossierEvidenceRef) -> tuple[object, ...]:
+    return (
+        *_evidence_nominal_key(value),
         value.content_digest,
         value.origin,
     )
@@ -407,7 +410,11 @@ class StatisticalScopeManifest(_ProtectedRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return self.coverage_evidence_ref.origin is StructuralOrigin.FIXTURE_ONLY
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return self.coverage_evidence_ref.origin
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -471,12 +478,12 @@ class EvidenceAccountingManifest(_ProtectedRecord):
                     item.challenge_key, item.attempt_ref, item.disposition
                 )
             )
-        identities = tuple(_evidence_identity(item.attempt_ref) for item in attempts)
+        identities = tuple(_evidence_nominal_key(item.attempt_ref) for item in attempts)
         if len(set(identities)) != len(identities):
             raise _invalid("/attempts", DossierInputCode.DUPLICATE_IDENTITY)
         attempts.sort(
             key=lambda item: (
-                _evidence_identity(item.attempt_ref),
+                _evidence_sort_key(item.attempt_ref),
                 item.disposition.value,
             )
         )
@@ -485,9 +492,13 @@ class EvidenceAccountingManifest(_ProtectedRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return any(
-            item.attempt_ref.origin is StructuralOrigin.FIXTURE_ONLY
-            for item in self.attempts
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            *(item.attempt_ref.origin for item in self.attempts),
+            StructuralOrigin.REGISTERED_REFERENCE,
         )
 
 
@@ -544,7 +555,7 @@ class LimitationBinding(_ProtectedRecord):
             _copy_evidence(item, challenge, f"/affected_evidence_refs/{index}")
             for index, item in enumerate(self.affected_evidence_refs)
         )
-        identities = tuple(_evidence_identity(item) for item in affected)
+        identities = tuple(_evidence_nominal_key(item) for item in affected)
         if len(set(identities)) != len(identities):
             raise _invalid(
                 "/affected_evidence_refs", DossierInputCode.DUPLICATE_IDENTITY
@@ -564,7 +575,7 @@ class LimitationBinding(_ProtectedRecord):
         object.__setattr__(
             self,
             "affected_evidence_refs",
-            tuple(sorted(affected, key=_evidence_identity)),
+            tuple(sorted(affected, key=_evidence_sort_key)),
         )
         object.__setattr__(
             self,
@@ -582,9 +593,13 @@ class LimitationBinding(_ProtectedRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return self.limitation_ref.origin is StructuralOrigin.FIXTURE_ONLY or any(
-            item.origin is StructuralOrigin.FIXTURE_ONLY
-            for item in self.affected_evidence_refs
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            self.limitation_ref.origin,
+            *(item.origin for item in self.affected_evidence_refs),
         )
 
 
@@ -693,10 +708,11 @@ class DossierEvidenceManifest(_ProtectedRecord):
                 _copy_evidence(item, challenge, f"/evidence_refs/{index}")
                 for index, item in enumerate(self.evidence_refs)
             )
-            identities = tuple(_evidence_identity(item) for item in refs)
+            identities = tuple(_evidence_nominal_key(item) for item in refs)
             if len(set(identities)) != len(identities):
                 raise _invalid("/evidence_refs", DossierInputCode.DUPLICATE_IDENTITY)
-            refs = tuple(sorted(refs, key=_evidence_identity))
+            refs = tuple(sorted(refs, key=_evidence_sort_key))
+            content_identities = tuple(_evidence_sort_key(item) for item in refs)
             primary_class = DOSSIER_PRIMARY_EVIDENCE_CLASS[self.slot]
             primary_refs = tuple(
                 item for item in refs if item.evidence_class is primary_class
@@ -710,7 +726,7 @@ class DossierEvidenceManifest(_ProtectedRecord):
                 _same_challenge(
                     item.challenge_key, challenge, f"/claim_bindings/{index}"
                 )
-                if _evidence_identity(item.evidence_ref) not in identities:
+                if _evidence_sort_key(item.evidence_ref) not in content_identities:
                     raise _invalid(
                         f"/claim_bindings/{index}/evidence_ref",
                         DossierInputCode.MISSING_EVIDENCE,
@@ -732,7 +748,7 @@ class DossierEvidenceManifest(_ProtectedRecord):
                 )
             claim_identities = tuple(
                 (
-                    _evidence_identity(item.evidence_ref),
+                    _evidence_sort_key(item.evidence_ref),
                     item.claim_role,
                     _owner_identity(item.claim_scope_ref),
                 )
@@ -745,7 +761,7 @@ class DossierEvidenceManifest(_ProtectedRecord):
                     claims_list,
                     key=lambda item: (
                         item.claim_role.value,
-                        _evidence_identity(item.evidence_ref),
+                        _evidence_sort_key(item.evidence_ref),
                     ),
                 )
             )
@@ -766,8 +782,8 @@ class DossierEvidenceManifest(_ProtectedRecord):
                     statistical.challenge_key, challenge, "/statistical_scope"
                 )
                 if (
-                    _evidence_identity(statistical.coverage_evidence_ref)
-                    not in identities
+                    _evidence_sort_key(statistical.coverage_evidence_ref)
+                    not in content_identities
                 ):
                     raise _invalid(
                         "/statistical_scope/coverage_evidence_ref",
@@ -804,13 +820,13 @@ class DossierEvidenceManifest(_ProtectedRecord):
             for index, value in enumerate(self.limitations):
                 item = _exact(value, LimitationBinding, f"/limitations/{index}")
                 _same_challenge(item.challenge_key, challenge, f"/limitations/{index}")
-                if _evidence_identity(item.limitation_ref) not in identities:
+                if _evidence_sort_key(item.limitation_ref) not in content_identities:
                     raise _invalid(
                         f"/limitations/{index}/limitation_ref",
                         DossierInputCode.MISSING_EVIDENCE,
                     )
                 if any(
-                    _evidence_identity(ref) not in identities
+                    _evidence_sort_key(ref) not in content_identities
                     for ref in item.affected_evidence_refs
                 ):
                     raise _invalid(
@@ -826,14 +842,14 @@ class DossierEvidenceManifest(_ProtectedRecord):
                     )
                 limitation_list.append(item)
             limitation_ids = tuple(
-                _evidence_identity(item.limitation_ref) for item in limitation_list
+                _evidence_nominal_key(item.limitation_ref) for item in limitation_list
             )
             if len(set(limitation_ids)) != len(limitation_ids):
                 raise _invalid("/limitations", DossierInputCode.DUPLICATE_IDENTITY)
             limitations = tuple(
                 sorted(
                     limitation_list,
-                    key=lambda item: _evidence_identity(item.limitation_ref),
+                    key=lambda item: _evidence_sort_key(item.limitation_ref),
                 )
             )
 
@@ -875,22 +891,21 @@ class DossierEvidenceManifest(_ProtectedRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return (
-            self.origin is StructuralOrigin.FIXTURE_ONLY
-            or any(
-                item.origin is StructuralOrigin.FIXTURE_ONLY
-                for item in self.evidence_refs
-            )
-            or (
-                self.supersedes is not None
-                and self.supersedes.origin is StructuralOrigin.FIXTURE_ONLY
-            )
-            or (
-                self.statistical_scope is not None
-                and self.statistical_scope.fixture_derived
-            )
-            or (self.accounting is not None and self.accounting.fixture_derived)
-            or any(item.fixture_derived for item in self.limitations)
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            self.origin,
+            *(item.origin for item in self.evidence_refs),
+            *(() if self.supersedes is None else (self.supersedes.origin,)),
+            *(
+                ()
+                if self.statistical_scope is None
+                else (self.statistical_scope.effective_origin,)
+            ),
+            *(() if self.accounting is None else (self.accounting.effective_origin,)),
+            *(item.effective_origin for item in self.limitations),
         )
 
 

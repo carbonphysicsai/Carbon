@@ -70,7 +70,7 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 
 Scientific, statistics, security, launch, and independent-review owners produce and sign the required evidence. Agents never set pass/fail.
 
-## First-review repair checkpoint
+## Second-review repair checkpoint
 
 Slices 1 through 4 are implemented on the B-06 ticket branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
@@ -111,6 +111,17 @@ and signature verification remain external and human/security-owned.
 `Generator_Validation.md` v2.1 dependence
 policy and the corresponding scientific-canon v4.1 additions remain pending
 owner ratification; populated structural fields grant no acceptance.
+
+The second fresh complete-diff review at exact head
+`5763d14cf5cd0c7a18040d91437990a20c4d6ace` returned `FINDINGS` while
+verifying `B06-CR-001/002/003` repaired. This repair addresses exactly
+`B06-CR-004/005/006`: fixture > unresolved > registered origin propagation
+across complete graphs, pure parity with A3's required-slot reference
+missing/placeholder checks, and rejection of conflicting same-version nominal
+identities before canonical ordering. Its predecessor CI and both prior
+reviews are stale. Fresh exact-head CI, a completely fresh review, distinct
+human approval with a closed receipt, protected review gate, merge, and
+closeout remain incomplete. B-06 remains `in_progress`.
 
 ## Must not
 

@@ -32,6 +32,7 @@ from .enums import (
     CampaignSubjectRole,
     DossierEvidenceClass,
     StructuralOrigin,
+    effective_structural_origin,
 )
 from .errors import DossierInputCode, DossierValidationError
 from .evidence import EvidenceAttemptBinding
@@ -39,6 +40,7 @@ from .refs import (
     CAMPAIGN_MANIFEST_CANONICALIZATION_PROFILE,
     CAMPAIGN_MANIFEST_SCHEMA_VERSION,
     CampaignEvidenceManifestRef,
+    validate_dossier_identifier,
 )
 
 
@@ -67,17 +69,7 @@ def _same_challenge(value: ChallengeKey, expected: ChallengeKey, path: str) -> N
 
 
 def _identifier(value: object, path: str) -> str:
-    try:
-        from carbon.authoring.primitives import validate_canonical_id
-
-        result = validate_canonical_id(value, path.rsplit("/", 1)[-1])
-    except (TypeError, ValueError):
-        raise _invalid(path) from None
-    if result in {"none", "placeholder", "tbd", "todo", "unknown", "unset"}:
-        raise _invalid(path, DossierInputCode.PLACEHOLDER_EVIDENCE)
-    if result.startswith("placeholder-"):
-        raise _invalid(path, DossierInputCode.PLACEHOLDER_EVIDENCE)
-    return result
+    return validate_dossier_identifier(value, path)
 
 
 def _version(value: object, path: str) -> str:
@@ -714,12 +706,35 @@ def _copy_artifacts(
     return tuple(sorted(copied, key=_artifact_identity))
 
 
-def _definition_identity(value: MeasurementDefinitionRef) -> tuple[object, ...]:
+def _definition_nominal_key(value: MeasurementDefinitionRef) -> tuple[object, ...]:
     return (
         value.definition_kind,
         value.object_id,
         value.object_version,
+    )
+
+
+def _definition_sort_key(value: MeasurementDefinitionRef) -> tuple[object, ...]:
+    return (
+        *_definition_nominal_key(value),
         value.content_digest,
+    )
+
+
+def _attempt_nominal_key(value: EvidenceAttemptBinding) -> tuple[object, ...]:
+    return (
+        value.attempt_ref.evidence_class,
+        value.attempt_ref.evidence_id,
+        value.attempt_ref.evidence_version,
+    )
+
+
+def _attempt_sort_key(value: EvidenceAttemptBinding) -> tuple[object, ...]:
+    return (
+        *_attempt_nominal_key(value),
+        value.attempt_ref.content_digest,
+        value.attempt_ref.origin,
+        value.disposition,
     )
 
 
@@ -793,7 +808,7 @@ class CampaignAcquisitionManifest(_ProtectedCampaignRecord):
             _copy_definition(value, challenge, f"/definition_refs/{index}")
             for index, value in enumerate(self.definition_refs)
         )
-        identities = tuple(_definition_identity(value) for value in definitions)
+        identities = tuple(_definition_nominal_key(value) for value in definitions)
         if len(set(identities)) != len(identities):
             raise _invalid("/definition_refs", DossierInputCode.DUPLICATE_IDENTITY)
         if any(
@@ -805,7 +820,7 @@ class CampaignAcquisitionManifest(_ProtectedCampaignRecord):
         kinds = {value.definition_kind for value in definitions}
         if not CAMPAIGN_REQUIRED_DEFINITION_KINDS[self.campaign_family] <= kinds:
             raise _invalid("/definition_refs", DossierInputCode.MISSING_EVIDENCE)
-        definitions = tuple(sorted(definitions, key=_definition_identity))
+        definitions = tuple(sorted(definitions, key=_definition_sort_key))
 
         required_artifacts = CAMPAIGN_REQUIRED_ACQUISITION_ARTIFACT_ROLES[
             self.campaign_family
@@ -855,20 +870,10 @@ class CampaignAcquisitionManifest(_ProtectedCampaignRecord):
                     item.challenge_key, item.attempt_ref, item.disposition
                 )
             )
-        attempt_ids = tuple(
-            (
-                item.attempt_ref.evidence_class,
-                item.attempt_ref.evidence_id,
-                item.attempt_ref.evidence_version,
-                item.attempt_ref.content_digest,
-            )
-            for item in attempts
-        )
+        attempt_ids = tuple(_attempt_nominal_key(item) for item in attempts)
         if len(set(attempt_ids)) != len(attempt_ids):
             raise _invalid("/attempts", DossierInputCode.DUPLICATE_IDENTITY)
-        attempts.sort(
-            key=lambda item: (item.attempt_ref.evidence_id, item.disposition.value)
-        )
+        attempts.sort(key=_attempt_sort_key)
 
         object.__setattr__(self, "challenge_key", challenge)
         object.__setattr__(
@@ -890,11 +895,14 @@ class CampaignAcquisitionManifest(_ProtectedCampaignRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return any(
-            item.origin is StructuralOrigin.FIXTURE_ONLY for item in self.artifact_refs
-        ) or any(
-            item.attempt_ref.origin is StructuralOrigin.FIXTURE_ONLY
-            for item in self.attempts
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            *(item.origin for item in self.artifact_refs),
+            *(item.attempt_ref.origin for item in self.attempts),
+            StructuralOrigin.REGISTERED_REFERENCE,
         )
 
     @property
@@ -944,10 +952,10 @@ class CampaignResultManifest(_ProtectedCampaignRecord):
             for value in scopes
         ):
             raise _invalid("/scope_refs", DossierInputCode.ROLE_CONFUSION)
-        identities = tuple(_definition_identity(value) for value in scopes)
+        identities = tuple(_definition_nominal_key(value) for value in scopes)
         if len(set(identities)) != len(identities):
             raise _invalid("/scope_refs", DossierInputCode.DUPLICATE_IDENTITY)
-        scopes = tuple(sorted(scopes, key=_definition_identity))
+        scopes = tuple(sorted(scopes, key=_definition_sort_key))
 
         family_required = CAMPAIGN_REQUIRED_RESULT_ARTIFACT_ROLES[self.campaign_family]
         if self.result_status in {
@@ -985,15 +993,7 @@ class CampaignResultManifest(_ProtectedCampaignRecord):
                     item.challenge_key, item.attempt_ref, item.disposition
                 )
             )
-        attempt_ids = tuple(
-            (
-                item.attempt_ref.evidence_class,
-                item.attempt_ref.evidence_id,
-                item.attempt_ref.evidence_version,
-                item.attempt_ref.content_digest,
-            )
-            for item in attempts
-        )
+        attempt_ids = tuple(_attempt_nominal_key(item) for item in attempts)
         if len(set(attempt_ids)) != len(attempt_ids):
             raise _invalid("/attempts", DossierInputCode.DUPLICATE_IDENTITY)
         if self.result_status is CampaignResultStatus.REFERENCE_FAILURE and not any(
@@ -1006,9 +1006,7 @@ class CampaignResultManifest(_ProtectedCampaignRecord):
             for item in attempts
         ):
             raise _invalid("/attempts", DossierInputCode.MISSING_EVIDENCE)
-        attempts.sort(
-            key=lambda item: (item.attempt_ref.evidence_id, item.disposition.value)
-        )
+        attempts.sort(key=_attempt_sort_key)
 
         object.__setattr__(self, "challenge_key", challenge)
         object.__setattr__(self, "result_id", _identifier(self.result_id, "/result_id"))
@@ -1036,11 +1034,14 @@ class CampaignResultManifest(_ProtectedCampaignRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return any(
-            item.origin is StructuralOrigin.FIXTURE_ONLY for item in self.artifact_refs
-        ) or any(
-            item.attempt_ref.origin is StructuralOrigin.FIXTURE_ONLY
-            for item in self.attempts
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            *(item.origin for item in self.artifact_refs),
+            *(item.attempt_ref.origin for item in self.attempts),
+            StructuralOrigin.REGISTERED_REFERENCE,
         )
 
     @property
@@ -1160,14 +1161,15 @@ class CampaignEvidenceManifest(_ProtectedCampaignRecord):
 
     @property
     def fixture_derived(self) -> bool:
-        return (
-            self.origin is StructuralOrigin.FIXTURE_ONLY
-            or self.acquisition.fixture_derived
-            or (self.result is not None and self.result.fixture_derived)
-            or (
-                self.supersedes is not None
-                and self.supersedes.origin is StructuralOrigin.FIXTURE_ONLY
-            )
+        return self.effective_origin is StructuralOrigin.FIXTURE_ONLY
+
+    @property
+    def effective_origin(self) -> StructuralOrigin:
+        return effective_structural_origin(
+            self.origin,
+            self.acquisition.effective_origin,
+            *(() if self.result is None else (self.result.effective_origin,)),
+            *(() if self.supersedes is None else (self.supersedes.origin,)),
         )
 
 

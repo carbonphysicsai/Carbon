@@ -9,12 +9,15 @@ import pytest
 from carbon import qualification
 from carbon.measurement.refs import MeasurementContractRef
 from carbon.registry import (
+    QUALIFICATION_PLACEHOLDER_VALUES,
     REQUIRED_QUALIFICATION_STATES,
     ArtifactBinding,
     ChallengeKey,
     ChallengeRecord,
     QualificationEvidence,
     QualificationManifest,
+    qualification_value_is_missing,
+    qualification_value_is_placeholder,
 )
 from tests.cpu.test_b06_evidence_manifests import manifest
 
@@ -911,6 +914,207 @@ def test_fixture_signer_and_dossier_predecessor_are_preserved_end_to_end() -> No
         successor_result.reasons
     )
     assert not successor_result.machine_prerequisites_satisfied
+
+
+def test_unresolved_manifests_and_signers_fail_readiness_end_to_end() -> None:
+    manifests = tuple(
+        manifest(
+            slot,
+            challenge=CANDIDATE_CHALLENGE,
+            origin=(
+                qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+                if slot is qualification.DossierSlot.D1
+                else qualification.StructuralOrigin.REGISTERED_REFERENCE
+            ),
+        )
+        for slot in qualification.DOSSIER_SLOT_ORDER
+    )
+    candidate, record, authorizations = candidate_fixture(manifests_override=manifests)
+    loaded = qualification.load_qualification_candidate(
+        qualification.qualification_candidate_bytes(candidate)
+    )
+    result = compare(loaded, record, authorizations)
+    assert not result.machine_prerequisites_satisfied
+    assert result.reasons[:3] == (
+        qualification.QualificationMismatchReason.DOSSIER_DRAFT_OR_UNRESOLVED,
+        qualification.QualificationMismatchReason.EVIDENCE_DRAFT_OR_UNRESOLVED,
+        qualification.QualificationMismatchReason.ARTIFACT_DRAFT_OR_UNRESOLVED,
+    )
+    assert (
+        loaded.dossier_ref.origin is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+    assert (
+        loaded.evidence_manifest_bindings[0].manifest_ref.origin
+        is qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED
+    )
+
+    for field in (
+        "identity_ref",
+        "signature_ref",
+        "authorization_evidence_ref",
+    ):
+        signers = populated_signers(CANDIDATE_CHALLENGE)
+        first = signers[0]
+        unresolved_signers = (
+            replace(
+                first,
+                **{
+                    field: replace(
+                        getattr(first, field),
+                        origin=qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+                    )
+                },
+            ),
+            *signers[1:],
+        )
+        candidate, record, authorizations = candidate_fixture(
+            signers_override=unresolved_signers
+        )
+        result = compare(candidate, record, authorizations)
+        assert not result.machine_prerequisites_satisfied
+        assert (
+            qualification.QualificationMismatchReason.DOSSIER_DRAFT_OR_UNRESOLVED
+            in result.reasons
+        )
+        assert (
+            qualification.QualificationMismatchReason.SIGNER_DRAFT_OR_UNRESOLVED
+            in result.reasons
+        )
+        assert (
+            qualification.QualificationMismatchReason.ARTIFACT_DRAFT_OR_UNRESOLVED
+            in result.reasons
+        )
+
+
+@pytest.mark.parametrize(
+    "slot", tuple(slot for slot, _ in REQUIRED_QUALIFICATION_STATES)
+)
+@pytest.mark.parametrize("placeholder", tuple(sorted(QUALIFICATION_PLACEHOLDER_VALUES)))
+def test_a3_placeholder_reference_parity_is_fail_closed(slot, placeholder) -> None:
+    candidate, record, authorizations = candidate_fixture()
+    slots = dict(record.qualification.slots)
+    slots[slot] = replace(slots[slot], reference=placeholder)
+    manifest_value = replace(record.qualification, slots=slots)
+    record = replace(record, qualification=manifest_value)
+    candidate = replace(
+        candidate,
+        expected_registry_qualification_digest=qualification.a3_qualification_snapshot_digest(
+            manifest_value
+        ),
+    )
+    assert qualification_value_is_placeholder(placeholder)
+    assert compare(candidate, record, authorizations).reasons == (
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_PLACEHOLDER,
+    )
+
+
+@pytest.mark.parametrize(
+    "slot", tuple(slot for slot, _ in REQUIRED_QUALIFICATION_STATES)
+)
+@pytest.mark.parametrize("missing", (None, "", "   "))
+def test_a3_missing_reference_rejects_with_typed_reason(slot, missing) -> None:
+    candidate, record, authorizations = candidate_fixture()
+    slots = dict(record.qualification.slots)
+    slots[slot] = replace(slots[slot], reference=missing)
+    manifest_value = replace(record.qualification, slots=slots)
+    record_value = replace(record, qualification=manifest_value)
+    candidate_value = replace(
+        candidate,
+        expected_registry_qualification_digest=qualification.a3_qualification_snapshot_digest(
+            manifest_value
+        ),
+    )
+    assert qualification_value_is_missing(missing)
+    assert compare(candidate_value, record_value, authorizations).reasons == (
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_MISSING,
+    )
+
+
+@pytest.mark.parametrize(
+    "slot", tuple(slot for slot, _ in REQUIRED_QUALIFICATION_STATES)
+)
+@pytest.mark.parametrize("artifact_id", (None, "", "   ", "wrong-artifact"))
+def test_a3_missing_or_inconsistent_artifact_rejects(slot, artifact_id) -> None:
+    candidate, record, authorizations = candidate_fixture()
+    slots = dict(record.qualification.slots)
+    slots[slot] = replace(slots[slot], artifact_id=artifact_id)
+    manifest_value = replace(record.qualification, slots=slots)
+    record_value = replace(record, qualification=manifest_value)
+    candidate_value = replace(
+        candidate,
+        expected_registry_qualification_digest=qualification.a3_qualification_snapshot_digest(
+            manifest_value
+        ),
+    )
+    expected = (
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_ARTIFACT_MISSING
+        if qualification_value_is_missing(artifact_id)
+        else qualification.QualificationMismatchReason.REGISTRY_SLOT_ARTIFACT_MISMATCH
+    )
+    assert compare(candidate_value, record_value, authorizations).reasons == (expected,)
+
+
+def test_a3_reference_mismatch_reasons_are_deterministically_ordered() -> None:
+    candidate, record, authorizations = candidate_fixture()
+    slots = dict(record.qualification.slots)
+    slots[REQUIRED_QUALIFICATION_STATES[0][0]] = replace(
+        slots[REQUIRED_QUALIFICATION_STATES[0][0]],
+        artifact_id=None,
+        reference="HUMAN_INPUT",
+    )
+    slots[REQUIRED_QUALIFICATION_STATES[1][0]] = replace(
+        slots[REQUIRED_QUALIFICATION_STATES[1][0]], reference=None
+    )
+    manifest_value = replace(record.qualification, slots=slots)
+    record = replace(record, qualification=manifest_value)
+    candidate = replace(
+        candidate,
+        expected_registry_qualification_digest=qualification.a3_qualification_snapshot_digest(
+            manifest_value
+        ),
+    )
+    result = compare(candidate, record, authorizations)
+    assert result.reasons == tuple(
+        reason
+        for reason in qualification.QualificationMismatchReason
+        if reason in set(result.reasons)
+    )
+    assert result.reasons == (
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_ARTIFACT_MISSING,
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_MISSING,
+        qualification.QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_PLACEHOLDER,
+    )
+
+
+def test_valid_a3_reference_and_existing_artifact_remain_structurally_accepted() -> (
+    None
+):
+    candidate, record, authorizations = candidate_fixture()
+    assert not qualification_value_is_missing("human-owned-assertion")
+    assert not qualification_value_is_placeholder("human-owned-assertion")
+    assert compare(candidate, record, authorizations).machine_prerequisites_satisfied
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        lambda candidate: replace(candidate, candidate_id="placeholder"),
+        lambda candidate: replace(
+            candidate.artifact_set.artifacts[0], registry_artifact_id="placeholder"
+        ),
+        lambda candidate: replace(
+            candidate.artifact_set.artifacts[0], object_id="placeholder"
+        ),
+        lambda candidate: replace(
+            candidate.registry_slot_bindings[0], registry_artifact_id="placeholder"
+        ),
+    ),
+)
+def test_candidate_side_placeholder_identifiers_reject(mutation) -> None:
+    candidate, _, _ = candidate_fixture()
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        mutation(candidate)
+    assert caught.value.code is qualification.DossierInputCode.PLACEHOLDER_EVIDENCE
 
 
 def test_placeholder_stale_and_superseded_evidence_fail_closed() -> None:

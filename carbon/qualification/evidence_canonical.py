@@ -756,28 +756,26 @@ def evidence_manifest_digest(value: DossierEvidenceManifest) -> str:
 
 
 def evidence_manifest_ref(value: DossierEvidenceManifest) -> DossierEvidenceManifestRef:
-    origin = StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin
     return DossierEvidenceManifestRef(
         value.challenge_key,
         value.slot,
         value.manifest_id,
         value.manifest_version,
         evidence_manifest_digest(value),
-        origin,
+        value.effective_origin,
         value.schema_version,
         value.canonicalization_profile,
     )
 
 
 def dossier_evidence_ref(value: DossierEvidenceManifest) -> DossierEvidenceRef:
-    origin = StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin
     return DossierEvidenceRef(
         value.challenge_key,
         DOSSIER_PRIMARY_EVIDENCE_CLASS[value.slot],
         value.manifest_id,
         value.manifest_version,
         evidence_manifest_digest(value),
-        origin,
+        value.effective_origin,
     )
 
 

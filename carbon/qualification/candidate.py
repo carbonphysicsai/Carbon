@@ -26,6 +26,8 @@ from carbon.registry.model import (
     ChallengeKey,
     ChallengeRecord,
     QualificationEvidence,
+    qualification_value_is_missing,
+    qualification_value_is_placeholder,
 )
 
 from .enums import (
@@ -57,6 +59,7 @@ from .refs import (
     QualificationManifestCandidateRef,
     SignerArtifactRef,
     ValidationDossierRef,
+    validate_dossier_identifier,
 )
 
 
@@ -85,12 +88,7 @@ def _same_challenge(value: ChallengeKey, expected: ChallengeKey, path: str) -> N
 
 
 def _identifier(value: object, path: str) -> str:
-    from carbon.authoring.primitives import validate_canonical_id
-
-    try:
-        return validate_canonical_id(value, path.rsplit("/", 1)[-1])
-    except (TypeError, ValueError):
-        raise _invalid(path) from None
+    return validate_dossier_identifier(value, path)
 
 
 def _version(value: object, path: str) -> str:
@@ -863,6 +861,8 @@ def compare_qualification_candidate(
         add(QualificationMismatchReason.DOSSIER_INCOMPLETE)
     if candidate.dossier_origin is StructuralOrigin.FIXTURE_ONLY:
         add(QualificationMismatchReason.DOSSIER_FIXTURE_DERIVED)
+    elif candidate.dossier_origin is StructuralOrigin.DRAFT_OR_UNRESOLVED:
+        add(QualificationMismatchReason.DOSSIER_DRAFT_OR_UNRESOLVED)
     if candidate.dossier_currentness is not ArtifactCurrentness.CURRENT:
         add(QualificationMismatchReason.DOSSIER_STALE_OR_SUPERSEDED)
 
@@ -876,6 +876,11 @@ def compare_qualification_candidate(
             and item.manifest_ref.origin is StructuralOrigin.FIXTURE_ONLY
         ):
             add(QualificationMismatchReason.EVIDENCE_FIXTURE_DERIVED)
+        elif (
+            item.manifest_ref is not None
+            and item.manifest_ref.origin is StructuralOrigin.DRAFT_OR_UNRESOLVED
+        ):
+            add(QualificationMismatchReason.EVIDENCE_DRAFT_OR_UNRESOLVED)
         if item.currentness is not ArtifactCurrentness.CURRENT:
             add(QualificationMismatchReason.EVIDENCE_STALE_OR_SUPERSEDED)
 
@@ -884,10 +889,14 @@ def compare_qualification_candidate(
             add(QualificationMismatchReason.SIGNER_SLOT_MISSING)
         if signer.fixture_derived:
             add(QualificationMismatchReason.SIGNER_FIXTURE_DERIVED)
+        elif signer.effective_origin is StructuralOrigin.DRAFT_OR_UNRESOLVED:
+            add(QualificationMismatchReason.SIGNER_DRAFT_OR_UNRESOLVED)
 
     for artifact in candidate.artifact_set.artifacts:
         if artifact.origin is StructuralOrigin.FIXTURE_ONLY:
             add(QualificationMismatchReason.ARTIFACT_FIXTURE_DERIVED)
+        elif artifact.origin is StructuralOrigin.DRAFT_OR_UNRESOLVED:
+            add(QualificationMismatchReason.ARTIFACT_DRAFT_OR_UNRESOLVED)
         if artifact.currentness is not ArtifactCurrentness.CURRENT:
             add(QualificationMismatchReason.ARTIFACT_STALE_OR_SUPERSEDED)
 
@@ -930,8 +939,14 @@ def compare_qualification_candidate(
                 continue
             if evidence.state != expected_state:
                 add(QualificationMismatchReason.REGISTRY_SLOT_STATE_MISMATCH)
-            if evidence.artifact_id != slot_map[slot].registry_artifact_id:
+            if qualification_value_is_missing(evidence.artifact_id):
+                add(QualificationMismatchReason.REGISTRY_SLOT_ARTIFACT_MISSING)
+            elif evidence.artifact_id != slot_map[slot].registry_artifact_id:
                 add(QualificationMismatchReason.REGISTRY_SLOT_ARTIFACT_MISMATCH)
+            if qualification_value_is_missing(evidence.reference):
+                add(QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_MISSING)
+            elif qualification_value_is_placeholder(evidence.reference):
+                add(QualificationMismatchReason.REGISTRY_SLOT_REFERENCE_PLACEHOLDER)
 
     candidate_artifacts = _artifact_by_id(candidate)
     record_ids = set(active_record.artifacts)

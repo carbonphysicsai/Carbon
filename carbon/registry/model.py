@@ -23,6 +23,17 @@ REQUIRED_QUALIFICATION_STATES = (
     ("mcp_readiness", "SIGNED"),
 )
 REQUIRED_QUALIFICATION_SLOTS = tuple(slot for slot, _ in REQUIRED_QUALIFICATION_STATES)
+QUALIFICATION_PLACEHOLDER_VALUES = frozenset(
+    {
+        "BLOCKED_FOR_LIVE_UNTIL_SET",
+        "HUMAN_INPUT",
+        "PLACEHOLDER",
+        "TODO",
+        "TODO(sciml)",
+        "FIXTURE",
+        "fixture",
+    }
+)
 
 _CANONICAL_IDENTIFIER = re.compile(r"[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*\Z", re.ASCII)
 _VERSION_TOKEN = re.compile(r"[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*\Z", re.ASCII)
@@ -58,6 +69,16 @@ def validate_canonical_identifier(value: object, field_name: str) -> str:
     if _CANONICAL_IDENTIFIER.fullmatch(identifier) is None:
         raise ValueError(f"{field_name} is not canonical")
     return identifier
+
+
+def qualification_value_is_missing(value: str | None) -> bool:
+    """Match A3's structural missing-value rule without registry I/O."""
+    return value is None or not value.strip()
+
+
+def qualification_value_is_placeholder(value: str | None) -> bool:
+    """Match A3's exact qualification placeholder vocabulary."""
+    return value is not None and value.strip() in QUALIFICATION_PLACEHOLDER_VALUES
 
 
 def _validate_profile_id(value: object) -> str:

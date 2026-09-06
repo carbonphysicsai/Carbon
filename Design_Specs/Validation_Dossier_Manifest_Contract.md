@@ -2,8 +2,8 @@
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery
 **Contract version:** 0.6
-**Status:** first complete-diff review findings repaired; fresh exact-head CI and
-complete-diff review pending
+**Status:** second complete-diff review findings repaired; fresh exact-head CI
+and complete-diff review pending
 **Maturity ceiling:** bounded structural engineering only
 **Implementation owner:** `carbon.qualification`
 **Registry owner:** `carbon.registry` remains unchanged; Slice 3 wraps only its
@@ -83,9 +83,10 @@ Schema version is exact string `"1.0"`. Canonical profile is exact string
 
 `ValidationDossierRef` binds Challenge, dossier ID/version, schema/profile, the
 tagged SHA-256 digest of the complete domain-framed canonical bytes, and the
-effective structural origin. Effective origin is `FIXTURE_ONLY` when any
-nested section evidence, signer artifact, or predecessor is fixture-derived;
-canonical/ref projection and supersession cannot cleanse that provenance.
+effective structural origin. Origin composition is monotonic across every
+contributing reference: `FIXTURE_ONLY` dominates `DRAFT_OR_UNRESOLVED`, which
+dominates `REGISTERED_REFERENCE`. Canonical/ref projection and supersession
+cannot cleanse nested fixture or unresolved provenance.
 Changing any section, evidence reference, signer binding, origin, or
 supersession edge changes the digest. A new material meaning requires a new
 dossier version. Supersession never rewrites, revokes, qualifies, or transfers
@@ -230,10 +231,12 @@ REGISTERED_REFERENCE
 ```
 
 `REGISTERED_REFERENCE` means only that a reference claims an external
-registration binding; this package does not verify the registry. A Dossier is
-fixture-derived when its own origin or any nested evidence/signer artifact is
-`FIXTURE_ONLY`. Hashing, copying, serializing, superseding, or attaching signer
-slots cannot cleanse fixture origin.
+registration binding; this package does not verify the registry. One shared
+pure origin join applies the precedence `FIXTURE_ONLY` >
+`DRAFT_OR_UNRESOLVED` > `REGISTERED_REFERENCE` across dossiers, evidence
+manifests, campaigns, signer/artifact refs, attempts, limitations, statistical
+evidence, and predecessors. Hashing, copying, serializing, superseding, or
+attaching signer slots cannot cleanse fixture or unresolved origin.
 
 No first-slice API can construct a qualification manifest, compare an active
 registry record, verify a signer, activate a Challenge, or return a positive
@@ -255,7 +258,10 @@ domain header is exact bytes
 `carbon.qualification.evidence-manifest.canonical.v1\x00`. A helper may create
 the corresponding `DossierEvidenceRef`; the exact manifest ref also preserves
 structural origin so a fixture predecessor cannot be cleansed by supersession.
-Neither helper dereferences the evidence or asserts adequacy.
+Neither helper dereferences the evidence or asserts adequacy. Collection
+duplicates are detected by nominal identity—evidence class, ID, and version—
+before full digest/origin ordering, so conflicting content or provenance for
+one versioned identity fails closed.
 
 The subject graph reuses, rather than redefines, exact refs owned by B-02A,
 B-03, B-04, and B-05:
@@ -400,8 +406,11 @@ The current A3 public surface has no qualification-manifest digest function.
 Slice 3 therefore defines a separate B-06 domain-framed fingerprint over the
 exact current public `QualificationManifest` fields. It exists only to detect
 snapshot drift. It is not an A3-owned qualification hash, an artifact-byte
-check, a signature, an approval, or a LIVE capability. Exact A3 slot/state and
-artifact-ID bindings remain independently compared.
+check, a signature, an approval, or a LIVE capability. Exact A3 slot/state,
+artifact-ID bindings, and required human-reference presence/non-placeholder
+structure remain independently compared. The latter reuses A3's exact pure
+missing/placeholder vocabulary; a populated reference is not verified
+authorization or approval.
 The record-level and qualification-manifest scientific-authoring graph
 fingerprints must both be present and equal, matching A3's existing gate
 invariant. B-06 does not recompute or verify that graph.
@@ -460,7 +469,9 @@ results, mutation identities, anchor applicability, distinct primary/witness
 roles, adversarial oracle/checker identity, external floor results,
 decision-resolution audit refs, and scoped limitations. Wrong families,
 roles, versions, digests, upstream objects, scopes, duplicates, or incomplete
-produced results reject.
+produced results reject. Campaign collections use nominal identity for
+collision detection and a separate full key for canonical ordering: one
+definition or attempt ID/version cannot carry conflicting digests or origins.
 
 Decision-resolution dependence/resampling/coverage/power/stopping fields are
 structural refs under exact `OWNER_RATIFICATION_PENDING` authority. B-06 does
@@ -529,17 +540,19 @@ below the ceiling remain accepted unchanged; an oversized serialization and
 every digest/ref helper that depends on it fail closed with `SIZE_LIMIT`.
 
 Native tests on this macOS host are diagnostic only. The first fresh
-complete-diff review returned findings `B06-CR-001`, `B06-CR-002`, and
-`B06-CR-003`; this revision repairs those findings. The previous exact-head CI
-and review are stale for the changed tree. Fresh exact-head CI and a completely
-fresh complete-diff review remain required. Human delivery approval, merge,
-and closeout remain external delivery predicates and are not asserted by this
-contract.
+complete-diff review's `B06-CR-001/002/003` remain verified repaired. The
+second fresh review at head `5763d14cf5cd0c7a18040d91437990a20c4d6ace`
+returned `FINDINGS`; this revision repairs `B06-CR-004/005/006` by preserving
+unresolved provenance, matching A3's structural slot-reference prerequisite,
+and rejecting conflicting same-version nominal identities. All earlier CI and
+reviews are stale for the changed tree. Fresh exact-head CI and a completely
+fresh complete-diff review remain required. No closed receipt or human
+approval exists; merge and closeout remain external delivery predicates.
 
 ## 16. Deferred and human-reserved work
 
 Slice 4 owns the campaign-specific manifests not represented by Slice 2.
-The complete ticket has been reconciled after the bounded first-review repair;
+The complete ticket has been reconciled after the bounded second-review repair;
 no known machine-implementable B-06 feature requirement remains, subject to a
 fresh complete-diff review of the repaired tree. Slice 3
 implements candidate construction and a pure exact A3 snapshot comparison;

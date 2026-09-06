@@ -1,8 +1,8 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06
-**Status:** first complete-diff review returned three findings; bounded repairs
-implemented locally and fresh exact-head CI/review required
+**Status:** second complete-diff review returned three findings; bounded
+repairs implemented locally and fresh exact-head CI/review required
 **Branch:** `agent/b-06-dossier-manifest`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`
@@ -71,6 +71,14 @@ The first final review added no new delegated policy decision. Its three
 repairs enforce the existing B-06-D1/D2/D3/D6/D8/D12 invariants: monotonic
 fixture provenance, one exact dossier/evidence graph, and symmetric canonical
 size acceptance.
+
+The second final review likewise adds no new delegated policy. Its bounded
+repairs enforce existing fail-closed authority: one shared structural-origin
+join (`FIXTURE_ONLY` > `DRAFT_OR_UNRESOLVED` > `REGISTERED_REFERENCE`), exact
+reuse of A3's pure missing/placeholder slot-reference semantics, and separate
+nominal collision versus full canonical ordering keys. `B06-CR-001/002/003`
+remain regression-verified; `B06-CR-004/005/006` are repaired in the new tree.
+All prior exact-head CI and reviews are stale after the tree change.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -414,6 +422,21 @@ The single repaired-tree canonical-wrapper attempt exited 2 because Docker or
 the Carbon Dev Container remains unavailable. It was not retried. Native test
 counts are overlapping invocations and are not summed. Canonical acceptance
 must come from the new exact-head GitHub workflow.
+
+Second-review repair validation on the new working tree:
+
+```text
+B-06/A3 repair and boundary focus: 464 passed in 2.65s
+complete native CPU lane: 4196 passed, 2 skipped in 809.62s
+complete native invariant lane: 97 passed in 5.91s
+Ruff 0.16.3 / Black 26.5.1 / compileall / RUNTIME_FULL classification /
+delivery hygiene / quality ratchet / complete-range diff hygiene: passed
+```
+
+One earlier CPU run was interrupted at 96% after 4043 passes and 2 skips and is
+not treated as successful evidence. The second repair's one canonical-wrapper
+attempt again exited 2 for the unchanged Docker/Dev Container limitation and
+was not retried. Counts above are overlapping invocations, not a unique total.
 
 ## 5. Hub and commit shape
 

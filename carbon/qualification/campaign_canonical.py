@@ -650,7 +650,6 @@ def campaign_manifest_digest(value: CampaignEvidenceManifest) -> str:
 def campaign_manifest_ref(
     value: CampaignEvidenceManifest,
 ) -> CampaignEvidenceManifestRef:
-    origin = StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin
     return CampaignEvidenceManifestRef(
         value.challenge_key,
         value.campaign_family,
@@ -658,7 +657,7 @@ def campaign_manifest_ref(
         value.manifest_id,
         value.manifest_version,
         campaign_manifest_digest(value),
-        origin,
+        value.effective_origin,
     )
 
 
@@ -681,14 +680,13 @@ def campaign_evidence_ref(value: CampaignEvidenceManifest) -> DossierEvidenceRef
         raise DossierValidationError(
             DossierInputCode.MISSING_EVIDENCE, path="/result/result_status"
         )
-    origin = StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin
     return DossierEvidenceRef(
         value.challenge_key,
         value.evidence_class,
         value.manifest_id,
         value.manifest_version,
         campaign_manifest_digest(value),
-        origin,
+        value.effective_origin,
     )
 
 

@@ -18,6 +18,7 @@ from typing import Any
 import pytest
 
 from carbon.registry import (
+    QUALIFICATION_PLACEHOLDER_VALUES,
     REQUIRED_QUALIFICATION_STATES,
     ArtifactAccessError,
     ArtifactBinding,
@@ -1086,6 +1087,23 @@ def test_incomplete_or_placeholder_evidence_blocks(
         replace(record, qualification=replace(record.qualification, slots=slots))
     )
     assert expected_code in _reason_codes(registry)
+
+
+@pytest.mark.parametrize("placeholder", tuple(sorted(QUALIFICATION_PLACEHOLDER_VALUES)))
+def test_shared_qualification_placeholder_vocabulary_blocks_reference(
+    tmp_path: Path, placeholder: str
+) -> None:
+    registry = _registry(tmp_path)
+    record = _complete_record(registry)
+    assert record.qualification is not None
+    slots = dict(record.qualification.slots)
+    evidence = slots["score_pack"]
+    assert isinstance(evidence, QualificationEvidence)
+    slots["score_pack"] = replace(evidence, reference=placeholder)
+    registry.save(
+        replace(record, qualification=replace(record.qualification, slots=slots))
+    )
+    assert "qualification.reference_placeholder" in _reason_codes(registry)
 
 
 @pytest.mark.parametrize(
