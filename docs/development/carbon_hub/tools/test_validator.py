@@ -1746,6 +1746,21 @@ class ValidatorContractTests(unittest.TestCase):
         validator.validate_authority_view(view, "fixture B-04")
         self.assertEqual(validator.errors, [])
 
+    def test_living_board_preserves_owner_accepted_b05_dependency(self) -> None:
+        rows = [
+            ("B-05", "in_progress", "owner-a", "reviewer-a", []),
+            ("B-07A", "done", "owner-b", "reviewer-b", ["B-05"]),
+        ]
+        validator, view = self.authority_fixture(
+            wave="B", predecessor="A", selected="B-07A", rows=rows
+        )
+        view["wave_text"] = (
+            "B-06-D0 records the owner-accepted B-05 dependency while its "
+            "ordinary delivery predicate remains incomplete."
+        )
+        validator.validate_authority_view(view, "fixture B-07A")
+        self.assertEqual(validator.errors, [])
+
     def test_living_board_discovers_new_ticket_without_constant_change(self) -> None:
         rows = [
             ("B-02A", "done", "owner-a", "reviewer-a", []),

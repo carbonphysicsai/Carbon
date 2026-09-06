@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 38 map-level change events
+- 39 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-07S** (`done`). B-07S is done under its OWNER-DX-03 shipping predicate in bounded SPECIFIED / RATIFIED protocol scope. It freezes the exact local v2 wire, lifecycle, prior identity, context capability, disclosure, and single-owner composition contract without implementing B-07A-G. B-07A is next, todo, and unstarted.
+Wave **B**, ticket **B-07A** (`done`). B-07A is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED shared-core and discovery scope. It adds the exact shared v2 vocabulary, ChallengeInfo, the sole InteractionManifest wire resource, immutable historical discovery, and a local two-operation adapter. B-07B is next, todo, and unstarted.
 
 ## Maintain
 

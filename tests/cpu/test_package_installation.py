@@ -33,6 +33,7 @@ ROLE_PACKAGES = (
     "carbon.audit",
     "carbon.chain",
     "carbon.qualification",
+    "carbon.research",
 )
 
 B02B_MODULES = (
@@ -84,6 +85,15 @@ B04_MODULES = (
     "carbon.evaluation.runners",
 )
 
+B07A_MODULES = (
+    "carbon.research.canonical",
+    "carbon.research.discovery",
+    "carbon.research.errors",
+    "carbon.research.model",
+    "carbon.research.providers",
+    "carbon.research.refs",
+)
+
 INSTALLED_MODULES = (
     "carbon",
     *ROLE_PACKAGES,
@@ -91,6 +101,7 @@ INSTALLED_MODULES = (
     *B02C_MODULES,
     *B03_MODULES,
     *B04_MODULES,
+    *B07A_MODULES,
 )
 
 
@@ -190,6 +201,13 @@ def test_import_b03_module(module_name: str) -> None:
 
 @pytest.mark.parametrize("module_name", B04_MODULES)
 def test_import_b04_module(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+
+    assert module.__name__ == module_name
+
+
+@pytest.mark.parametrize("module_name", B07A_MODULES)
+def test_import_b07a_module(module_name: str) -> None:
     module = importlib.import_module(module_name)
 
     assert module.__name__ == module_name
