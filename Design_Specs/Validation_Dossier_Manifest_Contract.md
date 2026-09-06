@@ -1,8 +1,8 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery
-**Contract version:** 0.6
-**Status:** second complete-diff review findings repaired; fresh exact-head CI
+**Contract version:** 0.7
+**Status:** third complete-diff review findings repaired; fresh exact-head CI
 and complete-diff review pending
 **Maturity ceiling:** bounded structural engineering only
 **Implementation owner:** `carbon.qualification`
@@ -352,7 +352,9 @@ payload, filesystem path, network locator, or private provenance field.
 `SecrecyEvidenceManifest` binds exact disclosure and blinding policies plus
 distinct decontamination and role-separation audit evidence. It is evidence
 inventory only. It does not evaluate security, verify a role, or authorize a
-signer.
+signer. The two audit refs must have distinct nominal kind/ID/version
+identities; changing the digest of one nominal audit version cannot make it a
+second audit. Distinct versions remain distinct prospective identities.
 
 Each `LimitationBinding` pins one residual-limitation ref to non-empty affected
 evidence refs, affected claim roles, and the exact claim scope. Dangling,
@@ -461,6 +463,11 @@ represents specified/attempted/partial acquisition. A produced, blocked,
 invalid, inapplicable, indeterminate, or scientific-judgment-pending result is
 representable without manufacturing approval.
 
+An acquisition still in `CAMPAIGN_SPECIFIED` state must have no result. The
+attempted, partially completed, and completed states retain the contract's
+existing family-compatible result options; B-06 defines no broader
+state/result policy or scientific interpretation.
+
 The family set is exactly MMS/refinement/observed order, planted-defect
 mutation, analytic/limiting anchor, primary/witness convergence/disagreement,
 generator-oracle adversarial, measurement floor, decision resolution, and
@@ -539,20 +546,20 @@ The campaign acquisition and combined-manifest encoders apply the same exact
 below the ceiling remain accepted unchanged; an oversized serialization and
 every digest/ref helper that depends on it fail closed with `SIZE_LIMIT`.
 
-Native tests on this macOS host are diagnostic only. The first fresh
-complete-diff review's `B06-CR-001/002/003` remain verified repaired. The
-second fresh review at head `5763d14cf5cd0c7a18040d91437990a20c4d6ace`
-returned `FINDINGS`; this revision repairs `B06-CR-004/005/006` by preserving
-unresolved provenance, matching A3's structural slot-reference prerequisite,
-and rejecting conflicting same-version nominal identities. All earlier CI and
-reviews are stale for the changed tree. Fresh exact-head CI and a completely
-fresh complete-diff review remain required. No closed receipt or human
-approval exists; merge and closeout remain external delivery predicates.
+Native tests on this macOS host are diagnostic only. The first six findings
+`B06-CR-001` through `B06-CR-006` remain verified repaired. The third fresh
+review at head `8d23b70cda6a08fd99f0ad4174b7c381e2f7ac7b` returned
+`FINDINGS`; this revision repairs `B06-CR-007/008` by rejecting results on
+merely specified acquisitions and requiring distinct nominal D11 audit
+identities. All earlier CI and reviews are stale for the changed tree. Fresh
+exact-head CI and a fourth completely fresh complete-diff review remain
+required. No closed receipt or human approval exists; merge and closeout
+remain external delivery predicates.
 
 ## 16. Deferred and human-reserved work
 
 Slice 4 owns the campaign-specific manifests not represented by Slice 2.
-The complete ticket has been reconciled after the bounded second-review repair;
+The complete ticket has been reconciled after the bounded third-review repair;
 no known machine-implementable B-06 feature requirement remains, subject to a
 fresh complete-diff review of the repaired tree. Slice 3
 implements candidate construction and a pure exact A3 snapshot comparison;

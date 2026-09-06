@@ -511,6 +511,66 @@ def test_component_or_primary_evidence_cannot_substitute_for_coverage() -> None:
     assert caught.value.code is qualification.DossierInputCode.ROLE_CONFUSION
 
 
+def test_secrecy_requires_distinct_nominal_audit_evidence() -> None:
+    challenge = ChallengeKey("fixture-burgers", "1.0")
+    original = secrecy(challenge)
+    decontamination = original.decontamination_evidence_ref
+    for role_separation in (
+        decontamination,
+        owned("audit_evidence", challenge, decontamination.object_id),
+        owner_ref(
+            "audit_evidence",
+            scope_binding=ChallengeScope(challenge),
+            object_id=decontamination.object_id,
+            object_version=decontamination.object_version,
+            content_digest=DIGEST_A,
+        ),
+    ):
+        with pytest.raises(qualification.DossierValidationError) as caught:
+            replace(original, role_separation_evidence_ref=role_separation)
+        assert caught.value.code is qualification.DossierInputCode.ROLE_CONFUSION
+
+    distinct_id = replace(
+        original,
+        role_separation_evidence_ref=owned(
+            "audit_evidence", challenge, "independent-role-separation-audit"
+        ),
+    )
+    assert distinct_id.role_separation_evidence_ref.object_version == "1.0"
+
+    distinct_version = replace(
+        original,
+        role_separation_evidence_ref=owned(
+            "audit_evidence",
+            challenge,
+            decontamination.object_id,
+            version="2.0",
+        ),
+    )
+    assert distinct_version.role_separation_evidence_ref.object_version == "2.0"
+
+
+def test_conflicting_nominal_secrecy_audits_reject_during_strict_decode() -> None:
+    value = manifest(qualification.DossierSlot.D11)
+    encoded = qualification.evidence_manifest_bytes(value)
+    payload = json.loads(
+        encoded[len(qualification.EVIDENCE_MANIFEST_DOCUMENT_HEADER) :]
+    )
+    payload["secrecy"]["role_separation_evidence_ref"]["object_id"] = payload[
+        "secrecy"
+    ]["decontamination_evidence_ref"]["object_id"]
+    payload["secrecy"]["role_separation_evidence_ref"]["content_digest"] = DIGEST_A
+    contradictory = (
+        qualification.EVIDENCE_MANIFEST_DOCUMENT_HEADER
+        + json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    )
+    with pytest.raises(qualification.DossierCanonicalError):
+        qualification.load_evidence_manifest(contradictory)
+
+    assert qualification.evidence_manifest_bytes(value) == encoded
+    assert qualification.load_evidence_manifest(encoded) == value
+
+
 def test_accounting_preserves_reference_and_candidate_failure_separation() -> None:
     value = manifest(qualification.DossierSlot.D12)
     dispositions = tuple(item.disposition for item in value.accounting.attempts)

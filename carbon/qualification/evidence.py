@@ -208,6 +208,14 @@ def _owner_identity(value: object) -> tuple[object, ...]:
     )
 
 
+def _owner_nominal_key(value: object) -> tuple[object, ...]:
+    return (
+        value.ref_kind,
+        value.object_id,
+        value.object_version,
+    )
+
+
 class _ProtectedRecord:
     def __repr__(self) -> str:
         return f"{type(self).__name__}(<protected>)"
@@ -524,7 +532,7 @@ class SecrecyEvidenceManifest(_ProtectedRecord):
                 name,
                 _copy_owner(getattr(self, name), kind, challenge, f"/{name}"),
             )
-        if _owner_identity(self.decontamination_evidence_ref) == _owner_identity(
+        if _owner_nominal_key(self.decontamination_evidence_ref) == _owner_nominal_key(
             self.role_separation_evidence_ref
         ):
             raise _invalid(

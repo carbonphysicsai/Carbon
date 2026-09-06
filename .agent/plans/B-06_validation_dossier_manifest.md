@@ -1,7 +1,7 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06
-**Status:** second complete-diff review returned three findings; bounded
+**Status:** third complete-diff review returned two findings; bounded
 repairs implemented locally and fresh exact-head CI/review required
 **Branch:** `agent/b-06-dossier-manifest`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
@@ -79,6 +79,15 @@ reuse of A3's pure missing/placeholder slot-reference semantics, and separate
 nominal collision versus full canonical ordering keys. `B06-CR-001/002/003`
 remain regression-verified; `B06-CR-004/005/006` are repaired in the new tree.
 All prior exact-head CI and reviews are stale after the tree change.
+
+The third final review adds no delegated policy. Its bounded repairs enforce
+the existing prospective-acquisition boundary and B-06-D6's distinct D11 audit
+roles: `CAMPAIGN_SPECIFIED` cannot carry a result, while attempted, partial,
+and completed acquisitions retain their existing family-compatible result
+semantics; decontamination and role-separation audits cannot share one nominal
+kind/ID/version merely by changing the digest. `B06-CR-001` through
+`B06-CR-006` remain regression-verified, and `B06-CR-007/008` are repaired in
+the new tree. All prior exact-head CI and reviews are stale after the change.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -271,6 +280,27 @@ registry system. The prior exact-head CI and review are stale after the repair.
 Fresh exact-head CI and a completely fresh complete-diff review remain
 `FINAL_REVIEW_REQUIRED`; no human approval or closed review receipt exists.
 
+### Review repair — B06-CR-007 and B06-CR-008
+
+The third fresh complete-diff review at reviewed head
+`8d23b70cda6a08fd99f0ad4174b7c381e2f7ac7b` returned `FINDINGS`. The repair:
+
+- rejects `CAMPAIGN_SPECIFIED + result` centrally during model construction,
+  so strict canonical reconstruction rejects the same contradiction and a
+  valid specified-only campaign necessarily remains result-free and
+  non-evidentiary; and
+- gives D11's two audit roles a local nominal kind/ID/version comparison while
+  retaining the digest-bearing exact owner identity for every existing caller
+  that requires exact content equality.
+
+No broader acquisition-state matrix, campaign engine, owner-ref identity
+migration, scientific inference, or new decision is introduced. Attempted,
+partial, and completed acquisitions continue to accept the result combinations
+already allowed by the contract. Distinct audit IDs and distinct versions
+remain valid. Fresh exact-head CI and a fourth completely fresh complete-diff
+review remain `FINAL_REVIEW_REQUIRED`; no human approval or closed receipt
+exists.
+
 ### Complete-candidate reconciliation
 
 | Source / requirement | Intended and actual candidate behavior | Tests / evidence | Maturity | Result |
@@ -437,6 +467,29 @@ One earlier CPU run was interrupted at 96% after 4043 passes and 2 skips and is
 not treated as successful evidence. The second repair's one canonical-wrapper
 attempt again exited 2 for the unchanged Docker/Dev Container limitation and
 was not retried. Counts above are overlapping invocations, not a unique total.
+
+Third-review repair validation on the changed working tree:
+
+```text
+focused campaign/evidence scope: 111 passed in 0.40s
+B-06/A3 registry/qualification-boundary focus: 498 passed in 2.93s
+complete native CPU lane: 4230 passed, 2 skipped in 824.51s
+complete native invariant lane: 97 passed in 8.54s
+Ruff 0.16.3 / Black 26.5.1: all four changed Python paths clean
+compileall / RUNTIME_FULL classification / delivery hygiene / quality ratchet /
+complete-range and local diff hygiene: passed
+canonical wrapper: exited 2 because Docker or the Carbon Dev Container is
+unavailable; not retried
+```
+
+The first combined-boundary invocation used a raw workstation Python whose
+foreign `tests` package shadowed the repository namespace and failed with two
+collection errors; the existing pinned B-05 development environment supplied
+the passing 498-test rerun. Initial sandboxed resolution of pinned Black/Ruff
+failed after DNS retries, and the first quality invocation lacked Ruff on
+`PATH`; the same exact-version checks subsequently passed with approved
+resolution and explicit pinned tool paths. Failed attempts are not passes, and
+overlapping invocations are not summed.
 
 ## 5. Hub and commit shape
 

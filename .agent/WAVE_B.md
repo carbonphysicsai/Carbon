@@ -104,11 +104,11 @@ satisfied, and PR #75's receipt establishes B-04's bounded completed state.
 B-01H's complete conditional predicate has passed at the identities above.
 Under B-06-D0, merged B-05 is the owner-accepted dependency while its ordinary
 delivery record remains `in_progress`; B-06 is the selected `in_progress`
-ticket as a reconciled second-review repair candidate. Campaign-specific
+ticket as a reconciled third-review repair candidate. Campaign-specific
 acquisition/result manifests and all other machine-implementable B-06 features
-are present; `B06-CR-001/002/003` remain verified repaired and
-`B06-CR-004/005/006` are repaired in the changed tree. Earlier CI/reviews are
-stale, while fresh exact-head CI and final review/delivery remain. Working
+are present; `B06-CR-001` through `B06-CR-006` remain verified repaired and
+`B06-CR-007/008` are repaired in the changed tree. Earlier CI/reviews are
+stale, while fresh exact-head CI and a fourth fresh review/delivery remain. Working
 engineering decisions may proceed after durable record and applicable
 notification without affirmative lead response. A human-reserved value remains unavailable and
 blocks its affected behavior, not unrelated bounded work.
@@ -254,10 +254,11 @@ predicate and selected B-05 from exact main `f1a429de…`. PR #87 then merged
 B-05 at the exact main/tree recorded above. B-06-D0 applies the owner's narrow
 advancement exception: B-05 retains an incomplete `in_progress` delivery
 record with no active work, while B-06 is selected `in_progress`.
-B-06's first fresh complete-diff review returned three findings. Their bounded
-repair preserves the selection and status: prior exact-head CI/review are stale,
-and repaired exact-head CI plus a completely fresh complete-diff review remain
-required before any approval, merge, or closeout.
+B-06's first three fresh complete-diff reviews returned findings. Their bounded
+repairs preserve the selection and status: CR-001 through CR-006 remain verified
+repaired, CR-007/008 are repaired in the current tree, prior exact-head CI and
+reviews are stale, and fresh exact-head CI plus a fourth completely fresh
+complete-diff review remain required before any approval, merge, or closeout.
 B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
 inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain

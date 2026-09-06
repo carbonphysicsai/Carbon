@@ -1099,6 +1099,11 @@ class CampaignEvidenceManifest(_ProtectedCampaignRecord):
         result = self.result
         if result is not None:
             result = _exact(result, CampaignResultManifest, "/result")
+            if (
+                acquisition.acquisition_state
+                is CampaignAcquisitionState.CAMPAIGN_SPECIFIED
+            ):
+                raise _invalid("/result", DossierInputCode.ROLE_CONFUSION)
             _same_challenge(result.challenge_key, challenge, "/result")
             if result.campaign_family is not self.campaign_family:
                 raise _invalid(

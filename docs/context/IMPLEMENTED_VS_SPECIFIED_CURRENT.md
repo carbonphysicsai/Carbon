@@ -11,8 +11,8 @@ main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
 > bounded development scope with B-06 selected `in_progress` under the narrow
 > B-06-D0 owner transition. B-05 remains `in_progress` because its ordinary
 > delivery predicate is not claimed complete; no B-05 review loop is active.
-> B-06's second complete-diff review returned three findings now repaired in
-> the bounded candidate; the first review's three repairs remain verified.
+> B-06's third complete-diff review returned two findings now repaired in the
+> bounded candidate; the first six review findings remain verified repaired.
 > Earlier CI/reviews are stale; fresh exact-head CI, a completely fresh review,
 > approval, merge, and closeout remain incomplete.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
@@ -353,7 +353,7 @@ the bounded implementation.
 | Challenge-specific `ReferencePolicy` | Yes | partial/adapters | No | no universal truth backend |
 | `MeasurementContract` | Yes | partial/design | No | future first-class runtime binding |
 | Score Pack Evidence Use Contract | Yes target | A5 bounded current form | No LIVE pack | migration must preserve A5 engine boundary |
-| Validation Dossier structural machinery | Reconciled B-06 contract | Second-review findings repaired: exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks | No | all prior exact-head CI/reviews are stale after repair; fresh exact-head CI, completely fresh review, and delivery remain, with no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
+| Validation Dossier structural machinery | Reconciled B-06 contract | Third-review findings repaired: exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks | No | all prior exact-head CI/reviews are stale after repair; fresh exact-head CI, fourth completely fresh review, and delivery remain, with no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |

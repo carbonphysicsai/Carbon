@@ -123,6 +123,18 @@ reviews are stale. Fresh exact-head CI, a completely fresh review, distinct
 human approval with a closed receipt, protected review gate, merge, and
 closeout remain incomplete. B-06 remains `in_progress`.
 
+The third fresh complete-diff review at exact head
+`8d23b70cda6a08fd99f0ad4174b7c381e2f7ac7b`, tree
+`1dcf6244e4ae64c011e0b93badc21a2830ce45d4`, returned `FINDINGS` while
+independently verifying `B06-CR-001` through `B06-CR-006` repaired. This
+bounded repair addresses exactly `B06-CR-007/008`: a merely specified campaign
+cannot carry or project a result, and D11's decontamination and role-separation
+audits must use distinct nominal kind/ID/version identities. Its predecessor
+CI and all three prior reviews are stale. Fresh exact-head CI, a fourth
+completely fresh review, distinct human approval with a closed receipt,
+protected review gate, merge, and closeout remain incomplete. B-06 remains
+`in_progress`.
+
 ## Must not
 
 Infer qualification from complete fields, passing unit tests, an MMS campaign,

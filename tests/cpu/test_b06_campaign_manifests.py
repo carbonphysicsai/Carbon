@@ -301,6 +301,78 @@ def test_honest_pre_result_campaign_states_are_representable_but_not_evidence(
     assert caught.value.code is qualification.DossierInputCode.MISSING_EVIDENCE
 
 
+@pytest.mark.parametrize("family", tuple(qualification.CampaignFamily))
+def test_specified_campaign_cannot_carry_or_decode_a_result(family) -> None:
+    acquired = replace(
+        acquisition(family),
+        acquisition_state=qualification.CampaignAcquisitionState.CAMPAIGN_SPECIFIED,
+    )
+    pending = qualification.CampaignEvidenceManifest(
+        CHALLENGE,
+        family,
+        qualification.CAMPAIGN_FAMILY_EVIDENCE_CLASS[family],
+        f"{family.value.lower().replace('_', '-')}-specified",
+        "1.0",
+        qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
+        qualification.ArtifactCurrentness.CURRENT,
+        acquired,
+    )
+    document = qualification.campaign_manifest_bytes(pending)
+    assert qualification.load_campaign_manifest(document) == pending
+    with pytest.raises(qualification.DossierValidationError) as absent:
+        qualification.campaign_evidence_ref(pending)
+    assert absent.value.code is qualification.DossierInputCode.MISSING_EVIDENCE
+
+    produced = result(acquired)
+    with pytest.raises(qualification.DossierValidationError) as contradictory:
+        replace(pending, result=produced)
+    assert contradictory.value.code is qualification.DossierInputCode.ROLE_CONFUSION
+
+    valid = manifest(family)
+    payload = qualification.campaign_manifest_payload(valid)
+    payload["acquisition"][
+        "acquisition_state"
+    ] = qualification.CampaignAcquisitionState.CAMPAIGN_SPECIFIED.value
+    payload["result"]["acquisition_digest"] = qualification.campaign_acquisition_digest(
+        acquired
+    )
+    contradictory_document = (
+        qualification.CAMPAIGN_MANIFEST_DOCUMENT_HEADER
+        + json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    )
+    with pytest.raises(qualification.DossierCanonicalError):
+        qualification.load_campaign_manifest(contradictory_document)
+
+
+@pytest.mark.parametrize("family", tuple(qualification.CampaignFamily))
+@pytest.mark.parametrize(
+    "state",
+    (
+        qualification.CampaignAcquisitionState.ACQUISITION_ATTEMPTED,
+        qualification.CampaignAcquisitionState.ACQUISITION_PARTIALLY_COMPLETED,
+        qualification.CampaignAcquisitionState.ACQUISITION_COMPLETED,
+    ),
+)
+def test_non_specified_acquisition_states_preserve_existing_result_semantics(
+    family, state
+) -> None:
+    acquired = replace(acquisition(family), acquisition_state=state)
+    value = qualification.CampaignEvidenceManifest(
+        CHALLENGE,
+        family,
+        qualification.CAMPAIGN_FAMILY_EVIDENCE_CLASS[family],
+        f"{family.value.lower().replace('_', '-')}-{state.value.lower()}",
+        "1.0",
+        qualification.StructuralOrigin.REGISTERED_REFERENCE,
+        qualification.ArtifactCurrentness.CURRENT,
+        acquired,
+        result(acquired),
+    )
+    document = qualification.campaign_manifest_bytes(value)
+    assert qualification.load_campaign_manifest(document) == value
+    assert qualification.campaign_evidence_ref(value).evidence_id == value.manifest_id
+
+
 def test_campaign_effective_origin_covers_all_nested_paths() -> None:
     original = manifest(qualification.CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER)
     acquired = original.acquisition
