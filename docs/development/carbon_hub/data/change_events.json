@@ -632,6 +632,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E7"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "bug",
+      "event_id": "B-06-E9",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-06's fourth complete-diff review found one further structural defect; the bounded repair requires PRIMARY and WITNESS campaign roles to use distinct nominal artifact ID/version identities regardless of digest. B06-CR-001 through B06-CR-008 remain verified repaired, while all predecessor CI and four reviews are stale and fresh exact-head CI plus a fifth fresh review are required.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/ce372531feec818e7fcb03a20773d4b06c19ba7e/.agent/evidence/wave_b/b-06.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E8"
     }
   ]
 }

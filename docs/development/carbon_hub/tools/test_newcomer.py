@@ -89,7 +89,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
         self.assertIn(
-            "third complete-diff review found two defects now repaired", self.output
+            "fourth complete-diff review found one defect now repaired", self.output
         )
         self.assertIn("does not prove authorization", self.output)
 

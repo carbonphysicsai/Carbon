@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `1679a0c9825ce4f31335b6a3c0772900ab5e34b0` on `main`, captured 2026-09-06T08:15:22Z.
-**Current:** Wave B, ticket B-06. B-06's third complete-diff review returned B06-CR-007/008, now repaired while B06-CR-001 through B06-CR-006 remain verified repaired. All earlier CI/reviews are stale; fresh exact-head CI and a fourth completely fresh review remain before approval, merge, or closeout. B-05 stays in_progress with no active review loop.
+**Authority snapshot:** `ce372531feec818e7fcb03a20773d4b06c19ba7e` on `main`, captured 2026-09-06T09:55:49Z.
+**Current:** Wave B, ticket B-06. B-06's fourth complete-diff review returned B06-CR-009, now repaired while B06-CR-001 through B06-CR-008 remain verified repaired. All predecessor CI/reviews are stale; fresh exact-head CI and a fifth completely fresh review remain before approval, merge, or closeout. B-05 stays in_progress with no active review loop.
 
 ## Wave spine
 
@@ -115,6 +115,7 @@
 - `B-06-E6` — `WAVE-B/B-06` — B-06's first complete-diff review found three structural defects; the bounded repair makes fixture provenance monotonic, requires exact dossier-to-manifest linkage, and applies the existing campaign size ceiling to serialization and derived digests/refs, while prior CI/review remain stale and fresh delivery review is required.
 - `B-06-E7` — `WAVE-B/B-06` — B-06's second complete-diff review found three further structural defects; the bounded repair makes unresolved provenance monotonic and qualification-blocking, reuses A3's exact required-slot reference checks, and rejects conflicting same-version nominal identities. The first review repairs remain verified, while every earlier CI/review is stale and fresh delivery review is required.
 - `B-06-E8` — `WAVE-B/B-06` — B-06's third complete-diff review found two further structural defects; the bounded repair rejects results on merely specified campaigns and requires nominally distinct D11 decontamination and role-separation audits. B06-CR-001 through B06-CR-006 remain verified repaired, while every earlier CI/review is stale and fresh exact-head CI plus a fourth fresh review are required.
+- `B-06-E9` — `WAVE-B/B-06` — B-06's fourth complete-diff review found one further structural defect; the bounded repair requires PRIMARY and WITNESS campaign roles to use distinct nominal artifact ID/version identities regardless of digest. B06-CR-001 through B06-CR-008 remain verified repaired, while all predecessor CI and four reviews are stale and fresh exact-head CI plus a fifth fresh review are required.
 
 ## Authority boundary
 
