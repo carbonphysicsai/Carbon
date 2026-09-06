@@ -1,7 +1,7 @@
 # Carbon Wave B Board
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 1.9
+**Version:** 2.0
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -104,11 +104,13 @@ satisfied, and PR #75's receipt establishes B-04's bounded completed state.
 B-01H's complete conditional predicate has passed at the identities above.
 Under B-06-D0, merged B-05 is the owner-accepted dependency while its ordinary
 delivery record remains `in_progress`; B-06 is the selected `in_progress`
-ticket as a reconciled third-review repair candidate. Campaign-specific
+ticket as a reconciled fourth-review repair candidate. Campaign-specific
 acquisition/result manifests and all other machine-implementable B-06 features
-are present; `B06-CR-001` through `B06-CR-006` remain verified repaired and
-`B06-CR-007/008` are repaired in the changed tree. Earlier CI/reviews are
-stale, while fresh exact-head CI and a fourth fresh review/delivery remain. Working
+are present; `B06-CR-001` through `B06-CR-008` remain verified repaired and
+`B06-CR-009` is repaired in the changed tree by requiring PRIMARY/WITNESS
+roles to use distinct nominal artifact ID/version identities. Earlier
+CI/reviews are stale, while fresh exact-head CI and a fifth fresh
+review/delivery remain. Working
 engineering decisions may proceed after durable record and applicable
 notification without affirmative lead response. A human-reserved value remains unavailable and
 blocks its affected behavior, not unrelated bounded work.
@@ -254,10 +256,10 @@ predicate and selected B-05 from exact main `f1a429de…`. PR #87 then merged
 B-05 at the exact main/tree recorded above. B-06-D0 applies the owner's narrow
 advancement exception: B-05 retains an incomplete `in_progress` delivery
 record with no active work, while B-06 is selected `in_progress`.
-B-06's first three fresh complete-diff reviews returned findings. Their bounded
-repairs preserve the selection and status: CR-001 through CR-006 remain verified
-repaired, CR-007/008 are repaired in the current tree, prior exact-head CI and
-reviews are stale, and fresh exact-head CI plus a fourth completely fresh
+B-06's first four fresh complete-diff reviews returned findings. Their bounded
+repairs preserve the selection and status: CR-001 through CR-008 remain
+verified repaired, CR-009 is repaired in the current tree, prior exact-head CI
+and reviews are stale, and fresh exact-head CI plus a fifth completely fresh
 complete-diff review remain required before any approval, merge, or closeout.
 B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
 inspects or forecasts against it. B-07A

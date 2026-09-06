@@ -643,9 +643,10 @@ def test_analytic_result_scope_and_reference_binding_are_exact() -> None:
     assert mismatch.value.code is qualification.DossierInputCode.VERSION_MISMATCH
 
 
-def test_primary_and_witness_are_nominally_distinct_and_failure_stays_reference_failure() -> (
-    None
-):
+@pytest.mark.parametrize("witness_digest", (DIGESTS[3], DIGESTS[5]))
+def test_primary_and_witness_same_nominal_identity_rejects_regardless_of_digest(
+    witness_digest,
+) -> None:
     acquired = acquisition(
         qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
     )
@@ -659,6 +660,7 @@ def test_primary_and_witness_are_nominally_distinct_and_failure_stays_reference_
             replace(
                 primary,
                 artifact_role=qualification.CampaignArtifactRole.WITNESS_REFERENCE,
+                content_digest=witness_digest,
             )
             if item.artifact_role
             is qualification.CampaignArtifactRole.WITNESS_REFERENCE
@@ -670,6 +672,119 @@ def test_primary_and_witness_are_nominally_distinct_and_failure_stays_reference_
         replace(acquired, artifact_refs=confused)
     assert role.value.code is qualification.DossierInputCode.ROLE_CONFUSION
 
+
+@pytest.mark.parametrize("witness_digest", (DIGESTS[3], DIGESTS[5]))
+def test_primary_and_witness_nominal_collision_rejects_during_strict_decode(
+    witness_digest,
+) -> None:
+    value = manifest(
+        qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+    )
+    payload = qualification.campaign_manifest_payload(value)
+    primary = next(
+        item
+        for item in payload["acquisition"]["artifact_refs"]
+        if item["artifact_role"]
+        == qualification.CampaignArtifactRole.PRIMARY_REFERENCE.value
+    )
+    witness = next(
+        item
+        for item in payload["acquisition"]["artifact_refs"]
+        if item["artifact_role"]
+        == qualification.CampaignArtifactRole.WITNESS_REFERENCE.value
+    )
+    witness["artifact_id"] = primary["artifact_id"]
+    witness["artifact_version"] = primary["artifact_version"]
+    witness["content_digest"] = witness_digest
+    document = (
+        qualification.CAMPAIGN_MANIFEST_DOCUMENT_HEADER
+        + json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    )
+    with pytest.raises(qualification.DossierCanonicalError):
+        qualification.load_campaign_manifest(document)
+
+
+def test_primary_and_witness_distinct_ids_or_versions_remain_valid() -> None:
+    acquired = acquisition(
+        qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+    )
+    primary = next(
+        item
+        for item in acquired.artifact_refs
+        if item.artifact_role is qualification.CampaignArtifactRole.PRIMARY_REFERENCE
+    )
+    witness = next(
+        item
+        for item in acquired.artifact_refs
+        if item.artifact_role is qualification.CampaignArtifactRole.WITNESS_REFERENCE
+    )
+    assert primary.artifact_id != witness.artifact_id
+    assert qualification.campaign_acquisition_digest(acquired).startswith("sha256:")
+
+    distinct_version = tuple(
+        (
+            replace(
+                primary,
+                artifact_role=qualification.CampaignArtifactRole.WITNESS_REFERENCE,
+                artifact_version="2.0",
+            )
+            if item.artifact_role
+            is qualification.CampaignArtifactRole.WITNESS_REFERENCE
+            else item
+        )
+        for item in acquired.artifact_refs
+    )
+    versioned = replace(acquired, artifact_refs=distinct_version)
+    assert qualification.campaign_acquisition_digest(versioned).startswith("sha256:")
+
+
+def test_primary_witness_collision_rejects_before_manifest_or_projection() -> None:
+    value = manifest(
+        qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+    )
+    primary = next(
+        item
+        for item in value.acquisition.artifact_refs
+        if item.artifact_role is qualification.CampaignArtifactRole.PRIMARY_REFERENCE
+    )
+    with pytest.raises(qualification.DossierValidationError) as collision:
+        replace(
+            value.acquisition,
+            artifact_refs=tuple(
+                (
+                    replace(
+                        primary,
+                        artifact_role=(
+                            qualification.CampaignArtifactRole.WITNESS_REFERENCE
+                        ),
+                        content_digest=DIGESTS[5],
+                    )
+                    if item.artifact_role
+                    is qualification.CampaignArtifactRole.WITNESS_REFERENCE
+                    else item
+                )
+                for item in value.acquisition.artifact_refs
+            ),
+        )
+    assert collision.value.code is qualification.DossierInputCode.ROLE_CONFUSION
+
+
+def test_primary_witness_valid_canonical_identity_is_stable() -> None:
+    family = qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+    acquired = acquisition(family)
+    value = manifest(family)
+    assert qualification.campaign_acquisition_digest(acquired) == (
+        "sha256:2eca60aa4f984cffde13eac8d6c4d7c9a00c350432335901083e69ac0244262b"
+    )
+    assert qualification.campaign_manifest_digest(value) == (
+        "sha256:66da1d0d2b3e2a06f3a5bde3bf09d6643810e2446f103b92783b989182fc568b"
+    )
+
+
+def test_primary_witness_reference_failure_stays_reference_failure() -> None:
+    acquired = acquisition(
+        qualification.CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
+    )
     attempt_ref = qualification.DossierEvidenceRef(
         CHALLENGE,
         qualification.DossierEvidenceClass.REFERENCE_DISAGREEMENT,

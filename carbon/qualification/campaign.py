@@ -665,6 +665,12 @@ def _artifact_identity(value: CampaignArtifactRef) -> tuple[object, ...]:
     return (value.artifact_role, value.artifact_id, value.artifact_version)
 
 
+def _artifact_object_nominal_key(
+    value: CampaignArtifactRef,
+) -> tuple[str, str]:
+    return (value.artifact_id, value.artifact_version)
+
+
 def _copy_artifacts(
     values: object,
     challenge: ChallengeKey,
@@ -846,11 +852,7 @@ class CampaignAcquisitionManifest(_ProtectedCampaignRecord):
             is CampaignFamily.PRIMARY_WITNESS_CONVERGENCE_DISAGREEMENT
         ):
             identities_by_role = {
-                item.artifact_role: (
-                    item.artifact_id,
-                    item.artifact_version,
-                    item.content_digest,
-                )
+                item.artifact_role: _artifact_object_nominal_key(item)
                 for item in artifacts
             }
             if (

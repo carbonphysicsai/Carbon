@@ -135,6 +135,19 @@ completely fresh review, distinct human approval with a closed receipt,
 protected review gate, merge, and closeout remain incomplete. B-06 remains
 `in_progress`.
 
+The fourth fresh complete-diff review at exact head
+`37b4c1ed1e355e10e954411c25e5eca677def7c0`, tree
+`577f4a942bd35bdf1e1599c7fae5d8a892dac447`, returned `FINDINGS` at
+`2026-09-06T09:20:00Z` while independently verifying `B06-CR-001` through
+`B06-CR-008` repaired. This bounded repair addresses exactly `B06-CR-009`:
+PRIMARY and WITNESS campaign artifacts must have distinct nominal
+`artifact_id`/`artifact_version` identities, and a conflicting digest cannot
+manufacture a second reference identity. The reviewed-head CI, Merge gate,
+Development Hub run, and all four complete-diff reviews are stale for the
+changed tree. Fresh exact-head CI and a fifth completely fresh review remain
+required. No closed review receipt or human approval exists; B-06 remains
+`in_progress`.
+
 ## Must not
 
 Infer qualification from complete fields, passing unit tests, an MMS campaign,

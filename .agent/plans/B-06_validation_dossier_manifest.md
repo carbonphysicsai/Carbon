@@ -1,8 +1,8 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06
-**Status:** third complete-diff review returned two findings; bounded
-repairs implemented locally and fresh exact-head CI/review required
+**Status:** fourth complete-diff review returned one finding; bounded repair
+implemented locally and fresh exact-head CI/fifth review required
 **Branch:** `agent/b-06-dossier-manifest`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`
@@ -88,6 +88,15 @@ semantics; decontamination and role-separation audits cannot share one nominal
 kind/ID/version merely by changing the digest. `B06-CR-001` through
 `B06-CR-006` remain regression-verified, and `B06-CR-007/008` are repaired in
 the new tree. All prior exact-head CI and reviews are stale after the change.
+
+The fourth final review also adds no delegated policy. Its bounded repair
+enforces the existing distinct PRIMARY/WITNESS requirement using the
+underlying nominal artifact object key `(artifact_id, artifact_version)`.
+Digest remains an exact-content binding and cannot create a second nominal
+reference. `_artifact_identity()` retains its same-role collision and
+canonical-ordering semantics. `B06-CR-001` through `B06-CR-008` remain
+regression-verified, and `B06-CR-009` is repaired in the changed tree. All
+predecessor CI and four reviews are stale after the change.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -301,6 +310,25 @@ remain valid. Fresh exact-head CI and a fourth completely fresh complete-diff
 review remain `FINAL_REVIEW_REQUIRED`; no human approval or closed receipt
 exists.
 
+### Review repair — B06-CR-009
+
+The fourth fresh complete-diff review at reviewed head
+`37b4c1ed1e355e10e954411c25e5eca677def7c0`, tree
+`577f4a942bd35bdf1e1599c7fae5d8a892dac447`, returned `FINDINGS`. The repair
+changes only the cross-role PRIMARY/WITNESS comparison: two references with
+the same artifact ID and version reject even when their content digests
+differ. The existing full `_artifact_identity()` key remains unchanged for
+same-role collection collision detection and ordering. Distinct IDs and
+distinct versions remain valid, and already-valid canonical bytes/digests are
+unchanged.
+
+Direct construction and strict canonical reconstruction cover equal- and
+conflicting-digest nominal collisions. Further tests prove early rejection
+before evidence-manifest projection, continued validity for distinct IDs and
+versions, and stable canonical digests for an existing valid campaign. Fresh
+exact-head CI and a fifth completely fresh complete-diff review remain
+`FINAL_REVIEW_REQUIRED`; no human approval or closed review receipt exists.
+
 ### Complete-candidate reconciliation
 
 | Source / requirement | Intended and actual candidate behavior | Tests / evidence | Maturity | Result |
@@ -490,6 +518,26 @@ failed after DNS retries, and the first quality invocation lacked Ruff on
 `PATH`; the same exact-version checks subsequently passed with approved
 resolution and explicit pinned tool paths. Failed attempts are not passes, and
 overlapping invocations are not summed.
+
+Fourth-review repair validation on the changed working tree:
+
+```text
+focused PRIMARY/WITNESS scope: 15 passed in 0.25s
+complete campaign-manifest suite: 89 passed in 0.31s
+B-06/A3 registry/qualification-boundary focus: 505 passed in 2.29s
+complete native CPU lane: 4237 passed, 2 skipped in 810.47s
+complete native invariant lane: 97 passed in 5.84s
+Ruff 0.16.3 / Black 26.5.1: both changed Python paths clean
+compileall / RUNTIME_FULL classification / delivery hygiene / quality ratchet /
+complete-range and local diff hygiene: passed
+canonical wrapper: exited 2 because Docker or the Carbon Dev Container is
+unavailable; not retried
+```
+
+The pinned uv 0.12.7 and Python 3.11.16 bootstrap reached lock resolution, but
+the repository lock correctly rejected native macOS because it is restricted
+to Linux x86_64. The passing native tests used the existing repository-pinned
+B-05 development environment. These invocations overlap and are not summed.
 
 ## 5. Hub and commit shape
 

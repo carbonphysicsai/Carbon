@@ -1,9 +1,9 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery
-**Contract version:** 0.7
-**Status:** third complete-diff review findings repaired; fresh exact-head CI
-and complete-diff review pending
+**Contract version:** 0.8
+**Status:** fourth complete-diff review finding repaired; fresh exact-head CI
+and fifth complete-diff review pending
 **Maturity ceiling:** bounded structural engineering only
 **Implementation owner:** `carbon.qualification`
 **Registry owner:** `carbon.registry` remains unchanged; Slice 3 wraps only its
@@ -479,6 +479,11 @@ roles, versions, digests, upstream objects, scopes, duplicates, or incomplete
 produced results reject. Campaign collections use nominal identity for
 collision detection and a separate full key for canonical ordering: one
 definition or attempt ID/version cannot carry conflicting digests or origins.
+For cross-role PRIMARY/WITNESS separation, the underlying nominal artifact
+identity is exactly `(artifact_id, artifact_version)`; role and content digest
+are not part of that distinctness key. Equal nominal identities reject whether
+their digests agree or conflict. Distinct IDs and distinct versions remain
+valid under the versioned-identity contract.
 
 Decision-resolution dependence/resampling/coverage/power/stopping fields are
 structural refs under exact `OWNER_RATIFICATION_PENDING` authority. B-06 does
@@ -546,15 +551,15 @@ The campaign acquisition and combined-manifest encoders apply the same exact
 below the ceiling remain accepted unchanged; an oversized serialization and
 every digest/ref helper that depends on it fail closed with `SIZE_LIMIT`.
 
-Native tests on this macOS host are diagnostic only. The first six findings
-`B06-CR-001` through `B06-CR-006` remain verified repaired. The third fresh
-review at head `8d23b70cda6a08fd99f0ad4174b7c381e2f7ac7b` returned
-`FINDINGS`; this revision repairs `B06-CR-007/008` by rejecting results on
-merely specified acquisitions and requiring distinct nominal D11 audit
-identities. All earlier CI and reviews are stale for the changed tree. Fresh
-exact-head CI and a fourth completely fresh complete-diff review remain
-required. No closed receipt or human approval exists; merge and closeout
-remain external delivery predicates.
+Native tests on this macOS host are diagnostic only. `B06-CR-001` through
+`B06-CR-008` remain verified repaired. The fourth fresh review at head
+`37b4c1ed1e355e10e954411c25e5eca677def7c0` returned `FINDINGS`; this
+revision repairs `B06-CR-009` by requiring distinct nominal PRIMARY/WITNESS
+artifact ID/version identities regardless of digest. All predecessor CI and
+reviews are stale for the changed tree. Fresh exact-head CI and a fifth
+completely fresh complete-diff review remain required. No closed receipt or
+human approval exists; merge and closeout remain external delivery
+predicates.
 
 ## 16. Deferred and human-reserved work
 
