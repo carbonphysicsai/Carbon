@@ -136,7 +136,8 @@ production qualification, or LIVE authority is added.
 **Combined B-05 reconciliation / B-07C conditional closeout:** Version 2.6
 records `OWNER-B05-B07C-01`: the owner selects current B-05 verification and
 prospective closeout followed by B-07C, in one candidate and delivery, ahead of
-B-07D1. The audit confirms B-05's substantive measurement-authoring scope is
+B-07D1. The historical ordinary delivery predicate is superseded prospectively
+by OWNER-DX-03. The audit confirms B-05's substantive measurement-authoring scope is
 implemented and focused-tested; no measurement runtime repair is required.
 The candidate implements B-07C's four exact task kinds with mock-only packs,
 role-separated fresh draws, a non-champion scaffold, B-07B lifecycle/record/
