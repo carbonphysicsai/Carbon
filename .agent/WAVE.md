@@ -9,11 +9,13 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.1
-**Selected ticket:** B-06 — `in_progress`
-**Owner sequencing:** B-06-D0 accepts merged B-05 as this transition's
-dependency while preserving B-05's incomplete historical delivery state;
-OWNER-DX-03 now controls engineering delivery
+**Controlling register:** `.agent/WAVE_B.md` version 2.2
+**Selected ticket:** B-E3 — `done`
+**Next selected ticket:** `B-07S`
+**Next eligible status:** B-07S is `todo`; exact-protocol work has not started
+**Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while
+preserving B-05's incomplete historical delivery state; PR #88 completes B-06,
+and its completion note selects B-E3. OWNER-DX-03 controls engineering delivery.
 **Activation authority:** owner direction recorded in B-06-D0 accepts merged
 PR #87 commit `2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
 `89763523576cef09f40fd8a205aa86d169d679de`, as the B-05 dependency and
@@ -28,13 +30,16 @@ unearned
 **B-05 status:** `in_progress` for its incomplete ordinary delivery record;
 PR #87 is merged and owner-accepted as B-06's dependency, with no B-05 work or
 review loop active
-**B-06 status:** `in_progress` with its bounded structural implementation and
-all nine historical review findings repaired. The fifth exact-head review and
-later approvals remain historical evidence for the pre-integration tree;
-under OWNER-DX-03 the current integrated revision requires the applicable
-automated acceptance and normal expected-head merge, not another review or
-approval ceremony. No campaign engine, registry mutation, scientific/security
-acceptance, production qualification, or LIVE authority exists.
+**B-06 status:** `done` in bounded merged engineering scope. PR #88 merged as
+`300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`; the accepted revision passed
+`Merge gate`, and completion comment `5560216570` selected B-E3. Historical
+reviews and approvals remain evidence, not current predicates.
+**B-E3 status:** `done` in this merged snapshot for the bounded structural
+crosswalk, fail-closed assessment, canonicalization, and audience-safe report.
+It certifies no scientific adequacy, compliance, production qualification, or
+LIVE authority.
+**B-07S status:** `todo` and not started; it remains the exact protocol gate
+before any B-07 service implementation.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -69,15 +74,17 @@ acceptance, production qualification, or LIVE authority exists.
 > qualification, network, economic, review, merge, or `LIVE` authority and
 > does not alter delivery governance for any future ticket.
 
-> **B-06 delivery reconciliation under OWNER-DX-03.** The five historical
+> **B-06 completion and B-E3 transition under OWNER-DX-03.** The five historical
 > complete-diff reviews found nine actionable defects, all repaired before the
 > current-main integration; exact-head review receipts and approvals for
 > `d0e652a73bbaa78b00073b53c96c6d459a5191cc` remain historical evidence only.
-> OWNER-DX-03 supersedes their use as current merge predicates. B-06 remains
-> `in_progress` until its integrated ready revision passes the applicable
-> automated acceptance and normally merges. B-05 remains `in_progress` with no
-> active work. Scientific, security, qualification, production, and LIVE
-> authority remain human-reserved and unearned.
+> OWNER-DX-03 supersedes their use as current merge predicates. PR #88 normally
+> merged B-06 after its accepted head passed `Merge gate`; comment `5560216570`
+> records bounded completion and selected B-E3. This shipping snapshot completes
+> B-E3's bounded structural work and leaves B-07S next and unstarted. B-05
+> remains `in_progress` with no active work. Scientific, security,
+> qualification, production, and LIVE authority remain human-reserved and
+> unearned.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

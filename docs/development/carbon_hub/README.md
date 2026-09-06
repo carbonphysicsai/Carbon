@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 35 map-level change events
+- 37 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-06** (`in_progress`). B-06's bounded structural implementation is reconciled with current main and OWNER-DX-03. All nine historical review findings are repaired; their reviews and approvals are historical evidence only. The integrated ready revision requires applicable automated acceptance and normal expected-head merge. B-05 stays in_progress with no active work.
+Wave **B**, ticket **B-E3** (`done`). B-E3 is done in bounded structural engineering scope after wrapping exact B-06 evidence identities with fail-closed claim support, permitted-use, maturity, limitation, unresolved-input, MMS, canonicalization, and audience-disclosure checks. B-07S is next, todo, and unstarted.
 
 ## Maintain
 

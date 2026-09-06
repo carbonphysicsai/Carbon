@@ -98,9 +98,9 @@
       "title": "Assemble the evidence needed to decide whether an exam is qualified",
       "what": "Create one auditable package that brings together evidence about case generation, reference truth, measurements, uncertainty, attacks, coverage, and limitations.",
       "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
-      "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. All three findings-bearing complete-diff reviews have bounded repairs in the current candidate.",
+      "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. PR #88 passed applicable acceptance and Merge gate and merged normally.",
       "not_yet": "A populated template, compatible evidence mapping, pending dependence field, PASS label, external signer-result flag, matching registry snapshot, signature, or fixture does not prove authorization, scientific or security qualification, production readiness, or LIVE activation.",
-      "current_stage_plain": "B-06 remains active under the owner-directed transition. Its fourth complete-diff review found one defect now repaired, and the first three reviews' repairs remain verified. All predecessor CI and reviews are stale; fresh exact-head CI plus a fifth completely fresh review remain. Scientific and security judgments stay human-owned.",
+      "current_stage_plain": "B-06 is done in bounded merged engineering scope. B-05 keeps its incomplete historical delivery state with no active work, and scientific and security judgments stay human-owned.",
       "map_ref": "WAVE-B/B-06"
     },
     "B-07R": {
@@ -211,8 +211,9 @@
       "title": "Trace every claim to the evidence that supports it",
       "what": "Map each scientific or engineering claim to its supporting evidence, limitations, and the place in the evidence package where that support lives.",
       "why": "A technically complete system can still overclaim if nobody can show which evidence supports each statement and which evidence is missing.",
-      "changes": "Carbon gains a claim-to-evidence and claim-to-limitation crosswalk.",
-      "not_yet": "A crosswalk cannot fill an evidence gap or turn design intent into qualification.",
+      "changes": "Carbon gains an exact claim-to-source crosswalk, distinct evidence categories and maturity, permitted-use records, explicit absent or pending evidence, fail-closed validation, strict canonical bytes, and audience-safe reports.",
+      "not_yet": "A crosswalk cannot fill an evidence gap, make MMS prove physical validity, trust an asserted owner or approval, disclose protected identities, or turn design intent into scientific or production qualification.",
+      "current_stage_plain": "B-E3 is complete in bounded structural engineering scope. B-07S is next but has not started; its exact protocol remains mandatory before any B-07 service implementation.",
       "map_ref": "WAVE-B/B-E3"
     },
     "B-E4": {

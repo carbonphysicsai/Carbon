@@ -1,21 +1,19 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through planning base
-main `7161fe3c4a04821b7f676ab006bd5d313d0442d2`, tree
-`619e366dead2288ccfd312f54ad09f17f86a1c62`, plus the prospective
-`OWNER-NET-01` roadmap candidate only where explicitly labeled.
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through the B-E3
+shipping snapshot, plus the prospective `OWNER-NET-01` roadmap candidate only
+where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
 > **Current development state.** `.agent/WAVE.md` records Wave B active in
-> bounded development scope with B-06 selected `in_progress` under the narrow
-> B-06-D0 owner transition. B-05 remains `in_progress` because its ordinary
+> bounded development scope. B-05 remains `in_progress` because its ordinary
 > delivery predicate is not claimed complete; no B-05 review loop is active.
-> B-06's five historical complete-diff reviews found nine actionable defects,
-> all repaired on the pre-integration tree. Their receipts and approvals remain
-> historical evidence only under OWNER-DX-03. Current-main integration,
-> applicable automated acceptance, normal expected-head merge, and completion
-> confirmation remain incomplete.
+> PR #88 normally merged B-06 after applicable acceptance and selected B-E3.
+> This merged snapshot completes B-E3's bounded crosswalk, assessment,
+> canonicalization, and audience-safe reporting scope and leaves B-07S next,
+> `todo`, and unstarted. B-07S remains the exact protocol prerequisite for B-07
+> service implementation.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -354,7 +352,8 @@ the bounded implementation.
 | Challenge-specific `ReferencePolicy` | Yes | partial/adapters | No | no universal truth backend |
 | `MeasurementContract` | Yes | partial/design | No | future first-class runtime binding |
 | Score Pack Evidence Use Contract | Yes target | A5 bounded current form | No LIVE pack | migration must preserve A5 engine boundary |
-| Validation Dossier structural machinery | Reconciled B-06 contract | Exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits and campaign PRIMARY/WITNESS roles require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks; all nine historical review findings repaired | No | current-main integration and applicable automated acceptance/merge remain; historical review/approval evidence is not a current predicate under OWNER-DX-03; no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
+| Validation Dossier structural machinery | Reconciled B-06 contract | Exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits and campaign PRIMARY/WITNESS roles require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks; all nine historical review findings repaired; PR #88 accepted and normally merged | No | no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
+| Dossier credibility crosswalk | B-E3 working contract | Exact B-06 manifest/claim/evidence links; responsible owners; distinct evidence categories and maturity; source permitted-use refs; explicit absent/pending/inapplicable rows; structural MMS non-substitution; fail-closed missing/stale/mismatch/circular/role/maturity/unresolved checks; strict deterministic canonical form; audience-allow-listed Markdown report | No | bounded structural implementation and tests only; complete crosswalk never certifies adequacy, compliance, product/production qualification, or LIVE; scientific, standards, security, commercial, decision, and launch inputs remain human-reserved |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |

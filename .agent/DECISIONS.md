@@ -1,5 +1,63 @@
 # Agent decisions log
 
+## 2026-09-06 — B-E3-D1: Wrap B-06 with a deterministic, non-authorizing credibility crosswalk
+
+**Problem.** B-E3 must connect every Dossier claim to exact evidence, owners,
+permitted use, limitations, maturity, and unresolved inputs without duplicating
+B-06 or allowing a complete manifest to certify itself.
+
+**Recommendation.** Extend `carbon.qualification` with a separately framed
+crosswalk schema that keeps B-06's evidence refs, manifest refs, exact claim
+matrix, Challenge binding, origin, and canonical rules authoritative. Add
+opaque versioned descriptor refs for source regime/method/applicability and a
+pure assessment/report layer. Assessment validates against caller-supplied
+exact B-06 manifests, fails closed on unsupported or stale links, and can
+never return scientific adequacy.
+
+**Alternatives rejected.** A parallel evidence store would split authority.
+Free-form Markdown/YAML would admit role confusion and stale identities.
+Adding scientific sufficiency logic to B-06 would convert an inventory into a
+judge and pre-empt B-E1/human qualification.
+
+**Interfaces, impact, and reversibility.** The additive v1 surface lives in
+`carbon/qualification/credibility*.py` and
+`Design_Specs/Credibility_Crosswalk_Contract.md`. B-06 bytes and A3 registry
+behavior remain unchanged. A future semantic change requires a prospective
+crosswalk profile/version; removal does not alter historical B-06 evidence.
+B-07S remains the prerequisite for any B-07 service implementation.
+
+**Human-reserved input.** Evidence adequacy/interpretation, standards or
+compliance claims, scientific/security qualification, product/production
+qualification, and LIVE activation remain unavailable.
+
+## 2026-09-06 — B-E3-D2: Treat audience disclosure and MMS non-substitution as structural rules
+
+**Problem.** A report can leak protected evidence identities, while MMS or a
+stronger maturity label can be substituted for a claim the source does not
+support.
+
+**Recommendation.** Give every source an explicit disclosure tier and render
+only an audience allow-list; withheld sources remain visible only as
+`WITHHELD`. Keep errors value-free. Require the B-06 evidence-class matrix and
+a narrower source-kind matrix simultaneously, with a hard MMS boundary and a
+closed category/maturity mapping. Pending, absent, inapplicable, stale, or
+required-human-input records never satisfy a claim. Independent/qualified-or-
+later sources also require explicit independence evidence and a source owner
+distinct from the claim owner.
+
+**Alternatives rejected.** Redaction by deny-list risks new-field leakage.
+Trusting caller `approved`, `qualified`, or owner flags permits
+self-certification. Treating an MMS convergence record as generic physical
+validation violates the Canon and ticket.
+
+**Interfaces, impact, and reversibility.** The rules are localized to the v1
+crosswalk assessor and reporter and do not reinterpret B-06 evidence. A later
+audience or source kind requires an explicit schema/profile update. B-E1,
+B-E2, Wave D, Product Qualification, and legal/standards owners remain intact.
+
+**Human-reserved input.** Which real source is adequate, independent, legally
+usable, qualified, or production-valid is not selected by this decision.
+
 ## 2026-09-06 — B-06-D0: Advance from merged B-05 to B-06 under the owner's narrow exception
 
 **Problem.** PR #87 merged the accepted B-05 implementation, but the ordinary

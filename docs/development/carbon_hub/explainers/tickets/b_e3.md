@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-E3`
 
-**Status:** TODO
+**Status:** DONE
 
 **Target phase:** WB-3
 
@@ -16,7 +16,7 @@ A complete system can still overclaim if the team cannot trace each statement to
 
 ## What it adds
 
-A claim-to-evidence and claim-to-limitation crosswalk.
+An exact B-06 claim-to-source crosswalk, closed evidence categories and maturity, source permitted-use records, explicit absent/pending evidence, fail-closed assessment, strict canonical bytes, and audience-safe reports.
 
 ## Placement and handoff
 
@@ -28,19 +28,24 @@ A claim-to-evidence and claim-to-limitation crosswalk.
 
 ## Explicit non-goals
 
-A crosswalk cannot fill an evidence gap or promote design intent into qualification.
+A crosswalk cannot fill an evidence gap, trust an asserted owner or qualification label, promote MMS into physical validation, expose protected evidence identity, or authorize scientific adequacy, production qualification, or LIVE.
 
 ## Current stage
 
-No more specific stage is supported; use the captured status and repository evidence.
+B-E3 is done in bounded structural engineering scope after wrapping exact B-06 evidence identities with fail-closed claim support, permitted-use, maturity, limitation, unresolved-input, MMS, canonicalization, and audience-disclosure checks. B-07S is next, todo, and unstarted.
 
 ## Maturity ceiling
 
-Planned on the controlling board; not current implementation permission.
+B-E3 is specified, implemented, and tested only for the bounded structural crosswalk and report. Scientific/security qualification, independent adequacy, standards compliance, commercial validation, production qualification, and LIVE remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-E3_credibility_crosswalk.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/tickets/B-E3_credibility_crosswalk.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/WAVE_B.md)
+- [Working contract](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/Design_Specs/Credibility_Crosswalk_Contract.md)
+- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/plans/B-E3_credibility_crosswalk.md)
+- [B-E3 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/evidence/wave_b/b-e3.md)
+- [Credibility package surface](https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/carbon/qualification/__init__.py)
+- [Working-decision notification](https://github.com/carbonphysicsai/Carbon/issues/42)
 
-> This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.
+> Every support result is structural only. Missing, stale, mismatched, circular, substituted, overstated, or required-human-input evidence fails closed; pending or absent sources stay visible, and audience projections do not disclose protected identities.

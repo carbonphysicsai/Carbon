@@ -88,10 +88,8 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn(
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
-        self.assertIn(
-            "fourth complete-diff review found one defect now repaired", self.output
-        )
-        self.assertIn("does not prove authorization", self.output)
+        self.assertIn("B-07S is next but has not started", self.output)
+        self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:
         self.assertIsNone(re.search(r"<script\b", self.output, flags=re.IGNORECASE))

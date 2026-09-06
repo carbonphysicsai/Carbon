@@ -1,16 +1,16 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 1.8
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 1.8
+**Governance version:** 2.2
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 2.2
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
-a coordinated status transition for review, but it cannot authorize selection
-or implementation of another ticket before the complete exact-head review,
-normal-merge, exact-main, and external-receipt predicate in
-`.agent/DELIVERY_PROTOCOL.md` passes. This handoff does not cache or
+a coordinated status transition, but it cannot authorize selection or
+implementation of another ticket before the applicable exact-head acceptance
+and normal expected-head merge required by `.agent/DELIVERY_PROTOCOL.md`
+passes. This handoff does not cache or
 independently select ticket state.
 
 This handoff gives a fresh Codex session enough repository context to execute
@@ -22,18 +22,15 @@ with fresh read-only Codex/GPT review of the complete exact-head diff, a closed
 head/tree-bound receipt, distinct non-author human approval, and the protected
 `GPT review gate`. Historical Greptile records remain immutable evidence.
 
-## Current transition — B-01H complete, B-05 active
+## Current transition — B-E3 complete, B-07S next
 
-PR #86 comment `5548725328` is the normalized external receipt for the B-01H
-predicate described historically below. It records reviewed head
-`a4e2e5645b565330273d0d0d0d6e28d797cc8261`, normal merge
-`f1a429de37290b3c7615ca051661a1d727528f78`, exact preserved tree
-`3e25bd65508c5c11d8d67558f9bd699808fc57a9`, required exact-head and
-exact-main gates, complete-diff review, distinct approval, and zero unresolved
-findings/threads. Its `NEXT_SELECTED_TICKET` is B-05 `in_progress but NOT
-STARTED`. B-05 is therefore the only current selected ticket and begins from
-that exact main. The installed-Codex HoH probe remains fail-closed unavailable;
-this is a separate infrastructure fact and does not weaken B-05 boundaries.
+PR #88 normally merged B-06 after its accepted revision passed `Merge gate`;
+completion comment `5560216570` selected B-E3. The B-E3 shipping snapshot
+completes the bounded credibility crosswalk, validation, canonicalization, and
+audience-safe report. B-05 retains its incomplete historical record with no
+active work. B-07S is next, `todo`, and unstarted; it must ratify the exact
+service contract before any B-07 service implementation. No scientific,
+security, standards, production, or LIVE qualification follows from B-E3.
 
 ## 1. Completed foundations, B-04 runtime, and B-01F completion
 

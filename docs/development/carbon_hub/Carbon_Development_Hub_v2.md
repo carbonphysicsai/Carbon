@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `6bb71db5cd776eba3b03d7fcede7a00e60b92689` on `main`, captured 2026-09-06T14:07:12Z.
-**Current:** Wave B, ticket B-06. B-06's bounded structural implementation is reconciled with current main and OWNER-DX-03. All nine historical review findings are repaired; their reviews and approvals are historical evidence only. The integrated ready revision requires applicable automated acceptance and normal expected-head merge. B-05 stays in_progress with no active work.
+**Authority snapshot:** `c533156b0f33c9747cafed168e4f8e4a44bd512c` on `main`, captured 2026-09-06T16:07:30Z.
+**Current:** Wave B, ticket B-E3. B-E3 is done in bounded structural engineering scope after wrapping exact B-06 evidence identities with fail-closed claim support, permitted-use, maturity, limitation, unresolved-input, MMS, canonicalization, and audience-disclosure checks. B-07S is next, todo, and unstarted.
 
 ## Wave spine
 
@@ -53,7 +53,7 @@
 | [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | done |
 | [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | done |
 | [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | in_progress |
-| [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | in_progress |
+| [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | done |
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
 | [B-07S](explainers/tickets/b_07s.md) | Ratify the exact v2 operation set, wire types, lifecycle, errors, canonicalization, bounds, and local-adapter contract. | todo |
 | [B-07A](explainers/tickets/b_07a.md) | Implement shared v2 protocol primitives, ChallengeInteractionManifest, and public research-capability discovery. | todo |
@@ -67,7 +67,7 @@
 | [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | todo |
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | todo |
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | todo |
-| [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | todo |
+| [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
 | [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | todo |
 | [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | todo |
 
@@ -118,6 +118,8 @@
 - `B-06-E9` — `WAVE-B/B-06` — B-06's fourth complete-diff review found one further structural defect; the bounded repair requires PRIMARY and WITNESS campaign roles to use distinct nominal artifact ID/version identities regardless of digest. B06-CR-001 through B06-CR-008 remain verified repaired, while all predecessor CI and four reviews are stale and fresh exact-head CI plus a fifth fresh review are required.
 - `OWNER-DX-03` — `SYSTEM/DEVELOPMENT-SEQUENCING` — The owner removes mandatory human approval and GPT receipts, metadata-triggered full CI, unconditional clean-image builds, duplicate automatic Hub runs, and post-merge full-CI closeout gates while preserving required tests.
 - `B-06-E10` — `WAVE-B/B-06` — B-06 is reconciled with current main and OWNER-DX-03: all nine historical review findings remain repaired, obsolete review and approval ceremony is no longer a merge predicate, and the integrated ready revision proceeds through applicable automated acceptance without changing any scientific, security, qualification, production, registry, or LIVE boundary.
+- `B-06-E11` — `WAVE-B/B-06` — PR #88 passed applicable acceptance and Merge gate and normally merged B-06; its completion comment selects B-E3 while preserving B-05's incomplete historical record and every scientific, security, qualification, production, registry, and LIVE ceiling.
+- `B-E3-E1` — `WAVE-B/B-E3` — B-E3 adds the bounded exact Dossier claim-to-evidence crosswalk, source permitted-use inventory, fail-closed assessment, MMS non-substitution, strict canonical form, and audience-safe report; B-07S remains the next unstarted protocol prerequisite and no scientific or LIVE qualification is created.
 
 ## Authority boundary
 
