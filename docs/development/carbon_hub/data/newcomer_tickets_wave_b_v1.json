@@ -126,15 +126,16 @@
       "why": "Researchers need to know what the system offers without guessing or invoking capabilities the Challenge never registered.",
       "changes": "The research service gains one exact shared v2 type/serialization core and a local discovery layer for Challenge information and the sole InteractionManifest wire resource, including immutable historical versions and explicit unavailable capabilities.",
       "not_yet": "This cannot expose official submission/result operations, execute the other ten research operations, compose the full service, or invent capabilities that were never registered. It grants no scientific, security, production, or LIVE authority.",
-      "current_stage_plain": "B-07A is complete in bounded implemented-and-tested shared-core and two-operation discovery scope. B-07B is next, todo, and unstarted.",
+      "current_stage_plain": "B-07A remains complete in bounded implemented-and-tested shared-core and two-operation discovery scope. B-07B has now completed its separate bounded local task-and-record delivery.",
       "map_ref": "WAVE-B/B-07A"
     },
     "B-07B": {
       "title": "Give every research experiment a durable record",
       "what": "Record each research task, outcome, failure, receipt, evidence class, and lineage so later tools can tell what happened and what the result may support.",
       "why": "Practice, shared history, utility studies, and rights controls all depend on exact provenance.",
-      "changes": "Wave B gains a common record for research experiments and their history.",
-      "not_yet": "A research receipt is not an official score, ranking, qualification, or frontier event.",
+      "changes": "Wave B gains a local task lifecycle with stable duplicate handling, immutable inputs, cancellation and retry rules, private evidence records, and public-safe terminal receipts.",
+      "not_yet": "A research receipt is not an official score, ranking, qualification, or frontier event. The local requester binding is not authentication, and no science, security, rights, network, production, or LIVE approval is created.",
+      "current_stage_plain": "B-07B is complete in bounded implemented-and-tested local task, private-record, and receipt scope. B-07D1 is next but has not started; B-07C remains todo behind B-05's incomplete delivery record.",
       "map_ref": "WAVE-B/B-07B"
     },
     "B-07C": {

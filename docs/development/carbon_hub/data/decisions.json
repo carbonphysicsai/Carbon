@@ -987,6 +987,24 @@
       "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5561518965",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/99d9b5de06c37e6420225f15cc93c82a91f1a059/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07B-D1..D6",
+      "map_ref": "WAVE-B/B-07B",
+      "wave": "B",
+      "ticket": "B-07B",
+      "title": "Linearizable local research records",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-07B implement exact task races and useful private evidence records without widening the frozen wire contract or acquiring later-owner and human-reserved authority?",
+      "recommendation": "KEEP one constructor-bound linearizable local provider, canonical detached start and transactional pins, private non-wire ExperimentRecords, resolved-plan-derived differences, positive allow-list receipts, and local-only retention unless an exact rights authorization exists.",
+      "why": "Mutable/latest bindings, poll-driven execution, raw executor findings, implicit evidence promotion, or private wire aliases would break B-07S identity and race semantics or transfer scientific, security, and rights authority.",
+      "if_kept": "Later B-07 tickets can compose practice, prior, resource, and dispatch owners around stable task/receipt identities while official v1 and qualification remain unchanged.",
+      "if_changed": "Task/receipt identity, state, cancellation, polling, private record schemas, disclosure, tests, and downstream consumers require the relevant versioned migration and human authority.",
+      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5562405976",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DECISIONS.md"
     }
   ]
 }
