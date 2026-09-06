@@ -1,0 +1,44 @@
+name: Delivery import repair
+
+on:
+  push:
+    branches: [owner/delivery-tooling-repair]
+    paths: [.github/workflows/delivery-import-repair.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: ./scripts/dev/bootstrap.sh
+      - name: Match the canonical quality ratchet and publish the corrected blob
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          path=tests/cpu/test_code_authority.py
+          .venv/bin/python -m ruff check --isolated --no-cache --target-version py310 --fix "${path}"
+          .venv/bin/python -m black --config /dev/null --target-version py310 "${path}"
+          .venv/bin/python -m ruff check --isolated --no-cache --target-version py310 "${path}"
+          .venv/bin/python -m pytest tests/cpu/test_code_authority.py -q
+          git diff --check
+          .venv/bin/python - <<'PY' > "${RUNNER_TEMP}/blob.json"
+          from pathlib import Path
+          import json
+          print(json.dumps({'encoding': 'utf-8', 'content': Path('tests/cpu/test_code_authority.py').read_text()}))
+          PY
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/blobs" --input "${RUNNER_TEMP}/blob.json"
+          printf '\nREPAIRED_BLOB_SHA='
+          git hash-object "${path}"
