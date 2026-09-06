@@ -106,7 +106,12 @@ def test_candidate_slice_does_not_import_a3_store_gate_or_io_modules() -> None:
         "urllib",
         "urllib.request",
     }
-    for name in ("candidate.py", "candidate_canonical.py"):
+    for name in (
+        "candidate.py",
+        "candidate_canonical.py",
+        "campaign.py",
+        "campaign_canonical.py",
+    ):
         imports = imported_modules(QUALIFICATION_ROOT / name)
         assert not imports & forbidden, (name, imports & forbidden)
 
@@ -121,6 +126,33 @@ def test_candidate_public_surface_has_no_mutation_or_activation_operation() -> N
     )
     public_names = tuple(name.lower() for name in qualification.__all__)
     assert not any(token in name for token in forbidden_tokens for name in public_names)
+
+
+def test_campaign_surface_has_no_execution_or_scientific_decision_engine() -> None:
+    forbidden_names = {
+        "bootstrap",
+        "calculate_interval",
+        "calculate_power",
+        "compute_covariance",
+        "execute_campaign",
+        "promote_candidate",
+        "select_winner",
+    }
+    public_names = {name.lower() for name in qualification.__all__}
+    assert public_names.isdisjoint(forbidden_names)
+    source = "\n".join(
+        (QUALIFICATION_ROOT / name).read_text(encoding="utf-8")
+        for name in ("campaign.py", "campaign_canonical.py")
+    )
+    for token in (
+        "official_seed",
+        "hidden_realization",
+        "truth_payload",
+        "filesystem_path",
+        "network_url",
+        "signer_secret",
+    ):
+        assert token not in source
 
 
 def test_refs_are_protected_and_nonpickleable() -> None:
@@ -146,3 +178,16 @@ def test_refs_are_protected_and_nonpickleable() -> None:
     assert "fixture-burgers" not in repr(manifest_ref)
     with pytest.raises(TypeError):
         pickle.dumps(manifest_ref)
+
+    campaign_ref = qualification.CampaignEvidenceManifestRef(
+        ChallengeKey("fixture-burgers", "1.0"),
+        qualification.CampaignFamily.MEASUREMENT_FLOOR,
+        qualification.DossierEvidenceClass.MEASUREMENT_FLOOR,
+        "measurement-floor",
+        "1.0",
+        "sha256:" + "c" * 64,
+        qualification.StructuralOrigin.FIXTURE_ONLY,
+    )
+    assert "fixture-burgers" not in repr(campaign_ref)
+    with pytest.raises(TypeError):
+        pickle.dumps(campaign_ref)

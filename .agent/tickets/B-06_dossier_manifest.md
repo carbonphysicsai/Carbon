@@ -72,7 +72,7 @@ Scientific, statistics, security, launch, and independent-review owners produce 
 
 ## Current structural checkpoint
 
-Slices 1 through 3 are implemented locally on the B-06 branch. Slice 2 adds the
+Slices 1 through 4 are implemented locally on the B-06 branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
 pending-ratification statistical/dependence scope, intended/realized attempt
 accounting, secrecy/role-separation bindings, scoped limitations, and a
@@ -86,10 +86,22 @@ artifact IDs/digests, dossier, measurement set, fixture/currentness, and draft
 lifecycle compatibility. It performs no registry lookup or mutation, artifact
 dereference, signature verification, scientific approval, or LIVE transition.
 
-This is not ticket completion. Campaign-specific evidence schemas, complete
-synthetic integration, canonical Linux validation, final review, approval,
-merge, and closeout remain future B-06 work. Real signer authorization and
-signature verification remain external and human/security-owned.
+Slice 4 adds a separate canonical campaign-manifest domain with exact
+prospective acquisition and externally supplied result records for MMS/
+refinement/observed order, planted-defect mutation, analytic anchors,
+primary/witness convergence and reference disagreement, generator-oracle
+adversarial work, measurement floors, decision resolution, and residual
+limitations. It reuses existing B-02A/B-03/B-04/B-05 identities, preserves
+explicit evidence-to-claim mappings, and provides no campaign execution,
+threshold, computed interval, winner selection, scientific verdict, or
+qualification path. Unusable, fixture, placeholder, stale, or failed records
+cannot satisfy the dossier boundary.
+
+The final-slice audit records no remaining machine-implementable B-06 feature
+criterion. This is still not ticket completion: full-ticket reconciliation,
+canonical Linux validation when available, exact-head review, approval, PR,
+merge, and closeout remain future B-06 delivery work. Real signer authorization
+and signature verification remain external and human/security-owned.
 `Generator_Validation.md` v2.1 dependence
 policy and the corresponding scientific-canon v4.1 additions remain pending
 owner ratification; populated structural fields grant no acceptance.

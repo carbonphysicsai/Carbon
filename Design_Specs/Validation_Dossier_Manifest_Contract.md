@@ -1,7 +1,7 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery  
-**Contract version:** 0.3
+**Contract version:** 0.4
 **Status:** agent-selected working engineering contract  
 **Maturity ceiling:** bounded structural engineering only  
 **Implementation owner:** `carbon.qualification`  
@@ -15,7 +15,9 @@ slices are an identity, typed-evidence-binding, and serialization foundation.
 They contain no qualification-manifest issuer, active-registry comparator,
 signature verifier, scientific pass/fail engine, or `LIVE` transition. Slice 3
 adds only a structural candidate and a pure comparison against an explicitly
-supplied A3 record snapshot.
+supplied A3 record snapshot. Slice 4 adds only typed campaign
+acquisition/result records and their exact evidence-reference projection; it
+does not execute or judge a campaign.
 
 ## 1. Authority and owner-directed opening
 
@@ -414,7 +416,65 @@ the exact represented machine-checkable inputs match. It does not mean
 scientifically qualified, security qualified, production qualified, approved,
 or LIVE.
 
-## 14. Slice tests
+## 14. Slice-4 campaign acquisition and result manifests
+
+`CampaignEvidenceManifest` is a separate exact B-06 canonical domain. It
+contains a prospective `CampaignAcquisitionManifest` and an optional
+`CampaignResultManifest`. Both bind one exact supplemental
+`DossierEvidenceClass`; the class determines a closed `CampaignFamily` and
+family-specific required artifact roles. A helper derives the exact
+`DossierEvidenceRef` consumed by the existing D1-D12 evidence/claim graph.
+
+The acquisition record binds the exact Challenge, claim scope, applicable
+B-02A target population and SamplingPlan, B-03 generator owner ref, B-04
+reference-qualification-policy owner ref, representation ref, B-05
+MeasurementContract, exact case/stratum/estimand/method definition refs, an
+ordered artifact-role set, provenance, and a closed acquisition state. Fields
+that do not apply are absent because the family matrix does not require or
+allow them; no magic null represents applicability.
+
+The result record is externally supplied evidence. It binds the exact
+acquisition identity, a closed family-compatible outcome, exact result,
+uncertainty, exclusion, failure, and limitation artifact refs, and the same
+case/stratum scope. It carries no calculated interval, float, threshold,
+expected order, mutation score, acceptable disagreement, acceptable floor,
+winner calculation, or automatic pass/fail. A missing result honestly
+represents specified/attempted/partial acquisition. A produced, blocked,
+invalid, inapplicable, indeterminate, or scientific-judgment-pending result is
+representable without manufacturing approval.
+
+The family set is exactly MMS/refinement/observed order, planted-defect
+mutation, analytic/limiting anchor, primary/witness convergence/disagreement,
+generator-oracle adversarial, measurement floor, decision resolution, and
+residual limitation. Family-required artifact roles preserve per-level MMS
+results, mutation identities, anchor applicability, distinct primary/witness
+roles, adversarial oracle/checker identity, external floor results,
+decision-resolution audit refs, and scoped limitations. Wrong families,
+roles, versions, digests, upstream objects, scopes, duplicates, or incomplete
+produced results reject.
+
+Decision-resolution dependence/resampling/coverage/power/stopping fields are
+structural refs under exact `OWNER_RATIFICATION_PENDING` authority. B-06 does
+not execute B-E1 algorithms, infer independence, calculate an interval or
+power, select a winner, promote a candidate, or interpret a pending field as
+approved policy.
+
+The campaign schema exposes only IDs, versions, tagged digests, closed enums,
+and existing protected refs. It has no seed, realization, truth payload,
+filesystem path, URL, locator, embedded bytes, credential, signer secret,
+resolver, or I/O field. Canonical decoding is bounded, duplicate-key rejecting,
+strict UTF-8, exact enum/type checked, byte-for-byte re-encoded, and rejects
+trailing or tampered input. Fixture origin and stale/superseded state remain
+visible and cannot be cleansed by aggregation or supersession.
+
+Campaign-to-claim compatibility remains the closed Slice-2 matrix. In
+particular MMS cannot establish physical validity; mutation cannot establish
+product qualification; generator-oracle evidence cannot establish SamplingPlan
+adequacy; primary/witness agreement cannot establish truth; a floor result
+cannot establish score eligibility; and decision-resolution evidence cannot
+establish LIVE.
+
+## 15. Slice tests
 
 Focused proof must cover:
 
@@ -445,28 +505,35 @@ signer-result binding, fail-closed unverified authorization, deterministic
 multi-mismatch ordering, byte-exact round trip, and no registry mutation or
 LIVE side effect.
 
+Slice 4 additionally proves every campaign family's required exact acquisition
+and result bindings, honest pre-result states, family/outcome vocabulary,
+duplicate/role/scope/version rejection, fixture/currentness propagation,
+canonical permutation stability and byte-exact round trip, tamper/trailing/
+oversize rejection, hostile protected-surface boundaries, and cross-family/
+cross-claim non-substitution. It proves decision-resolution remains pending
+authority and imports or implements no execution, statistical, registry, or
+LIVE engine.
+
 Native tests on this macOS host are diagnostic only. Canonical Linux checks,
 complete-diff review, human delivery approval, merge, and closeout are reserved
 for the mature B-06 candidate.
 
-## 15. Deferred and human-reserved work
+## 16. Deferred and human-reserved work
 
-Deferred B-06 slices own the campaign-specific manifests not represented by
-Slice 2, complete synthetic integration, and final validation/review. Slice 3
-implements candidate construction and a pure exact A3 snapshot comparison.
+Slice 4 owns the campaign-specific manifests not represented by Slice 2.
+Full-ticket reconciliation and final review preparation remain the next
+non-feature phase. Slice 3 implements candidate construction and a pure exact
+A3 snapshot comparison; Slice 4's synthetic D7 test proves campaign-digest
+projection into that existing evidence graph.
 Actual signer identity/role authorization and cryptographic verification stay
 external; B-06 consumes their exact typed results but does not implement or
 claim them.
 
 Slice 2 represents every ticket-named supplemental campaign as an exact typed
-evidence ref plus explicit claim mapping, and gives decision-resolution
-coverage its statistical-scope binding. It does not yet define specialized
-acquisition/result manifests for MMS observed order, planted-defect mutation,
-analytic anchors, primary/witness convergence or disagreement,
-generator-oracle adversarial studies, or measurement-floor studies. Those
-campaign-specific shapes, their execution, and their scientific conclusions
-remain later B-06/B-E1 work; the generic representation is not a claim that
-the whole campaign-manifest family is implemented.
+evidence ref plus explicit claim mapping, and Slice 4 supplies their closed
+acquisition/result shapes. Campaign execution, scientific interpretation, and
+decision machinery remain B-E1 or human work; structural implementation does
+not claim any real campaign has occurred or is adequate.
 
 Humans retain every real physical claim, envelope, population, SamplingPlan,
 generator/reference/measurement adequacy decision, uncertainty/dependence and

@@ -285,6 +285,84 @@ candidate identity semantics.
 trust roots, signature validation, separation of duties, scientific signoff,
 security acceptance, and activation remain human/external.
 
+## 2026-09-06 — B-06-D10: Keep dependence-aware decision evidence pending and execution-free
+
+**Problem.** The ticket requires decision-resolution evidence fields, while
+the controlling v2.1 dependence language remains an owner-ratification
+proposal and B-E1 owns the actual harness.
+
+**Recommendation.** Represent exact decision method, compared objects,
+estimand, resampling/dependence, coverage/power diagnostics,
+censoring/missingness, stopping/false-elimination audit, external result, and
+limitations only under `OWNER_RATIFICATION_PENDING`. Add no computation or
+accepted-policy state.
+
+**Alternatives rejected.** Omitting the structural seam would leave B-06
+incomplete. Treating populated fields as ratified, or implementing bootstrap,
+covariance, interval, power, promotion, or winner logic, would exceed current
+authority.
+
+**Interfaces, impact, and reversibility.** This extends the existing pending
+statistical identity graph without changing B-E1 or historical records. Later
+ratification must be prospective.
+
+**Human-reserved input.** Dependence policy, coverage, power, stopping,
+false-elimination control, decision interpretation, and promotion remain
+unresolved.
+
+## 2026-09-06 — B-06-D11: Treat campaign outcomes as externally supplied observations, never self-qualification
+
+**Problem.** Result presence can be mistaken for adequacy, and reference or
+campaign failure can be collapsed into candidate failure.
+
+**Recommendation.** Use a closed family-compatible outcome vocabulary with
+distinct produced, detected/not-detected, agreement/disagreement, reference
+failure, violation/no-observed-violation, floor recorded, decision labels,
+blocked, invalid, inapplicable, indeterminate, deferred, and judgment-pending
+states. Results bind exact acquisition and scope. They do not assert adequacy.
+
+**Alternatives rejected.** Free text, `passed: bool`, evidence-count rules, or
+implicit outcome conversion would permit authority transfer and failure-class
+collapse.
+
+**Interfaces, impact, and reversibility.** Existing D1-D12 section/status and
+claim compatibility remain unchanged. Result enums and family compatibility
+are part of the new v1 campaign canonical identity.
+
+**Human-reserved input.** Whether an observation supports a scientific claim,
+whether evidence is sufficient, and whether a limitation is acceptable remain
+human-owned.
+
+## 2026-09-06 — B-06-D12: Compose closed campaign acquisition/result manifests without campaign engines
+
+**Problem.** B-06 must represent eight scientifically distinct campaign
+families without duplicating upstream identities, reducing results to a
+Boolean, or absorbing B-E1's statistical/runtime authority.
+
+**Recommendation.** Add one separately canonicalized B-06 campaign manifest
+with distinct acquisition and externally supplied result records. A closed
+family matrix requires exact upstream refs and family-specific artifact roles
+for MMS/refinement, mutation, analytic anchors, primary/witness comparison,
+generator-oracle adversarial work, measurement floors, decision resolution,
+and residual limitations. Derive the existing supplemental
+`DossierEvidenceRef` from the complete manifest digest so the Slice-2 claim
+matrix remains the only claim-compatibility path.
+
+**Alternatives rejected.** Eight unrelated schemas would duplicate identity
+and canonical logic. One opaque evidence bag would erase scientific role
+differences. Numeric thresholds, computed intervals, winner selection, or a
+`passed` Boolean would invent science and trespass on B-E1/human authority.
+
+**Interfaces, impact, and reversibility.** The new campaign domain is additive
+and imports only existing authoring/measurement/registry value seams. It adds
+no generator, reference, measurement, statistical, registry, filesystem, or
+network execution. Any semantic change requires a prospective campaign schema
+version/profile change.
+
+**Human-reserved input.** Expected orders, tolerances, mutation sufficiency,
+disagreement/floor acceptance, sample size, coverage, power, dependence,
+stopping, scientific verdicts, qualification, and LIVE remain external.
+
 ## 2026-09-05 — B-05-D1: Isolate B-05 in a Challenge-bound measurement package and leave A5 unchanged
 
 **Problem.** B-05 must own measurement and Score Pack authoring semantics

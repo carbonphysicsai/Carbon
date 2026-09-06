@@ -14,6 +14,8 @@ from carbon.authoring.primitives import (
 from carbon.registry.model import ChallengeKey
 
 from .enums import (
+    CAMPAIGN_FAMILY_EVIDENCE_CLASSES,
+    CampaignFamily,
     DossierEvidenceClass,
     SignerArtifactKind,
     SignerRole,
@@ -43,6 +45,16 @@ QUALIFICATION_CANDIDATE_DOCUMENT_HEADER = (
 )
 A3_QUALIFICATION_SNAPSHOT_DOCUMENT_HEADER = (
     b"carbon.qualification.a3-manifest-snapshot.canonical.v1\x00"
+)
+CAMPAIGN_MANIFEST_SCHEMA_VERSION = "1.0"
+CAMPAIGN_MANIFEST_CANONICALIZATION_PROFILE = (
+    "carbon_campaign_evidence_manifest_canonical_v1"
+)
+CAMPAIGN_MANIFEST_DOCUMENT_HEADER = (
+    b"carbon.qualification.campaign-evidence-manifest.canonical.v1\x00"
+)
+CAMPAIGN_ACQUISITION_DOCUMENT_HEADER = (
+    b"carbon.qualification.campaign-acquisition.canonical.v1\x00"
 )
 
 _PLACEHOLDER_IDS = frozenset({"none", "placeholder", "tbd", "todo", "unknown", "unset"})
@@ -286,8 +298,63 @@ class QualificationManifestCandidateRef(_ProtectedRef):
         return "qualification_manifest_candidate_ref"
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class CampaignEvidenceManifestRef(_ProtectedRef):
+    challenge_key: ChallengeKey
+    campaign_family: CampaignFamily
+    evidence_class: DossierEvidenceClass
+    manifest_id: str
+    manifest_version: str
+    content_digest: str
+    origin: StructuralOrigin
+    schema_version: str = CAMPAIGN_MANIFEST_SCHEMA_VERSION
+    canonicalization_profile: str = CAMPAIGN_MANIFEST_CANONICALIZATION_PROFILE
+
+    def __post_init__(self) -> None:
+        if type(self) is not CampaignEvidenceManifestRef:
+            raise _invalid("/ref_type", DossierInputCode.WRONG_TYPE)
+        if type(self.campaign_family) is not CampaignFamily:
+            raise _invalid("/campaign_family", DossierInputCode.WRONG_TYPE)
+        if type(self.evidence_class) is not DossierEvidenceClass:
+            raise _invalid("/evidence_class", DossierInputCode.WRONG_TYPE)
+        if (
+            self.evidence_class
+            not in CAMPAIGN_FAMILY_EVIDENCE_CLASSES[self.campaign_family]
+        ):
+            raise _invalid("/evidence_class", DossierInputCode.ROLE_CONFUSION)
+        if type(self.origin) is not StructuralOrigin:
+            raise _invalid("/origin", DossierInputCode.WRONG_TYPE)
+        schema_value = _version(self.schema_version, "/schema_version")
+        if (
+            schema_value != CAMPAIGN_MANIFEST_SCHEMA_VERSION
+            or type(self.canonicalization_profile) is not str
+            or self.canonicalization_profile
+            != CAMPAIGN_MANIFEST_CANONICALIZATION_PROFILE
+        ):
+            raise _invalid("/schema_version")
+        object.__setattr__(self, "challenge_key", _challenge(self.challenge_key))
+        object.__setattr__(
+            self, "manifest_id", _identifier(self.manifest_id, "/manifest_id")
+        )
+        object.__setattr__(
+            self,
+            "manifest_version",
+            _version(self.manifest_version, "/manifest_version"),
+        )
+        object.__setattr__(self, "content_digest", _digest(self.content_digest))
+        object.__setattr__(self, "schema_version", schema_value)
+
+    @property
+    def ref_type(self) -> str:
+        return "campaign_evidence_manifest_ref"
+
+
 __all__ = (
     "A3_QUALIFICATION_SNAPSHOT_DOCUMENT_HEADER",
+    "CAMPAIGN_ACQUISITION_DOCUMENT_HEADER",
+    "CAMPAIGN_MANIFEST_CANONICALIZATION_PROFILE",
+    "CAMPAIGN_MANIFEST_DOCUMENT_HEADER",
+    "CAMPAIGN_MANIFEST_SCHEMA_VERSION",
     "DOSSIER_CANONICALIZATION_PROFILE",
     "DOSSIER_DOCUMENT_HEADER",
     "DOSSIER_SCHEMA_VERSION",
@@ -297,6 +364,7 @@ __all__ = (
     "QUALIFICATION_CANDIDATE_CANONICALIZATION_PROFILE",
     "QUALIFICATION_CANDIDATE_DOCUMENT_HEADER",
     "QUALIFICATION_CANDIDATE_SCHEMA_VERSION",
+    "CampaignEvidenceManifestRef",
     "DossierEvidenceManifestRef",
     "DossierEvidenceRef",
     "QualificationManifestCandidateRef",

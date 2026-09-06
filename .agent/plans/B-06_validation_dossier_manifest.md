@@ -1,7 +1,8 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06  
-**Status:** third coherent structural slice implemented; campaign schemas next
+**Status:** fourth substantive implementation slice implemented; full-ticket
+reconciliation and final review preparation remain
 **Branch:** `agent/b-06-dossier-manifest`  
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked  
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`  
@@ -58,6 +59,13 @@ failure changes the B-06 structural dependency.
 - **B-06-D9:** consume external identity-validation, exact-role authorization,
   and cryptographic-verification facts as separate typed inputs without
   implementing their trust policy or scientific signoff.
+- **B-06-D10:** retain decision-resolution acquisition/result identities only
+  under `OWNER_RATIFICATION_PENDING`; implement no dependence-aware engine.
+- **B-06-D11:** treat campaign outcomes as externally supplied observations;
+  blocked, invalid, deferred, or upstream-failure records cannot become
+  dossier evidence, and no outcome self-qualifies.
+- **B-06-D12:** use one closed, separately canonicalized acquisition/result
+  manifest architecture with family-specific roles and no execution seam.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -171,18 +179,87 @@ canonical Docker limitation was unchanged and was not retried.
 
 ### Slice 4 — campaign-specific evidence schemas
 
-Implement the remaining bounded acquisition/result schemas for MMS observed
-order, mutation, analytic anchors, witness convergence/disagreement,
-generator-oracle adversarial studies, and measurement-floor studies. Preserve
-the current common evidence ref/claim graph and leave campaign execution and
-scientific conclusions to B-E1/humans.
+Implement one composable, closed campaign-manifest profile with distinct
+prospective acquisition and externally supplied result records. Family-specific
+required-role matrices preserve the scientific differences among MMS observed
+order, mutation, analytic anchors, primary/witness convergence and disagreement,
+generator-oracle adversarial work, measurement floors, decision resolution,
+and residual limitations. Preserve the current evidence ref/claim graph and
+leave every campaign engine and scientific conclusion to B-E1 or humans.
 
-### Slice 5 — integration and mature candidate
+Field authority is explicit:
 
-Compose a fully synthetic fixture graph, prove it cannot satisfy a production
-qualification path, add package/wheel and cross-owner tests, reconcile the
-Hub, run scope-required validation, and prepare the complete candidate for
-fresh exact-head review. Do not begin B-E1 or B-07F execution.
+1. Challenge/upstream refs, campaign/acquisition/result identities, provenance,
+   scope, versions, digests, status vocabulary, and canonical bytes are exact
+   structural identity/provenance.
+2. Result artifacts and outcome labels are externally supplied scientific
+   results; B-06 validates their shape and binding but never calculates them.
+3. Adequacy, acceptance, signer authority, qualification, and LIVE remain
+   human-owned and are not represented as positive campaign results.
+4. Dependence, resampling, coverage, power, stopping, and false-elimination
+   fields remain `OWNER_RATIFICATION_PENDING`; presence cannot ratify policy.
+
+#### Slice-4 campaign source-to-rule-to-test matrix
+
+| Family | Controlling authority; allowed dossier role | Exact acquisition/result binding and required provenance | Allowed structural states; prohibited inference | Positive / hostile / non-substitution proof |
+|---|---|---|---|---|
+| MMS/refinement/observed order | Ratified Generator Validation v2.0 D5/D7; Evidence Standards §1; `IMPLEMENTATION_VERIFICATION`, `DISCRETIZATION_CONVERGENCE`, `REFERENCE_AGREEMENT`, `LIMITING_CASE_BEHAVIOR` | Exact implementation, manufactured/analytic definition, refinement family, discretizations, observable, environment/tool, case/stratum, acquisition/result/provenance; per-level and observed-order result refs | Specified/attempted/partial/result/blocked/invalid/inapplicable/pending; never expected order, physical validation, whole-reference adequacy, or LIVE | valid round trip / wrong implementation and malformed refinement / MMS-to-physical and LIVE rejection |
+| Planted-defect/mutation | Generator Validation v2.0 D5; B-05 evidence-role matrix; `IMPLEMENTATION_VERIFICATION` only | Exact mutated component, campaign/operator/defect, affected property and MeasurementContract, acquisition scope, result/exclusion/failure/limitation refs | Detected/not-detected/indeterminate are external observations; no kill threshold or qualification | valid campaign / duplicate mutation and wrong measurement / product-qualification rejection |
+| Analytic/limiting anchor | Evidence Standards §1; Generator Validation D7; `IMPLEMENTATION_VERIFICATION`, `REFERENCE_AGREEMENT`, `LIMITING_CASE_BEHAVIOR` | Exact anchor authority and applicability domain, compared implementation/reference/measurement, configuration, result, uncertainty and limitation refs | Comparison recorded/indeterminate/inapplicable; local anchor never becomes universal truth | valid scoped anchor / applicability and reference mismatch / physical-validity rejection |
+| Primary/witness convergence/disagreement | Generator Validation D7; Evidence Standards §1; B-04 owner seam; `DISCRETIZATION_CONVERGENCE`, `REFERENCE_AGREEMENT` | Exact B-04 qualification-policy identity, distinct primary/witness identities and roles, case/stratum, refinement/configuration, comparison method, disagreement/result, uncertainty/failure/limitations | Agreement/disagreement/indeterminate/reference failure stay distinct; no independence, truth, physical validation, or candidate-failure inference | valid comparison / role confusion and scope mismatch / reference failure stays non-candidate |
+| Generator-oracle adversarial | Generator Validation D5/D6; B-02A/B-03 owner seams; `IMPLEMENTATION_VERIFICATION`, `GENERATOR_CONFORMANCE_DIAGNOSTIC` | Exact population, SamplingPlan, generator, oracle/checker, targeted invariant, acquisition scope, generated result, exclusions/failures/limitations/provenance | Violation/no-observed-violation/indeterminate are external; no self-certification or SamplingPlan adequacy | valid campaign / wrong generator-population-plan and protected-field absence / conformance substitution rejection |
+| Measurement floor | Generator Validation D9; Evidence Standards §4; B-05 exact MeasurementContract; `MEASUREMENT_FLOOR_DIAGNOSTIC` | Exact MeasurementContract, floor-study/source/reference/discretization/sampling configuration, case/stratum/applicability, external floor result, uncertainty/limitations/provenance | Floor recorded/indeterminate/inapplicable; no threshold choice, score eligibility, or production acceptance | valid result / wrong contract and scope / floor-to-score rejection |
+| Decision resolution | Generator Validation D10/D12 proposal fields; Launch Bar v1.4 proposal; B-05 types; B-E1 ownership; `DECISION_RESOLUTION_DIAGNOSTIC` | Exact decision method, compared objects, estimand, population/scope, resampling/dependence, coverage/power diagnostics, censoring/missingness, stopping/false-elimination audit, external result and limitations | External superior/not-superior/indeterminate/deferred labels are structurally representable only with pending authority; no interval, power, winner, promotion, or false-elimination computation | valid pending record / wrong method and missing audit refs / pending-to-approved and LIVE rejection |
+| Residual limitations | Generator Validation D12; Evidence Standards §2; `RESIDUAL_LIMITATION_DISCLOSURE` | Exact affected evidence, claim roles, case/stratum/envelope scope, authority/provenance, uncertainty/limitation result | Limitation recorded/pending only; no automatic population/envelope mutation or residual-risk acceptance | scoped round trip / dangling evidence and wrong claim / no scope mutation |
+
+All families use strict same-Challenge/version/digest checks, canonical set
+ordering, duplicate rejection, strict decode, complete-byte consumption,
+fixture propagation, and the existing closed claim compatibility matrix.
+An explicit artifact may support multiple allowed roles only through separate
+registered claim bindings; no family or D-section supplies another implicitly.
+
+Checkpoint result: implemented and locally tested. `CampaignAcquisitionManifest`
+separates prospective campaign identity/state from `CampaignResultManifest`'s
+externally supplied observations. `CampaignEvidenceManifest` binds both under
+one exact Challenge, family, evidence class, version, digest, origin,
+currentness, and optional predecessor. The combined primary/witness family
+retains distinct convergence and disagreement evidence classes. Only current,
+non-fixture results in evidentiary states can derive a supplemental
+`DossierEvidenceRef`; blocked, invalid, inapplicable, deferred, generator-
+failure, and reference-failure results remain representable but cannot become
+dossier evidence. No campaign, statistical, registry, or LIVE engine was
+added.
+
+### Slice 5 — reconciliation and mature candidate (no feature scope)
+
+Reconcile the complete ticket, contract, implementation ledger, evidence, Hub,
+and tests against one stable tree and prepare the complete candidate for fresh
+exact-head review. The Slice-4 audit below found no remaining
+machine-implementable B-06 feature requirement. This phase may repair a
+reconciliation defect but must not expand into B-E1, B-07F, or new scope.
+
+### Final-slice Definition-of-Done criterion audit
+
+| Ticket criterion | Classification at Slice-4 tree | Evidence / remaining boundary |
+|---|---|---|
+| Single-ticket contract, notification, coherent slices, delivery gates, review, approval, merge | `FINAL_REVIEW_REQUIRED` | Contract, plan, decisions, notification, and four implementation slices exist; exact-head review, gates, approval, PR, merge, and closeout remain the later delivery process |
+| Exact D1-D12 identities, refs, status, signers, supersession, Challenge binding | `SATISFIED_BY_CURRENT_TREE` | Slices 1-3 model and test exact identities, currentness, canonical history, and fail-closed signers |
+| Population, SamplingPlan, generator, reference, representation, measurement, statistics, secrecy, censoring, limitations, reproducibility | `SATISFIED_BY_CURRENT_TREE` | Slice 2 exact subject/evidence manifests and canonical tests |
+| All ticket-named campaign manifests | `SATISFIED_BY_CURRENT_TREE` | Slice 4 implements and tests all eight acquisition/result families, including distinct convergence/disagreement evidence classes |
+| Cross-section and cross-campaign non-substitution | `SATISFIED_BY_CURRENT_TREE` | Closed evidence/claim matrix plus hostile negative tests; one-to-many reuse remains explicit |
+| Generator/reference/measurement separation | `SATISFIED_BY_CURRENT_TREE` | Exact nominal upstream bindings and role-confusion tests |
+| Statistical, coverage, dependence, reconstruction, censoring, and stopping identities | `SATISFIED_BY_CURRENT_TREE` for structural representation; `HUMAN_RESERVED` for policy/adequacy | Exact refs exist under pending authority; computation, thresholds, method acceptance, and adequacy remain B-E1/human-owned |
+| Qualification candidate and exact A3 comparison | `SATISFIED_BY_CURRENT_TREE` | Slice 3 pure exact snapshot comparison and deterministic mismatch tests |
+| Fail-closed malformed/placeholder/fixture/unsigned/wrong-version/stale/mismatched/role-confused/claim-inadequate inputs | `SATISFIED_BY_CURRENT_TREE` | Slices 1-4 negative, canonical, lifecycle, authorization, and campaign tests |
+| Human approval distinct from schema completeness/execution | `SATISFIED_BY_CURRENT_TREE`; real signoff `HUMAN_RESERVED` | No scientific-approval state or LIVE/mutation operation exists |
+| Lifecycle/signature/mismatch/MMS-only/substitution/no-LIVE fixture tests | `SATISFIED_BY_CURRENT_TREE` | Focused B-06 and A3 suites cover the ticket's structural cases |
+
+`NOT_YET_IMPLEMENTED`: none for machine-implementable B-06 scope.
+`BLOCKED`: none for structural implementation. Real evidence production,
+scientific/security judgments, signer authority, pending dependence
+ratification, production qualification, and activation remain expressly
+human-owned or assigned to later tickets; they are not B-06 implementation
+gaps.
 
 ## 4. Baseline and validation
 
@@ -197,12 +274,17 @@ development environment ran the focused registry/B-05/invariant baseline:
 
 After each slice, run the new B-06 tests and directly affected registry,
 package, code-authority, and predecessor-boundary tests. Slice 2's expanded
-local run passed 815 tests. Slice 3's final focused invocation passed 270 tests and
-its expanded affected predecessor/package/authority invocation passed 1431
-tests in 651.55 seconds; the final post-repair B-06/A3 focus passed 233 tests.
-Counts are per overlapping invocation, not a summed
-unique-test total. Native results remain diagnostic. No full canonical run or
-complete-diff review occurs at this checkpoint.
+local run passed 815 tests. Slice 3's final focused invocation passed 270
+tests, its expanded invocation passed 1431 tests in 651.55 seconds, and its
+post-repair focus passed 233 tests. Slice 4's final B-06/A3 focus passed 318
+tests in 2.14 seconds, its expanded affected invocation passed 1480 tests in
+667.87 seconds, and its post-documentation package/authority/invariant run
+passed 129 tests in 8.28 seconds. One earlier expanded Slice-4 invocation was
+interrupted after 325 passes because a result-identity schema repair changed
+the tree; it is not validation evidence for the final tree. Counts are per
+overlapping invocation, not a summed unique-test total. Native results remain
+diagnostic. No canonical Docker run or complete-diff review occurs at this
+checkpoint.
 
 ## 5. Hub and commit shape
 
