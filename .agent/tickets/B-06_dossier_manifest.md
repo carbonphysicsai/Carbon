@@ -28,12 +28,11 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
       decisions, plan, and SciML/statistics/protocol/security notification;
       implement coherent vertical slices against that contract; then review
       the final contract, implementation, tests, and stable evidence together.
-      Require applicable validation and exact-head `Merge gate`; obtain fresh
-      read-only Codex/GPT review of the complete diff; repair or disposition
-      every finding; require distinct non-author human approval carrying the
-      closed receipt, successful `GPT review gate`, and zero unresolved review
-      threads; and normally merge the exact reviewed tree. Any tree change
-      requires rereview, and a
+      Under OWNER-DX-03, require the applicable automated acceptance and
+      exact-head `Merge gate`, then normally merge with the expected-head
+      guard. Independent review remains optional; a tree change requires
+      validation for the changed revision, not a mandatory review/receipt
+      ceremony. A
       separate contract PR requires an exception in
       `.agent/DELIVERY_PROTOCOL.md`. Notification is not ratification and
       silence is no gate. Scientific/security qualification and Challenge
@@ -69,6 +68,17 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 ## Human input
 
 Scientific, statistics, security, launch, and independent-review owners produce and sign the required evidence. Agents never set pass/fail.
+
+## Current delivery reconciliation
+
+OWNER-DX-03 supersedes the mandatory fresh-review, human-approval, receipt,
+GPT-gate, and post-merge full-CI process formerly embedded in this ticket. The
+five completed historical reviews found nine actionable defects, all repaired
+on the pre-integration tree; their receipts, approvals, and CI remain factual
+history but are not predicates for the current integrated revision. B-06 stays
+`in_progress` until the ready integrated head passes its applicable automated
+acceptance and normally merges. This delivery-policy change does not alter any
+scientific, security, qualification, production, registry, or LIVE boundary.
 
 ## Second-review repair checkpoint
 

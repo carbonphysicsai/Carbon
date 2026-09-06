@@ -259,19 +259,19 @@ def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
     } == set(rules)
     pull_request = rules["pull_request"]["parameters"]
     assert pull_request["allowed_merge_methods"] == ["merge"]
-    assert pull_request["dismiss_stale_reviews_on_push"] is True
+    assert pull_request["dismiss_stale_reviews_on_push"] is False
     assert pull_request["require_code_owner_review"] is False
-    assert pull_request["require_last_push_approval"] is True
-    assert pull_request["required_approving_review_count"] == 1
-    assert pull_request["required_review_thread_resolution"] is True
+    assert pull_request["require_last_push_approval"] is False
+    assert pull_request["required_approving_review_count"] == 0
+    assert pull_request["required_review_thread_resolution"] is False
     status_parameters = rules["required_status_checks"]["parameters"]
     assert status_parameters["do_not_enforce_on_create"] is False
-    assert status_parameters["strict_required_status_checks_policy"] is True
+    assert status_parameters["strict_required_status_checks_policy"] is False
     checks = {
         (item["context"], item["integration_id"])
         for item in status_parameters["required_status_checks"]
     }
-    assert checks == {("Merge gate", 15368), ("GPT review gate", 15368)}
+    assert checks == {("Merge gate", 15368)}
     assert artifact["repository_settings"] == {
         "allow_merge_commit": True,
         "allow_squash_merge": False,
@@ -1133,9 +1133,9 @@ def _write_artifact(tmp_path: Path, value: Mapping[str, Any]) -> Path:
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("dismiss_stale_reviews_on_push", False),
+        ("dismiss_stale_reviews_on_push", True),
         ("require_code_owner_review", True),
-        ("require_last_push_approval", False),
+        ("require_last_push_approval", True),
         ("required_approving_review_count", False),
     ],
 )
@@ -1153,7 +1153,7 @@ def test_artifact_refuses_changed_pull_request_contract(
     ("field", "value", "message"),
     [
         ("do_not_enforce_on_create", True, "branch creation"),
-        ("strict_required_status_checks_policy", False, "strict status"),
+        ("strict_required_status_checks_policy", True, "non-strict status"),
     ],
 )
 def test_artifact_refuses_changed_status_policy(

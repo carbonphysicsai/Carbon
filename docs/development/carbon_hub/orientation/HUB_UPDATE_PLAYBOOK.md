@@ -55,7 +55,7 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `ce372531feec818e7fcb03a20773d4b06c19ba7e`, reconciled 2026-09-06T09:55:49Z.
+Current authority snapshot: `0a139bbb00cd589a06b1ea3e84938f687d33cc6b`, reconciled 2026-09-06T13:12:35Z.
 
 The current long-horizon dependency graph is intentionally not fully linear:
 Wave D feeds the launch-critical D → H → I branch, while E, F, and G are
@@ -140,3 +140,5 @@ never in this public-safe source set.
 ## Content-model reference
 
 See `orientation/HUB_CONTENT_MODEL.md` for required fields and the event attachment model.
+
+OWNER-DX-03: batch Hub maintenance before acceptance. Routine code review repairs and external CI results do not require another map event or review-receipt commit.

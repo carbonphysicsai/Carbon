@@ -10992,3 +10992,24 @@ grants no merge, Codex/GPT review,
 human approval, scientific/security/production qualification, `LIVE`, network,
 economics, or rights authority and must hand off unchanged to
 `.agent/DELIVERY_PROTOCOL.md`.
+
+## 2026-09-06 - OWNER-DX-03: tested ticket delivery without mandatory reviewers
+
+The repository owner directs immediate removal of delivery ceremony. This
+supersedes GOV-REVIEW-01 and the review/receipt/post-merge requirements of
+OWNER-DX-01 for current and future engineering PRs. It does not rewrite
+historical approvals or grant scientific, security, economic, legal, LIVE,
+launch, deployment, or production acceptance.
+
+Use one ticket PR, focused tests during slices, one applicable CI acceptance,
+zero mandatory human approvals, no GPT receipt gate, an expected-head merge
+race guard, and a brief completion comment. Stop full CI on metadata edits,
+draft updates, and main merge events. Run clean-image acceptance when the
+execution environment changes; preserve substantive tests and fail closed on
+unknown paths. Independent code review remains available without a mandatory
+fresh-context full-diff loop. Fix real defects and verify their regressions.
+
+Implementation: `.agent/DELIVERY_PROTOCOL.md`, root `AGENTS.md`, CI/workflow and
+ruleset tooling, plus the Hub declaration validator. Reversible through a
+future owner-directed policy change; no runtime/schema/scientific migration.
+Live administration settings must be verified separately from the artifact.

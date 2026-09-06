@@ -1,5 +1,10 @@
 # Development Hub Agent Maintenance Contract
 
+> **OWNER-DX-03:** Batch Hub maintenance before acceptance. CI supplies run and
+> revision identities; do not require human/GPT receipts or copied SHA/counter
+> fields in PRs. Routine repair/testing detail stays in the PR. No per-slice
+> Hub approval or post-merge evidence-seal commit is required.
+
 **Primary map location:** `SYSTEM/DEVELOPMENT-HUB`
 
 **Authority ceiling:** documentation, orientation, routing, and maintenance

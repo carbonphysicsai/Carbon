@@ -37,7 +37,24 @@ echo "==> invariant lane"
 "${python_bin}" -m pytest tests/invariants -m invariant -q
 
 echo "==> default CPU lane"
-./scripts/dev/test.sh
+cpu_profile="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}")"
+case "${cpu_profile}" in
+  TOOLING_ONLY)
+    echo "==> bounded tooling regression suite; all CPU tests must still collect"
+    "${python_bin}" -m pytest --collect-only -q >/dev/null
+    tooling_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --tooling-tests)"
+    mapfile -t tooling_tests <<< "${tooling_manifest}"
+    [[ "${#tooling_tests[@]}" -gt 0 ]]
+    "${python_bin}" -m pytest "${tooling_tests[@]}" -q
+    ;;
+  RUNTIME_FULL)
+    ./scripts/dev/test.sh
+    ;;
+  *)
+    echo "Invalid CPU acceptance profile: ${cpu_profile}" >&2
+    exit 2
+    ;;
+esac
 
 echo "==> package, wheel, and outside-tree lane"
 "${python_bin}" -m pytest \

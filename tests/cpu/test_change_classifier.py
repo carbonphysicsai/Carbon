@@ -176,3 +176,44 @@ def test_merge_gate_rejects_unexpected_nonrequired_execution() -> None:
     assert gate_failures(scope, statuses) == (
         "dev_image: expected skipped, observed success",
     )
+
+
+@pytest.mark.parametrize(
+    ("path", "required"),
+    [
+        ("carbon/measurement/models.py", False),
+        ("tests/cpu/test_measurement.py", False),
+        ("AGENTS.md", False),
+        (".devcontainer/Dockerfile", True),
+        (".github/workflows/ci.yml", True),
+        ("scripts/dev/canonical.sh", True),
+        ("uv.lock", True),
+        ("pyproject.toml", True),
+        ("requirements-dev.txt", True),
+        ("unclassified-file", True),
+    ],
+)
+def test_clean_image_follows_execution_environment(path: str, required: bool) -> None:
+    assert classify_paths([path]).dev_image_required is required
+
+
+def test_empty_manifest_retains_full_image_acceptance() -> None:
+    assert classify_paths([]).dev_image_required is True
+
+
+def test_runtime_source_still_requires_real_canonical_and_hub_success() -> None:
+    statuses = {name: "skipped" for name in JOB_NAMES}
+    for name in ("preflight", "canonical", "hub_validation"):
+        statuses[name] = "success"
+    assert not gate_failures(
+        ChangeScope.RUNTIME_FULL, statuses, dev_image_required=False
+    )
+    for name in ("preflight", "canonical", "hub_validation"):
+        for bad in ("skipped", "failure", "cancelled", ""):
+            broken = dict(statuses, **{name: bad})
+            assert gate_failures(
+                ChangeScope.RUNTIME_FULL, broken, dev_image_required=False
+            )
+    assert gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required=True)
+    with pytest.raises(ValueError, match="bool"):
+        gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required="false")

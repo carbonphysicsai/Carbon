@@ -1,7 +1,13 @@
 # Carbon Wave B Board
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 2.0
+**Version:** 2.1
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -104,16 +110,16 @@ satisfied, and PR #75's receipt establishes B-04's bounded completed state.
 B-01H's complete conditional predicate has passed at the identities above.
 Under B-06-D0, merged B-05 is the owner-accepted dependency while its ordinary
 delivery record remains `in_progress`; B-06 is the selected `in_progress`
-ticket as a reconciled fourth-review repair candidate. Campaign-specific
-acquisition/result manifests and all other machine-implementable B-06 features
-are present; `B06-CR-001` through `B06-CR-008` remain verified repaired and
-`B06-CR-009` is repaired in the changed tree by requiring PRIMARY/WITNESS
-roles to use distinct nominal artifact ID/version identities. Earlier
-CI/reviews are stale, while fresh exact-head CI and a fifth fresh
-review/delivery remain. Working
-engineering decisions may proceed after durable record and applicable
-notification without affirmative lead response. A human-reserved value remains unavailable and
-blocks its affected behavior, not unrelated bounded work.
+ticket. Campaign-specific acquisition/result manifests and all other
+machine-implementable B-06 features are present. The five historical
+complete-diff reviews found nine actionable defects, all repaired; their
+receipts and approvals apply only to the pre-integration tree and are not
+current merge predicates under OWNER-DX-03. The integrated ready revision
+requires one applicable automated acceptance and normal expected-head merge.
+Working engineering decisions may proceed after durable record and applicable
+notification without affirmative lead response. A human-reserved value
+remains unavailable and blocks its affected behavior, not unrelated bounded
+work.
 
 ---
 
@@ -256,11 +262,12 @@ predicate and selected B-05 from exact main `f1a429de…`. PR #87 then merged
 B-05 at the exact main/tree recorded above. B-06-D0 applies the owner's narrow
 advancement exception: B-05 retains an incomplete `in_progress` delivery
 record with no active work, while B-06 is selected `in_progress`.
-B-06's first four fresh complete-diff reviews returned findings. Their bounded
-repairs preserve the selection and status: CR-001 through CR-008 remain
-verified repaired, CR-009 is repaired in the current tree, prior exact-head CI
-and reviews are stale, and fresh exact-head CI plus a fifth completely fresh
-complete-diff review remain required before any approval, merge, or closeout.
+B-06's five historical complete-diff reviews found nine actionable defects;
+CR-001 through CR-009 are repaired. Those reviews and approvals remain
+historical evidence for the pre-integration tree. OWNER-DX-03 requires no
+replacement review, receipt, or approval ceremony: the integrated ready
+revision proceeds through applicable automated acceptance and normal
+expected-head merge.
 B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
 inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain
@@ -384,15 +391,13 @@ unrelated work. After merge, an adjustment uses a new bounded branch and later
 normally merged repository decision; historical evidence is marked superseded,
 not rewritten. Current merged repository authority controls until then.
 
-The Accountable reviewer column remains technical/domain review and
+The Accountable reviewer column remains technical/domain consultation and
 notification routing. It creates no pre-implementation approval or silence
-gate. Before merge, Carbon requires a fresh read-only Codex/GPT review of the
-complete exact-head diff, repair of every valid finding, disposition of every
-invalid finding, a distinct non-author human approval carrying the closed
-review receipt, successful `GPT review gate`, zero unresolved review threads,
-required exact-head checks and `Merge gate`, and normal merge. This delivery
-approval grants no reserved scientific, security, rights, economic,
-qualification, `LIVE`, launch, deployment, or production authority.
+gate. OWNER-DX-03 requires applicable automated acceptance and `Merge gate`
+for the ready revision, followed by normal expected-head merge. Independent
+review is optional, and no human/GPT receipt or approval is a merge predicate.
+Engineering delivery grants no reserved scientific, security, rights,
+economic, qualification, `LIVE`, launch, deployment, or production authority.
 
 This non-blocking development rule does not allow an agent to invent or approve
 scientific truth, thresholds, tolerances, population or SamplingPlan claims,
@@ -420,9 +425,8 @@ Before each ticket begins:
 6. create a detailed `.agent/plans/` file for every multi-module ticket before implementation;
 7. create and record the ticket's working contract before implementation when
    the ticket defines a new public or security boundary; implement against it
-   in the same PR by default; and obtain fresh complete-diff Codex/GPT review,
-   the distinct non-author human approval and `GPT review gate`, and every
-   ticket-required review on the exact final tree before normal merge, while
+   in the same PR by default; and run applicable automated acceptance and
+   `Merge gate` on the ready revision before normal expected-head merge, while
    human-reserved values remain fail closed; and
 8. on macOS, Windows, or noncanonical Linux, run validation through
    `./scripts/dev/canonical.sh` and never call native-host output canonical.
@@ -430,20 +434,13 @@ Before each ticket begins:
 Each ticket writes `.agent/evidence/wave_b/<ticket-id>.md` using the evidence
 README and links that record from its ticket file and board row before `done`.
 The tracked record contains stable scope, authority, base, decisions,
-contracts, expected manifest, commands, invariants, maturity ceiling, and a
-conditional completion predicate. A ticket candidate may coordinate its own
-bounded `done` and the next-ticket selection, but that transition becomes
-authoritative only after the exact final head/tree passes every scope-required
-exact-head check and `Merge gate`, fresh complete-diff Codex/GPT review binds
-the same head/tree with all valid findings repaired or dispositioned, a
-distinct non-author human approval carries the closed receipt, `GPT review
-gate` succeeds with zero unresolved review threads, normal merge preserves
-exact second-parent/tree identity, exact-main `Merge gate` succeeds, and the
-completed normalized external receipt is posted. Dynamic identities use
-`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md` outside the reviewed tree.
-Do not require a recursive closeout PR or a commit merely to record CI, review,
-merge, an evidence seal, or a validation retrigger. An affirmative human
-reviewer or lead response is not required.
+contracts, expected manifest, commands, invariants, and maturity ceiling. A
+ticket candidate may coordinate its own bounded `done` and the next-ticket
+selection after its ready revision passes applicable automated acceptance and
+`Merge gate`, normally merges with the expected-head guard, and receives a
+brief completion confirmation. Do not require a recursive closeout PR, review
+receipt, approval, evidence-seal commit, validation retrigger, or post-merge
+full-CI wait. An affirmative human reviewer or lead response is not required.
 
 Ticket completion must separately report:
 

@@ -1,8 +1,8 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06
-**Status:** fourth complete-diff review returned one finding; bounded repair
-implemented locally and fresh exact-head CI/fifth review required
+**Status:** bounded implementation complete; integrating current main under
+OWNER-DX-03 before applicable automated acceptance and normal merge
 **Branch:** `agent/b-06-dossier-manifest`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`
@@ -25,6 +25,22 @@ preflight, Development Hub, and canonical-environment checks were successful;
 the GPT review gate failed; a clean-image job and the main CI run were still
 in progress at observation time. Do not poll or retrigger them. No observed
 failure changes the B-06 structural dependency.
+
+## 1A. Current-main delivery reconciliation
+
+Merge current main `43470b007861ede510b09cf919603aee0ad3a3e0`
+(PR #89 / OWNER-DX-03) into this branch without rewriting either history.
+Current main owns delivery policy, CI/ruleset behavior, and Hub validator
+machinery; B-06 owns its later ticket selection, implementation, tests, and
+maturity truth. PR #89 changes no `carbon/` runtime scientific code or B-06
+upstream identity interface, so the runtime seam is `NO_CONFLICT`. The Hub and
+Wave overlap is `DOCUMENTATION_LAG` resolved by preserving both OWNER-DX-03
+and B-06-D0, then regenerating the Hub from reconciled source data.
+
+The integrated ready revision requires one applicable automated acceptance
+and successful `Merge gate` before normal expected-head merge. The historical
+five-review/nine-finding record, receipts, and approvals remain evidence for
+the pre-integration tree and are not repeated.
 
 ## 2. Selected engineering decisions
 
@@ -342,7 +358,7 @@ exact-head CI and a fifth completely fresh complete-diff review remain
 | Generator Validation v2.1 / canon v4.1 additions | Dependence fields remain structural and `OWNER_RATIFICATION_PENDING`; no policy acceptance is encoded | pending-authority tests and B-06-D5/D10 | Proposal only | `HUMAN_RESERVED` |
 | Tracked checkpoint wording | Slice-4/local wording lagged the reconciled final-candidate phase | ticket, plan, evidence, contract, Wave, ledger, and Hub source reconciled prospectively | Documentation | `DOCUMENTATION_LAG` repaired |
 | Complete-range whitespace hygiene | Prior slice checks inspected a clean worktree, not the committed base-to-head range | `check_diff_hygiene.py --base origin/main` exposed three files | Delivery hygiene | `TEST_LAG` repaired |
-| Exact-head CI, fresh review, human approval, merge, closeout | Candidate is prepared; no future receipt or outcome is recorded in-tree | Delivery protocol and external receipt template | Not yet earned | `FINAL_REVIEW_REQUIRED` |
+| Current acceptance and merge | Candidate is prepared; the integrated ready revision must pass applicable automated acceptance and `Merge gate`, then normally merge with the expected-head guard | Current delivery protocol (OWNER-DX-03) | Not yet earned | `DELIVERY_REQUIRED` |
 | Scientific/security/signer/production/LIVE judgments | Remain external and fail closed | Contract §§6, 10, 13, 16 | Not earned | `HUMAN_RESERVED` |
 
 No `AUTHORITY_CONFLICT`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`,
@@ -352,7 +368,7 @@ No `AUTHORITY_CONFLICT`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`,
 
 | Ticket criterion | Classification at Slice-4 tree | Evidence / remaining boundary |
 |---|---|---|
-| Single-ticket contract, notification, coherent slices, delivery gates, review, approval, merge | `FINAL_REVIEW_REQUIRED` | Contract, plan, decisions, notification, and four implementation slices exist; exact-head review, gates, approval, PR, merge, and closeout remain the later delivery process |
+| Single-ticket contract, notification, coherent slices, acceptance, merge | `DELIVERY_REQUIRED` | Contract, plan, decisions, notification, and four implementation slices exist; integrated-head automated acceptance, expected-head merge, and completion confirmation remain |
 | Exact D1-D12 identities, refs, status, signers, supersession, Challenge binding | `SATISFIED_BY_CURRENT_TREE` | Slices 1-3 model and test exact identities, currentness, canonical history, and fail-closed signers |
 | Population, SamplingPlan, generator, reference, representation, measurement, statistics, secrecy, censoring, limitations, reproducibility | `SATISFIED_BY_CURRENT_TREE` | Slice 2 exact subject/evidence manifests and canonical tests |
 | All ticket-named campaign manifests | `SATISFIED_BY_CURRENT_TREE` | Slice 4 implements and tests all eight acquisition/result families, including distinct convergence/disagreement evidence classes |
@@ -417,10 +433,9 @@ specific source is named.
 | 43 | Generator/reference collapse rejection | `SATISFIED` | distinct primary classes and exact required subject bindings; collapse tests |
 | 44 | No LIVE with fixtures | `SATISFIED` structurally; LIVE decision `HUMAN_RESERVED` | fixture rejection plus absence of activation API; B-06 invariants and A3 fixture tests |
 
-The first ticket checkbox remains `FINAL_REVIEW_REQUIRED` because exact-head
-CI, fresh complete-diff review, distinct non-author approval, protected review
-gate, merge, external receipt, and closeout are intentionally not performed by
-this reconciliation phase.
+The first ticket checkbox remains open because integrated-head automated
+acceptance, expected-head merge, and completion confirmation have not yet
+occurred. OWNER-DX-03 requires no new review, approval, receipt, or GPT gate.
 
 `NOT_YET_IMPLEMENTED`: none for machine-implementable B-06 scope.
 `BLOCKED`: none for structural implementation. Real evidence production,

@@ -493,162 +493,23 @@
       "supersedes": "B-05-E6"
     },
     {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "evidence",
-      "event_id": "B-06-E1",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-06-D0 records the owner-directed transition from merged PR #87 without declaring B-05's ordinary delivery predicate complete, and the first bounded B-06 slice implements exact Challenge-bound D1-D12 evidence/signature identities and deterministic Dossier serialization while qualification remains unavailable.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7da3160f1ee3452d2c7aaba6a9ee3b694eb03fd4/carbon/qualification/__init__.py",
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "event_type": "decision",
+      "event_id": "OWNER-DX-03",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "The owner removes mandatory human approval and GPT receipts, metadata-triggered full CI, unconditional clean-image builds, duplicate automatic Hub runs, and post-merge full-CI closeout gates while preserving required tests.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a139bbb00cd589a06b1ea3e84938f687d33cc6b/.agent/DELIVERY_PROTOCOL.md",
       "affects": [
         "WAVE-B/B-05",
         "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/DEVELOPMENT-SEQUENCING",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-05-E7"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "evidence",
-      "event_id": "B-06-E2",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-06 Slice 2 adds exact typed subject/evidence/claim manifests, closed cross-section non-substitution, pending dependence-policy provenance, intended/realized accounting, secrecy and scoped limitations, with 815 affected local tests passing and no qualification authority.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/evidence/wave_b/b-06.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E1",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/PR-MAINTENANCE",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/MATURITY"
       ],
-      "supersedes": "B-06-E1"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "evidence",
-      "event_id": "B-06-E3",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-06 Slice 3 adds deterministic qualification-candidate and closed artifact-set identity, exact cross-section bindings, external signer-result inputs, and pure fail-closed comparison with one supplied immutable A3 draft record; 1431 affected tests passed while scientific, security, registry-mutation, and LIVE authority remain unavailable.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/84775b459cd2cf33d115e9edfa808d8ca26bf465/carbon/qualification/candidate.py",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E1",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E2"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "evidence",
-      "event_id": "B-06-E4",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-06 Slice 4 adds exact prospective acquisition and externally supplied result manifests for every ticket-named campaign family, strict canonical identity and cross-campaign non-substitution, with 1480 affected local tests passing; no campaign engine, scientific verdict, qualification, or LIVE authority is added.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/carbon/qualification/campaign.py",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E1",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E3"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "evidence",
-      "event_id": "B-06-E5",
-      "owner_lane": "sciml_technical_lead",
-      "status": "active",
-      "summary": "B-06 is reconciled end to end as a final-review candidate with all 44 machine-checkable ticket criteria accounted for and no machine-implementable feature gap; exact-head CI and final review/delivery remain, while scientific, security, signer, production, and LIVE authority stay human-owned.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64/.agent/plans/B-06_validation_dossier_manifest.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E4"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "bug",
-      "event_id": "B-06-E6",
-      "owner_lane": "sciml_technical_lead",
-      "status": "implemented",
-      "summary": "B-06's first complete-diff review found three structural defects; the bounded repair makes fixture provenance monotonic, requires exact dossier-to-manifest linkage, and applies the existing campaign size ceiling to serialization and derived digests/refs, while prior CI/review remain stale and fresh delivery review is required.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c341a0ff05c5a9e6ae8d194210fa29b2a13bedf4/.agent/evidence/wave_b/b-06.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E5"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "bug",
-      "event_id": "B-06-E7",
-      "owner_lane": "sciml_technical_lead",
-      "status": "implemented",
-      "summary": "B-06's second complete-diff review found three further structural defects; the bounded repair makes unresolved provenance monotonic and qualification-blocking, reuses A3's exact required-slot reference checks, and rejects conflicting same-version nominal identities. The first review repairs remain verified, while every earlier CI/review is stale and fresh delivery review is required.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/8d8b17d8e4417a65eea164179dc0ca1dd44de3b8/.agent/evidence/wave_b/b-06.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E6"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "bug",
-      "event_id": "B-06-E8",
-      "owner_lane": "sciml_technical_lead",
-      "status": "implemented",
-      "summary": "B-06's third complete-diff review found two further structural defects; the bounded repair rejects results on merely specified campaigns and requires nominally distinct D11 decontamination and role-separation audits. B06-CR-001 through B06-CR-006 remain verified repaired, while every earlier CI/review is stale and fresh exact-head CI plus a fourth fresh review are required.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/1679a0c9825ce4f31335b6a3c0772900ab5e34b0/.agent/evidence/wave_b/b-06.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E7"
-    },
-    {
-      "map_ref": "WAVE-B/B-06",
-      "event_type": "bug",
-      "event_id": "B-06-E9",
-      "owner_lane": "sciml_technical_lead",
-      "status": "implemented",
-      "summary": "B-06's fourth complete-diff review found one further structural defect; the bounded repair requires PRIMARY and WITNESS campaign roles to use distinct nominal artifact ID/version identities regardless of digest. B06-CR-001 through B06-CR-008 remain verified repaired, while all predecessor CI and four reviews are stale and fresh exact-head CI plus a fifth fresh review are required.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/ce372531feec818e7fcb03a20773d4b06c19ba7e/.agent/evidence/wave_b/b-06.md",
-      "affects": [
-        "WAVE-B/B-06",
-        "WAVE-B/B-E3",
-        "WAVE-B/B-GATE",
-        "SYSTEM/DEVELOPMENT-HUB",
-        "SYSTEM/MATURITY"
-      ],
-      "supersedes": "B-06-E8"
+      "supersedes": null
     }
   ]
 }

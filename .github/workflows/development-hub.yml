@@ -1,11 +1,8 @@
 name: Development Hub
 
+# Normal PR Hub acceptance runs once in ci.yml.
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, edited, ready_for_review]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -101,7 +98,7 @@ jobs:
       - name: Classify the exact candidate against the current base
         id: change_scope
         env:
-          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before }}
+          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before || 'HEAD^' }}
         run: |
           python3 scripts/dev/classify_changes.py \
             --repository . \
@@ -126,5 +123,5 @@ jobs:
 
       - name: Check whitespace
         env:
-          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before }}
+          HUB_DIFF_BASE_SHA: ${{ steps.refresh_pr.outputs.base_sha || github.event.before || 'HEAD^' }}
         run: git diff --check "${HUB_DIFF_BASE_SHA}...HEAD"

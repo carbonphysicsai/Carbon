@@ -1,13 +1,19 @@
 # Carbon Agent Wave Status
 
+> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
+> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
+> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
+> applies. Older process descriptions below are superseded; ticket scope,
+> historical evidence, and human-reserved scientific/security authority remain.
+
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.0
+**Controlling register:** `.agent/WAVE_B.md` version 2.1
 **Selected ticket:** B-06 — `in_progress`
-**Owner sequencing:** `OWNER-DX-02` interposed B-01H after completed B-04 and
-before B-05; B-01H's complete delivery predicate has now passed and B-05 is
-the active first harness pilot
+**Owner sequencing:** B-06-D0 accepts merged B-05 as this transition's
+dependency while preserving B-05's incomplete historical delivery state;
+OWNER-DX-03 now controls engineering delivery
 **Activation authority:** owner direction recorded in B-06-D0 accepts merged
 PR #87 commit `2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
 `89763523576cef09f40fd8a205aa86d169d679de`, as the B-05 dependency and
@@ -22,16 +28,13 @@ unearned
 **B-05 status:** `in_progress` for its incomplete ordinary delivery record;
 PR #87 is merged and owner-accepted as B-06's dependency, with no B-05 work or
 review loop active
-**B-06 status:** `in_progress` after repairing the fourth complete-diff
-review's one finding while preserving all eight earlier repairs: campaign
-acquisition/result manifests join the exact D1-D12, qualification-candidate,
-and pure A3-comparison machinery; PRIMARY and WITNESS campaign roles now
-require distinct nominal artifact ID/version identities regardless of digest;
-fresh exact-head CI, a fifth completely fresh final review, approval, merge,
-and closeout remain, and no campaign engine,
-registry mutation,
-scientific/security acceptance, production qualification, or LIVE authority
-exists
+**B-06 status:** `in_progress` with its bounded structural implementation and
+all nine historical review findings repaired. The fifth exact-head review and
+later approvals remain historical evidence for the pre-integration tree;
+under OWNER-DX-03 the current integrated revision requires the applicable
+automated acceptance and normal expected-head merge, not another review or
+approval ceremony. No campaign engine, registry mutation, scientific/security
+acceptance, production qualification, or LIVE authority exists.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -65,6 +68,16 @@ exists
 > prerequisite. This exception grants no scientific, security, production,
 > qualification, network, economic, review, merge, or `LIVE` authority and
 > does not alter delivery governance for any future ticket.
+
+> **B-06 delivery reconciliation under OWNER-DX-03.** The five historical
+> complete-diff reviews found nine actionable defects, all repaired before the
+> current-main integration; exact-head review receipts and approvals for
+> `d0e652a73bbaa78b00073b53c96c6d459a5191cc` remain historical evidence only.
+> OWNER-DX-03 supersedes their use as current merge predicates. B-06 remains
+> `in_progress` until its integrated ready revision passes the applicable
+> automated acceptance and normally merges. B-05 remains `in_progress` with no
+> active work. Scientific, security, qualification, production, and LIVE
+> authority remain human-reserved and unearned.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
@@ -244,13 +257,11 @@ exists
 current authority
 → one ticket / one PR by default
 → working contract and vertical implementation slices
-→ canonical validation
-→ exact-head Merge gate and fresh complete-diff Codex/GPT review
-→ repair valid findings / distinct non-author human approval
-→ GPT review gate / zero unresolved review threads
+→ focused development validation
+→ one applicable ready-revision automated acceptance
+→ required Merge gate
 → normal exact-expected-head merge
-→ reviewed-tree and exact-main verification
-→ external completion receipt / next ready ticket
+→ brief completion confirmation / next ready ticket
 ```
 
 - Sequential by default.
@@ -353,11 +364,10 @@ future ticket, or authorize implementation or launch.
 
 ## Notes
 
-- Do not mark done without exact-head test/file/`Merge gate` evidence, a fresh
-  complete-diff Codex/GPT review, distinct non-author human approval carrying
-  the closed receipt, successful `GPT review gate`, zero unresolved review
-  threads, normal reviewed-tree-preserving merge, exact-main `Merge gate`, and
-  the posted completed external receipt.
+- Do not mark done without applicable ready-revision automated acceptance,
+  successful `Merge gate`, normal exact-expected-head merge, and brief
+  completion confirmation. OWNER-DX-03 requires no review receipt, mandatory
+  human/GPT approval, or post-merge full-CI ceremony.
 - B-01E implementation evidence is recorded in
   `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
   `./scripts/dev/ci.sh` in the canonical Linux environment. On a noncanonical
