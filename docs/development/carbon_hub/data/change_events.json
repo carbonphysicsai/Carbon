@@ -581,6 +581,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E4"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "bug",
+      "event_id": "B-06-E6",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-06's first complete-diff review found three structural defects; the bounded repair makes fixture provenance monotonic, requires exact dossier-to-manifest linkage, and applies the existing campaign size ceiling to serialization and derived digests/refs, while prior CI/review remain stale and fresh delivery review is required.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c341a0ff05c5a9e6ae8d194210fa29b2a13bedf4/.agent/evidence/wave_b/b-06.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E5"
     }
   ]
 }

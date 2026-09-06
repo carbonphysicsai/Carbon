@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 29 map-level change events
+- 30 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-06** (`in_progress`). B-06 is a reconciled final-review candidate with no machine-implementable feature criterion remaining. Exact-head CI, fresh complete-diff review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop.
+Wave **B**, ticket **B-06** (`in_progress`). B-06's first complete-diff review returned B06-CR-001/002/003, now repaired in the bounded candidate. Prior CI/review are stale; repaired exact-head CI and a completely fresh review remain before approval, merge, or closeout. B-05 stays in_progress with no active review loop.
 
 ## Maintain
 

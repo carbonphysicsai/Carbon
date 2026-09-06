@@ -88,7 +88,9 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn(
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
-        self.assertIn("All four substantive structural slices", self.output)
+        self.assertIn(
+            "first complete-diff review found three defects now repaired", self.output
+        )
         self.assertIn("does not prove authorization", self.output)
 
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:

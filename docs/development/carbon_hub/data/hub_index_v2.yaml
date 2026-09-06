@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-06T02:27:41Z"
+  captured_at_utc: "2026-09-06T04:27:32Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "d69b4de9c5dc5033b9c7581fa481f3fdb42b7e64"
+  authority_snapshot_commit: "c341a0ff05c5a9e6ae8d194210fa29b2a13bedf4"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "The hub explains and routes work. Repository authority, tickets, contracts, PRs, decisions, and evidence control the implementation."
@@ -447,7 +447,7 @@ current:
   controlling_register: ".agent/WAVE_B.md"
   controlling_register_version: "1.9"
   controlling_board_fingerprint: "3157519edc39dc79a3f121cca2b29868c6f36dcacc012a5eda17df5885a5b490"
-  stage: "B-06 is a reconciled final-review candidate with no machine-implementable feature criterion remaining. Exact-head CI, fresh complete-diff review, approval, merge, and closeout remain. B-05 stays in_progress with no active review loop."
+  stage: "B-06's first complete-diff review returned B06-CR-001/002/003, now repaired in the bounded candidate. Prior CI/review are stale; repaired exact-head CI and a completely fresh review remain before approval, merge, or closeout. B-05 stays in_progress with no active review loop."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -482,6 +482,7 @@ current:
   next_selected_ticket: null
   fail_closed:
     - "PR #87 is owner-accepted as B-06's merged dependency under a narrow sequencing exception; B-05 remains in_progress because its ordinary delivery predicate is not claimed complete, and the exception changes no future delivery rule."
+    - "B-06's first complete-diff review returned B06-CR-001/002/003; those defects are repaired, but the defective-head CI and review are stale and no closed review receipt exists for the repaired tree."
     - "Dossier completeness, a PASS value, a signer name, signature bytes, or an authorization-evidence link is not verified scientific approval or signer authority."
     - "A matching B-06 qualification candidate means only that represented machine prerequisites match the supplied immutable draft A3 snapshot; it does not verify artifact bytes, authorize a signer, mutate the registry, qualify science or security, or activate LIVE."
     - "Generator_Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated statistical fields grant no acceptance, independence, coverage, or method qualification."
@@ -499,7 +500,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-06 has a reconciled working contract and four natively tested structural slices with no machine-implementable feature criterion remaining. The bounded structural candidate is present, but ticket-level SPECIFIED, IMPLEMENTED, and TESTED remain unearned until delivery completes. Scientific, security, production, qualification, and LIVE states remain unearned."
+  maturity_summary: "B-06 has a reconciled working contract, four structural slices, and bounded repairs for its first complete-diff review findings. Native tests pass, but repaired exact-head CI and a completely fresh review remain; ticket-level SPECIFIED, IMPLEMENTED, and TESTED remain unearned until delivery completes. Scientific, security, production, qualification, and LIVE states remain unearned."
   decision_series_status: "B-06-D0 through B-06-D12 are implemented working decisions under the existing non-gating issue #42 route. They preserve exact identity, upstream boundaries, non-substitution, pending dependence authority, pure A3 comparison, external signer-result separation, and execution-free campaign evidence without granting scientific or lifecycle authority."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -2205,6 +2206,21 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/MATURITY"
     supersedes: "B-06-E4"
+  -
+    map_ref: "WAVE-B/B-06"
+    event_type: "bug"
+    event_id: "B-06-E6"
+    owner_lane: "sciml_technical_lead"
+    status: "implemented"
+    summary: "B-06's first complete-diff review found three structural defects; the bounded repair makes fixture provenance monotonic, requires exact dossier-to-manifest linkage, and applies the existing campaign size ceiling to serialization and derived digests/refs, while prior CI/review remain stale and fresh delivery review is required."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/c341a0ff05c5a9e6ae8d194210fa29b2a13bedf4/.agent/evidence/wave_b/b-06.md"
+    affects:
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-E3"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-06-E5"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

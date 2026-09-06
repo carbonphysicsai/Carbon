@@ -98,9 +98,9 @@
       "title": "Assemble the evidence needed to decide whether an exam is qualified",
       "what": "Create one auditable package that brings together evidence about case generation, reference truth, measurements, uncertainty, attacks, coverage, and limitations.",
       "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
-      "changes": "Four bounded slices now add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests for every required campaign family.",
+      "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. The first complete-diff review's three structural findings are now repaired.",
       "not_yet": "A populated template, compatible evidence mapping, pending dependence field, PASS label, external signer-result flag, matching registry snapshot, signature, or fixture does not prove authorization, scientific or security qualification, production readiness, or LIVE activation.",
-      "current_stage_plain": "B-06 remains active under the owner-directed transition. All four substantive structural slices are reconciled as a final-review candidate; exact-head CI and final review/delivery remain, with scientific and security judgments still human-owned.",
+      "current_stage_plain": "B-06 remains active under the owner-directed transition. Its first complete-diff review found three defects now repaired; prior CI and review are stale, and repaired exact-head CI plus a completely fresh review remain. Scientific and security judgments stay human-owned.",
       "map_ref": "WAVE-B/B-06"
     },
     "B-07R": {
