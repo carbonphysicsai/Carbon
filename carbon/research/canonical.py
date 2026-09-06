@@ -42,7 +42,7 @@ from .model import (
     ServiceCall,
     ServiceReply,
 )
-from .refs import RESEARCH_DOCUMENT_HEADER, RESEARCH_REF_TYPES
+from .refs import RESEARCH_DOCUMENT_HEADER, RESEARCH_REF_TYPES, ResearchTaskId
 
 _TAG_FALSE = 0x01
 _TAG_TRUE = 0x02
@@ -157,6 +157,11 @@ class _UInt64:
     value: int
 
 
+@dataclass(frozen=True, slots=True)
+class _JsonValue:
+    value: object
+
+
 def _text(value: str) -> bytes:
     if type(value) is not str:
         raise CanonicalWireError(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
@@ -189,14 +194,14 @@ def _encode_json(value: object, depth: int) -> bytes:
     if kind is str:
         return _encode_union("TEXT", value, depth)
     if kind is list:
-        return _encode_union("ARRAY", tuple(value), depth)
+        return _encode_union("ARRAY", tuple(_JsonValue(item) for item in value), depth)
     if kind is dict:
         items = list(dict.items(value))
         if any(type(key) is not str for key, _ in items):
             raise CanonicalWireError(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
         items.sort(key=lambda item: item[0].encode("utf-8", errors="strict"))
         members = tuple(
-            _Record("json_member", (("key", key), ("value", child)))
+            _Record("json_member", (("key", key), ("value", _JsonValue(child))))
             for key, child in items
         )
         return _encode_union("OBJECT", members, depth)
@@ -217,6 +222,8 @@ def _record_fields(value: object) -> tuple[tuple[str, object, object], ...]:
         )
     if type(value) is StrategyHash:
         return (("value", value.value, str),)
+    if type(value) is ResearchTaskId:
+        return (("value", value.value, str),)
     hints = get_type_hints(type(value), include_extras=True)
     return tuple(
         (field.name, getattr(value, field.name), hints.get(field.name, object))
@@ -229,6 +236,8 @@ def _record_name(value: object) -> str:
         return "challenge_key"
     if type(value) is StrategyHash:
         return "strategy_hash"
+    if type(value) is ResearchTaskId:
+        return "research_task_id"
     if type(value) is ResearchServiceError:
         return "research_service_error"
     if type(value) is ErrorDetail:
@@ -292,6 +301,8 @@ def _encode(value: object, expected: object, depth: int) -> bytes:
         raise CanonicalWireError(ResearchServiceErrorCode.BOUND_EXCEEDED)
     origin = get_origin(expected)
     args = get_args(expected)
+    if type(value) is _JsonValue:
+        return _encode_json(value.value, depth)
     if origin is Annotated:
         marker = args[1]
         if type(value) is not int:
@@ -368,6 +379,7 @@ def _encode(value: object, expected: object, depth: int) -> bytes:
     if type(value) in WIRE_RECORD_NAMES_BY_TYPE or type(value) in (
         ChallengeKey,
         StrategyHash,
+        ResearchTaskId,
         ErrorDetail,
         ResearchServiceError,
     ):
@@ -391,6 +403,35 @@ def canonical_bytes(value: object) -> bytes:
 
 def canonical_digest(value: object) -> str:
     return f"sha256:{hashlib.sha256(canonical_bytes(value)).hexdigest()}"
+
+
+def _canonical_tuple_payload(values: tuple[object, ...]) -> bytes:
+    """Encode a heterogeneous tuple without a document header.
+
+    B-07S uses this only inside separately domain-prefixed identity preimages.
+    It is intentionally private rather than a second public wire codec.
+    """
+
+    if type(values) is not tuple:
+        raise CanonicalWireError(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
+    return _encode(values, object, 0)
+
+
+def _canonical_record_payload_without(
+    value: object, omitted_fields: frozenset[str]
+) -> bytes:
+    """Encode one exact record with named fields omitted for acyclic hashes."""
+
+    if type(omitted_fields) is not frozenset or any(
+        type(item) is not str for item in omitted_fields
+    ):
+        raise CanonicalWireError(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
+    members = tuple(
+        member for member in _record_fields(value) if member[0] not in omitted_fields
+    )
+    if len(members) + len(omitted_fields) != len(_record_fields(value)):
+        raise CanonicalWireError(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
+    return _encode_record_node(_record_name(value), members, 0)
 
 
 class _Reader:
@@ -581,6 +622,7 @@ def _construct(node: object, expected: object) -> object:
             target = {
                 "challenge_key": ChallengeKey,
                 "strategy_hash": StrategyHash,
+                "research_task_id": ResearchTaskId,
                 "error_detail": ErrorDetail,
                 "research_service_error": ResearchServiceError,
                 **WIRE_RECORD_TYPES_BY_NAME,
@@ -634,7 +676,14 @@ def _construct(node: object, expected: object) -> object:
             )
         return _construct_record(record, expected)
     if (
-        expected in (ChallengeKey, StrategyHash, ErrorDetail, ResearchServiceError)
+        expected
+        in (
+            ChallengeKey,
+            StrategyHash,
+            ResearchTaskId,
+            ErrorDetail,
+            ResearchServiceError,
+        )
         or expected in WIRE_RECORD_NAMES_BY_TYPE
     ):
         if type(node) is not _Record:
@@ -646,12 +695,16 @@ def _construct(node: object, expected: object) -> object:
                 "strategy_hash"
                 if expected is StrategyHash
                 else (
-                    "error_detail"
-                    if expected is ErrorDetail
+                    "research_task_id"
+                    if expected is ResearchTaskId
                     else (
-                        "research_service_error"
-                        if expected is ResearchServiceError
-                        else WIRE_RECORD_NAMES_BY_TYPE[expected]
+                        "error_detail"
+                        if expected is ErrorDetail
+                        else (
+                            "research_service_error"
+                            if expected is ResearchServiceError
+                            else WIRE_RECORD_NAMES_BY_TYPE[expected]
+                        )
                     )
                 )
             )
@@ -665,7 +718,7 @@ def _construct(node: object, expected: object) -> object:
 def _construct_record(node: _Record, target: type[object]) -> object:
     if target is ChallengeKey:
         expected_fields = (("challenge_id", str), ("version", str))
-    elif target is StrategyHash:
+    elif target is StrategyHash or target is ResearchTaskId:
         expected_fields = (("value", str),)
     else:
         hints = get_type_hints(target, include_extras=True)

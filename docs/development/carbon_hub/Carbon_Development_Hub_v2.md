@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `4cbb0cc247dc4b09d5d7be316186c0ca6b668752` on `main`, captured 2026-09-06T19:58:00Z.
-**Current:** Wave B, ticket B-07A. B-07A is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED shared-core and discovery scope. It adds the exact shared v2 vocabulary, ChallengeInfo, the sole InteractionManifest wire resource, immutable historical discovery, and a local two-operation adapter. B-07B is next, todo, and unstarted.
+**Authority snapshot:** `debf3653df6e9370f0b0614971bd32ca9d43df60` on `main`, captured 2026-09-06T22:13:24Z.
+**Current:** Wave B, ticket B-07B. B-07B is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED local lifecycle, private-record, and receipt scope. B-07D1 is next, todo, and unstarted; B-07C remains todo behind B-05's incomplete ordinary delivery record.
 
 ## Wave spine
 
@@ -57,7 +57,7 @@
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
 | [B-07S](explainers/tickets/b_07s.md) | Ratify the exact v2 operation set, wire types, lifecycle, errors, canonicalization, bounds, and local-adapter contract. | done |
 | [B-07A](explainers/tickets/b_07a.md) | Implement shared v2 protocol primitives, InteractionManifest, and public research-capability discovery. | done |
-| [B-07B](explainers/tickets/b_07b.md) | Implement ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, failure retention, and lineage. | todo |
+| [B-07B](explainers/tickets/b_07b.md) | Implement ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, failure retention, and lineage. | done |
 | [B-07C](explainers/tickets/b_07c.md) | Implement mock-only practice tasks, practice packs, scaffold, rehearsal, and paired comparison on common fresh public cases. | todo |
 | [B-07D1](explainers/tickets/b_07d1.md) | Define PriorPack, estimands, exact immutable storage and indexing, receipts, and an offline compatibility projection. | todo |
 | [B-07D2](explainers/tickets/b_07d2.md) | Implement a TEST_ONLY publisher and persistent cumulative-disclosure ledger with publication schemas and negative activation tests. | todo |
@@ -122,6 +122,7 @@
 - `B-E3-E1` — `WAVE-B/B-E3` — B-E3 adds the bounded exact Dossier claim-to-evidence crosswalk, source permitted-use inventory, fail-closed assessment, MMS non-substitution, strict canonical form, and audience-safe report; B-07S remains the next unstarted protocol prerequisite and no scientific or LIVE qualification is created.
 - `B-07S-E1` — `WAVE-B/B-07S` — B-07S ratifies the exact bounded local carbon_research_v2 contract, including closed wire types, deterministic task and prior identities, structural fixture capability separation, and one semantic owner per operation; no runtime or qualification is added.
 - `B-07A-E1` — `WAVE-B/B-07A` — B-07A implements and tests the shared exact carbon_research_v2 nominal core, ChallengeInfo, the sole InteractionManifest wire schema, immutable historical discovery, and a bounded local two-operation adapter; B-07B is next and unstarted while all later operations and qualification remain unavailable.
+- `B-07B-E1` — `WAVE-B/B-07B` — B-07B implements and tests the constructor-bound linearizable local research-task lifecycle, private ExperimentRecords with exact pins and lineage, typed scientific/infrastructure separation, rights-fail-closed retention, and bounded terminal receipts; B-07D1 is next and unstarted while later operations and every qualification remain unavailable.
 
 ## Authority boundary
 

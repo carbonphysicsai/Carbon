@@ -11202,3 +11202,76 @@ prior policy, rights, real identity, signing, credentials, networking,
 economics, production, launch, and LIVE remain unavailable. The required lead
 notification is posted to issue #42; no response is required under
 OWNER-DX-03 unless an explicit block appears.
+
+## 2026-09-07 - B-07B-D1..D6: linearizable local research records
+
+**Ticket:** B-07B
+**Status:** implemented working engineering decisions
+**Implementation:** `carbon/research/lifecycle.py`,
+`carbon/research/records.py`,
+`tests/cpu/test_b07b_research_task_lifecycle.py`, and
+`tests/invariants/test_b07b_research_task_boundaries.py`.
+
+**Problem.** B-07B must implement B-07S's exact task identity, state,
+cancellation, retry, polling, and terminal-receipt rules while retaining
+scientifically meaningful outcomes in private records. It cannot create a
+second wire contract, execute practice semantics owned by B-07C, compose the
+full service owned by B-07G, expose private executor material, or choose the
+human-owned scientific, security, rights, and retention values.
+
+**Agent recommendation and decisions.** Keep the ratified protocol and its
+owner boundaries unchanged:
+
+- **B-07B-D1:** implement one constructor-bound in-memory requester session.
+  One lock linearizes idempotency insertion, revisions, cancellation, poll
+  snapshots, and terminal commit. Inject exact discovery, compilation, prior,
+  resource, queue, and execution owners rather than reproducing their
+  semantics or adding dispatch.
+- **B-07B-D2:** detach each accepted start through the existing canonical
+  codec before resolution. Resolve compilation, active/exact prior, resource
+  class, and contract refs before atomic insertion; retain exact B-02B plans
+  privately and derive paired differences only from their resolved surfaces.
+- **B-07B-D3:** keep `ExperimentRecord` and its evidence context outside the
+  wire registry. Preserve execution identity, lineage, contract pins,
+  resource observations, typed scientific failures, applicability,
+  uncertainty/limitation, population or verification-campaign, censoring, and
+  descriptive quality metadata without assigning an epistemic status. A
+  nonempty quality assessment requires an exact private science-authority
+  identity; otherwise its fields remain absent.
+- **B-07B-D4:** make the receipt a positive allow-list projection. Executors
+  select constructor-owned finding IDs and cannot provide public strings;
+  private aliases, aggregate refs, exception text, cases, and seeds have no
+  receipt field or projection path.
+- **B-07B-D5:** default retention to `LOCAL_PRIVATE_ONLY`. Learned aggregation
+  requires an explicit exact `rights_authorization` identity; no retention
+  duration, consent, security acceptance, or reuse interpretation is inferred.
+- **B-07B-D6:** repair the shared codec only where lifecycle testing exposed
+  implementation lag: recursively tagged Strategy JSON now round-trips and
+  `ResearchTaskId` is encoded/decoded as the already-ratified exact nominal.
+  No wire field, order, enum, operation, namespace, or manifest changes.
+
+**Alternatives rejected.** Poll-driven work, best-effort races, task-per-retry,
+mutable/latest refs, caller-selected evidence classes, raw executor findings,
+private-record wire aliases, default `experimentally_supported`, MMS relabeling,
+or implicit reuse permission would violate the exact protocol or transfer
+reserved authority. Importing B-07C execution or B-07G dispatch would duplicate
+their owners.
+
+**Affected interfaces and invariants.** The decisions implement the existing
+`ResearchTaskProvider` behind its three methods, add a trusted worker entry
+point and private record retrieval, and preserve INV-004, INV-008, INV-012,
+INV-013, INV-016, INV-017, and INV-019. The official v1 service, Score Pack,
+leaderboard, frontier, weights, emissions, and settlement remain unchanged.
+
+**Reversibility and migration.** Provider/storage placement can change while
+preserving exact task and receipt bytes. Any wire/state/identity/cancellation/
+polling change requires a new B-07S protocol version. Evidence or retention
+promotion requires the named human owner and a prospective migration; existing
+private records and terminal receipts stay immutable.
+
+**Human-reserved input.** None is required for this bounded local engineering
+implementation. Scientific interpretation and qualification, security
+acceptance, rights/reuse permission, retention periods, real identity, remote
+transport, official submission/scoring, economics, production, launch, and
+LIVE remain unavailable and fail closed. The lead notification is posted to
+issue #42; development continues under OWNER-DX-03 unless explicitly blocked.

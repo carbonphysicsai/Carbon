@@ -9,13 +9,13 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.4
-**Selected ticket:** B-07A — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 2.5
+**Selected ticket:** B-07B — `done`
 **Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
 shipping predicate
-**Next selected ticket:** `B-07B`
-**Next eligible status:** B-07B is `todo` and unstarted; B-07A authorizes no
-task-lifecycle implementation
+**Next selected ticket:** `B-07D1`
+**Next eligible status:** B-07D1 is `todo` and unstarted; B-07B authorizes no
+prior publication/provider implementation
 **Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while
 preserving B-05's incomplete historical delivery state; PR #88 completes B-06,
 and its completion note selects B-E3. OWNER-DX-03 controls engineering delivery.
@@ -47,8 +47,11 @@ protocol but implements no B-07 runtime and grants no qualification.
 **B-07A status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,
 only for the shared v2 core, discovery resources, and local two-operation
 adapter.
-**B-07B status:** `todo` and unstarted; it is the next eligible ticket after
-the B-07A shipping predicate.
+**B-07B status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,
+only for the local task lifecycle, private records, and bounded receipts.
+**B-07D1 status:** `todo` and unstarted; it is the next eligible ticket after
+the B-07B shipping predicate. B-07C remains todo behind B-05's incomplete
+ordinary delivery record.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -116,6 +119,18 @@ the B-07A shipping predicate.
 > dispatcher, task lifecycle, downstream providers/stores, practice, prior,
 > resources, network, credentials, qualification, production, and LIVE remain
 > unavailable or assigned to later tickets.
+
+> **B-07B conditional closeout and B-07D1 transition under OWNER-DX-03.** This
+> shipping snapshot implements the constructor-bound local research-task
+> lifecycle, private `ExperimentRecord` handling, and exact bounded terminal
+> receipts behind B-07A's shared types. Its bounded `done` state and B-07D1
+> `todo` next-selection become authoritative only after the unchanged ready
+> revision passes applicable automated acceptance and `Merge gate` and normally
+> merges with the expected-head guard. B-07C remains todo because B-05's
+> ordinary delivery record is incomplete. Scientific interpretation, security
+> acceptance, rights/reuse permission, external identity/transport, official
+> scoring, later provider/dispatcher work, production, and LIVE remain
+> unavailable or human-owned.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

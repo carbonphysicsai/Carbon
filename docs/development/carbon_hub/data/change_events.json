@@ -782,6 +782,34 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07B",
+      "event_type": "evidence",
+      "event_id": "B-07B-E1",
+      "owner_lane": "protocol_lead",
+      "status": "closed",
+      "summary": "B-07B implements and tests the constructor-bound linearizable local research-task lifecycle, private ExperimentRecords with exact pins and lineage, typed scientific/infrastructure separation, rights-fail-closed retention, and bounded terminal receipts; B-07D1 is next and unstarted while later operations and every qualification remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/93",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }
