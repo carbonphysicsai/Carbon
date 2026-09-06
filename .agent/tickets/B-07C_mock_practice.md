@@ -1,8 +1,9 @@
 # Ticket B-07C - Nominal mock and practice execution
 
 **Wave:** B candidate
-**Status:** `in_progress`; this candidate prepares fixture-only `done` after
-applicable OWNER-DX-03 acceptance and normal merge
+**Status:** `in_progress`
+**Conditional target:** fixture-only `done` after this candidate passes
+applicable OWNER-DX-03 acceptance and normally merges
 **Depends on:** B-02C, B-03, B-05, B-07A, B-07B, B-07S, A4, A8, A9
 **Build Out:** C9/C11 mock/practice lane
 **Master questions:** MQ-002, MQ-003, MQ-004, MQ-005, MQ-015, MQ-016

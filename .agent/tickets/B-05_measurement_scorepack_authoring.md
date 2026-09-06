@@ -1,8 +1,9 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`; this combined B-05/B-07C candidate prepares bounded
-`done` after applicable OWNER-DX-03 acceptance and normal merge
+**Status:** `in_progress`
+**Conditional target:** bounded `done` after the combined B-05/B-07C candidate
+passes applicable OWNER-DX-03 acceptance and normally merges
 **Current phase:** current implementation reverified; delivery reconciliation
 is conditional on the combined candidate's acceptance and merge
 **Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
