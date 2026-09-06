@@ -637,6 +637,19 @@ def _validate_semantics(value: _ExactRecord) -> None:
                 binding.training_sampling_policy_ref,
                 binding.resolved_plan_ref,
             )
+        expected_roles = {
+            ResearchTaskKind.RECONSTRUCTION_REHEARSAL: (StrategyTaskRole.PRIMARY,),
+            ResearchTaskKind.PRACTICE: (StrategyTaskRole.PRIMARY,),
+            ResearchTaskKind.PAIRED_PRACTICE: (
+                StrategyTaskRole.BASELINE,
+                StrategyTaskRole.INTERVENTION,
+            ),
+            ResearchTaskKind.RESOURCE_CALIBRATION: (StrategyTaskRole.PRIMARY,),
+        }[value.task_kind]
+        if tuple(binding.role for binding in value.strategy_bindings) != expected_roles:
+            raise ValueError("strategy binding roles conflict with the task kind")
+        if (value.prior_index_snapshot_ref is None) != (value.prior_pack_ref is None):
+            raise ValueError("prior index and pack refs must be present together")
     elif type(value) is PriorPack:
         if len(value.items) > 256:
             raise ValueError("PriorPack exceeds the v2 item bound")
@@ -675,6 +688,48 @@ def _validate_semantics(value: _ExactRecord) -> None:
     elif type(value) is ResearchReceipt:
         if len(value.public_findings) > 256 or len(value.limitations) > 64:
             raise ValueError("research receipt exceeds the v2 item bound")
+        if value.receipt_ref.task_id != value.task_id:
+            raise ValueError("research receipt ref binds a different task")
+        if value.terminal_state is ResearchTaskState.SUCCEEDED:
+            if value.infrastructure_failure_class is not None:
+                raise ValueError(
+                    "successful receipt cannot carry infrastructure failure"
+                )
+        elif value.terminal_state is ResearchTaskState.FAILED_INFRA:
+            if value.public_findings or value.infrastructure_failure_class is None:
+                raise ValueError("infrastructure receipt fields are inconsistent")
+        elif value.terminal_state is ResearchTaskState.CANCELLED:
+            if value.public_findings or value.infrastructure_failure_class is not None:
+                raise ValueError("cancelled receipt fields are inconsistent")
+        else:
+            raise ValueError("research receipt requires a terminal state")
+    elif type(value) is ResearchTaskView:
+        if (
+            value.challenge_key
+            != value.immutable_bindings.challenge_info_ref.challenge_key
+        ):
+            raise ValueError("task view Challenge conflicts with immutable bindings")
+        if value.updated_at_micros < value.created_at_micros:
+            raise ValueError("task timestamps must be nondecreasing")
+        terminal = value.state in {
+            ResearchTaskState.SUCCEEDED,
+            ResearchTaskState.FAILED_INFRA,
+            ResearchTaskState.CANCELLED,
+        }
+        if terminal != (value.terminal_receipt is not None):
+            raise ValueError("task terminal state and receipt presence disagree")
+        if value.terminal_receipt is not None and (
+            value.terminal_receipt.task_id != value.task_id
+            or value.terminal_receipt.terminal_state is not value.state
+            or value.terminal_receipt.immutable_bindings != value.immutable_bindings
+        ):
+            raise ValueError("task terminal receipt conflicts with the view")
+        if value.terminal_receipt is not None and not (
+            value.created_at_micros
+            <= value.terminal_receipt.completed_at_micros
+            <= value.updated_at_micros
+        ):
+            raise ValueError("terminal receipt time conflicts with task timestamps")
     elif type(value) in (
         DryValidationResult,
         CompileStrategyResult,

@@ -8,12 +8,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -626,6 +625,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_package_installation.py",
+            "test_import_b07b_module",
+            "importlib.import_module",
+            "module_name",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(
@@ -652,12 +657,22 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
         "B04_MODULES",
     )
+    b07a_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B07A_MODULES",
+    )
+    b07b_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B07B_MODULES",
+    )
     assert isinstance(builtin_adapters, dict)
     assert isinstance(role_packages, tuple)
     assert isinstance(b02b_modules, tuple)
     assert isinstance(b02c_modules, tuple)
     assert isinstance(b03_modules, tuple)
     assert isinstance(b04_modules, tuple)
+    assert isinstance(b07a_modules, tuple)
+    assert isinstance(b07b_modules, tuple)
     reviewed_dynamic_targets = {
         *builtin_adapters.values(),
         *role_packages,
@@ -665,6 +680,8 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         *b02c_modules,
         *b03_modules,
         *b04_modules,
+        *b07a_modules,
+        *b07b_modules,
     }
     assert not any(
         _matches_namespace(module, retired) for module in reviewed_dynamic_targets
