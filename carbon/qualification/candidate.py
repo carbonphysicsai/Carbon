@@ -34,6 +34,7 @@ from .enums import (
     ArtifactCurrentness,
     DossierSlot,
     EvidenceCompleteness,
+    EvidenceRequirement,
     QualificationArtifactKind,
     QualificationCandidateState,
     QualificationMismatchReason,
@@ -162,6 +163,7 @@ def _copy_dossier_ref(value: object, challenge: ChallengeKey, path: str):
         item.dossier_id,
         item.dossier_version,
         item.content_digest,
+        item.origin,
         item.schema_version,
         item.canonicalization_profile,
     )
@@ -479,6 +481,8 @@ class QualificationManifestCandidate(_ProtectedRecord):
         ):
             raise _invalid("/schema_version")
         dossier = _copy_dossier_ref(self.dossier_ref, challenge, "/dossier_ref")
+        if self.dossier_origin is not dossier.origin:
+            raise _invalid("/dossier_origin", DossierInputCode.ROLE_CONFUSION)
         physical = _copy_top(
             self.physical_system_ref,
             PhysicalSystemSpecRef,
@@ -635,6 +639,8 @@ class QualificationManifestCandidate(_ProtectedRecord):
             object_version: str,
             content_digest: str,
             path: str,
+            *,
+            origin: StructuralOrigin | None = None,
         ) -> None:
             matches = tuple(
                 item
@@ -643,6 +649,7 @@ class QualificationManifestCandidate(_ProtectedRecord):
                 and (object_id is None or item.object_id == object_id)
                 and item.object_version == object_version
                 and item.content_digest == content_digest
+                and (origin is None or item.origin is origin)
             )
             if len(matches) != 1:
                 raise _invalid(path, DossierInputCode.MISSING_EVIDENCE)
@@ -654,6 +661,7 @@ class QualificationManifestCandidate(_ProtectedRecord):
             dossier.dossier_version,
             dossier.content_digest,
             "/artifact_set/dossier",
+            origin=dossier.origin,
         )
         core_refs = (
             (QualificationArtifactKind.PHYSICAL_SYSTEM_SPEC, physical),
@@ -687,6 +695,7 @@ class QualificationManifestCandidate(_ProtectedRecord):
                 representation.rationale_ref.evidence_version,
                 representation.rationale_ref.content_digest,
                 "/artifact_set/representation/rationale",
+                origin=representation.rationale_ref.origin,
             )
         for index, ref in enumerate(measurements):
             require_artifact(
@@ -705,6 +714,7 @@ class QualificationManifestCandidate(_ProtectedRecord):
                     ref.manifest_version,
                     ref.content_digest,
                     f"/artifact_set/evidence/{index}",
+                    origin=ref.origin,
                 )
         signer_kind = {
             SignerArtifactKind.SIGNER_IDENTITY: QualificationArtifactKind.SIGNER_IDENTITY,
@@ -726,6 +736,7 @@ class QualificationManifestCandidate(_ProtectedRecord):
                         ref.artifact_version,
                         ref.content_digest,
                         f"/artifact_set/signers/{signer_index}/{name}",
+                        origin=ref.origin,
                     )
         if used_artifacts != artifact_ids:
             raise _invalid("/artifact_set", DossierInputCode.ROLE_CONFUSION)
@@ -1009,7 +1020,7 @@ def build_qualification_manifest_candidate(
     """Construct one exact candidate from current B-06 dossier/evidence objects."""
     from .canonical import dossier_ref
     from .evidence import DossierEvidenceManifest
-    from .evidence_canonical import evidence_manifest_ref
+    from .evidence_canonical import dossier_evidence_ref, evidence_manifest_ref
 
     value = _exact(dossier, ValidationDossier, "/dossier")
     challenge = value.challenge_key
@@ -1025,6 +1036,18 @@ def build_qualification_manifest_candidate(
         raise _invalid("/evidence_manifests", DossierInputCode.SLOT_MISMATCH)
     if any(item.challenge_key != challenge for item in manifests):
         raise _invalid("/evidence_manifests", DossierInputCode.CROSS_CHALLENGE)
+    for index, (section, item) in enumerate(
+        zip(value.sections, manifests, strict=True)
+    ):
+        if (
+            section.requirement is EvidenceRequirement.REQUIRED
+            and section.completeness is EvidenceCompleteness.COMPLETE_REFERENCED
+            and dossier_evidence_ref(item) not in section.evidence_refs
+        ):
+            raise _invalid(
+                f"/dossier/sections/{index}/evidence_refs",
+                DossierInputCode.MISSING_EVIDENCE,
+            )
     if any(item.subject_bindings is None for item in manifests):
         raise _invalid("/evidence_manifests", DossierInputCode.MISSING_EVIDENCE)
     currentness = (
@@ -1103,6 +1126,7 @@ def build_qualification_manifest_candidate(
             for item in value.signer_bindings
         )
     )
+    exact_dossier_ref = dossier_ref(value)
     return QualificationManifestCandidate(
         challenge,
         candidate_id,
@@ -1112,9 +1136,9 @@ def build_qualification_manifest_candidate(
             if shape_complete
             else QualificationCandidateState.INCOMPLETE
         ),
-        dossier_ref(value),
+        exact_dossier_ref,
         dossier_completeness(value),
-        value.origin,
+        exact_dossier_ref.origin,
         dossier_currentness,
         d1.physical_system_ref,
         d2.claim_scope_ref,

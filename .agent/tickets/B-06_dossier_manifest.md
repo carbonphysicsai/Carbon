@@ -70,7 +70,7 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 
 Scientific, statistics, security, launch, and independent-review owners produce and sign the required evidence. Agents never set pass/fail.
 
-## Final-review candidate checkpoint
+## First-review repair checkpoint
 
 Slices 1 through 4 are implemented on the B-06 ticket branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
@@ -97,10 +97,16 @@ threshold, computed interval, winner selection, scientific verdict, or
 qualification path. Unusable, fixture, placeholder, stale, or failed records
 cannot satisfy the dossier boundary.
 
-The end-to-end reconciliation records no remaining machine-implementable B-06
-feature criterion. This is still not ticket completion: exact-head checks,
-fresh complete-diff review, approval, merge, and closeout remain future B-06
-delivery work. Real signer authorization
+The first fresh complete-diff review returned `FINDINGS` for three
+machine-implementable defects. `B06-CR-001` repairs recursive fixture-origin
+projection through references, supersession, candidates, and artifacts.
+`B06-CR-002` requires every required complete D1-D12 section to cite the exact
+primary ref derived from its supplied typed manifest. `B06-CR-003` applies the
+existing campaign document ceiling to encoders and therefore digest/ref
+helpers. The prior exact-head CI and review are stale for the repaired tree;
+fresh exact-head CI and a completely fresh complete-diff review remain
+required. This is still not ticket completion: approval, merge, and closeout
+remain future B-06 delivery work. Real signer authorization
 and signature verification remain external and human/security-owned.
 `Generator_Validation.md` v2.1 dependence
 policy and the corresponding scientific-canon v4.1 additions remain pending

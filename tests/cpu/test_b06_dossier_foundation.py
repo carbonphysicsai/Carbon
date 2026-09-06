@@ -354,6 +354,7 @@ def test_supersession_is_same_challenge_dossier_and_different_version() -> None:
         prior.dossier_id,
         prior.dossier_version,
         prior.content_digest,
+        prior.origin,
     )
     with pytest.raises(qualification.DossierValidationError) as caught:
         dossier(version="1.1", supersedes=wrong_challenge)
@@ -363,6 +364,10 @@ def test_supersession_is_same_challenge_dossier_and_different_version() -> None:
 def test_fixture_origin_propagates_without_qualification() -> None:
     value = dossier(fixture_slot=qualification.DossierSlot.D6)
     assert value.fixture_derived is True
+    assert (
+        qualification.dossier_ref(value).origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
     assert not any(
         name in qualification.__all__
         for name in (
@@ -374,3 +379,20 @@ def test_fixture_origin_propagates_without_qualification() -> None:
         )
     )
     assert qualification.QualificationManifestCandidate is not None
+
+
+def test_fixture_dossier_supersession_cannot_cleanse_origin() -> None:
+    predecessor = qualification.dossier_ref(
+        dossier(fixture_slot=qualification.DossierSlot.D6)
+    )
+    assert predecessor.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    successor = dossier(version="2.0", supersedes=predecessor)
+    assert successor.fixture_derived
+    assert (
+        qualification.load_canonical_document(qualification.canonical_bytes(successor))
+        == successor
+    )
+    assert (
+        qualification.dossier_ref(successor).origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )

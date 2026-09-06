@@ -148,6 +148,7 @@ def _dossier_ref_to_dict(value: ValidationDossierRef) -> dict[str, object]:
         "content_digest": value.content_digest,
         "dossier_id": value.dossier_id,
         "dossier_version": value.dossier_version,
+        "origin": value.origin.value,
         "ref_type": value.ref_type,
         "schema_version": value.schema_version,
     }
@@ -162,6 +163,7 @@ def _dossier_ref_from_dict(value: object, path: str) -> ValidationDossierRef:
             "content_digest",
             "dossier_id",
             "dossier_version",
+            "origin",
             "ref_type",
             "schema_version",
         },
@@ -175,6 +177,7 @@ def _dossier_ref_from_dict(value: object, path: str) -> ValidationDossierRef:
             fields["dossier_id"],
             fields["dossier_version"],
             fields["content_digest"],
+            StructuralOrigin(fields["origin"]),
             fields["schema_version"],
             fields["canonicalization_profile"],
         )
@@ -345,6 +348,7 @@ def dossier_ref(value: ValidationDossier) -> ValidationDossierRef:
         value.dossier_id,
         value.dossier_version,
         canonical_digest(value),
+        (StructuralOrigin.FIXTURE_ONLY if value.fixture_derived else value.origin),
         value.schema_version,
         value.canonicalization_profile,
     )

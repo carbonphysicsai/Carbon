@@ -1,8 +1,8 @@
 # B-06 plan — Validation Dossier and qualification manifest
 
 **Ticket:** B-06
-**Status:** complete candidate reconciled and prepared for final review; final
-review not yet started
+**Status:** first complete-diff review returned three findings; bounded repairs
+implemented locally and fresh exact-head CI/review required
 **Branch:** `agent/b-06-dossier-manifest`
 **Worktree:** dedicated worktree; absolute host path intentionally not tracked
 **Exact starting main:** `2500e51042f39a31f5056c74ce2ac5065657ec2a`
@@ -66,6 +66,11 @@ failure changes the B-06 structural dependency.
   dossier evidence, and no outcome self-qualifies.
 - **B-06-D12:** use one closed, separately canonicalized acquisition/result
   manifest architecture with family-specific roles and no execution seam.
+
+The first final review added no new delegated policy decision. Its three
+repairs enforce the existing B-06-D1/D2/D3/D6/D8/D12 invariants: monotonic
+fixture provenance, one exact dossier/evidence graph, and symmetric canonical
+size acceptance.
 
 These are reversible engineering decisions within the active ticket. Notify
 issue #42 mentioning `@harshaa765`; development continues without waiting for
@@ -239,6 +244,25 @@ diff-hygiene defect: Markdown hard-break trailing spaces in three new tracked
 documents. Those spaces were removed without semantic change. This phase did
 not expand into B-E1, B-07F, or new scope.
 
+### Review repair — B06-CR-001 through B06-CR-003
+
+The first fresh complete-diff review at defective tree
+`f765d9408e38373defaf51aa89780a91bbc6ea47` returned `FINDINGS`. The repair:
+
+- projects recursive fixture origin through evidence-manifest, dossier-
+  evidence, and dossier refs; makes dossier predecessor origin canonical; and
+  requires candidate artifact origins to agree with their derived refs;
+- derives the exact primary ref from every supplied typed D1-D12 manifest and
+  requires it in the corresponding required complete dossier section; and
+- applies the existing 2 MiB campaign document ceiling to acquisition and
+  manifest encoders, so digest/ref helpers fail closed too.
+
+The unmerged v1 schemas are corrected in place under B-06-D1's explicit
+pre-persistence rule. This creates no migration and no second provenance or
+registry system. The prior exact-head CI and review are stale after the repair.
+Fresh exact-head CI and a completely fresh complete-diff review remain
+`FINAL_REVIEW_REQUIRED`; no human approval or closed review receipt exists.
+
 ### Complete-candidate reconciliation
 
 | Source / requirement | Intended and actual candidate behavior | Tests / evidence | Maturity | Result |
@@ -365,6 +389,31 @@ the tree; it is not validation evidence for the final tree. Counts are per
 overlapping invocation, not a summed unique-test total. Native results remain
 diagnostic. No canonical Docker run or complete-diff review occurs at this
 checkpoint.
+
+Review-repair native validation on the repaired working tree:
+
+```text
+B-06 dossier/evidence/candidate/campaign plus qualification-boundary focus:
+123 passed in 0.98s
+
+complete native CPU lane:
+4064 passed, 2 skipped in 863.52s
+
+complete native invariant lane:
+97 passed in 7.88s
+
+Ruff 0.16.3 and Black 26.5.1 on all 12 touched Python files:
+passed
+
+compileall, RUNTIME_FULL classification, quality ratchet, delivery hygiene,
+complete-range diff hygiene, and git diff --check:
+passed
+```
+
+The single repaired-tree canonical-wrapper attempt exited 2 because Docker or
+the Carbon Dev Container remains unavailable. It was not retried. Native test
+counts are overlapping invocations and are not summed. Canonical acceptance
+must come from the new exact-head GitHub workflow.
 
 ## 5. Hub and commit shape
 

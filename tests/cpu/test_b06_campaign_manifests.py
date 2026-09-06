@@ -17,6 +17,7 @@ from carbon.authoring.refs import (
 )
 from carbon.measurement.enums import MeasurementDefinitionKind
 from carbon.measurement.refs import MeasurementContractRef, MeasurementDefinitionRef
+from carbon.qualification import campaign_canonical
 from carbon.registry import ChallengeKey
 
 DIGESTS = tuple("sha256:" + char * 64 for char in "abcdefghijklmnop")
@@ -606,6 +607,76 @@ def test_campaign_canonical_ordering_tamper_trailing_duplicate_and_oversize_reje
             + b" " * qualification.MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES
         )
     assert oversized.value.code is qualification.DossierInputCode.SIZE_LIMIT
+
+
+def test_campaign_encoders_and_digest_ref_helpers_enforce_exact_size_bound(
+    monkeypatch,
+) -> None:
+    value = manifest(qualification.CampaignFamily.MMS_REFINEMENT_OBSERVED_ORDER)
+    acquisition_document = qualification.campaign_acquisition_bytes(value.acquisition)
+    manifest_document = qualification.campaign_manifest_bytes(value)
+
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(acquisition_document) + 1,
+    )
+    assert qualification.campaign_acquisition_bytes(value.acquisition) == (
+        acquisition_document
+    )
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(acquisition_document),
+    )
+    assert qualification.campaign_acquisition_digest(value.acquisition).startswith(
+        "sha256:"
+    )
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(acquisition_document) - 1,
+    )
+    for operation in (
+        lambda: qualification.campaign_acquisition_bytes(value.acquisition),
+        lambda: qualification.campaign_acquisition_digest(value.acquisition),
+    ):
+        with pytest.raises(qualification.DossierCanonicalError) as oversized:
+            operation()
+        assert oversized.value.code is qualification.DossierInputCode.SIZE_LIMIT
+
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(manifest_document) + 1,
+    )
+    assert qualification.campaign_manifest_bytes(value) == manifest_document
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(manifest_document),
+    )
+    assert qualification.campaign_manifest_digest(value).startswith("sha256:")
+    assert qualification.campaign_manifest_ref(value).content_digest.startswith(
+        "sha256:"
+    )
+    assert qualification.campaign_evidence_ref(value).content_digest.startswith(
+        "sha256:"
+    )
+    monkeypatch.setattr(
+        campaign_canonical,
+        "MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES",
+        len(manifest_document) - 1,
+    )
+    for operation in (
+        lambda: qualification.campaign_manifest_bytes(value),
+        lambda: qualification.campaign_manifest_digest(value),
+        lambda: qualification.campaign_manifest_ref(value),
+        lambda: qualification.campaign_evidence_ref(value),
+    ):
+        with pytest.raises(qualification.DossierCanonicalError) as oversized:
+            operation()
+        assert oversized.value.code is qualification.DossierInputCode.SIZE_LIMIT
 
 
 def test_wrong_family_result_status_and_wrong_acquisition_digest_reject() -> None:

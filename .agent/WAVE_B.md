@@ -252,6 +252,10 @@ predicate and selected B-05 from exact main `f1a429de…`. PR #87 then merged
 B-05 at the exact main/tree recorded above. B-06-D0 applies the owner's narrow
 advancement exception: B-05 retains an incomplete `in_progress` delivery
 record with no active work, while B-06 is selected `in_progress`.
+B-06's first fresh complete-diff review returned three findings. Their bounded
+repair preserves the selection and status: prior exact-head CI/review are stale,
+and repaired exact-head CI plus a completely fresh complete-diff review remain
+required before any approval, merge, or closeout.
 B-01G blocks neither transition. B-02C owns the resource-policy prerequisite; B-07E only
 inspects or forecasts against it. B-07A
 implements the ratified shared v2 nominal primitives once; downstream domain

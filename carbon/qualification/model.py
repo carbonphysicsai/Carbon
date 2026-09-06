@@ -328,6 +328,7 @@ class ValidationDossier:
                 predecessor.dossier_id,
                 predecessor.dossier_version,
                 predecessor.content_digest,
+                predecessor.origin,
                 predecessor.schema_version,
                 predecessor.canonicalization_profile,
             )
@@ -344,6 +345,10 @@ class ValidationDossier:
             self.origin is StructuralOrigin.FIXTURE_ONLY
             or any(section.fixture_derived for section in self.sections)
             or any(binding.fixture_derived for binding in self.signer_bindings)
+            or (
+                self.supersedes is not None
+                and self.supersedes.origin is StructuralOrigin.FIXTURE_ONLY
+            )
         )
 
 

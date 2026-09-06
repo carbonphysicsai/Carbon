@@ -424,9 +424,12 @@ def campaign_acquisition_payload(
 
 
 def campaign_acquisition_bytes(value: CampaignAcquisitionManifest) -> bytes:
-    return CAMPAIGN_ACQUISITION_DOCUMENT_HEADER + _json_bytes(
+    document = CAMPAIGN_ACQUISITION_DOCUMENT_HEADER + _json_bytes(
         campaign_acquisition_payload(value), "/acquisition"
     )
+    if len(document) > MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES:
+        raise _wrong("/acquisition", DossierInputCode.SIZE_LIMIT)
+    return document
 
 
 def campaign_acquisition_digest(value: CampaignAcquisitionManifest) -> str:
@@ -632,9 +635,12 @@ def campaign_manifest_payload(value: CampaignEvidenceManifest) -> dict[str, obje
 
 
 def campaign_manifest_bytes(value: CampaignEvidenceManifest) -> bytes:
-    return CAMPAIGN_MANIFEST_DOCUMENT_HEADER + _json_bytes(
+    document = CAMPAIGN_MANIFEST_DOCUMENT_HEADER + _json_bytes(
         campaign_manifest_payload(value), "/manifest"
     )
+    if len(document) > MAX_CAMPAIGN_MANIFEST_DOCUMENT_BYTES:
+        raise _wrong("/manifest", DossierInputCode.SIZE_LIMIT)
+    return document
 
 
 def campaign_manifest_digest(value: CampaignEvidenceManifest) -> str:

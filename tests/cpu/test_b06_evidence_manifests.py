@@ -615,6 +615,11 @@ def test_fixture_propagation_and_supersession_cannot_cleanse_origin() -> None:
     )
     assert value.fixture_derived
     predecessor = qualification.evidence_manifest_ref(value)
+    assert predecessor.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    assert (
+        qualification.dossier_evidence_ref(value).origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
     successor = manifest(
         qualification.DossierSlot.D11,
         origin=qualification.StructuralOrigin.REGISTERED_REFERENCE,
@@ -623,6 +628,17 @@ def test_fixture_propagation_and_supersession_cannot_cleanse_origin() -> None:
     )
     assert successor.supersedes == predecessor
     assert successor.fixture_derived
+    encoded = qualification.evidence_manifest_bytes(successor)
+    loaded = qualification.load_evidence_manifest(encoded)
+    assert loaded == successor
+    assert (
+        qualification.evidence_manifest_ref(loaded).origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
+    assert (
+        qualification.dossier_evidence_ref(loaded).origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
     with pytest.raises(qualification.DossierValidationError):
         replace(successor, manifest_version="1.0")
 

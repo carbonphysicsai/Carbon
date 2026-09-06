@@ -193,12 +193,15 @@ class ValidationDossierRef(_ProtectedRef):
     dossier_id: str
     dossier_version: str
     content_digest: str
+    origin: StructuralOrigin
     schema_version: str = DOSSIER_SCHEMA_VERSION
     canonicalization_profile: str = DOSSIER_CANONICALIZATION_PROFILE
 
     def __post_init__(self) -> None:
         if type(self) is not ValidationDossierRef:
             raise _invalid("/ref_type", DossierInputCode.WRONG_TYPE)
+        if type(self.origin) is not StructuralOrigin:
+            raise _invalid("/origin", DossierInputCode.WRONG_TYPE)
         schema, profile = _profile(self.schema_version, self.canonicalization_profile)
         object.__setattr__(self, "challenge_key", _challenge(self.challenge_key))
         object.__setattr__(

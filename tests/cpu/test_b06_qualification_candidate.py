@@ -16,10 +16,10 @@ from carbon.registry import (
     QualificationEvidence,
     QualificationManifest,
 )
-from tests.cpu.test_b06_dossier_foundation import complete_sections
 from tests.cpu.test_b06_evidence_manifests import manifest
 
 DIGESTS = tuple(f"sha256:{character * 64}" for character in "abcdef0123456789")
+CANDIDATE_CHALLENGE = ChallengeKey("qualification-candidate", "1.0")
 
 
 def signer_ref(challenge, role, kind, suffix):
@@ -64,6 +64,7 @@ def populated_signers(challenge):
 
 
 def artifact(challenge, artifact_id, kind, ref=None, *, digest=None):
+    origin = qualification.StructuralOrigin.REGISTERED_REFERENCE
     if ref is None:
         object_id = artifact_id
         object_version = "1.0"
@@ -76,14 +77,17 @@ def artifact(challenge, artifact_id, kind, ref=None, *, digest=None):
         object_id = ref.dossier_id
         object_version = ref.dossier_version
         content_digest = ref.content_digest
+        origin = ref.origin
     elif type(ref) is qualification.DossierEvidenceManifestRef:
         object_id = ref.manifest_id
         object_version = ref.manifest_version
         content_digest = ref.content_digest
+        origin = ref.origin
     elif type(ref) is qualification.SignerArtifactRef:
         object_id = ref.artifact_id
         object_version = ref.artifact_version
         content_digest = ref.content_digest
+        origin = ref.origin
     else:
         object_id = ref.object_id
         object_version = ref.object_version
@@ -95,23 +99,40 @@ def artifact(challenge, artifact_id, kind, ref=None, *, digest=None):
         object_id,
         object_version,
         content_digest,
-        qualification.StructuralOrigin.REGISTERED_REFERENCE,
+        origin,
     )
 
 
-def candidate_fixture(*, include_inputs=False):
-    challenge = ChallengeKey("qualification-candidate", "1.0")
-    signers = populated_signers(challenge)
+def candidate_fixture(
+    *,
+    include_inputs=False,
+    manifests_override=None,
+    signers_override=None,
+    dossier_supersedes=None,
+):
+    challenge = CANDIDATE_CHALLENGE
+    signers = signers_override or populated_signers(challenge)
+    manifests = manifests_override or tuple(
+        manifest(slot, challenge=challenge) for slot in qualification.DOSSIER_SLOT_ORDER
+    )
     dossier = qualification.ValidationDossier(
         challenge,
         "validation-dossier",
-        "1.0",
-        complete_sections(challenge),
+        "2.0" if dossier_supersedes is not None else "1.0",
+        tuple(
+            qualification.DossierSection(
+                challenge,
+                item.slot,
+                qualification.EvidenceRequirement.REQUIRED,
+                qualification.EvidenceCompleteness.COMPLETE_REFERENCED,
+                qualification.EvidenceSectionStatus.PASS,
+                (qualification.dossier_evidence_ref(item),),
+            )
+            for item in manifests
+        ),
         signers,
         qualification.StructuralOrigin.REGISTERED_REFERENCE,
-    )
-    manifests = tuple(
-        manifest(slot, challenge=challenge) for slot in qualification.DOSSIER_SLOT_ORDER
+        dossier_supersedes,
     )
     subjects = manifests[0].subject_bindings
     assert subjects is not None
@@ -290,6 +311,90 @@ def compare(candidate, record, authorizations):
     )
 
 
+def rebuild_candidate(candidate, dossier, manifests, artifact_set, slot_bindings):
+    return qualification.build_qualification_manifest_candidate(
+        candidate_id=candidate.candidate_id,
+        candidate_version=candidate.candidate_version,
+        dossier=dossier,
+        evidence_manifests=manifests,
+        artifact_set=artifact_set,
+        registry_slot_bindings=slot_bindings,
+        expected_registry_qualification_digest=candidate.expected_registry_qualification_digest,
+    )
+
+
+def fixture_derived_manifest(path):
+    slot = (
+        qualification.DossierSlot.D4
+        if path == "accounting_attempt"
+        else qualification.DossierSlot.D1
+    )
+    value = manifest(slot, challenge=CANDIDATE_CHALLENGE)
+    if path == "outer_origin":
+        return replace(value, origin=qualification.StructuralOrigin.FIXTURE_ONLY)
+    if path == "evidence_ref":
+        fixture_ref = replace(
+            value.evidence_refs[0],
+            origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+        )
+        return replace(
+            value,
+            evidence_refs=(fixture_ref,),
+            claim_bindings=(
+                replace(value.claim_bindings[0], evidence_ref=fixture_ref),
+            ),
+        )
+    if path == "accounting_attempt":
+        assert value.accounting is not None
+        first = value.accounting.attempts[0]
+        fixture_attempt = replace(
+            first,
+            attempt_ref=replace(
+                first.attempt_ref,
+                origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+            ),
+        )
+        return replace(
+            value,
+            accounting=replace(
+                value.accounting,
+                attempts=(fixture_attempt, *value.accounting.attempts[1:]),
+            ),
+        )
+    if path == "limitation":
+        primary = value.evidence_refs[0]
+        limitation_ref = qualification.DossierEvidenceRef(
+            CANDIDATE_CHALLENGE,
+            qualification.DossierEvidenceClass.RESIDUAL_LIMITATION,
+            "fixture-limitation",
+            "1.0",
+            DIGESTS[14],
+            qualification.StructuralOrigin.FIXTURE_ONLY,
+        )
+        assert value.subject_bindings is not None
+        limitation = qualification.LimitationBinding(
+            CANDIDATE_CHALLENGE,
+            limitation_ref,
+            (primary,),
+            (qualification.DOSSIER_PRIMARY_CLAIM_ROLE[value.slot],),
+            value.subject_bindings.claim_scope_ref,
+        )
+        return replace(
+            value,
+            evidence_refs=(*value.evidence_refs, limitation_ref),
+            limitations=(limitation,),
+        )
+    if path == "predecessor":
+        predecessor = replace(value, origin=qualification.StructuralOrigin.FIXTURE_ONLY)
+        return manifest(
+            slot,
+            challenge=CANDIDATE_CHALLENGE,
+            version="2.0",
+            supersedes=qualification.evidence_manifest_ref(predecessor),
+        )
+    raise AssertionError(path)
+
+
 def test_matching_candidate_is_only_machine_ready_and_does_not_mutate_a3() -> None:
     candidate, record, authorizations = candidate_fixture()
     before = (record.status, dict(record.artifacts), record.qualification)
@@ -300,6 +405,14 @@ def test_matching_candidate_is_only_machine_ready_and_does_not_mutate_a3() -> No
     assert record.status == "draft"
     assert not hasattr(result, "scientifically_qualified")
     assert not hasattr(result, "live")
+    assert (
+        candidate.dossier_ref.origin
+        is qualification.StructuralOrigin.REGISTERED_REFERENCE
+    )
+    assert all(
+        item.manifest_ref.origin is qualification.StructuralOrigin.REGISTERED_REFERENCE
+        for item in candidate.evidence_manifest_bindings
+    )
 
 
 def test_candidate_canonical_round_trip_order_digest_and_reference() -> None:
@@ -549,7 +662,90 @@ def test_builder_rejects_cross_section_object_version_drift() -> None:
             registry_slot_bindings=slot_bindings,
             expected_registry_qualification_digest=candidate.expected_registry_qualification_digest,
         )
-    assert caught.value.code is qualification.DossierInputCode.VERSION_MISMATCH
+    assert caught.value.code is qualification.DossierInputCode.MISSING_EVIDENCE
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("evidence_id", "unrelated-d1-manifest"),
+        ("evidence_version", "2.0"),
+        ("content_digest", DIGESTS[13]),
+        ("origin", qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED),
+    ),
+)
+def test_builder_requires_each_complete_section_to_link_its_exact_manifest(
+    field, replacement
+) -> None:
+    (
+        candidate,
+        _,
+        _,
+        dossier,
+        manifests,
+        artifact_set,
+        slot_bindings,
+    ) = candidate_fixture(include_inputs=True)
+    section = dossier.sections[0]
+    wrong_ref = replace(section.evidence_refs[0], **{field: replacement})
+    wrong_section = replace(section, evidence_refs=(wrong_ref,))
+    wrong_dossier = replace(dossier, sections=(wrong_section, *dossier.sections[1:]))
+    with pytest.raises(qualification.DossierValidationError) as caught:
+        rebuild_candidate(
+            candidate, wrong_dossier, manifests, artifact_set, slot_bindings
+        )
+    assert caught.value.code is qualification.DossierInputCode.MISSING_EVIDENCE
+
+
+def test_section_rejects_wrong_slot_class_and_supplemental_only_substitution() -> None:
+    _, _, _, dossier, _, _, _ = candidate_fixture(include_inputs=True)
+    d1 = dossier.sections[0]
+    d2 = dossier.sections[1]
+    with pytest.raises(qualification.DossierValidationError) as wrong_class:
+        replace(d1, evidence_refs=d2.evidence_refs)
+    assert wrong_class.value.code is qualification.DossierInputCode.SLOT_MISMATCH
+    supplemental = replace(
+        d1.evidence_refs[0],
+        evidence_class=qualification.DossierEvidenceClass.RESIDUAL_LIMITATION,
+    )
+    with pytest.raises(qualification.DossierValidationError) as supplemental_only:
+        replace(d1, evidence_refs=(supplemental,))
+    assert supplemental_only.value.code is qualification.DossierInputCode.SLOT_MISMATCH
+
+
+def test_builder_rejects_wrong_slot_and_cross_challenge_manifest_graphs() -> None:
+    (
+        candidate,
+        _,
+        _,
+        dossier,
+        manifests,
+        artifact_set,
+        slot_bindings,
+    ) = candidate_fixture(include_inputs=True)
+    with pytest.raises(qualification.DossierValidationError) as wrong_slot:
+        rebuild_candidate(
+            candidate,
+            dossier,
+            (manifests[1], manifests[0], *manifests[2:]),
+            artifact_set,
+            slot_bindings,
+        )
+    assert wrong_slot.value.code is qualification.DossierInputCode.SLOT_MISMATCH
+
+    crossed = manifest(
+        qualification.DossierSlot.D1,
+        challenge=ChallengeKey("other-challenge", "1.0"),
+    )
+    with pytest.raises(qualification.DossierValidationError) as cross_challenge:
+        rebuild_candidate(
+            candidate,
+            dossier,
+            (crossed, *manifests[1:]),
+            artifact_set,
+            slot_bindings,
+        )
+    assert cross_challenge.value.code is qualification.DossierInputCode.CROSS_CHALLENGE
 
 
 @pytest.mark.parametrize(
@@ -567,24 +763,24 @@ def test_builder_rejects_cross_section_object_version_drift() -> None:
     ),
 )
 def test_fixture_propagation_fails_closed(field, reason) -> None:
-    candidate, record, authorizations = candidate_fixture()
-    if field == "dossier":
-        candidate = replace(
-            candidate, dossier_origin=qualification.StructuralOrigin.FIXTURE_ONLY
+    if field in {"dossier", "evidence"}:
+        manifests = tuple(
+            manifest(
+                slot,
+                challenge=CANDIDATE_CHALLENGE,
+                origin=(
+                    qualification.StructuralOrigin.FIXTURE_ONLY
+                    if slot is qualification.DossierSlot.D1
+                    else qualification.StructuralOrigin.REGISTERED_REFERENCE
+                ),
+            )
+            for slot in qualification.DOSSIER_SLOT_ORDER
         )
-    elif field == "evidence":
-        binding = candidate.evidence_manifest_bindings[0]
-        ref = replace(
-            binding.manifest_ref, origin=qualification.StructuralOrigin.FIXTURE_ONLY
-        )
-        candidate = replace(
-            candidate,
-            evidence_manifest_bindings=(
-                replace(binding, manifest_ref=ref),
-                *candidate.evidence_manifest_bindings[1:],
-            ),
+        candidate, record, authorizations = candidate_fixture(
+            manifests_override=manifests
         )
     else:
+        candidate, record, authorizations = candidate_fixture()
         changed = replace(
             candidate.artifact_set.artifacts[0],
             origin=qualification.StructuralOrigin.FIXTURE_ONLY,
@@ -596,7 +792,125 @@ def test_fixture_propagation_fails_closed(field, reason) -> None:
                 artifacts=(changed, *candidate.artifact_set.artifacts[1:]),
             ),
         )
-    assert reason in compare(candidate, record, authorizations).reasons
+    result = compare(candidate, record, authorizations)
+    assert not result.machine_prerequisites_satisfied
+    assert reason in result.reasons
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "outer_origin",
+        "evidence_ref",
+        "accounting_attempt",
+        "limitation",
+        "predecessor",
+    ),
+)
+def test_every_evidence_fixture_path_reaches_refs_candidate_and_comparison(
+    path,
+) -> None:
+    fixture_manifest = fixture_derived_manifest(path)
+    manifests = tuple(
+        (
+            fixture_manifest
+            if slot is fixture_manifest.slot
+            else manifest(slot, challenge=CANDIDATE_CHALLENGE)
+        )
+        for slot in qualification.DOSSIER_SLOT_ORDER
+    )
+    candidate, record, authorizations = candidate_fixture(manifests_override=manifests)
+    manifest_ref = qualification.evidence_manifest_ref(fixture_manifest)
+    section_ref = qualification.dossier_evidence_ref(fixture_manifest)
+    assert manifest_ref.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    assert section_ref.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    assert candidate.dossier_ref.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    loaded = qualification.load_qualification_candidate(
+        qualification.qualification_candidate_bytes(candidate)
+    )
+    assert loaded.dossier_ref.origin is qualification.StructuralOrigin.FIXTURE_ONLY
+    result = compare(loaded, record, authorizations)
+    assert qualification.QualificationMismatchReason.DOSSIER_FIXTURE_DERIVED in (
+        result.reasons
+    )
+    assert qualification.QualificationMismatchReason.EVIDENCE_FIXTURE_DERIVED in (
+        result.reasons
+    )
+    assert qualification.QualificationMismatchReason.ARTIFACT_FIXTURE_DERIVED in (
+        result.reasons
+    )
+    assert not result.machine_prerequisites_satisfied
+
+
+def test_fixture_signer_and_dossier_predecessor_are_preserved_end_to_end() -> None:
+    base_signers = populated_signers(CANDIDATE_CHALLENGE)
+    fixture_identity = replace(
+        base_signers[0].identity_ref,
+        origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+    )
+    fixture_signature = replace(
+        base_signers[0].signature_ref,
+        origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+    )
+    fixture_authorization = replace(
+        base_signers[0].authorization_evidence_ref,
+        origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+    )
+    fixture_signers = (
+        replace(
+            base_signers[0],
+            identity_ref=fixture_identity,
+            signature_ref=fixture_signature,
+            authorization_evidence_ref=fixture_authorization,
+        ),
+        *base_signers[1:],
+    )
+    signer_candidate, signer_record, signer_authorizations = candidate_fixture(
+        signers_override=fixture_signers
+    )
+    signer_round_trip = qualification.load_qualification_candidate(
+        qualification.qualification_candidate_bytes(signer_candidate)
+    )
+    signer_result = compare(signer_round_trip, signer_record, signer_authorizations)
+    assert qualification.QualificationMismatchReason.DOSSIER_FIXTURE_DERIVED in (
+        signer_result.reasons
+    )
+    assert qualification.QualificationMismatchReason.SIGNER_FIXTURE_DERIVED in (
+        signer_result.reasons
+    )
+    assert qualification.QualificationMismatchReason.ARTIFACT_FIXTURE_DERIVED in (
+        signer_result.reasons
+    )
+    assert not signer_result.machine_prerequisites_satisfied
+
+    _, _, _, predecessor, _, _, _ = candidate_fixture(include_inputs=True)
+    fixture_section = replace(
+        predecessor.sections[0],
+        evidence_refs=(
+            replace(
+                predecessor.sections[0].evidence_refs[0],
+                origin=qualification.StructuralOrigin.FIXTURE_ONLY,
+            ),
+        ),
+    )
+    predecessor = replace(
+        predecessor,
+        sections=(fixture_section, *predecessor.sections[1:]),
+    )
+    successor_candidate, successor_record, successor_authorizations = candidate_fixture(
+        dossier_supersedes=qualification.dossier_ref(predecessor)
+    )
+    assert (
+        successor_candidate.dossier_ref.origin
+        is qualification.StructuralOrigin.FIXTURE_ONLY
+    )
+    successor_result = compare(
+        successor_candidate, successor_record, successor_authorizations
+    )
+    assert qualification.QualificationMismatchReason.DOSSIER_FIXTURE_DERIVED in (
+        successor_result.reasons
+    )
+    assert not successor_result.machine_prerequisites_satisfied
 
 
 def test_placeholder_stale_and_superseded_evidence_fail_closed() -> None:

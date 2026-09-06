@@ -1,8 +1,9 @@
 # Validation Dossier and Qualification Manifest Contract
 
 **Ticket:** B-06 — Validation Dossier and qualification-manifest machinery
-**Contract version:** 0.5
-**Status:** reconciled final-review candidate; final review not yet started
+**Contract version:** 0.6
+**Status:** first complete-diff review findings repaired; fresh exact-head CI and
+complete-diff review pending
 **Maturity ceiling:** bounded structural engineering only
 **Implementation owner:** `carbon.qualification`
 **Registry owner:** `carbon.registry` remains unchanged; Slice 3 wraps only its
@@ -80,8 +81,11 @@ Schema version is exact string `"1.0"`. Canonical profile is exact string
 - the exact ordered B-06 accountable signer-role bindings; and
 - an exact structural origin class.
 
-`ValidationDossierRef` binds Challenge, dossier ID/version, schema/profile, and
-the tagged SHA-256 digest of the complete domain-framed canonical bytes.
+`ValidationDossierRef` binds Challenge, dossier ID/version, schema/profile, the
+tagged SHA-256 digest of the complete domain-framed canonical bytes, and the
+effective structural origin. Effective origin is `FIXTURE_ONLY` when any
+nested section evidence, signer artifact, or predecessor is fixture-derived;
+canonical/ref projection and supersession cannot cleanse that provenance.
 Changing any section, evidence reference, signer binding, origin, or
 supersession edge changes the digest. A new material meaning requires a new
 dossier version. Supersession never rewrites, revokes, qualifies, or transfers
@@ -118,6 +122,11 @@ one exact primary evidence ref for its own slot. Evidence for another slot or
 supplemental campaign cannot satisfy that requirement. This structural rule
 preserves the specified separation among population, SamplingPlan, generator,
 reference, representation, measurement, statistics, secrecy, and limitations.
+Qualification-candidate construction additionally derives one exact primary
+`DossierEvidenceRef` from each supplied typed D1-D12 manifest and requires it
+in that exact complete required section. Challenge, slot/class, ID, version,
+digest, and effective origin must all match; two independently valid but
+unrelated graphs cannot be combined.
 
 ## 5. Evidence references, requirements, and completeness
 
@@ -514,17 +523,25 @@ cross-claim non-substitution. It proves decision-resolution remains pending
 authority and imports or implements no execution, statistical, registry, or
 LIVE engine.
 
-Native tests on this macOS host are diagnostic only. The complete candidate is
-prepared for exact-head CI and a later fresh complete-diff review. Canonical
-Linux evidence, human delivery approval, merge, and closeout remain external
-delivery predicates and are not asserted by this contract.
+The campaign acquisition and combined-manifest encoders apply the same exact
+2 MiB document ceiling as the decoder after canonical encoding. Bytes at or
+below the ceiling remain accepted unchanged; an oversized serialization and
+every digest/ref helper that depends on it fail closed with `SIZE_LIMIT`.
+
+Native tests on this macOS host are diagnostic only. The first fresh
+complete-diff review returned findings `B06-CR-001`, `B06-CR-002`, and
+`B06-CR-003`; this revision repairs those findings. The previous exact-head CI
+and review are stale for the changed tree. Fresh exact-head CI and a completely
+fresh complete-diff review remain required. Human delivery approval, merge,
+and closeout remain external delivery predicates and are not asserted by this
+contract.
 
 ## 16. Deferred and human-reserved work
 
 Slice 4 owns the campaign-specific manifests not represented by Slice 2.
-The complete ticket has been reconciled as a final-review candidate; no
-machine-implementable B-06 feature requirement remains. Fresh complete-diff
-review and the remaining delivery predicate have not started. Slice 3
+The complete ticket has been reconciled after the bounded first-review repair;
+no known machine-implementable B-06 feature requirement remains, subject to a
+fresh complete-diff review of the repaired tree. Slice 3
 implements candidate construction and a pure exact A3 snapshot comparison;
 Slice 4's synthetic D7 test proves campaign-digest projection into that
 existing evidence graph.

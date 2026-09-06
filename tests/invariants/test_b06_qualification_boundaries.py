@@ -161,6 +161,7 @@ def test_refs_are_protected_and_nonpickleable() -> None:
         "validation-dossier",
         "1.0",
         "sha256:" + "a" * 64,
+        qualification.StructuralOrigin.DRAFT_OR_UNRESOLVED,
     )
     assert "fixture-burgers" not in repr(ref)
     assert "fixture-burgers" not in str(ref)
