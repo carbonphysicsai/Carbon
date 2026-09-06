@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Carbon's exact-head manual Codex/GPT review receipt."""
+"""Parse historical Codex/GPT receipts; OWNER-DX-03 removes this delivery gate."""
 
 from __future__ import annotations
 

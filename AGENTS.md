@@ -12,6 +12,14 @@ The goal is not maximum code volume. The goal is:
 
 ---
 
+## Current delivery direction: OWNER-DX-03
+
+For engineering delivery, follow `.agent/DELIVERY_PROTOCOL.md` (2026-09-06).
+It supersedes older review, receipt, exact-head ceremony, and post-merge-CI
+requirements in tickets, boards, and handoffs. There is no mandatory human
+reviewer or GPT receipt. Follow the ticket, run its tests and one applicable
+automated acceptance, then merge. Keep all scientific and security invariants.
+
 # 1. Mandatory authority read
 
 Before every new ticket or major wave, read:
@@ -288,122 +296,55 @@ Do not infer later states from earlier ones.
 
 # 9. Ticket-based development
 
-Work on one bounded ticket at a time unless explicitly authorized otherwise.
+Work on the owner-authorized ticket. Use one branch/worktree and one PR by
+default. Read the current contract and inspect working code before changing
+it. Create a plan only when it helps implement a complex ticket; separate
+contract, plan, or approval commits are not mandatory.
 
-Use one pull request per ticket by default. Write the working contract,
-durable decisions, plan, and ticket-start state first; add coherent vertical
-implementation slices and their tests in later commits; and submit the
-contract, implementation, tests, and stable evidence together for final-tree
-review. A separate contract pull request requires the exact
-`CONTRACT_ONLY_TICKET`, `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT`, or
-`CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE` reason code, or the file-backed
-`AUTHORITATIVE_SEQUENCING` form defined in `.agent/DELIVERY_PROTOCOL.md`.
-Arbitrary prose and ticket-size rationales fail closed. A working contract may
-evolve prospectively during implementation.
+Implement coherent slices with focused tests and continue through the ticket.
+Do not stop after each slice for another owner prompt. Record material
+engineering decisions and notify the applicable lead without waiting for
+routine approval. Human-reserved scientific or security decisions still stop
+the affected behavior and remain fail closed.
 
-Before editing:
+Before acceptance, reconcile affected docs and Hub source, regenerate outputs,
+and inspect the candidate for correctness. Independent agent review is
+optional. No human approval, GPT receipt, fixed review count, or repeated
+fresh-context complete-diff review is a routine delivery gate.
 
-1. read current authority/ticket;
-2. identify one primary Development Hub `map_ref` and classify hub impact;
-3. inspect existing implementation;
-4. identify dependencies/tests;
-5. run relevant baseline tests;
-6. create a plan for multi-module/security/protocol work.
-
-During work, record a concise Development Hub event when a material decision,
-adjustment, bug, blocker, risk, or evidence result changes team understanding,
-purpose, placement, status, dependency, boundary, maturity, or primary links.
-Do not duplicate routine PR detail in the map.
-
-Implement the smallest coherent change satisfying the ticket DoD.
-
-Avoid unrelated refactors, speculative future abstractions, and opportunistic architecture redesign.
-
-Future waves in the Agentic Master Plan are compatibility context, not implementation permission.
-
-The normal selected-ticket lifecycle is:
-
-```text
-working contract and decisions
-→ vertical implementation slices
-→ canonical validation
-→ exact-head scope-required checks and Merge gate
-→ fresh read-only Codex/GPT review of the complete exact-head diff
-→ repair valid findings and reach zero unresolved findings
-→ distinct non-author human approval carrying the exact-head review receipt
-→ successful GPT review gate and zero unresolved review threads
-→ normal exact-expected-head merge
-→ reviewed-tree and exact-main verification
-→ completed normalized external receipt posted
-→ bounded closeout and next ready ticket
-```
-
-Carbon waits for a fresh read-only Codex/GPT review of the complete exact-head
-diff and a distinct non-author human approval carrying the closed review
-receipt. The protected `GPT review gate` validates that receipt. Domain-lead
-review remains asynchronous unless repository authority explicitly reserves a
-value or acceptance decision to a human; the delivery approval is a separate
-engineering-control gate and confers no reserved authority. The completed
-normalized external receipt must be posted before bounded closeout or next-
-ticket advance. Follow `.agent/DELIVERY_PROTOCOL.md`.
+Run one applicable automated acceptance on the ready candidate. Fix failing
+tests and concrete defects, validate affected interactions, and merge the
+tested revision with the expected-head guard. Unless the owner requested a
+stop, finish delivery and continue to the next authorized ticket. Follow
+`.agent/DELIVERY_PROTOCOL.md`; do not resurrect superseded ticket boilerplate.
 
 ---
 
 # 10. Testing and evidence
 
-A ticket is not complete because code exists.
+A completed ticket needs implemented behavior and passing evidence for its
+Definition of Done. During implementation, run focused ticket/subsystem tests.
+Before shipping, require CI's applicable regression, invariant, quality,
+package/import, and Hub checks. Unknown paths retain full runtime acceptance.
+Do not weaken scientific, leakage, isolation, or correctness tests to obtain
+a green result. Owner-authorized delivery-policy tests must reflect the new
+policy and continue to reject untested or failed required jobs.
 
-Before declaring completion run:
+Use `./scripts/dev/canonical.sh` when local canonical execution is available.
+Do not repeat an unavailable Docker attempt. Use pinned GitHub CI for
+acceptance and label native-host tests as diagnostics.
 
-1. ticket-specific tests;
-2. relevant subsystem tests;
-3. required baseline/regression suite;
-4. lint/type/static checks required by the repo;
-5. relevant security/leakage/invariant tests.
+Keep scope, material decisions, tests, and limitations in the ticket/PR. CI
+owns revision and run identities. A brief completion comment is sufficient;
+no normalized receipt, evidence seal, or copied SHA inventory is required.
+Closeout can be conditional in the shipping PR and takes effect after the
+required automated acceptance and successful merge. Confirm the merge, report
+remaining limitations, and proceed without waiting for a second full CI run.
+A main smoke failure needs a repair; it does not justify fabricating success.
 
-On macOS, Windows, or noncanonical Linux, run validation through
-`./scripts/dev/canonical.sh <command> [args...]`. Native-host output is never
-canonical. The strict changed-path classifier selects the minimum CI scope;
-unknown paths fail closed to full runtime acceptance, and a ticket's
-substantive requirements still apply even when its path class is lighter.
-
-For development-ticket changes, also reconcile the hub source, regenerate its
-derived outputs, and run the checks in
-`docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`.
-Repository authority remains controlling over the derived hub.
-
-Prefer tests for:
-
-- public contracts;
-- exact identity/version behavior;
-- state transitions;
-- deterministic execution;
-- failure classification;
-- leakage/disclosure boundaries;
-- mock/official isolation;
-- malformed/untrusted input;
-- idempotency/concurrency where relevant.
-
-Do not delete/weaken a test merely because implementation fails it.
-
-Keep ticket scope, authority, starting base, durable decisions, contracts,
-expected manifest, validation commands, invariants, maturity ceiling, and a
-conditional completion predicate in tracked evidence. Put final reviewed
-head/tree, checks, Codex/GPT review receipt, human approval, unresolved review
-threads, merge topology,
-exact-main checks, notification, final maturity, and next-ticket identities in
-the external receipt defined by
-`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Do not create an empty or
-evidence-only commit to retrigger a declaration or store external facts.
-
-Record completion evidence in `.agent/WAVE.md` only when the ticket's exact
-review/merge predicate is satisfied. A prepared conditional closeout and next-
-ticket transition becomes effective only after exact-head required checks and
-`Merge gate`, fresh complete-diff exact-head Codex/GPT review with all valid
-findings repaired, distinct non-author human approval, successful `GPT review
-gate`, zero unresolved review threads, normal expected-head merge with
-reviewed-tree preservation, exact-main `Merge gate`, and posting of the
-completed normalized external receipt.
+SPECIFIED, IMPLEMENTED, and TESTED remain separate from SCIENTIFICALLY_QUALIFIED,
+SECURITY_QUALIFIED, and PRODUCTION_QUALIFIED. Engineering delivery grants none
+of those human-reserved states.
 
 ---
 
@@ -577,14 +518,12 @@ under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
 Prefer one ticket → one reviewable branch/diff.
 
 Use normal merge commits only. Do not squash, rebase-merge, or enable auto-
-merge. Merge only when the PR head is exact and unchanged, all scope-required
-checks and `Merge gate` succeeded on that head, a fresh read-only Codex/GPT
-review covered the complete diff, all valid findings were repaired, a distinct
-non-author human approved that exact head with the closed receipt, `GPT review
-gate` succeeded, unresolved review-thread count is zero, no applicable block
-remains, the base is reconciled, and the merge uses an exact expected-head
-guard. After merge verify ordered parents, exact second-parent identity,
-reviewed-tree preservation, fetched exact main, and exact-main `Merge gate`.
+merge. Merge when the ready PR revision has passed its scope-required automated
+checks and `Merge gate`, no applicable owner block or real merge conflict remains,
+and the merge operation uses the expected-head race guard. Human review, GPT
+receipts, review-thread bookkeeping, repeated clean-pass quotas, and post-merge
+full-CI verification are not merge requirements. After merge confirm GitHub
+reports the expected PR merged and record the bounded completion result.
 
 Do not:
 

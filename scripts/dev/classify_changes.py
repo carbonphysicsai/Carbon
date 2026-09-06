@@ -35,9 +35,43 @@ class Classification:
     paths: tuple[PathClassification, ...]
 
     @property
+    def dev_image_required(self) -> bool:
+        """Rebuild only when execution infrastructure changes or is unknown."""
+        if self.scope is not ChangeScope.RUNTIME_FULL:
+            return False
+        return any(
+            item.unknown
+            or item.path in _IMAGE_EXACT
+            or item.path.startswith(_IMAGE_PREFIXES)
+            or re.fullmatch(
+                r"requirements(?:[-_.][^/]*)?\.txt", item.path, re.IGNORECASE
+            )
+            for item in self.paths
+        )
+
+    @property
     def unknown_paths(self) -> tuple[str, ...]:
         return tuple(item.path for item in self.paths if item.unknown)
 
+
+# These files define the canonical execution environment or its acceptance.
+_IMAGE_PREFIXES = (".devcontainer/", ".github/workflows/", "scripts/dev/")
+_IMAGE_EXACT = frozenset(
+    {
+        ".dockerignore",
+        ".python-version",
+        "pyproject.toml",
+        "uv.lock",
+        "MANIFEST.in",
+        "setup.py",
+        "setup.cfg",
+        "tox.ini",
+        "noxfile.py",
+        "Pipfile",
+        "Pipfile.lock",
+        "poetry.lock",
+    }
+)
 
 _RUNTIME_PREFIXES = (
     "carbon/",
@@ -303,6 +337,7 @@ def _manifest_paths(path: Path) -> tuple[str, ...]:
 def _payload(classification: Classification) -> dict[str, object]:
     return {
         "scope": classification.scope.value,
+        "dev_image_required": classification.dev_image_required,
         "path_count": len(classification.paths),
         "unknown_paths": list(classification.unknown_paths),
         "paths": [
@@ -320,6 +355,7 @@ def _payload(classification: Classification) -> dict[str, object]:
 def _write_github_output(path: Path, classification: Classification) -> None:
     values = {
         "change_scope": classification.scope.value,
+        "dev_image_required": str(classification.dev_image_required).lower(),
         "runtime_full": str(classification.scope is ChangeScope.RUNTIME_FULL).lower(),
         "contract_authority": str(
             classification.scope is ChangeScope.CONTRACT_AUTHORITY

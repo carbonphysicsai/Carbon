@@ -1,253 +1,98 @@
 # Carbon Delivery Protocol
 
-**Status:** repository delivery authority for bounded development tickets
-**Applies to:** agents, human executors, reviewers, pull requests, and ticket
-closeout records
-**Decision authority:** `CONSTITUTION.md`, `AGENTS.md`, the active Wave and
-ticket, and `.agent/DELEGATED_DECISION_PROTOCOL.md` remain controlling
+**Status:** owner-authorized delivery policy, effective 2026-09-06
+**Decision:** OWNER-DX-03
+**Applies to:** current and future engineering tickets, including open PRs
 
-## 1. Purpose
+The owner directs: follow the ticket, test the changes, and ship. This policy
+supersedes GOV-REVIEW-01 and older delivery-process requirements in tickets,
+plans, Wave records, agent handoffs, and Hub instructions. Historical receipts
+remain historical evidence. Scientific, security, economic, legal, deployment,
+qualification, and LIVE acceptance remain human-reserved and unchanged.
 
-Carbon finishes a selected ticket through one reviewable delivery lifecycle:
+## 1. Ticket to merge
 
-```text
-working contract and durable decisions
-→ coherent vertical implementation slices
-→ canonical validation
-→ exact-head required checks
-→ fresh read-only Codex/GPT review of the complete exact-head diff
-→ repair every valid finding
-→ zero unresolved findings
-→ distinct non-author human APPROVED review with the closed exact-head receipt
-→ successful GPT review gate and zero unresolved review threads
-→ normal expected-head merge
-→ reviewed-tree and exact-main verification
-→ bounded ticket closeout
-→ next ready ticket
-```
+1. Read the ticket and relevant authority. Keep working code under
+   KEEP -> WRAP -> REPAIR -> REPLACE. Implement the ticket's Definition of Done.
+2. Use one branch and one PR per ticket by default. Develop coherent slices
+   with focused tests. Continue through slices without asking for permission
+   at each checkpoint unless the owner requested a stop.
+3. Record material decisions and update affected documentation. Batch Hub
+   maintenance before acceptance. Do not create a contract-only PR, a separate
+   plan, or a review checkpoint merely because a ticket has multiple modules.
+   Split independently shippable work when an actual dependency or owner
+   instruction requires it; explain the split in the PR.
+4. Check the change for correctness and add regression tests for defects.
+   An independent agent review is optional. There is no mandatory human
+   reviewer, GPT receipt, bot approval, model score, clean-pass quota, or
+   fresh-context full-diff review loop. Fix concrete defects; verify repairs
+   with focused tests and inspect the affected interactions.
+5. Finish the candidate, mark the PR ready, and run the applicable automated
+   acceptance once. Required tests must pass. Merge the tested revision with
+   the expected-head guard; do not merge code that changed after its checks.
+6. Confirm GitHub reports the merge. Post one brief completion comment with
+   the ticket, test result/CI link, remaining limitations, and next ticket.
+   Close the ticket in its bounded engineering scope and continue when the
+   owner authorized end-to-end execution. No second approval prompt, receipt
+   schema, evidence-seal commit, or post-merge full-CI wait is required.
 
-Carbon's routine correctness review is a fresh read-only Codex/GPT review of
-the complete exact-head pull-request diff. A distinct non-author human must
-submit an `APPROVED` review carrying the closed receipt in
-`.agent/templates/CODEX_GPT_REVIEW_RECEIPT.md`; the protected `GPT review gate`
-validates that receipt against the live head and tree. This delivery approval
-is an engineering-control gate, not scientific, security, rights, economic,
-qualification, `LIVE`, launch, deployment, or production acceptance. Those
-reserved decisions stay unavailable and fail closed.
+A valid bug, failed required test, actual merge conflict, or unresolved
+human-reserved decision can stop the affected work. A review receipt, prose
+formatting issue, bot outage, or incomplete historical ceremony cannot.
+Never suppress a failing test, invent a pass, or relabel qualification.
 
-Unless current owner direction explicitly says to stop before merge, a session
-authorized to execute a ticket end to end continues through the normal merge,
-exact-main verification, closeout, and selection of the next ready ticket.
-Another owner prompt is not required solely to merge an unchanged, green,
-reviewed ticket.
+## 2. Validation budget
 
-## 2. One pull request per ticket by default
+During development, run focused ticket and affected-subsystem tests. Use the
+canonical wrapper when available. A missing local Docker installation is
+infrastructure unavailability, not a reason to repeat the same failed command
+or to block implementation; GitHub's pinned environment supplies acceptance.
+Native-host tests are diagnostics, not canonical qualification.
 
-The default ticket history is:
+For a ready runtime PR, CI runs the CPU regression suite, invariant tests,
+quality ratchet, package/import checks, and applicable Hub validation. Unknown
+paths retain full runtime acceptance. Contract-only and generated-doc changes
+retain their existing lighter classified suites. Test semantics remain intact.
 
-```text
-commit 1: working contract, decisions, plan, and ticket-start state
-later commits: coherent vertical implementation slices and their tests
-final candidate: contract, implementation, tests, and stable tracked evidence
-                 reviewed together
-```
+The clean development-image build runs for environment, dependency, workflow,
+or canonical-runner changes and unknown paths. Ordinary Python implementation
+and test changes use the pinned canonical runner without rebuilding the image.
+The aggregate Merge gate rejects failed or skipped required jobs.
 
-The working contract may evolve during implementation. Record material changes
-prospectively, notify the applicable lead, and bind final review to the whole
-candidate tree.
+Draft PR updates do not start acceptance. Marking a draft ready starts its
+first acceptance run. Ready PR code pushes start acceptance for that revision.
+PR title/body edits, review submissions, and comments do not start full CI.
+The standalone Hub workflow is manual; CI owns normal Hub acceptance once.
+Main smoke checks detect integration failures after merge; they are not a
+second full acceptance or a ticket-closeout ceremony.
 
-A separate contract pull request is permitted only with one closed machine
-reason in `SEPARATE_CONTRACT_PR_REASON`:
+Batch changes before pushing a ready candidate. Do not rerun a green workflow
+for reassurance, rewrite a PR body to force CI, create an empty commit, or
+repeat a successful job after an infrastructure failure. Retry the failed job.
+After a real code/test/environment change, validate the new revision. Docs and
+status notes do not require another substantive code review. Do not copy a
+success from different executable inputs and claim the new code passed.
 
-- `CONTRACT_ONLY_TICKET` — the selected ticket itself is contract-only;
-- `CONCURRENT_DOWNSTREAM_IMMUTABLE_CONTRACT` — real concurrent downstream work
-  requires a merged immutable contract;
-- `CROSS_DOMAIN_PUBLIC_INTERFACE_FREEZE` — an established cross-domain public
-  interface must freeze before implementation; or
-- `AUTHORITATIVE_SEQUENCING | AUTHORITY: <path> | DETAILS: <reason>` — a
-  different concrete exception is stated by a tracked current sequencing
-  authority file.
+## 3. Merge control and evidence
 
-For `AUTHORITATIVE_SEQUENCING`, `<path>` must be a normalized repository-
-relative path to `.agent/WAVE.md`, the current controlling board, the selected
-ticket, `Design_Specs/Build_Out.md`, or
-`Design_Specs/Agentic_Development_Master_Plan.md`. The normalized `<reason>`
-must contain at least four words and normalize-equal the value of one complete
-`SEPARATE_CONTRACT_PR_EXCEPTION: <specific reason>` machine line in that exact
-file at candidate `HEAD`. Both `DETAILS` and the complete marker value must be
-plain single-line prose and must not contain Markdown/HTML metacharacters `<`,
-`>`, `&`, `*`, backtick, or underscore.
+The intended repository rule is one required status check: `Merge gate` from
+GitHub Actions, with zero required approvals and no last-push approval.
+Thread-resolution bookkeeping is not an additional gate; actual unresolved
+bugs and explicit owner blocks still require disposition. Use normal merge
+commits and retain the API's inexpensive expected-head race guard.
 
-Unrelated prose does not authorize an exception. An arbitrary explanation,
-working-tree-only marker, stale or untracked file, or ticket-size rationale is
-invalid. `SINGLE_TICKET_PR` requires exactly `NOT_APPLICABLE` instead.
+Do not require a base refresh solely because main advanced. Inspect the
+integration impact; reconcile conflicts or changed dependencies and validate
+those changes. The merge guard prevents merging a different PR revision; it
+does not prove scientific qualification or conflict-free semantic integration.
 
-A retained exception separates merge topology, not substantive gates: all
-applicable scientific, statistical, security, protocol, rights, operational,
-review, and maturity boundaries still apply.
+CI obtains revision identities from GitHub/Git. Do not ask a human to copy
+head/tree/base SHAs, review counters, or rerun totals into a PR. The PR needs a
+ticket/scope explanation, test summary, risks, and Hub impact where relevant.
+Legacy receipt fields are historical metadata and are not merge authority.
 
-Use one ticket branch/worktree and one ticket pull request unless an exception
-above is recorded. Use normal merge commits only. Do not squash, rebase-merge,
-enable auto-merge, or create an empty commit merely to provoke validation.
-
-## 3. Canonical validation
-
-On macOS, Windows, or noncanonical Linux, run ticket commands through:
-
-```text
-./scripts/dev/canonical.sh <command> [args...]
-```
-
-Inside the exact canonical environment, the wrapper executes directly. A
-native-host result is never canonical merely because it passed. Follow the
-active ticket and detected change scope for focused and full commands.
-
-Every final candidate must pass delivery preflight and the stable `Merge gate`
-required by `.github/workflows/ci.yml`. Runtime-bearing or unknown changes
-remain fail closed to the full runtime acceptance scope. A lighter classified
-scope does not weaken any ticket-specific substantive validation requirement.
-
-The versioned main-ruleset definition lives at
-`.github/rulesets/main.v1.json`; `scripts/dev/apply_github_ruleset.py --dry-run`
-prepares/verifies its application. Apply it only with repository-
-administration permission and verify live state afterward. Insufficient
-credentials require the exact unapplied artifact and smallest manual owner
-action, never a claim that the ruleset is active.
-
-## 4. Exact-head merge predicate
-
-Normal merge is authorized only when all of the following are simultaneously
-true:
-
-1. the pull-request head SHA is exact, unchanged, and equals the expected head;
-2. the pull-request tree is the final candidate tree;
-3. every check required by the detected scope succeeded on that exact head,
-   including `Merge gate`;
-4. a fresh read-only Codex/GPT review covered the complete diff at that exact
-   head and tree;
-5. every valid finding was repaired, every invalid finding was dispositioned,
-   and any repaired tree was reviewed again;
-6. one distinct non-author human submitted an `APPROVED` review on that exact
-   head carrying the closed review receipt;
-7. `GPT review gate` succeeded on the same exact head and unresolved review-
-   thread count is zero;
-8. no observed applicable `CHANGE`, `BLOCKED`, or `REQUEST_CHANGES` direction
-   remains;
-9. the pull-request base has been reconciled under current repository policy;
-10. every human-reserved value needed for the affected behavior is available,
-   or the behavior remains explicit and fail closed; and
-11. the expected-head guard is supplied to the merge operation.
-
-PR-body or issue-comment changes do not alter the Git tree. A declaration edit
-cannot substitute for a required repository change. A corrected declaration
-must be validated from the current live pull-request body and current head
-without an empty commit. Do not change the final reviewed tree merely to record
-successful external facts. When a real repository defect requires a tree
-repair, the repaired head requires fresh checks and review.
-
-## 5. Post-merge predicate
-
-After a normal merge:
-
-1. verify the merge commit has the expected ordered parents;
-2. require the second parent to equal the exact reviewed head;
-3. require the merge tree to equal the exact reviewed tree;
-4. require the reviewed head to be ancestral to current `main`;
-5. require fetched `origin/main` to equal the merge commit;
-6. require the exact-main `Merge gate` and any other push-only required checks
-   to succeed on that merge;
-7. post the external completion receipt;
-8. make any prepared conditional ticket closeout effective only now; and
-9. select and continue the next ready ticket when the session authorizes
-   continued work.
-
-If any post-merge predicate fails, do not call the ticket `done` and do not
-start its dependent. Diagnose or repair through a new bounded change without
-rewriting the reviewed or merged history.
-
-## 6. Two evidence classes
-
-### 6.1 Tracked stable evidence
-
-Repository-tracked ticket, plan, decision, contract, and evidence files record
-facts that are meaningful before the final commit exists:
-
-- ticket scope and authority set;
-- starting base commit and tree;
-- durable decisions and working contracts;
-- expected manifest;
-- validation commands and acceptance invariants;
-- maturity ceiling; and
-- a conditional completion predicate.
-
-Tracked evidence must not guess the final head/tree or create a recursive
-identity problem. A final candidate may state that `done` and the next-ticket
-selection become effective only after the exact external predicate passes.
-
-### 6.2 External dynamic completion receipt
-
-Facts that exist only after the candidate or merge exists belong outside the
-reviewed tree:
-
-- final reviewed head and tree;
-- CI run and required job/check identities;
-- Codex/GPT review receipt, GitHub approval, and `GPT review gate` identities;
-- unresolved review-thread count and disposition of findings;
-- merge commit, ordered parents, and merge tree;
-- exact-main check identities;
-- lead/issue notification identity;
-- final bounded maturity; and
-- next selected ticket and exact starting base.
-
-Use the normalized template at
-`.agent/templates/EXTERNAL_COMPLETION_RECEIPT.md`. Put the completed receipt in
-the pull-request body, one normalized pull-request completion comment, issue
-#42, or a retained GitHub Actions artifact. The tracked evidence file points to
-the chosen location without inventing its future identity.
-
-Do not create commits named or serving only as:
-
-- `record successful CI`;
-- `record final review evidence`;
-- `evidence seal`;
-- `record merge evidence`;
-- `retrigger validation`; or
-- any equivalent external-fact-only update.
-
-## 7. Conditional closeout
-
-A final ticket candidate may coordinate its own bounded `done` state and the
-next ticket's selection in the same reviewed tree. That transition is inert on
-the branch and on an unchecked merge commit. It becomes authoritative only
-after:
-
-```text
-exact final head/tree
-+ scope-required exact-head checks and Merge gate
-+ fresh complete-diff exact-head Codex/GPT review
-+ all valid findings repaired
-+ distinct non-author human approval with the closed receipt
-+ successful GPT review gate
-+ zero unresolved review threads
-+ no applicable block
-+ normal expected-head merge
-+ ordered-parent and reviewed-tree equality
-+ exact-main Merge gate
-+ completed normalized external receipt posted
-```
-
-This avoids a recursive closeout pull request while preserving every
-substantive gate. If the predicate does not pass exactly, the prior merged
-selection remains controlling.
-
-## 8. Maturity and reserved authority
-
-Close a ticket only in its bounded maturity. `SPECIFIED`, `IMPLEMENTED`, and
-`TESTED` are separate claims. None implies scientific qualification, security
-acceptance, network qualification, commercial validation, production
-qualification, `LIVE`, launch, frontier, settlement, weight, emission, legal
-rights, or deployment authority.
-
-Routine engineering merge authority cannot override a human-reserved
-decision. Missing reserved authority remains explicit and fail closed even
-when `Merge gate` and `GPT review gate` are green.
+The versioned intended rule remains `.github/rulesets/main.v1.json`; the file
+format version is unchanged. The apply tool must verify live settings after
+an administrative write. A committed artifact is not proof of live enforcement.
+No receipt or merge operation grants scientific, security, production, LIVE,
+network, frontier, settlement, weight, or emission authority.

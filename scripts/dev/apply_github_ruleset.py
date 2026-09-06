@@ -26,19 +26,18 @@ DIGEST_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
 
 EXPECTED_PULL_REQUEST_PARAMETERS = {
     "allowed_merge_methods": ["merge"],
-    "dismiss_stale_reviews_on_push": True,
+    "dismiss_stale_reviews_on_push": False,
     "require_code_owner_review": False,
-    "require_last_push_approval": True,
-    "required_approving_review_count": 1,
-    "required_review_thread_resolution": True,
+    "require_last_push_approval": False,
+    "required_approving_review_count": 0,
+    "required_review_thread_resolution": False,
 }
 EXPECTED_REQUIRED_CHECKS = (
-    {"context": "GPT review gate", "integration_id": GITHUB_ACTIONS_APP_ID},
     {"context": "Merge gate", "integration_id": GITHUB_ACTIONS_APP_ID},
 )
 EXPECTED_STATUS_CHECK_PARAMETERS = {
     "do_not_enforce_on_create": False,
-    "strict_required_status_checks_policy": True,
+    "strict_required_status_checks_policy": False,
     "required_status_checks": list(EXPECTED_REQUIRED_CHECKS),
 }
 EXPECTED_RULE_TYPES = {
@@ -203,10 +202,10 @@ def load_artifact(path: Path) -> dict[str, Any]:
         or any(
             pull_parameters.get(field) is not expected
             for field, expected in (
-                ("dismiss_stale_reviews_on_push", True),
+                ("dismiss_stale_reviews_on_push", False),
                 ("require_code_owner_review", False),
-                ("require_last_push_approval", True),
-                ("required_review_thread_resolution", True),
+                ("require_last_push_approval", False),
+                ("required_review_thread_resolution", False),
             )
         )
     ):
@@ -225,11 +224,13 @@ def load_artifact(path: Path) -> dict[str, Any]:
         raise RulesetError("required_status_checks parameters have unexpected fields")
     if check_parameters.get("do_not_enforce_on_create") is not False:
         raise RulesetError("required checks must be enforced on branch creation")
-    if check_parameters.get("strict_required_status_checks_policy") is not True:
-        raise RulesetError("required checks must use the strict status policy")
+    if check_parameters.get("strict_required_status_checks_policy") is not False:
+        raise RulesetError(
+            "required checks must use the owner-directed non-strict status policy"
+        )
     checks = check_parameters.get("required_status_checks")
     if not isinstance(checks, list) or len(checks) != len(EXPECTED_REQUIRED_CHECKS):
-        raise RulesetError("required checks must be Merge gate and GPT review gate")
+        raise RulesetError("required checks must be Merge gate")
     normalized_checks: list[tuple[str, int]] = []
     for item in checks:
         if not isinstance(item, dict) or set(item) != {"context", "integration_id"}:
@@ -244,7 +245,7 @@ def load_artifact(path: Path) -> dict[str, Any]:
         for item in EXPECTED_REQUIRED_CHECKS
     )
     if sorted(normalized_checks) != expected_checks:
-        raise RulesetError("required checks must be Merge gate and GPT review gate")
+        raise RulesetError("required checks must be Merge gate")
     if settings != EXPECTED_REPOSITORY_SETTINGS or any(
         type(setting) is not bool for setting in settings.values()
     ):

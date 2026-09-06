@@ -312,7 +312,7 @@ class ValidatorContractTests(unittest.TestCase):
             ):
                 validator.load_github_event()
                 validator.collect_diff()
-            validator.validate_delivery_declaration()
+            validator.validate_legacy_delivery_declaration()
             validator.validate_pr_declaration()
 
             self.assertTrue(validator.live_pr_loaded)
@@ -389,7 +389,7 @@ class ValidatorContractTests(unittest.TestCase):
                 clear=False,
             ):
                 validator.load_github_event()
-            validator.validate_delivery_declaration()
+            validator.validate_legacy_delivery_declaration()
             validator.validate_pr_declaration()
             self.assertTrue(
                 any("specific" in error for error in validator.errors),
@@ -625,7 +625,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         self.assertTrue(
             any("BASE does not match" in error for error in validator.errors),
             validator.errors,
@@ -667,7 +667,7 @@ class ValidatorContractTests(unittest.TestCase):
                         "base": {"sha": head},
                     }
                 }
-                validator.validate_delivery_declaration()
+                validator.validate_legacy_delivery_declaration()
                 self.assertEqual(validator.errors, [])
 
     def test_authoritative_sequencing_accepts_tracked_explicit_marker(self) -> None:
@@ -704,7 +704,7 @@ class ValidatorContractTests(unittest.TestCase):
                     "base": {"sha": head},
                 }
             }
-            validator.validate_delivery_declaration()
+            validator.validate_legacy_delivery_declaration()
             self.assertEqual(validator.errors, [])
 
             incomplete = validate_hub.Validator(root)
@@ -782,7 +782,7 @@ class ValidatorContractTests(unittest.TestCase):
                         "base": {"sha": head},
                     }
                 }
-                validator.validate_delivery_declaration()
+                validator.validate_legacy_delivery_declaration()
                 self.assertTrue(
                     any(expected in error for error in validator.errors),
                     validator.errors,
@@ -904,7 +904,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         self.assertTrue(
             any(
                 "requires SEPARATE_CONTRACT_PR_REASON" in error
@@ -934,7 +934,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         for field in (
             "CODE_BEARING_COMMITS",
             "POST_FREEZE_TREE_CHANGES",
@@ -963,7 +963,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        pending.validate_delivery_declaration()
+        pending.validate_legacy_delivery_declaration()
         self.assertEqual(pending.errors, [])
 
     def test_completion_receipt_accepts_a_concrete_github_pr_comment_url(self) -> None:
@@ -982,7 +982,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         self.assertEqual(validator.errors, [])
 
     def test_delivery_fields_cannot_borrow_the_following_line_as_a_value(self) -> None:
@@ -1010,7 +1010,7 @@ class ValidatorContractTests(unittest.TestCase):
                         "base": {"sha": head},
                     }
                 }
-                validator.validate_delivery_declaration()
+                validator.validate_legacy_delivery_declaration()
                 self.assertTrue(
                     any(field in error for error in validator.errors),
                     (field, validator.errors),
@@ -1027,7 +1027,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         self.assertEqual(validator.errors, [])
 
     def test_delivery_status_fields_use_closed_leading_enums(self) -> None:
@@ -1054,7 +1054,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "base": {"sha": head},
             }
         }
-        validator.validate_delivery_declaration()
+        validator.validate_legacy_delivery_declaration()
         for field in (
             "CANONICAL_LOCAL_VALIDATION",
             "MERGE_GATE",
@@ -1084,7 +1084,7 @@ class ValidatorContractTests(unittest.TestCase):
         with patch.dict(
             os.environ, {"HUB_EXPECTED_CHANGE_SCOPE": "RUNTIME_FULL"}, clear=False
         ):
-            matching.validate_delivery_declaration()
+            matching.validate_legacy_delivery_declaration()
         self.assertEqual(matching.errors, [])
 
         for expected, error_fragment in (
@@ -1100,7 +1100,7 @@ class ValidatorContractTests(unittest.TestCase):
                     {"HUB_EXPECTED_CHANGE_SCOPE": expected},
                     clear=False,
                 ):
-                    rejected.validate_delivery_declaration()
+                    rejected.validate_legacy_delivery_declaration()
                 self.assertTrue(
                     any(error_fragment in error for error in rejected.errors),
                     rejected.errors,
@@ -1112,10 +1112,10 @@ class ValidatorContractTests(unittest.TestCase):
         workflow = (REPO_ROOT / ".github/workflows/development-hub.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn(
-            "types: [opened, synchronize, reopened, edited, ready_for_review]",
-            workflow,
-        )
+        self.assertIn("  workflow_dispatch:", workflow)
+        trigger = workflow.partition("permissions:")[0]
+        self.assertNotIn("  pull_request:", trigger)
+        self.assertNotIn("  push:", trigger)
         self.assertIn("contents: read", workflow)
         self.assertIn("pull-requests: read", workflow)
         self.assertNotRegex(workflow, r"(?m)^\s*[a-z-]+:\s*write\s*$")
@@ -3091,6 +3091,20 @@ class ValidatorContractTests(unittest.TestCase):
         self.assertEqual(validator.changed_paths, {"carbon/runtime.py"})
         self.assertFalse(validator.semantic_data_changed)
         self.assertEqual(validator.errors, [])
+
+
+class OwnerDeliveryPolicyTests(unittest.TestCase):
+    def test_normal_delivery_does_not_require_human_metadata(self) -> None:
+        for body in (
+            "",
+            "Ticket B-06. Tests passed.",
+            "HUMAN_APPROVAL_REVIEW: PENDING",
+            "FINAL_HEAD: stale",
+        ):
+            validator = validate_hub.Validator(REPO_ROOT)
+            validator.github_event = {"pull_request": {"body": body}}
+            validator.validate_delivery_declaration()
+            self.assertEqual(validator.errors, [])
 
 
 if __name__ == "__main__":
