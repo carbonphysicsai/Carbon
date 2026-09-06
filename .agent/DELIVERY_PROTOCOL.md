@@ -54,6 +54,14 @@ quality ratchet, package/import checks, and applicable Hub validation. Unknown
 paths retain full runtime acceptance. Contract-only and generated-doc changes
 retain their existing lighter classified suites. Test semantics remain intact.
 
+A closed allow-list of development-tooling-only changes uses the complete
+tooling regression suite instead of re-executing unchanged scientific runtime
+tests. It still runs all invariant tests, full CPU collection, quality checks,
+package/import checks, and Hub acceptance. Runtime code, scientific tests,
+shared fixtures, dependency or bootstrap changes, empty manifests, and unknown
+paths retain full CPU regression. The selector must reject an unavailable
+comparison base or missing required tooling test; no success may be invented.
+
 The clean development-image build runs for environment, dependency, workflow,
 or canonical-runner changes and unknown paths. Ordinary Python implementation
 and test changes use the pinned canonical runner without rebuilding the image.
