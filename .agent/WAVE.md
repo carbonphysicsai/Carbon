@@ -10,7 +10,9 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 2.3
-**Selected ticket:** B-07S — `done` after its OWNER-DX-03 shipping predicate
+**Selected ticket:** B-07S — `done`
+**Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
+shipping predicate
 **Next selected ticket:** `B-07A`
 **Next eligible status:** B-07A is `todo` and unstarted; B-07S authorizes no
 runtime implementation

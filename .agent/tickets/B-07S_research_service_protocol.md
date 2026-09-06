@@ -1,7 +1,8 @@
 # Ticket B-07S - Exact miner research service protocol
 
 **Wave:** B candidate
-**Status:** done in the bounded specification/ratification scope after the
+**Status:** done
+**Completion boundary:** bounded specification/ratification scope after the
 OWNER-DX-03 shipping predicate recorded in B-07S evidence
 **Depends on:** B-07R, B-02A, B-02B, B-02C
 **Build Out:** C9-C11 exact Wave B service gate
