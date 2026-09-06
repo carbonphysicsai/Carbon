@@ -969,6 +969,24 @@
       "affects": ["WAVE-B/B-07A", "WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560978680",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07A-D1..D4",
+      "map_ref": "WAVE-B/B-07A",
+      "wave": "B",
+      "ticket": "B-07A",
+      "title": "One exact v2 core and bounded discovery",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-07A implement the shared v2 vocabulary and discovery without creating a second manifest schema or absorbing later operation owners?",
+      "recommendation": "KEEP one carbon.research owner, the sole ratified InteractionManifest wire name, immutable exact-version discovery, and local execution of only the two B-07A operations with every later operation explicitly unavailable.",
+      "why": "Duplicate types, latest-version aliases, successful stubs, caller-selected capabilities, or a broad dispatcher would break nominal history or transfer authority from later tickets.",
+      "if_kept": "Downstream tickets import one exact core while B-07A remains a bounded public discovery layer that changes neither official v1 nor qualification state.",
+      "if_changed": "Wire names, package ownership, historical canonical bytes, ref digests, provider boundaries, runtime tests, and downstream imports require a prospective protocol version and migration.",
+      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5561518965",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/99d9b5de06c37e6420225f15cc93c82a91f1a059/.agent/DECISIONS.md"
     }
   ]
 }
