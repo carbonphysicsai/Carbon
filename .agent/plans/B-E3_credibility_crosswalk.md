@@ -1,7 +1,7 @@
 # B-E3 execution plan — credibility crosswalk and evidence manifest
 
-**Starting main:** merged PR #88 (`300bac5c…`)  
-**Branch:** `agent/b-e3-credibility-crosswalk`  
+**Starting main:** merged PR #88 (`300bac5c…`)
+**Branch:** `agent/b-e3-credibility-crosswalk`
 **Primary Hub map_ref:** `WAVE-B/B-E3`
 
 1. Record the working crosswalk contract and B-E3 decisions; reconcile B-06's
@@ -18,4 +18,3 @@
 The recorded Docker/canonical environment remains unavailable on this host and
 will not be retried. Native results are diagnostic; GitHub's pinned canonical
 environment supplies acceptance.
-

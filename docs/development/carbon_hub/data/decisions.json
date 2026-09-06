@@ -915,6 +915,42 @@
       "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E3-D1",
+      "map_ref": "WAVE-B/B-E3",
+      "wave": "B",
+      "ticket": "B-E3",
+      "title": "Wrap B-06 with a non-authorizing crosswalk",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-E3 bind every Dossier claim to evidence without creating a competing evidence or qualification system?",
+      "recommendation": "KEEP B-06 claim, evidence, manifest, Challenge, origin, and canonical identities authoritative and add one separately framed pure crosswalk assessment and report layer.",
+      "why": "A parallel store would split authority, while free-form mapping could silently accept stale identities or role substitution.",
+      "if_kept": "B-E3 can validate exact caller-supplied B-06 manifests and remain incapable of scientific adjudication, registry mutation, campaign execution, or LIVE activation.",
+      "if_changed": "The v1 crosswalk profile, package surface, canonical bytes, reports, tests, and downstream B-GATE consumers require a prospective migration.",
+      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560320481",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E3-D2",
+      "map_ref": "WAVE-B/B-E3",
+      "wave": "B",
+      "ticket": "B-E3",
+      "title": "Structural MMS and audience-disclosure boundaries",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-E3 prevent MMS substitution and protected-identity leakage while keeping absent evidence visible?",
+      "recommendation": "KEEP a closed source-kind claim matrix, hard MMS boundary, exact category/maturity map, required-input failure, and positive audience allow-lists with value-free errors.",
+      "why": "Deny-list redaction, caller approval flags, or generic evidence categories would permit leakage, self-certification, or maturity escalation.",
+      "if_kept": "Pending and absent evidence remains explicit but non-satisfying, while protected source and reconstruction-sensitive identities stay out of lower-audience reports and errors.",
+      "if_changed": "The schema/profile, source matrix, disclosure projections, tests, and downstream report consumers require a prospective migration plus the relevant human authority.",
+      "affects": ["WAVE-B/B-E3", "WAVE-B/B-E1", "WAVE-B/B-E2", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560320481",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/DECISIONS.md"
     }
   ]
 }

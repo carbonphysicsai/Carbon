@@ -687,6 +687,42 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E9"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "evidence",
+      "event_id": "B-06-E11",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #88 passed applicable acceptance and Merge gate and normally merged B-06; its completion comment selects B-E3 while preserving B-05's incomplete historical record and every scientific, security, qualification, production, registry, and LIVE ceiling.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/88",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E10"
+    },
+    {
+      "map_ref": "WAVE-B/B-E3",
+      "event_type": "evidence",
+      "event_id": "B-E3-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "B-E3 adds the bounded exact Dossier claim-to-evidence crosswalk, source permitted-use inventory, fail-closed assessment, MMS non-substitution, strict canonical form, and audience-safe report; B-07S remains the next unstarted protocol prerequisite and no scientific or LIVE qualification is created.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/evidence/wave_b/b-e3.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-07S",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

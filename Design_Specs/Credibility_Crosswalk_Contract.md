@@ -1,9 +1,9 @@
 # Credibility Crosswalk and Evidence Manifest Contract
 
-**Ticket:** B-E3 — Credibility crosswalk and evidence manifest  
-**Contract version:** 0.1  
-**Status:** delegated working engineering contract  
-**Maturity ceiling:** bounded structural engineering only  
+**Ticket:** B-E3 — Credibility crosswalk and evidence manifest
+**Contract version:** 0.1
+**Status:** delegated working engineering contract
+**Maturity ceiling:** bounded structural engineering only
 **Implementation owner:** `carbon.qualification.credibility`
 
 This contract adds a deterministic claim-to-evidence projection over B-06's
@@ -154,4 +154,3 @@ statistics, protocol, security, product, commercial, and launch owners retain
 their existing decisions. This contract adds no thresholds, evidence weights,
 scientific verdict, standard-compliance assertion, signer authority, registry
 mutation, campaign execution, B-07 service behavior, or LIVE path.
-

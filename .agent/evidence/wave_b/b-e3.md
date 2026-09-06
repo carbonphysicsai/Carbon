@@ -1,8 +1,8 @@
 # B-E3 stable evidence — credibility crosswalk and evidence manifest
 
-**Tracked evidence class:** stable ticket evidence and conditional closeout  
-**Starting main:** merged PR #88 (`300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`)  
-**Primary Hub map_ref:** `WAVE-B/B-E3`  
+**Tracked evidence class:** stable ticket evidence and conditional closeout
+**Starting main:** merged PR #88 (`300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`)
+**Primary Hub map_ref:** `WAVE-B/B-E3`
 **Maturity:** bounded structural implementation and native diagnostics complete;
 canonical acceptance remains the shipping PR's GitHub record
 
