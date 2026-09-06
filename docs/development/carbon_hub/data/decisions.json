@@ -951,6 +951,24 @@
       "affects": ["WAVE-B/B-E3", "WAVE-B/B-E1", "WAVE-B/B-E2", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560320481",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07S-D1..D6",
+      "map_ref": "WAVE-B/B-07S",
+      "wave": "B",
+      "ticket": "B-07S",
+      "title": "Exact bounded local v2 protocol",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should every later B-07 implementation share one interoperable local wire, task, prior, fixture-capability, and ownership contract without acquiring official evaluator authority?",
+      "recommendation": "KEEP disjoint carbon_protocol_v1/carbon_research_v2 namespaces, exact bounded v2 types and errors, linearizable task semantics, acyclic prior/index identities, nominal public/fixture contexts, and B-07G composition-only.",
+      "why": "B-07R delegated these mechanics to B-07S; leaving them to downstream tickets would permit incompatible identities, caller-selected authority, ambiguous races, or duplicate semantic ownership.",
+      "if_kept": "B-07A-G can implement against one exact fail-closed protocol while existing A2/A7/B-02A/B/C identities and the official v1 lifecycle remain authoritative.",
+      "if_changed": "The affected normative protocol section, conformance manifest/test, decision record, and downstream implementation contracts require a new version and owner-specific migration.",
+      "affects": ["WAVE-B/B-07A", "WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560978680",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/DECISIONS.md"
     }
   ]
 }
