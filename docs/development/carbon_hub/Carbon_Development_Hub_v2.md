@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `f413774c722bcf49452f6a2737ab836358a49ca5` on `main`, captured 2026-09-06T19:20:51Z.
+**Authority snapshot:** `4cbb0cc247dc4b09d5d7be316186c0ca6b668752` on `main`, captured 2026-09-06T19:58:00Z.
 **Current:** Wave B, ticket B-07A. B-07A is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED shared-core and discovery scope. It adds the exact shared v2 vocabulary, ChallengeInfo, the sole InteractionManifest wire resource, immutable historical discovery, and a local two-operation adapter. B-07B is next, todo, and unstarted.
 
 ## Wave spine
