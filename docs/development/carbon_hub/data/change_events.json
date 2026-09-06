@@ -598,6 +598,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-06-E5"
+    },
+    {
+      "map_ref": "WAVE-B/B-06",
+      "event_type": "bug",
+      "event_id": "B-06-E7",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-06's second complete-diff review found three further structural defects; the bounded repair makes unresolved provenance monotonic and qualification-blocking, reuses A3's exact required-slot reference checks, and rejects conflicting same-version nominal identities. The first review repairs remain verified, while every earlier CI/review is stale and fresh delivery review is required.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/8d8b17d8e4417a65eea164179dc0ca1dd44de3b8/.agent/evidence/wave_b/b-06.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-06-E6"
     }
   ]
 }
