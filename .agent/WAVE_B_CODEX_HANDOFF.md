@@ -1,9 +1,10 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 2.2
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 2.2
+**Governance version:** 2.3
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 2.3
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
+**Exact service protocol:** [`../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`](../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md) version 2.0.0, effective after the B-07S OWNER-DX-03 shipping predicate
 **Current ticket:** derive the selected ticket and status from the exact fetched
 `origin/main` versions of `.agent/WAVE.md`, `.agent/WAVE_B.md`, and the ticket
 file; require those merged records to agree. A pull-request branch may propose
@@ -17,20 +18,20 @@ This handoff gives a fresh Codex session enough repository context to execute
 Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
 security, rights, economic, network, or launch decision.
 
-`GOV-REVIEW-01-D1` prospectively replaces the unavailable Greptile service
-with fresh read-only Codex/GPT review of the complete exact-head diff, a closed
-head/tree-bound receipt, distinct non-author human approval, and the protected
-`GPT review gate`. Historical Greptile records remain immutable evidence.
+OWNER-DX-03 controls delivery: one ticket PR, one applicable acceptance on the
+ready revision, no mandatory reviewer/receipt/approval ceremony, and normal
+expected-head merge. Historical review evidence remains immutable.
 
-## Current transition — B-E3 complete, B-07S next
+## Current transition — B-07S ratified, B-07A next
 
 PR #88 normally merged B-06 after its accepted revision passed `Merge gate`;
 completion comment `5560216570` selected B-E3. The B-E3 shipping snapshot
 completes the bounded credibility crosswalk, validation, canonicalization, and
 audience-safe report. B-05 retains its incomplete historical record with no
-active work. B-07S is next, `todo`, and unstarted; it must ratify the exact
-service contract before any B-07 service implementation. No scientific,
-security, standards, production, or LIVE qualification follows from B-E3.
+active work. The Version-2.3 shipping snapshot conditionally completes B-07S's
+exact local protocol ratification after applicable acceptance and normal
+merge. B-07A is next, `todo`, and unstarted. No runtime implementation or
+scientific, security, standards, production, or LIVE qualification follows.
 
 ## 1. Completed foundations, B-04 runtime, and B-01F completion
 
@@ -175,9 +176,9 @@ Read the repository versions in this order before B-01 or any later ticket:
 22. relevant implementation, tests, packaging configuration, and
     `.github/workflows/ci.yml`
 
-After B-07S creates, ratifies, and normally merges
-`Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`, read it before any ticket
-that uses wire-visible v2 behavior.
+Read `Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md` before every ticket
+that uses wire-visible v2 behavior. It is effective after B-07S's applicable
+acceptance and normal merge.
 
 Read `Business/Business_Canon.md` and the ticket-relevant business documents
 before work involving contributor rights, publication rights, fees, or customer
@@ -196,7 +197,8 @@ the domain owner provides a current repository contract.
 | `docs/development/ENVIRONMENT.md` | Sole ordinary developer/evidence environment and command guide after B-01E. |
 | `docs/history/LEGACY_CODE_INDEX.md` | Retrieval map for quarantined executable prototypes. Archive presence grants no current authority. |
 | `SPEC.md` | System/runtime doctrine. It preserves the current v1 service and records the gated migration to the separate Wave B research service. |
-| `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | B-07R agent-selected working behavioral/authority architecture for the local research plane; merged engineering authority only after its conditional completion gate. B-07S owns exact protocol mechanics. |
+| `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` | B-07R merged behavioral/authority architecture for the local research plane. |
+| `Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md` | B-07S exact local v2 wire, lifecycle, identity, context, projection, and composition protocol; `SPECIFIED / RATIFIED` only, with no runtime or qualification claim. |
 | `Design_Specs/Miner_MCP.md` | Existing bounded Wave A v1 interface and pointer to the separate Wave B research architecture. |
 | `Design_Specs/Strategy_Schema.md` | Strategy v1 envelope. B-02B supplies Challenge-bound executable meaning through the catalog, assembly contract, and compiler. |
 | `Design_Specs/Data_Management.md` | Owns TRAIN/EVAL/STRESS data roles, nominal entropy contexts, and the rule that a resolved training policy binds abstract purposes rather than seed authority. |
@@ -276,9 +278,9 @@ start of every session:
    is not one. Run parallel lanes only when the board permits and their
    authority/files do not overlap.
 
-B-07R must ratify the research architecture before dependent implementation.
-B-07S must ratify the exact wire protocol before service-facing code. B-07A
-then implements the shared nominal v2 protocol primitives once; downstream
+B-07R has ratified the research architecture and B-07S has conditionally
+ratified the exact wire protocol under its shipping predicate. B-07A then
+implements the shared nominal v2 protocol primitives once; downstream
 domain tickets consume those types, and B-07G alone owns final composition and
 conformance for the B-07S-ratified closed operation set. B-GATE closes the
 fixture wave only after every named predecessor has merged.

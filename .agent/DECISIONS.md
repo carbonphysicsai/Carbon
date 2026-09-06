@@ -11071,3 +11071,72 @@ Implementation: `.agent/DELIVERY_PROTOCOL.md`, root `AGENTS.md`, CI/workflow and
 ruleset tooling, plus the Hub declaration validator. Reversible through a
 future owner-directed policy change; no runtime/schema/scientific migration.
 Live administration settings must be verified separately from the artifact.
+
+## 2026-09-07 - B-07S-D1..D6: exact local research-service protocol
+
+**Ticket:** B-07S
+**Status:** implemented working engineering decisions
+**Implementation:**
+`Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`,
+`tests/invariants/test_b07s_research_service_protocol.py`, and the B-07S pull
+request.
+
+**Problem.** B-07R fixed the Wave B architecture but deliberately left exact
+wire types, namespaces, bounds, lifecycle races, prior content identity,
+fixture capability construction, and composition ownership to B-07S. Leaving
+those choices to B-07A-G would permit incompatible implementations or a second
+semantic owner in B-07G.
+
+**Agent recommendation and decisions.** Ratify the following as one versioned
+protocol:
+
+- **B-07S-D1:** keep `carbon_protocol_v1` and its official
+  `submit`/`get_submission_result` lifecycle unchanged; put exactly twelve
+  research operations in `carbon_research_v2`, with no unqualified alias.
+- **B-07S-D2:** reuse A2/A7/B-02A/B-02B/B-02C nominal values and identities;
+  add only missing v2 wrapper nominals; use a closed canonical profile and
+  finite byte, field, collection, nesting, and polling bounds.
+- **B-07S-D3:** use atomic request-digest idempotency, a six-state task machine,
+  linearized cancellation/terminal races, monotone bounded polling, provider-
+  owned bounded retries, and immutable terminal receipts. Infrastructure state
+  remains distinct from scientific outcome.
+- **B-07S-D4:** hash `PriorPack` canonical bytes without an embedded self-hash
+  or self-ref; use `PriorPreviousIndex::GENESIS`; exclude both publication
+  receipt and resulting-index ref from the proposed transition digest; pin
+  exact pack and atomic snapshot refs per run.
+- **B-07S-D5:** make external-public and fixture contexts distinct constructor
+  types. Only the fixture graph can inject a test-only provider, and every
+  fixture result binds a non-public authorization receipt with the mandatory
+  `TEST_ONLY / NOT_UTILITY_QUALIFIED` ceiling.
+- **B-07S-D6:** preserve one semantic owner per operation: B-07A discovery,
+  B-07D3 prior/alignment, B-07C scaffold/practice, A2 validation, B-02B
+  compilation, B-07E resources, B-07B tasks; B-07G only composes, dispatches,
+  and checks conformance.
+
+**Alternatives rejected.** A merged v1/v2 service would confuse official and
+research lifecycles. Generic maps, execution modes, contexts, or provider
+labels would expose evaluator/capability escalation. An embedded prior
+self-hash or receipt/result-ref transition preimage would form content-address
+cycles. Best-effort task races or unbounded polling would make adapters
+incompatible. Reimplementing compiler/validation/resource semantics in B-07G
+would create competing authority.
+
+**Affected interfaces and invariants.** The decisions bind every B-07A-G
+service-facing interface and preserve INV-004, INV-008, INV-012, INV-013,
+INV-016, INV-017, and INV-019. They depend on A2, A7, B-02A/B/C, and B-07R.
+Official Wave A submission behavior is unchanged.
+
+**Reversibility and migration.** This is a specification-only gate with no
+runtime migration. Before implementation, a lead can supersede one decision by
+changing the named protocol section, its conformance manifest/test, this
+record, and downstream ticket authority. After implementation, any wire/state/
+identity change requires a new protocol version plus owner-specific migration.
+The smallest superseding changes are respectively sections 1, 2-5, 6, 7, 8,
+or 9 of the normative protocol.
+
+**Human-reserved input.** None is required for the bounded local engineering
+contract. Scientific values/qualification, security acceptance, public
+publication policy, rights/legal policy, economics, real identity, production
+signing/key custody/credentials, remote transport, launch, and LIVE authority
+remain unavailable and fail closed. A lead notification is posted to issue
+#42; development continues under OWNER-DX-03 unless an explicit block appears.

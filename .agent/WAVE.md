@@ -9,10 +9,11 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.2
-**Selected ticket:** B-E3 — `done`
-**Next selected ticket:** `B-07S`
-**Next eligible status:** B-07S is `todo`; exact-protocol work has not started
+**Controlling register:** `.agent/WAVE_B.md` version 2.3
+**Selected ticket:** B-07S — `done` after its OWNER-DX-03 shipping predicate
+**Next selected ticket:** `B-07A`
+**Next eligible status:** B-07A is `todo` and unstarted; B-07S authorizes no
+runtime implementation
 **Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while
 preserving B-05's incomplete historical delivery state; PR #88 completes B-06,
 and its completion note selects B-E3. OWNER-DX-03 controls engineering delivery.
@@ -38,8 +39,11 @@ reviews and approvals remain evidence, not current predicates.
 crosswalk, fail-closed assessment, canonicalization, and audience-safe report.
 It certifies no scientific adequacy, compliance, production qualification, or
 LIVE authority.
-**B-07S status:** `todo` and not started; it remains the exact protocol gate
-before any B-07 service implementation.
+**B-07S status:** `done` in this shipping snapshot after applicable automated
+acceptance and normal merge; it ratifies the exact local v2 engineering
+protocol but implements no B-07 runtime and grants no qualification.
+**B-07A status:** `todo` and unstarted; it is the next eligible implementation
+ticket after the B-07S shipping predicate.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -85,6 +89,17 @@ before any B-07 service implementation.
 > remains `in_progress` with no active work. Scientific, security,
 > qualification, production, and LIVE authority remain human-reserved and
 > unearned.
+
+> **B-07S conditional closeout and B-07A transition under OWNER-DX-03.** This
+> shipping snapshot ratifies one exact `carbon_research_v2` local wire
+> contract, preserves the unchanged official `carbon_protocol_v1` lifecycle,
+> fixes task/prior/context/ownership semantics, and adds machine-checkable
+> conformance. Its bounded `done` state and B-07A `todo` next-selection become
+> authoritative only after the final unchanged revision passes its applicable
+> automated acceptance and `Merge gate` and normally merges with the expected-
+> head guard. No B-07A-G runtime is implemented here. Every scientific,
+> security, network, production, qualification, economic, rights, launch, and
+> LIVE authority remains unearned.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
@@ -357,8 +372,8 @@ and delivered through the non-blocking lead-notification process in
 (`@harshaa765`) may amend, reject, or supersede such a decision; silence is not
 a gate, while a lead `REQUEST_CHANGES` review or explicit `BLOCKED` direction
 pauses the affected change. B-07R owns the merged working engineering
-architecture under its completion predicate; B-07S remains the exact service-
-protocol ratification gate. Scientific truth and qualification,
+architecture; B-07S ratifies the exact service protocol under its shipping
+predicate, and B-07A is next but unstarted. Scientific truth and qualification,
 security acceptance, rights/legal policy, live economics, launch, production,
 `LIVE`, frontier, product, settlement, chain, weight, and emission authority
 remain unearned and human-owned where `AGENTS.md` reserves them.
