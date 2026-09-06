@@ -8,6 +8,8 @@ import pytest
 from carbon import qualification
 from tests.invariants._import_analysis import direct_import_modules
 
+pytestmark = pytest.mark.invariant
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
