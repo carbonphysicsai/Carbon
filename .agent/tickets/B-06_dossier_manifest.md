@@ -1,7 +1,7 @@
 # Ticket B-06 - Validation Dossier and qualification-manifest machinery
 
 **Wave:** B candidate
-**Status:** in_progress
+**Status:** done in bounded merged engineering scope
 **Depends on:** B-02A, B-03, B-04, B-05, A3
 **Build Out:** C4
 **Master questions:** MQ-003 through MQ-008, MQ-018
@@ -23,7 +23,7 @@ Create the artifact layout and fail-closed workflow that can later earn the righ
 
 ## Definition of Done
 
-- [ ] Begin the single-ticket PR with the working
+- [x] Begin the single-ticket PR with the working
       `Design_Specs/Validation_Dossier_Manifest_Contract.md`, material
       decisions, plan, and SciML/statistics/protocol/security notification;
       implement coherent vertical slices against that contract; then review
@@ -75,12 +75,14 @@ OWNER-DX-03 supersedes the mandatory fresh-review, human-approval, receipt,
 GPT-gate, and post-merge full-CI process formerly embedded in this ticket. The
 five completed historical reviews found nine actionable defects, all repaired
 on the pre-integration tree; their receipts, approvals, and CI remain factual
-history but are not predicates for the current integrated revision. B-06 stays
-`in_progress` until the ready integrated head passes its applicable automated
-acceptance and normally merges. This delivery-policy change does not alter any
+history but are not predicates for the current integrated revision. PR #88
+subsequently merged normally as `300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`;
+its accepted head passed `Merge gate`, and completion comment `5560216570`
+names B-E3 next. B-06 is therefore `done` in bounded engineering scope. This
+delivery-policy change does not alter any
 scientific, security, qualification, production, registry, or LIVE boundary.
 
-## Second-review repair checkpoint
+## Historical second-review repair checkpoint
 
 Slices 1 through 4 are implemented on the B-06 ticket branch. Slice 2 adds the
 exact typed evidence-manifest subject graph, explicit claim/evidence matrix,
