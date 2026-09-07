@@ -48,37 +48,44 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
 
 ## Definition of Done
 
-- [x] Maintain the working authoring contract, material decisions, plan, and
-      stable evidence; verify the current implementation against the substantive
-      Definition of Done; repair genuine gaps; pass applicable automated
-      acceptance and `Merge gate`; and normally merge the expected candidate
-      under OWNER-DX-03. Historical review/approval/receipt language remains in
-      the evidence record but is superseded as a current delivery predicate.
-      Real measurement, uncertainty, score-policy values, and scientific
-      qualification remain human-owned and fail closed.
-- [x] Define exact `MeasurementContract` identity, scientific property claimed,
+- [ ] Begin the single-ticket PR with the working
+      `Design_Specs/Measurement_and_ScorePack_Authoring_Contract.md`, material
+      decisions, plan, and SciML/statistics/protocol notification; implement
+      coherent vertical slices against that contract; then review the final
+      contract, implementation, tests, and stable evidence together. Require
+      applicable validation and exact-head `Merge gate`; obtain fresh read-
+      only Codex/GPT review of the complete diff; repair or disposition every
+      finding; require distinct non-author human approval carrying the closed
+      receipt, successful `GPT review gate`, and zero unresolved review
+      threads; and normally merge the exact reviewed tree. Any tree change
+      requires rereview, and a separate contract PR
+      requires an exception in `.agent/DELIVERY_PROTOCOL.md`. Notification is
+      not ratification and silence is no gate. Real measurement, uncertainty,
+      score-policy values, and scientific qualification remain human-owned and
+      fail closed.
+- [ ] Define exact `MeasurementContract` identity, scientific property claimed,
       required observables, coordinates/units, numerical operator,
       discretization, sampling/quadrature, normalization, aggregation,
       precision, reference and numerical floor, applicability, uncertainty,
       stratum/subpopulation applicability, known limitations, implementation
       refs, and intended mandatory/soft/diagnostic role.
-- [x] Bind measurement-qualification evidence by role, including analytic or
+- [ ] Bind measurement-qualification evidence by role, including analytic or
       manufactured verification, refinement/convergence, independent witness,
       limiting-case/invariance, and experimental or industrial validation where
       applicable. The evidence record must state what each source supports and
       what it cannot support.
-- [x] Prevent MMS or another implementation-verification result from satisfying
+- [ ] Prevent MMS or another implementation-verification result from satisfying
       customer-workload applicability, physical model validation, or an
       engineering context-of-use claim without separate evidence.
-- [x] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
-- [x] Define the Score Pack `UncertaintyPolicy` bindings for independence and
+- [ ] Bind measurement outputs to Score Pack eligibility, admissibility, estimand, stratum, uncertainty, aggregation, ranking, and disclosure roles.
+- [ ] Define the Score Pack `UncertaintyPolicy` bindings for independence and
       resampling units, common-case pairing, reconstruction-by-case and
       reconstruction-by-stratum interaction, joint reference uncertainty,
       representation/execution dependence, censoring, minimum evidence, and
       prospective stopping or evidence-extension rules. Bind a Dossier-
       qualified applicability test that the exact incumbent-challenger
       evidence must satisfy before any quadrature or zero-covariance shortcut.
-- [x] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
+- [ ] Own and bind the exact scientific `ReconstructionEvidencePolicy`,
       including Challenge/family-specific complete-base minimums of one or more
       builds, frozen-artifact reuse, nomination and promotion stages,
       coverage-qualified scientific stopping/extension, typed
@@ -86,19 +93,21 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       and fail-closed outcome. Consume B-02C resource facts without giving its
       forecasts or receipts scientific authority. B-E1 owns the fixture
       coverage and false-elimination harness, not policy authorship.
-- [x] Preserve mandatory admissibility before soft aggregation.
-- [x] Reject partial, non-finite, inapplicable, reference-failed, numerical-
+- [ ] Preserve mandatory admissibility before soft aggregation.
+- [ ] Reject partial, non-finite, inapplicable, reference-failed, numerical-
       floor-unresolved, and uncertainty-unresolved measurement material through
       typed paths.
-- [x] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
-- [x] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
+- [ ] Keep A5 as deterministic engine and prevent it from inventing physical thresholds or weights.
+- [ ] Add fixture authoring, hash/pin, role-confusion, MMS-verification-versus-
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
 
-The substantive criteria are verified in the candidate. Bounded completion is
-prospective: it becomes authoritative only after the combined candidate passes
-applicable automated acceptance and normally merges. No historical review,
-approval, receipt, or test fact is fabricated.
+This checklist is preserved as the byte-exact B-01H requirements input.
+OWNER-DX-03 supersedes its historical review, approval, receipt, and post-merge
+ceremony as a current delivery predicate. The evidence record maps the
+substantive engineering criteria to current implementation and verification;
+bounded completion remains prospective until the combined B-05/B-07C candidate
+passes applicable automated acceptance and normally merges.
 
 ## Implemented bounded architecture
 
@@ -116,17 +125,14 @@ Dossier qualification issuer, coverage/power harness, official lifecycle,
 frontier, network, treasury, settlement, weight, emission, product,
 commercial, production, or LIVE implementation is present.
 
-## Conditional completion and B-06 selection
+## Conditional completion under OWNER-DX-03
 
-Prepared B-05 `done` and B-06 `in_progress but NOT STARTED` become
-authoritative only after one exact unchanged B-05 final head/tree passes every
-scope-required check and `Merge gate`; fresh read-only Codex/GPT review covers
-the complete diff with all findings closed; a distinct non-author human
-approval carries the closed receipt; `GPT review gate` succeeds with zero
-unresolved threads; normal expected-head merge preserves the reviewed tree;
-fetched exact main passes `Merge gate`; and the completed normalized external
-receipt is posted. Until that complete predicate passes, B-05 remains
-`in_progress` and B-06 remains `todo` and unstarted.
+B-05 remains `in_progress` until the owner-authorized combined B-05/B-07C
+candidate passes applicable automated acceptance, exact-head `Merge gate`, and
+normally merges. That merge prospectively closes the verified B-05
+prerequisite without recreating superseded historical ceremonies. The current
+owner-selected successor is B-07C on this same candidate; this text does not
+authorize or start B-07D1.
 
 ## Human input
 

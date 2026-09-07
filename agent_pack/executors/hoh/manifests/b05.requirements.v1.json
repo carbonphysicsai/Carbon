@@ -3,8 +3,8 @@
   "manifest_id": "B-05-pilot-requirements-v1",
   "ticket": {
     "path": ".agent/tickets/B-05_measurement_scorepack_authoring.md",
-    "git_blob": "65b6d00a66eb9f7990633794b7d7766f7fe4723c",
-    "sha256": "7b8ddf18c995833202d8a95cbe6484e14107f95a1e3b9231bd0b31d99bfe22f6"
+    "git_blob": "5468a09204cd194a8a42d7d9b7ff9dad14412c5c",
+    "sha256": "daba820f2586b4e4b4d9c8a3485ea54e871821f0afef037f88265c6a64072387"
   },
   "requirements": [
     {
