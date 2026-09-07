@@ -11605,3 +11605,10 @@ backend profile, and every qualification/production decision remain absent.
 They fail closed without blocking the bounded fixture implementation. Notify
 issue #42 mentioning `@harshaa765`; no response is required unless an explicit
 block or change is observed.
+# 2026-09-07 — OWNER-EVIDENCE-RESEARCH-01 documentation integration
+
+**Decision:** Preserve the ratified roadmap and materialize its detailed repository-native contracts and 21 passive future tickets without changing current selection or maturity.
+
+**Record:** `GOV-EVIDENCE-RESEARCH-02`, the canonical evidence/research design and focused companions, and `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`.
+
+**Authority:** This is documentation consolidation under the existing owner decision. It creates no runtime, security/scientific/commercial qualification, deployment, launch, LIVE, pricing, retention, rights, or production decision. The referenced v0.3 ZIP was unavailable; ZIP-only details remain unverified and no lossless-reconciliation claim is made.

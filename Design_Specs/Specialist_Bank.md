@@ -644,6 +644,10 @@ Miner adoption = **coarsened PriorPack/scaffold guidance only**. Buyers require 
 
 ## 14. Thesis
 
+## 15. Evidence and demand inputs amendment (2026-09-07)
+
+Wave F may consume only named-use-eligible, provenance-rich archive views/EvidenceBriefs and coarse permission-eligible D12 opportunity signals. It may also return typed failure feedback to those source systems. These inputs help select, design, or repair product candidates; they do not satisfy reconstruction, Product Battery, customer-context, or product-qualification gates and do not duplicate Specialist Bank authority. Research Concierge/Copilot prose is not qualification evidence by default.
+
 Specialists are how Carbon turns **private landscape intelligence into objects the market understands**: verified methods and surrogates for a named physics regime, tested for the **jobs** customers run.
 
 **Export law:** *Qualified evidence in. Independently re-tested capability out.*

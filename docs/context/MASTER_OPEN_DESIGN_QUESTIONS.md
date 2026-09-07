@@ -1394,3 +1394,6 @@ historical proposed MQ-059/MQ-060 questions.
 > **No important Carbon decision should remain merely “open.” It should be open with a recommended disposition, an owner, a proof path, and a clear condition under which Carbon may rely on the resulting claim.**
 
 When a master question is resolved, record the ratified decision in the relevant domain decision/spec/canon document and change the master status with a link/commit to the decision evidence. Do not leave resolved policy buried only in meeting notes or chat history.
+# OWNER-EVIDENCE-RESEARCH-01 reserved decisions (2026-09-07)
+
+The detailed evidence/research plan keeps the following capabilities fail closed pending their domain owners: archive durability/fault profile and recovery objectives; retention/deletion/legal/IP/source licences and provider data policy; required scientific capture/use/epistemic criteria; dialogue identity/tenant/quotas/model/operations/launch thresholds; exact release/cumulative-disclosure approval; D12 allowed purposes/aggregation/funding; paid-pilot targets/budget/pricing/refunds/customer reuse; and deployment/LIVE activation. The authoritative table and blocked capability for each are in `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`. This heading records routing only and supplies no decision value.

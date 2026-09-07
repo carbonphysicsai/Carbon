@@ -1,9 +1,18 @@
 # Carbon Evidence Intelligence and Agent Research System
 
-**Version:** 1.0  
+**Version:** 1.1
 **Status:** OWNER-APPROVED IMPLEMENTATION DESIGN; not runtime implementation, qualification, public release, commercial traction, or LIVE authority  
 **Owner decision:** `OWNER-EVIDENCE-RESEARCH-01`  
 **Applies with:** `Evaluation_Evidence_and_Validator_Audit.md`, `Physics_Intelligence_System.md`, `Landscape_Agent.md`, `Miner_MCP_Wave_B_Research_Contract.md`, `Specialist_Bank.md`, `Build_Out.md`, and Business canon.
+
+Focused normative companions provide implementation detail without duplicating source-owned runtime protocols:
+
+- [Evidence Archive, Custody, and Availability](./Evidence_Archive_and_Custody.md) owns future capture, persistence, custody, recovery, and archive-view semantics.
+- [Research Concierge, Demand, and Correction](./Research_Concierge_Demand_and_Correction.md) owns future dialogue, private thread, purpose-permission, D12, EvidenceBrief, release, and correction semantics.
+- [Paid Research and Opportunity Evaluation](./Paid_Research_and_Opportunity_Evaluation.md) owns future paid-pilot, entitlement, campaign, hosted-research, billing, and evaluation semantics.
+- [Requirements traceability and handoff](../.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md) maps every requirement to the 21 passive future tickets, dependencies, acceptance, and human decisions.
+
+The v0.3 ZIP named by the owner was unavailable during the 2026-09-07 integration. Version 1.1 is therefore a complete integration of verified repository authority and the owner brief, not a claim that unobserved ZIP-only detail was reconciled losslessly.
 
 ## 1. Objective
 
@@ -327,3 +336,16 @@ WHICH INTERVENTIONS HELP THEM LEARN IT
 This specification creates implementation direction only. It does not establish scientific qualification, security acceptance, launch readiness, customer rights, pricing, paid traction, production deployment, LIVE authority, frontier status, settlement, weights, or emissions.
 
 Implementation sequencing is owned by `Build_Out.md` and the owner-approved wave plan under `.agent/plans/`.
+
+## 16. Timing and dependency rulings
+
+1. `C-DC2/3` capture purpose-permitted question/demand observations at launch; `E-D12` later aggregates, clusters, protects against manipulation, and routes planning.
+2. `C-DC2/3/4` include source versions, response dependencies, withdrawal rechecks, and linked correction/update delivery. `E-EA7` later adds transitive source-to-model-to-deliverable propagation.
+3. The launch Concierge uses approved bootstrap/public resources and authorized PriorPacks. Learned official-derived EvidenceBriefs remain behind `E-EB1`/`E-EA6`; there is no circular launch dependency on Landscape.
+4. Real execution evidence is captured before qualification and preserves its original status. Retention is not conditional on later learning/release eligibility.
+5. Learned release candidates are frozen and tested privately against prospective evidence under `E-RI1` before activation; approval evidence does not require an unapproved public release.
+6. C0/C1/C2 and D→H→I remain the launch-critical network/science/economic sequence. E/F/G proceed later in parallel and do not gate H/I.
+
+## 17. Change log
+
+- **2026-09-07 / v1.1:** materialized the 21 passive implementation tickets; added exact archive, dialogue/demand/correction, paid-research, traceability, acceptance, owner-decision, and handoff contracts; recorded the unavailable ZIP limitation. No runtime or active selection changed.

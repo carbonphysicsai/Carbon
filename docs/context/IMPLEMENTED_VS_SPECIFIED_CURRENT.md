@@ -6,6 +6,8 @@ where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
+> **Evidence/research roadmap amendment (2026-09-07).** `OWNER-EVIDENCE-RESEARCH-01` is now detailed by three companion contracts, a traceability/acceptance/handoff plan, and 21 passive `future_reserved` C/E/G tickets. They are `SPECIFIED` documentation only. None is selected, implemented, runtime-tested, scientifically/security/commercially/production qualified, deployed, LIVE, or evidence of a service. The active Wave B selection is unchanged.
+
 > **Current development state.** `.agent/WAVE.md` records Wave B active in
 > bounded development scope. PR #94 completed B-05 and B-07C in their bounded
 > engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as

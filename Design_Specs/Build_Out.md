@@ -714,6 +714,8 @@ Do **not** block Wave A on these.
 
 ## 18. Post-P0 waves (company + compounding product)
 
+The owner-approved [Evidence Intelligence overlay](./Build_Out_Evidence_Intelligence_Overlay.md) adds C1 evidence-capture and Wave-C authenticated launch-dialogue reservations plus detailed E/G lanes. Its 21 ticket documents are passive planning records: `.agent/WAVE.md` and future controlling boards still own selection. The overlay preserves C0/C1/C2 and D→H→I; E/F/G remain parallel and do not gate H/I.
+
 Wave D may qualify the first exact Challenge only after G3 proves the bounded
 testnet integration path. After D, Waves E/F/G are parallel product/knowledge/
 commercial lanes, while D→H→I is the launch-critical branch to mainnet

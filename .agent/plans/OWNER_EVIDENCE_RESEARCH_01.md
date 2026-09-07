@@ -5,6 +5,11 @@
 **Design authority:** `Design_Specs/Evidence_Intelligence_and_Agent_Research.md`  
 **Sequencing authority:** `Design_Specs/Build_Out.md` + controlling wave board when each wave activates
 
+**Detailed contracts:** `Design_Specs/Evidence_Archive_and_Custody.md`, `Design_Specs/Research_Concierge_Demand_and_Correction.md`, and `Design_Specs/Paid_Research_and_Opportunity_Evaluation.md`
+
+**Traceability:** `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`
+**Materialized reservations:** 21 `future_reserved` ticket documents under `.agent/tickets/`; they are passive and cannot self-activate.
+
 ## 1. Owner decision
 
 Carbon will implement durable official evidence capture, launch-time agent communication, research-demand intelligence, staged paid research, and later advanced research intelligence as part of the repository's existing wave structure.
@@ -261,3 +266,29 @@ Humans retain final authority over:
 - pricing and commercial terms;
 - customer data reuse rights;
 - production model selection for Concierge/Copilot/Research Scientist.
+
+## 7. Implementation, activation, and rollback boundaries
+
+Writing a contract, implementing a ticket, passing engineering tests, accepting security/operations, approving scientific use, approving an external release, and activating a product are distinct gates. Each selected executor must preserve the maturity ceiling in its ticket and may advance only the state supported by exact evidence.
+
+The acyclic dependency graph, launch-versus-later split, acceptance matrix, conflict register, open-owner-decision table, current-to-future reuse, and next-executor instructions are canonicalized in the traceability document. In summary:
+
+```text
+C-EA0 -> C-EA1 -> C-EA2 -> C-EA3
+C-DC1 -> C-DC2 -> C-DC3 -> C-DC4
+E-EA4 -> E-EA5 -> E-EB1 -> E-EA6 -> E-EA7
+C-DC2/3 -> E-D12
+E-EA5 + release/correction readiness -> E-RI1
+G-PR0 -> G-PR1 -> G-PR2 -> G-PR3 -> G-PR5
+                      \-----> G-PR4 -----/
+```
+
+Rollback disables new admissions, reasoning/retrieval classes, release activation, commercial dispatch, or billing as appropriate; it never deletes admitted evidence, rewrites historical results/responses, or converts an infrastructure failure to scientific failure. Official capture has admission reservation and backpressure priority over dialogue, analytics, and paid work.
+
+## 8. Current-to-future reuse
+
+Future work wraps source-owned submission/attempt identities, resolved construction plans, Challenge/generator/reference/measurement/Score Pack contracts, EvaluationReceipts, the exact Wave-B research protocol and PriorPack publication controls, Landscape epistemic/Port semantics, Specialist Bank qualification, Operations/Data Management, and commercial engagement/rights/deliverable/ledger objects. It does not replace or loosen them with documentation examples.
+
+## 9. Source limitation
+
+`Carbon_Evidence_Archive_Design_v0.3.zip` was not present in the integration workspace. Repository sources and the owner brief were reconciled in detail. ZIP-only architecture text, dialogue field names, demand/opportunity wording, acceptance identifiers, inherited version labels, and reconciliation notes remain unverified. A later owner-authorized pass should compare the ZIP against the traceability table prospectively; it must not silently overwrite repository protocol authority.

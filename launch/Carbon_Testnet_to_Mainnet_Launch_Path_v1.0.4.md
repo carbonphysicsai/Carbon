@@ -65,6 +65,8 @@ operators, and a release are ready, while economic activation remains off.
 Waves E, F, and G may proceed after Wave D in parallel and do not block the
 H/I launch-critical branch.
 
+`OWNER-EVIDENCE-RESEARCH-01` adds two Wave-C launch prerequisites without changing this network/scientific/economic order: required real official evidence capture must be operational under its approved fault model, and the first authenticated external miner product launch includes a separately qualified Research Concierge using approved bootstrap/public sources. Dialogue security/operations acceptance is independent of Challenge scientific qualification. Learned EvidenceBriefs/D12 aggregation (E) and paid research (G) remain later parallel capabilities and do not gate H/I.
+
 A direct score-to-weight or direct-winner mainnet beta is not part of the
 current launch path. Mainnet economic activation requires treasury routing
 and per-Challenge settlement.
