@@ -205,17 +205,18 @@
       "title": "Handle noisy or inconclusive comparisons without forcing a winner",
       "what": "Test reproducibility and uncertainty across repeated reconstruction and evaluation, preserving dependence between cases and allowing an inconclusive result.",
       "why": "Candidate order can change under variance. Carbon needs a way to say the evidence did not resolve the comparison.",
-      "changes": "The candidate adds separate exact-identity, numerical, and decision results; a complete dependence-preserving reconstruction-by-case fixture graph; injected qualified decision procedures; typed contested outcomes; and a staged reconstruction-evidence audit.",
+      "changes": "PR #99 accepted and normally merged the separate exact-identity, numerical, and decision results; complete dependence-preserving reconstruction-by-case fixture graph; injected qualified decision procedures; typed contested outcomes; and staged reconstruction-evidence audit.",
       "not_yet": "No real tolerance, statistical model, sample size, coverage or power target, stopping rule, supported production backend, qualification, ranking, frontier, production, or LIVE authority is supplied.",
-      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E2 remains next, todo, and unstarted.",
+      "current_stage_plain": "PR #99 accepted and normally merged B-E1; it is done only in bounded TEST_ONLY reproducibility scope.",
       "map_ref": "WAVE-B/B-E1"
     },
     "B-E2": {
       "title": "Fail safely when the reference solver cannot answer",
       "what": "Implement explicit outcomes when a registered truth source diverges, times out, disagrees, or becomes unavailable.",
       "why": "Carbon must preserve truth-system failures instead of silently turning them into a candidate score or switching to another source.",
-      "changes": "The exam gains fail-closed reference-failure behavior and fixtures.",
-      "not_yet": "This does not allow unregistered fallback or relabel infrastructure failure as candidate science.",
+      "changes": "The candidate adds an exact primary/witness registered-service seam over B-04, one-use invocation, typed hostile-response and infrastructure failures, immutable retry traces, and deterministic TEST_ONLY supported/failure/disagreement/MMS fixtures.",
+      "not_yet": "Archived Julia remains absent. No real provider, solver, method, environment, retry/fallback policy, scientific/security qualification, production, ranking, frontier, or LIVE authority is supplied.",
+      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.",
       "map_ref": "WAVE-B/B-E2"
     },
     "B-E3": {
@@ -233,6 +234,7 @@
       "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
       "changes": "Carbon gains an adversarial test of the Wave B research loop and the claims made about its usefulness.",
       "not_yet": "Historical fit or local improvement does not establish safe utility without the preregistered test evidence.",
+      "current_stage_plain": "Next after B-E2 completes its accepted normal merge; still todo and unstarted.",
       "map_ref": "WAVE-B/B-E4"
     },
     "B-GATE": {
