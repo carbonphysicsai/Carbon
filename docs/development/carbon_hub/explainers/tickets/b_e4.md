@@ -40,7 +40,7 @@ B-E4 is specified, implemented, and tested only for the bounded fixture-engineer
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ebda60e34a9169aef01dcf638009d4e35b53613f/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/ebda60e34a9169aef01dcf638009d4e35b53613f/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/WAVE_B.md)
 
 > The harness records descriptive fixture observations only. It cannot create a utility, diversity, leakage, security, scientific, or production verdict, and B-GATE remains unstarted.

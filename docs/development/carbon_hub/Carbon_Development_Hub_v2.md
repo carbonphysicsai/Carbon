@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ebda60e34a9169aef01dcf638009d4e35b53613f` on `main`, captured 2026-09-07T19:02:55Z.
+**Authority snapshot:** `92a6364fe84dff33d76b6f1b87cccca91053d62b` on `main`, captured 2026-09-07T19:16:00Z.
 **Current:** Wave B, ticket B-E4. Unblocked engineering is implemented in the current candidate. No qualifying gauntlet ran; completion is blocked on the eight human-supplied preregistration inputs and five-owner exact-design ratification.
 
 ## Wave spine
