@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `db6180149da8f1c54ca2021ce5b417e04700694b` on `main`, captured 2026-09-06T23:57:53Z.
+**Authority snapshot:** `b87238858e03aa74d0ad23be8724f6b6e5c7abc7` on `main`, captured 2026-09-07T00:24:40Z.
 **Current:** Wave B, ticket B-07C. The combined candidate implements all four exact fixture task kinds after revalidating B-05. Bounded fixture-only done remains conditional on applicable acceptance and normal merge; B-07D1 remains next, todo, and unstarted.
 
 ## Wave spine
