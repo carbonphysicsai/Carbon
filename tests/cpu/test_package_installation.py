@@ -34,6 +34,7 @@ ROLE_PACKAGES = (
     "carbon.chain",
     "carbon.qualification",
     "carbon.research",
+    "carbon.practice",
 )
 
 B02B_MODULES = (
@@ -99,6 +100,12 @@ B07B_MODULES = (
     "carbon.research.records",
 )
 
+B07C_MODULES = (
+    "carbon.practice.model",
+    "carbon.practice.registry",
+    "carbon.practice.service",
+)
+
 INSTALLED_MODULES = (
     "carbon",
     *ROLE_PACKAGES,
@@ -108,6 +115,7 @@ INSTALLED_MODULES = (
     *B04_MODULES,
     *B07A_MODULES,
     *B07B_MODULES,
+    *B07C_MODULES,
 )
 
 

@@ -9,16 +9,16 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.5
-**Selected ticket:** B-07B — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 2.6
+**Selected ticket:** B-07C — `in_progress`
 **Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
 shipping predicate
 **Next selected ticket:** `B-07D1`
-**Next eligible status:** B-07D1 is `todo` and unstarted; B-07B authorizes no
-prior publication/provider implementation
-**Owner sequencing:** B-06-D0 accepts merged B-05 as B-06's dependency while
-preserving B-05's incomplete historical delivery state; PR #88 completes B-06,
-and its completion note selects B-E3. OWNER-DX-03 controls engineering delivery.
+**Next eligible status:** B-07D1 is `todo` and unstarted; this delivery does not
+authorize prior publication/provider implementation
+**Owner sequencing:** `OWNER-B05-B07C-01` selects current B-05 verification and
+prospective closeout followed by B-07C on one candidate, ahead of B-07D1.
+OWNER-DX-03 controls engineering delivery.
 **Activation authority:** owner direction recorded in B-06-D0 accepts merged
 PR #87 commit `2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
 `89763523576cef09f40fd8a205aa86d169d679de`, as the B-05 dependency and
@@ -30,9 +30,9 @@ installed-Codex compatibility result remains fail-closed and unqualified
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `in_progress` for its incomplete ordinary delivery record;
-PR #87 is merged and owner-accepted as B-06's dependency, with no B-05 work or
-review loop active
+**B-05 status:** `in_progress`; its substantive merged engineering scope has
+been reverified with no runtime repair required, and bounded `done` is prepared
+only after this combined candidate passes acceptance and normally merges
 **B-06 status:** `done` in bounded merged engineering scope. PR #88 merged as
 `300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`; the accepted revision passed
 `Merge gate`, and completion comment `5560216570` selected B-E3. Historical
@@ -49,9 +49,11 @@ only for the shared v2 core, discovery resources, and local two-operation
 adapter.
 **B-07B status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,
 only for the local task lifecycle, private records, and bounded receipts.
-**B-07D1 status:** `todo` and unstarted; it is the next eligible ticket after
-the B-07B shipping predicate. B-07C remains todo behind B-05's incomplete
-ordinary delivery record.
+**B-07C status:** `in_progress`; the combined candidate implements its bounded
+in-process synthetic fixture scope after verifying B-05, with `done`
+conditional on applicable acceptance and normal merge.
+**B-07D1 status:** `todo` and unstarted; it remains next after the combined
+B-05/B-07C shipping predicate.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -131,6 +133,22 @@ ordinary delivery record.
 > acceptance, rights/reuse permission, external identity/transport, official
 > scoring, later provider/dispatcher work, production, and LIVE remain
 > unavailable or human-owned.
+
+> **Combined B-05 reconciliation / B-07C conditional closeout under
+> OWNER-DX-03.** `OWNER-B05-B07C-01` records the owner's selection of current
+> B-05 verification followed by B-07C on one candidate ahead of B-07D1. The
+> audit found B-05's substantive requirements implemented and focused-tested;
+> no measurement runtime repair was needed. The candidate implements B-07C's
+> exact mock-only packs, scaffold, reconstruction, practice, paired comparison,
+> and resource-facts-only calibration through B-07B. Both bounded `done` states
+> become authoritative only after the unchanged ready revision passes
+> applicable automated acceptance and `Merge gate` and normally merges with
+> the expected-head guard. B-07D1 remains `todo` and unstarted. No real science,
+> security, rights, qualification, production, network, commercial, or LIVE
+> authority is supplied.
+> The merged B-05 tree remains owner-accepted as the substantive dependency;
+> the historical ordinary delivery predicate is superseded prospectively only
+> by this OWNER-DX-03 closeout.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

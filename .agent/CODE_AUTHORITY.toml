@@ -26,6 +26,7 @@ implementation_roots = [
     "carbon/mcp",
     "carbon/measurement",
     "carbon/observability",
+    "carbon/practice",
     "carbon/qualification",
     "carbon/registry",
     "carbon/research",

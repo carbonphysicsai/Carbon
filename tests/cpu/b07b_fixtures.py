@@ -86,6 +86,7 @@ class Compiler:
             result.training_policy_ref,
             result.construction_plan_ref,
             result.construction_plan,
+            result.training_policy,
         )
 
 

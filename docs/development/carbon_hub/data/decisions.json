@@ -1005,6 +1005,42 @@
       "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5562405976",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "OWNER-B05-B07C-01",
+      "map_ref": "WAVE-B/B-07C",
+      "wave": "B",
+      "ticket": "B-05/B-07C",
+      "title": "One prospective B-05 then B-07C delivery",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should Carbon finish B-05 as B-07C's prerequisite without replaying the delivery ceremony superseded by OWNER-DX-03?",
+      "recommendation": "KEEP current verification of B-05's substantive Definition of Done, prospective bounded closeout, then B-07C implementation on the same candidate while B-07D1 remains todo and unstarted.",
+      "why": "The owner selected this order and packaging; current code and tests establish the substantive dependency, while inventing missing historical review or receipt facts would be false.",
+      "if_kept": "One accepted normal merge closes B-05 only in verified engineering scope and B-07C only in fixture scope, preserving every scientific and security ceiling.",
+      "if_changed": "The two Wave registers, both tickets/evidence records, Hub current state, and combined PR packaging must be superseded prospectively.",
+      "affects": ["WAVE-B/B-05", "WAVE-B/B-07C", "WAVE-B/B-07D1", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07C-D1",
+      "map_ref": "WAVE-B/B-07C",
+      "wave": "B",
+      "ticket": "B-07C",
+      "title": "Nominal mock-only practice behind B-07B",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-07C execute useful fixture practice without widening the wire contract or acquiring official evaluator authority?",
+      "recommendation": "KEEP one carbon.practice executor with exact versioned mock packs, A4 mock-only role-separated draws, B-02B resolved plans, B-02C resource receipt refs, and B-07B lifecycle and receipt ownership.",
+      "why": "A second dispatcher or record system would split ownership, while official entropy, A5, new wire aliases, or canned outcomes would violate the ticket boundary.",
+      "if_kept": "All four task kinds execute coherently in-process with private case material, bounded registered findings, typed failures, and no official promotion path.",
+      "if_changed": "The practice contract/profile, package modules, narrow B-07B private adapters, tests, and later B-07E/B-07G consumers require a prospective migration.",
+      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/DECISIONS.md"
     }
   ]
 }

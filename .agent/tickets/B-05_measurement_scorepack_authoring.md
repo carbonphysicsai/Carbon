@@ -2,10 +2,10 @@
 
 **Wave:** B active in bounded development scope
 **Status:** `in_progress`
-**Conditional target:** `done` only under the conditional completion gate below;
-the bounded implementation candidate has not earned merged maturity
-**Current phase:** final implementation/integration candidate prepared for
-delivery review
+**Conditional target:** bounded `done` after the combined B-05/B-07C candidate
+passes applicable OWNER-DX-03 acceptance and normally merges
+**Current phase:** current implementation reverified; delivery reconciliation
+is conditional on the combined candidate's acceptance and merge
 **Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
 delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
 main `f1a429de37290b3c7615ca051661a1d727528f78`, tree
@@ -102,9 +102,12 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
 
-The first delivery-lifecycle item remains unchecked until its external
-exact-head review, approval, normal merge, exact-main, and receipt facts exist.
-No tracked file guesses those dynamic identities.
+This checklist is preserved as the B-01H requirements input.
+The substantive criteria are verified in the candidate.
+Historical review/approval/receipt language remains in the preserved checklist
+and evidence record but is superseded by OWNER-DX-03 as a current delivery
+predicate. Bounded completion remains prospective until the combined B-05/B-07C
+candidate passes applicable automated acceptance and normally merges.
 
 ## Implemented bounded architecture
 
@@ -122,17 +125,14 @@ Dossier qualification issuer, coverage/power harness, official lifecycle,
 frontier, network, treasury, settlement, weight, emission, product,
 commercial, production, or LIVE implementation is present.
 
-## Conditional completion and B-06 selection
+## Conditional completion under OWNER-DX-03
 
-Prepared B-05 `done` and B-06 `in_progress but NOT STARTED` become
-authoritative only after one exact unchanged B-05 final head/tree passes every
-scope-required check and `Merge gate`; fresh read-only Codex/GPT review covers
-the complete diff with all findings closed; a distinct non-author human
-approval carries the closed receipt; `GPT review gate` succeeds with zero
-unresolved threads; normal expected-head merge preserves the reviewed tree;
-fetched exact main passes `Merge gate`; and the completed normalized external
-receipt is posted. Until that complete predicate passes, B-05 remains
-`in_progress` and B-06 remains `todo` and unstarted.
+B-05 remains `in_progress` until the owner-authorized combined B-05/B-07C
+candidate passes applicable automated acceptance, exact-head `Merge gate`, and
+normally merges. That merge prospectively closes the verified B-05
+prerequisite without recreating superseded historical ceremonies. The current
+owner-selected successor is B-07C on this same candidate; this text does not
+authorize or start B-07D1.
 
 ## Human input
 
