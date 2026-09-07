@@ -644,6 +644,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_package_installation.py",
+            "test_import_b07f_module",
+            "importlib.import_module",
+            "module_name",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(
@@ -682,6 +688,14 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
         "B07D_MODULES",
     )
+    b07e_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B07E_MODULES",
+    )
+    b07f_modules = _literal_assignment(
+        REPOSITORY_ROOT / "tests" / "cpu" / "test_package_installation.py",
+        "B07F_MODULES",
+    )
     assert isinstance(builtin_adapters, dict)
     assert isinstance(role_packages, tuple)
     assert isinstance(b02b_modules, tuple)
@@ -691,6 +705,8 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
     assert isinstance(b07a_modules, tuple)
     assert isinstance(b07b_modules, tuple)
     assert isinstance(b07d_modules, tuple)
+    assert isinstance(b07e_modules, tuple)
+    assert isinstance(b07f_modules, tuple)
     reviewed_dynamic_targets = {
         *builtin_adapters.values(),
         *role_packages,
@@ -701,6 +717,8 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         *b07a_modules,
         *b07b_modules,
         *b07d_modules,
+        *b07e_modules,
+        *b07f_modules,
     }
     assert not any(
         _matches_namespace(module, retired) for module in reviewed_dynamic_targets
