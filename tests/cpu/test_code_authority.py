@@ -8,12 +8,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -635,6 +634,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         (
             "tests/cpu/test_package_installation.py",
             "test_import_b07d_module",
+            "importlib.import_module",
+            "module_name",
+        ),
+        (
+            "tests/cpu/test_package_installation.py",
+            "test_import_b07e_module",
             "importlib.import_module",
             "module_name",
         ),
