@@ -15,7 +15,8 @@
 **Selected-ticket completion boundary:** B-07D1/D2/D3 bounded `done` becomes
 authoritative when their unchanged grouped candidate satisfies OWNER-DX-03
 acceptance and normally merges
-**Next selected ticket:** `B-07E`; it remains outside this delivery
+**Next selected ticket:** none
+**Selection boundary:** B-07E remains outside this delivery
 **Next eligible status:** B-07E is `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
