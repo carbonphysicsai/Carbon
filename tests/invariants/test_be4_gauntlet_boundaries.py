@@ -9,6 +9,8 @@ import pytest
 
 from carbon.gauntlet import GauntletPreregistration, GauntletRecord, RunIdentity
 
+pytestmark = pytest.mark.invariant
+
 ROOT = Path(__file__).resolve().parents[2]
 
 

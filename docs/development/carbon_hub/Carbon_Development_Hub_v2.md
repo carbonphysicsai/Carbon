@@ -138,7 +138,7 @@
 - `B-E2-E1` — `WAVE-B/B-E2` — B-E2 specifies, implements, and tests an exact registered primary/witness reference-service failure seam, immutable attempt history, and deterministic TEST_ONLY supported/failure/disagreement/MMS evidence; B-E4 remains todo and unstarted.
 - `B-E2-R1` — `WAVE-B/B-E2` — A bounded successor repair preserves PR #100 history while reconstructing every nested primary/witness response carrier to its exact B-04 type before comparison; B-E4 remains todo and unstarted.
 - `GOV-EVIDENCE-RESEARCH-02` — `WAVE-C` — OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.
-- `B-E4-ENGINEERING-01` — `WAVE-B/B-E4` — B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.
+- `B-E4-ENGINEERING-01` — `WAVE-B/B-E4` — B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented, and the Hub authority snapshot is reconciled across its pinned map links; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.
 
 ## Authority boundary
 
