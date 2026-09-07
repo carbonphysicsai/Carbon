@@ -1,5 +1,56 @@
 # Agent decisions log
 
+## 2026-09-07 — B-07E-D1: Exact static projection and fail-closed forecast provenance
+
+**Recommendation.** Implement B-07E as one additive `carbon.research`
+provider module. Static inspection resolves the request through the existing
+B-02B compilation seam, delegates policy assessment and ceilings to B-02C,
+and projects only exact public plan requirements plus the resulting assessment
+ref. The selected resource class, active policy, training support, and fixture
+authority context are constructor-pinned; callers cannot select them through a
+mode, label, or Boolean.
+
+The ratified B-07S `ResourceForecast` has no separate support, model,
+calibration, or hardware fields. Preserve that wire unchanged. Project a
+closed support/reason vocabulary and public-safe model, calibration-window,
+resource-class, and environment identities through its bounded `limitations`
+tuple, while the `ResourceForecastRef` digest binds the full exact inputs and
+private provenance digests. An unresolved result carries no line items and a
+structurally required `(0.0, 0.0)` wall-time placeholder whose only permitted
+meaning is `SUPPORT:UNRESOLVED`; it is not a zero-runtime prediction.
+
+**Calibration boundary.** The ordinary provider accepts no calibration input
+and always returns `UNRESOLVED:CALIBRATION_AUTHORITY_UNAVAILABLE` after exact
+static validation. A distinct nominal TEST_ONLY provider can exercise
+synthetic calibration mechanics with explicit model, window, distribution,
+policy, compiler, resource-class, environment, horizon, and miscalibration
+bindings. Missing, stale, unsupported, mismatched, miscalibrated, exceptional,
+or malformed fixture material collapses to a closed `UNRESOLVED` result with
+no partial prediction. A future production-calibrated provider requires a new
+owner-authorized nominal calibration type and constructor path.
+
+**Alternatives rejected.** Adding wire fields would violate B-07S. Treating
+zero as an ordinary estimate would fabricate calibration. Letting the general
+provider accept test calibration would permit fixture authority laundering.
+Recomputing ceilings, compiling a second plan, querying ExperimentRecords, or
+creating quote/receipt conversions would duplicate B-02B, B-02C, or B-07B and
+pre-empt Wave C.
+
+**Impact and reversibility.** This is additive behind the existing
+`ResourceInspectionProvider` and `ResourceForecastProvider` Protocols. It
+imports no A5, settlement, Landscape, card-store, official-result, or private
+experiment source and leaves A9 `estimate` byte and behavior compatibility
+unchanged. A later B-07S version may add explicit support/provenance fields;
+until then the closed limitation projection is the smallest reversible mapping.
+
+**Human-reserved input.** Real calibration datasets, statistical support and
+miscalibration criteria, hardware normalization, production model
+qualification, capacity admission, prices, quotas, reservations, and quote
+policy remain absent and fail closed. The required SRE/statistics/protocol lead
+notification is recorded at
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014;
+silence is non-blocking under OWNER-DX-03.
+
 ## 2026-09-07 — B-07D1-D1: Reuse the ratified pack and isolate private v1 projection
 
 **Recommendation.** Keep `PriorPack` and all wire identities in B-07A/B-07S,

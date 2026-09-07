@@ -1,7 +1,7 @@
 # Ticket B-07D2 - TEST_ONLY prior publisher and disclosure ledger
 
 **Wave:** B candidate
-**Status:** `done` in the bounded grouped candidate; authoritative on accepted normal merge
+**Status:** `done` in bounded merged synthetic TEST_ONLY scope
 **Depends on:** B-07D1, B-07B
 **Build Out:** C10 fixture prior pipeline
 **Master questions:** MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051
@@ -65,7 +65,9 @@ Activate public guidance, call observational evidence causal, use informal rando
 identity or maturity. Plan: `.agent/plans/B-07D1_D2_D3_prior_delivery.md`.
 Evidence: `.agent/evidence/wave_b/b-07d2.md`.
 
-All engineering criteria are implemented and focused-tested in the grouped
-candidate. This prepared bounded `done` state becomes authoritative only after
-the unchanged candidate passes applicable automated acceptance and normally
-merges under OWNER-DX-03.
+All engineering criteria were implemented and focused-tested in the grouped
+candidate. PR #95 accepted head `0b5e62728cd922e494116aaf9b3096346e1b7bb2`
+and normally merged it as `258a35d91f45a1125879123bddccc52428d003b2`
+after run `34078606840` passed applicable acceptance and Merge gate. This
+completion remains bounded to synthetic TEST_ONLY records and grants no public
+publication or activation authority.

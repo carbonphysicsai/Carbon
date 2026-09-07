@@ -1,24 +1,22 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through the combined
-B-05/B-07C shipping candidate, plus the prospective `OWNER-NET-01` roadmap candidate only
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through the B-07E
+shipping candidate, plus the prospective `OWNER-NET-01` roadmap candidate only
 where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
 > **Current development state.** `.agent/WAVE.md` records Wave B active in
-> bounded development scope. B-05's current audit confirms its substantive
-> engineering scope remains implemented and tested with no runtime repair
-> required; bounded closeout is conditional on this combined candidate's
-> applicable acceptance and normal merge.
-> PR #90 normally merged B-E3 after applicable acceptance. The B-07S shipping
-> snapshot ratified the exact local v2 research-service protocol. B-07A
-> implemented and tested the shared v2 core, discovery resources, and local
-> two-operation adapter. The B-07B shipping snapshot implements and tests the
-> constructor-bound local task lifecycle, private records, and bounded receipts.
-> B-07C now implements the four exact task kinds through an in-process synthetic
-> mock-only executor; its bounded closeout is conditional on applicable
-> acceptance and normal merge. B-07D1 remains next, `todo`, and unstarted.
+> bounded development scope. PR #94 completed B-05 and B-07C in their bounded
+> engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as
+> separate bounded immutable-store, TEST_ONLY publisher/ledger, and authorized
+> static-provider/alignment scopes. The current B-07E candidate implements and
+> tests exact B-02B/B-02C-backed static resource inspection and the calibrated
+> forecast seam. Because no authorized production calibration or support
+> criteria exist, the ordinary forecast correctly remains `UNRESOLVED`; only a
+> structurally separate synthetic TEST_ONLY provider exercises calibration
+> validation. B-07E closeout is conditional on applicable acceptance and normal
+> merge. B-07F remains next, `todo`, and unstarted.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -359,7 +357,7 @@ the bounded implementation.
 | Score Pack Evidence Use Contract | Yes target | A5 bounded current form | No LIVE pack | migration must preserve A5 engine boundary |
 | Validation Dossier structural machinery | Reconciled B-06 contract | Exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits and campaign PRIMARY/WITNESS roles require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks; all nine historical review findings repaired; PR #88 accepted and normally merged | No | no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
 | Dossier credibility crosswalk | B-E3 working contract | Exact B-06 manifest/claim/evidence links; responsible owners; distinct evidence categories and maturity; source permitted-use refs; explicit absent/pending/inapplicable rows; structural MMS non-substitution; fail-closed missing/stale/mismatch/circular/role/maturity/unresolved checks; strict deterministic canonical form; audience-allow-listed Markdown report | No | bounded structural implementation and tests only; complete crosswalk never certifies adequacy, compliance, product/production qualification, or LIVE; scientific, standards, security, commercial, decision, and launch inputs remain human-reserved |
-| Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only reconstruction, practice, paired comparison, resource calibration, exact packs, and scaffold | No | `carbon_protocol_v1` remains unchanged; B-07C has no A5-A7 or official entropy path and is conditional on combined merge; B-07D prior, B-07E forecasting, B-07G dispatch, external identity/transport, every real science/security/rights qualification, production, and LIVE remain absent |
+| Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam | No | `carbon_protocol_v1` and A9 `estimate` remain unchanged; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07F fixture-official construction, B-07G dispatch, quotes/admission, external identity/transport, every real science/security/rights qualification, production, and LIVE remain absent |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |

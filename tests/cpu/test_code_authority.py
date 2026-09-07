@@ -638,6 +638,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_package_installation.py",
+            "test_import_b07e_module",
+            "importlib.import_module",
+            "module_name",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(

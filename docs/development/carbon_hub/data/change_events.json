@@ -898,6 +898,49 @@
         "SYSTEM/DEVELOPMENT-HUB"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07D1",
+      "event_type": "evidence",
+      "event_id": "B-07D123-E3",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #95 accepted and normally merged the grouped prior candidate, completing B-07D1, B-07D2, and B-07D3 only in their separate bounded engineering scopes.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/95",
+      "affects": [
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-07D123-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-07E",
+      "event_type": "evidence",
+      "event_id": "B-07E-E1",
+      "owner_lane": "sre_technical_lead",
+      "status": "implemented",
+      "summary": "B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/32b7f86aa9568a5ba19ad57e22bae0f081019438/.agent/evidence/wave_b/b-07e.md",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

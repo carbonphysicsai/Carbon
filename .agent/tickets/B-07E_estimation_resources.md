@@ -1,7 +1,9 @@
 # Ticket B-07E - Prior alignment and resource-estimation seams
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** `done`
+**Completion boundary:** bounded implementation and tests are complete in the
+current candidate; this status becomes authoritative on accepted normal merge
 **Depends on:** B-02B, B-02C, B-07A, B-07B, B-07C, B-07D3, B-07S
 **Build Out:** C9 research estimation
 **Master questions:** MQ-008, MQ-017, MQ-024
@@ -13,22 +15,41 @@ Separate public prior matching, exact static resource analysis, calibrated forec
 
 ## Definition of Done
 
-- [ ] Preserve current A9 `estimate` exactly as v1 structural-prior alignment.
-- [ ] Consume B-07D3's B-07S-ratified deterministic public prior-alignment
+- [x] Preserve current A9 `estimate` exactly as v1 structural-prior alignment.
+- [x] Consume B-07D3's B-07S-ratified deterministic public prior-alignment
       capability with no private provider input.
-- [ ] Consume B-07A's B-07S-ratified exact static-resource-inspection response
+- [x] Consume B-07A's B-07S-ratified exact static-resource-inspection response
       type without redefining it; implement exact plan-derived dimensions and
       declared resource constraints.
-- [ ] Consume B-07A's B-07S-ratified calibrated-resource-forecast response type
+- [x] Consume B-07A's B-07S-ratified calibrated-resource-forecast response type
       without redefining it; implement model identity, calibration window,
       hardware/resource scope, uncertainty interval, support state, and
       `UNRESOLVED` fallback. Without approved fixture calibration it always
       returns `UNRESOLVED`.
-- [ ] Define the boundary to the future Wave C binding-execution-quote
+- [x] Define the boundary to the future Wave C binding-execution-quote
       capability and the final observed resource receipt without implementing
       production prices.
-- [ ] Ensure no resource response reveals protected case count, stress composition, strong-anchor frequency, evaluator topology, or official quality prediction.
-- [ ] Add unsupported-distribution, stale-model, miscalibration, exact/static-vs-forecast, quote-confusion, leakage, forbidden-score, and installed-wheel tests.
+- [x] Ensure no resource response reveals protected case count, stress composition, strong-anchor frequency, evaluator topology, or official quality prediction.
+- [x] Add unsupported-distribution, stale-model, miscalibration, exact/static-vs-forecast, quote-confusion, leakage, forbidden-score, and installed-wheel tests.
+
+## Delivered bounded behavior
+
+`carbon.research.resource_estimation` resolves static requests through the
+existing B-02B compiler, delegates admissibility and declared ceilings to
+B-02C, and projects exact plan-derived public resource facts through B-07A's
+ratified result type. The ordinary forecast provider accepts no calibration
+material and deterministically returns `UNRESOLVED` after static validation.
+A nominally separate TEST_ONLY provider exercises explicit synthetic model,
+calibration-window, distribution, policy, compiler, resource-class,
+environment, horizon, uncertainty, stale, mismatch, and miscalibration
+mechanics without creating a production calibration path.
+
+Decision `B-07E-D1`, plan `.agent/plans/B-07E_estimation_resources.md`, stable
+evidence `.agent/evidence/wave_b/b-07e.md`, and the focused CPU/invariant and
+installed-wheel tests record the exact scope. B-07F remains `todo` and
+unstarted. Scientific, security, production-calibration, quote/admission,
+economic, qualification, scoring, settlement, and LIVE authority remain
+unearned.
 
 ## Human input
 
