@@ -924,7 +924,7 @@
       "owner_lane": "sre_technical_lead",
       "status": "implemented",
       "summary": "B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/3a703ca1c4e9d07bf1786436047be77004be7575/.agent/evidence/wave_b/b-07e.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/32b7f86aa9568a5ba19ad57e22bae0f081019438/.agent/evidence/wave_b/b-07e.md",
       "affects": [
         "WAVE-B/B-05",
         "WAVE-B/B-06",

@@ -1130,7 +1130,7 @@
       "if_changed": "Forecast wire versioning, provider constructors, provenance bindings, tests, and later B-07G composition require a prospective migration and the relevant owner authority.",
       "affects": ["WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/3a703ca1c4e9d07bf1786436047be77004be7575/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/32b7f86aa9568a5ba19ad57e22bae0f081019438/.agent/DECISIONS.md"
     }
   ]
 }
