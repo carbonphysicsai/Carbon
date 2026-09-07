@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ee859635d5204226419ce9589991895ee8185985` on `main`, captured 2026-09-07T20:41:16Z.
+**Authority snapshot:** `62974047a165f05c1b77c9e5e95387cdffd2d7f4` on `main`, captured 2026-09-07T20:47:24Z.
 **Current:** Wave B, ticket B-E4. The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
 
 ## Wave spine

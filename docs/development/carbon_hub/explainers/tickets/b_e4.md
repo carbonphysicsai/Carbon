@@ -40,10 +40,10 @@ B-E4 is specified, implemented, and tested only for the bounded fixture-engineer
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/.agent/WAVE_B.md)
-- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/.agent/plans/B-E4_agent_gauntlet.md)
-- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/.agent/evidence/wave_b/b-e4.md)
-- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/tests/cpu/test_be4_successor_validation_repair.py)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/WAVE_B.md)
+- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/plans/B-E4_agent_gauntlet.md)
+- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/evidence/wave_b/b-e4.md)
+- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/tests/cpu/test_be4_successor_validation_repair.py)
 
 > The harness records descriptive fixture observations only. Design content is digest-bound, v2 pins are arm- and Challenge-checked, and integrity outcomes are restricted to case-applicable existing owner codes; none of these checks proves authorization, owner ratification, execution, utility, leakage, or security, and B-GATE remains unstarted.
