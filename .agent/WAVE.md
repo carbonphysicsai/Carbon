@@ -9,12 +9,12 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.3
+**Controlling register:** `.agent/WAVE_B.md` version 3.4
 **Selected ticket:** B-E2 — `done`
-**Selected-ticket start state:** implemented and tested in the current candidate
-**Selected-ticket completion boundary:** bounded `done` becomes authoritative
-when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
-merges
+**Selected-ticket delivery:** PR #100 normally merged B-E2 as
+`602628d3c62f01524336db888da8fcfc7ed379d7`; bounded successor repair
+B-E2-R1 is complete in the current candidate and must pass OWNER-DX-03
+acceptance and normal merge before B-E4 starts
 **Next selected ticket:** `B-E4`
 **Selection boundary:** stop after B-E2; do not start B-E4 or later work
 **Next eligible status:** B-E4 remains `todo` and unstarted
@@ -70,9 +70,9 @@ scope after PR #98 accepted and normally merged
 **B-E1 status:** `done` in bounded merged fixture reproducibility and
 evidence-audit scope after accepted head `831a34598d6779d369f01de3523c3d8ee0385d18`
 passed run `34124228848` and normally merged
-**B-E2 status:** bounded `done` candidate for the exact registered-service
-failure seam and deterministic TEST_ONLY evidence graph; authoritative only
-after applicable acceptance and normal merge
+**B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
+#100. The B-E2-R1 successor candidate repairs nested response validation
+without reopening that history or changing B-E2 maturity.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

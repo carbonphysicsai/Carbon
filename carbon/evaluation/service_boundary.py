@@ -61,6 +61,11 @@ from .model import (
     ReferenceWitnessTarget,
     SupportApplicabilityAssessment,
     UncertaintyRepresentation,
+    copy_exact_value,
+    exact_enum,
+    exact_tuple,
+    identifier,
+    version,
 )
 from .refs import (
     PrimaryReferenceRequestRef,
@@ -334,6 +339,118 @@ def _safe_exact_equal(actual: object, expected: object) -> bool:
         return False
 
 
+def _reconstruct_response(
+    response: ReferenceServiceResponse,
+    request: PrimaryReferenceRequest | WitnessReferenceRequest,
+    grant: PrimaryRunGrant | WitnessRunGrant,
+) -> ReferenceServiceResponse:
+    """Rebuild every untrusted response carrier before any comparison."""
+
+    def copied(name: str, expected: type):
+        return copy_exact_value(
+            object.__getattribute__(response, name),
+            expected,
+            f"/{name}",
+        )
+
+    component_bindings = exact_tuple(
+        object.__getattribute__(response, "component_bindings"),
+        RealizedComponentBinding,
+        "/component_bindings",
+        nonempty=True,
+    )
+    checked_components = tuple(
+        copy_exact_value(
+            item,
+            RealizedComponentBinding,
+            f"/component_bindings/{index}",
+        )
+        for index, item in enumerate(component_bindings)
+    )
+    observed_reasons = exact_tuple(
+        object.__getattribute__(response, "observed_reasons"),
+        ReferenceFailureReason,
+        "/reason",
+        unique=True,
+    )
+    checked_reasons = tuple(
+        exact_enum(item, ReferenceFailureReason, f"/reason/{index}")
+        for index, item in enumerate(observed_reasons)
+    )
+    select_run_terminal(checked_reasons)
+
+    artifact = object.__getattribute__(response, "artifact_content")
+    if artifact is not None:
+        artifact = copy_exact_value(
+            artifact,
+            ArtifactContentBinding,
+            "/artifact_binding",
+        )
+
+    execution_target_type = (
+        ReferenceAuthorityTarget
+        if type(request) is PrimaryReferenceRequest
+        else ReferenceWitnessTarget
+    )
+    grant_ref_type = (
+        PrimaryRunGrantRef if type(grant) is PrimaryRunGrant else WitnessRunGrantRef
+    )
+    request_ref_type = (
+        PrimaryReferenceRequestRef
+        if type(request) is PrimaryReferenceRequest
+        else WitnessReferenceRequestRef
+    )
+
+    return replace(
+        response,
+        answer_key_authority_target=copied(
+            "answer_key_authority_target", ReferenceAuthorityTarget
+        ),
+        applicability_assessment=copied(
+            "applicability_assessment", SupportApplicabilityAssessment
+        ),
+        artifact_content=artifact,
+        authority_function=exact_enum(
+            object.__getattribute__(response, "authority_function"),
+            ReferenceAuthorityFunction,
+            "/authority_function",
+        ),
+        case_ref=copied("case_ref", CanonicalChallengeCaseRef),
+        component_bindings=checked_components,
+        conditioning_assessment=copied(
+            "conditioning_assessment", ConditioningAssessment
+        ),
+        configuration_ref=copied("configuration_ref", PinnedReferenceIdentity),
+        diagnostics_ref=copied("diagnostics_ref", PinnedReferenceIdentity),
+        environment_ref=copied("environment_ref", PinnedReferenceIdentity),
+        evidence_role_binding=copied("evidence_role_binding", EvidenceRoleBinding),
+        execution_target=copied("execution_target", execution_target_type),
+        grant_ref=copied("grant_ref", grant_ref_type),
+        hardware_ref=copied("hardware_ref", PinnedReferenceIdentity),
+        implementation_ref=copied("implementation_ref", PinnedReferenceIdentity),
+        method_ref=copied("method_ref", PinnedReferenceIdentity),
+        observed_reasons=checked_reasons,
+        policy_ref=copied("policy_ref", ReferencePolicyRef),
+        precision_ref=copied("precision_ref", PinnedReferenceIdentity),
+        provenance_binding=copied("provenance_binding", ReferenceProvenance),
+        representation_ref=copied("representation_ref", PinnedReferenceIdentity),
+        request_ref=copied("request_ref", request_ref_type),
+        resolution_ref=copied("resolution_ref", ReferenceResolutionRecordRef),
+        resource_receipt_ref=copied("resource_receipt_ref", PinnedReferenceIdentity),
+        run_id=identifier(object.__getattribute__(response, "run_id"), "/run_id"),
+        run_version=version(
+            object.__getattribute__(response, "run_version"), "/run_version"
+        ),
+        scope_binding=copied("scope_binding", ReferenceScopeBinding),
+        source_class=exact_enum(
+            object.__getattribute__(response, "source_class"),
+            ReferenceSourceClass,
+            "/source_class",
+        ),
+        uncertainty_binding=copied("uncertainty_binding", UncertaintyRepresentation),
+    )
+
+
 def _same_assessment_identity(actual: object, expected: object) -> bool:
     if type(actual) is not type(expected):
         return False
@@ -472,6 +589,7 @@ def _create_response_run(
             reason=ReferenceFailureReason.PROVIDER_RESULT_MALFORMED,
         )
     try:
+        response = _reconstruct_response(response, request, grant)
         if any(
             not _safe_exact_equal(actual, expected)
             for actual, expected in _expected_identity_fields(
@@ -695,6 +813,12 @@ class _RegisteredReferenceServiceRunnerBase:
             except ReferenceValidationError:
                 pass
             raise ReferenceServiceError(ReferenceServiceCode.INTERNAL_FAILURE) from None
+        except BaseException:  # noqa: BLE001 - normalize response control flow.
+            try:
+                _claim_run_attempt(resolution, request, grant, self, capability)
+            except ReferenceValidationError:
+                pass
+            raise _reference_provider_control_signal() from None
 
 
 class RegisteredPrimaryReferenceServiceRunner(_RegisteredReferenceServiceRunnerBase):
