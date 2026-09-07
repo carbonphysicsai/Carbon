@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `6c6e9301499e8a9fd4bb21cf56b8448198779ddc` on `main`, captured 2026-09-07T02:26:30Z.
+**Authority snapshot:** `ee96303969b1a56461157f4d9ad23904b2e78e72` on `main`, captured 2026-09-07T03:04:47Z.
 **Current:** Wave B, ticket B-07E. B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped B-07D1, B-07D2, and B-07D3 candidate has separate completed evidence and becomes authoritative only after applicable acceptance and normal merge.
 
 ## Wave spine
@@ -126,6 +126,7 @@
 - `B-07C-E1` — `WAVE-B/B-07C` — The owner-directed combined candidate reverifies B-05 with no measurement runtime repair and implements B-07C mock-only scopes, packs, scaffold, reconstruction, practice, paired common-case comparison, and resource-facts-only calibration; both bounded closeouts await acceptance and merge, and B-07D1 remains todo and unstarted.
 - `B-05-B07C-E2` — `WAVE-B/B-07C` — PR #94 accepted and normally merged the B-05 verification and B-07C mock-only practice implementation, reconciling both only in their bounded engineering and in-process synthetic-fixture scopes.
 - `B-07D123-E1` — `WAVE-B/B-07D1` — The owner-directed grouped candidate completes B-07D1 immutable PriorPack storage and private compatibility projection, B-07D2 synthetic TEST_ONLY publishing with a persistent disclosure ledger, and B-07D3 authorized static retrieval and deterministic alignment, preserving three ticket identities and evidence records; bounded completion awaits acceptance and normal merge, while B-07E remains todo and unstarted.
+- `B-07D123-E2` — `SYSTEM/AGENT-EXECUTION` — The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.
 
 ## Authority boundary
 

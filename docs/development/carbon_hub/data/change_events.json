@@ -880,6 +880,24 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "B-07D123-E2",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/ee96303969b1a56461157f4d9ad23904b2e78e72/agent_pack/executors/hoh/manifests/b05.requirements.v1.json",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }

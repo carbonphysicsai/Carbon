@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-07T02:26:30Z"
+  captured_at_utc: "2026-09-07T03:04:47Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "6c6e9301499e8a9fd4bb21cf56b8448198779ddc"
+  authority_snapshot_commit: "ee96303969b1a56461157f4d9ad23904b2e78e72"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -2483,6 +2483,22 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/MATURITY"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "B-07D123-E2"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/ee96303969b1a56461157f4d9ad23904b2e78e72/agent_pack/executors/hoh/manifests/b05.requirements.v1.json"
+    affects:
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-07D1"
+      - "WAVE-B/B-07D2"
+      - "WAVE-B/B-07D3"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
