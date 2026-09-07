@@ -72,7 +72,7 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-07E](../tickets/b_07e.md): Static resource analysis and forecast seam [done]
 - [B-07F](../tickets/b_07f.md): Fixture-official construction adapter [done]
 - [B-07G](../tickets/b_07g.md): Research-service composition and conformance [done]
-- [B-E1](../tickets/b_e1.md): Reproducibility, uncertainty, and contested outcomes [todo]
+- [B-E1](../tickets/b_e1.md): Reproducibility, uncertainty, and contested outcomes [done]
 - [B-E2](../tickets/b_e2.md): Julia and reference failure contract [todo]
 - [B-E3](../tickets/b_e3.md): Credibility crosswalk and evidence manifest [done]
 - [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [todo]
@@ -80,8 +80,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/c3faf4377c7b71b648227e8dbeca8940d20c62cf/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/c3faf4377c7b71b648227e8dbeca8940d20c62cf/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/c3faf4377c7b71b648227e8dbeca8940d20c62cf/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

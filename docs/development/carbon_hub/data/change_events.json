@@ -1013,6 +1013,56 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07G",
+      "event_type": "evidence",
+      "event_id": "B-07G-E2",
+      "owner_lane": "protocol_technical_lead",
+      "status": "closed",
+      "summary": "PR #98 accepted and normally merged B-07G, completing the exact local twelve-operation composition only in bounded engineering scope.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/98",
+      "affects": [
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-07G-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-E1",
+      "event_type": "evidence",
+      "event_id": "B-E1-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-E1 specifies, implements, and tests separate R0/R1/R2 fixture results, exact crossed dependence evidence, injected qualified decision procedures, typed contested outcomes, and staged B-05 campaign audit; B-E2 remains todo and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/evidence/wave_b/b-e1.md",
+      "affects": [
+        "WAVE-B/B-02A",
+        "WAVE-B/B-02B",
+        "WAVE-B/B-02C",
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

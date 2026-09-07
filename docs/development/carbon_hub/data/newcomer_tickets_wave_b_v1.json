@@ -196,17 +196,18 @@
       "title": "Make sure the research-service pieces work together without gaining extra authority",
       "what": "Compose the research operations, route each one to its named owner, and test the combined service for missing or extra behavior.",
       "why": "Individual modules can be correct while the assembled service routes requests incorrectly or absorbs authority it does not own.",
-      "changes": "The candidate adds the exact local twelve-operation v2 composition, canonical call/reply boundary, disclosure enforcement, and conformance matrix while delegating each operation to its existing owner.",
+      "changes": "PR #98 added the exact local twelve-operation v2 composition, canonical call/reply boundary, disclosure enforcement, and conformance matrix while delegating each operation to its existing owner.",
       "not_yet": "This is not a network service and does not own official submission, B-07F execution, scientific policy, shared-history policy, credentials, quotes, admission, production, LIVE, or other domain-specific meaning.",
-      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E1 remains next, todo, and unstarted.",
+      "current_stage_plain": "PR #98 accepted and normally merged B-07G; it is done only in bounded local composition/conformance scope.",
       "map_ref": "WAVE-B/B-07G"
     },
     "B-E1": {
       "title": "Handle noisy or inconclusive comparisons without forcing a winner",
       "what": "Test reproducibility and uncertainty across repeated reconstruction and evaluation, preserving dependence between cases and allowing an inconclusive result.",
       "why": "Candidate order can change under variance. Carbon needs a way to say the evidence did not resolve the comparison.",
-      "changes": "Carbon gains a statistical evidence harness for unstable or contested outcomes.",
-      "not_yet": "Partial evidence, forecasts, screens, or heuristics cannot create a superior result.",
+      "changes": "The candidate adds separate exact-identity, numerical, and decision results; a complete dependence-preserving reconstruction-by-case fixture graph; injected qualified decision procedures; typed contested outcomes; and a staged reconstruction-evidence audit.",
+      "not_yet": "No real tolerance, statistical model, sample size, coverage or power target, stopping rule, supported production backend, qualification, ranking, frontier, production, or LIVE authority is supplied.",
+      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E2 remains next, todo, and unstarted.",
       "map_ref": "WAVE-B/B-E1"
     },
     "B-E2": {

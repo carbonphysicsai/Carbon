@@ -170,13 +170,20 @@ def _allowed_carbon_dependency(module_name: str) -> bool:
 
 
 def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
-    """Permit B-05 and B-07F's exact ratified public reference seams."""
+    """Permit B-05, B-07F, and B-E1's exact ratified public reference seams."""
     return (
-        path.is_relative_to(_CARBON_ROOT / "measurement")
-        and module_name == "carbon.evaluation.refs"
-    ) or (
-        path == _CARBON_ROOT / "traineval" / "resolved_fixture.py"
-        and module_name == "carbon.evaluation.refs"
+        (
+            path.is_relative_to(_CARBON_ROOT / "measurement")
+            and module_name == "carbon.evaluation.refs"
+        )
+        or (
+            path.is_relative_to(_CARBON_ROOT / "reproducibility")
+            and module_name in {"carbon.evaluation", "carbon.evaluation.refs"}
+        )
+        or (
+            path == _CARBON_ROOT / "traineval" / "resolved_fixture.py"
+            and module_name == "carbon.evaluation.refs"
+        )
     )
 
 
@@ -258,7 +265,7 @@ def test_evaluation_has_only_ratified_direct_carbon_dependencies() -> None:
     assert violations == []
 
 
-def test_only_measurement_may_import_exact_public_evaluation_refs() -> None:
+def test_only_ratified_consumers_may_import_exact_public_evaluation_seams() -> None:
     violations = [
         f"{_relative(path)}:{line}: {module_name}"
         for path in _python_files(_CARBON_ROOT)

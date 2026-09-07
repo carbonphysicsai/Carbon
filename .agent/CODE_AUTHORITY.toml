@@ -29,6 +29,7 @@ implementation_roots = [
     "carbon/practice",
     "carbon/qualification",
     "carbon/registry",
+    "carbon/reproducibility",
     "carbon/research",
     "carbon/resource_policy",
     "carbon/schema",
