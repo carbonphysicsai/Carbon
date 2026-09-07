@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `2764e7f9e4b86911bbffe932cc36df0c970e260a` on `main`, captured 2026-09-07T04:56:39Z.
+**Authority snapshot:** `3a703ca1c4e9d07bf1786436047be77004be7575` on `main`, captured 2026-09-07T05:32:39Z.
 **Current:** Wave B, ticket B-07E. Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.
 
 ## Wave spine
