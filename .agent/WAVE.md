@@ -9,15 +9,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.0
-**Selected ticket:** B-07F — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 3.1
+**Selected ticket:** B-07G — `done`
 **Selected-ticket start state:** implemented and tested in the current candidate
 **Selected-ticket completion boundary:** bounded `done` becomes authoritative
 when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
 merges
-**Next selected ticket:** `B-07G`
-**Selection boundary:** stop after B-07F; do not start B-07G or later work
-**Next eligible status:** B-07G remains `todo` and unstarted
+**Next selected ticket:** `B-E1`
+**Selection boundary:** stop after B-07G; do not start B-E1 or later work
+**Next eligible status:** B-E1 remains `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -63,9 +63,11 @@ persistent-ledger scope after the same accepted merge
 deterministic-alignment scope after the same accepted merge
 **B-07E status:** `done` in bounded merged exact-inspection and fail-closed
 forecast scope after PR #96 acceptance and normal merge
-**B-07F status:** bounded `done` prepared for the resolved-plan fixture-only
-construction adapter; authoritative on accepted normal merge
-**B-07G status:** `todo`, next eligible, unstarted, and outside this delivery
+**B-07F status:** `done` in bounded merged TEST_ONLY engineering scope after
+PR #97 acceptance and normal merge
+**B-07G status:** bounded `done` prepared for exact local v2 composition and
+conformance; authoritative on accepted normal merge
+**B-E1 status:** `todo`, next eligible, unstarted, and outside this delivery
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

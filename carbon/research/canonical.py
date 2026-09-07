@@ -27,6 +27,8 @@ from .model import (
     WIRE_RECORD_TYPES_BY_NAME,
     ActivePriorSelector,
     AvailablePriorAvailability,
+    BoundExceededField,
+    ContextSelectionField,
     CounterevidenceEntries,
     CounterevidenceNoneFound,
     ExactPriorSelector,
@@ -38,6 +40,7 @@ from .model import (
     PracticeTaskSpec,
     PublicPriorAuthorization,
     ReconstructionRehearsalSpec,
+    ReferenceMismatchField,
     ResourceCalibrationTaskSpec,
     ServiceCall,
     ServiceReply,
@@ -791,6 +794,14 @@ def _construct_record(node: _Record, target: type[object]) -> object:
     }
     try:
         return target(**kwargs)
+    except ContextSelectionField:
+        raise CanonicalWireError(
+            ResearchServiceErrorCode.CONTEXT_SELECTION_FORBIDDEN
+        ) from None
+    except BoundExceededField:
+        raise CanonicalWireError(ResearchServiceErrorCode.BOUND_EXCEEDED) from None
+    except ReferenceMismatchField:
+        raise CanonicalWireError(ResearchServiceErrorCode.REFERENCE_MISMATCH) from None
     except ForbiddenControlField:
         raise CanonicalWireError(
             ResearchServiceErrorCode.FORBIDDEN_SCIENTIFIC_CONTROL

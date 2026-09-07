@@ -88,6 +88,18 @@ class ForbiddenControlField(ValueError):
     """Internal construction signal for a prohibited nested control field."""
 
 
+class ContextSelectionField(ForbiddenControlField):
+    """Internal signal for caller-selected context/provider authority."""
+
+
+class BoundExceededField(ValueError):
+    """Internal signal preserving the B-07S scalar/collection bound stage."""
+
+
+class ReferenceMismatchField(ValueError):
+    """Internal signal preserving the B-07S Challenge/ref consistency stage."""
+
+
 class ResearchOperation(str, Enum):
     GET_CHALLENGE_INFO = "get_challenge_info"
     GET_INTERACTION_MANIFEST = "get_interaction_manifest"
@@ -263,9 +275,9 @@ def _validate_annotation(value: object, annotation: object, field_name: str) -> 
         if type(value) is not int:
             raise TypeError(f"{field_name} must be an exact integer")
         if marker == "uint64" and not 0 <= value <= (1 << 64) - 1:
-            raise ValueError(f"{field_name} is outside UInt64")
+            raise BoundExceededField(f"{field_name} is outside UInt64")
         if marker == "int64" and not -(1 << 63) <= value <= (1 << 63) - 1:
-            raise ValueError(f"{field_name} is outside Int64")
+            raise BoundExceededField(f"{field_name} is outside Int64")
         return
     if annotation is object:
         return
@@ -281,7 +293,7 @@ def _validate_annotation(value: object, annotation: object, field_name: str) -> 
         if type(value) is not tuple:
             raise TypeError(f"{field_name} must be an exact tuple")
         if len(value) > 4_096:
-            raise ValueError(f"{field_name} exceeds the tuple bound")
+            raise BoundExceededField(f"{field_name} exceeds the tuple bound")
         member = args[0]
         for item in value:
             _validate_annotation(item, member, field_name)
@@ -299,7 +311,7 @@ def _validate_annotation(value: object, annotation: object, field_name: str) -> 
         if type(value) is not annotation:
             raise TypeError(f"{field_name} has the wrong exact scalar type")
         if annotation is str and len(value.encode("utf-8", errors="strict")) > 16_384:
-            raise ValueError(f"{field_name} exceeds the text bound")
+            raise BoundExceededField(f"{field_name} exceeds the text bound")
         if annotation is float and not math.isfinite(value):
             raise ValueError(f"{field_name} must be finite")
         return
@@ -307,9 +319,9 @@ def _validate_annotation(value: object, annotation: object, field_name: str) -> 
         raise TypeError(f"{field_name} must use exact {annotation.__name__}")
     if annotation is ChallengeKey:
         if len(value.challenge_id.encode("utf-8")) > 256:
-            raise ValueError("Challenge identifier exceeds the v2 bound")
+            raise BoundExceededField("Challenge identifier exceeds the v2 bound")
         if len(value.version.encode("utf-8")) > 128:
-            raise ValueError("Challenge version exceeds the v2 bound")
+            raise BoundExceededField("Challenge version exceeds the v2 bound")
 
 
 def _annotation_matches(value: object, annotation: object) -> bool:
@@ -335,7 +347,7 @@ def _validate_strategy(value: dict[str, object]) -> None:
             active.remove(id(current))
             continue
         if depth > 32:
-            raise ValueError("Strategy exceeds the v2 nesting bound")
+            raise BoundExceededField("Strategy exceeds the v2 nesting bound")
         kind = type(current)
         if kind in (dict, list):
             if id(current) in active:
@@ -345,27 +357,33 @@ def _validate_strategy(value: dict[str, object]) -> None:
             if kind is dict:
                 items = list(dict.items(current))
                 if len(items) > 4_096:
-                    raise ValueError("Strategy object exceeds the v2 bound")
+                    raise BoundExceededField("Strategy object exceeds the v2 bound")
                 for key, child in reversed(items):
                     if type(key) is not str:
                         raise TypeError("Strategy keys must be exact text")
                     if len(key.encode("utf-8", errors="strict")) > 16_384:
-                        raise ValueError("Strategy key exceeds the v2 text bound")
+                        raise BoundExceededField(
+                            "Strategy key exceeds the v2 text bound"
+                        )
                     normalized = re.sub(r"[-_ ]+", "", key).casefold()
-                    if normalized in _FORBIDDEN_CONTROL_FORMS:
+                    if normalized in _CONTEXT_SELECTION_FORMS:
+                        raise ContextSelectionField(
+                            "Strategy contains a context-selection field"
+                        )
+                    if normalized in _FORBIDDEN_SCIENTIFIC_CONTROL_FORMS:
                         raise ForbiddenControlField(
                             "Strategy contains a forbidden control field"
                         )
                     stack.append((child, depth + 1, False))
             else:
                 if len(current) > 4_096:
-                    raise ValueError("Strategy list exceeds the v2 bound")
+                    raise BoundExceededField("Strategy list exceeds the v2 bound")
                 stack.extend((child, depth + 1, False) for child in reversed(current))
         elif current is None or kind in (bool, int, str):
             if kind is int and not -(1 << 63) <= current <= (1 << 63) - 1:
-                raise ValueError("Strategy integer exceeds Int64")
+                raise BoundExceededField("Strategy integer exceeds Int64")
             if kind is str and len(current.encode("utf-8", errors="strict")) > 16_384:
-                raise ValueError("Strategy text exceeds the v2 bound")
+                raise BoundExceededField("Strategy text exceeds the v2 bound")
         elif kind is float:
             if not math.isfinite(current):
                 raise ValueError("Strategy numbers must be finite")
@@ -373,7 +391,19 @@ def _validate_strategy(value: dict[str, object]) -> None:
             raise TypeError("Strategy contains a non-JSON value")
 
 
-_FORBIDDEN_CONTROL_FORMS = frozenset(
+_CONTEXT_SELECTION_FORMS = frozenset(
+    re.sub(r"[-_ ]+", "", field).casefold()
+    for field in (
+        "execution_context",
+        "context",
+        "provider",
+        "evidence_class",
+        "qualification_label",
+        "mode",
+    )
+)
+
+_FORBIDDEN_SCIENTIFIC_CONTROL_FORMS = frozenset(
     re.sub(r"[-_ ]+", "", field).casefold()
     for field in (
         "raw_data",
@@ -395,12 +425,6 @@ _FORBIDDEN_CONTROL_FORMS = frozenset(
         "truth",
         "gate",
         "scorer",
-        "execution_context",
-        "context",
-        "provider",
-        "evidence_class",
-        "qualification_label",
-        "mode",
         "credential",
         "credentials",
         "key",
@@ -509,7 +533,7 @@ def _validate_semantics(value: _ExactRecord) -> None:
         if type(value.selector) is ExactPriorSelector and not _same_challenge(
             value.selector.prior_pack_ref, value.challenge_key
         ):
-            raise ValueError("prior selector has a Challenge mismatch")
+            raise ReferenceMismatchField("prior selector has a Challenge mismatch")
     elif type(value) is GetMockScaffoldRequest:
         _require_request_refs(
             value.challenge_key,
@@ -528,9 +552,9 @@ def _validate_semantics(value: _ExactRecord) -> None:
     elif type(value) is ForecastResourcesRequest:
         _require_request_refs(value.challenge_key, value.resource_policy_ref)
         if not 1 <= value.forecast_horizon_seconds <= 604_800:
-            raise ValueError("forecast horizon is outside 1..604800")
+            raise BoundExceededField("forecast horizon is outside 1..604800")
     elif type(value) is GetResearchResultRequest and value.poll_sequence > 9_999:
-        raise ValueError("poll sequence is outside 0..9999")
+        raise BoundExceededField("poll sequence is outside 0..9999")
     elif type(value) is StartResearchTaskRequest:
         _validate_request_token(value.idempotency_key, "idempotency_key")
         _require_request_refs(
@@ -755,7 +779,9 @@ def _validate_request_token(value: str, field: str) -> None:
         length = len(value.encode("ascii", errors="strict"))
     except UnicodeError:
         raise ValueError(f"{field} is outside the closed token grammar") from None
-    if not 16 <= length <= 128 or _REQUEST_TOKEN.fullmatch(value) is None:
+    if not 16 <= length <= 128:
+        raise BoundExceededField(f"{field} is outside the closed token length")
+    if _REQUEST_TOKEN.fullmatch(value) is None:
         raise ValueError(f"{field} is outside the closed token grammar")
 
 
@@ -770,7 +796,7 @@ def _validate_code_tuples(*values: tuple[str, ...]) -> None:
 def _require_request_refs(challenge: ChallengeKey, *references: object) -> None:
     for reference in references:
         if reference is not None and not _same_challenge(reference, challenge):
-            raise ValueError("request reference has a Challenge mismatch")
+            raise ReferenceMismatchField("request reference has a Challenge mismatch")
 
 
 def _require_challenge_refs(
