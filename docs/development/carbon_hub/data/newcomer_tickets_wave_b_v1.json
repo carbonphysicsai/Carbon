@@ -187,17 +187,18 @@
       "title": "Connect an exact build plan to the official-shaped evaluation path",
       "what": "Take the compiled construction plan and run it through a controlled fixture version of Carbon's existing reconstruction lifecycle.",
       "why": "Wave B needs to prove that the authored plan can enter the evaluation path through one explicit integration point.",
-      "changes": "The candidate adds a separate fixture-only provider that recompiles through B-02B, checks B-02C, consumes one registered plan lever, performs deterministic toy construction and held-out measurement, scores through unchanged A5, and binds private exact receipts.",
+      "changes": "PR #97 added a separate fixture-only provider that recompiles through B-02B, checks B-02C, consumes one registered plan lever, performs deterministic toy construction and held-out measurement, scores through unchanged A5, and binds private exact receipts.",
       "not_yet": "This does not run production reconstruction, arbitrary code, real training, scientific evidence, ranking, dispatch, or emissions.",
-      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-07G remains next, todo, and unstarted.",
+      "current_stage_plain": "PR #97 accepted and normally merged B-07F; it is done only in bounded TEST_ONLY engineering scope.",
       "map_ref": "WAVE-B/B-07F"
     },
     "B-07G": {
       "title": "Make sure the research-service pieces work together without gaining extra authority",
       "what": "Compose the research operations, route each one to its named owner, and test the combined service for missing or extra behavior.",
       "why": "Individual modules can be correct while the assembled service routes requests incorrectly or absorbs authority it does not own.",
-      "changes": "Wave B gains a final local composition and conformance layer for the research service.",
-      "not_yet": "This service does not own official submission, scientific policy, shared-history policy, or other domain-specific scientific meaning.",
+      "changes": "The candidate adds the exact local twelve-operation v2 composition, canonical call/reply boundary, disclosure enforcement, and conformance matrix while delegating each operation to its existing owner.",
+      "not_yet": "This is not a network service and does not own official submission, B-07F execution, scientific policy, shared-history policy, credentials, quotes, admission, production, LIVE, or other domain-specific meaning.",
+      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E1 remains next, todo, and unstarted.",
       "map_ref": "WAVE-B/B-07G"
     },
     "B-E1": {

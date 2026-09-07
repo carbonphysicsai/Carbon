@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 48 map-level change events
+- 49 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-07F** (`done`). The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.
+Wave **B**, ticket **B-07G** (`done`). Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E1 remains next, todo, and unstarted.
 
 ## Maintain
 

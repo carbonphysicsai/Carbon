@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `f7a58e1952d6e2ee729530aea7fde881fae6b9e7` on `main`, captured 2026-09-07T07:31:24Z.
-**Current:** Wave B, ticket B-07F. The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.
+**Authority snapshot:** `c3faf4377c7b71b648227e8dbeca8940d20c62cf` on `main`, captured 2026-09-07T09:58:45Z.
+**Current:** Wave B, ticket B-07G. Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E1 remains next, todo, and unstarted.
 
 ## Wave spine
 
@@ -64,7 +64,7 @@
 | [B-07D3](explainers/tickets/b_07d3.md) | Implement exact and active prior retrieval, historical lookup, and deterministic alignment to the current Challenge. | done |
 | [B-07E](explainers/tickets/b_07e.md) | Implement static resource analysis, a future calibrated-forecast seam, and separate receipts for structural estimate, forecast, quote, admission, and observed use. | done |
 | [B-07F](explainers/tickets/b_07f.md) | Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle. | done |
-| [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | todo |
+| [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | done |
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | todo |
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | todo |
 | [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
@@ -131,6 +131,7 @@
 - `B-07E-E1` — `WAVE-B/B-07E` — B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted.
 - `B-07E-E2` — `WAVE-B/B-07E` — PR #96 accepted and normally merged B-07E, completing exact static inspection and the fail-closed forecast seam only in their bounded engineering scope.
 - `B-07F-E1` — `WAVE-B/B-07F` — B-07F specifies, implements, and tests a separate fixture-only resolved-plan construction adapter through B-02B/B-02C, FixtureOfficialEntropy, fixed fixture refs, unchanged A5 scoring, and the existing A7/A8-shaped lifecycle; B-07G remains todo and unstarted.
+- `B-07G-E1` — `WAVE-B/B-07G` — B-07G composes and tests the exact local twelve-operation v2 research service through its existing domain owners, with canonical boundary enforcement, distinct external-public and fixture contexts, TEST_ONLY isolation, and no v1 or B-07F integration; B-E1 remains todo and unstarted.
 
 ## Authority boundary
 

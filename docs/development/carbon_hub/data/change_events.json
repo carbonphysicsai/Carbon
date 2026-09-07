@@ -984,6 +984,35 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07G",
+      "event_type": "evidence",
+      "event_id": "B-07G-E1",
+      "owner_lane": "protocol_technical_lead",
+      "status": "implemented",
+      "summary": "B-07G composes and tests the exact local twelve-operation v2 research service through its existing domain owners, with canonical boundary enforcement, distinct external-public and fixture contexts, TEST_ONLY isolation, and no v1 or B-07F integration; B-E1 remains todo and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/c3faf4377c7b71b648227e8dbeca8940d20c62cf/.agent/evidence/wave_b/b-07g.md",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }
