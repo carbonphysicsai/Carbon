@@ -1166,7 +1166,7 @@
       "if_changed": "Package ownership, code-authority rules, canonical identity, imports, tests, and downstream consumers require a prospective migration.",
       "affects": ["WAVE-B/B-02A", "WAVE-B/B-02B", "WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D2",
@@ -1184,7 +1184,7 @@
       "if_changed": "Result schemas, canonical bytes, procedure boundaries, and false-elimination tests require a versioned redesign.",
       "affects": ["WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D3",
@@ -1202,7 +1202,7 @@
       "if_changed": "Graph identity, dependency validation, canonical ordering, and statistical fixture coverage require a schema migration.",
       "affects": ["WAVE-B/B-02A", "WAVE-B/B-02C", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D4",
@@ -1220,7 +1220,7 @@
       "if_changed": "Factor schema, decision protocol, uncertainty tests, and B-GATE coverage evidence require prospective revision.",
       "affects": ["WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D5",
@@ -1238,7 +1238,7 @@
       "if_changed": "Procedure qualification, applicability identity, B-05 shortcut binding, and decision-order tests require a versioned change.",
       "affects": ["WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D6",
@@ -1256,7 +1256,7 @@
       "if_changed": "Campaign result identity, stage audit, B-05 integration, and false-elimination tests require prospective migration.",
       "affects": ["WAVE-B/B-02C", "WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E1-D7",
@@ -1274,7 +1274,7 @@
       "if_changed": "Maturity records, constructor boundaries, tests, and downstream permitted-use rules require human authority and a prospective schema change.",
       "affects": ["WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     }
   ]
 }
