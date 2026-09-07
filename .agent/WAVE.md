@@ -9,15 +9,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.1
-**Selected ticket:** B-07G — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 3.2
+**Selected ticket:** B-E1 — `done`
 **Selected-ticket start state:** implemented and tested in the current candidate
 **Selected-ticket completion boundary:** bounded `done` becomes authoritative
 when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
 merges
-**Next selected ticket:** `B-E1`
-**Selection boundary:** stop after B-07G; do not start B-E1 or later work
-**Next eligible status:** B-E1 remains `todo` and unstarted
+**Next selected ticket:** `B-E2`
+**Selection boundary:** stop after B-E1; do not start B-E2 or later work
+**Next eligible status:** B-E2 remains `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -65,9 +65,11 @@ deterministic-alignment scope after the same accepted merge
 forecast scope after PR #96 acceptance and normal merge
 **B-07F status:** `done` in bounded merged TEST_ONLY engineering scope after
 PR #97 acceptance and normal merge
-**B-07G status:** bounded `done` prepared for exact local v2 composition and
-conformance; authoritative on accepted normal merge
-**B-E1 status:** `todo`, next eligible, unstarted, and outside this delivery
+**B-07G status:** `done` in bounded merged local v2 composition/conformance
+scope after PR #98 accepted and normally merged
+**B-E1 status:** bounded `done` prepared for exact fixture reproducibility and
+evidence-audit scope; authoritative on accepted normal merge
+**B-E2 status:** `todo`, next eligible, unstarted, and outside this delivery
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -188,6 +190,19 @@ conformance; authoritative on accepted normal merge
 > normal expected-head merge. The A8 stub and v1 wire remain unchanged; no
 > real reconstruction, arbitrary-code isolation, scientific/security/rights
 > qualification, ranking, production, or LIVE authority is introduced.
+
+> **B-07G completion / B-E1 conditional closeout under OWNER-DX-03.** PR #98
+> normally merged accepted head `7b88bc4aa1138d264aaa3f98d35f5a79a318c655`
+> as `527877bdd132c33569ac64c11b0a4360f5a08718` after run `34109277665`
+> passed applicable acceptance and Merge gate. B-07G is therefore `done` in
+> bounded local composition/conformance scope. This candidate specifies,
+> implements, and tests B-E1's separate R0/R1/R2 fixture results, exact crossed
+> evidence, injected qualified decision seams, typed contested outcomes, and
+> staged B-05 audit. Its bounded `done` state and B-E2 handoff become
+> authoritative only after applicable acceptance and normal expected-head
+> merge. No scientific value, qualification, production backend, ranking,
+> frontier, network, settlement, emission, or LIVE authority is introduced;
+> B-E2 remains unstarted.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

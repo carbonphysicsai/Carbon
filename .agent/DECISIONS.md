@@ -11526,3 +11526,82 @@ acceptance, rights/reuse permission, retention periods, real identity, remote
 transport, official submission/scoring, economics, production, launch, and
 LIVE remain unavailable and fail closed. The lead notification is posted to
 issue #42; development continues under OWNER-DX-03 unless explicitly blocked.
+
+## 2026-09-07 - B-E1-D1: fixture-only reproducibility package
+
+**Ticket:** B-E1
+**Status:** implemented working engineering decisions
+**Implementation:** `Design_Specs/Reproducibility_Harness_Contract.md`,
+`carbon/reproducibility`, B-E1 tests, plan, and evidence record.
+
+**Problem.** B-E1 must exercise R0/R1/R2 and dependence-aware staged evidence
+without making B-02C resource facts scientific, copying B-04/B-05 authority,
+inventing statistical values, or implementing later ranking/frontier policy.
+
+**Agent recommendation and decision.** Add one standard-library-only
+`carbon.reproducibility` fixture package with one-way imports from public
+B-02A/B/C, B-04, and B-05 types.
+
+## 2026-09-07 - B-E1-D2: separate R0, R1, and R2 results
+
+Give R0, R1, and R2 separate nominal results. Exact R0 equality cannot
+construct or imply an R1/R2 success.
+
+## 2026-09-07 - B-E1-D3: complete crossed evidence graph
+
+Represent the complete arm × independent reconstruction × whole
+case/trajectory graph, registered stratum, every missing/censored cell, and
+detectable or registered shared dependency explicitly.
+
+## 2026-09-07 - B-E1-D4: distinguish uncertainty factors
+
+Retain each required uncertainty source as a separate factor; combine factors
+only through an injected identity-bound procedure.
+
+## 2026-09-07 - B-E1-D5: qualified decision-procedure priority
+
+Try applicable qualified joint propagation, then conservative bounds, and
+permit quadrature/independence/zero-covariance only through an exact matching
+B-05 shortcut and exact applicability result. Otherwise fail closed to
+indeterminate.
+
+## 2026-09-07 - B-E1-D6: staged reconstruction audit
+
+Reuse B-05 reconstruction assessment and audit static admission, base, repeat,
+frozen reuse, stability audits, scientific sequential action, and heuristic
+futility separately. Pre-base and heuristic stops are always
+`EVIDENCE_DEFERRED`.
+
+## 2026-09-07 - B-E1-D7: TEST_ONLY authority ceiling
+
+Make the supplied fixture machinery structurally `TEST_ONLY`; synthetic
+numbers and decision rules live in tests and cannot become scientific
+qualification or production defaults.
+
+**Alternatives rejected.** Extending A5 or B-05 with ranking/promotion would
+violate ownership. An additive component budget, implicit independence,
+automatic quadrature, dropped missing cells, or one scalar per reconstruction
+would erase required dependence. A built-in epsilon or stopping threshold
+would invent science. A generic result or caller-selected mode would collapse
+failure and authority classes.
+
+**Affected interfaces and invariants.** The decisions add only the new B-E1
+fixture API, exact canonical refs, tests, and documentation. They preserve
+admissibility before ranking, reference/infra failure separation, no
+placeholder LIVE, no hidden-evaluation leakage, no silent evidence promotion,
+and no frontier/settlement authority. B-E4 and B-GATE may consume only the
+bounded fixture evidence.
+
+**Reversibility and migration.** Package placement is low-cost to change while
+the public contract is fixture-only. Any field, enum, canonical identity, or
+procedure-selection change requires a prospective schema/profile version and
+updated fixtures. The existing upstream schemas and public v1/v2 services are
+unchanged.
+
+**Human-reserved input.** Real tolerance, sample size, minimum resolvable
+improvement, dependence model, interval and applicability procedure, coverage,
+power, scientific stopping/extension, heuristic-error bound, audit rate,
+backend profile, and every qualification/production decision remain absent.
+They fail closed without blocking the bounded fixture implementation. Notify
+issue #42 mentioning `@harshaa765`; no response is required unless an explicit
+block or change is observed.
