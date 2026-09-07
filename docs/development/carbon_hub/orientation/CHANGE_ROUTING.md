@@ -53,7 +53,7 @@ Route a new physical job from authored semantics through real integration and hu
 ### Repository authority
 
 - [Scientific Challenge Authoring Contract](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Scientific_Challenge_Authoring_Contract.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/57de2f06f7d249b59723d02e337ad15cee5c0e14/.agent/WAVE_B.md)
 
 > This route explains placement. The active wave board must authorize the exact implementation sequence.
 
@@ -101,7 +101,7 @@ Place architecture work according to whether it changes a bounded catalog compon
 ### Repository authority
 
 - [Candidate Assembly and Strategy Compiler Contract](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Candidate_Assembly_and_Strategy_Compiler_Contract.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/57de2f06f7d249b59723d02e337ad15cee5c0e14/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Wave B may expose bounded, Challenge-owned structural components. Broad model-family neutrality belongs to Wave J, and arbitrary construction programs remain later-wave work.
 
@@ -290,7 +290,7 @@ Attach the defect to the ticket that owns the violated contract, then preserve t
 ### Repository authority
 
 - [Always-on invariants](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/INVARIANTS.md)
-- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/DECISIONS.md)
+- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/57de2f06f7d249b59723d02e337ad15cee5c0e14/.agent/DECISIONS.md)
 
 > Post-merge history stays intact. Record the correction or superseding decision rather than editing evidence to hide the original defect.
 

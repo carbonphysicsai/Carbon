@@ -13,13 +13,13 @@
 
 ## What and why
 
-Wave C is decomposed into C0 network foundation (NET-0 through NET-6), C1 real scientific vertical, and C2 temporary winner-triggered testnet integration (C-W1 through C-W4). Bittensor wraps the Miner MCP; Carbon retains Challenge, evaluation, score, leader, frontier, and settlement authority.
+Wave C retains C0 network foundation, C1 real scientific vertical, and C2 temporary testnet integration. Passive planned work C-EA0, C-EA1, C-EA2 and C-EA3 adds durable evidence capture before finalization; C-DC1, C-DC2, C-DC3 and C-DC4 add a separate private Research Concierge using approved bootstrap sources. Bittensor wraps the Miner MCP and all scientific/result authority stays with existing owners.
 
 Carbon must prove both the chain boundary and one real protected scientific path without letting SDK objects, raw scores, fixtures, stale winners, or incomplete evidence acquire economic authority.
 
 ## Success and unlocks
 
-G2 proves the localnet adapter, authenticated transport, candidate commitment, structural intent, publication, and readback chain. G3 then proves hotkey-authenticated MCP request through committed candidate, protected exam, signed EvaluationReceipt, TestnetWeightEligibilityEvent, TestnetWinnerWeightIntent, on-chain readback, expiry or supersession, and the explicit no-winner sink.
+Existing G2/G3 evidence remains required. In addition, admitted real attempts reconcile through a declared durable archive fault model before finalization, and the exact dialogue deployment passes authentication, grounding, privacy, recovery, withdrawal, kill-switch, utility, and shared-resource isolation acceptance.
 
 Wave D can qualify the first exact Challenge without mistaking successful testnet publication for scientific qualification.
 
@@ -29,7 +29,7 @@ Planning and compatibility context only; this wave is not active implementation 
 
 ## Still unavailable
 
-Wave C does not authorize LIVE science, Wave-D qualification, FrontierAdvanceEvent creation, treasury settlement, direct-winner mainnet weights, or mainnet activation.
+Wave C does not authorize LIVE science, Wave-D qualification, dialogue launch merely because a Challenge qualifies, learned Landscape/EvidenceBrief access, paid research, FrontierAdvanceEvent creation, treasury settlement, or mainnet activation.
 
 ## Key objects
 
@@ -50,6 +50,6 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/d0cff7f611aaf9598ebe16999cb20941f48655b8/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/57de2f06f7d249b59723d02e337ad15cee5c0e14/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

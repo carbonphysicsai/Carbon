@@ -1233,3 +1233,7 @@ Wave C owns real reconstruction, authenticated transport, live identity enforcem
 # 16. Closing rule
 
 > **Carbon should expose the physics problem, the legal construction language, and enough honest evidence to run productive experiments. It should protect the realized exam and its decision boundary. The result is an interface where optimizing the public loop teaches transferable physics, while official authority remains producer-independent and protected.**
+
+# 17. Future dialogue amendment (2026-09-08)
+
+Do not mutate this contract's exact prior provider or local research lifecycle into a dynamic private-evidence assistant. `C-DC1..4` reserve a separately versioned authenticated dialogue application that reuses authorized public resources and exact PriorPacks through narrow adapters. It has no request-time protected archive/Landscape access and cannot change this contract's public/protected, cumulative-disclosure, practice/official, or maturity boundaries.

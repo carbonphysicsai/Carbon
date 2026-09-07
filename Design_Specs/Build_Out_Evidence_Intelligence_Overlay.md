@@ -4,6 +4,10 @@
 **Status:** OWNER-APPROVED FUTURE SEQUENCING OVERLAY  
 **Applies with:** `Build_Out.md` v1.5, `Evidence_Intelligence_and_Agent_Research.md`, and `.agent/plans/OWNER_EVIDENCE_RESEARCH_01.md`
 
+**Detailed reservations:** the 21 `C-EA*`, `C-DC*`, `E-EA*`, `E-EB1`, `E-D12`, `E-RI1`, and `G-PR*` files under `.agent/tickets/`, all `future_reserved`, unselected, and unstarted.
+
+**Traceability:** `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`.
+
 ## 1. Purpose
 
 This overlay adds the owner-approved evidence/archive, launch agent communication, research-demand, and paid-research implementation reservations to Carbon's existing wave structure.
@@ -133,10 +137,12 @@ Learned official-derived EvidenceBriefs, paid hosted research, and Research Scie
 
 ## 9. Future board activation
 
-When Wave C is activated, its controlling board should materialize C-EA0..3 and C-DC1..4 as exact tickets or an owner-approved equivalent decomposition while preserving these semantics.
+When Wave C is activated, its controlling board may select the already materialized C-EA0..3 and C-DC1..4 ticket contracts, or prospectively approve an equivalent decomposition while preserving identity mapping and semantics.
 
-When Wave E is activated, its board should materialize E-EA4..7, E-EB1, E-D12, and E-RI1.
+When Wave E is activated, its board may select E-EA4..7, E-EB1, E-D12, and E-RI1.
 
-When Wave G is activated, its board should materialize G-PR0..5.
+When Wave G is activated, its board may select G-PR0..5.
 
 Do not pre-mark any of these tickets `done`, `implemented`, or `tested` because this overlay exists.
+
+The ticket files are a passive reservations register. They do not compete with `.agent/WAVE.md`, create a controlling board, activate a wave, or authorize implementation.
