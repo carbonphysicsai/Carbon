@@ -40,10 +40,10 @@ SPECIFIED, IMPLEMENTED, and TESTED are prepared only for deterministic TEST_ONLY
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/tickets/B-E1_reproducibility.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/WAVE_B.md)
-- [B-E1 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/plans/B-E1_reproducibility_harness.md)
-- [B-E1 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/evidence/wave_b/b-e1.md)
-- [B-E1 fixture contract](https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/Design_Specs/Reproducibility_Harness_Contract.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/tickets/B-E1_reproducibility.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/WAVE_B.md)
+- [B-E1 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/plans/B-E1_reproducibility_harness.md)
+- [B-E1 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/evidence/wave_b/b-e1.md)
+- [B-E1 fixture contract](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/Design_Specs/Reproducibility_Harness_Contract.md)
 
 > The harness is deterministic fixture engineering only. Exact bits do not imply numerical or decision reproducibility, unresolved evidence cannot rank, and every real scientific or production value remains human-owned and absent.

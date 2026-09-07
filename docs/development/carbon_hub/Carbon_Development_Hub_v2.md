@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `fad2c000c60a9da31d60af3c21f2b20ff1d347ed` on `main`, captured 2026-09-07T14:58:10Z.
+**Authority snapshot:** `2ee4501bc20659436e3302424e65a07c426b1539` on `main`, captured 2026-09-07T15:14:18Z.
 **Current:** Wave B, ticket B-E2. Implemented and tested in the shipping candidate; bounded completion awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
 
 ## Wave spine

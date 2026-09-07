@@ -1292,7 +1292,7 @@
       "if_changed": "The adapter, exact-binding matrix, B-04 seam invariant, fixtures, and downstream failure evidence require prospective migration.",
       "affects": ["WAVE-B/B-04", "WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E2-D2",
@@ -1310,7 +1310,7 @@
       "if_changed": "Attempt-history identity, retry fixtures, reconciliation semantics, and downstream evidence require a versioned change.",
       "affects": ["WAVE-B/B-04", "WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-E2-D3",
@@ -1328,7 +1328,7 @@
       "if_changed": "Provider schema, arbitrary-code and fallback invariants, MMS role tests, and scientific qualification boundaries require human authority and prospective redesign.",
       "affects": ["WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/fad2c000c60a9da31d60af3c21f2b20ff1d347ed/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     }
   ]
 }
