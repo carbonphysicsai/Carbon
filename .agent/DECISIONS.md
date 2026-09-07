@@ -1,5 +1,49 @@
 # Agent decisions log
 
+## 2026-09-07 — B-07F-D1: Consume the registered sampling lever in a separate fixture adapter
+
+**Recommendation.** Add one nominal B-07F provider behind A7's exact fixture
+execution envelope and A8's existing completion type. Keep A8's legacy
+Strategy-insensitive service unchanged. The new provider recompiles through
+B-02B, requires exact envelope/plan identity, asks B-02C for static
+admissibility, and consumes only the canonical R_strategy binding for
+`fixture_sampling_level`. Level 1 or 2 selects the count of fixed fixture
+training observations used by a deterministic through-origin least-squares
+toy model; held-out error is then measured on a separate fixed fixture asset
+and passed through the existing A5 fixture ScorePack.
+
+**Why this lever.** Sampling count already has an exact registered consumer,
+bounded UInt64 domain, executable-semantics ref, randomness purpose, and
+resource contribution in the B-02B fixture contract. It changes actual
+construction and held-out behavior without selecting a physical threshold,
+changing score logic, branching on raw Strategy, or accepting participant
+code. The fixed `y = x^2` observations make both levels structurally distinct
+under either permitted entropy-derived ordering.
+
+**Receipts and failures.** Produce private content-addressed reconstruction and
+result receipts that bind exact authorities but omit seed bytes, cases, raw
+measurements, paths, and qualification vocabulary. Preserve distinct nominal
+compilation, resource, construction, reference, measurement, and
+infrastructure outcomes; none converts to a zero score or another authority
+class.
+
+**Alternatives rejected.** Mutating A8 would invalidate its frozen plumbing
+semantics. Branching on Strategy JSON or hash would bypass the plan. A new
+compiler, score path, store, lifecycle, wire, or caller mode would duplicate
+domain owners. Running full B-03/B-04 production-shaped machinery would imply
+rights and scientific authority absent from this fixed toy fixture.
+
+**Impact and reversibility.** The change is additive within `carbon.traineval`;
+A7, A8, A9, B-07C, B-07E, and the v1 wire remain unchanged. A later real
+reconstruction backend requires a new nominal capability and contract. The
+protocol/SciML/security notification is recorded on the working-decision issue;
+silence is non-blocking under OWNER-DX-03.
+
+**Human-reserved input.** Production reconstruction design, arbitrary-code
+isolation, official reference/data rights, scientific fixture adequacy,
+measurement qualification, and LIVE/security acceptance remain absent and fail
+closed.
+
 ## 2026-09-07 — B-07E-D1: Exact static projection and fail-closed forecast provenance
 
 **Recommendation.** Implement B-07E as one additive `carbon.research`

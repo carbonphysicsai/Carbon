@@ -23,6 +23,9 @@ _REVERSE_DEPENDENCY_ROOTS = (
     _CARBON_ROOT / "scoring",
     _CARBON_ROOT / "traineval",
 )
+_AUTHORIZED_DOWNSTREAM_CONSUMERS = {
+    _CARBON_ROOT / "traineval" / "resolved_fixture.py",
+}
 
 _ALLOWED_CARBON_DEPENDENCIES = (
     "carbon.resource_policy",
@@ -259,6 +262,10 @@ def test_upstream_and_reserved_consumers_do_not_import_resource_policy() -> None
     violations: list[str] = []
     for root in _REVERSE_DEPENDENCY_ROOTS:
         for path in _python_files(root):
+            # B-07F is the explicitly authorized downstream fixture consumer;
+            # the A8 model/service/stub files remain reverse-dependency clean.
+            if path in _AUTHORIZED_DOWNSTREAM_CONSUMERS:
+                continue
             violations.extend(
                 f"{path.relative_to(_REPOSITORY_ROOT)}:{line}"
                 for line in _imports_resource_policy(path)

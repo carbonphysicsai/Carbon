@@ -637,6 +637,7 @@ def test_a12_r02_practice_isolation_is_fail_closed(tmp_path: Path) -> None:
     assert traineval_files == (
         "__init__.py",
         "model.py",
+        "resolved_fixture.py",
         "service.py",
         "stub.py",
     )

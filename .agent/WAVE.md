@@ -9,15 +9,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.9
-**Selected ticket:** B-07E — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 3.0
+**Selected ticket:** B-07F — `done`
 **Selected-ticket start state:** implemented and tested in the current candidate
 **Selected-ticket completion boundary:** bounded `done` becomes authoritative
 when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
 merges
-**Next selected ticket:** `B-07F`
-**Selection boundary:** stop after B-07E; do not start B-07F or later work
-**Next eligible status:** B-07F remains `todo` and unstarted
+**Next selected ticket:** `B-07G`
+**Selection boundary:** stop after B-07F; do not start B-07G or later work
+**Next eligible status:** B-07G remains `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -61,9 +61,11 @@ projection scope after PR #95 acceptance and normal merge
 persistent-ledger scope after the same accepted merge
 **B-07D3 status:** `done` in bounded merged authorized static-provider and
 deterministic-alignment scope after the same accepted merge
-**B-07E status:** bounded `done` prepared for exact static inspection and the
-fail-closed forecast seam; authoritative on accepted normal merge
-**B-07F status:** `todo`, next eligible, unstarted, and outside this delivery
+**B-07E status:** `done` in bounded merged exact-inspection and fail-closed
+forecast scope after PR #96 acceptance and normal merge
+**B-07F status:** bounded `done` prepared for the resolved-plan fixture-only
+construction adapter; authoritative on accepted normal merge
+**B-07G status:** `todo`, next eligible, unstarted, and outside this delivery
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -172,6 +174,18 @@ fail-closed forecast seam; authoritative on accepted normal merge
 > acceptance and normal expected-head merge. No quote, admission, price,
 > capacity, scoring, settlement, qualification, production calibration, or
 > LIVE authority is introduced; B-07F remains unstarted.
+
+> **B-07E completion / B-07F conditional closeout under OWNER-DX-03.** PR #96
+> normally merged accepted head `4fe739995db6d5e5c84fa02bff47d9e179e4dc56`
+> as `5dc41eef62025a0114ee11bb98db3f9b877b247d` after run `34087649083`
+> passed applicable acceptance and Merge gate. B-07E is therefore `done` in
+> its bounded engineering scope. This candidate specifies, implements, and
+> tests B-07F's separate fixture-only resolved-plan adapter through unchanged
+> A7/A8-shaped lifecycle and A5 scoring seams. Its bounded `done` state and
+> B-07G handoff become authoritative only after applicable acceptance and
+> normal expected-head merge. The A8 stub and v1 wire remain unchanged; no
+> real reconstruction, arbitrary-code isolation, scientific/security/rights
+> qualification, ranking, production, or LIVE authority is introduced.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
