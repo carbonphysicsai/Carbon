@@ -10,7 +10,6 @@ from enum import Enum
 
 from carbon.evaluation.errors import ReferenceInputCode
 from carbon.qualification.errors import DossierInputCode
-from carbon.reproducibility.errors import ReproducibilityErrorCode
 from carbon.research.errors import ResearchServiceErrorCode
 from carbon.research.refs import (
     PriorChannel,
@@ -77,7 +76,6 @@ class IntegrityDisposition(str, Enum):
 
 _PROTOCOL_OUTCOME_TYPES = (
     ResearchServiceErrorCode,
-    ReproducibilityErrorCode,
     ResourcePolicyInputCode,
     DossierInputCode,
     ReferenceInputCode,
@@ -111,9 +109,7 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
             ResearchServiceErrorCode.DISCLOSURE_REJECTED,
         }
     ),
-    IntegrityCase.DUPLICATE_LINEAGE: frozenset(
-        {ReproducibilityErrorCode.DUPLICATE_IDENTITY}
-    ),
+    IntegrityCase.DUPLICATE_LINEAGE: frozenset({DossierInputCode.DUPLICATE_IDENTITY}),
     IntegrityCase.REQUESTER_SPLITTING: frozenset(
         {
             ResearchServiceErrorCode.CONTEXT_SELECTION_FORBIDDEN,
@@ -134,7 +130,6 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
     ),
     IntegrityCase.DUPLICATE_EVIDENCE: frozenset(
         {
-            ReproducibilityErrorCode.DUPLICATE_IDENTITY,
             DossierInputCode.DUPLICATE_IDENTITY,
         }
     ),
@@ -149,13 +144,11 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
     IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: frozenset(
         {
             DossierInputCode.ROLE_CONFUSION,
-            ReproducibilityErrorCode.ROLE_CONFUSION,
         }
     ),
     IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: frozenset(
         {
             DossierInputCode.ROLE_CONFUSION,
-            ReproducibilityErrorCode.ROLE_CONFUSION,
         }
     ),
     IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: frozenset(
@@ -181,12 +174,10 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
         {
             DossierInputCode.VERSION_MISMATCH,
             DossierInputCode.DIGEST_MISMATCH,
-            ReproducibilityErrorCode.IDENTITY_MISMATCH,
         }
     ),
     IntegrityCase.LEARNED_COMPONENT_SIDE_EFFECT: frozenset(
         {
-            ReproducibilityErrorCode.PROCEDURE_INVALID,
             DossierInputCode.ROLE_CONFUSION,
         }
     ),
@@ -498,7 +489,6 @@ class IntegrityObservation:
     disposition: IntegrityDisposition
     protocol_outcome: (
         ResearchServiceErrorCode
-        | ReproducibilityErrorCode
         | ResourcePolicyInputCode
         | DossierInputCode
         | ReferenceInputCode

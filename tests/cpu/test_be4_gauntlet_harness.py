@@ -31,7 +31,6 @@ from carbon.gauntlet import (
 from carbon.practice import PracticeAggregateKind
 from carbon.qualification.errors import DossierInputCode
 from carbon.registry import ChallengeKey
-from carbon.reproducibility.errors import ReproducibilityErrorCode
 from carbon.research import (
     PriorChannel,
     PriorPackRef,
@@ -154,10 +153,10 @@ def test_raw_observations_remain_separate_from_preregistered_decisions() -> None
         DIGEST,
     )
     outcomes = {
-        IntegrityCase.DUPLICATE_LINEAGE: ReproducibilityErrorCode.DUPLICATE_IDENTITY,
+        IntegrityCase.DUPLICATE_LINEAGE: DossierInputCode.DUPLICATE_IDENTITY,
         IntegrityCase.TIMING_RESOURCE_SURFACE: ResourcePolicyInputCode.LIMIT_NOT_BOUND,
         IntegrityCase.PRIOR_POISONING: ResearchServiceErrorCode.TEST_ONLY_AUTHORITY_INVALID,
-        IntegrityCase.DUPLICATE_EVIDENCE: ReproducibilityErrorCode.DUPLICATE_IDENTITY,
+        IntegrityCase.DUPLICATE_EVIDENCE: DossierInputCode.DUPLICATE_IDENTITY,
         IntegrityCase.RAW_STRING: ResearchServiceErrorCode.REQUEST_TYPE_INVALID,
         IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: DossierInputCode.ROLE_CONFUSION,
@@ -166,7 +165,7 @@ def test_raw_observations_remain_separate_from_preregistered_decisions() -> None
         IntegrityCase.LEARNED_COMPONENT_WRONG_ROLE: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.LEARNED_COMPONENT_INCOMPATIBLE_IO: DossierInputCode.SLOT_MISMATCH,
         IntegrityCase.LEARNED_COMPONENT_STALE_PIN: DossierInputCode.VERSION_MISMATCH,
-        IntegrityCase.LEARNED_COMPONENT_SIDE_EFFECT: ReproducibilityErrorCode.PROCEDURE_INVALID,
+        IntegrityCase.LEARNED_COMPONENT_SIDE_EFFECT: DossierInputCode.ROLE_CONFUSION,
     }
     integrity = tuple(
         IntegrityObservation(
