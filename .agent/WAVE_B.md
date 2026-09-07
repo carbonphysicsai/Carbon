@@ -212,7 +212,7 @@ accepted head `7b88bc4aa1138d264aaa3f98d35f5a79a318c655` as
 `527877bdd132c33569ac64c11b0a4360f5a08718` after run `34109277665`
 passed applicable acceptance and Merge gate, making B-07G `done` in bounded
 local composition/conformance scope. PR #99 accepted B-E1 head
-`831a34598f3f28ad8c05490244a4e0509473ac41` passed run `34124228848`,
+`831a34598d6779d369f01de3523c3d8ee0385d18` passed run `34124228848`,
 including `Merge gate`, and normally merged as the second parent of main
 `c484fd308d866d4b05a2765a984ec014dd96386e`. Version 3.3 specifies,
 implements, and tests B-E2's exact registered-service failure seam and
@@ -403,7 +403,7 @@ completed B-05/B-07C and selected the grouped prior delivery. PR #95 completed
 B-07D1/D2/D3 after applicable acceptance. PR #96 then completed B-07E after
 applicable acceptance and normal merge. PR #97 completed B-07F, and PR #98
 completed B-07G, after applicable acceptance and normal merge. B-E1 accepted
-head `831a34598f3f28ad8c05490244a4e0509473ac41` then passed run
+head `831a34598d6779d369f01de3523c3d8ee0385d18` then passed run
 `34124228848`, including `Merge gate`, and normally merged as the second parent
 of main `c484fd308d866d4b05a2765a984ec014dd96386e`. Version 3.3 prepares B-E2
 bounded `done` on accepted normal merge and leaves B-E4 next, `todo`, and

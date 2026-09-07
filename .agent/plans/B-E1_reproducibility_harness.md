@@ -5,7 +5,7 @@
 **Delivery:** one branch and pull request under OWNER-DX-03
 **Primary Hub map_ref:** `WAVE-B/B-E1`
 **Implementation state:** accepted and normally merged as second parent
-`831a34598f3f28ad8c05490244a4e0509473ac41` of main
+`831a34598d6779d369f01de3523c3d8ee0385d18` of main
 `c484fd308d866d4b05a2765a984ec014dd96386e`
 
 ## Authority and start state

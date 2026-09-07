@@ -68,7 +68,7 @@ PR #97 acceptance and normal merge
 **B-07G status:** `done` in bounded merged local v2 composition/conformance
 scope after PR #98 accepted and normally merged
 **B-E1 status:** `done` in bounded merged fixture reproducibility and
-evidence-audit scope after accepted head `831a34598f3f28ad8c05490244a4e0509473ac41`
+evidence-audit scope after accepted head `831a34598d6779d369f01de3523c3d8ee0385d18`
 passed run `34124228848` and normally merged
 **B-E2 status:** bounded `done` candidate for the exact registered-service
 failure seam and deterministic TEST_ONLY evidence graph; authoritative only
@@ -198,7 +198,7 @@ after applicable acceptance and normal merge
 > normally merged accepted head `7b88bc4aa1138d264aaa3f98d35f5a79a318c655`
 > as `527877bdd132c33569ac64c11b0a4360f5a08718` after run `34109277665`
 > passed applicable acceptance and Merge gate. PR #99 accepted B-E1 head
-> `831a34598f3f28ad8c05490244a4e0509473ac41` then passed run `34124228848`
+> `831a34598d6779d369f01de3523c3d8ee0385d18` then passed run `34124228848`
 > and normally merged as the second parent of
 > `c484fd308d866d4b05a2765a984ec014dd96386e`. B-E1 is therefore `done` in its
 > bounded fixture-reproducibility scope. This candidate specifies, implements,

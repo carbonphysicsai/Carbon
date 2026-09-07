@@ -10,7 +10,7 @@ fixture tests
 ## B-E1 reconciliation
 
 PR #99 normally merged accepted B-E1 head
-`831a34598f3f28ad8c05490244a4e0509473ac41` as
+`831a34598d6779d369f01de3523c3d8ee0385d18` as
 `c484fd308d866d4b05a2765a984ec014dd96386e`. Accepted CI run `34124228848`
 passed its applicable jobs and Merge gate. The stale candidate/pending wording
 in the B-E1 plan, evidence, and current maturity ledger is documentation/status

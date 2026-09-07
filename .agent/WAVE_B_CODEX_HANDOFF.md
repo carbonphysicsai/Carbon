@@ -24,7 +24,7 @@ expected-head merge. Historical review evidence remains immutable.
 
 ## Current transition — B-E1 merged, B-E2 candidate, B-E4 next
 
-Accepted B-E1 head `831a34598f3f28ad8c05490244a4e0509473ac41`
+Accepted B-E1 head `831a34598d6779d369f01de3523c3d8ee0385d18`
 passed run `34124228848`, including `Merge gate`, and normally merged as the
 second parent of main `c484fd308d866d4b05a2765a984ec014dd96386e`. Version
 3.3 implements B-E2's exact registered-service failure seam and deterministic

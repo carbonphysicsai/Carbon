@@ -12,7 +12,7 @@ remains the conditional completion boundary
 
 Fetched `origin/main` is the normal B-E1 merge requested by the owner. Its
 second parent is accepted B-E1 head
-`831a34598f3f28ad8c05490244a4e0509473ac41`; accepted CI run `34124228848`
+`831a34598d6779d369f01de3523c3d8ee0385d18`; accepted CI run `34124228848`
 passed Delivery preflight, Canonical environment, Development Hub validation,
 and Merge gate. B-E1 is therefore bounded `done` in SPECIFIED / IMPLEMENTED /
 TESTED scope. The merged board selects B-E2 next as `todo` and unstarted.
