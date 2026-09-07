@@ -1383,6 +1383,42 @@
       "affects": ["WAVE-B/B-07D3", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5575367766",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/25453bd74b8f44deb72c651216d44a4529639cb7/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E4-D4",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Bind the complete blocked execution-design proposal",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "What must the preregistration digest bind before Carbon can compare an execution against the approved design?",
+      "recommendation": "KEEP one versioned canonical proposal whose domain-separated digest binds all eight decisions plus profiles, arms, matrix, resources, randomization, fixture/prior/shadow identities, endpoints, missingness, analysis, attack campaign, and freeze procedure; keep the proposal structurally non-ratifying and non-executable.",
+      "why": "Binding only eight caller-supplied labels would allow the actual treatment or execution graph to drift while appearing to retain the same approval target.",
+      "if_kept": "Owners can review one immutable complete design while synthetic sensitivity work remains usable and incapable of creating ratification or qualifying status.",
+      "if_changed": "Any changed treatment, execution artifact, value, or analysis rule requires a new proposal digest, corresponding tests, owner pack, and later five-owner ratification.",
+      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5576755428",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E4-D5",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Require an identifiable fixture before final ratification",
+      "attention": "HUMAN_REQUIRED",
+      "status": "PROPOSED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "May owners freeze and ratify the proposed B-E4 design while the current fixture has one effectful family and its TEST_ONLY prior targets a fixed singleton lever?",
+      "recommendation": "KEEP final freeze unavailable. First ship a bounded readiness repair with at least three independently effectful canonical families and a causally relevant TEST_ONLY pack/authorization, then pin drivers, arms, metering, shadow, attack, analysis, role, and verification artifacts, rerun dry-run analysis, and issue a new digest.",
+      "why": "The current fixture cannot satisfy the proposed diversity rule or identify broad causal prior utility, so ratifying it would spend owner approval on an experiment that cannot answer its registered question.",
+      "if_kept": "B-E4 remains in progress and qualifying execution stays blocked; the exact owner decision pack is routed at https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5576762645 without treating that routing as approval.",
+      "if_changed": "Lowering diversity to one, treating first-hit speed as broad utility, or approving unresolved artifacts changes the evidentiary claim and requires explicit research, protocol, science, statistics, and security direction.",
+      "affects": ["WAVE-B/B-02B", "WAVE-B/B-07C", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5576755428",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/DECISIONS.md"
     }
   ]
 }

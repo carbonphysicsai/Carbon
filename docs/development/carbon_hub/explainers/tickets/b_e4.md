@@ -16,7 +16,7 @@ A research assistant can improve apparent performance by exploiting the evaluato
 
 ## What it adds
 
-A fail-closed profile/arm harness, raw measurement schema, semantically responsive toy fixture, typed integrity matrix, and evaluator-held shadow-case seam.
+A fail-closed profile/arm harness, raw measurement schema, semantically responsive toy fixture, typed integrity matrix, evaluator-held shadow-case seam, and a content-bound analysis-only preregistration proposal with deterministic sensitivity helpers and an owner decision pack.
 
 ## Placement and handoff
 
@@ -28,22 +28,27 @@ A fail-closed profile/arm harness, raw measurement schema, semantically responsi
 
 ## Explicit non-goals
 
-Historical fit or local improvement cannot establish safe utility without the preregistered gauntlet evidence.
+The proposal, synthetic design analysis, or local fixture improvement cannot establish ratification, qualifying execution, safe utility, leakage clearance, security, science, production, or LIVE authority.
 
 ## Current stage
 
-PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its bounded successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration.
+PR #105 merged B-E4's bounded successor validation repair. This candidate adds a content-bound, analysis-only preregistration proposal and owner decision pack, but the current fixture/prior is not identifiable for the proposed claim and no qualifying gauntlet ran. Final freeze, qualifying recording, and completion remain blocked.
 
 ## Maturity ceiling
 
-B-E4 is specified, implemented, and tested only for the bounded fixture-engineering harness. Utility, leakage, diversity, scientific, security, production, and LIVE qualification remain unearned.
+B-E4 is specified, implemented, and tested only for bounded fixture engineering and non-qualifying design analysis. Utility, leakage, diversity, scientific, security/privacy, production, qualification, and LIVE maturity remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/WAVE_B.md)
-- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/plans/B-E4_agent_gauntlet.md)
-- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/evidence/wave_b/b-e4.md)
-- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/tests/cpu/test_be4_successor_validation_repair.py)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/WAVE_B.md)
+- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/plans/B-E4_agent_gauntlet.md)
+- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/evidence/wave_b/b-e4.md)
+- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/tests/cpu/test_be4_successor_validation_repair.py)
+- [Blocked preregistration proposal](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/preregistrations/B-E4_recommended_design_v2.json)
+- [Owner preregistration decision pack](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
+- [Preregistration design helpers](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/carbon/gauntlet/design.py)
+- [Preregistration design regressions](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/tests/cpu/test_be4_preregistration_design.py)
+- [B-E4 decision series](https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/DECISIONS.md)
 
-> The harness records descriptive fixture observations only. Design content is digest-bound, v2 pins are arm- and Challenge-checked, and integrity outcomes are restricted to case-applicable existing owner codes; none of these checks proves authorization, owner ratification, execution, utility, leakage, or security, and B-GATE remains unstarted.
+> The blocked proposal digest binds the full design graph, but all eight values remain PROPOSED and ratifications remain empty. Deterministic power/sensitivity output is design-analysis evidence only. Readiness first requires at least three independently effectful canonical fixture families, a causally relevant TEST_ONLY prior, exact drivers/arms/meter/shadow/attack artifacts, authenticated role assignments, and trusted verification. No qualifying run occurred, no later ticket is selected, and B-GATE remains unstarted.

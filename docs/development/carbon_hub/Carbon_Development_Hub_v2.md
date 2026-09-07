@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `62974047a165f05c1b77c9e5e95387cdffd2d7f4` on `main`, captured 2026-09-07T20:47:24Z.
-**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted.
+**Authority snapshot:** `00a53a0b16652a1f5058206a1be59d75d0972101` on `main`, captured 2026-09-07T23:36:48Z.
+**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. This candidate adds a blocked analysis-only preregistration proposal and concrete owner pack; it does not run the gauntlet. Fixture/prior readiness, exact execution integrations, and five-owner ratification still block final freeze and qualifying execution. No later ticket is selected; B-GATE remains unstarted.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
 
@@ -143,6 +143,7 @@
 - `B-E4-ENGINEERING-01` — `WAVE-B/B-E4` — B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented, and the Hub authority snapshot is reconciled across its pinned map links; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.
 - `B-E4-VALIDATION-R1` — `WAVE-B/B-E4` — A bounded B-E4 successor repair binds preregistration labels to exact design content, disables caller-created qualifying status, validates arm-specific TEST_ONLY pins before hashing, and restricts integrity fixtures to case-applicable existing owner outcomes; qualifying execution remains blocked and B-GATE remains unstarted.
 - `HUB-CURRENT-POSITION-01` — `SYSTEM/DEVELOPMENT-HUB` — The Hub now derives present-tense development position from one canonical record: Wave B is active, B-E2 is the last completed ticket, PR #105 merged B-E4's bounded successor validation repair, B-E4 remains selected and in progress behind its verified-ratification and execution-evidence block, and no later ticket is selected.
+- `B-E4-PREREGISTRATION-DESIGN-01` — `WAVE-B/B-E4` — B-E4 now has a content-bound analysis-only preregistration proposal and concrete owner decision pack, but the current one-family fixture and singleton-targeted prior cannot identify the recommended utility/diversity claim. A bounded readiness repair, pinned execution artifacts, and five-owner ratification of a later execution-ready digest must precede qualifying execution.
 
 ## Authority boundary
 
