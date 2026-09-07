@@ -3,10 +3,10 @@ from __future__ import annotations
 import ast
 import pickle
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
+import tomllib
 
 from carbon import reproducibility
 from carbon.registry import ChallengeKey
