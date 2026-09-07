@@ -1,6 +1,6 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through the B-E1
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through the B-E2
 shipping candidate, plus the prospective `OWNER-NET-01` roadmap candidate only
 where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
@@ -17,11 +17,13 @@ where explicitly labeled.
 > remains `UNRESOLVED` without authorized production calibration. The current
 > PR #97 completed B-07F in bounded TEST_ONLY engineering scope. PR #98
 > completed B-07G's exact twelve-operation local v2 composition in bounded
-> engineering scope. The current B-E1 candidate implements and tests separate
-> R0/R1/R2 fixture results, an exact dependence-preserving crossed evidence
-> graph, injected qualified decision seams, typed contested outcomes, and a
-> staged B-05 reconstruction audit. B-E1 closeout is conditional on applicable
-> acceptance and normal merge. B-E2 remains next, `todo`, and unstarted.
+> engineering scope. B-E1 accepted head
+> `831a34598d6779d369f01de3523c3d8ee0385d18` passed run `34124228848` and
+> normally merged. The current B-E2 candidate wraps the exact B-04 identities,
+> grants, outcomes, failures, provenance, and comparison results with an exact
+> registered-service seam and deterministic TEST_ONLY fixture evidence.
+> B-E2 closeout is conditional on applicable acceptance and normal merge; B-E4
+> remains next, `todo`, and unstarted.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -363,6 +365,7 @@ the bounded implementation.
 | Validation Dossier structural machinery | Reconciled B-06 contract | Exact D1-D12 identity; typed evidence and campaign acquisition/result manifests; merely specified acquisitions cannot carry results; D11 audits and campaign PRIMARY/WITNESS roles require distinct nominal identities; monotonic fixture/unresolved provenance; exact dossier-to-manifest linkage; nominal-identity conflict rejection; bounded deterministic serialization; pending dependence authority; qualification-candidate construction; external signer-authorization result input; pure exact A3 snapshot comparison with A3-parity required-slot reference checks; all nine historical review findings repaired; PR #88 accepted and normally merged | No | no campaign/statistical engine, trust-policy or crypto implementation, artifact dereference, registry mutation, scientific/security acceptance, production qualification, or LIVE authority |
 | Dossier credibility crosswalk | B-E3 working contract | Exact B-06 manifest/claim/evidence links; responsible owners; distinct evidence categories and maturity; source permitted-use refs; explicit absent/pending/inapplicable rows; structural MMS non-substitution; fail-closed missing/stale/mismatch/circular/role/maturity/unresolved checks; strict deterministic canonical form; audience-allow-listed Markdown report | No | bounded structural implementation and tests only; complete crosswalk never certifies adequacy, compliance, product/production qualification, or LIVE; scientific, standards, security, commercial, decision, and launch inputs remain human-reserved |
 | R0/R1/R2 reproducibility harness | B-E1 fixture contract | Separate exact-identity, injected numerical, and injected decision results; B-02A exact population/SamplingPlan/case refs; complete incumbent/challenger × producer-independent reconstruction × case graph; stress strata and interaction/dependence retention; explicit shared dependencies and six factor classes; exact B-04 outcomes; exact B-05 policy/shortcut binding; staged reconstruction campaign audit; deterministic canonical refs and fail-closed contested outcomes | No | bounded TEST_ONLY fixture engineering only; no real tolerance, sample size, dependence model, interval/applicability procedure, coverage/power target, stopping rule, audit rate, production backend, ranking, or frontier authority |
+| Registered reference-service failure boundary | B-E2 fixture contract | Exact B-04 request/grant/resolution/run identities; one-use invocation; typed supported, uncertainty, non-applicable, unsupported, numerical/conditioning, malformed, provenance, timeout, unavailable, transport, and process outcomes; immutable retry trace; primary/witness disagreement remains B-04 comparison evidence | No | deterministic TEST_ONLY fixture evidence only; archived Julia remains absent and no reference implementation, method, environment, MMS/analytic fixture, fallback, tolerance, applicability, uncertainty, or scientific authority is qualified |
 | Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |

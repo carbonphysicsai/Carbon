@@ -33,6 +33,8 @@ _EXPECTED_MODULE_PATHS = frozenset(
         "policy.py",
         "refs.py",
         "runners.py",
+        "service_boundary.py",
+        "service_fixtures.py",
     }
 )
 

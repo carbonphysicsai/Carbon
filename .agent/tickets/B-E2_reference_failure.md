@@ -1,7 +1,8 @@
 # Ticket B-E2 - Julia and reference failure boundary
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** done
+**Completion gate:** accepted normal merge; bounded fixture engineering scope only
 **Depends on:** B-04
 **Build Out:** reference-service failure evidence
 **Master questions:** MQ-004
@@ -14,25 +15,25 @@ Prove that a Julia/SciML or other reference-service failure remains a typed refe
 
 ## Definition of Done
 
-- [ ] Audit Julia/reference service interfaces and classify reuse without assuming correctness.
-- [ ] Implement fixture outcomes that distinguish at least reference supported,
+- [x] Audit Julia/reference service interfaces and classify reuse without assuming correctness.
+- [x] Implement fixture outcomes that distinguish at least reference supported,
       reference uncertain, reference disagreement, reference not applicable or
       unsupported, reference numerical/conditioning failure, malformed or
       provenance failure, and reference infrastructure failure. Exact runtime
       names must follow the ratified B-04 contract.
-- [ ] Define typed timeout, unavailable, malformed, conditioning, unsupported-case, version mismatch, and disagreement results.
-- [ ] Bind every response to exact case, role, policy, implementation,
+- [x] Define typed timeout, unavailable, malformed, conditioning, unsupported-case, version mismatch, and disagreement results.
+- [x] Bind every response to exact case, role, policy, implementation,
       environment, numerical configuration, applicability, uncertainty, and
       request identity.
-- [ ] Reject partial, stale, substituted, cross-case, cross-role, or unpinned responses.
-- [ ] Test process/service loss, timeout, malformed payload, retry, duplicate response, wrong case, wrong role, wrong version, uncertainty, disagreement, non-applicability, numerical failure, and no-candidate-score behavior.
-- [ ] Add fixtures proving that a manufactured-solution verification anchor
+- [x] Reject partial, stale, substituted, cross-case, cross-role, or unpinned responses.
+- [x] Test process/service loss, timeout, malformed payload, retry, duplicate response, wrong case, wrong role, wrong version, uncertainty, disagreement, non-applicability, numerical failure, and no-candidate-score behavior.
+- [x] Add fixtures proving that a manufactured-solution verification anchor
       cannot be relabeled as a production primary, physical-validation anchor,
       or target-population answer key.
-- [ ] Prove that no unregistered analytic fixture, mock, weaker solver, stale
+- [x] Prove that no unregistered analytic fixture, mock, weaker solver, stale
       cache entry, or candidate result can serve as fallback when the registered
       reference path fails.
-- [ ] Record Julia runtime, MMS/analytic implementation, and scientific
+- [x] Record Julia runtime, MMS/analytic implementation, and scientific
       qualification gaps separately from Python contract evidence.
 
 ## Human input

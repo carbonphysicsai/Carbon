@@ -32,7 +32,7 @@ Historical fit or local improvement cannot establish safe utility without the pr
 
 ## Current stage
 
-No more specific stage is supported; use the captured status and repository evidence.
+Next after B-E2 completes its accepted normal merge; still todo and unstarted.
 
 ## Maturity ceiling
 

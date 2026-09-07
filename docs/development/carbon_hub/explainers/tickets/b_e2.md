@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-E2`
 
-**Status:** TODO
+**Status:** DONE
 
 **Target phase:** WB-2
 
@@ -16,7 +16,7 @@ A required truth service can diverge, time out, disagree, or become unavailable.
 
 ## What it adds
 
-Fail-closed reference failure semantics and fixtures.
+An exact primary/witness registered-service seam over B-04, one-use invocation, typed hostile-response and infrastructure failures, immutable retry traces, and deterministic TEST_ONLY supported/failure/disagreement/MMS fixtures.
 
 ## Placement and handoff
 
@@ -28,19 +28,23 @@ Fail-closed reference failure semantics and fixtures.
 
 ## Explicit non-goals
 
-It does not permit an unregistered fallback or relabel infrastructure failure as candidate science.
+It does not restore Julia, select or qualify a solver, permit an unregistered fallback, collapse disagreement, relabel MMS, manufacture truth, or turn infrastructure failure into candidate science.
 
 ## Current stage
 
-No more specific stage is supported; use the captured status and repository evidence.
+Implemented and tested in the shipping candidate; bounded completion awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
 
 ## Maturity ceiling
 
-Planned on the controlling board; not current implementation permission.
+SPECIFIED, IMPLEMENTED, and TESTED are prepared only for the exact service seam and deterministic TEST_ONLY fixtures. Julia runtime, numerical methods, scientific/security qualification, production, ranking, frontier, and LIVE remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9/.agent/tickets/B-E2_reference_failure.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/tickets/B-E2_reference_failure.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/WAVE_B.md)
+- [B-E2 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/plans/B-E2_reference_failure.md)
+- [B-E2 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/evidence/wave_b/b-e2.md)
+- [Registered service boundary](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/carbon/evaluation/service_boundary.py)
+- [Reference failure fixtures](https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/carbon/evaluation/service_fixtures.py)
 
-> This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.
+> The boundary accepts only exact B-04 identities and emits only B-04 run records. Failure never yields an artifact or fallback; supported fixtures remain FIXTURE_ONLY and MMS remains verification-only.

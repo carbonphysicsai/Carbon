@@ -1,5 +1,114 @@
 # Agent decisions log
 
+## 2026-09-07 — B-E2-D1: Wrap B-04 with one exact hostile-response service boundary
+
+**Notification:** issue #42 comment `5572204359`, for awareness under the
+delegated-decision protocol.
+
+**Recommendation.** `KEEP` B-04's policy, primary/witness request, one-use
+grant, resolution, run, comparison, identity, provenance, artifact, admission,
+failure, and protected-error contracts. `WRAP` the exact run-attempt capability
+with a standard-library in-process primary/witness service adapter under
+`carbon.evaluation`. The provider receives only the already-authorized exact
+request/grant. A response is accepted only after its request, grant,
+resolution, case, Challenge, answer-key target, execution role, policy,
+implementation, environment, method, configuration, precision, hardware,
+representation, scope, applicability, conditioning, uncertainty, provenance,
+diagnostic, resource-receipt, and artifact-descriptor bindings match the
+registered context. The adapter returns only B-04 `ReferenceRunRecord`.
+
+**Why.** B-04 already owns the required ontology and one-use authority. A
+parallel service result or B-E2 status enum would permit semantic drift and
+weaken exact identity. The wrapper gives B-E2 a provider boundary without
+changing B-04 canonical bytes, root exports, outcome precedence, admission, or
+downstream ownership.
+
+**Alternatives rejected.** A generic dictionary/JSON result, caller-selected
+solver/mode, a new reference status family, a real Julia service, direct
+`TruthAsset` construction, or importing scoring/research lifecycle owners would
+duplicate authority or exceed fixture scope.
+
+**Implementation and impact.** `carbon/evaluation/service_boundary.py` and
+`carbon/evaluation/service_fixtures.py`, with focused CPU/invariant tests. The
+B-04 exact module-seam invariant adds only those two intentional downstream
+files. B-E4/B-GATE may consume the fixture proof; B-04, B-05, B-07F, candidate
+scoring, frontier, and settlement semantics remain unchanged. Reversal removes
+the additive wrapper without migrating B-04 history.
+
+**Human-reserved input.** Every real provider, Julia/SciML method, solver
+configuration, applicability/conditioning/uncertainty judgment, reference
+qualification, security/operations approval, and production/LIVE authority
+remains absent.
+
+## 2026-09-07 — B-E2-D2: Record retries as separate identity-preserving attempts
+
+**Notification:** issue #42 comment `5572204359`, shared with B-E2-D1/D3.
+
+**Recommendation.** Add an immutable `ReferenceServiceAttemptHistory` that
+retains exact B-04 request/grant/resolution/run tuples in order. A later attempt
+must have distinct request, grant, and run refs while preserving the original
+idempotency identity and every scientific execution binding. It cannot follow
+a supported terminal, contain a duplicate, collapse outcomes, overwrite the
+first failure, or create an aggregate evidence result. The TEST_ONLY fixture
+demonstrates a new authorized capability after dependency failure; it does not
+authorize production retry.
+
+**Why.** B-04 makes grants one-use and deliberately selects no retry policy.
+Reusing a consumed grant or replacing its failure would violate history;
+declaring all future retries forbidden would invent operations policy. An
+ordered trace is the narrowest reversible evidence shape and fails closed on
+identity drift.
+
+**Alternatives rejected.** Reopening a terminal, reusing a grant, success-only
+projection, hidden retry counter, aggregate latest-result semantics, automatic
+fallback, or a provider-controlled idempotency key would erase evidence or
+transfer authority.
+
+**Implementation and impact.** The additive wrapper is local to B-E2 and
+changes no B-04 canonical schema. A future operations owner may supersede it
+with a versioned durable retry/reconciliation protocol; historical attempts
+remain immutable. B-E4 and B-GATE receive only deterministic fixture evidence.
+
+**Human-reserved input.** Retry eligibility, limits, timing, backoff,
+reconciliation, durable idempotency, cancellation recovery, resource policy,
+and service guarantees remain unresolved and unavailable.
+
+## 2026-09-07 — B-E2-D3: Keep failure fixtures non-executable and MMS verification-only
+
+**Notification:** issue #42 comment `5572204359`, shared with B-E2-D1/D2.
+
+**Recommendation.** Treat every provider response as hostile. Accept only the
+fixed typed envelope; mappings, partial bytes, callables, import paths, paths,
+URLs, credentials, caller modes, seeds, protected payloads, and candidate
+material have no schema position and cannot execute. Normalize provider
+exceptions without preserving their text. A duplicate call is rejected before
+a second provider invocation. Every successful fixture artifact remains
+`FIXTURE_ONLY`. Reuse B-02A/B-04's exact
+`MANUFACTURED_SOLUTION_VERIFICATION` / `VERIFICATION_ANCHOR` pairing and reject
+primary, witness, or validation relabeling.
+
+**Why.** Numerically convenient material is not registered authority. Keeping
+the input surface closed proves no candidate/mock/MMS/analytic/cache/surrogate
+fallback can occur because no such fallback value is accepted or returned.
+MMS exactness is implementation-verification evidence only.
+
+**Alternatives rejected.** A fallback list, weak-solver cascade, stale-cache
+reuse, candidate agreement heuristic, response-supplied callable, archived
+Julia restoration, or relabeling an exact MMS anchor would violate the ticket
+and the Reference/TruthAsset contract.
+
+**Implementation and impact.** The fixture graph covers supported, uncertain,
+conditioning, not-applicable, unsupported, numerical, malformed, provenance,
+identity, dependency, process, transport, timeout, disagreement, retry, and
+MMS cases with exact B-04 types. There is no score, ranking, promotion,
+settlement, network, or `TruthAsset` import. Removal is additive and cheap;
+future real adapters require a separate authorized version.
+
+**Human-reserved input.** Real MMS/analytic/Julia correctness, physical
+validation, target-population relevance, scientific qualification, security
+acceptance, hidden-data operations, fallback policy, and production authority
+remain absent.
+
 ## 2026-09-07 — B-07F-D1: Consume the registered sampling lever in a separate fixture adapter
 
 **Recommendation.** Add one nominal B-07F provider behind A7's exact fixture
