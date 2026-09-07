@@ -461,9 +461,10 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **At the current documentation integration base `91b023a`, Carbon has an
+> **At the initial documentation working base `91b023a`, reconciled for
+> delivery with current `origin/main` at `602628d`, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
-> `.agent/WAVE.md` records Wave B with B-E1 done and B-E2 next, todo and
+> `.agent/WAVE.md` records Wave B with B-E2 done and B-E4 next, todo and
 > unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
 > specified only. Archive, Concierge, EvidenceBrief, D12, paid research,

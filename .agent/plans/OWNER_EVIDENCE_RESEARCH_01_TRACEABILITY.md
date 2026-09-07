@@ -3,6 +3,7 @@
 **Status:** prospective documentation integration; no future ticket is selected
 **Integration ticket:** `GOV-EVIDENCE-RESEARCH-02`
 **Working base:** `91b023a` (`origin/main`, fetched 2026-09-07)
+**Delivery reconciliation:** merged current `origin/main` at `602628d`; its B-E2 completion and B-E4-next selection state are preserved unchanged.
 **Design source:** the full `Carbon_Evidence_Archive_Design_v0.3.zip` was read on 2026-09-08 and reconciled against current repository authority. The ZIP is not committed and does not override exact protocols or runtime evidence.
 
 ## 1. Canonical ownership and source-to-ticket crosswalk

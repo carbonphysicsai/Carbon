@@ -3,7 +3,7 @@
 **Lane:** documentation/governance; outside active Wave B implementation
 **Status:** `done` for repository documentation integration only
 **Decision:** `OWNER-EVIDENCE-RESEARCH-01`
-**Base:** `91b023a` current `origin/main` fetched 2026-09-07
+**Base:** initial working base `91b023a`; delivery reconciled with current `origin/main` at `602628d`
 **Primary Hub map_ref:** `SYSTEM/EVIDENCE-RESEARCH-ROADMAP`
 
 ## Goal
