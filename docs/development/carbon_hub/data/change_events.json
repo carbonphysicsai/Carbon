@@ -1063,6 +1063,23 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C",
+      "event_type": "adjustment",
+      "event_id": "GOV-EVIDENCE-RESEARCH-02",
+      "owner_lane": "documentation_maintenance",
+      "status": "implemented",
+      "summary": "OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.",
+      "primary_detail": ".agent/tickets/GOV-EVIDENCE-RESEARCH-02_documentation_integration.md",
+      "affects": [
+        "WAVE-E",
+        "WAVE-F",
+        "WAVE-G",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

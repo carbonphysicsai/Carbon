@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-07T12:50:49Z"
+  captured_at_utc: "2026-09-07T16:10:31Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "8547930e2f9dda05a37ccc23cc39aaf355fde5ac"
+  authority_snapshot_commit: "f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -2667,6 +2667,21 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+    supersedes: null
+  -
+    map_ref: "WAVE-C"
+    event_type: "adjustment"
+    event_id: "GOV-EVIDENCE-RESEARCH-02"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated."
+    primary_detail: ".agent/tickets/GOV-EVIDENCE-RESEARCH-02_documentation_integration.md"
+    affects:
+      - "WAVE-E"
+      - "WAVE-F"
+      - "WAVE-G"
+      - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/MATURITY"
     supersedes: null
 event_schema:

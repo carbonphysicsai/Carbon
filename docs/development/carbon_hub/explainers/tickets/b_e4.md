@@ -40,7 +40,7 @@ Planned on the controlling board; not current implementation permission.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9/.agent/WAVE_B.md)
 
 > This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.

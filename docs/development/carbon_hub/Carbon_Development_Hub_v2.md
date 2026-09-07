@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `8547930e2f9dda05a37ccc23cc39aaf355fde5ac` on `main`, captured 2026-09-07T12:50:49Z.
+**Authority snapshot:** `f2d2e627cbaa1d5d7bee093ddf3e550d1788ade9` on `main`, captured 2026-09-07T16:10:31Z.
 **Current:** Wave B, ticket B-E1. Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E2 remains next, todo, and unstarted.
 
 ## Wave spine
@@ -134,6 +134,7 @@
 - `B-07G-E1` — `WAVE-B/B-07G` — B-07G composes and tests the exact local twelve-operation v2 research service through its existing domain owners, with canonical boundary enforcement, distinct external-public and fixture contexts, TEST_ONLY isolation, and no v1 or B-07F integration; B-E1 remains todo and unstarted.
 - `B-07G-E2` — `WAVE-B/B-07G` — PR #98 accepted and normally merged B-07G, completing the exact local twelve-operation composition only in bounded engineering scope.
 - `B-E1-E1` — `WAVE-B/B-E1` — B-E1 specifies, implements, and tests separate R0/R1/R2 fixture results, exact crossed dependence evidence, injected qualified decision procedures, typed contested outcomes, and staged B-05 campaign audit; B-E2 remains todo and unstarted.
+- `GOV-EVIDENCE-RESEARCH-02` — `WAVE-C` — OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.
 
 ## Authority boundary
 
