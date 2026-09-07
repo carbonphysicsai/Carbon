@@ -4,8 +4,9 @@
 **Ticket:** `.agent/tickets/B-E1_reproducibility.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
 **Primary Hub map_ref:** `WAVE-B/B-E1`
-**Implementation state:** candidate implemented and native-verified; accepted
-normal merge remains the conditional completion boundary
+**Implementation state:** accepted and normally merged as second parent
+`831a34598d6779d369f01de3523c3d8ee0385d18` of main
+`c484fd308d866d4b05a2765a984ec014dd96386e`
 
 ## Authority and start state
 
@@ -88,7 +89,7 @@ them durably as B-E1-D1 through B-E1-D7 and notify issue #42 mentioning
 6. [x] Add invariant tests for dependency direction, absence of embedded science,
    TEST_ONLY isolation, exact-match R0-only semantics, no false elimination,
    and no ranking/frontier/score/settlement side effect.
-7. [ ] Reconcile ticket/board/evidence/maturity and Hub source, regenerate Hub
+7. [x] Reconcile ticket/board/evidence/maturity and Hub source, regenerate Hub
    outputs, run focused/affected/full diagnostics, then ship through one ready
    candidate acceptance and normal expected-head merge.
 
