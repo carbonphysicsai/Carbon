@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `92a6364fe84dff33d76b6f1b87cccca91053d62b` on `main`, captured 2026-09-07T19:16:00Z.
-**Current:** Wave B, ticket B-E4. Unblocked engineering is implemented in the current candidate. No qualifying gauntlet ran; completion is blocked on the eight human-supplied preregistration inputs and five-owner exact-design ratification.
+**Authority snapshot:** `ee859635d5204226419ce9589991895ee8185985` on `main`, captured 2026-09-07T20:41:16Z.
+**Current:** Wave B, ticket B-E4. The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
 
 ## Wave spine
 
@@ -139,6 +139,7 @@
 - `B-E2-R1` — `WAVE-B/B-E2` — A bounded successor repair preserves PR #100 history while reconstructing every nested primary/witness response carrier to its exact B-04 type before comparison; B-E4 remains todo and unstarted.
 - `GOV-EVIDENCE-RESEARCH-02` — `WAVE-C` — OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.
 - `B-E4-ENGINEERING-01` — `WAVE-B/B-E4` — B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented, and the Hub authority snapshot is reconciled across its pinned map links; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.
+- `B-E4-VALIDATION-R1` — `WAVE-B/B-E4` — A bounded B-E4 successor repair binds preregistration labels to exact design content, disables caller-created qualifying status, validates arm-specific TEST_ONLY pins before hashing, and restricts integrity fixtures to case-applicable existing owner outcomes; qualifying execution remains blocked and B-GATE remains unstarted.
 
 ## Authority boundary
 

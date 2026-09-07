@@ -1365,6 +1365,24 @@
       "affects": ["WAVE-B/B-07C", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5574774201",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/103"
+    },
+    {
+      "decision_id": "B-E4-D3",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Separate declared structure from qualification authority",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-E4 prevent caller data from manufacturing owner ratification, execution status, prior authorization, or integrity evidence?",
+      "recommendation": "Bind the exact eight design fields to a domain-separated digest, keep verified ratification and qualifying recording unavailable, validate v2 pins structurally before hashing, and restrict fixture integrity observations to case-applicable members of existing owner error-code enums.",
+      "why": "Repeated labels, caller Booleans, structurally inconsistent refs, and arbitrary enums do not prove approval, execution, authorization, or an attack result.",
+      "if_kept": "Synthetic engineering records remain usable while qualification authority, B-07D3 authorization, and executed-attack evidence stay with their existing or future owners.",
+      "if_changed": "The preregistration digest, RunIdentity preflight, integrity observation schema, regression tests, and B-E4 maturity boundaries require a prospective repair.",
+      "affects": ["WAVE-B/B-07D3", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5575367766",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/25453bd74b8f44deb72c651216d44a4529639cb7/.agent/DECISIONS.md"
     }
   ]
 }

@@ -46,8 +46,8 @@ No controlling ticket board is captured for this planned wave.
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/Design_Specs/Agentic_Development_Master_Plan.md)
-- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/Business/Commercial_Operating_Model.md)
-- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/Business/Business_Canon.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Commercial Operating Model](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/Business/Commercial_Operating_Model.md)
+- [Business Canon](https://github.com/carbonphysicsai/Carbon/blob/ee859635d5204226419ce9589991895ee8185985/Business/Business_Canon.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

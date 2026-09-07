@@ -232,9 +232,9 @@
       "title": "Try to break the research loop before trusting it",
       "what": "Attack the research workflow for hidden-exam leakage, poisoning, gaming, collapsed method diversity, and unsafe evidence use while also testing whether it produces useful research.",
       "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
-      "changes": "Carbon gains a fail-closed profile-by-arm harness, separate raw observations, a semantically responsive toy fixture, typed integrity cases, and evaluator-held shadow cases.",
-      "not_yet": "The owners have not supplied or ratified the preregistered design. No qualifying run, utility decision, leakage decision, security acceptance, or production claim exists.",
-      "current_stage_plain": "Unblocked engineering is implemented in the current candidate. Qualifying execution and completion remain blocked on the exact human preregistration inputs; B-GATE is unstarted.",
+      "changes": "Carbon gains a fail-closed profile-by-arm harness, separate raw observations, a semantically responsive toy fixture, typed integrity cases, evaluator-held shadow cases, and repaired record, prior-pin, and protocol-outcome validation.",
+      "not_yet": "The owners have not supplied or ratified the preregistered design, and no verified owner-ratification or execution-evidence integration exists. No qualifying run, utility decision, leakage decision, security acceptance, or production claim exists.",
+      "current_stage_plain": "The bounded successor validation repair is implemented in the current candidate. Qualifying recording and execution remain unavailable; B-GATE is unstarted.",
       "map_ref": "WAVE-B/B-E4"
     },
     "B-GATE": {
