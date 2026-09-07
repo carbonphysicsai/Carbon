@@ -59,16 +59,16 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-02C](../tickets/b_02c.md): Research resource policy [done]
 - [B-03](../tickets/b_03.md): Generator API and fixed-viscosity Burgers fixture [done]
 - [B-04](../tickets/b_04.md): Reference and truth contracts [done]
-- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [in_progress]
+- [B-05](../tickets/b_05.md): Measurement and Score Pack authoring [done]
 - [B-06](../tickets/b_06.md): Validation Dossier and qualification manifest [done]
 - [B-07R](../tickets/b_07r.md): Miner research architecture ratification [done]
 - [B-07S](../tickets/b_07s.md): Exact v2 research-service protocol [done]
 - [B-07A](../tickets/b_07a.md): Interaction manifest and shared v2 primitives [done]
 - [B-07B](../tickets/b_07b.md): Research tasks, records, receipts, and lineage [done]
-- [B-07C](../tickets/b_07c.md): Nominal mock and practice service [in_progress]
-- [B-07D1](../tickets/b_07d1.md): PriorPack schema and immutable store [todo]
-- [B-07D2](../tickets/b_07d2.md): TEST_ONLY prior publisher and disclosure ledger [todo]
-- [B-07D3](../tickets/b_07d3.md): Exact prior provider and deterministic alignment [todo]
+- [B-07C](../tickets/b_07c.md): Nominal mock and practice service [done]
+- [B-07D1](../tickets/b_07d1.md): PriorPack schema and immutable store [done]
+- [B-07D2](../tickets/b_07d2.md): TEST_ONLY prior publisher and disclosure ledger [done]
+- [B-07D3](../tickets/b_07d3.md): Exact prior provider and deterministic alignment [done]
 - [B-07E](../tickets/b_07e.md): Static resource analysis and forecast seam [todo]
 - [B-07F](../tickets/b_07f.md): Fixture-official construction adapter [todo]
 - [B-07G](../tickets/b_07g.md): Research-service composition and conformance [todo]
@@ -80,8 +80,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

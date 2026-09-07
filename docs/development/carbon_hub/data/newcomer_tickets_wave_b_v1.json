@@ -91,7 +91,7 @@
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
       "changes": "PR #87 merged the repaired measurement tree. The current combined candidate reverifies its substantive requirements and prepares bounded closeout under OWNER-DX-03 before B-07C.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "Current verification found no measurement runtime gap. B-05 remains in progress until the combined B-05/B-07C candidate passes applicable acceptance and normally merges; old review and receipt ceremony is not replayed.",
+      "current_stage_plain": "PR #94 accepted and normally merged the current verification with no measurement runtime gap. B-05 is complete only in bounded engineering scope; scientific and production authority remains unearned.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {
@@ -144,31 +144,34 @@
       "why": "Researchers need feedback, but practice must not reveal protected cases, official mixtures, exact margins, or official ordering.",
       "changes": "The combined candidate adds exact mock-only scopes and packs, a non-champion scaffold, reconstruction rehearsal, single practice, paired common-case comparison, and resource-facts-only calibration through B-07B.",
       "not_yet": "Practice cannot admit, reject, rank, prequalify, score, publish, or submit an official candidate. Real science, security, rights, production sandboxing, and LIVE remain unavailable.",
-      "current_stage_plain": "Implemented and focused-tested only for in-process synthetic fixtures; bounded completion waits for the combined acceptance and merge. B-07D1 remains todo and unstarted.",
+      "current_stage_plain": "PR #94 accepted and normally merged the implementation only for in-process synthetic fixtures. Practice results do not become prior-ingestion or official evidence.",
       "map_ref": "WAVE-B/B-07C"
     },
     "B-07D1": {
       "title": "Create a stable format for shared experiment history",
       "what": "Define an immutable Challenge-level history package, what it estimates, how versions are stored, and how old versions can be found.",
       "why": "Carbon cannot safely share research history until the history has exact identity and a stable data contract.",
-      "changes": "The system gains an immutable data model for shared prior experiment summaries.",
-      "not_yet": "This does not publish a qualified learned prior or personalize the history for individual miners.",
+      "changes": "The grouped candidate adds exact immutable storage, authorization-bound indexes and history, withdrawal audit retention, and a private offline compatibility projection.",
+      "not_yet": "This does not publicly publish a qualified learned prior, install a v2-backed v1 provider, choose production signing, or personalize history.",
+      "current_stage_plain": "Implemented and focused-tested as the first grouped slice; bounded completion awaits the candidate's applicable acceptance and normal merge.",
       "map_ref": "WAVE-B/B-07D1"
     },
     "B-07D2": {
       "title": "Test how to publish shared history without leaking the hidden exam",
       "what": "Build a test-only publisher and a cumulative disclosure ledger that tracks what has been released over time.",
       "why": "Several individually safe releases can reveal protected structure when combined, so disclosure must be controlled across time.",
-      "changes": "Carbon gains a fail-closed test publication path and release history.",
-      "not_yet": "This does not authorize public activation, qualified learned publication, or signing custody.",
+      "changes": "The grouped candidate adds a synthetic-only publisher, exact-byte fixture checks and authorization, a persistent cumulative disclosure ledger, and one atomic ledger/receipt/index commit.",
+      "not_yet": "This does not ingest B-07C practice or official records, authorize public activation or learned publication, qualify utility, or choose signing custody.",
+      "current_stage_plain": "Implemented and integration-tested after D1 only for TEST_ONLY / NOT_UTILITY_QUALIFIED synthetic fixtures; bounded completion awaits the same accepted merge.",
       "map_ref": "WAVE-B/B-07D2"
     },
     "B-07D3": {
       "title": "Serve the same approved history to every researcher",
       "what": "Implement exact current and historical retrieval and deterministic compatibility checks against the active Challenge.",
       "why": "Every researcher should receive the same approved Challenge-level history and predictable handling of versions.",
-      "changes": "The research service gains a request-time history retrieval layer.",
-      "not_yet": "This does not create personalized guidance or predict official scores, gates, ranks, or winners.",
+      "changes": "The grouped candidate adds separate public and fixture static providers, authorization-bound exact/active retrieval, task pinning, and deterministic structural alignment.",
+      "not_yet": "This does not create personalized guidance, request-time private analytics, public activation, dispatch, or official scores, gates, ranks, or winners.",
+      "current_stage_plain": "Implemented and combined-tested after D1-D2; bounded completion awaits accepted normal merge, and B-07E remains outside this delivery.",
       "map_ref": "WAVE-B/B-07D3"
     },
     "B-07E": {
@@ -177,6 +180,7 @@
       "why": "Researchers and operators need cost information, but an estimate must not become a capacity commitment, price, or scientific claim.",
       "changes": "Carbon gains a typed resource-estimation path that uses the registered resource policy.",
       "not_yet": "This does not set prices, quotas, remote fees, capacity, or make an uncalibrated forecast claim.",
+      "current_stage_plain": "B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped D1-D3 candidate does not begin resource-analysis work.",
       "map_ref": "WAVE-B/B-07E"
     },
     "B-07F": {
