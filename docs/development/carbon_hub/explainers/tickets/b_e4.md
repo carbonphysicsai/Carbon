@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-E4`
 
-**Status:** TODO
+**Status:** IN_PROGRESS
 
 **Target phase:** WB-5
 
@@ -16,7 +16,7 @@ A research assistant can improve apparent performance by exploiting the evaluato
 
 ## What it adds
 
-An adversarial test of the Wave B research loop and its public claims.
+A fail-closed profile/arm harness, raw measurement schema, semantically responsive toy fixture, typed integrity matrix, and evaluator-held shadow-case seam.
 
 ## Placement and handoff
 
@@ -32,15 +32,15 @@ Historical fit or local improvement cannot establish safe utility without the pr
 
 ## Current stage
 
-Next after the B-E2-R1 successor completes its accepted normal merge; still todo and unstarted.
+Unblocked engineering is implemented in the current candidate. No qualifying gauntlet ran; completion is blocked on the eight human-supplied preregistration inputs and five-owner exact-design ratification.
 
 ## Maturity ceiling
 
-Planned on the controlling board; not current implementation permission.
+B-E4 is specified, implemented, and tested only for the bounded fixture-engineering harness. Utility, leakage, diversity, scientific, security, production, and LIVE qualification remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/WAVE_B.md)
 
-> This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.
+> The harness records descriptive fixture observations only. It cannot create a utility, diversity, leakage, security, scientific, or production verdict, and B-GATE remains unstarted.

@@ -1329,6 +1329,42 @@
       "affects": ["WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E4-D1",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Fail-closed typed experiment shell",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How can B-E4 engineering proceed without inventing the human-reserved preregistration?",
+      "recommendation": "KEEP a typed profile-by-arm shell over only the exact B-07G research service and unchanged Wave-A official service; freeze exact TEST_ONLY prior/authorization pins and separate raw observations from opaque decision inputs.",
+      "why": "The harness can be built and tested now, but no descriptive fixture output may synthesize the reserved utility, diversity, leakage, or security decision.",
+      "if_kept": "Every unblocked B-E4 engineering seam can ship while qualifying execution and completion remain explicitly blocked.",
+      "if_changed": "The session capabilities, run identities, measurement records, preregistration guard, and B-E4 tests require a prospective repair.",
+      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5574774201",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/103"
+    },
+    {
+      "decision_id": "B-E4-D2",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Factor shared toy semantics without merging evidence domains",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-07C become semantically responsive while preserving B-07F and practice boundaries?",
+      "recommendation": "KEEP neutral fixture-only toy fit/reference semantics consumed by B-07C and B-07F; B-07C uses the registered lever under mock seeds while B-07F retains its compatibility seam and fixture-official lifecycle.",
+      "why": "Hash-derived plan bias tests plumbing but not causal strategy behavior; direct practice-to-B-07F reuse would collapse seed, lifecycle, and evidence authority.",
+      "if_kept": "The registered toy lever measurably changes public practice behavior and held-out fixture results without creating scientific evidence.",
+      "if_changed": "B-07C practice behavior, B-07F construction compatibility, semantic fixture tests, and ownership invariants require repair.",
+      "affects": ["WAVE-B/B-07C", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5574774201",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/103"
     }
   ]
 }

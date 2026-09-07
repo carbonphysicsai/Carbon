@@ -32,7 +32,7 @@ It does not restore Julia, select or qualify a solver, permit an unregistered fa
 
 ## Current stage
 
-PR #100 normally merged B-E2; B-E2-R1 is implemented and tested in the shipping candidate and awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
+PR #102 normally merged the bounded B-E2-R1 successor repair. B-E4 engineering is now active; the qualifying gauntlet remains blocked on preregistration.
 
 ## Maturity ceiling
 
@@ -40,11 +40,11 @@ SPECIFIED, IMPLEMENTED, and TESTED are prepared only for the exact service seam 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/tickets/B-E2_reference_failure.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/WAVE_B.md)
-- [B-E2 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/plans/B-E2_reference_failure.md)
-- [B-E2 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/evidence/wave_b/b-e2.md)
-- [Registered service boundary](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/carbon/evaluation/service_boundary.py)
-- [Reference failure fixtures](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/carbon/evaluation/service_fixtures.py)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/tickets/B-E2_reference_failure.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/WAVE_B.md)
+- [B-E2 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/plans/B-E2_reference_failure.md)
+- [B-E2 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/evidence/wave_b/b-e2.md)
+- [Registered service boundary](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/carbon/evaluation/service_boundary.py)
+- [Reference failure fixtures](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/carbon/evaluation/service_fixtures.py)
 
 > The boundary accepts only exact B-04 identities and emits only B-04 run records. Failure never yields an artifact or fallback; supported fixtures remain FIXTURE_ONLY and MMS remains verification-only.

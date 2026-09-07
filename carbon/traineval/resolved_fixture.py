@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -63,6 +62,12 @@ from carbon.seeding import (
     SeedDomain,
     acquire_fixture_official_context,
     derive_fixture_official_seed,
+)
+from carbon.toy import (
+    FIXTURE_HELDOUT_OBSERVATIONS,
+    FIXTURE_TRAINING_OBSERVATIONS,
+    construct_fixture_model,
+    evaluate_fixture_reference,
 )
 
 from .model import (
@@ -262,8 +267,8 @@ class FixtureToyAsset(_PrivateFixtureValue):
         )
         object.__setattr__(self, "reference_asset_ref", reference_asset_ref)
         object.__setattr__(self, "measurement_contract_ref", measurement_contract_ref)
-        object.__setattr__(self, "training_observations", ((1, 1), (2, 4)))
-        object.__setattr__(self, "heldout_observations", ((3, 9), (4, 16)))
+        object.__setattr__(self, "training_observations", FIXTURE_TRAINING_OBSERVATIONS)
+        object.__setattr__(self, "heldout_observations", FIXTURE_HELDOUT_OBSERVATIONS)
         object.__setattr__(self, "authority_marker", _AUTHORITY)
 
     def content_digest(self) -> str:
@@ -544,29 +549,17 @@ ResolvedFixtureRunOutcome: TypeAlias = (
 def _construct_fixture_model(
     observations: tuple[tuple[int, int], ...], level: int, seed: bytes
 ) -> tuple[float, str]:
-    ordered = observations if seed[0] % 2 == 0 else tuple(reversed(observations))
-    selected = ordered[:level]
-    denominator = sum(x * x for x, _ in selected)
-    if len(selected) != level or denominator <= 0:
-        raise ArithmeticError
-    coefficient = float(sum(x * y for x, y in selected) / denominator)
-    if not math.isfinite(coefficient):
-        raise ArithmeticError
-    artifact = _digest(_json_bytes({"coefficient": coefficient.hex(), "level": level}))
-    return coefficient, artifact
+    """Compatibility seam delegating to the shared fixture semantic owner."""
+
+    return construct_fixture_model(observations, level, seed)
 
 
 def _evaluate_fixture_reference(
     coefficient: float, observations: tuple[tuple[int, int], ...]
 ) -> float:
-    if not observations:
-        raise ArithmeticError
-    value = float(
-        sum((coefficient * x - y) ** 2 for x, y in observations) / len(observations)
-    )
-    if not math.isfinite(value) or value < 0.0:
-        raise ArithmeticError
-    return value
+    """Compatibility seam delegating to the shared fixture semantic owner."""
+
+    return evaluate_fixture_reference(coefficient, observations)
 
 
 class ResolvedPlanFixtureTrainEvalService:
