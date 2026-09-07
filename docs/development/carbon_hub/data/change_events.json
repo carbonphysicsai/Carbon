@@ -1221,6 +1221,21 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "blocker",
+      "event_id": "B-E4-ENGINEERING-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "blocked",
+      "summary": "B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.",
+      "primary_detail": ".agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

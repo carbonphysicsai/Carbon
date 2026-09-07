@@ -75,13 +75,13 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-E1](../tickets/b_e1.md): Reproducibility, uncertainty, and contested outcomes [done]
 - [B-E2](../tickets/b_e2.md): Julia and reference failure contract [done]
 - [B-E3](../tickets/b_e3.md): Credibility crosswalk and evidence manifest [done]
-- [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [todo]
+- [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [in_progress]
 - [B-GATE](../tickets/b_gate.md): Wave B integration and closeout gate [todo]
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/ebda60e34a9169aef01dcf638009d4e35b53613f/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/ebda60e34a9169aef01dcf638009d4e35b53613f/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/ebda60e34a9169aef01dcf638009d4e35b53613f/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

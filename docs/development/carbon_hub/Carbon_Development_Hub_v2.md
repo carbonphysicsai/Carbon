@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `22659f80dc549f3168bf89af0b4189bb3d916edf` on `main`, captured 2026-09-07T18:00:47Z.
-**Current:** Wave B, ticket B-E2. PR #100 normally merged B-E2; B-E2-R1 is implemented and tested in the shipping candidate and awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
+**Authority snapshot:** `ebda60e34a9169aef01dcf638009d4e35b53613f` on `main`, captured 2026-09-07T19:02:55Z.
+**Current:** Wave B, ticket B-E4. Unblocked engineering is implemented in the current candidate. No qualifying gauntlet ran; completion is blocked on the eight human-supplied preregistration inputs and five-owner exact-design ratification.
 
 ## Wave spine
 
@@ -68,7 +68,7 @@
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | done |
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | done |
 | [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
-| [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | todo |
+| [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | in_progress |
 | [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | todo |
 
 ## Change routes
@@ -138,6 +138,7 @@
 - `B-E2-E1` — `WAVE-B/B-E2` — B-E2 specifies, implements, and tests an exact registered primary/witness reference-service failure seam, immutable attempt history, and deterministic TEST_ONLY supported/failure/disagreement/MMS evidence; B-E4 remains todo and unstarted.
 - `B-E2-R1` — `WAVE-B/B-E2` — A bounded successor repair preserves PR #100 history while reconstructing every nested primary/witness response carrier to its exact B-04 type before comparison; B-E4 remains todo and unstarted.
 - `GOV-EVIDENCE-RESEARCH-02` — `WAVE-C` — OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.
+- `B-E4-ENGINEERING-01` — `WAVE-B/B-E4` — B-E4 unblocked harness, measurement, semantic-toy, integrity, and shadow-case engineering is implemented; qualifying execution and completion remain blocked on eight preregistered design inputs and five-owner ratification of one exact pre-execution design.
 
 ## Authority boundary
 
