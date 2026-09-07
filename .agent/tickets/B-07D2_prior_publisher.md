@@ -1,7 +1,7 @@
 # Ticket B-07D2 - TEST_ONLY prior publisher and disclosure ledger
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** `done` in the bounded grouped candidate; authoritative on accepted normal merge
 **Depends on:** B-07D1, B-07B
 **Build Out:** C10 fixture prior pipeline
 **Master questions:** MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051
@@ -13,17 +13,17 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
 
 ## Definition of Done
 
-- [ ] Implement an injected deterministic publisher over synthetic record fixtures only; integrated practice and qualified official ingestion are later authority.
-- [ ] Implement immutable evidence snapshot, eligibility, lineage aggregation/influence caps, association analysis, deterministic coarsening, joint-cell suppression, lag, fixed activation windows, and bounded version changes.
-- [ ] Implement persistent `PriorDisclosureLedger` accounting across estimands, scopes, fields, cohorts, provenance, related releases, and version differences; unavailable or conflicting ledger fails closed.
-- [ ] Enforce `evidence_cutoff_epoch + minimum_lag < activation_epoch` and prevent evidence produced in an active window from influencing the pack consumed in that window.
-- [ ] Make fixture, mock, infrastructure, partial, stale, rights-ineligible, small-cell, identifying, poisoned, and unsupported evidence incapable of producing `BOOTSTRAP_PUBLIC` or `LEARNED_PUBLIC`.
-- [ ] Reject any actionable positive item that omits material eligible null,
+- [x] Implement an injected deterministic publisher over synthetic record fixtures only; integrated practice and qualified official ingestion are later authority.
+- [x] Implement immutable evidence snapshot, eligibility, lineage aggregation/influence caps, association analysis, deterministic coarsening, joint-cell suppression, lag, fixed activation windows, and bounded version changes.
+- [x] Implement persistent `PriorDisclosureLedger` accounting across estimands, scopes, fields, cohorts, provenance, related releases, and version differences; unavailable or conflicting ledger fails closed.
+- [x] Enforce `evidence_cutoff_epoch + minimum_lag < activation_epoch` and prevent evidence produced in an active window from influencing the pack consumed in that window.
+- [x] Make fixture, mock, infrastructure, partial, stale, rights-ineligible, small-cell, identifying, poisoned, and unsupported evidence incapable of producing `BOOTSTRAP_PUBLIC` or `LEARNED_PUBLIC`.
+- [x] Reject any actionable positive item that omits material eligible null,
       negative, mixed, or out-of-scope evidence. Verify `NONE_FOUND` against the
       exact public search scope and cutoff; preserve counterevidence through
       coarsening, publication receipts, supersession, and withdrawal.
-- [ ] Generate no free text from private or fixture records and expose no exact recipes, effects, counts, identities, raw Strategy keys, lineages, or protected context.
-- [ ] Implement the non-circular fixture staging gate: exact candidate bytes →
+- [x] Generate no free text from private or fixture records and expose no exact recipes, effects, counts, identities, raw Strategy keys, lineages, or protected context.
+- [x] Implement the non-circular fixture staging gate: exact candidate bytes →
       structural/redaction/canary/poisoning/differencing conformance → exact-
       hash delegated structural fixture authorization under B-07R-D8 → one
       atomic fixture-ledger append plus the B-07S-ratified private test-only
@@ -31,7 +31,7 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
       acceptance, rights, utility, publication, or release approval. Preserve
       `TEST_ONLY / NOT_UTILITY_QUALIFIED`; provide exact-ref eligibility only,
       never public-channel activation.
-- [ ] Specify and test the stronger future public pipeline separately:
+- [x] Specify and test the stronger future public pipeline separately:
       `BOOTSTRAP_PUBLIC` consumes only rights-reviewed curated public
       science/methods/hypotheses and no private Carbon records or lineages;
       `LEARNED_PUBLIC` consumes only eligible qualified official aggregates
@@ -42,7 +42,7 @@ Implement the offline fixture publication pipeline and cumulative disclosure mac
       disclosure-ledger commit plus public-index activation. A test-only
       authorization receipt cannot satisfy this gate, and Wave B fixtures
       cannot execute a public-class activation.
-- [ ] Add eligibility, poisoning, duplicate-lineage, joint-cell, canary,
+- [x] Add eligibility, poisoning, duplicate-lineage, joint-cell, canary,
       release-differencing, contrary-evidence suppression, false-`NONE_FOUND`,
       applicability erasure, raw-string, lag/window, ledger/index TOCTOU and
       race, reciprocal/cyclic-ref rejection, receipt, authority, resource, and
@@ -60,3 +60,12 @@ fixtures cannot choose production values.
 ## Must not
 
 Activate public guidance, call observational evidence causal, use informal random noise as the privacy model, or treat a fixture gauntlet as Landscape qualification.
+
+**Delivery record:** `OWNER-B07D123-01` groups delivery without merging ticket
+identity or maturity. Plan: `.agent/plans/B-07D1_D2_D3_prior_delivery.md`.
+Evidence: `.agent/evidence/wave_b/b-07d2.md`.
+
+All engineering criteria are implemented and focused-tested in the grouped
+candidate. This prepared bounded `done` state becomes authoritative only after
+the unchanged candidate passes applicable automated acceptance and normally
+merges under OWNER-DX-03.

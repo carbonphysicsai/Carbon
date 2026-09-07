@@ -1,5 +1,86 @@
 # Agent decisions log
 
+## 2026-09-07 — B-07D1-D1: Reuse the ratified pack and isolate private v1 projection
+
+**Recommendation.** Keep `PriorPack` and all wire identities in B-07A/B-07S,
+validate them against the exact B-02B catalog and public registries, and persist
+immutable bytes, receipts, predecessor history, withdrawals, and atomic heads
+in a private SQLite repository. Keep the lossy v2-to-v1 projector in
+`carbon.prior_compat`, outside the v2 research runtime, with no provider.
+
+**Boundary.** The public path imports only artifacts accepted by an injected
+verifier. Carbon defines no production signature algorithm, key registry,
+custody, public content, or activation authority. Working-decision notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193.
+
+## 2026-09-07 — B-07D2-D1: Authorize exact synthetic bytes with one durable commit
+
+**Recommendation.** Admit only the new exact synthetic fixture record type,
+reduce eligible records to deterministic coarsened associations, preserve
+material contrary findings, and run structural, redaction, canary, poisoning,
+and release-differencing checks before B-07R-D8 authorization. Bind that
+authorization to the checked pack hash and atomically append persistent
+disclosure state, its private receipt, and the index snapshot.
+
+**Boundary.** Fixture policy values remain test-only. Missing, corrupt, or
+racing ledger state fails closed. The separately modeled bootstrap and learned
+public branches have no Wave B activation route. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193.
+
+## 2026-09-07 — B-07D3-D1: Separate nominal public and fixture static providers
+
+**Recommendation.** Use distinct concrete providers: public exact/active reads
+consume only already-verified static publications; private fixture reads are
+exact-ref only and require a nominal constructor, matching unexpired receipt,
+and persistent ledger. Adapt results to B-07B's existing `PriorResolution` so
+tasks pin the observed snapshot and pack. Compute alignment only from the pack,
+public catalog, and request strategy.
+
+**Boundary.** There is no caller mode, mutable latest alias, private query,
+personalization, score prediction/input, or B-07G dispatcher. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193.
+
+## 2026-09-07 — OWNER-B07D123-01: Deliver B-07D1, B-07D2, and B-07D3 as one ordered candidate
+
+**Problem.** B-07D1, B-07D2, and B-07D3 form one dependency chain from exact
+PriorPack storage through private synthetic staging to static retrieval and
+alignment. Three merge ceremonies would not add a technical boundary, while
+combining work must not erase ticket identity or enlarge prior authority.
+
+**Recommendation.** Implement and test B-07D1 -> B-07D2 -> B-07D3, in that
+order, on `agent/b-07d-prior-delivery` and one PR. Keep separate ticket and
+stable-evidence records, run predecessor-focused tests before each dependent
+slice, and close all three only after the combined unchanged candidate passes
+the applicable automated acceptance and normally merges under OWNER-DX-03.
+
+**Alternatives rejected.** Separate PRs would add routine dependency waits
+without isolating independently deployable public authority. Collapsing the
+tickets into one identity would obscure their different storage, publication,
+and provider ownership. Implementing the full B-07G dispatcher would exceed the
+selected scope.
+
+**Implementation, impact, and reversibility.** The plan is
+`.agent/plans/B-07D1_D2_D3_prior_delivery.md`; runtime is additive below
+`carbon.research` and consumes the existing B-07A/B-07S wire vocabulary and
+B-07B pinning seam. Each ticket keeps an evidence file and board row. A future
+split can be made prospectively at any slice boundary without changing stored
+pack identities. This decision changes delivery packaging and current board
+selection only; it does not authorize public activation, B-07C record ingestion,
+qualified official ingestion, B-07G composition, scoring, or personalization.
+
+**Starting-state reconciliation.** PR #94 normally merged accepted head
+`5c1f2551aaf3f3d23ed838050db19cd98bf95dd3` as
+`3d48b3569a8ecc68e15f8b4a151a10c804896f52` after run `34069874204` passed
+its applicable acceptance and Merge gate. B-05/B-07C conditional shipping text
+is therefore documentation lag; their bounded done state is reconciled without
+runtime rewrite or replayed ceremony.
+
+**Human-reserved input.** The owner supplied grouping and order. Real prior
+content/policy, public approvals and rights, qualified official ingestion,
+production signing/custody, security/scientific qualification, external
+activation/withdrawal, and LIVE/production authority remain absent and fail
+closed.
+
 ## 2026-09-07 — OWNER-B05-B07C-01: Reconcile B-05 before B-07C in one delivery
 
 **Problem.** B-05's merged engineering tree is the substantive dependency for

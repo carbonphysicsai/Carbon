@@ -1,7 +1,7 @@
 # Ticket B-07D1 - PriorPack schema, store, index, and offline compatibility
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** `done` in the bounded grouped candidate; authoritative on accepted normal merge
 **Depends on:** B-07A, B-07B, B-07S, A6, A9, A11
 **Build Out:** C10 prior contract and storage
 **Master questions:** MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051
@@ -13,19 +13,19 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
 
 ## Definition of Done
 
-- [ ] Consume B-07A's B-07S-ratified shared wire-visible pack, pack-reference,
+- [x] Consume B-07A's B-07S-ratified shared wire-visible pack, pack-reference,
       channel, index-snapshot, public-publication-receipt, private test-only-
       authorization-receipt, policy-bundle, estimand, and one-lever guidance
       types without redefining their exact names or shapes; internal store
       models cannot alter the wire contract.
-- [ ] Require every actionable intervention to target one registered `ParameterCatalog.surface_id`; method artifacts remain non-executable citation/rationale/falsification resources unless catalog-registered.
-- [ ] Define exact intervention anchors, scope semantics, estimands, separate evidence origin and epistemic type, the immutable origin/publication-class ceiling matrix, valid-pair/promotion rules, aggregate-only provenance, and canonical item ordering with no order signal.
-- [ ] Require one or more typed `counterevidence_and_applicability` entries for material
+- [x] Require every actionable intervention to target one registered `ParameterCatalog.surface_id`; method artifacts remain non-executable citation/rationale/falsification resources unless catalog-registered.
+- [x] Define exact intervention anchors, scope semantics, estimands, separate evidence origin and epistemic type, the immutable origin/publication-class ceiling matrix, valid-pair/promotion rules, aggregate-only provenance, and canonical item ordering with no order signal.
+- [x] Require one or more typed `counterevidence_and_applicability` entries for material
       `NULL`, `NEGATIVE`, `MIXED`, and `OUT_OF_SCOPE` evidence. Permit
       `NONE_FOUND` only with an exact public search-scope ref and evidence
       cutoff. Bind these entries to the same estimand, scope, provenance,
       coarsening, rights, and disclosure rules as positive guidance.
-- [ ] Implement the exact B-07S-ratified canonical bytes/content address,
+- [x] Implement the exact B-07S-ratified canonical bytes/content address,
       immutable private history, authorized-public lookup rules, publication
       receipts, and active/superseded/withdrawn lifecycle. Pack bytes contain
       neither their own address nor enclosing ref. Reject self-referential
@@ -34,10 +34,10 @@ Implement exact immutable PriorPack contracts and storage without erasing eviden
       but remain auditable, and withdrawal cannot revoke earlier copies. Keep
       the nominal private test-only authorization receipt/snapshot separate
       from public publication receipts and indexes.
-- [ ] Provide only a production signer/key seam and deterministic test-only signer; add no production algorithm, key registry, rotation, revocation, or custody claim.
-- [ ] Implement publication classes `TEST_ONLY`, `BOOTSTRAP_PUBLIC`, and `LEARNED_PUBLIC` with mechanical source eligibility.
-- [ ] Define the exact lossy v2-to-v1 offline compatibility mapping and internal `PriorProjectionReceipt`; no production v2-backed v1 provider exists and projected bytes remain private test artifacts.
-- [ ] Add canonicalization, history/index, exact/active lookup, atomicity,
+- [x] Provide only a production signer/key seam and deterministic test-only signer; add no production algorithm, key registry, rotation, revocation, or custody claim.
+- [x] Implement publication classes `TEST_ONLY`, `BOOTSTRAP_PUBLIC`, and `LEARNED_PUBLIC` with mechanical source eligibility.
+- [x] Define the exact lossy v2-to-v1 offline compatibility mapping and internal `PriorProjectionReceipt`; no production v2-backed v1 provider exists and projected bytes remain private test artifacts.
+- [x] Add canonicalization, history/index, exact/active lookup, atomicity,
       reciprocal/cyclic-ref rejection, mapping/loss, contrary-evidence
       non-suppression, false-`NONE_FOUND`, applicability, authority-erasure,
       signer-seam, malicious-ref, resource, and installed-wheel tests.
@@ -51,3 +51,12 @@ input leaves external activation unavailable.
 ## Must not
 
 Externally publish or activate any pack, install a v2-backed v1 provider, expose projected bytes publicly, imply a signature is qualified, personalize output, or let priors enter score.
+
+**Delivery record:** `OWNER-B07D123-01` groups delivery without merging ticket
+identity or maturity. Plan: `.agent/plans/B-07D1_D2_D3_prior_delivery.md`.
+Evidence: `.agent/evidence/wave_b/b-07d1.md`.
+
+All engineering criteria are implemented and focused-tested in the grouped
+candidate. This prepared bounded `done` state becomes authoritative only after
+the unchanged candidate passes applicable automated acceptance and normally
+merges under OWNER-DX-03.
