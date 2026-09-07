@@ -100,7 +100,8 @@ exact pair but expressly does not certify authorization; ordinary B-07D3
 provider lookup remains the sole pack-to-receipt authorization owner.
 
 Integrity fixture observations now accept only explicit existing research,
-resource-policy, Dossier, and reference error-code enums and
+resource-policy, and Dossier error-code enums, including the research-service
+reference-mismatch outcome, and
 case-applicable members. Unrelated enums, wrong-domain outcomes, duplicate or
 incomplete case matrices, and non-rejection dispositions fail closed. These
 are typed synthetic rejection records, not evidence that attacks ran or that

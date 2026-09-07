@@ -7,7 +7,6 @@ from enum import Enum
 
 import pytest
 
-from carbon.evaluation.errors import ReferenceInputCode
 from carbon.gauntlet import (
     AgentProfile,
     ExperimentalArm,
@@ -258,7 +257,7 @@ def test_integrity_matrix_accepts_case_specific_existing_outcomes() -> None:
         IntegrityCase.RAW_STRING: ResearchServiceErrorCode.REQUEST_TYPE_INVALID,
         IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: DossierInputCode.ROLE_CONFUSION,
-        IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: ReferenceInputCode.OUTCOME_REASON_MISMATCH,
+        IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: ResearchServiceErrorCode.REFERENCE_MISMATCH,
         IntegrityCase.PARTIAL_PROXY_SUPERIOR: DossierInputCode.PLACEHOLDER_EVIDENCE,
         IntegrityCase.LEARNED_COMPONENT_WRONG_ROLE: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.LEARNED_COMPONENT_INCOMPATIBLE_IO: DossierInputCode.SLOT_MISMATCH,

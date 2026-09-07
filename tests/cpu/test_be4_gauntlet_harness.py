@@ -7,7 +7,6 @@ from dataclasses import replace
 import pytest
 from b07c_fixtures import make_fixture
 
-from carbon.evaluation.errors import ReferenceInputCode
 from carbon.gauntlet import (
     AgentProfile,
     ConditionalLeakageObservation,
@@ -160,7 +159,7 @@ def test_raw_observations_remain_separate_from_preregistered_decisions() -> None
         IntegrityCase.RAW_STRING: ResearchServiceErrorCode.REQUEST_TYPE_INVALID,
         IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: DossierInputCode.ROLE_CONFUSION,
-        IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: ReferenceInputCode.OUTCOME_REASON_MISMATCH,
+        IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: ResearchServiceErrorCode.REFERENCE_MISMATCH,
         IntegrityCase.PARTIAL_PROXY_SUPERIOR: DossierInputCode.PLACEHOLDER_EVIDENCE,
         IntegrityCase.LEARNED_COMPONENT_WRONG_ROLE: DossierInputCode.ROLE_CONFUSION,
         IntegrityCase.LEARNED_COMPONENT_INCOMPATIBLE_IO: DossierInputCode.SLOT_MISMATCH,

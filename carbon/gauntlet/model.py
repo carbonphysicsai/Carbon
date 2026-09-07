@@ -8,7 +8,6 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
-from carbon.evaluation.errors import ReferenceInputCode
 from carbon.qualification.errors import DossierInputCode
 from carbon.research.errors import ResearchServiceErrorCode
 from carbon.research.refs import (
@@ -78,7 +77,6 @@ _PROTOCOL_OUTCOME_TYPES = (
     ResearchServiceErrorCode,
     ResourcePolicyInputCode,
     DossierInputCode,
-    ReferenceInputCode,
 )
 
 _APPLICABLE_PROTOCOL_OUTCOMES = {
@@ -152,10 +150,7 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
         }
     ),
     IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: frozenset(
-        {
-            ReferenceInputCode.ROLE_MISMATCH,
-            ReferenceInputCode.OUTCOME_REASON_MISMATCH,
-        }
+        {ResearchServiceErrorCode.REFERENCE_MISMATCH}
     ),
     IntegrityCase.PARTIAL_PROXY_SUPERIOR: frozenset(
         {
@@ -488,10 +483,7 @@ class IntegrityObservation:
     case: IntegrityCase
     disposition: IntegrityDisposition
     protocol_outcome: (
-        ResearchServiceErrorCode
-        | ResourcePolicyInputCode
-        | DossierInputCode
-        | ReferenceInputCode
+        ResearchServiceErrorCode | ResourcePolicyInputCode | DossierInputCode
     )
     fixture_only: bool = True
 
