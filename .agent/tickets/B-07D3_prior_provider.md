@@ -1,7 +1,7 @@
 # Ticket B-07D3 - Static prior provider and alignment
 
 **Wave:** B candidate
-**Status:** `done` in the bounded grouped candidate; authoritative on accepted normal merge
+**Status:** `done` in bounded merged static-provider scope
 **Depends on:** B-07D1, B-07D2, B-07S, A9
 **Build Out:** C9/C10 static prior retrieval
 **Master questions:** MQ-016, MQ-017, MQ-025, MQ-026
@@ -43,7 +43,8 @@ Query Landscape or the card lake during a request, personalize remotely, reveal 
 identity or maturity. Plan: `.agent/plans/B-07D1_D2_D3_prior_delivery.md`.
 Evidence: `.agent/evidence/wave_b/b-07d3.md`.
 
-All engineering criteria are implemented and focused-tested in the grouped
-candidate. This prepared bounded `done` state becomes authoritative only after
-the unchanged candidate passes applicable automated acceptance and normally
-merges under OWNER-DX-03. B-07E remains `todo` and unstarted.
+All engineering criteria were implemented and focused-tested in the grouped
+candidate. PR #95 accepted head `0b5e62728cd922e494116aaf9b3096346e1b7bb2`
+and normally merged it as `258a35d91f45a1125879123bddccc52428d003b2`
+after run `34078606840` passed applicable acceptance and Merge gate. B-07E was
+then selected as the next eligible ticket.

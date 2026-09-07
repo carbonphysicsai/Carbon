@@ -1,7 +1,7 @@
 # Ticket B-07D1 - PriorPack schema, store, index, and offline compatibility
 
 **Wave:** B candidate
-**Status:** `done` in the bounded grouped candidate; authoritative on accepted normal merge
+**Status:** `done` in bounded merged engineering scope
 **Depends on:** B-07A, B-07B, B-07S, A6, A9, A11
 **Build Out:** C10 prior contract and storage
 **Master questions:** MQ-016, MQ-018, MQ-025, MQ-026, MQ-045, MQ-051
@@ -56,7 +56,8 @@ Externally publish or activate any pack, install a v2-backed v1 provider, expose
 identity or maturity. Plan: `.agent/plans/B-07D1_D2_D3_prior_delivery.md`.
 Evidence: `.agent/evidence/wave_b/b-07d1.md`.
 
-All engineering criteria are implemented and focused-tested in the grouped
-candidate. This prepared bounded `done` state becomes authoritative only after
-the unchanged candidate passes applicable automated acceptance and normally
-merges under OWNER-DX-03.
+All engineering criteria were implemented and focused-tested in the grouped
+candidate. PR #95 accepted head `0b5e62728cd922e494116aaf9b3096346e1b7bb2`
+and normally merged it as `258a35d91f45a1125879123bddccc52428d003b2`
+after run `34078606840` passed applicable acceptance and Merge gate. This
+completion remains bounded to the recorded engineering scope.

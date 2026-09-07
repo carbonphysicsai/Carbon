@@ -9,15 +9,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.8
-**Selected ticket:** B-07E — `todo`
-**Selected-ticket start state:** next eligible and explicitly unstarted
-**Selected-ticket completion boundary:** B-07D1/D2/D3 bounded `done` becomes
-authoritative when their unchanged grouped candidate satisfies OWNER-DX-03
-acceptance and normally merges
-**Next selected ticket:** none
-**Selection boundary:** B-07E remains outside this delivery
-**Next eligible status:** B-07E is `todo` and unstarted
+**Controlling register:** `.agent/WAVE_B.md` version 2.9
+**Selected ticket:** B-07E — `done`
+**Selected-ticket start state:** implemented and tested in the current candidate
+**Selected-ticket completion boundary:** bounded `done` becomes authoritative
+when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
+merges
+**Next selected ticket:** `B-07F`
+**Selection boundary:** stop after B-07E; do not start B-07F or later work
+**Next eligible status:** B-07F remains `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -55,13 +55,15 @@ only for the local task lifecycle, private records, and bounded receipts.
 **B-07C status:** `done` in bounded merged in-process synthetic fixture scope
 after PR #94's accepted candidate passed applicable acceptance and normally
 merged.
-**B-07D1 status:** bounded `done` prepared in the grouped candidate after its
-focused tests passed; authoritative on accepted normal merge
-**B-07D2 status:** bounded TEST_ONLY `done` prepared after D1 and D1-D2 tests;
-authoritative on the same accepted normal merge
-**B-07D3 status:** bounded static-provider `done` prepared after combined
-integration tests; authoritative on the same accepted normal merge
-**B-07E status:** `todo`, next eligible, and unstarted
+**B-07D1 status:** `done` in bounded merged immutable-store and private offline
+projection scope after PR #95 acceptance and normal merge
+**B-07D2 status:** `done` in bounded merged synthetic TEST_ONLY publisher and
+persistent-ledger scope after the same accepted merge
+**B-07D3 status:** `done` in bounded merged authorized static-provider and
+deterministic-alignment scope after the same accepted merge
+**B-07E status:** bounded `done` prepared for exact static inspection and the
+fail-closed forecast seam; authoritative on accepted normal merge
+**B-07F status:** `todo`, next eligible, unstarted, and outside this delivery
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -157,6 +159,19 @@ integration tests; authoritative on the same accepted normal merge
 > The merged B-05 tree remains owner-accepted as the substantive dependency;
 > the historical ordinary delivery predicate is superseded prospectively only
 > by this OWNER-DX-03 closeout.
+
+> **B-07D completion / B-07E conditional closeout under OWNER-DX-03.** PR #95
+> normally merged accepted head `0b5e62728cd922e494116aaf9b3096346e1b7bb2`
+> as `258a35d91f45a1125879123bddccc52428d003b2` after run `34078606840`
+> passed the applicable classified jobs and Merge gate. B-07D1, B-07D2, and
+> B-07D3 are therefore `done` in their separate bounded engineering scopes.
+> This candidate implements B-07E exact B-02B/B-02C-backed static inspection,
+> an ordinary forecast that stays `UNRESOLVED` without authorized calibration,
+> and a structurally separate synthetic TEST_ONLY calibration harness. Its
+> bounded `done` and B-07F handoff become authoritative only after applicable
+> acceptance and normal expected-head merge. No quote, admission, price,
+> capacity, scoring, settlement, qualification, production calibration, or
+> LIVE authority is introduced; B-07F remains unstarted.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the
