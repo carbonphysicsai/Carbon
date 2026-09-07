@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-07T03:04:47Z"
+  captured_at_utc: "2026-09-07T04:56:39Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "ee96303969b1a56461157f4d9ad23904b2e78e72"
+  authority_snapshot_commit: "2764e7f9e4b86911bbffe932cc36df0c970e260a"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -443,11 +443,11 @@ current:
   wave_status: "active in bounded development scope"
   ticket: "B-07E"
   ticket_title: "Static resource analysis and forecast seam"
-  ticket_status: "todo"
+  ticket_status: "done"
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "2.8"
-  controlling_board_fingerprint: "906f06029fe2bd67f5460758c2e811474d297d41fdaad2b9a13a42829818297b"
-  stage: "B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped B-07D1, B-07D2, and B-07D3 candidate has separate completed evidence and becomes authoritative only after applicable acceptance and normal merge."
+  controlling_register_version: "2.9"
+  controlling_board_fingerprint: "1e1379e4ba279d94da91272a9d491ca6732ca9426c367e0f6b179e2ee97c4aeb"
+  stage: "Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -469,6 +469,7 @@ current:
     - "B-07D1"
     - "B-07D2"
     - "B-07D3"
+    - "B-07E"
     - "B-E3"
   recent_dependencies:
     - "B-02B"
@@ -491,6 +492,7 @@ current:
     - "B-07R"
     - "B-07D1"
     - "B-07D2"
+    - "B-07E"
     - "B-E3"
   downstream_handoffs:
     - "B-07G"
@@ -498,13 +500,15 @@ current:
     - "B-GATE"
   parallel_context:
     - "B-01G remains todo as a future non-blocking tooling proof."
-  next_selected_ticket: null
+  next_selected_ticket: "B-07F"
   fail_closed:
     - "PR #94 reconciled B-05 and B-07C as bounded merged work; it did not authorize practice-result ingestion, scientific qualification, official outcomes, security acceptance, production readiness, or LIVE."
-    - "B-07D2 accepts synthetic records only. Integrated practice ingestion and qualified official ingestion remain later work."
+    - "PR #95 completed B-07D1/D2/D3 only in their bounded engineering scopes; B-07D2 accepts synthetic records only and public prior activation remains unavailable."
     - "B-07D implements no public publication or activation path. Production signing algorithms, key registry/custody, security qualification, and public content authorization remain unavailable human-owned seams."
     - "B-07D3 performs static authorized retrieval and structural alignment only; it does not provide request-time private analytics, personalization, official score prediction, ranking, qualification, or dispatch."
-    - "B-07E is todo and unstarted; no resource forecast, quote, admission, price, capacity, or observed-use claim is supplied by this delivery."
+    - "B-07E's ordinary forecast is UNRESOLVED because authorized production calibration and support criteria are absent; synthetic calibration remains TEST_ONLY."
+    - "B-07E supplies no binding quote, admission, price, quota, capacity, observed-resource receipt, official outcome prediction, or scoring/settlement path."
+    - "B-07F is todo, unstarted, and outside this delivery."
     - "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
@@ -512,19 +516,19 @@ current:
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
     specified: "earned"
-    implemented: "unearned"
-    tested: "unearned"
+    implemented: "earned"
+    tested: "earned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-07E is specified and selected but unimplemented and untested. The preceding grouped candidate earns bounded IMPLEMENTED and TESTED evidence separately for D1 immutable storage, D2 synthetic TEST_ONLY publication, and D3 static retrieval/alignment only after accepted normal merge; every scientific, security, rights, public-publication, production, and LIVE state remains unearned."
-  decision_series_status: "B-07E is selected but unstarted and has no implementation decision series. The preceding OWNER-B07D123-01 and D1-D3 working decisions remain recorded as completed-candidate context with no authority transfer into B-07E."
+  maturity_summary: "B-07E earns bounded SPECIFIED, IMPLEMENTED, and TESTED evidence for exact static inspection and the fail-closed forecast seam only after accepted normal merge. Authorized real calibration is absent, so ordinary forecasting remains UNRESOLVED; every scientific, security, economic, production, qualification, and LIVE state remains unearned."
+  decision_series_status: "B-07E-D1 records exact B-02B/B-02C-backed static projection, preservation of the ratified B-07S wire, and structural separation between the ordinary unresolved provider and TEST_ONLY synthetic calibration mechanics."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
-    []
+    - "B-07E-D1"
 waves:
   -
     id: "A"
@@ -1393,7 +1397,7 @@ tickets:
     id: "B-07E"
     wave: "B"
     title: "Static resource analysis and forecast seam"
-    status: "todo"
+    status: "done"
     explainer: "explainers/tickets/b_07e.md"
     repo_path: ".agent/tickets/B-07E_estimation_resources.md"
     depends_on:
@@ -2499,6 +2503,45 @@ events:
       - "WAVE-B/B-07D3"
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
+  -
+    map_ref: "WAVE-B/B-07D1"
+    event_type: "evidence"
+    event_id: "B-07D123-E3"
+    owner_lane: "sciml_technical_lead"
+    status: "closed"
+    summary: "PR #95 accepted and normally merged the grouped prior candidate, completing B-07D1, B-07D2, and B-07D3 only in their separate bounded engineering scopes."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/95"
+    affects:
+      - "WAVE-B/B-07D1"
+      - "WAVE-B/B-07D2"
+      - "WAVE-B/B-07D3"
+      - "WAVE-B/B-07E"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-07D123-E1"
+  -
+    map_ref: "WAVE-B/B-07E"
+    event_type: "evidence"
+    event_id: "B-07E-E1"
+    owner_lane: "sre_technical_lead"
+    status: "implemented"
+    summary: "B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/2764e7f9e4b86911bbffe932cc36df0c970e260a/.agent/evidence/wave_b/b-07e.md"
+    affects:
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-07A"
+      - "WAVE-B/B-07B"
+      - "WAVE-B/B-07C"
+      - "WAVE-B/B-07E"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-07G"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/MATURITY"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

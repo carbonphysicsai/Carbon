@@ -153,7 +153,7 @@
       "why": "Carbon cannot safely share research history until the history has exact identity and a stable data contract.",
       "changes": "The grouped candidate adds exact immutable storage, authorization-bound indexes and history, withdrawal audit retention, and a private offline compatibility projection.",
       "not_yet": "This does not publicly publish a qualified learned prior, install a v2-backed v1 provider, choose production signing, or personalize history.",
-      "current_stage_plain": "Implemented and focused-tested as the first grouped slice; bounded completion awaits the candidate's applicable acceptance and normal merge.",
+      "current_stage_plain": "PR #95 accepted and normally merged D1 with D2/D3; D1 is done in bounded immutable-store and private-projection scope.",
       "map_ref": "WAVE-B/B-07D1"
     },
     "B-07D2": {
@@ -162,7 +162,7 @@
       "why": "Several individually safe releases can reveal protected structure when combined, so disclosure must be controlled across time.",
       "changes": "The grouped candidate adds a synthetic-only publisher, exact-byte fixture checks and authorization, a persistent cumulative disclosure ledger, and one atomic ledger/receipt/index commit.",
       "not_yet": "This does not ingest B-07C practice or official records, authorize public activation or learned publication, qualify utility, or choose signing custody.",
-      "current_stage_plain": "Implemented and integration-tested after D1 only for TEST_ONLY / NOT_UTILITY_QUALIFIED synthetic fixtures; bounded completion awaits the same accepted merge.",
+      "current_stage_plain": "PR #95 accepted and normally merged D2 after D1; D2 is done only for persistent TEST_ONLY / NOT_UTILITY_QUALIFIED synthetic fixtures.",
       "map_ref": "WAVE-B/B-07D2"
     },
     "B-07D3": {
@@ -171,16 +171,16 @@
       "why": "Every researcher should receive the same approved Challenge-level history and predictable handling of versions.",
       "changes": "The grouped candidate adds separate public and fixture static providers, authorization-bound exact/active retrieval, task pinning, and deterministic structural alignment.",
       "not_yet": "This does not create personalized guidance, request-time private analytics, public activation, dispatch, or official scores, gates, ranks, or winners.",
-      "current_stage_plain": "Implemented and combined-tested after D1-D2; bounded completion awaits accepted normal merge, and B-07E remains outside this delivery.",
+      "current_stage_plain": "PR #95 accepted and normally merged D3 after D1/D2; D3 is done in bounded static-provider and deterministic-alignment scope.",
       "map_ref": "WAVE-B/B-07D3"
     },
     "B-07E": {
       "title": "Estimate resource needs without confusing an estimate with a promise",
       "what": "Analyze a proposed plan's likely resource needs and keep estimates separate from later forecasts, quotes, admission, observed usage, and scientific evidence.",
       "why": "Researchers and operators need cost information, but an estimate must not become a capacity commitment, price, or scientific claim.",
-      "changes": "Carbon gains a typed resource-estimation path that uses the registered resource policy.",
-      "not_yet": "This does not set prices, quotas, remote fees, capacity, or make an uncalibrated forecast claim.",
-      "current_stage_plain": "B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped D1-D3 candidate does not begin resource-analysis work.",
+      "changes": "The candidate adds exact plan-derived inspection through the registered compiler and resource policy, an ordinary forecast that remains UNRESOLVED without authorized calibration, and a distinct synthetic TEST_ONLY calibration harness.",
+      "not_yet": "Real calibration and support criteria remain unavailable. This does not set prices, quotas, remote fees, capacity, create quotes/admission or observed receipts, or predict official outcomes.",
+      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-07F remains next, todo, and unstarted.",
       "map_ref": "WAVE-B/B-07E"
     },
     "B-07F": {

@@ -1113,6 +1113,24 @@
       "affects": ["WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07E-D1",
+      "map_ref": "WAVE-B/B-07E",
+      "wave": "B",
+      "ticket": "B-07E",
+      "title": "Exact static projection and fail-closed forecast provenance",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should B-07E provide useful resource information when the ratified wire has no explicit support fields and no authorized real calibration exists?",
+      "recommendation": "KEEP exact B-02B/B-02C-backed static projection, preserve the B-07S wire, make the ordinary provider accept no calibration and return UNRESOLVED, and isolate synthetic calibration mechanics behind a distinct TEST_ONLY constructor.",
+      "why": "Invented calibration or new wire fields would exceed authority, while a general provider that accepts fixtures could launder TEST_ONLY material into a production-shaped path.",
+      "if_kept": "B-07E supplies deterministic exact inspection and a complete fail-closed forecast seam while quote, receipt, scoring, production calibration, and qualification ownership remain separate.",
+      "if_changed": "Forecast wire versioning, provider constructors, provenance bindings, tests, and later B-07G composition require a prospective migration and the relevant owner authority.",
+      "affects": ["WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2764e7f9e4b86911bbffe932cc36df0c970e260a/.agent/DECISIONS.md"
     }
   ]
 }

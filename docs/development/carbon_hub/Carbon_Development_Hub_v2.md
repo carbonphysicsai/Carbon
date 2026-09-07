@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ee96303969b1a56461157f4d9ad23904b2e78e72` on `main`, captured 2026-09-07T03:04:47Z.
-**Current:** Wave B, ticket B-07E. B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped B-07D1, B-07D2, and B-07D3 candidate has separate completed evidence and becomes authoritative only after applicable acceptance and normal merge.
+**Authority snapshot:** `2764e7f9e4b86911bbffe932cc36df0c970e260a` on `main`, captured 2026-09-07T04:56:39Z.
+**Current:** Wave B, ticket B-07E. Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.
 
 ## Wave spine
 
@@ -62,7 +62,7 @@
 | [B-07D1](explainers/tickets/b_07d1.md) | Define PriorPack, estimands, exact immutable storage and indexing, receipts, and an offline compatibility projection. | done |
 | [B-07D2](explainers/tickets/b_07d2.md) | Implement a TEST_ONLY publisher and persistent cumulative-disclosure ledger with publication schemas and negative activation tests. | done |
 | [B-07D3](explainers/tickets/b_07d3.md) | Implement exact and active prior retrieval, historical lookup, and deterministic alignment to the current Challenge. | done |
-| [B-07E](explainers/tickets/b_07e.md) | Implement static resource analysis, a future calibrated-forecast seam, and separate receipts for structural estimate, forecast, quote, admission, and observed use. | todo |
+| [B-07E](explainers/tickets/b_07e.md) | Implement static resource analysis, a future calibrated-forecast seam, and separate receipts for structural estimate, forecast, quote, admission, and observed use. | done |
 | [B-07F](explainers/tickets/b_07f.md) | Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle. | todo |
 | [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | todo |
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | todo |
@@ -127,6 +127,8 @@
 - `B-05-B07C-E2` — `WAVE-B/B-07C` — PR #94 accepted and normally merged the B-05 verification and B-07C mock-only practice implementation, reconciling both only in their bounded engineering and in-process synthetic-fixture scopes.
 - `B-07D123-E1` — `WAVE-B/B-07D1` — The owner-directed grouped candidate completes B-07D1 immutable PriorPack storage and private compatibility projection, B-07D2 synthetic TEST_ONLY publishing with a persistent disclosure ledger, and B-07D3 authorized static retrieval and deterministic alignment, preserving three ticket identities and evidence records; bounded completion awaits acceptance and normal merge, while B-07E remains todo and unstarted.
 - `B-07D123-E2` — `SYSTEM/AGENT-EXECUTION` — The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.
+- `B-07D123-E3` — `WAVE-B/B-07D1` — PR #95 accepted and normally merged the grouped prior candidate, completing B-07D1, B-07D2, and B-07D3 only in their separate bounded engineering scopes.
+- `B-07E-E1` — `WAVE-B/B-07E` — B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted.
 
 ## Authority boundary
 
