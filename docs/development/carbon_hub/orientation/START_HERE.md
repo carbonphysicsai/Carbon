@@ -23,9 +23,9 @@ does not prove.
 ## Where Carbon is now
 
 - **Current wave:** Wave B — Science-ready authoring skeletons
-- **Current ticket:** B-07E — Static resource analysis and forecast seam
-- **Current stage:** Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.
-- **Captured maturity:** B-07E earns bounded SPECIFIED, IMPLEMENTED, and TESTED evidence for exact static inspection and the fail-closed forecast seam only after accepted normal merge. Authorized real calibration is absent, so ordinary forecasting remains UNRESOLVED; every scientific, security, economic, production, qualification, and LIVE state remains unearned.
+- **Current ticket:** B-07F — Fixture-official construction adapter
+- **Current stage:** The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.
+- **Captured maturity:** B-07F earns bounded SPECIFIED, IMPLEMENTED, and TESTED evidence for a fixture-only resolved-plan construction adapter only after accepted normal merge. It does not earn scientific, security, rights, network, commercial, production, qualification, or LIVE authority.
 
 ## How to use the hub
 

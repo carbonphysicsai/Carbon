@@ -178,17 +178,18 @@
       "title": "Estimate resource needs without confusing an estimate with a promise",
       "what": "Analyze a proposed plan's likely resource needs and keep estimates separate from later forecasts, quotes, admission, observed usage, and scientific evidence.",
       "why": "Researchers and operators need cost information, but an estimate must not become a capacity commitment, price, or scientific claim.",
-      "changes": "The candidate adds exact plan-derived inspection through the registered compiler and resource policy, an ordinary forecast that remains UNRESOLVED without authorized calibration, and a distinct synthetic TEST_ONLY calibration harness.",
+      "changes": "PR #96 added exact plan-derived inspection through the registered compiler and resource policy, an ordinary forecast that remains UNRESOLVED without authorized calibration, and a distinct synthetic TEST_ONLY calibration harness.",
       "not_yet": "Real calibration and support criteria remain unavailable. This does not set prices, quotas, remote fees, capacity, create quotes/admission or observed receipts, or predict official outcomes.",
-      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-07F remains next, todo, and unstarted.",
+      "current_stage_plain": "PR #96 accepted and normally merged B-07E; it is done only in bounded static-inspection and fail-closed forecast scope.",
       "map_ref": "WAVE-B/B-07E"
     },
     "B-07F": {
       "title": "Connect an exact build plan to the official-shaped evaluation path",
       "what": "Take the compiled construction plan and run it through a controlled fixture version of Carbon's existing reconstruction lifecycle.",
       "why": "Wave B needs to prove that the authored plan can enter the evaluation path through one explicit integration point.",
-      "changes": "Carbon gains a fixture-only bridge from strategy compilation to official-shaped execution.",
-      "not_yet": "This does not run production reconstruction, arbitrary code, real training, scientific evidence, or emissions.",
+      "changes": "The candidate adds a separate fixture-only provider that recompiles through B-02B, checks B-02C, consumes one registered plan lever, performs deterministic toy construction and held-out measurement, scores through unchanged A5, and binds private exact receipts.",
+      "not_yet": "This does not run production reconstruction, arbitrary code, real training, scientific evidence, ranking, dispatch, or emissions.",
+      "current_stage_plain": "Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-07G remains next, todo, and unstarted.",
       "map_ref": "WAVE-B/B-07F"
     },
     "B-07G": {

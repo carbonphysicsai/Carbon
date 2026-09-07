@@ -2,8 +2,9 @@
 
 **Wave:** B candidate
 **Status:** `done`
-**Completion boundary:** bounded implementation and tests are complete in the
-current candidate; this status becomes authoritative on accepted normal merge
+**Completed delivery:** PR #96 accepted head
+`4fe739995db6d5e5c84fa02bff47d9e179e4dc56` after run `34087649083` and
+normally merged it as `5dc41eef62025a0114ee11bb98db3f9b877b247d`
 **Depends on:** B-02B, B-02C, B-07A, B-07B, B-07C, B-07D3, B-07S
 **Build Out:** C9 research estimation
 **Master questions:** MQ-008, MQ-017, MQ-024
@@ -46,8 +47,9 @@ mechanics without creating a production calibration path.
 
 Decision `B-07E-D1`, plan `.agent/plans/B-07E_estimation_resources.md`, stable
 evidence `.agent/evidence/wave_b/b-07e.md`, and the focused CPU/invariant and
-installed-wheel tests record the exact scope. B-07F remains `todo` and
-unstarted. Scientific, security, production-calibration, quote/admission,
+installed-wheel tests record the exact scope. B-07F subsequently became
+eligible and is owned by its separate ticket. Scientific, security,
+production-calibration, quote/admission,
 economic, qualification, scoring, settlement, and LIVE authority remain
 unearned.
 

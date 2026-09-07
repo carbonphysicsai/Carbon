@@ -1,7 +1,10 @@
 # Ticket B-07F - Resolved-plan fixture-official construction adapter
 
 **Wave:** B candidate
-**Status:** todo
+**Status:** `done`
+**Completion boundary:** bounded implementation and tests are complete in the
+current candidate; this status becomes authoritative on OWNER-DX-03 acceptance
+and normal expected-head merge
 **Depends on:** B-02B, B-02C, B-03, B-04, B-05, B-07S, A7, A8, A9
 **Build Out:** C2/C9/C11 fixture integration seam
 **Master questions:** MQ-004, MQ-005, MQ-008, MQ-015, MQ-024
@@ -16,52 +19,50 @@ closeout.
 
 ## Definition of Done
 
-- [ ] Begin the single-ticket PR with the working
+- [x] Begin the single-ticket PR with the working
       `Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md`,
       material decisions, plan, and protocol/SciML/security notification;
       implement coherent vertical slices against that contract; then review
-      the final contract, implementation, tests, and stable evidence together.
-      Require applicable validation and exact-head `Merge gate`; obtain fresh
-      read-only Codex/GPT review of the complete diff; repair or disposition
-      every finding; require distinct non-author human approval carrying the
-      closed receipt, successful `GPT review gate`, and zero unresolved review
-      threads; and normally merge the exact reviewed tree. Any tree change
-      requires rereview, and a
-      separate contract PR requires an exception in
+      the final contract, implementation, tests, and stable evidence together;
+      run one applicable automated acceptance and normally merge the tested
+      revision with the expected-head guard under OWNER-DX-03. The older
+      review/receipt ceremony in this ticket is superseded by the current
       `.agent/DELIVERY_PROTOCOL.md`. Notification is not ratification and
       silence is no gate. Scientific/security qualification, official data
       rights, `LIVE`, and production authority remain human-owned and fail
       closed.
-- [ ] Implement a new fixture-only resolved-plan consumer rather than changing
+- [x] Implement a new fixture-only resolved-plan consumer rather than changing
       A8's frozen Strategy-insensitive stub semantics.
-- [ ] Inject the consumer behind the existing A7/A8-shaped internal
+- [x] Inject the consumer behind the existing A7/A8-shaped internal
       TrainEval/provider seam while preserving the exact Wave A v1 wire,
       submission store, lifecycle, error precedence, and result authority.
-- [ ] Compile the submitted Strategy under the same exact catalog, assembly,
+- [x] Compile the submitted Strategy under the same exact catalog, assembly,
       compiler, training-support, `R_strategy`, and environment identities used
       by nominal practice; then bind and evaluate the resulting plan against
       the same exact resource-policy identity used by practice.
-- [ ] Make at least one registered fixture lever measurably affect construction
+- [x] Make at least one registered fixture lever measurably affect construction
       and held-out toy-physics behavior; a Strategy-insensitive path may remain
       only as an explicit plumbing fixture.
-- [ ] Use only `FixtureOfficialEntropy` and fixture reference/measurement packs;
+- [x] Use only `FixtureOfficialEntropy` and fixture reference/measurement packs;
       reject mock, provider-origin official, LIVE, production, or cross-context
       rights.
-- [ ] Return typed compilation, construction, resource, reference,
+- [x] Return typed compilation, construction, resource, reference,
       measurement, and infrastructure outcomes without converting failures
       across authority classes.
-- [ ] Produce exact reconstruction and result receipts sufficient for B-E4 and
+- [x] Produce exact reconstruction and result receipts sufficient for B-E4 and
       B-GATE parity checks, with no official scientific, leaderboard, frontier,
       network, or settlement authority.
-- [ ] Add v1-compatibility, store/lifecycle uniqueness, plan-consumption,
+- [x] Add v1-compatibility, store/lifecycle uniqueness, plan-consumption,
       ignored-lever, practice-parity, entropy/context confusion, failure,
       leakage, resource, and installed-wheel tests.
 
 ## Human input
 
-Protocol, SciML, and security owners approve the adapter boundary and the
-semantically responsive toy fixture. Fixture behavior remains
-non-authoritative.
+Production reconstruction, arbitrary-code isolation, official reference/data
+rights, scientific fixture adequacy, measurement qualification, and
+LIVE/security acceptance remain human-reserved and absent. The protocol,
+SciML, and security working-decision notification is recorded for awareness;
+it is not a qualification or routine delivery gate under OWNER-DX-03.
 
 ## Must not
 

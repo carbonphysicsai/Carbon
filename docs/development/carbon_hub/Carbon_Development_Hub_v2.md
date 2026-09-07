@@ -3,7 +3,7 @@
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
 **Authority snapshot:** `32b7f86aa9568a5ba19ad57e22bae0f081019438` on `main`, captured 2026-09-07T05:38:36Z.
-**Current:** Wave B, ticket B-07E. Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.
+**Current:** Wave B, ticket B-07F. The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.
 
 ## Wave spine
 
@@ -63,7 +63,7 @@
 | [B-07D2](explainers/tickets/b_07d2.md) | Implement a TEST_ONLY publisher and persistent cumulative-disclosure ledger with publication schemas and negative activation tests. | done |
 | [B-07D3](explainers/tickets/b_07d3.md) | Implement exact and active prior retrieval, historical lookup, and deterministic alignment to the current Challenge. | done |
 | [B-07E](explainers/tickets/b_07e.md) | Implement static resource analysis, a future calibrated-forecast seam, and separate receipts for structural estimate, forecast, quote, admission, and observed use. | done |
-| [B-07F](explainers/tickets/b_07f.md) | Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle. | todo |
+| [B-07F](explainers/tickets/b_07f.md) | Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle. | done |
 | [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | todo |
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | todo |
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | todo |
@@ -129,6 +129,8 @@
 - `B-07D123-E2` — `SYSTEM/AGENT-EXECUTION` — The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.
 - `B-07D123-E3` — `WAVE-B/B-07D1` — PR #95 accepted and normally merged the grouped prior candidate, completing B-07D1, B-07D2, and B-07D3 only in their separate bounded engineering scopes.
 - `B-07E-E1` — `WAVE-B/B-07E` — B-07E implements exact B-02B/B-02C-backed static resource inspection and a fail-closed forecast seam whose ordinary provider remains UNRESOLVED without authorized calibration; B-07F remains todo and unstarted.
+- `B-07E-E2` — `WAVE-B/B-07E` — PR #96 accepted and normally merged B-07E, completing exact static inspection and the fail-closed forecast seam only in their bounded engineering scope.
+- `B-07F-E1` — `WAVE-B/B-07F` — B-07F specifies, implements, and tests a separate fixture-only resolved-plan construction adapter through B-02B/B-02C, FixtureOfficialEntropy, fixed fixture refs, unchanged A5 scoring, and the existing A7/A8-shaped lifecycle; B-07G remains todo and unstarted.
 
 ## Authority boundary
 

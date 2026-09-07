@@ -3077,8 +3077,12 @@ def test_source_import_graph_and_calls_exclude_forbidden_owners() -> None:
         "physicsnemo",
         "torch",
     }
-    a8_paths = sorted((REPOSITORY_ROOT / "carbon/traineval").glob("*.py"))
-    assert {path.name for path in a8_paths} == set(expected_imports)
+    # B-07F adds a separately owned downstream adapter in the same package;
+    # this A8 graph assertion remains scoped to A8's frozen implementation.
+    a8_paths = [
+        REPOSITORY_ROOT / "carbon/traineval" / name for name in sorted(expected_imports)
+    ]
+    assert all(path.is_file() for path in a8_paths)
     for path in a8_paths:
         imported = _direct_imports(path)
         assert imported == expected_imports[path.name], path

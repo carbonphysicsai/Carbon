@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 pytestmark = pytest.mark.invariant
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _CARBON_ROOT = _REPOSITORY_ROOT / "carbon"
 _GENERATORS_ROOT = _CARBON_ROOT / "generators"
+_B07F_ADAPTER = _CARBON_ROOT / "traineval" / "resolved_fixture.py"
 
 _EXPECTED_MODULE_PATHS = frozenset(
     {
@@ -367,7 +368,7 @@ def test_generators_uses_only_fixture_seeding_apis() -> None:
 def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
     violations: list[str] = []
     for path in _python_files(_CARBON_ROOT):
-        if _GENERATORS_ROOT in path.parents:
+        if _GENERATORS_ROOT in path.parents or path == _B07F_ADAPTER:
             continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)

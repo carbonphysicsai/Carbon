@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from tests.invariants._import_analysis import direct_import_modules
 
@@ -170,9 +170,12 @@ def _allowed_carbon_dependency(module_name: str) -> bool:
 
 
 def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
-    """Permit only B-05's ratified public reference seam."""
+    """Permit B-05 and B-07F's exact ratified public reference seams."""
     return (
         path.is_relative_to(_CARBON_ROOT / "measurement")
+        and module_name == "carbon.evaluation.refs"
+    ) or (
+        path == _CARBON_ROOT / "traineval" / "resolved_fixture.py"
         and module_name == "carbon.evaluation.refs"
     )
 

@@ -70,7 +70,7 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-07D2](../tickets/b_07d2.md): TEST_ONLY prior publisher and disclosure ledger [done]
 - [B-07D3](../tickets/b_07d3.md): Exact prior provider and deterministic alignment [done]
 - [B-07E](../tickets/b_07e.md): Static resource analysis and forecast seam [done]
-- [B-07F](../tickets/b_07f.md): Fixture-official construction adapter [todo]
+- [B-07F](../tickets/b_07f.md): Fixture-official construction adapter [done]
 - [B-07G](../tickets/b_07g.md): Research-service composition and conformance [todo]
 - [B-E1](../tickets/b_e1.md): Reproducibility, uncertainty, and contested outcomes [todo]
 - [B-E2](../tickets/b_e2.md): Julia and reference failure contract [todo]

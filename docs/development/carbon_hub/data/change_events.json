@@ -941,6 +941,41 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07E",
+      "event_type": "evidence",
+      "event_id": "B-07E-E2",
+      "owner_lane": "sre_technical_lead",
+      "status": "closed",
+      "summary": "PR #96 accepted and normally merged B-07E, completing exact static inspection and the fail-closed forecast seam only in their bounded engineering scope.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/96",
+      "affects": [
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-07E-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-07F",
+      "event_type": "evidence",
+      "event_id": "B-07F-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "B-07F specifies, implements, and tests a separate fixture-only resolved-plan construction adapter through B-02B/B-02C, FixtureOfficialEntropy, fixed fixture refs, unchanged A5 scoring, and the existing A7/A8-shaped lifecycle; B-07G remains todo and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/evidence/wave_b/b-07f.md",
+      "affects": [
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

@@ -1131,6 +1131,24 @@
       "affects": ["WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/32b7f86aa9568a5ba19ad57e22bae0f081019438/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-07F-D1",
+      "map_ref": "WAVE-B/B-07F",
+      "wave": "B",
+      "ticket": "B-07F",
+      "title": "Consume the registered sampling lever in a separate fixture adapter",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should a canonical resolved plan enter the existing official-shaped fixture lifecycle without mutating A8 or widening authority?",
+      "recommendation": "KEEP A7, the frozen A8 stub, A5 scoring, B-02B compilation, and B-02C assessment exact; add one separate fixture-only provider that consumes canonical fixture_sampling_level and binds private reconstruction/result receipts.",
+      "why": "A separate nominal consumer proves plan responsiveness and parity while preventing caller labels, raw Strategy branching, mock or provider-origin entropy, and fixture outputs from laundering authority.",
+      "if_kept": "B-07F supplies deterministic fixed-toy integration evidence for B-E4 and B-GATE without granting real reconstruction, scientific, security, rights, production, or LIVE authority.",
+      "if_changed": "The adapter contract, registered lever semantics, receipt identity, A7/A8 compatibility tests, and downstream parity evidence require prospective review and migration.",
+      "affects": ["WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5566242789",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/DECISIONS.md"
     }
   ]
 }

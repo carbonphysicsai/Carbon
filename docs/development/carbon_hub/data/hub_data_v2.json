@@ -27,13 +27,13 @@
     "wave": "B",
     "wave_title": "Science-ready authoring skeletons",
     "wave_status": "active in bounded development scope",
-    "ticket": "B-07E",
-    "ticket_title": "Static resource analysis and forecast seam",
+    "ticket": "B-07F",
+    "ticket_title": "Fixture-official construction adapter",
     "ticket_status": "done",
     "controlling_register": ".agent/WAVE_B.md",
-    "controlling_register_version": "2.9",
-    "controlling_board_fingerprint": "1e1379e4ba279d94da91272a9d491ca6732ca9426c367e0f6b179e2ee97c4aeb",
-    "stage": "Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.",
+    "controlling_register_version": "3.0",
+    "controlling_board_fingerprint": "d6195d38f433f72661faeb6b7f3c7448f5dc52ee49da9b713d1b47c703dab51a",
+    "stage": "The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.",
     "most_recent_closed_wave": "A",
     "completed_wave_tickets": [
       "B-01",
@@ -56,16 +56,19 @@
       "B-07D2",
       "B-07D3",
       "B-07E",
+      "B-07F",
       "B-E3"
     ],
     "recent_dependencies": [
       "B-02B",
       "B-02C",
-      "B-07A",
-      "B-07B",
-      "B-07C",
-      "B-07D3",
-      "B-07S"
+      "B-03",
+      "B-04",
+      "B-05",
+      "B-07S",
+      "A7",
+      "A8",
+      "A9"
     ],
     "other_completed_wave_context": [
       "B-01",
@@ -73,25 +76,26 @@
       "B-01F",
       "B-01H",
       "B-02A",
-      "B-03",
-      "B-04",
-      "B-05",
       "B-06",
       "B-07R",
+      "B-07A",
+      "B-07B",
+      "B-07C",
       "B-07D1",
       "B-07D2",
+      "B-07D3",
       "B-07E",
+      "B-07F",
       "B-E3"
     ],
     "downstream_handoffs": [
-      "B-07G",
       "B-E4",
       "B-GATE"
     ],
     "parallel_context": [
       "B-01G remains todo as a future non-blocking tooling proof."
     ],
-    "next_selected_ticket": "B-07F",
+    "next_selected_ticket": "B-07G",
     "fail_closed": [
       "PR #94 reconciled B-05 and B-07C as bounded merged work; it did not authorize practice-result ingestion, scientific qualification, official outcomes, security acceptance, production readiness, or LIVE.",
       "PR #95 completed B-07D1/D2/D3 only in their bounded engineering scopes; B-07D2 accepts synthetic records only and public prior activation remains unavailable.",
@@ -99,7 +103,8 @@
       "B-07D3 performs static authorized retrieval and structural alignment only; it does not provide request-time private analytics, personalization, official score prediction, ranking, qualification, or dispatch.",
       "B-07E's ordinary forecast is UNRESOLVED because authorized production calibration and support criteria are absent; synthetic calibration remains TEST_ONLY.",
       "B-07E supplies no binding quote, admission, price, quota, capacity, observed-resource receipt, official outcome prediction, or scoring/settlement path.",
-      "B-07F is todo, unstarted, and outside this delivery.",
+      "B-07F is fixed synthetic fixture plumbing only; it supplies no real reconstruction, arbitrary-code execution, qualification, or public result authority.",
+      "B-07G is todo, unstarted, and outside this delivery.",
       "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance.",
       "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned.",
       "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement.",
@@ -116,12 +121,12 @@
       "commercially_validated": "unearned",
       "production_qualified": "unearned"
     },
-    "maturity_summary": "B-07E earns bounded SPECIFIED, IMPLEMENTED, and TESTED evidence for exact static inspection and the fail-closed forecast seam only after accepted normal merge. Authorized real calibration is absent, so ordinary forecasting remains UNRESOLVED; every scientific, security, economic, production, qualification, and LIVE state remains unearned.",
-    "decision_series_status": "B-07E-D1 records exact B-02B/B-02C-backed static projection, preservation of the ratified B-07S wire, and structural separation between the ordinary unresolved provider and TEST_ONLY synthetic calibration mechanics.",
+    "maturity_summary": "B-07F earns bounded SPECIFIED, IMPLEMENTED, and TESTED evidence for a fixture-only resolved-plan construction adapter only after accepted normal merge. It does not earn scientific, security, rights, network, commercial, production, qualification, or LIVE authority.",
+    "decision_series_status": "B-07F-D1 records canonical registered-lever consumption in a separate fixture-only provider while preserving A7, the frozen A8 stub, A5 scoring, and the v1 wire.",
     "technical_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/42",
     "owner_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/41",
     "decision_series": [
-      "B-07E-D1"
+      "B-07F-D1"
     ]
   },
   "sources": {
@@ -380,34 +385,35 @@
       "path": ".agent/WAVE.md",
       "required_markers": [
         "**Current wave:** B",
-      "**Selected ticket:** B-07E — `done`",
+        "**Selected ticket:** B-07F — `done`",
       "**Selected-ticket start state:** implemented and tested in the current candidate",
-      "**Next selected ticket:** `B-07F`",
-      "**Selection boundary:** stop after B-07E; do not start B-07F or later work",
-      "**Controlling register:** `.agent/WAVE_B.md` version 2.9",
+        "**Next selected ticket:** `B-07G`",
+        "**Selection boundary:** stop after B-07F; do not start B-07G or later work",
+        "**Controlling register:** `.agent/WAVE_B.md` version 3.0",
         "`OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->",
         "**B-05 status:** `done` in bounded merged engineering scope after PR #94's",
         "**B-07C status:** `done` in bounded merged in-process synthetic fixture scope",
       "**B-07D1 status:** `done` in bounded merged immutable-store and private offline",
       "**B-07D2 status:** `done` in bounded merged synthetic TEST_ONLY publisher and",
       "**B-07D3 status:** `done` in bounded merged authorized static-provider and",
-      "**B-07E status:** bounded `done` prepared for exact static inspection and the",
-      "**B-07F status:** `todo`, next eligible, unstarted, and outside this delivery"
+        "**B-07E status:** `done` in bounded merged exact-inspection and fail-closed",
+        "**B-07F status:** bounded `done` prepared for the resolved-plan fixture-only",
+        "**B-07G status:** `todo`, next eligible, unstarted, and outside this delivery"
       ]
     },
     {
       "id": "controlling-board-selection",
       "path": ".agent/WAVE_B.md",
       "required_markers": [
-      "**Version:** 2.9",
+        "**Version:** 3.0",
         "| B-05 | MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings | done |",
         "| B-07C | Nominal mock/practice service, practice pack, scaffold, rehearsal, and paired comparison | done |",
         "| B-07D1 | PriorPack schema, immutable store/index, estimands, receipts, and offline compatibility projection | done |",
         "| B-07D2 | TEST_ONLY publisher and persistent cumulative-disclosure ledger | done |",
         "| B-07D3 | Static exact/active provider, historical retrieval, and deterministic prior alignment | done |",
       "| B-07E | Static resource analysis, calibrated forecast seam, and receipt separation | done |",
-      "| B-07F | Resolved-plan fixture-official construction adapter behind unchanged v1 lifecycle | todo |",
-      "**Grouped prior completion / B-07E conditional closeout:** PR #95 normally"
+        "| B-07F | Resolved-plan fixture-official construction adapter behind unchanged v1 lifecycle | done |",
+        "**B-07E completion / B-07F conditional closeout:** PR #96 normally"
       ]
     },
     {
@@ -561,7 +567,7 @@
       "path": ".agent/tickets/B-07E_estimation_resources.md",
       "required_markers": [
       "**Status:** `done`",
-      "**Completion boundary:** bounded implementation and tests are complete in the",
+        "**Completed delivery:** PR #96 accepted head",
       "## Definition of Done",
       "## Delivered bounded behavior",
       "# Ticket B-07E - Prior alignment and resource-estimation seams"
@@ -574,7 +580,37 @@
         "**Primary Hub map_ref:** `WAVE-B/B-07E`",
         "## Implemented behavior",
         "UncalibratedResourceForecastProvider",
-        "B-07F remains"
+        "B-07F subsequently became eligible"
+      ]
+    },
+    {
+      "id": "b-07f-ticket-state",
+      "path": ".agent/tickets/B-07F_fixture_official_construction_adapter.md",
+      "required_markers": [
+        "**Status:** `done`",
+        "## Definition of Done",
+        "`Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md`",
+        "## Human input"
+      ]
+    },
+    {
+      "id": "b-07f-stable-evidence",
+      "path": ".agent/evidence/wave_b/b-07f.md",
+      "required_markers": [
+        "**Primary Hub map_ref:** `WAVE-B/B-07F`",
+        "## Implemented behavior",
+        "ResolvedPlanFixtureTrainEvalService",
+        "B-07G remains"
+      ]
+    },
+    {
+      "id": "b-07f-working-contract",
+      "path": "Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md",
+      "required_markers": [
+        "## 1. Ownership and placement",
+        "FixtureOfficialEntropy",
+        "fixture_sampling_level",
+        "TEST_ONLY_FIXTURE_NOT_QUALIFIED"
       ]
     },
     {
@@ -751,7 +787,8 @@
         "## 2026-09-07 — B-07D1-D1: Reuse the ratified pack and isolate private v1 projection",
         "## 2026-09-07 — B-07D2-D1: Authorize exact synthetic bytes with one durable commit",
       "## 2026-09-07 — B-07D3-D1: Separate nominal public and fixture static providers",
-      "## 2026-09-07 — B-07E-D1: Exact static projection and fail-closed forecast provenance"
+        "## 2026-09-07 — B-07E-D1: Exact static projection and fail-closed forecast provenance",
+        "## 2026-09-07 — B-07F-D1: Consume the registered sampling lever in a separate fixture adapter"
       ]
     },
     {
@@ -3936,7 +3973,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "Exact static inspection and the fail-closed forecast seam are implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07F remains next and unstarted.",
+      "current_stage": "PR #96 accepted and normally merged exact static inspection and the fail-closed forecast seam in bounded engineering scope. B-07F subsequently became eligible under its separate ticket.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for exact public static analysis and forecast validation mechanics. Ordinary forecasting remains UNRESOLVED without authorized calibration; qualification, quotes/admission, economics, production, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -3959,12 +3996,12 @@
       "id": "B-07F",
       "wave": "B",
       "title": "Fixture-official construction adapter",
-      "status": "todo",
+      "status": "done",
       "phase": "WB-3/4",
       "one_line": "Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle.",
       "what": "Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle.",
       "why": "Wave B needs one explicit adapter that proves the compiled plan can enter the existing bounded lifecycle without hiding integration inside a gauntlet or closeout ticket.",
-      "adds": "The fixture-only bridge from strategy compilation to official-shaped execution.",
+      "adds": "A separate provider that compiles through B-02B, checks B-02C, consumes one registered canonical lever, performs deterministic fixture-only construction and held-out measurement, scores through A5, and emits private exact receipts.",
       "does_not": "It does not implement production reconstruction, arbitrary code, real training, scientific evidence, or emissions.",
       "depends_on": [
         "B-02B",
@@ -3992,15 +4029,46 @@
       "repo_links": [
         {
           "label": "Repo ticket",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-07F_fixture_official_construction_adapter.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/tickets/B-07F_fixture_official_construction_adapter.md"
         },
         {
           "label": "Wave B controlling board",
-          "url": "https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md"
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/WAVE_B.md"
+        },
+        {
+          "label": "B-07F adapter contract",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/Design_Specs/Resolved_Plan_Fixture_Construction_Adapter_Contract.md"
+        },
+        {
+          "label": "B-07F implementation plan",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/plans/B-07F_fixture_official_construction_adapter.md"
+        },
+        {
+          "label": "B-07F stable evidence",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/evidence/wave_b/b-07f.md"
+        },
+        {
+          "label": "Fixture-only adapter implementation",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/carbon/traineval/resolved_fixture.py"
+        },
+        {
+          "label": "B-07F working-decision notice",
+          "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": null,
-      "orientation_note": "This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.",
+      "current_stage": "The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.",
+      "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for fixed synthetic fixture plumbing. Real reconstruction, scientific/security/rights qualification, production, and LIVE remain unearned.",
+      "maturity_states": {
+        "specified": "earned",
+        "implemented": "earned",
+        "tested": "earned",
+        "scientifically_qualified": "unearned",
+        "security_qualified": "unearned",
+        "network_qualified": "unearned",
+        "commercially_validated": "unearned",
+        "production_qualified": "unearned"
+      },
+      "orientation_note": "The new provider is structurally separate from A8's frozen stub, consumes only a canonical registered lever, uses FixtureOfficialEntropy and fixed fixture refs, and cannot grant official or production authority.",
       "unlocks": [
         "B-E4",
         "B-GATE"
