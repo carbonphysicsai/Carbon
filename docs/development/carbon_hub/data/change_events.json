@@ -1350,6 +1350,37 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "adjustment",
+      "event_id": "HUB-CURRENT-POSITION-01",
+      "owner_lane": "documentation_maintenance",
+      "status": "implemented",
+      "summary": "The Hub now derives present-tense development position from one canonical record: Wave B is active, B-E2 is the last completed ticket, PR #105 merged B-E4's bounded successor validation repair, B-E4 remains selected and in progress behind its verified-ratification and execution-evidence block, and no later ticket is selected.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/105",
+      "affects": [
+        "WAVE-B/B-01G",
+        "WAVE-B/B-01H",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-07S",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-E4",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING"
+      ],
+      "supersedes": null
     }
   ]
 }

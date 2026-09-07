@@ -27,13 +27,35 @@
     "wave": "B",
     "wave_title": "Science-ready authoring skeletons",
     "wave_status": "active in bounded development scope",
-    "ticket": "B-E4",
-    "ticket_title": "Agent utility, leakage, poisoning, and aligned-cheating gauntlet",
-    "ticket_status": "in_progress",
+    "last_completed_ticket": {
+      "id": "B-E2",
+      "title": "Julia and reference failure contract",
+      "status": "done",
+      "summary": "B-E2 is complete in bounded engineering scope. Its B-E2-R1 nested-response validation repair passed acceptance and normally merged in PR #102.",
+      "delivery": {
+        "reference": "PR #102",
+        "status": "merged",
+        "url": "https://github.com/carbonphysicsai/Carbon/pull/102",
+        "merge_commit": "b5608b46973869d93300d961749a860096aa6db4"
+      }
+    },
+    "selected_ticket": {
+      "id": "B-E4",
+      "title": "Agent utility, leakage, poisoning, and aligned-cheating gauntlet",
+      "status": "in_progress",
+      "summary": "PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its bounded successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration.",
+      "delivery": {
+        "reference": "PR #105",
+        "status": "merged",
+        "url": "https://github.com/carbonphysicsai/Carbon/pull/105",
+        "merge_commit": "5932ed7870e8684f1c2532f129e5ed42c597d77f"
+      }
+    },
+    "next_selected_ticket": null,
     "controlling_register": ".agent/WAVE_B.md",
     "controlling_register_version": "3.6",
     "controlling_board_fingerprint": "a020eb45dec184ae36237f235910101384ee04ff5e3bc3ee45d8b4db750fe91b",
-    "stage": "The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.",
+    "stage": "Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted.",
     "most_recent_closed_wave": "A",
     "completed_wave_tickets": [
       "B-01",
@@ -98,7 +120,6 @@
     "parallel_context": [
       "B-01G remains todo as a future non-blocking tooling proof."
     ],
-    "next_selected_ticket": null,
     "fail_closed": [
       "PR #94 reconciled B-05 and B-07C as bounded merged work; it did not authorize practice-result ingestion, scientific qualification, official outcomes, security acceptance, production readiness, or LIVE.",
       "PR #95 completed B-07D1/D2/D3 only in their bounded engineering scopes; B-07D2 accepts synthetic records only and public prior activation remains unavailable.",
@@ -2957,7 +2978,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/WAVE_B.md"
         }
       ],
-      "current_stage": "B-01G remains queued and unstarted as future todo tooling work. It was explicitly non-blocking for B-04 and is not the selected B-05 contract/implementation ticket.",
+      "current_stage": "B-01G remains todo and unstarted as future non-blocking tooling work.",
       "maturity_ceiling": "SPECIFIED only as a future tooling ticket. IMPLEMENTED, TESTED, domain migration, and every scientific, security, network, commercial, production, LIVE, launch, and qualification state remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -3024,7 +3045,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/pull/86#issuecomment-5548725328"
         }
       ],
-      "current_stage": "PR #86 comment 5548725328 records B-01H's complete exact-head review, distinct approval, reviewed-tree-preserving merge, and receipt predicate; its exact-main run was canceled by owner direction after exact-head delivery passed. B-01H is done in bounded development-tooling scope and B-05 is active.",
+      "current_stage": "B-01H is done in bounded development-tooling scope. Historically, PR #86 completed its delivery predicate and selected B-05; B-05 later completed and is not current or active.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are earned only for the bounded merged development-tooling scope. Scientific, security, network, commercial, production, LIVE, and qualification authority remain unearned; the installed Codex adapter remains unavailable.",
       "maturity_states": {
         "specified": "earned",
@@ -3535,7 +3556,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "PR #88 completed B-06 in bounded merged engineering scope after applicable acceptance and Merge gate. B-05 retains its incomplete historical state with no active work; B-E3 was selected next.",
+      "current_stage": "B-06 is done in bounded merged engineering scope after PR #88 passed applicable acceptance and Merge gate. Its former B-E3 handoff is historical; B-E3 later completed.",
       "maturity_ceiling": "The reconciled contract, four implementation slices, nine bounded review repairs, and automated acceptance earn bounded SPECIFIED, IMPLEMENTED, and TESTED only; scientific, security, network, commercial, production, qualification, and LIVE authority remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -3679,7 +3700,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "B-07S is done under its OWNER-DX-03 shipping predicate in bounded SPECIFIED / RATIFIED protocol scope. It freezes the exact local v2 wire, lifecycle, prior identity, context capability, disclosure, and single-owner composition contract without implementing B-07A-G. B-07A is next, todo, and unstarted.",
+      "current_stage": "B-07S is done in bounded SPECIFIED / RATIFIED protocol scope. It froze the exact local v2 wire and authority boundaries; the downstream B-07A-G tickets later completed in their own bounded scopes.",
       "maturity_ceiling": "B-07S earns SPECIFIED / RATIFIED only. Runtime implementation/testing and scientific, security, network, commercial, production, and LIVE qualification remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -3765,7 +3786,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "B-07A is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED shared-core and discovery scope. It adds the exact shared v2 vocabulary, ChallengeInfo, the sole InteractionManifest wire resource, immutable historical discovery, and a local two-operation adapter. B-07B is next, todo, and unstarted.",
+      "current_stage": "B-07A is done in bounded IMPLEMENTED / TESTED shared-core and discovery scope. Its former B-07B handoff is historical; B-07B later completed.",
       "maturity_ceiling": "B-07A earns IMPLEMENTED and TESTED only for the shared v2 nominal core, discovery resources, immutable exact-version store, and local two-operation adapter. Full-service conformance and every qualification remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -3834,7 +3855,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/evidence/wave_b/b-07b.md"
         }
       ],
-      "current_stage": "B-07B is done under its OWNER-DX-03 shipping predicate in bounded IMPLEMENTED / TESTED local lifecycle, private-record, and receipt scope. B-07D1 is next, todo, and unstarted; B-07C remains todo behind B-05's incomplete ordinary delivery record.",
+      "current_stage": "B-07B is done in bounded IMPLEMENTED / TESTED local lifecycle, private-record, and receipt scope. Its former B-07C and B-07D1 handoffs are historical; both later completed.",
       "maturity_ceiling": "B-07B earns IMPLEMENTED and TESTED only for the local task lifecycle, private ExperimentRecords, and bounded receipts. No scientific, security, rights, network, production, official-outcome, or LIVE qualification is earned.",
       "maturity_states": {
         "specified": "earned",
@@ -4203,7 +4224,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "PR #96 accepted and normally merged exact static inspection and the fail-closed forecast seam in bounded engineering scope. B-07F subsequently became eligible under its separate ticket.",
+      "current_stage": "B-07E is done in bounded static-inspection and fail-closed forecast scope. Its former B-07F handoff is historical; B-07F later completed.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for exact public static analysis and forecast validation mechanics. Ordinary forecasting remains UNRESOLVED without authorized calibration; qualification, quotes/admission, economics, production, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4286,7 +4307,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "PR #97 accepted and normally merged the fixture-only resolved-plan adapter. B-07F is done only in bounded TEST_ONLY engineering scope.",
+      "current_stage": "B-07F is done in bounded TEST_ONLY engineering scope after PR #97. Its former B-07G handoff is historical; B-07G later completed.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for fixed synthetic fixture plumbing. Real reconstruction, scientific/security/rights qualification, production, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4362,7 +4383,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/carbon/research/service.py"
         }
       ],
-      "current_stage": "PR #98 accepted and normally merged B-07G; it is done only in bounded local composition/conformance scope.",
+      "current_stage": "B-07G is done in bounded local composition/conformance scope after PR #98. Its former B-E1 handoff is historical; B-E1 later completed.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for local fixture-contract composition. Scientific, security, rights, network, commercial, production, qualification, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4429,7 +4450,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/Design_Specs/Reproducibility_Harness_Contract.md"
         }
       ],
-      "current_stage": "PR #99 accepted and normally merged B-E1; it is done only in bounded TEST_ONLY reproducibility scope.",
+      "current_stage": "B-E1 is done in bounded TEST_ONLY reproducibility scope after PR #99. Its former B-E2 handoff is historical; B-E2 later completed.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for deterministic TEST_ONLY reproducibility fixtures. Every scientific, security, network, commercial, production, ranking, frontier, and LIVE authority remains unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4495,7 +4516,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/carbon/evaluation/service_fixtures.py"
         }
       ],
-      "current_stage": "PR #102 normally merged the bounded B-E2-R1 successor repair. B-E4 engineering is now active; the qualifying gauntlet remains blocked on preregistration.",
+      "current_stage": "B-E2 is done in bounded fixture-engineering scope. PR #102 merged its B-E2-R1 successor repair; B-E4 subsequently became the selected in-progress ticket.",
       "maturity_ceiling": "SPECIFIED, IMPLEMENTED, and TESTED are prepared only for the exact service seam and deterministic TEST_ONLY fixtures. Julia runtime, numerical methods, scientific/security qualification, production, ranking, frontier, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4569,7 +4590,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/issues/42"
         }
       ],
-      "current_stage": "B-E3 is done in bounded structural engineering scope after wrapping exact B-06 evidence identities with fail-closed claim support, permitted-use, maturity, limitation, unresolved-input, MMS, canonicalization, and audience-disclosure checks. B-07S is next, todo, and unstarted.",
+      "current_stage": "B-E3 is done in bounded structural engineering scope. Its former B-07S handoff is historical; B-07S and the downstream B-07 service tickets later completed in their own bounded scopes.",
       "maturity_ceiling": "B-E3 is specified, implemented, and tested only for the bounded structural crosswalk and report. Scientific/security qualification, independent adequacy, standards compliance, commercial validation, production qualification, and LIVE remain unearned.",
       "maturity_states": {
         "specified": "earned",
@@ -4646,7 +4667,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/tests/cpu/test_be4_successor_validation_repair.py"
         }
       ],
-      "current_stage": "The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.",
+      "current_stage": "PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration.",
       "maturity_ceiling": "B-E4 is specified, implemented, and tested only for the bounded fixture-engineering harness. Utility, leakage, diversity, scientific, security, production, and LIVE qualification remain unearned.",
       "maturity_states": {
         "specified": "earned",

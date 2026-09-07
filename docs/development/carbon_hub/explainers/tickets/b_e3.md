@@ -32,7 +32,7 @@ A crosswalk cannot fill an evidence gap, trust an asserted owner or qualificatio
 
 ## Current stage
 
-B-E3 is done in bounded structural engineering scope after wrapping exact B-06 evidence identities with fail-closed claim support, permitted-use, maturity, limitation, unresolved-input, MMS, canonicalization, and audience-disclosure checks. B-07S is next, todo, and unstarted.
+B-E3 is done in bounded structural engineering scope. Its former B-07S handoff is historical; B-07S and the downstream B-07 service tickets later completed in their own bounded scopes.
 
 ## Maturity ceiling
 

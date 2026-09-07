@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 57 map-level change events
+- 58 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-E4** (`in_progress`). The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted.
 
 ## Maintain
 

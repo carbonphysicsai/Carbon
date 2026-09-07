@@ -74,6 +74,16 @@ public-safe `data/decisions.json` index directly and hands responses back to the
 canonical GitHub decision location. It does not authenticate, write to GitHub,
 or replace `.agent/DECISIONS.md` or issue #42.
 
+## Canonical current position
+
+Present-tense development position is maintained only in
+`data/hub_data_v2.json` under `current`. The structure separates the last
+completed ticket, the nullable selected/active ticket, and the next selected
+ticket. Generated pages and ticket explainers project those roles through the
+renderer. Newcomer and validator projection files may preserve explicitly
+historical context, but must not carry independently maintained current-stage
+or active-ticket prose.
+
 ## Required update points
 
 Reconcile hub source at ticket start and again before closeout. Update it when
@@ -197,8 +207,10 @@ reduced-motion aware, and free of automatic remote resources. Every captured
 Wave and ticket leads with the required plain-language questions and retains
 its canonical record in an inline technical-detail disclosure. Newcomer copy
 is a projection bound to the same stable map reference, never a second
-authority record. Validation is engineering evidence only; it grants no later
-maturity.
+authority record. Semantic validation must reject role contradictions, stale
+active/current language, todo tickets described as started, and merged delivery
+described as awaiting merge. Validation is engineering evidence only; it
+grants no later maturity.
 
 The completion report must include `Hub Impact`, the primary `map_ref`, changed
 source/events or the specific no-impact reason, regeneration status, and exact

@@ -4,7 +4,7 @@
   "product_decision": "OWNER-HUB-01",
   "title": "Carbon Independent Exam / Validator Execution Map",
   "purpose": "One canonical target process for qualifying Carbon's exam and then executing that qualified exam for each candidate.",
-  "current_maturity": "Target-state orientation only. Carbon is currently in Wave B authoring work. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam.",
+  "maturity_boundary": "The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam.",
   "science_boundary": "Science ends after R14 produces the canonical scientific result. R15 is a separate network and economic policy decision and cannot rewrite scientific truth.",
   "depths": [
     "Investor",
@@ -101,7 +101,7 @@
           "engineer": "Thresholds and transforms are evidence-backed frozen configuration, not validator-tunable constants.",
           "cfd": "Candidate differences below discretization, interpolation, reference, or test-set uncertainty are not meaningful improvements.",
           "physics_phd": "Define estimands, admissibility tests, and decision procedures with qualified uncertainty propagation.",
-          "maturity_note": "B-05 authoring is current Wave B work; no real thresholds, weights, or scientific qualification are implied.",
+          "maturity_note": "B-05 authoring is completed historical Wave B work; no real thresholds, weights, or scientific qualification were earned.",
           "authority": [
             {"label": "Scoring", "path": "../../../Design_Specs/Scoring.md"},
             {"label": "Evaluation Evidence and Validator Audit", "path": "../../../Design_Specs/Evaluation_Evidence_and_Validator_Audit.md"}
