@@ -1,8 +1,8 @@
 # Codex handoff: Wave B miner research buildout
 
 **Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 2.3
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 2.3
+**Governance version:** 3.3
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 3.3
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Exact service protocol:** [`../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`](../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md) version 2.0.0, effective after the B-07S OWNER-DX-03 shipping predicate
 **Current ticket:** derive the selected ticket and status from the exact fetched
@@ -22,16 +22,17 @@ OWNER-DX-03 controls delivery: one ticket PR, one applicable acceptance on the
 ready revision, no mandatory reviewer/receipt/approval ceremony, and normal
 expected-head merge. Historical review evidence remains immutable.
 
-## Current transition — B-07S ratified, B-07A next
+## Current transition — B-E1 merged, B-E2 candidate, B-E4 next
 
-PR #88 normally merged B-06 after its accepted revision passed `Merge gate`;
-completion comment `5560216570` selected B-E3. The B-E3 shipping snapshot
-completes the bounded credibility crosswalk, validation, canonicalization, and
-audience-safe report. B-05 retains its incomplete historical record with no
-active work. The Version-2.3 shipping snapshot conditionally completes B-07S's
-exact local protocol ratification after applicable acceptance and normal
-merge. B-07A is next, `todo`, and unstarted. No runtime implementation or
-scientific, security, standards, production, or LIVE qualification follows.
+Accepted B-E1 head `831a34598f3f28ad8c05490244a4e0509473ac41`
+passed run `34124228848`, including `Merge gate`, and normally merged as the
+second parent of main `c484fd308d866d4b05a2765a984ec014dd96386e`. Version
+3.3 implements B-E2's exact registered-service failure seam and deterministic
+TEST_ONLY evidence graph without restoring Julia or granting numerical
+authority. B-E2 is conditionally `done` only after applicable acceptance and
+normal merge. B-E4 remains next, `todo`, and unstarted. No Julia repair,
+scientific qualification, production reference service, candidate scoring,
+ranking, frontier, network, settlement, emission, or LIVE authority follows.
 
 ## 1. Completed foundations, B-04 runtime, and B-01F completion
 

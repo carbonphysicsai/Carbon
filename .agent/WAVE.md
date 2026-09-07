@@ -9,15 +9,15 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.2
-**Selected ticket:** B-E1 — `done`
+**Controlling register:** `.agent/WAVE_B.md` version 3.3
+**Selected ticket:** B-E2 — `done`
 **Selected-ticket start state:** implemented and tested in the current candidate
 **Selected-ticket completion boundary:** bounded `done` becomes authoritative
 when the unchanged candidate satisfies OWNER-DX-03 acceptance and normally
 merges
-**Next selected ticket:** `B-E2`
-**Selection boundary:** stop after B-E1; do not start B-E2 or later work
-**Next eligible status:** B-E2 remains `todo` and unstarted
+**Next selected ticket:** `B-E4`
+**Selection boundary:** stop after B-E2; do not start B-E4 or later work
+**Next eligible status:** B-E4 remains `todo` and unstarted
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -67,9 +67,12 @@ forecast scope after PR #96 acceptance and normal merge
 PR #97 acceptance and normal merge
 **B-07G status:** `done` in bounded merged local v2 composition/conformance
 scope after PR #98 accepted and normally merged
-**B-E1 status:** bounded `done` prepared for exact fixture reproducibility and
-evidence-audit scope; authoritative on accepted normal merge
-**B-E2 status:** `todo`, next eligible, unstarted, and outside this delivery
+**B-E1 status:** `done` in bounded merged fixture reproducibility and
+evidence-audit scope after accepted head `831a34598f3f28ad8c05490244a4e0509473ac41`
+passed run `34124228848` and normally merged
+**B-E2 status:** bounded `done` candidate for the exact registered-service
+failure seam and deterministic TEST_ONLY evidence graph; authoritative only
+after applicable acceptance and normal merge
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
@@ -191,18 +194,20 @@ evidence-audit scope; authoritative on accepted normal merge
 > real reconstruction, arbitrary-code isolation, scientific/security/rights
 > qualification, ranking, production, or LIVE authority is introduced.
 
-> **B-07G completion / B-E1 conditional closeout under OWNER-DX-03.** PR #98
+> **B-E1 completion / B-E2 conditional closeout under OWNER-DX-03.** PR #98
 > normally merged accepted head `7b88bc4aa1138d264aaa3f98d35f5a79a318c655`
 > as `527877bdd132c33569ac64c11b0a4360f5a08718` after run `34109277665`
-> passed applicable acceptance and Merge gate. B-07G is therefore `done` in
-> bounded local composition/conformance scope. This candidate specifies,
-> implements, and tests B-E1's separate R0/R1/R2 fixture results, exact crossed
-> evidence, injected qualified decision seams, typed contested outcomes, and
-> staged B-05 audit. Its bounded `done` state and B-E2 handoff become
+> passed applicable acceptance and Merge gate. PR #99 accepted B-E1 head
+> `831a34598f3f28ad8c05490244a4e0509473ac41` then passed run `34124228848`
+> and normally merged as the second parent of
+> `c484fd308d866d4b05a2765a984ec014dd96386e`. B-E1 is therefore `done` in its
+> bounded fixture-reproducibility scope. This candidate specifies, implements,
+> and tests B-E2's registered reference-service failure seam and deterministic
+> TEST_ONLY evidence graph. Its bounded `done` state and B-E4 handoff become
 > authoritative only after applicable acceptance and normal expected-head
-> merge. No scientific value, qualification, production backend, ranking,
-> frontier, network, settlement, emission, or LIVE authority is introduced;
-> B-E2 remains unstarted.
+> merge. No Julia repair, scientific value, qualification, production backend,
+> ranking, frontier, network, settlement, emission, or LIVE authority is
+> introduced; B-E4 remains unstarted.
 
 > **B-01H completed; B-05 selected.** PR #86's normalized completion receipt
 > at comment `5548725328` proves the complete B-01H predicate prepared by the

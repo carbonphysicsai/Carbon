@@ -77,9 +77,11 @@ qualification, staged B-05 audit reuse, and structural TEST_ONLY isolation.
 The SciML / Technical Lead notification is routed through issue #42 under the
 delegated-decision protocol; silence is non-blocking under OWNER-DX-03.
 
-B-E1 bounded completion becomes authoritative only after the unchanged
-candidate passes applicable acceptance and normally merges. B-E2 remains
-`todo`, next selected, and unstarted.
+That boundary is now satisfied. Accepted head
+`831a34598f3f28ad8c05490244a4e0509473ac41` passed run `34124228848`,
+including `Merge gate`, and normally merged as the second parent of main
+`c484fd308d866d4b05a2765a984ec014dd96386e`. B-E1 is therefore `done` in its
+bounded engineering scope; the merged records selected B-E2 next.
 
 ## Human-owned inputs and unavailable capability
 
