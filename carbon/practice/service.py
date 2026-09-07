@@ -37,6 +37,11 @@ from carbon.seeding import (
     SeedPin,
     derive_mock_seed,
 )
+from carbon.toy import (
+    FIXTURE_HELDOUT_OBSERVATIONS,
+    FIXTURE_TRAINING_OBSERVATIONS,
+    construct_fixture_model,
+)
 
 from .model import (
     MockFixtureBehavior,
@@ -200,9 +205,18 @@ class MockTrainEvalService:
         return int.from_bytes(material[:8], "big") / float(1 << 64)
 
     @staticmethod
-    def _plan_bias(plan) -> float:
-        raw = hashlib.sha256(plan.canonical_bytes()).digest()
-        return (int.from_bytes(raw[:8], "big") / float(1 << 64) - 0.5) / 5.0
+    def _toy_level(plan) -> int:
+        matches = tuple(
+            surface
+            for surface in plan.resolved_surfaces
+            if surface.surface_id == "fixture_sampling_level"
+        )
+        if len(matches) != 1 or type(matches[0].value.value) is not int:
+            raise PracticeExecutionError("registered toy lever is unavailable")
+        level = matches[0].value.value
+        if level not in (1, 2):
+            raise PracticeExecutionError("registered toy lever value is unsupported")
+        return level
 
     def _context(
         self, attempt: ResearchExecutionAttempt, pack: MockPracticePack
@@ -482,19 +496,30 @@ class MockTrainEvalService:
                 )
             )
         eval_values: list[tuple[float, float]] = []
-        biases = [
-            self._plan_bias(item.resolved_plan) for item in attempt.resolved_strategies
-        ]
+        coefficients = []
+        for strategy_index, item in enumerate(attempt.resolved_strategies):
+            seed = derive_mock_seed(
+                context, RoleKey("practice_training_role"), strategy_index
+            ).as_backend_bytes()
+            coefficient, _ = construct_fixture_model(
+                FIXTURE_TRAINING_OBSERVATIONS,
+                self._toy_level(item.resolved_plan),
+                seed,
+            )
+            coefficients.append(coefficient)
         for index in range(pack.evaluation_case_count):
             x = self._unit_interval(
                 derive_mock_seed(context, RoleKey("practice_evaluation_case"), index)
             )
-            reference_jitter = self._unit_interval(
-                derive_mock_seed(context, RoleKey("practice_reference"), index)
-            )
-            reference = x * x + reference_jitter / 1000.0
+            fixture_x, fixture_y = FIXTURE_HELDOUT_OBSERVATIONS[
+                index % len(FIXTURE_HELDOUT_OBSERVATIONS)
+            ]
+            # Fresh mock cases jitter the public toy coordinates without exposing
+            # B-07F's fixture-official seed or result path.
+            shifted_x = float(fixture_x) + x / 100.0
+            reference = float(fixture_y) + (2.0 * fixture_x * x / 100.0)
             errors = tuple(
-                abs((reference + bias * (0.5 + x)) - reference) for bias in biases
+                abs(coefficient * shifted_x - reference) for coefficient in coefficients
             )
             if len(errors) == 1:
                 eval_values.append((errors[0], errors[0]))

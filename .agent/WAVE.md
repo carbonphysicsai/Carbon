@@ -9,15 +9,14 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.4
-**Selected ticket:** B-E2 — `done`
-**Selected-ticket delivery:** PR #100 normally merged B-E2 as
-`602628d3c62f01524336db888da8fcfc7ed379d7`; bounded successor repair
-B-E2-R1 is complete in the current candidate and must pass OWNER-DX-03
-acceptance and normal merge before B-E4 starts
-**Next selected ticket:** `B-E4`
-**Selection boundary:** stop after B-E2; do not start B-E4 or later work
-**Next eligible status:** B-E4 remains `todo` and unstarted
+**Controlling register:** `.agent/WAVE_B.md` version 3.5
+**Selected ticket:** B-E4 — `in_progress`
+**Selected-ticket delivery:** B-E2-R1 normally merged in PR #102 at accepted
+head `5b35a7964a25df098b3cb9332c75a5618bd2f645` as
+`b5608b46973869d93300d961749a860096aa6db4`; B-E4 engineering may proceed
+**Selection boundary:** B-E4 qualifying execution and completion remain blocked
+on complete human-ratified preregistration; B-GATE remains unstarted
+**Next eligible status:** no later ticket is selected
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -71,8 +70,12 @@ scope after PR #98 accepted and normally merged
 evidence-audit scope after accepted head `831a34598d6779d369f01de3523c3d8ee0385d18`
 passed run `34124228848` and normally merged
 **B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
-#100. The B-E2-R1 successor candidate repairs nested response validation
+#100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
+**B-E4 status:** `in_progress`; the unblocked fixture engineering harness,
+schemas, semantic toy repair, integrity matrix, and shadow-case seam are in the
+current candidate. Qualifying execution and completion remain fail-closed on
+the complete human-ratified preregistration. B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

@@ -11722,3 +11722,49 @@ block or change is observed.
 **Record:** `GOV-EVIDENCE-RESEARCH-02`, the canonical evidence/research design and focused companions, and `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`.
 
 **Authority:** This is documentation consolidation under the existing owner decision. It creates no runtime, security/scientific/commercial qualification, deployment, launch, LIVE, pricing, retention, rights, or production decision. The full v0.3 ZIP was read and mapped as design input; stale v0.2 identifiers/links, permissive starter schemas, missing validator inputs, and a manifest/report mismatch were recorded rather than promoted to repository or runtime authority.
+
+## 2026-09-08 — B-E4-D1: fail-closed typed experiment shell
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decisions; qualifying execution blocked
+
+**Problem.** B-E4 needs an agent/measurement/integrity/leakage harness before
+the owner-ratified design values exist. B-07C's hash-derived plan bias is not a
+semantic utility fixture, while B-07F already implements a registered toy
+lever. The implementation must not duplicate service planes, invent decision
+thresholds, expose shadow cases, or treat fixture outcomes as authority.
+
+Add a separate
+`carbon.gauntlet` fixture-engineering layer. It wraps the exact B-07G research
+service and unchanged Wave-A MCP service, represents the five profiles and four
+arms without implementing arbitrary agent code, freezes the v2 TEST_ONLY
+pack/authorization pair across replicates, and separates raw observations from
+opaque human preregistration inputs. A qualifying record is impossible while
+any input or same-design owner ratification is missing.
+
+## 2026-09-08 — B-E4-D2: factor, do not duplicate, toy semantics
+
+Move B-07F's
+deterministic toy fit/reference math to neutral `carbon.toy` semantics, retain
+B-07F compatibility seams, and make B-07C use the same registered
+`fixture_sampling_level` under its separate mock context. This repairs semantic
+responsiveness without merging practice and fixture-official evidence or
+changing B-02B/B-02C/B-03/B-04/B-05/A5/A7/A8 ownership.
+
+**Alternatives rejected.** A built-in threshold or decision function would
+invent science/statistics/security policy. A generic direct-domain agent API
+would bypass B-07S/B-07G. Reusing the plan hash would not establish causal toy
+behavior. Calling B-07F directly from practice would collapse seed, lifecycle,
+and evidence domains. Copying B-07F math into a new B-E4 evaluator would create
+two semantic owners.
+
+**Affected interfaces and later work.** Existing v1/v2 public contracts remain
+unchanged. B-E4 qualifying execution awaits exact owner inputs. B-GATE remains
+unstarted. The change is reversible by removing the new package and restoring
+the private B-07F helpers; any public or production migration requires new
+authority.
+
+**Human-reserved input.** The representative profiles, matched time/compute
+budgets, utility estimand, practical effect floor, uncertainty-aware decision
+rule, intervention-diversity metric and floor, conditional-leakage limit, and
+research/protocol/science/statistics/security ratifications remain absent.
