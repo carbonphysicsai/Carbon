@@ -547,3 +547,7 @@ Canon law:
 And the non-negotiable boundary remains:
 
 > **Commercial pressure does not rewrite scientific truth.**
+
+# 23. Research productivity doctrine (2026-09-08)
+
+Carbon may monetize research productivity, workflow, hosted non-official work, and rights-cleared non-exam evidence without selling privileged access to the scientific judge. Official-derived scientific content and release timing remain equal for free and paid miners. Research Access/Copilot is an adjacent candidate validated only through `G-PR0..5`; Evidence Audit remains the established first entry product. Interest, questions, budget intent, and design do not prove demand, authorize spend, or establish revenue.

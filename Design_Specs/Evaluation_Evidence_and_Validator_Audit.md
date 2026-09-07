@@ -533,3 +533,7 @@ Nothing in this specification is automatically PRODUCTION-QUALIFIED because it i
 - Future proof-readiness does not imply a ZK system exists.
 
 Existing Carbon maturity vocabulary remains mandatory: **SPECIFIED / IMPLEMENTED / TESTED / PRODUCTION-QUALIFIED**.
+
+## 16. Durable archive amendment (2026-09-08)
+
+For future real official execution, the owner-issued transcript/receipt remains the scientific/evaluation authority, while `C-EA0..3` durably captures its required source evidence. Canonical result finalization waits for the approved archive acknowledgement; a signature, digest, locator, or catalogue row alone is not data availability. Missing archive evidence is an evidence/infra condition, not a candidate physics failure. Corrections and supersession append dependency state and never silently rescore historical official results. See `Evidence_Archive_and_Custody.md`.

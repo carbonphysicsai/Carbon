@@ -516,3 +516,7 @@ Trying to compress all of these values into one score would weaken interpretabil
 The intended compounding loop is instead:
 
 > **Economic competition produces controlled experiments. Controlled experiments produce evidence. Evidence becomes physics intelligence. Physics intelligence improves what Carbon searches, tests, and qualifies next — while physics remains the external authority that no internal learning layer can vote away.**
+
+# 15. Research-demand and guidance amendment (2026-09-08)
+
+D12 demand is a permission-aware non-scientific planning signal. It may help identify ResearchGaps and propose experiments/resources/products through Ports A-D, but popularity, accounts, budget statements, quotes, or purchases cannot become truth, scores, emissions, or automatic funding. Guidance records preserve source/claim/response/action/outcome lineage and corrections. Self-reported outcomes remain self-report; prospective study design and existing epistemic types control stronger claims. See `Research_Concierge_Demand_and_Correction.md` and `E-RI1`.

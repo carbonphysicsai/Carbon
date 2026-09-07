@@ -399,6 +399,10 @@ the bounded implementation.
 | bounded `TrainingStrategy` search | Yes | A2 schema; real search runtime incomplete | No | P0 foundation |
 | miner MCP research loop | Yes — bounded Wave-A control plane; broader loop remains design | Yes — exact seven-tool bounded in-process control/disclosure skeleton | No | Bounded control plane implemented and tested; transport, authentication, production providers, mock/light execution, adaptive loop, and end-to-end integration remain unimplemented and unqualified |
 | Landscape evidence memory | Yes | no canonical production system | No | Wave E |
+| official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 + C-EA0..3 reserved | No | No | Future C1; durability/retention/security/deployment decisions unearned |
+| Research Concierge | Yes — C-DC1..4 reserved | No | No | Future authenticated launch product; not Challenge qualification |
+| EvidenceBrief pipeline | Yes — E-EB1/E-EA6/E-EA7 reserved | No | No | Future offline approval/release/correction path |
+| D12 Research Demand Graph | Yes — C capture + E-D12 aggregation reserved | No | No | Demand planning only; never scientific evidence |
 | model-family-neutral reconstruction | Yes direction | No | No | Wave J |
 | `ModelConstructionStrategy` | Yes ontology | No | No | future Wave K |
 | `ConstructionProgram` | Yes future ontology | No | No | future Wave K/L |
@@ -422,6 +426,8 @@ the bounded implementation.
 | API/OEM | Yes | No | later distribution rail |
 | Frontier Market | Yes | No | later network-marketplace layer |
 | Physics Intelligence commercial product | Yes concept | No | forbidden to market as proven until prospective lift exists |
+| paid Research Copilot | Yes — G-PR0..5 reserved | No | no pilot, entitlement, billing, hosted execution, or commercial evidence |
+| advanced Research Scientist | Yes — passive post-E/G direction | No | no selected ticket; prospective utility/leakage qualification required |
 
 Business architecture is canonical; business traction remains to be earned.
 
@@ -452,12 +458,12 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **At planning base `7161fe3c4a04821b7f676ab006bd5d313d0442d2`,
-> tree `619e366dead2288ccfd312f54ad09f17f86a1c62`, Carbon has an
-> integrated constitutional architecture, a tested bounded foundation, and
-> active Wave-B governance with B-04 selected `in_progress`. `OWNER-NET-01`
-> prospectively specifies only the post-Wave-B C0/C1/C2 → D → H → I launch
-> path. Bittensor integration, testnet weights, network qualification,
-> scientific qualification, treasury, economic qualification, LIVE, mainnet,
-> and production qualification all remain unimplemented/unearned. Wave B is
-> not reordered and no future implementation ticket is selected.**
+> **At the current documentation integration base `91b023a`, Carbon has an
+> integrated constitutional architecture and tested bounded foundation.
+> `.agent/WAVE.md` records Wave B with B-E1 done and B-E2 next, todo and
+> unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
+> OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
+> specified only. Archive, Concierge, EvidenceBrief, D12, paid research,
+> advanced Research Scientist, network, scientific/security/commercial/
+> production qualification, LIVE, mainnet and settlement all remain
+> unimplemented or unearned, and no future ticket is selected.**

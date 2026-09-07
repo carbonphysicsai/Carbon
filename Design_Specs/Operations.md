@@ -407,3 +407,7 @@ Detailed SciML deploy/restore steps: §5.6.
 ---
 
 *v3.2: target operations contract with explicit job classes, Challenge-bound reference authority, fail-closed reference outages, and isolated promotion work. Desired infrastructure remains unproven until implemented and qualified.*
+
+# 14. Evidence/research operations reservation (2026-09-08)
+
+Future `C-EA1..3` and `C-DC4` acceptance must declare archive acknowledgement/fault domains, storage admission/backpressure, object/catalogue/key restore integrity, orphan reconciliation, and kill switches. Saturation tests cover DB pools/locks, object throughput/quotas, network, KMS, queues, compute, caches, and telemetry. Official evidence capture receives reserved admission; dialogue, analytics, and commercial work degrade first. If the approved guarantee cannot be preserved, canonical finalization fails closed rather than dropping evidence.

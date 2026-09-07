@@ -12,7 +12,7 @@ Focused normative companions provide implementation detail without duplicating s
 - [Paid Research and Opportunity Evaluation](./Paid_Research_and_Opportunity_Evaluation.md) owns future paid-pilot, entitlement, campaign, hosted-research, billing, and evaluation semantics.
 - [Requirements traceability and handoff](../.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md) maps every requirement to the 21 passive future tickets, dependencies, acceptance, and human decisions.
 
-The v0.3 ZIP named by the owner was unavailable during the 2026-09-07 integration. Version 1.1 is therefore a complete integration of verified repository authority and the owner brief, not a claim that unobserved ZIP-only detail was reconciled losslessly.
+The full `Carbon_Evidence_Archive_Design_v0.3.zip` was read during integration. Its architecture, dialogue and demand designs, commercial proposal, buildout/handoff, opportunity register, acceptance matrix, source/reconciliation notes, starter schemas, examples, manifest, report, and validation script were treated as design input. Repository protocol and domain owners remain controlling. The ZIP itself and its permissive/stale starter schemas and package validator are not committed or promoted to runtime authority.
 
 ## 1. Objective
 
@@ -348,4 +348,4 @@ Implementation sequencing is owned by `Build_Out.md` and the owner-approved wave
 
 ## 17. Change log
 
-- **2026-09-07 / v1.1:** materialized the 21 passive implementation tickets; added exact archive, dialogue/demand/correction, paid-research, traceability, acceptance, owner-decision, and handoff contracts; recorded the unavailable ZIP limitation. No runtime or active selection changed.
+- **2026-09-08 / v1.1:** materialized the 21 passive implementation tickets; integrated the full v0.3 package into exact archive, dialogue/demand/correction, paid-research, traceability, acceptance, owner-decision, and handoff contracts; recorded package-to-repository mappings and packaging conflicts. No runtime or active selection changed.

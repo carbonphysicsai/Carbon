@@ -34,6 +34,8 @@ Deterministic code owns identity, authorization, quotas, tool capabilities, sour
 
 Launch supports questions and follow-ups; approved evidence comparisons; failure explanations; public-practice suggestions; hypotheses; research/experiment requests; paid-interest signals; feedback; subscriptions; and a requester-private update inbox. Request acceptance is not funding, scheduling, spending permission, or an SLA. Subscription is not execution permission.
 
+The exact vocabulary belongs to C-DC1, but the v0.3 design cases must remain representable: evidence search, what-to-try, failure diagnosis, intervention comparison, transfer, resource trade-off, experiment design, method discovery, hypothesis/gap submission, experiment/quote interest, feedback, subscription, and product help; with grounded/resource/practice answers, clarification, explicit gap/recorded request, unavailable, and policy-restricted outcomes.
+
 Responses distinguish sourced evidence, requester-reported context, proposed inference/hypothesis, uncertainty, unsupported scope, and unavailable service. An unsupported scientific question yields a scoped `ResearchGap`. Retrieval failure says retrieval is unavailable; it never claims that no evidence exists and never reveals whether Carbon holds a private result, unreleased study, or another tenant's question.
 
 Launch sources are approved public contracts/catalogues, public scaffolds/practice resources, currently authorized PriorPacks, approved public-science resources, and requester-authorized context. Learned official-derived `EvidenceBrief`s require Wave E approval. Paid non-exam sources require separate rights and entitlement.
@@ -45,6 +47,8 @@ The service forbids request-time access to the private archive or Landscape; off
 Thread context, retrieved documents, tool calls, model calls, output size, elapsed time, and spend are bounded. Timeout, provider failure, stale/withdrawn source, policy denial, and kill-switch activation terminate truthfully. There is no canned unsupported answer after inference failure. Human triage follows the same disclosure and source rules.
 
 Prompts, documents, agent feedback, and tool outputs are untrusted. Tenant prompts, summaries, caches, embeddings, and provider requests remain isolated. External provider use follows approved retention/training/data-location policy; no permission is assumed.
+
+Prompt bodies and optional proprietary context use separately encrypted, expirable payloads under the approved policy. Immutable operational checkpoints must not contain raw prompts, email addresses, user-controlled URLs, or globally searchable prompt hashes. After approved deletion, retain only permitted non-content audit metadata.
 
 Substantive response lineage includes request/thread identity, source IDs and exact versions, claim-support summaries, requester-context references, model/prompt/tool/policy identities, uncertainty/gaps, permitted action traces, availability recheck, and correction state. Private chain-of-thought is neither required nor treated as an audit artifact.
 
@@ -84,6 +88,8 @@ Only authorized links may cross records; there is no cross-tenant reference reso
 | subscription/update record | requester/topic or response dependency + entitlement/policy version | private delivery target, correction type, delivery/idempotency state |
 
 Offline private analysis, exact-artifact release approval, and external serving are separate gates. The existing cumulative-disclosure mechanism applies across free and paid answers, versions, models, exports, errors, prices, timing, and updates. A new endpoint or customer gets no fresh information budget. Fresh experiments or seeds do not declassify selection knowledge.
+
+Acceptance attacks include raw case/seed extraction, champion reconstruction, per-case margin/membership inference, small-cell isolation, release differencing, model extraction, poisoning, source/rights laundering, cache/hash and price/quote/queue side channels, and official-ordering prediction beyond genuine physics improvement. Coarsening, lag, per-account limits, `no-store`, and revocation are useful controls but are not by themselves privacy, Sybil, or uncopyability guarantees.
 
 Official-derived scientific content and release timing are equal for free and paid miners. Paid service may add permitted analysis, requester context, workflow, and eligible non-exam evidence. Raw archive export is forbidden; assume recipients retain every response. Public PriorPack history is not revoked merely to create recurrence.
 

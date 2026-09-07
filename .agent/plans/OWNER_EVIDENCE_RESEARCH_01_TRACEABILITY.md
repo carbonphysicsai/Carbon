@@ -3,7 +3,7 @@
 **Status:** prospective documentation integration; no future ticket is selected
 **Integration ticket:** `GOV-EVIDENCE-RESEARCH-02`
 **Working base:** `91b023a` (`origin/main`, fetched 2026-09-07)
-**Source limitation:** `Carbon_Evidence_Archive_Design_v0.3.zip` was unavailable. This crosswalk is complete against verified repository sources and the owner brief, but it is not described as a lossless ZIP reconciliation. ZIP-only diagrams, dialogue field names, opportunity-register wording, acceptance identifiers, inherited version labels, and reconciliation notes could not be verified.
+**Design source:** the full `Carbon_Evidence_Archive_Design_v0.3.zip` was read on 2026-09-08 and reconciled against current repository authority. The ZIP is not committed and does not override exact protocols or runtime evidence.
 
 ## 1. Canonical ownership and source-to-ticket crosswalk
 
@@ -27,6 +27,23 @@
 | isolated paid execution/billing | paid contract §§2,5 | G-PR3/4 | G-PR1/2; qualified execution | no dispatch without auth/funds; official isolation | security/deployment/economics reserved |
 | paid pilot/expansion | paid contract §3 | G-PR5 | G-PR0..4 | measured utility/demand/contribution/safety | commercial decision reserved |
 | advanced predictive/portfolio tools | paid contract §5; E-RI1 | E-RI1; post-E/G reservations | frozen candidates, prospective evidence | time-forward lineage/leakage tests | no new wave/role without owner selection |
+
+### v0.3 work-package mapping
+
+| v0.3 package ID | Repository reservation | Mapping note |
+|---|---|---|
+| EA-00/01/02/03 | C-EA0/1/2/3 | capture contract, durable store, integration, then recovery remain C1 foundations |
+| EA-04/05 | E-EA4/5 | scientific snapshots then Landscape learning |
+| EA-06 | E-EB1 + E-EA6 | split candidate/approval from serving/cumulative disclosure |
+| EA-07 | E-EA7 | transitive correction propagation |
+| DC-01/02/03 | C-DC1/2/3 | exact dialogue authority, durability, then Concierge |
+| DC-04 | C-DC2/3/4 minimum correction + E-EB1/EA6/EA7 learned release | split launch lineage from later learned-brief release/propagation |
+| DC-05 | C-DC2/3 capture + E-D12 aggregation | original observations start at launch; clustering/planning waits for E |
+| DC-06 | C-DC2/3/4 + E-EA7 | launch feedback/inbox/update control; later transitive propagation |
+| DC-07 | C-DC4 | security, abuse, utility, recovery and resource isolation acceptance |
+| PR-00/01/02/03/04/05 | G-PR0/1/2/3/4/5 | preregistration is separated from pilot execution/decision |
+| RI-01 | E-RI1 | prospective bounded guidance/predictive qualification |
+| RI-02/03/04/05 | post-E/G passive reservations | transfer, experiment value, portfolio proposals, and closed-loop guidance need later selected tickets |
 
 ## 2. Acyclic dependency and launch split
 
@@ -69,6 +86,10 @@ The first authenticated external miner launch needs the applicable C evidence-ca
 | correction detail previously concentrated in E | `DOCUMENTATION_LAG` | C has minimum source/dependency/update controls; E has transitive propagation |
 | launch Concierge might appear dependent on learned Landscape | `DOCUMENTATION_LAG` | bootstrap/public sources launch first; learned briefs require E |
 | ZIP claims/labels versus repository protocols | `NEW_OWNER_DECISION_REQUIRED` if material after ZIP review | repository protocol owners remain controlling; no ZIP-only semantics inferred |
+| v0.3 archive document links to v0.2 dialogue/demand/business filenames; dialogue starter schema `$id`, title and constants say 0.2 | `DOCUMENTATION_LAG` | use v0.3 prose only as design input; future C-DC1 owns the exact version |
+| v0.3 `Research_Concierge` starter schema permits unspecified properties | `DOCUMENTATION_LAG` | do not ratify/import it; future exact protocol must close fields and semantics |
+| package validator requires absent v0.2 files and cannot run in the repository environment without external `jsonschema` | `DOCUMENTATION_LAG` | do not copy or treat it as acceptance/security evidence; repository checks remain controlling |
+| manifest entry for `Validation/Package_Validation_Report.md` does not match ZIP bytes/hash | `DOCUMENTATION_LAG` | record mismatch; package presence report proves neither integrity chain nor runtime property |
 | durability, retention, rights, pricing, security, scientific thresholds | `NEW_OWNER_DECISION_REQUIRED` | exact affected capability stays fail closed; documentation continues |
 
 ## 5. Open owner decisions
@@ -84,6 +105,41 @@ The first authenticated external miner launch needs the applicable C evidence-ca
 | pilot cohort, targets, budget, prices, quote/refund terms and customer reuse rights | business/finance/legal owner | G-PR0..5 |
 | exact deployment and LIVE activation | repository/launch owner | any external production service |
 
-## 6. Next-executor handoff
+## 6. v0.3 acceptance-ID crosswalk
+
+| Package IDs | Repository ticket acceptance |
+|---|---|
+| ARC-01..04 | C-EA0..3 attempt, finalization, restore, and separated evidence-semantics cases |
+| ARC-05 | C launch correction minimum plus E-EA7 transitive propagation |
+| ARC-06 | C-DC4 and G-PR3 shared-resource isolation |
+| DIA-01..02 | C-DC1/2 identity, reference substitution, and idempotency |
+| DIA-03..06 | C-DC3/4 protected-state independence, gaps, injection, and epistemic-bound claims |
+| DIA-07..12 | C-DC2/3/4 restart, withdrawal, corrections, inbox, flood, and kill switches |
+| BRF-01..03 | E-EB1 identity/lineage, counterevidence, and transfer limits |
+| DEM-01..06 | C-DC2 service-without-reuse plus E-D12 manipulation, funnel, science, gap, and taxonomy cases |
+| PAY-01..05 | G-PR1/4 spending and quote; G-PR3 isolation; E-EA6 paid disclosure; G-PR0 freeze |
+| REL-01..02 | E-EA6 combined-surface leakage and complete-client-caching assumptions |
+| VAL-01..02 | C-DC3/4 research utility and E-RI1 prospective guidance lift |
+| VAL-03 | G-PR5 repeat paid demand and full contribution |
+
+## 7. v0.3 opportunity mapping
+
+| Opportunity | Route | Build/stop discipline |
+|---|---|---|
+| Research-gap marketplace; demand-informed sponsored challenges | E-D12 -> Port C/G governance | proposal only; manipulation/pay-to-science blocks |
+| EvidenceBrief library; evidence correction service | E-EB1/EA6/EA7 | exact release and update rights; leakage/staleness blocks |
+| customer-funded catalogue growth | G-PR1/3/5 + evidence-use/release owner | require reusable rights, utility and contribution |
+| guidance-effectiveness dataset | E-RI1 | prospective valid design; causal overclaim blocks |
+| failure-demand heatmap; public resource prioritization | E-D12 -> Ports A/D | privacy/popularity bias and non-actionability stop investment |
+| experiment-value ranking; research portfolio API | post-E/G reservations | require prospective calibration and decision lift before a ticket/product |
+| agent-native quoting; scientific customer success; research supply pricing | G-PR1/2/4/5 | bounded auth, repeat utility, full-cost contribution; side-channel/support failure blocks |
+| research update subscriptions | C-DC2/3/4 then E-EA7 | private entitled updates only; activity leakage blocks |
+| method transfer intelligence | E-RI1 then post-E/G transfer ticket | scope-specific calibration; false generalization blocks |
+
+## 8. Package verification record
+
+All 26 ZIP entries were inspected. Recomputing manifest byte counts and SHA-256 values matched 25 entries; `Validation/Package_Validation_Report.md` was 972 bytes with SHA-256 `960d03026d46f1c3eafe4367d776f25cecab2285fc10fd8640327f854eff873b`, while the manifest declared 2057 bytes and `43b70568fbd83d90a195c0907317e51848c7be86718702f8a31378e115787376`. The included validator was not executed successfully because `jsonschema` was absent; inspection also found it requires absent v0.2 filenames. Its report's presence checks are not accepted as runtime, durability, authorization, leakage, or security qualification.
+
+## 9. Next-executor handoff
 
 When a controlling board activates a ticket, begin with that ticket file, then read the canonical design and focused companion it names, this crosswalk, current authority files, and source-owner contracts. Confirm current main and competing work, record owner inputs, write the exact runtime contract/migration, and implement only the selected ticket. Do not begin from the ZIP or from this crosswalk alone. For C-EA work, start with C-EA0; for dialogue, C-DC1; for Landscape evidence, E-EA4 (E-D12 may start from eligible C observations under its board); for paid research, G-PR0.

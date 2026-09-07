@@ -309,12 +309,6 @@ As v1.1; grounding gate mandatory.
 
 ## 8. Thesis
 
-## 9. OWNER-EVIDENCE-RESEARCH-01 integration amendment (2026-09-07)
-
-The canonical [evidence/research design](./Evidence_Intelligence_and_Agent_Research.md) adds D12 as a permission-aware Research Demand Graph and connects eligible archive evidence through versioned ResearchSnapshots and approved EvidenceBriefs. Wave C captures minimal permission-eligible demand observations at launch; Wave E D12 performs aggregation, clustering, manipulation controls, and planning. Demand never becomes scientific truth, a score/emission input, or automatic funding.
-
-Ports remain exact: A serves approved guidance/resources; B is operations-only and cannot vary candidate scientific treatment; C produces governed proposals; D hands evidence/failure feedback to independently qualified products. Source, claim, release, response/model, and deliverable dependencies participate in append-only correction handling. See `E-EA4`, `E-EA5`, `E-EB1`, `E-D12`, `E-EA6`, `E-EA7`, and `E-RI1` passive tickets.
-
 Build the Landscape Agent as a **batch intelligence system with four controlled ports**, not as a live strategy oracle and not as a teacher-distillation factory.
 
 - **Private richness** enables effect-candidate and symbolic compounding.
@@ -328,3 +322,9 @@ Build the Landscape Agent as a **batch intelligence system with four controlled 
 ---
 
 *Canonical reference for Landscape Agent value routing and build order (v1.3). Port D with `Specialist_Bank.md`. Launch prerequisites: `Launch_Bar.md`. Scoring labels: `Scoring.md`.*
+
+## 9. OWNER-EVIDENCE-RESEARCH-01 integration amendment (2026-09-08)
+
+The canonical [evidence/research design](./Evidence_Intelligence_and_Agent_Research.md) adds D12 as a permission-aware Research Demand Graph and connects eligible archive evidence through versioned ResearchSnapshots and approved EvidenceBriefs. Wave C captures minimal permission-eligible demand observations at launch; Wave E D12 performs aggregation, clustering, manipulation controls, and planning. Demand never becomes scientific truth, a score/emission input, or automatic funding.
+
+Ports remain exact: A serves approved guidance/resources; B is operations-only and cannot vary candidate scientific treatment; C produces governed proposals; D hands evidence/failure feedback to independently qualified products. Source, claim, release, response/model, and deliverable dependencies participate in append-only correction handling. See `E-EA4`, `E-EA5`, `E-EB1`, `E-D12`, `E-EA6`, `E-EA7`, and `E-RI1` passive tickets.

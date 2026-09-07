@@ -88,6 +88,8 @@ durable admission
 -> consumers apply outbox effects idempotently
 ```
 
+Workers retain a bounded local spool/checkpoint until the selected durable boundary acknowledges it. Protected payloads use the authorized capture channel, never general logs. Admission reserves enough storage for the declared capture profile; under pressure Carbon backpressures or reduces future admission rather than thinning completed evidence.
+
 Conflicting content at an existing immutable identity fails closed. Duplicate identical writes converge. Object availability is rechecked before acknowledgement; downstream projections cannot upgrade the acknowledgement.
 
 ## 6. Recovery and fault model
@@ -98,11 +100,15 @@ No design may claim universal losslessness. Values destroyed before their first 
 
 Orphans are quarantined until source identity and authorization reconcile; they are never guessed into an official result. Recovery cannot rerun science merely to repair metadata, and restored records cannot silently acquire a new scientific or qualification status.
 
+Backfilled legacy material is an attributable import with original maturity, missingness, permissions, and signature gaps. Migration never fabricates a measurement, signature, source right, or qualification. Tamper-evident history, least-privilege workload identities, scoped keys, controlled human audit, bounded non-secret telemetry, safe serializers, closed fields, validated object paths, and separate fixture/production namespaces are future acceptance requirements.
+
 ## 7. Retention, deletion, and correction
 
 Retention classes distinguish long-lived scientific records, required original artifacts, optional debug material, and rebuildable derivatives. No duration is set here. Storage pressure may reject or backpressure new work according to approved policy but cannot silently delete required evidence.
 
 Approved deletion, legal hold, withdrawal, and permission revocation propagate to catalogues, objects, replicas, derivatives, summaries, embeddings, clusters, exports, and backup-restoration procedures. Where a record must remain for an approved legal/scientific reason, access and use may still be withdrawn. A factual correction appends a new assertion and impact state; it does not rewrite the historical result.
+
+Deduplication is allowed only within compatible permission/encryption scopes and cannot expose cross-tenant content existence through hashes, hit/miss behavior, or timing. It reduces bytes, never the number of attempt records.
 
 ## 8. Acceptance ceiling
 

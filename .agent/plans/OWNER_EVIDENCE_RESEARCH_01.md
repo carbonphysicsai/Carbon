@@ -289,6 +289,8 @@ Rollback disables new admissions, reasoning/retrieval classes, release activatio
 
 Future work wraps source-owned submission/attempt identities, resolved construction plans, Challenge/generator/reference/measurement/Score Pack contracts, EvaluationReceipts, the exact Wave-B research protocol and PriorPack publication controls, Landscape epistemic/Port semantics, Specialist Bank qualification, Operations/Data Management, and commercial engagement/rights/deliverable/ledger objects. It does not replace or loosen them with documentation examples.
 
-## 9. Source limitation
+## 9. v0.3 source reconciliation
 
-`Carbon_Evidence_Archive_Design_v0.3.zip` was not present in the integration workspace. Repository sources and the owner brief were reconciled in detail. ZIP-only architecture text, dialogue field names, demand/opportunity wording, acceptance identifiers, inherited version labels, and reconciliation notes remain unverified. A later owner-authorized pass should compare the ZIP against the traceability table prospectively; it must not silently overwrite repository protocol authority.
+The full `Carbon_Evidence_Archive_Design_v0.3.zip` was read on 2026-09-08, including its architecture, dialogue, demand, commercial, implementation, handoff, opportunity, acceptance, reconciliation, source, schemas/examples, manifest, report, and validator artifacts. Its EA/DC/PR/RI and acceptance IDs map to Carbon's reserved IDs in the traceability document. The package is design input and is not committed.
+
+Substantive requirements are preserved, but its stale `v0.2` internal links/constants, permissive `additionalProperties` starter model, package validator references to absent v0.2 files, and mismatched validation-report manifest entry are `DOCUMENTATION_LAG`, not runtime contracts or security evidence. Existing exact protocol owners control encoding, errors, authentication, bounds, semantic references, and migration.

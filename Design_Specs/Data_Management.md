@@ -274,3 +274,7 @@ floor, adaptive-stress, or free-form generator controls.
 *Do not weaken TRAIN/EVAL/STRESS separation, expose protected realization
 material, widen `TrainingSamplingPolicyRef` into arbitrary data authority, or
 let participant/Landscape inputs change the registered official exam.*
+
+## 11. Evidence/research data amendment (2026-09-08)
+
+Future archive, dialogue, demand, learned, release, and commercial projections inherit source permissions and keep capture, scientific use, external release, and entitlement separate. Prompt bodies/customer context use purpose-bound tenant storage rather than scientific-audit retention. `UNKNOWN` permission blocks the affected derivative/use; it does not fabricate consent or silently erase a required official audit record. Deletion/withdrawal must address summaries, embeddings, clusters, exports, caches, and backup restoration under the approved policy.

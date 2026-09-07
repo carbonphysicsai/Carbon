@@ -241,8 +241,8 @@ Do not contract the program if:
 
 # 10. Operating principle
 
-## 10.1 Paid research amendment (2026-09-07)
+> **Productize the commercial wrapper as aggressively as the scientific engine: standardized intake, rights, disclosure, truth adapters, deliverables, acceptance, evidence bundles, and lifecycle should become reusable infrastructure rather than reinvented contract-by-contract.**
+
+# 11. Paid research amendment (2026-09-08)
 
 Any paid research engagement reuses this document's engagement, truth-access, privacy, rights, deliverable, acceptance, and SOW authorities. A quote must bind source entitlement, scope, expiry, maximum cost, cancellation/refund, delegated authorization, and rights. Interest, declared budget, subscription, or model request is not spending authority. Hosted research is isolated and non-official; reusable evidence requires separate rights and evidence-use/release approval. Billing/contribution accounting remains separate from official fees, treasury, frontier, or settlement.
-
-> **Productize the commercial wrapper as aggressively as the scientific engine: standardized intake, rights, disclosure, truth adapters, deliverables, acceptance, evidence bundles, and lifecycle should become reusable infrastructure rather than reinvented contract-by-contract.**

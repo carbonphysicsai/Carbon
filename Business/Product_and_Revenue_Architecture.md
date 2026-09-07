@@ -238,10 +238,6 @@ These fields never enter scientific scoring.
 
 # 9. Portfolio rule
 
-## 9.1 Research-service integration amendment (2026-09-07)
-
-The future Research Concierge/Copilot lane is an evidence-service/workflow option governed by `OWNER-EVIDENCE-RESEARCH-01`, not a proven primary revenue source. Evidence Audit remains the current entry product. `G-PR0` freezes the pilot before paid workflow implementation; `G-PR1..5` separately gate entitlement/rights, campaign memory, non-official execution, billing/spend, and an evidence-based commercial decision. Official-derived scientific content and release timing remain equal for free and paid miners.
-
 Carbon should maximize the number of valuable things it can sell from one coherent infrastructure, but only where each product has:
 
 - a real buyer;
@@ -250,3 +246,7 @@ Carbon should maximize the number of valuable things it can sell from one cohere
 - clear rights;
 - a bounded evidence claim;
 - a credible path to repeatability or strategic expansion.
+
+# 10. Research-service integration amendment (2026-09-08)
+
+The future Research Concierge/Copilot lane is an evidence-service/workflow option governed by `OWNER-EVIDENCE-RESEARCH-01`, not a proven primary revenue source. Evidence Audit remains the current entry product. `G-PR0` freezes the pilot before paid workflow implementation; `G-PR1..5` separately gate entitlement/rights, campaign memory, non-official execution, billing/spend, and an evidence-based commercial decision. Official-derived scientific content and release timing remain equal for free and paid miners.

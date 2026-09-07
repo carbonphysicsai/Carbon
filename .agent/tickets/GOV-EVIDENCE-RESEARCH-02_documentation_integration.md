@@ -18,7 +18,7 @@ Convert the ratified roadmap into repository-native implementation detail, passi
 - update editable Hub data and generated outputs under its maintenance contract;
 - record source limitations and validate documentation-only scope.
 
-The referenced `Carbon_Evidence_Archive_Design_v0.3.zip` was unavailable. Repository sources and the owner brief were used. ZIP-only architecture wording, dialogue fields, opportunity/acceptance identifiers, reconciliation notes, and version labels were not verified, so this work makes no lossless-integration claim.
+The full `Carbon_Evidence_Archive_Design_v0.3.zip` was read and reconciled as design input. Its 26 files were inspected and its EA/DC/PR/RI, opportunity, and acceptance IDs were mapped to repository owners. The ZIP remains uncommitted. Stale v0.2 identifiers/links, permissive starter schema behavior, missing validator inputs, and one manifest/report mismatch were recorded rather than promoted to authority.
 
 ## Definition of Done
 
