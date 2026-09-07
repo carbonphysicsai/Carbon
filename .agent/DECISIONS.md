@@ -11768,3 +11768,43 @@ authority.
 budgets, utility estimand, practical effect floor, uncertainty-aware decision
 rule, intervention-diversity metric and floor, conditional-leakage limit, and
 research/protocol/science/statistics/security ratifications remain absent.
+
+## 2026-09-08 — B-E4-D3: separate declared structure from qualification authority
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; qualifying execution blocked
+
+**Problem.** Post-merge review found that caller-supplied digest labels,
+ratification refs, a Boolean, structurally inconsistent prior pins, and any
+unrelated enum could create records that looked more authoritative than their
+evidence. The repository specifies no verifier for the complete B-E4 owner
+ratification or qualifying execution evidence.
+
+**Decision.** Bind the eight opaque design fields to a deterministic
+domain-separated content digest, while separately exposing syntactic
+completeness, caller-declared owner records, and the unavailable verified-owner
+state. Reject all qualifying-record construction until a future domain-owned
+verification and execution-evidence contract exists. Reconstruct v2 refs and
+enforce TEST_ONLY channel, Challenge compatibility, and arm-specific absence;
+leave actual receipt authorization with B-07D3. Restrict current integrity
+records to case-applicable members of existing owner error-code enums and to
+typed fixture rejections. Other dispositions await executed-attack evidence.
+
+**Alternatives rejected.** Matching repeated digest strings does not bind
+content. Caller Booleans cannot prove approval or execution. Reimplementing
+B-07D3 receipt lookup would duplicate authorization ownership. Accepting any
+Enum or inventing attack-success outcomes would create a parallel authority
+vocabulary. Treating synthetic ratification refs as verified would cross the
+human-reserved boundary.
+
+**Affected interfaces, reversibility, and downstream work.** The repair is
+confined to `carbon.gauntlet`, its tests, and B-E4 state/evidence projections.
+It changes no research or official wire contract, prior store/provider,
+practice/fixture lifecycle, scoring, toy physics, or shadow-case semantics.
+Future owner-ratified verifier and execution-evidence types can replace the
+explicit unavailable seams prospectively. B-E4 remains `in_progress`; B-GATE
+remains unstarted.
+
+**Human-reserved input.** The existing eight design inputs and five-owner
+same-design ratification remain absent. This repair supplies none of them and
+earns no utility, leakage, scientific, security, privacy, or production result.

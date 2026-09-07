@@ -2,6 +2,8 @@
 
 **Starting main:** `b5608b46973869d93300d961749a860096aa6db4`
 **Starting tree:** `5ca80ea0f8e8375b998b9b33a833c8b8a54ed73a`
+**Successor-repair base:** `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`
+**Successor-repair base tree:** `6a92a2b8f65cd6f3ce1b308538f3fd41005a9f8c`
 **Ticket:** `.agent/tickets/B-E4_agent_gauntlet.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
 **Current state:** unblocked engineering implemented; qualifying execution blocked
@@ -46,6 +48,27 @@
 6. Run focused B-07C/B-07F/B-E4 tests, invariant tests, quality checks, package
    checks, and the applicable CI acceptance.
 
+## Successor validation repair
+
+Source review after PR #103 found three valid record-integrity gaps. The
+bounded repair:
+
+1. recomputes a domain-separated digest over the eight immutable design text
+   fields and distinguishes syntactic completeness, caller-declared owner
+   records, verified owner ratification, and execution evidence;
+2. makes qualifying-record construction unavailable until a separately owned
+   verifier and execution-evidence contract exist;
+3. validates v2 pins before hashing, requires `TEST_ONLY_FIXTURE`, one
+   Challenge, and one exact pair across replicates, while requiring `None` for
+   both non-v2 pin fields;
+4. accepts only explicit existing owner error-code enums with case-applicable
+   mappings for fixture rejection observations; and
+5. keeps B-07D3 as the sole owner of actual pack-to-receipt authorization.
+
+The repair does not execute agents or attacks. Non-rejection integrity
+dispositions and qualifying execution recording remain unavailable until an
+authoritative executed-evidence integration is specified.
+
 ## Human-reserved stop boundary
 
 Qualifying execution remains unavailable until humans provide the exact
@@ -56,4 +79,5 @@ research, exact-protocol, science, statistics, and security owners ratify the
 same complete design digest before execution. The harness may record synthetic
 engineering observations; it cannot synthesize a pass/fail result from them.
 
-No qualifying gauntlet run is part of this candidate. B-GATE remains unstarted.
+No qualifying gauntlet run is part of either engineering candidate. B-GATE
+remains unstarted.

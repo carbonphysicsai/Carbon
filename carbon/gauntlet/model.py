@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from dataclasses import dataclass
 from enum import Enum
 
-from carbon.research.refs import PriorPackRef, TestOnlyPriorAuthorizationReceiptRef
+from carbon.evaluation.errors import ReferenceInputCode
+from carbon.qualification.errors import DossierInputCode
+from carbon.reproducibility.errors import ReproducibilityErrorCode
+from carbon.research.errors import ResearchServiceErrorCode
+from carbon.research.refs import (
+    PriorChannel,
+    PriorPackRef,
+    TestOnlyPriorAuthorizationReceiptRef,
+)
+from carbon.resource_policy.errors import ResourcePolicyInputCode
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
@@ -65,10 +75,141 @@ class IntegrityDisposition(str, Enum):
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
 
 
+_PROTOCOL_OUTCOME_TYPES = (
+    ResearchServiceErrorCode,
+    ReproducibilityErrorCode,
+    ResourcePolicyInputCode,
+    DossierInputCode,
+    ReferenceInputCode,
+)
+
+_APPLICABLE_PROTOCOL_OUTCOMES = {
+    IntegrityCase.PROTECTED_CASE_INFERENCE: frozenset(
+        {
+            ResearchServiceErrorCode.DISCLOSURE_REJECTED,
+            ResearchServiceErrorCode.FORBIDDEN_SCIENTIFIC_CONTROL,
+        }
+    ),
+    IntegrityCase.PROTECTED_MIXTURE_INFERENCE: frozenset(
+        {
+            ResearchServiceErrorCode.DISCLOSURE_REJECTED,
+            ResearchServiceErrorCode.FORBIDDEN_SCIENTIFIC_CONTROL,
+        }
+    ),
+    IntegrityCase.CHAMPION_RECONSTRUCTION: frozenset(
+        {ResearchServiceErrorCode.DISCLOSURE_REJECTED}
+    ),
+    IntegrityCase.MEMBERSHIP_INFERENCE: frozenset(
+        {ResearchServiceErrorCode.DISCLOSURE_REJECTED}
+    ),
+    IntegrityCase.RELEASE_DIFFERENCING: frozenset(
+        {ResearchServiceErrorCode.DISCLOSURE_REJECTED}
+    ),
+    IntegrityCase.NEAR_DUPLICATE_QUERY: frozenset(
+        {
+            ResearchServiceErrorCode.BOUND_EXCEEDED,
+            ResearchServiceErrorCode.DISCLOSURE_REJECTED,
+        }
+    ),
+    IntegrityCase.DUPLICATE_LINEAGE: frozenset(
+        {ReproducibilityErrorCode.DUPLICATE_IDENTITY}
+    ),
+    IntegrityCase.REQUESTER_SPLITTING: frozenset(
+        {
+            ResearchServiceErrorCode.CONTEXT_SELECTION_FORBIDDEN,
+            ResearchServiceErrorCode.DISCLOSURE_REJECTED,
+        }
+    ),
+    IntegrityCase.TIMING_RESOURCE_SURFACE: frozenset(
+        {
+            ResourcePolicyInputCode.LIMIT_NOT_BOUND,
+            ResearchServiceErrorCode.BOUND_EXCEEDED,
+        }
+    ),
+    IntegrityCase.PRIOR_POISONING: frozenset(
+        {
+            ResearchServiceErrorCode.PRIOR_IDENTITY_INVALID,
+            ResearchServiceErrorCode.TEST_ONLY_AUTHORITY_INVALID,
+        }
+    ),
+    IntegrityCase.DUPLICATE_EVIDENCE: frozenset(
+        {
+            ReproducibilityErrorCode.DUPLICATE_IDENTITY,
+            DossierInputCode.DUPLICATE_IDENTITY,
+        }
+    ),
+    IntegrityCase.RAW_STRING: frozenset(
+        {
+            ResearchServiceErrorCode.CANONICAL_ENCODING_INVALID,
+            ResearchServiceErrorCode.REQUEST_TYPE_INVALID,
+            ResearchServiceErrorCode.UNKNOWN_FIELD,
+            ResearchServiceErrorCode.BOUND_EXCEEDED,
+        }
+    ),
+    IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: frozenset(
+        {
+            DossierInputCode.ROLE_CONFUSION,
+            ReproducibilityErrorCode.ROLE_CONFUSION,
+        }
+    ),
+    IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: frozenset(
+        {
+            DossierInputCode.ROLE_CONFUSION,
+            ReproducibilityErrorCode.ROLE_CONFUSION,
+        }
+    ),
+    IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: frozenset(
+        {
+            ReferenceInputCode.ROLE_MISMATCH,
+            ReferenceInputCode.OUTCOME_REASON_MISMATCH,
+        }
+    ),
+    IntegrityCase.PARTIAL_PROXY_SUPERIOR: frozenset(
+        {
+            DossierInputCode.ROLE_CONFUSION,
+            DossierInputCode.SLOT_MISMATCH,
+            DossierInputCode.PLACEHOLDER_EVIDENCE,
+        }
+    ),
+    IntegrityCase.LEARNED_COMPONENT_WRONG_ROLE: frozenset(
+        {DossierInputCode.ROLE_CONFUSION}
+    ),
+    IntegrityCase.LEARNED_COMPONENT_INCOMPATIBLE_IO: frozenset(
+        {DossierInputCode.SLOT_MISMATCH}
+    ),
+    IntegrityCase.LEARNED_COMPONENT_STALE_PIN: frozenset(
+        {
+            DossierInputCode.VERSION_MISMATCH,
+            DossierInputCode.DIGEST_MISMATCH,
+            ReproducibilityErrorCode.IDENTITY_MISMATCH,
+        }
+    ),
+    IntegrityCase.LEARNED_COMPONENT_SIDE_EFFECT: frozenset(
+        {
+            ReproducibilityErrorCode.PROCEDURE_INVALID,
+            DossierInputCode.ROLE_CONFUSION,
+        }
+    ),
+}
+
+
 class GauntletStatus(str, Enum):
     BLOCKED_PREREGISTRATION = "BLOCKED_PREREGISTRATION"
     ENGINEERING_READY = "ENGINEERING_READY"
-    QUALIFYING_EXECUTION_RECORDED = "QUALIFYING_EXECUTION_RECORDED"
+
+
+_DESIGN_FIELDS = (
+    "representative_agent_profiles",
+    "matched_time_compute_budgets",
+    "utility_estimand",
+    "practical_effect_floor",
+    "uncertainty_aware_decision_rule",
+    "intervention_diversity_metric",
+    "intervention_diversity_floor",
+    "conditional_leakage_limit",
+)
+
+_DESIGN_DIGEST_DOMAIN = b"carbon.gauntlet-preregistration.v1\x00"
 
 
 def _text(value: object, name: str) -> str:
@@ -107,7 +248,12 @@ class OwnerRatification:
 
 @dataclass(frozen=True, slots=True)
 class GauntletPreregistration:
-    """Opaque owner-supplied design values; this class interprets none of them."""
+    """Opaque design values with deterministic content binding only.
+
+    Declared completeness is not verified owner ratification. The repository has
+    no B-E4 integration contract that can verify owner approval or execution
+    evidence yet, so neither can be inferred from these caller-supplied records.
+    """
 
     design_digest: str | None = None
     representative_agent_profiles: str | None = None
@@ -128,16 +274,7 @@ class GauntletPreregistration:
             raise TypeError("preregistration requires exact nominal values")
         if self.design_digest is not None:
             _digest(self.design_digest, "design_digest")
-        for name in (
-            "representative_agent_profiles",
-            "matched_time_compute_budgets",
-            "utility_estimand",
-            "practical_effect_floor",
-            "uncertainty_aware_decision_rule",
-            "intervention_diversity_metric",
-            "intervention_diversity_floor",
-            "conditional_leakage_limit",
-        ):
+        for name in _DESIGN_FIELDS:
             value = getattr(self, name)
             if value is not None:
                 _text(value, name)
@@ -145,23 +282,29 @@ class GauntletPreregistration:
             raise TypeError("ratifications require exact OwnerRatification values")
 
     @property
-    def missing_inputs(self) -> tuple[str, ...]:
+    def missing_design_inputs(self) -> tuple[str, ...]:
         missing = tuple(
             name
-            for name in (
-                "design_digest",
-                "representative_agent_profiles",
-                "matched_time_compute_budgets",
-                "utility_estimand",
-                "practical_effect_floor",
-                "uncertainty_aware_decision_rule",
-                "intervention_diversity_metric",
-                "intervention_diversity_floor",
-                "conditional_leakage_limit",
-            )
+            for name in ("design_digest", *_DESIGN_FIELDS)
             if getattr(self, name) is None
         )
+        computed = self.computed_design_digest
+        if (
+            self.design_digest is not None
+            and computed is not None
+            and self.design_digest != computed
+        ):
+            return (*missing, "design_digest:content_mismatch")
+        return missing
+
+    @property
+    def missing_ratifications(self) -> tuple[str, ...]:
         ratified = {item.owner for item in self.ratifications}
+        duplicate_owner = (
+            ("ratification:duplicate_owner",)
+            if len(ratified) != len(self.ratifications)
+            else ()
+        )
         missing_owners = tuple(
             f"ratification:{owner.value.lower()}"
             for owner in RatifyingOwner
@@ -170,12 +313,54 @@ class GauntletPreregistration:
         if self.design_digest is not None and any(
             item.design_digest != self.design_digest for item in self.ratifications
         ):
-            return (*missing, "ratification:exact_design_digest", *missing_owners)
-        return (*missing, *missing_owners)
+            return (
+                *duplicate_owner,
+                "ratification:exact_design_digest",
+                *missing_owners,
+            )
+        return (*duplicate_owner, *missing_owners)
+
+    @property
+    def missing_inputs(self) -> tuple[str, ...]:
+        return (*self.missing_design_inputs, *self.missing_ratifications)
+
+    @property
+    def computed_design_digest(self) -> str | None:
+        values = tuple(getattr(self, name) for name in _DESIGN_FIELDS)
+        if any(value is None for value in values):
+            return None
+        payload = bytearray(_DESIGN_DIGEST_DOMAIN)
+        for name, value in zip(_DESIGN_FIELDS, values):
+            assert type(value) is str
+            for item in (name, value):
+                encoded = item.encode("utf-8", errors="strict")
+                payload.extend(len(encoded).to_bytes(4, "big"))
+                payload.extend(encoded)
+        return "sha256:" + hashlib.sha256(payload).hexdigest()
 
     @property
     def is_complete(self) -> bool:
-        return not self.missing_inputs
+        """Return declared structural completeness, never approval authority."""
+
+        return self.is_syntactically_complete and self.has_declared_ratifications
+
+    @property
+    def is_syntactically_complete(self) -> bool:
+        """Return whether immutable design content is present and digest-bound."""
+
+        return not self.missing_design_inputs
+
+    @property
+    def has_declared_ratifications(self) -> bool:
+        """Return whether caller records name every owner on the bound digest."""
+
+        return not self.missing_ratifications
+
+    @property
+    def is_verified_owner_ratified(self) -> bool:
+        """Fail closed until a domain-owned ratification verifier is specified."""
+
+        return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -211,14 +396,39 @@ class RunIdentity:
             or self.replicate < 0
         ):
             raise TypeError("run identity is invalid")
-        v2 = self.arm is ExperimentalArm.V2_TEST_ONLY_PRIOR
-        if v2 != (type(self.prior_pack_ref) is PriorPackRef):
-            raise ValueError("only the v2 arm requires an exact prior pack pin")
-        if v2 != (
-            type(self.test_only_authorization_ref)
-            is TestOnlyPriorAuthorizationReceiptRef
+        if self.arm is not ExperimentalArm.V2_TEST_ONLY_PRIOR:
+            if (
+                self.prior_pack_ref is not None
+                or self.test_only_authorization_ref is not None
+            ):
+                raise ValueError("non-v2 arm pin fields must be exactly None")
+            return
+        if (
+            type(self.prior_pack_ref) is not PriorPackRef
+            or type(self.test_only_authorization_ref)
+            is not TestOnlyPriorAuthorizationReceiptRef
         ):
-            raise ValueError("only the v2 arm requires an exact authorization pin")
+            raise ValueError("the v2 arm requires exact pack and authorization pins")
+        try:
+            pack = PriorPackRef(
+                self.prior_pack_ref.challenge_key,
+                self.prior_pack_ref.channel,
+                self.prior_pack_ref.publication_sequence,
+                self.prior_pack_ref.content_hash,
+            )
+            receipt = TestOnlyPriorAuthorizationReceiptRef(
+                self.test_only_authorization_ref.challenge_key,
+                self.test_only_authorization_ref.authorization_id,
+                self.test_only_authorization_ref.content_digest,
+            )
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise ValueError("v2 pin values are structurally invalid") from exc
+        if pack.channel is not PriorChannel.TEST_ONLY_FIXTURE:
+            raise ValueError("the v2 pack channel must be TEST_ONLY_FIXTURE")
+        if pack.challenge_key != receipt.challenge_key:
+            raise ValueError("the v2 pack and receipt must bind one Challenge")
+        object.__setattr__(self, "prior_pack_ref", pack)
+        object.__setattr__(self, "test_only_authorization_ref", receipt)
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,7 +496,13 @@ class EngineeringObservation:
 class IntegrityObservation:
     case: IntegrityCase
     disposition: IntegrityDisposition
-    protocol_outcome: Enum
+    protocol_outcome: (
+        ResearchServiceErrorCode
+        | ReproducibilityErrorCode
+        | ResourcePolicyInputCode
+        | DossierInputCode
+        | ReferenceInputCode
+    )
     fixture_only: bool = True
 
     def __post_init__(self) -> None:
@@ -294,11 +510,19 @@ class IntegrityObservation:
             type(self) is not IntegrityObservation
             or type(self.case) is not IntegrityCase
             or type(self.disposition) is not IntegrityDisposition
-            or not isinstance(self.protocol_outcome, Enum)
-            or type(self.protocol_outcome) in (IntegrityCase, IntegrityDisposition)
             or self.fixture_only is not True
         ):
             raise TypeError("integrity observation is invalid")
+        if type(self.protocol_outcome) not in _PROTOCOL_OUTCOME_TYPES:
+            raise TypeError(
+                "integrity observation requires a registered protocol outcome"
+            )
+        if self.protocol_outcome not in _APPLICABLE_PROTOCOL_OUTCOMES[self.case]:
+            raise ValueError("protocol outcome is not applicable to the integrity case")
+        if self.disposition is not IntegrityDisposition.TYPED_REJECTION:
+            raise ValueError(
+                "non-rejection dispositions require unavailable executed-attack evidence"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -346,15 +570,14 @@ class GauntletRecord:
                 raise TypeError("gauntlet collections require exact nominal records")
         if type(self.qualifying_execution) is not bool:
             raise TypeError("qualifying_execution must be exact bool")
-        if self.qualifying_execution and not self.preregistration.is_complete:
+        if self.qualifying_execution:
             raise ValueError(
-                "qualifying execution is blocked before complete preregistration"
+                "qualifying execution recording unavailable until verified owner "
+                "ratification and execution-evidence integration exist"
             )
 
     @property
     def status(self) -> GauntletStatus:
         if not self.preregistration.is_complete:
             return GauntletStatus.BLOCKED_PREREGISTRATION
-        if self.qualifying_execution:
-            return GauntletStatus.QUALIFYING_EXECUTION_RECORDED
         return GauntletStatus.ENGINEERING_READY

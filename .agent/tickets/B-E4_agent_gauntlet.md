@@ -2,7 +2,10 @@
 
 **Wave:** B candidate
 **Status:** in_progress
-**Execution boundary:** engineering harness implemented; qualifying execution blocked on human preregistration
+**Execution boundary:** engineering harness implemented; successor validation repair
+keeps qualifying recording unavailable pending verified owner-ratification and
+execution-evidence integration, and qualifying execution remains blocked on
+human preregistration
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026

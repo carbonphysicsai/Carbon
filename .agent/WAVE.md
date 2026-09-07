@@ -9,11 +9,11 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.5
+**Controlling register:** `.agent/WAVE_B.md` version 3.6
 **Selected ticket:** B-E4 — `in_progress`
-**Selected-ticket delivery:** B-E2-R1 normally merged in PR #102 at accepted
-head `5b35a7964a25df098b3cb9332c75a5618bd2f645` as
-`b5608b46973869d93300d961749a860096aa6db4`; B-E4 engineering may proceed
+**Selected-ticket delivery:** PR #103 normally merged the first B-E4
+engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`;
+the bounded successor validation repair is in progress
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on complete human-ratified preregistration; B-GATE remains unstarted
 **Next eligible status:** no later ticket is selected
@@ -72,10 +72,12 @@ passed run `34124228848` and normally merged
 **B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
-**B-E4 status:** `in_progress`; the unblocked fixture engineering harness,
-schemas, semantic toy repair, integrity matrix, and shadow-case seam are in the
-current candidate. Qualifying execution and completion remain fail-closed on
-the complete human-ratified preregistration. B-GATE is unstarted.
+**B-E4 status:** `in_progress`; PR #103 merged the unblocked fixture
+engineering harness, schemas, semantic toy repair, integrity matrix, and
+shadow-case seam. A bounded successor repair closes record-integrity gaps while
+keeping qualifying recording unavailable. Qualifying execution and completion
+remain fail-closed on complete human-ratified preregistration and verified
+execution-evidence integration. B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
