@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 41 map-level change events
+- 44 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**, ticket **B-07C** (`in_progress`). The combined candidate implements all four exact fixture task kinds after revalidating B-05. Bounded fixture-only done remains conditional on applicable acceptance and normal merge; B-07D1 remains next, todo, and unstarted.
+Wave **B**, ticket **B-07E** (`todo`). B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped B-07D1, B-07D2, and B-07D3 candidate has separate completed evidence and becomes authoritative only after applicable acceptance and normal merge.
 
 ## Maintain
 

@@ -1,11 +1,14 @@
 # Ticket B-05 - MeasurementContract and Score Pack authoring bindings
 
 **Wave:** B active in bounded development scope
-**Status:** `in_progress`
-**Conditional target:** bounded `done` after the combined B-05/B-07C candidate
-passes applicable OWNER-DX-03 acceptance and normally merges
-**Current phase:** current implementation reverified; delivery reconciliation
-is conditional on the combined candidate's acceptance and merge
+**Status:** `done` in bounded merged engineering scope
+**Completed delivery:** PR #94 accepted head
+`5c1f2551aaf3f3d23ed838050db19cd98bf95dd3` and normally merged it as
+`3d48b3569a8ecc68e15f8b4a151a10c804896f52`; acceptance run `34069874204`
+passed Delivery preflight, Development Hub validation, Canonical environment,
+and Merge gate
+**Current phase:** implementation and delivery reconciliation complete; all
+scientific, qualification, security, rights, production, and LIVE ceilings remain
 **Activation receipt:** PR #86 comment `5548725328` completed B-01H's entire
 delivery predicate and selected B-05 `in_progress but NOT STARTED` from exact
 main `f1a429de37290b3c7615ca051661a1d727528f78`, tree

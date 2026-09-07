@@ -837,6 +837,67 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-07C",
+      "event_type": "evidence",
+      "event_id": "B-05-B07C-E2",
+      "owner_lane": "sciml_technical_lead",
+      "status": "closed",
+      "summary": "PR #94 accepted and normally merged the B-05 verification and B-07C mock-only practice implementation, reconciling both only in their bounded engineering and in-process synthetic-fixture scopes.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/94",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-07C-E1"
+    },
+    {
+      "map_ref": "WAVE-B/B-07D1",
+      "event_type": "evidence",
+      "event_id": "B-07D123-E1",
+      "owner_lane": "sciml_technical_lead",
+      "status": "implemented",
+      "summary": "The owner-directed grouped candidate completes B-07D1 immutable PriorPack storage and private compatibility projection, B-07D2 synthetic TEST_ONLY publishing with a persistent disclosure ledger, and B-07D3 authorized static retrieval and deterministic alignment, preserving three ticket identities and evidence records; bounded completion awaits acceptance and normal merge, while B-07E remains todo and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/evidence/wave_b/b-07d1.md",
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "B-07D123-E2",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/ee96303969b1a56461157f4d9ad23904b2e78e72/agent_pack/executors/hoh/manifests/b05.requirements.v1.json",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }

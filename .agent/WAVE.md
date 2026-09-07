@@ -9,15 +9,18 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 2.6
-**Selected ticket:** B-07C — `in_progress`
-**Selected-ticket completion boundary:** authoritative after its OWNER-DX-03
-shipping predicate
-**Next selected ticket:** `B-07D1`
-**Next eligible status:** B-07D1 is `todo` and unstarted; this delivery does not
-authorize prior publication/provider implementation
-**Owner sequencing:** `OWNER-B05-B07C-01` selects current B-05 verification and
-prospective closeout followed by B-07C on one candidate, ahead of B-07D1.
+**Controlling register:** `.agent/WAVE_B.md` version 2.8
+**Selected ticket:** B-07E — `todo`
+**Selected-ticket start state:** next eligible and explicitly unstarted
+**Selected-ticket completion boundary:** B-07D1/D2/D3 bounded `done` becomes
+authoritative when their unchanged grouped candidate satisfies OWNER-DX-03
+acceptance and normally merges
+**Next selected ticket:** none
+**Selection boundary:** B-07E remains outside this delivery
+**Next eligible status:** B-07E is `todo` and unstarted
+**Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
+and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
+B-07D3 on one branch and PR while preserving ticket/evidence identity.
 OWNER-DX-03 controls engineering delivery.
 **Activation authority:** owner direction recorded in B-06-D0 accepts merged
 PR #87 commit `2500e51042f39a31f5056c74ce2ac5065657ec2a`, tree
@@ -30,9 +33,9 @@ installed-Codex compatibility result remains fail-closed and unqualified
 **B-04 status:** `done`, `IMPLEMENTED`, and `TESTED` in bounded merged fixture
 runtime scope after PR #75's full predicate; every qualification remains
 unearned
-**B-05 status:** `in_progress`; its substantive merged engineering scope has
-been reverified with no runtime repair required, and bounded `done` is prepared
-only after this combined candidate passes acceptance and normally merges
+**B-05 status:** `done` in bounded merged engineering scope after PR #94's
+accepted candidate passed applicable acceptance and normally merged; no runtime
+repair was required
 **B-06 status:** `done` in bounded merged engineering scope. PR #88 merged as
 `300bac5c7647f09d8ffd511d898a55bf3b8fa1e9`; the accepted revision passed
 `Merge gate`, and completion comment `5560216570` selected B-E3. Historical
@@ -49,11 +52,16 @@ only for the shared v2 core, discovery resources, and local two-operation
 adapter.
 **B-07B status:** `done` under this snapshot's OWNER-DX-03 shipping predicate,
 only for the local task lifecycle, private records, and bounded receipts.
-**B-07C status:** `in_progress`; the combined candidate implements its bounded
-in-process synthetic fixture scope after verifying B-05, with `done`
-conditional on applicable acceptance and normal merge.
-**B-07D1 status:** `todo` and unstarted; it remains next after the combined
-B-05/B-07C shipping predicate.
+**B-07C status:** `done` in bounded merged in-process synthetic fixture scope
+after PR #94's accepted candidate passed applicable acceptance and normally
+merged.
+**B-07D1 status:** bounded `done` prepared in the grouped candidate after its
+focused tests passed; authoritative on accepted normal merge
+**B-07D2 status:** bounded TEST_ONLY `done` prepared after D1 and D1-D2 tests;
+authoritative on the same accepted normal merge
+**B-07D3 status:** bounded static-provider `done` prepared after combined
+integration tests; authoritative on the same accepted normal merge
+**B-07E status:** `todo`, next eligible, and unstarted
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

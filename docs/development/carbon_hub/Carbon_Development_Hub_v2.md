@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `b87238858e03aa74d0ad23be8724f6b6e5c7abc7` on `main`, captured 2026-09-07T00:24:40Z.
-**Current:** Wave B, ticket B-07C. The combined candidate implements all four exact fixture task kinds after revalidating B-05. Bounded fixture-only done remains conditional on applicable acceptance and normal merge; B-07D1 remains next, todo, and unstarted.
+**Authority snapshot:** `ee96303969b1a56461157f4d9ad23904b2e78e72` on `main`, captured 2026-09-07T03:04:47Z.
+**Current:** Wave B, ticket B-07E. B-07E is the next eligible ticket, todo and explicitly unstarted. The grouped B-07D1, B-07D2, and B-07D3 candidate has separate completed evidence and becomes authoritative only after applicable acceptance and normal merge.
 
 ## Wave spine
 
@@ -52,16 +52,16 @@
 | [B-02C](explainers/tickets/b_02c.md) | Define resource classes, ceilings, reconstruction-stage receipt seams, enforcement outcomes, and non-scientific resource receipts. | done |
 | [B-03](explainers/tickets/b_03.md) | Define and implement the generator API plus one structural fixed-viscosity Burgers fixture with exact case, attempt, outcome, accounting, conformance, provenance, and disclosure boundaries. | done |
 | [B-04](explainers/tickets/b_04.md) | Define ReferencePolicy, TruthAsset, primary and witness runner interfaces, applicability, uncertainty, independence, disagreement, and typed reference failures. | done |
-| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | in_progress |
+| [B-05](explainers/tickets/b_05.md) | Define MeasurementContract, ReconstructionEvidencePolicy, dependence-aware UncertaintyPolicy, and Score Pack authoring bindings. | done |
 | [B-06](explainers/tickets/b_06.md) | Build D1-D12 Dossier structure, interval-coverage evidence, cross-section consistency checks, and qualification-manifest machinery. | done |
 | [B-07R](explainers/tickets/b_07r.md) | Ratify the miner research architecture, operation ownership, rights boundaries, and separation from the official v1 submission lifecycle. | done |
 | [B-07S](explainers/tickets/b_07s.md) | Ratify the exact v2 operation set, wire types, lifecycle, errors, canonicalization, bounds, and local-adapter contract. | done |
 | [B-07A](explainers/tickets/b_07a.md) | Implement shared v2 protocol primitives, InteractionManifest, and public research-capability discovery. | done |
 | [B-07B](explainers/tickets/b_07b.md) | Implement ResearchTask, ExperimentRecord, ResearchReceipt, evidence classes, failure retention, and lineage. | done |
-| [B-07C](explainers/tickets/b_07c.md) | Implement mock-only practice tasks, practice packs, scaffold, rehearsal, and paired comparison on common fresh public cases. | in_progress |
-| [B-07D1](explainers/tickets/b_07d1.md) | Define PriorPack, estimands, exact immutable storage and indexing, receipts, and an offline compatibility projection. | todo |
-| [B-07D2](explainers/tickets/b_07d2.md) | Implement a TEST_ONLY publisher and persistent cumulative-disclosure ledger with publication schemas and negative activation tests. | todo |
-| [B-07D3](explainers/tickets/b_07d3.md) | Implement exact and active prior retrieval, historical lookup, and deterministic alignment to the current Challenge. | todo |
+| [B-07C](explainers/tickets/b_07c.md) | Implement mock-only practice tasks, practice packs, scaffold, rehearsal, and paired comparison on common fresh public cases. | done |
+| [B-07D1](explainers/tickets/b_07d1.md) | Define PriorPack, estimands, exact immutable storage and indexing, receipts, and an offline compatibility projection. | done |
+| [B-07D2](explainers/tickets/b_07d2.md) | Implement a TEST_ONLY publisher and persistent cumulative-disclosure ledger with publication schemas and negative activation tests. | done |
+| [B-07D3](explainers/tickets/b_07d3.md) | Implement exact and active prior retrieval, historical lookup, and deterministic alignment to the current Challenge. | done |
 | [B-07E](explainers/tickets/b_07e.md) | Implement static resource analysis, a future calibrated-forecast seam, and separate receipts for structural estimate, forecast, quote, admission, and observed use. | todo |
 | [B-07F](explainers/tickets/b_07f.md) | Connect a ResolvedConstructionPlan to fixture-official reconstruction through the unchanged v1 lifecycle. | todo |
 | [B-07G](explainers/tickets/b_07g.md) | Compose the B-07S operation set, dispatch each operation to one named domain owner, and test service-level conformance. | todo |
@@ -124,6 +124,9 @@
 - `B-07A-E1` — `WAVE-B/B-07A` — B-07A implements and tests the shared exact carbon_research_v2 nominal core, ChallengeInfo, the sole InteractionManifest wire schema, immutable historical discovery, and a bounded local two-operation adapter; B-07B is next and unstarted while all later operations and qualification remain unavailable.
 - `B-07B-E1` — `WAVE-B/B-07B` — B-07B implements and tests the constructor-bound linearizable local research-task lifecycle, private ExperimentRecords with exact pins and lineage, typed scientific/infrastructure separation, rights-fail-closed retention, and bounded terminal receipts; B-07D1 is next and unstarted while later operations and every qualification remain unavailable.
 - `B-07C-E1` — `WAVE-B/B-07C` — The owner-directed combined candidate reverifies B-05 with no measurement runtime repair and implements B-07C mock-only scopes, packs, scaffold, reconstruction, practice, paired common-case comparison, and resource-facts-only calibration; both bounded closeouts await acceptance and merge, and B-07D1 remains todo and unstarted.
+- `B-05-B07C-E2` — `WAVE-B/B-07C` — PR #94 accepted and normally merged the B-05 verification and B-07C mock-only practice implementation, reconciling both only in their bounded engineering and in-process synthetic-fixture scopes.
+- `B-07D123-E1` — `WAVE-B/B-07D1` — The owner-directed grouped candidate completes B-07D1 immutable PriorPack storage and private compatibility projection, B-07D2 synthetic TEST_ONLY publishing with a persistent disclosure ledger, and B-07D3 authorized static retrieval and deterministic alignment, preserving three ticket identities and evidence records; bounded completion awaits acceptance and normal merge, while B-07E remains todo and unstarted.
+- `B-07D123-E2` — `SYSTEM/AGENT-EXECUTION` — The grouped B-07D candidate synchronizes the frozen B-05 requirements manifest after status-only delivery reconciliation and registers B-07D installed-wheel imports with the code-authority scanner; B-05 Definition of Done text and B-07D authority boundaries are unchanged.
 
 ## Authority boundary
 

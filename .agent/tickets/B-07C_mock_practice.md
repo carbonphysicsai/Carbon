@@ -1,9 +1,11 @@
 # Ticket B-07C - Nominal mock and practice execution
 
 **Wave:** B candidate
-**Status:** `in_progress`
-**Conditional target:** fixture-only `done` after this candidate passes
-applicable OWNER-DX-03 acceptance and normally merges
+**Status:** `done` in bounded merged in-process synthetic-fixture scope
+**Completed delivery:** PR #94 accepted head
+`5c1f2551aaf3f3d23ed838050db19cd98bf95dd3` and normally merged it as
+`3d48b3569a8ecc68e15f8b4a151a10c804896f52`; acceptance run `34069874204`
+passed all applicable jobs and Merge gate
 **Depends on:** B-02C, B-03, B-05, B-07A, B-07B, B-07S, A4, A8, A9
 **Build Out:** C9/C11 mock/practice lane
 **Master questions:** MQ-002, MQ-003, MQ-004, MQ-005, MQ-015, MQ-016
@@ -31,9 +33,8 @@ Provide honest fixture-only reconstruction rehearsal, practice runs, and paired 
 - [x] Keep all results mechanically unable to enter A5-A7, official leaderboard, frontier, network, or settlement.
 - [x] Add mock/official type-confusion, seed, pack, context, common-case pairing, reference failure, infra failure, resource kill, no-score, no-publication, and installed-wheel tests.
 
-These engineering criteria are implemented and focused-tested in the combined
-candidate. Fixture-only bounded completion becomes authoritative only after
-applicable automated acceptance and normal merge. See
+These engineering criteria are implemented, focused-tested, accepted, and
+normally merged in PR #94. See
 `Design_Specs/Mock_Practice_Execution_Contract.md` and
 `.agent/evidence/wave_b/b-07c.md`.
 
