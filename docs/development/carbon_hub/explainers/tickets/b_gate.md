@@ -41,6 +41,6 @@ Planned on the controlling board; not current implementation permission.
 ## Repository detail
 
 - [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-GATE_closeout.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/57de2f06f7d249b59723d02e337ad15cee5c0e14/.agent/WAVE_B.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/22659f80dc549f3168bf89af0b4189bb3d916edf/.agent/WAVE_B.md)
 
 > This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.

@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `57de2f06f7d249b59723d02e337ad15cee5c0e14` on `main`, captured 2026-09-07T16:22:02Z.
-**Current:** Wave B, ticket B-E2. Implemented and tested in the shipping candidate; bounded completion awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
+**Authority snapshot:** `22659f80dc549f3168bf89af0b4189bb3d916edf` on `main`, captured 2026-09-07T18:00:47Z.
+**Current:** Wave B, ticket B-E2. PR #100 normally merged B-E2; B-E2-R1 is implemented and tested in the shipping candidate and awaits applicable acceptance and normal merge. B-E4 remains next, todo, and unstarted.
 
 ## Wave spine
 
@@ -136,6 +136,7 @@
 - `B-E1-E1` — `WAVE-B/B-E1` — B-E1 specifies, implements, and tests separate R0/R1/R2 fixture results, exact crossed dependence evidence, injected qualified decision procedures, typed contested outcomes, and staged B-05 campaign audit; B-E2 remains todo and unstarted.
 - `B-E1-E2` — `WAVE-B/B-E1` — PR #99 accepted and normally merged B-E1, completing the exact R0/R1/R2 reproducibility and staged-evidence harness only in bounded TEST_ONLY engineering scope.
 - `B-E2-E1` — `WAVE-B/B-E2` — B-E2 specifies, implements, and tests an exact registered primary/witness reference-service failure seam, immutable attempt history, and deterministic TEST_ONLY supported/failure/disagreement/MMS evidence; B-E4 remains todo and unstarted.
+- `B-E2-R1` — `WAVE-B/B-E2` — A bounded successor repair preserves PR #100 history while reconstructing every nested primary/witness response carrier to its exact B-04 type before comparison; B-E4 remains todo and unstarted.
 - `GOV-EVIDENCE-RESEARCH-02` — `WAVE-C` — OWNER-EVIDENCE-RESEARCH-01 now has repository-native archive, launch dialogue, D12, EvidenceBrief, correction, paid-research, acceptance and handoff contracts plus 21 passive future tickets; no ticket or wave was activated.
 
 ## Authority boundary
