@@ -102,12 +102,12 @@ Make measurements and their evidence-use roles explicit before A5 executes any p
       validation, measurement-floor, stratum-applicability, forbidden-input,
       and fail-closed tests.
 
-This checklist is preserved as the byte-exact B-01H requirements input.
-OWNER-DX-03 supersedes its historical review, approval, receipt, and post-merge
-ceremony as a current delivery predicate. The evidence record maps the
-substantive engineering criteria to current implementation and verification;
-bounded completion remains prospective until the combined B-05/B-07C candidate
-passes applicable automated acceptance and normally merges.
+This checklist is preserved as the B-01H requirements input.
+The substantive criteria are verified in the candidate.
+Historical review/approval/receipt language remains in the preserved checklist
+and evidence record but is superseded by OWNER-DX-03 as a current delivery
+predicate. Bounded completion remains prospective until the combined B-05/B-07C
+candidate passes applicable automated acceptance and normally merges.
 
 ## Implemented bounded architecture
 
