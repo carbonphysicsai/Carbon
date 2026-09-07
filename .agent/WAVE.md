@@ -10,7 +10,8 @@
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
 **Controlling register:** `.agent/WAVE_B.md` version 2.8
-**Selected ticket:** B-07E — next eligible, `todo`, and explicitly unstarted
+**Selected ticket:** B-07E — `todo`
+**Selected-ticket start state:** next eligible and explicitly unstarted
 **Selected-ticket completion boundary:** B-07D1/D2/D3 bounded `done` becomes
 authoritative when their unchanged grouped candidate satisfies OWNER-DX-03
 acceptance and normally merges
