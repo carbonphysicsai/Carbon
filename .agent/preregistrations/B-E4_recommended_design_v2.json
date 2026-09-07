@@ -1,0 +1,349 @@
+{
+  "authority_ceiling": "NO_QUALIFYING_EXECUTION_OR_QUALIFICATION_AUTHORITY",
+  "design_inputs": {
+    "conditional_leakage_limit": {
+      "cheaper_alternative": "Retain the 0.05 limit but accept lower precision and therefore more INDETERMINATE outcomes; never relax the limit after seeing execution data.",
+      "recommended_default": "For each of four frozen protected targets, use signed Lambda=(cross-fitted CE_shadow-only-cross-fitted CE_shadow-plus-transcript)/cross-fitted CE_shadow-only. Freeze target encoding and balance, folds, features, estimator, and whole-transcript cluster influence values. Clip predicted probabilities at epsilon=1/[2(n_train+1)]. Require positive shadow-only cross-entropy in every fold and a simultaneous lower confidence bound above zero; otherwise return INDETERMINATE instead of stabilizing the denominator. Use one-sided familywise-0.05 simultaneous bounds. Limit=0.05: PASS only when every UCB<=0.05; FAIL when any LCB>0.05; otherwise INDETERMINATE.",
+      "registered_value": 0.05,
+      "required_owners": [
+        "SECURITY",
+        "STATISTICS",
+        "EXACT_PROTOCOL"
+      ],
+      "rationale": "A proper-score residual-gain statistic conditions on transferable shadow-case performance while measuring incremental protected-realization inference. With 1,320 planned v2 transcript clusters and four targets, a dependence-robust Bonferroni-union calculation gives a whole-cluster influence-SD ceiling of 0.4323807791419945 for at least 0.90 joint null clearance at the 0.05 limit.",
+      "sensitivity": "The planning value SD=0.4 is an explicit ceiling for the cross-fitted ratio estimator's whole-cluster influence values, not an iid raw-outcome SD; it gives a dependence-robust null-clearance lower bound about 0.9571. In the seeded 20,000-draw normal design simulation, a single target at Lambda=0.075 is detected as FAIL about 51.5%, falsely cleared 0%, and otherwise INDETERMINATE about 48.5%. If a non-qualifying dry run cannot bound SD at or below 0.4323807791419945, increase prospective information or accept expected indeterminacy; never relax the limit after qualifying outcomes. Shadow identities remain unimplemented and must be frozen before ratification.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Use limit=0.025 with the same simultaneous rule; this materially increases shadow-case and transcript-cluster requirements."
+    },
+    "intervention_diversity_floor": {
+      "cheaper_alternative": "Require K_sem>=2 and D_guard>=1.5; rejected as the main recommendation because one shortcut plus a token second family could dominate.",
+      "recommended_default": "Require D_guard>=2.0. D_guard is zero unless at least three supported canonical families remain after run/family and global-lineage collapse and no family exceeds one half of equal-profile supported exposure.",
+      "registered_value": 2.0,
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH",
+        "SECURITY"
+      ],
+      "rationale": "Three real semantic families prevent a one-lever accident from satisfying the gate, while an effective-diversity floor of two tolerates ordinary empirical imbalance. The current fixture has K_sem=1 and is therefore guaranteed to fail.",
+      "sensitivity": "Raising the floor to 3.0 effectively requires three equally represented families and is fragile to ordinary imbalance. Lowering it below 2.0 permits a dominant shortcut. Any change alters the breadth claim, not just power.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Require K_sem>=4 and D_guard>=3.0 after adding at least four independently effectful semantic families."
+    },
+    "intervention_diversity_metric": {
+      "cheaper_alternative": "Count distinct registered family identities only; rejected because it ignores concentration and is vulnerable to token families.",
+      "recommended_default": "Derive canonical families only from practice-admissible v2-arm interventions with executed B-07B authoritative plan differences plus pinned catalog and resolved semantic-owner identities. Count a family at most once per profile/replicate run, collapse duplicate lineage globally, and reject one lineage or semantic bucket claiming conflicting identities. A family is supported only if it occurs in at least 10% of registered runs in at least four of five profiles. Equal-weight profiles over all observed canonical exposure. Conservatively assign all unsupported-family mass to the largest supported family, then compute p_max and inverse-Simpson D_eff=1/sum(p_j^2). Set D_guard=D_eff only when at least three families are supported and p_max<=0.5; otherwise set D_guard=0. Raw labels never count.",
+      "registered_value": "supported_family_equal_profile_inverse_simpson/v2",
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH",
+        "SECURITY"
+      ],
+      "rationale": "The metric measures independently executed semantic intervention families rather than vocabulary. Run and lineage collapse resist splitting, the 10%-in-four-profiles support rule rejects token families, conservative unsupported-mass assignment prevents rare-family spam from improving the score, p_max rejects domination, and inverse Simpson measures effective breadth.",
+      "sensitivity": "Changing canonical family or bucket rules can change diversity without changing outcomes and therefore requires a new design digest. Counting labels, values, or attempts would inflate the result and is forbidden.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Require independent held-out benefit for every counted family in addition to canonical execution evidence."
+    },
+    "matched_time_compute_budgets": {
+      "cheaper_alternative": "Use 100 balanced blocks per profile only if an arm-neutral non-qualifying pilot supplies a one-sided upper bound no greater than 0.6182320680314055 for every primary paired-difference and transformed transfer-margin SD. Under that additional condition the dependence-robust six-constraint joint-power lower bound remains at least 0.90. Without that prospective precision evidence, retain 264.",
+      "recommended_default": "Pair all four arms inside each profile/replicate block. Under the current compiled plans, per run allow exactly 8 candidate attempts and at most 189 B-07E fixture units: each paired practice trial can cost 9+13=22 units and the final official-shaped fixture run can cost 13, so 8*22+13=189. Recompute and freeze this ceiling after the effectful fixture extension. Use 264 complete blocks per profile and 26 prospectively numbered reserve blocks. Freeze profile-specific wall-time T_p and total normalized compute C_p as ceil(1.25 times the arm-neutral dry-run p99) only after the five exact drivers and CPU/token meter exist; saved time cannot create attempt 9.",
+      "registered_value": {
+        "attempt_limit": 8,
+        "fixture_units_per_run": 189,
+        "normalized_compute_cap": "C_p=ceil(1.25 times the profile-specific arm-neutral instrumented dry-run p99); unavailable until the meter and driver exist",
+        "replicates_per_profile": 264,
+        "reserve_blocks_per_profile": 26,
+        "wall_time_cap": "T_p=ceil(1.25 times the profile-specific arm-neutral instrumented dry-run p99); unavailable until the driver exists"
+      },
+      "required_owners": [
+        "RESEARCH",
+        "STATISTICS",
+        "EXACT_PROTOCOL"
+      ],
+      "rationale": "The current Q-scale paired difference is bounded in [-1,1], so paired SD<=1 is a defensible worst-case planning bound without outcome data. Requiring at least 0.90 dependence-robust planning power across three primary and three mandatory transfer constraints needs 261.6356640572783 blocks/profile and rounds to 264 for exact four-arm order balance. With independent within-profile block failures but no cross-profile independence assumption, 26 reserves give a Bonferroni-union lower bound about 0.9921 that all five profiles retain 264 blocks at the preregistered 5% failure ceiling. Numeric T_p/C_p remain unavailable.",
+      "sensitivity": "The planned matrix contains 5,280 runs and 997,920 current fixture units; exhausting reserves permits 5,800 runs and 1,096,200 units. At twice the registered infrastructure-failure ceiling, the dependence-robust all-profile retention lower bound is zero, so a dry-run failure estimate above 5% blocks readiness. A stricter unified familywise-0.05 rule across all six utility constraints needs 296 balanced blocks/profile. All resource totals must be recomputed if fixture costs change.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Use 296 balanced blocks per profile with one familywise-0.05 simultaneous family across all six utility constraints, while retaining at least 0.90 dependence-robust planning power; freeze T_p/C_p at the arm-neutral p99 plus 50%."
+    },
+    "practical_effect_floor": {
+      "cheaper_alternative": "Use h/4=0.05883657470313569; rejected as the main recommendation because it asks the experiment to distinguish less than one quarter of the smallest current semantic resolution step.",
+      "recommended_default": "delta=0.11767314940627138 on the frozen Q scale, exactly one half of the current smallest non-zero semantic quality step h=0.23534629881254276. Recompute prospectively if the fixture extension changes the frozen loss anchors or minimum semantic resolution.",
+      "registered_value": 0.11767314940627138,
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS"
+      ],
+      "rationale": "The current legal held-out losses {90.0,45.2,36.5} map to Q {0.0,0.7646537011874572,1.0}. Half of the smallest step is experimentally resolvable yet requires the prior machinery to recover a material fraction of a registered fixture improvement.",
+      "sensitivity": "Increasing delta reduces required replication but counts only larger utility. Decreasing it rapidly raises sample size and makes tiny fixture gains appear material. This fixture threshold conveys no production, commercial, or scientific effect size.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Require the full smallest semantic step h=0.23534629881254276."
+    },
+    "representative_agent_profiles": {
+      "cheaper_alternative": "Use the minimalist, planner, and evolutionary profiles only; rejected as the main recommendation because it omits two ticket-required identities and changes the target fixture population.",
+      "recommended_default": "Register exactly five deterministic fixture-policy archetypes: PLANNER, CODE_GENERATING, EVOLUTIONARY, LITERATURE_GROUNDED, and MINIMALIST. All use one pinned in-repository runtime, no external model/provider, network, shell, filesystem, subprocess, arbitrary-code, hidden-context, or direct-domain access; discover from ChallengeKey through exact B-07S/B-07G plus submit/result-only official access. Profile policy is fixed across arms; only the frozen arm material changes. Driver source/runtime/policy digests, context ceilings, RNG, stopping, invalid-attempt, and retry rules must be frozen before ratification.",
+      "registered_value": [
+        "PLANNER",
+        "CODE_GENERATING",
+        "EVOLUTIONARY",
+        "LITERATURE_GROUNDED",
+        "MINIMALIST"
+      ],
+      "required_owners": [
+        "RESEARCH",
+        "EXACT_PROTOCOL"
+      ],
+      "rationale": "Deterministic policy archetypes exercise the five required research styles without silently changing model capability, external knowledge, or execution access across arms. They are representative fixture agents only and support exact replay.",
+      "sensitivity": "Substituting a model-backed or networked driver changes the represented population, compute accounting, stochastic dependence, and leakage surface and therefore requires a new design digest and ratification.",
+      "status": "PROPOSED",
+      "stricter_alternative": "After this fixture checkpoint, add separately stratified, exactly pinned model/provider configurations; do not pool them into the deterministic archetype estimand."
+    },
+    "uncertainty_aware_decision_rule": {
+      "cheaper_alternative": "Use 100 balanced blocks/profile only after the prospective paired-SD condition in the budget decision is satisfied; do not replace simultaneous bounds with uncorrected point estimates.",
+      "recommended_default": "Use a frozen deterministic profile-stratified paired max-t bootstrap that resamples complete four-arm blocks and derives its seed from the frozen design digest. Form one-sided familywise-0.05 simultaneous bounds for all three v2-baseline primary contrasts and, separately, transfer contrasts. Utility PASS requires every primary LCB>delta, every transfer LCB>-delta, at least 4 of 5 profile contrasts nonnegative against every baseline, and all 264 blocks/profile available. Utility FAIL occurs if any primary UCB<=delta or any transfer UCB<=-delta; otherwise it is INDETERMINATE. Compose utility, diversity, and leakage with FAIL precedence, then PASS only if all three pass. Equality never passes.",
+      "registered_value": "profile_stratified_paired_simultaneous_interval/v1",
+      "required_owners": [
+        "STATISTICS",
+        "SCIENCE",
+        "RESEARCH"
+      ],
+      "rationale": "Whole-block resampling preserves arm dependence, profile stratification prevents a single profile from hiding broad regressions, and simultaneous intervals prevent baseline cherry-picking. The explicit indeterminate state preserves B-E1 treatment of unresolved evidence.",
+      "sensitivity": "A two-sided or tighter familywise interval is stricter and costs power. Removing the profile guard permits concentrated benefit. Reclassifying indeterminate as fail is operationally conservative but loses the evidence distinction required by the ticket.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Require all 5 profile contrasts to be nonnegative and use one-sided 97.5% simultaneous bounds."
+    },
+    "utility_estimand": {
+      "cheaper_alternative": "Use only v2 versus NO_PRIOR; rejected as the main recommendation because it permits selective comparison and cannot distinguish value beyond generic or v1 guidance.",
+      "recommended_default": "Primary intention-to-treat contrasts are Delta_b=(1/5) sum over profiles E[Q_v2-Q_b] for each b in {NO_PRIOR,GENERIC_PRIOR,V1_DIRECTIVE_PRIOR}, using matched four-arm blocks. Q=[log(1+L_worst)-log(1+L)]/[log(1+L_worst)-log(1+L_best)] for the final frozen candidate's independent held-out toy MSE L, with frozen current anchors L_best=36.5 and L_worst=90.0. Candidate invalid/no-result receives Q=0; typed infrastructure/reference failure removes and prospectively replaces the entire block. Transfer Q is mandatory non-inferiority support; restricted time/compute and practice endpoints are supporting; reconstruction and invalid rate are diagnostic. No weighted composite.",
+      "registered_value": "equal_profile_v2_minus_each_baseline_heldout_q_itt/v1",
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH"
+      ],
+      "rationale": "The estimand asks whether v2 improves useful held-out fixture physics under matched resources, equally weights the five preregistered profiles, requires all baselines, preserves candidate-versus-infrastructure failure separation, and does not promote practice evidence.",
+      "sensitivity": "Changing anchors, invalid-run handling, profile weights, baseline set, or endpoint order changes the causal question and requires a new design digest. Ratios of time or compute are deliberately not primary because matched caps make them unstable and easy to game.",
+      "status": "PROPOSED",
+      "stricter_alternative": "Require a positive held-out contrast and a positive transfer contrast against every baseline rather than transfer non-inferiority."
+    }
+  },
+  "execution_design": {
+    "agent_profiles": [
+      {
+        "capability_policy": "B-07S/B-07G exact operations plus official submit/get-result only; network/filesystem/shell/subprocess/arbitrary-code/direct-domain/hidden-context denied",
+        "context_policy": "Start with ChallengeKey only; maximum 64 service replies and 262144 canonical response bytes; no human translation",
+        "driver_ref": "PROPOSED_UNIMPLEMENTED:carbon.gauntlet.fixture_agents.planner/v1",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "policy": "Build a manifest/catalog-derived agenda; test exactly one registered lever per paired experiment; preserve nulls/failures; use a frozen exploration allocation; select the final candidate only from private practice-admissibility and practice diagnostics with canonical-digest tie break; evaluator-held held-out and transfer outcomes remain unavailable until the one final submission",
+        "profile": "PLANNER",
+        "retry_policy": "No free retry; every invalid semantic request burns one of eight attempts; typed infrastructure/reference failure replaces the whole block from numbered reserves",
+        "rng_policy": "SHA-256 domain-separated stream over frozen design digest, profile, replicate, and role; common registered roles across arms",
+        "stopping_policy": "Stop after eight attempted paired strategies, any resource cap, or one frozen final submission, whichever occurs first"
+      },
+      {
+        "capability_policy": "B-07S/B-07G exact operations plus official submit/get-result only; generated values must use registered typed Strategy grammar; code execution denied",
+        "context_policy": "Start with ChallengeKey only; maximum 64 service replies and 262144 canonical response bytes; no repository source or human translation",
+        "driver_ref": "PROPOSED_UNIMPLEMENTED:carbon.gauntlet.fixture_agents.code_generating/v1",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "policy": "Generate grammar-valid typed Strategy values only from retrieved scaffold/catalog; compile feedback is the only repair feedback; canonical catalog order breaks ties",
+        "profile": "CODE_GENERATING",
+        "retry_policy": "Each compilation repair burns an attempt; typed infrastructure/reference failure replaces the whole block from numbered reserves",
+        "rng_policy": "SHA-256 domain-separated stream over frozen design digest, profile, replicate, and role; common registered roles across arms",
+        "stopping_policy": "Stop after eight generation/repair attempts, any resource cap, or one frozen final submission, whichever occurs first"
+      },
+      {
+        "capability_policy": "B-07S/B-07G exact operations plus official submit/get-result only; mutations limited to registered catalog levers; external execution denied",
+        "context_policy": "Start with ChallengeKey only; maximum 64 service replies and 262144 canonical response bytes; no human translation",
+        "driver_ref": "PROPOSED_UNIMPLEMENTED:carbon.gauntlet.fixture_agents.evolutionary/v1",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "policy": "Use catalog-only mutations, fixed population/update schedule, and common RNG; priors may change proposal weights but never capabilities or budget; freeze population size after fixture expansion",
+        "profile": "EVOLUTIONARY",
+        "retry_policy": "Invalid offspring burns an attempt; no replacement within a run; typed infrastructure/reference failure replaces the whole block from numbered reserves",
+        "rng_policy": "SHA-256 domain-separated stream over frozen design digest, profile, replicate, and role; common registered roles across arms",
+        "stopping_policy": "Stop after eight evaluated mutations, any resource cap, or one frozen final submission, whichever occurs first"
+      },
+      {
+        "capability_policy": "B-07S/B-07G exact operations plus official submit/get-result only; one frozen public fixture-method corpus shared by all arms; network denied",
+        "context_policy": "Start with ChallengeKey and the same content-addressed public fixture-method corpus only; maximum 64 service replies and 262144 canonical response bytes",
+        "driver_ref": "PROPOSED_UNIMPLEMENTED:carbon.gauntlet.fixture_agents.literature_grounded/v1",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "policy": "Map every corpus-grounded proposal to one cited registered lever; retain evidence, counterevidence, and falsification only when exposed by the arm; canonical corpus order breaks ties",
+        "profile": "LITERATURE_GROUNDED",
+        "retry_policy": "Unmappable or invalid proposal burns an attempt; typed infrastructure/reference failure replaces the whole block from numbered reserves",
+        "rng_policy": "SHA-256 domain-separated stream over frozen design digest, profile, replicate, and role; common registered roles across arms",
+        "stopping_policy": "Stop after eight cited proposals, any resource cap, or one frozen final submission, whichever occurs first"
+      },
+      {
+        "capability_policy": "B-07S/B-07G exact operations plus official submit/get-result only; no broad search, backtracking, external knowledge, or hidden context",
+        "context_policy": "Start with ChallengeKey only; maximum 32 service replies and 131072 canonical response bytes; no human translation",
+        "driver_ref": "PROPOSED_UNIMPLEMENTED:carbon.gauntlet.fixture_agents.minimalist/v1",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "policy": "Use scaffold plus the first canonical applicable paired intervention; without guidance use canonical catalog order; with guidance use first applicable registered item",
+        "profile": "MINIMALIST",
+        "retry_policy": "No backtracking; an invalid proposal burns the attempt; typed infrastructure/reference failure replaces the whole block from numbered reserves",
+        "rng_policy": "SHA-256 domain-separated stream over frozen design digest, profile, replicate, and role; common registered roles across arms",
+        "stopping_policy": "Stop after first practice-admissible proposal and final submission, or after eight invalid attempts or any resource cap"
+      }
+    ],
+    "analysis": {
+      "analysis_implementation_ref": "UNAVAILABLE_PENDING_IMPLEMENTATION:carbon.gauntlet.analysis.evaluate_frozen_design/v2",
+      "analysis_version": "PROPOSED_V2_NOT_EXECUTABLE",
+      "bootstrap": "Deterministic profile-stratified paired max-t bootstrap of complete four-arm blocks; seed derived from frozen design digest; resample no field independently",
+      "code_tree_ref": "UNPINNED_PENDING_EXECUTION_READINESS_CHECKPOINT",
+      "decision_rule_id": "profile_stratified_paired_simultaneous_interval/v1",
+      "diversity_floor": 2.0,
+      "diversity_metric_id": "supported_family_equal_profile_inverse_simpson/v2",
+      "effect_floor": 0.11767314940627138,
+      "infrastructure_block_failure_ceiling": 0.05,
+      "leakage_familywise_alpha": 0.05,
+      "leakage_joint_clearance_target": 0.9,
+      "leakage_limit": 0.05,
+      "leakage_over_limit_alternative": 0.075,
+      "leakage_planning_cluster_sd": 0.4,
+      "loss_best": 36.5,
+      "loss_worst": 90.0,
+      "minimum_profile_prevalence": 0.1,
+      "multiplicity": "Bonferroni planning plus frozen one-sided familywise-0.05 simultaneous bounds across three utility baselines; separately across four protected leakage targets",
+      "paired_sd_bound": 1.0,
+      "power_target": "At least 0.90 dependence-robust joint utility power across three primary improvements at the true full current semantic step and three transfer differences at zero, under paired or transformed-margin SD<=1; Bonferroni-union lower bound 0.9046756931457731 at 264 blocks/profile",
+      "primary_estimand_id": "equal_profile_v2_minus_each_baseline_heldout_q_itt/v1",
+      "protected_targets": 4,
+      "reserve_retention_target": 0.99,
+      "semantic_mid_loss": 45.2,
+      "utility_familywise_alpha": 0.05,
+      "utility_joint_constraints": 6,
+      "utility_joint_power_target": 0.9,
+      "utility_simultaneous_contrasts": 3
+    },
+    "arms": [
+      {
+        "arm": "NO_PRIOR",
+        "delivery": "No guidance artifact is delivered",
+        "material_ref": "NONE",
+        "selector_policy": "NoPriorSelector for every eligible research task"
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "delivery": "Frozen domain-neutral workflow covering discovery, one-lever paired trials, null retention, reserved exploration, and final freeze; no lever/value/direction/hidden fixture fact",
+        "material_ref": "PROPOSED_UNMATERIALIZED:be4-generic-workflow/v1",
+        "selector_policy": "NoPriorSelector; workflow is identical content-addressed context across profiles and replicates"
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "delivery": "Exact PrivatePriorProjection of the same frozen v2 pack, including source pack, mapping version, omissions, and output digest",
+        "material_ref": "PROPOSED_UNMATERIALIZED:be4-v1-projection/v1",
+        "selector_policy": "No direct v2 access; exact v1 projection only"
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "delivery": "Retrieve through exact B-07S get_prior(EXACT) on the private B-07D3 provider; never inject directly",
+        "material_ref": "UNAVAILABLE_PENDING_EFFECTFUL_FIXTURE_EXTENSION:exact-test-only-pack-and-authorization-receipt",
+        "selector_policy": "Exact PriorPackRef plus TestOnlyPriorAuthorizationReceiptRef pinned across every v2 run; B-07D3 remains authorization owner"
+      }
+    ],
+    "attack_evidence": {
+      "available_now": "Typed synthetic rejection matrix only; it is conformance evidence, not executed attack evidence",
+      "campaign_ref": "UNAVAILABLE_PENDING_IMPLEMENTATION_AND_PIN:be4-attack-campaign/v1",
+      "recommended_contract": "Private append-only AttackCampaignRegistration and owner-adapter-run AttackAttemptReceipt store. Receipts bind design, Challenge, case, ordered call/reply transcript digest, exact owner outcome, task/record/resource/fixture/shadow refs, limits, and terminal state. Assessment accepts only stored refs.",
+      "unavailable": "TRANSFERABLE_PHYSICS requires frozen science/statistics evidence; EXAM_VULNERABILITY requires security/protocol decision; INSUFFICIENT_EVIDENCE requires frozen stopping/interval rule. No caller assertion may construct them."
+    },
+    "budgets": {
+      "attempt_limit": 8,
+      "fixture_units_per_run": 189,
+      "matched_across_arms": true,
+      "normalized_compute_cap": "C_p=ceil(1.25 times the profile-specific arm-neutral instrumented dry-run p99); unavailable until the meter and driver exist",
+      "numeric_caps_ready": false,
+      "saved_time_policy": "Saved wall time or compute cannot create a ninth attempt or increase any other registered cap",
+      "wall_time_cap": "T_p=ceil(1.25 times the profile-specific arm-neutral instrumented dry-run p99); unavailable until the driver exists"
+    },
+    "endpoints": {
+      "diagnostic": "Reconstruction success and invalid-run rate, retained without weighted aggregation",
+      "primary": "Final frozen candidate independent held-out fixture-resolution quality Q for v2 versus each baseline, equal-profile ITT",
+      "supporting": "Transfer Q non-inferiority; restricted mean time/compute to executable Strategy; restricted time/attempts to first practice-admissible result",
+      "translation_boundary": "Practice remains PRACTICE_NON_AUTHORITATIVE; held-out fixture results establish no scientific or production qualification"
+    },
+    "fixture_and_prior": {
+      "current_effectful_family_count": 1,
+      "current_prior_target": "strategy_backbone, a fixed singleton catalog lever",
+      "fixture_catalog_ref": "UNAVAILABLE_PENDING_EFFECTFUL_FIXTURE_EXTENSION:exact-canonical-catalog-ref",
+      "fixture_challenge_ref": "UNAVAILABLE_PENDING_EFFECTFUL_FIXTURE_EXTENSION:exact-challenge-key",
+      "minimum_required_effectful_family_count": 3,
+      "prior_authorization_receipt_ref": "UNAVAILABLE_PENDING_B07D3_AUTHORIZATION:exact-test-only-authorization-receipt-ref",
+      "prior_pack_ref": "UNAVAILABLE_PENDING_B07D2_STAGING:exact-test-only-prior-pack-ref",
+      "required_repair": "Separate bounded checkpoint through B-02B/B-07C/B-07F to add at least three independently effectful canonical semantic families, then stage one exact causally relevant TEST_ONLY pack and authorization through B-07D2/B-07D3",
+      "status": "NOT_READY_FOR_RATIFICATION_OR_EXECUTION"
+    },
+    "matrix": {
+      "maximum_runs": 5800,
+      "planned_runs": 5280,
+      "replicates_per_profile": 264,
+      "reserve_blocks_per_profile": 26
+    },
+    "missingness": {
+      "candidate_invalid": "Retain in intention-to-treat analysis at Q=0 and burn the attempt",
+      "incomplete_after_reserves": "Fewer than 264 complete blocks/profile after 290 attempted blocks/profile is INDETERMINATE",
+      "infrastructure_or_reference_failure": "Retain failure record, exclude no individual arm, and replace the complete four-arm block from 26 prospectively numbered reserves; an arm-neutral dry-run infrastructure-block failure estimate above 0.05 blocks readiness"
+    },
+    "randomization": {
+      "blocking": "One profile plus replicate defines a complete four-arm block; isolated sessions; common registered case/hardware/randomness roles across arms",
+      "order": "Deterministic four-period balanced arm-order rotation repeated 66 times per profile",
+      "seed": "Domain-separated SHA-256 schedule derived from the frozen complete design digest; role-separated public engineering seeds only",
+      "stopping": "No adaptive sample-size, endpoint, threshold, or baseline changes after freeze"
+    },
+    "ratification_and_freeze": {
+      "approval_surface": "Carbon owner issue #41 for the human-reserved pack; issue #42 is technical/SciML notification only",
+      "approval_statement": "Each authenticated role holder must post an exact machine-readable act binding role, complete design digest, immutable design reference, and approval-evidence reference before execution",
+      "freeze": "A future trusted verifier reconstructs exact proposal bytes, authenticated current role assignments, five unedited/unrevoked acts, code/tree, profile/arm artifacts, budgets, fixture/prior/shadow identities, matrix, and analysis implementation; any mutation requires a new digest and all five ratifications",
+      "required_roles": [
+        "RESEARCH",
+        "EXACT_PROTOCOL",
+        "SCIENCE",
+        "STATISTICS",
+        "SECURITY"
+      ],
+      "separation": "Author identity, approval act, design content/digest, approval evidence verification, one-use execution authorization, and later execution evidence remain separate",
+      "status": "UNIMPLEMENTED_AND_UNRATIFIED"
+    },
+    "resource_estimate": {
+      "fixture_units_maximum_with_reserves": 1096200,
+      "fixture_units_planned": 997920,
+      "total_agent_compute": "UNAVAILABLE_PENDING_PINNED_CPU_TOKEN_METER_AND_DRIVER_DRY_RUN",
+      "wall_time": "UNAVAILABLE_PENDING_PROFILE_SPECIFIC_ARM_NEUTRAL_DRY_RUN_P99; proposed cap T_p=ceil(1.25*p99_p)"
+    },
+    "shadow_campaign": {
+      "campaign_ref": "UNAVAILABLE_PENDING_IMPLEMENTATION_AND_PIN:be4-shadow-campaign/v1",
+      "denominator_rule": "Require positive shadow-only cross-entropy in every fold and a simultaneous lower confidence bound above zero; otherwise the leakage gate is INDETERMINATE",
+      "distribution_ref": "UNAVAILABLE_PENDING_EFFECTFUL_FIXTURE_EXTENSION:evaluator-held-independent-shadow-distribution-ref",
+      "estimator_ref": "UNAVAILABLE_PENDING_IMPLEMENTATION_AND_PIN:cross-fitted-shadow-plus-transcript-proper-score-estimator/v1",
+      "fold_policy": "Five profile-stratified complete-block folds assigned by the frozen design digest; all records from one transcript cluster stay in one fold",
+      "probability_clipping": "For each training fold, clip class probabilities at epsilon=1/[2(n_train+1)] and renormalize before cross-entropy",
+      "protected_targets": [
+        "PROTECTED_CASE_IDENTITY",
+        "PROTECTED_MIXTURE_IDENTITY",
+        "RELEASE_VARIANT_IDENTITY",
+        "MEMBERSHIP_BIT"
+      ],
+      "sample_count_rule": "Use every one of the 1,320 planned v2 transcript clusters; evaluator-held shadow cases are independently drawn and their exact per-target count and balance must be fixed by the pinned campaign after non-qualifying estimator diagnostics",
+      "status": "UNIMPLEMENTED_AND_UNPINNED",
+      "transcript_cluster_count": 1320
+    }
+  },
+  "ratifications": [],
+  "readiness": {
+    "blockers": [
+      "CURRENT_FIXTURE_HAS_FEWER_THAN_THREE_EFFECTFUL_CANONICAL_FAMILIES",
+      "CURRENT_TEST_ONLY_PRIOR_TARGETS_A_FIXED_SINGLETON_LEVER",
+      "FIVE_PROFILE_DRIVERS_AND_ARM_MATERIALS_ARE_NOT_IMPLEMENTED_AND_PINNED",
+      "NORMALIZED_AGENT_COMPUTE_METER_AND_WALL_TIME_DRY_RUNS_ARE_ABSENT",
+      "SHADOW_DISTRIBUTION_ESTIMATOR_TARGETS_AND_SAMPLE_COUNT_ARE_NOT_PINNED",
+      "NON_REJECTION_ATTACK_EVIDENCE_STORE_AND_OWNER_ADAPTERS_ARE_UNAVAILABLE",
+      "QUALIFYING_ANALYSIS_IMPLEMENTATION_AND_CODE_TREE_ARE_NOT_PINNED",
+      "FIVE_OWNER_ROLE_ASSIGNMENTS_AND_VERIFIED_RATIFICATION_CONTRACT_ARE_UNAVAILABLE",
+      "NO_HUMAN_OWNER_HAS_APPROVED_THIS_PROPOSAL"
+    ],
+    "human_ratifications_present": false,
+    "qualifying_execution_ready": false
+  },
+  "schema_version": "carbon.be4.preregistration-design.v2",
+  "status": "PROPOSED_DESIGN_ANALYSIS_ONLY"
+}

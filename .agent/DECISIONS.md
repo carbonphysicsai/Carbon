@@ -11808,3 +11808,151 @@ remains unstarted.
 **Human-reserved input.** The existing eight design inputs and five-owner
 same-design ratification remain absent. This repair supplies none of them and
 earns no utility, leakage, scientific, security, privacy, or production result.
+
+## 2026-09-08 — B-E4-D4: bind the full blocked proposal, not eight labels
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; proposal only
+
+**Problem.** The repaired v1 preregistration carrier content-binds its eight
+opaque text fields, but the future qualifying design must also bind the exact
+profile implementations, arm materials, matrix, resource caps, randomization,
+fixture/prior/shadow identities, endpoints, missingness, analysis version, and
+attack campaign. Repeating an eight-field digest cannot prevent those separate
+execution objects from drifting.
+
+**Decision.** Add a versioned canonical blocked execution-design proposal
+whose digest is domain-separated over the full proposal graph, including
+explicit unavailable identities rather than pretending those pins exist. The
+parser accepts exactly the
+eight reserved decision records, five profiles, four arms, internally
+consistent matrix, explicit authority ceiling, empty ratification list, and a
+non-empty readiness-blocker set. Every reserved value remains `PROPOSED`. The
+type exposes no positive ratification or execution state and cannot enter
+`GauntletRecord`. Deterministic fixture-only power, interval-boundary, and
+canonical-diversity helpers remain `DESIGN_ANALYSIS_ONLY`. The raw conditional-
+leakage carrier retains signed finite estimates rather than imposing a zero
+floor that would bias design analysis; it remains non-authoritative.
+
+**Rationale and alternatives.** Extending the v1 eight-string digest would
+still omit treatment and execution artifacts. Treating a Markdown approval as
+machine verification would conflate identity, act, content, verification, and
+later evidence. A canonical proposal is reversible and reviewable now; a
+future trusted verifier may consume a later successor after every unavailable
+identity is resolved, the full design is executable, and humans have approved
+its new exact digest.
+
+**Affected interfaces and migration.** This adds
+`carbon.gauntlet.design`, an analysis-only JSON proposal, tests, and owner
+documentation. It changes no official/public wire, research owner, prior
+authorization, fixture lifecycle, scoring, or current fail-closed
+`GauntletPreregistration`/`GauntletRecord` behavior. Any mutation produces a
+new v2 digest. B-E4 remains `in_progress`; B-GATE is unstarted.
+
+**Delivery, reversibility, and supersession.** Deliver on branch
+`agent/b-e4-preregistration-design` in one OWNER-DX-03 pull request. Before
+ratification, removal or versioned replacement is low cost because no execution
+consumes the proposal. A change supersedes B-E4-D4 here, then updates
+`carbon/gauntlet/design.py`,
+`.agent/preregistrations/B-E4_recommended_design_v2.json`, the B-E4 owner pack,
+tests, plan/evidence, maturity ledger, and Hub decision record. It must not
+rewrite this historical decision.
+
+**Reserved input.** All eight values, the exact executable artifacts, five
+owner identities/acts, positive verification, execution authorization, and
+every outcome remain human- or future-integration-owned and unavailable.
+
+## 2026-09-08 — B-E4-D5: require an identifiable fixture before ratification
+
+**Ticket:** B-E4
+**Status:** human-required preregistration remains blocked; readiness finding
+
+**Problem.** The current toy catalog has only one effectful two-level family,
+`fixture_sampling_level`. The current reusable TEST_ONLY prior instead steers
+`strategy_backbone`, whose catalog domain is the singleton `fno`. With two
+candidate attempts every agent can exhaust the meaningful states, the prior
+cannot demonstrate broad causal search utility, and any diversity requirement
+above one semantic family is impossible. Five executable profile drivers,
+normalized agent-compute metering, exact generic/v1/v2 materials, the shadow
+campaign, executed non-rejection attack evidence, authenticated five-role
+assignments, and a trusted ratification verifier are also absent.
+
+**Decision.** Do not freeze or solicit final five-owner ratification of the
+current execution design. Publish concrete conditional defaults and their
+non-qualifying sensitivity analysis, while recording the blockers in the
+canonical proposal. Before final freeze, ship a separately bounded
+pre-execution readiness repair through the existing B-02B/B-07C/B-07F and
+B-07D2/B-07D3 owners: provide at least three independently effectful canonical
+families and one exact causally relevant TEST_ONLY pack/authorization pair,
+then implement/pin the remaining drivers, meter, arm, shadow, analysis, attack,
+and verification artifacts and rerun dry-run design analysis. Re-derive any
+value whose assumptions change and issue a new digest prospectively.
+
+**Alternatives and reversibility.** Lowering diversity to one would make the
+gate vacuous; treating time-to-first-hit as broad utility would change the
+ticket's causal claim; silently expanding B-02B/B-07C/B-07F inside this design
+checkpoint would reopen completed owners without a bounded delivery record.
+The selected stop is reversible by completing the named readiness repair and
+issuing a prospective v2+ proposal. No data migration exists because no
+qualifying run or verified freeze exists.
+
+**Recommended proposal.** The analysis-only default is five deterministic
+fixture-policy profiles; eight candidate attempts and 189 current fixture
+units/run, recomputed after fixture extension; 264 complete four-arm blocks/
+profile plus 26 reserves; equal-profile v2 contrasts against every baseline on
+log-scaled held-out fixture quality; effect floor `0.11767314940627138`;
+profile-stratified paired simultaneous one-sided 95% intervals across three
+primary and three transfer constraints with explicit pass/fail/indeterminate
+conditions; canonical guarded effective diversity at least `2.0` with at
+least three prevalent families; and conditional residual log-loss gain at
+most `0.05`. Exact rationale and alternatives are in
+`docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md`.
+
+**Ratification boundary.** Issue #41 is the owner-reserved response surface;
+issue #42 is technical/SciML notification only. The Carbon owner must identify
+authenticated principals for research, exact protocol, science, statistics,
+and security and settle multi-role/currentness/revocation policy. Each current
+role holder must bind an immutable approval act to the same later execution-
+ready digest before a separate one-use execution authorization. No comment,
+proposal, matching caller string, or passing engineering CI is ratification.
+
+**Delivery and supersession path.** Record this finding on branch
+`agent/b-e4-preregistration-design` in the same OWNER-DX-03 pull request as
+B-E4-D4. A change must supersede B-E4-D5 in `.agent/DECISIONS.md`, revise the
+readiness blocker set and owner pack, and prospectively update the B-E4 ticket,
+plan, evidence, maturity ledger, tests, and Hub records. Fixture semantics or
+prior content change only through their existing owner contracts and a
+separately bounded candidate.
+
+**Remaining reserved input.** Human owners still must approve or modify every
+one of the eight later execution-ready values, the five authenticated role
+assignments/currentness policy, and all five ratification acts. Scientific,
+statistical, exact-protocol, security, execution, and qualification judgments
+remain unavailable.
+
+**Maturity.** Bounded design representation, deterministic design-analysis
+tests, and an owner review pack only. No qualifying experiment or attack ran;
+no utility, diversity, leakage, scientific, security/privacy, production,
+qualification, or LIVE maturity is earned. B-E4 remains `in_progress`; B-GATE
+remains unstarted.
+
+## 2026-09-08 — OWNER-BE4-PREREG-01: proposal-first reserved-decision workflow
+
+**Scope:** B-E4 preregistration design; no approval of any proposed value
+
+The Carbon owner directed Codex to use the best-supported solution for
+delegated engineering decisions, record consequential choices and reversible
+alternatives, and prepare concrete recommended defaults for human-reserved
+scientific, statistical, protocol, security, qualification, LIVE, production,
+and Wave-transition decisions rather than asking the owner to invent blank
+values. Synthetic, non-qualifying simulations and dry runs may support the
+recommendation. No qualifying outcome may be used to choose or change a
+threshold or decision rule.
+
+This direction authorizes preparation and bounded engineering only. It does
+not approve any B-E4 agent profile, budget, estimand, effect floor, uncertainty
+rule, diversity rule, leakage limit, owner identity, ratification act, freeze,
+execution, result, or later maturity. The existing named human owners retain
+those decisions, and missing authority remains fail closed. The canonical
+response surfaces remain issue #41 for reserved owner decisions and issue #42
+for technical/SciML visibility.

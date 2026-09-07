@@ -4,6 +4,8 @@
 **Starting tree:** `5ca80ea0f8e8375b998b9b33a833c8b8a54ed73a`
 **Successor-repair base:** `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`
 **Successor-repair base tree:** `6a92a2b8f65cd6f3ce1b308538f3fd41005a9f8c`
+**Preregistration-design base:** `5932ed7870e8684f1c2532f129e5ed42c597d77f`
+**Preregistration-design base tree:** `1a3d6330bf2272c249105d142f5a3dd366702b88`
 **Ticket:** `.agent/tickets/B-E4_agent_gauntlet.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
 **Current state:** unblocked engineering implemented; qualifying execution blocked
@@ -81,3 +83,61 @@ engineering observations; it cannot synthesize a pass/fail result from them.
 
 No qualifying gauntlet run is part of either engineering candidate. B-GATE
 remains unstarted.
+
+## Preregistration-design checkpoint
+
+This checkpoint implements the owner's directed proposal-first workflow
+without crossing the human-reserved boundary:
+
+1. Audit the existing fixture, prior, agent, resource, shadow, attack, and
+   ratification seams before selecting values.
+2. Record one machine-readable `PROPOSED_DESIGN_ANALYSIS_ONLY` document that
+   binds all eight proposed decisions and the full blocked execution-design
+   graph, including explicit unavailable refs rather than only repeated
+   labels. Keep ratifications empty and readiness blockers mandatory.
+3. Derive the recommended replicate count, fixture-resolution effect floor,
+   simultaneous interval rules, canonical diversity guard, and conditional-
+   leakage limit from explicit assumptions. Add deterministic seeded design-
+   analysis and boundary tests with no qualifying-result path.
+4. Publish an owner-facing decision pack with the recommended default,
+   rationale, stricter and cheaper alternatives, sensitivity, owners, and
+   `PROPOSED` status for every reserved decision.
+5. Specify, but do not fabricate, an append-only executed-attack evidence
+   contract and five-owner approval verification procedure.
+6. Reconcile B-E4 authority, maturity, evidence, and Development Hub state;
+   run applicable acceptance; normally merge the bounded checkpoint; stop.
+
+### Readiness result
+
+The current fixture is not identifiable for the proposed utility/diversity
+claim. `fixture_sampling_level` is the only effectful two-level family, while
+the available TEST_ONLY prior targets fixed singleton `strategy_backbone`.
+The diversity maximum is therefore one, and the prior cannot demonstrate broad
+causal research utility. The five executable profile drivers, normalized total
+agent-compute meter, exact non-v2 arm artifacts, shadow estimator/campaign,
+executed non-rejection attack evidence, authenticated owner-role assignments,
+and trusted ratification verifier are also absent.
+
+The next work within B-E4 is a separately bounded pre-execution readiness
+repair under the existing B-02B/B-07C/B-07F and B-07D2/B-07D3 owners, followed
+by instrumented dry runs and a new exact proposal digest. No final design freeze
+or five-owner ratification should target the current analysis-only proposal.
+
+### Proposed analysis defaults
+
+- five deterministic fixture-policy profiles and four matched arms;
+- eight candidate attempts and 189 current fixture units per run, recomputed
+  after the effectful fixture extension;
+- 264 complete blocks/profile plus 26 prospectively numbered reserves;
+- 5,280 planned or 5,800 maximum agent-arm runs;
+- equal-profile v2-minus-each-baseline held-out quality contrasts;
+- effect floor `0.11767314940627138`, conditional on preserved fixture anchors;
+- paired profile-stratified simultaneous one-sided 95% interval rules across
+  three primary and three transfer constraints;
+- canonical `D_guard>=2.0`, with at least three prevalent effectful families;
+- conditional residual proper-log-loss gain limit `0.05`.
+
+Exact wall-time and normalized total-compute caps are derived by the frozen
+arm-neutral p99 dry-run rule after the drivers and meter exist. These proposed
+values and simulations are design-analysis evidence only. B-E4 remains
+`in_progress`; B-GATE remains unstarted.
