@@ -98,3 +98,40 @@ implementation evidence, method applicability/conditioning/uncertainty,
 scientific qualification, production security/operations, retry/fallback
 policy, protected data handling, and LIVE reference authority all remain
 absent and human-owned.
+
+## Successor repair evidence — B-E2-R1
+
+PR #100 accepted head `69620f76397c3e72b58ee0d59faf70505963fce1`
+in run `34137457116` and normally merged as
+`602628d3c62f01524336db888da8fcfc7ed379d7`. Those facts remain historical;
+the successor repair does not amend or relabel the original acceptance.
+
+Installed-repository runner reproduction confirmed that an otherwise valid
+response whose `component_bindings` tuple contained a synthetic object could
+reach tuple equality before element validation. Synthetic `SystemExit` and
+`KeyboardInterrupt` values escaped at both the primary and witness runner
+boundaries. The provider had already been invoked, while the hostile element's
+equality callback supplied the escaping control flow.
+
+`carbon.evaluation.service_boundary` now reconstructs the complete
+`ReferenceServiceResponse`, including every nested component carrier and the
+closed reason tuple, before any equality, identity, provenance, assessment,
+artifact, or terminal comparison. Invalid nested values cannot enter accepted
+result construction. A malformed failure run uses only the trusted registered
+context, and the one-use attempt remains burned. The existing fixed protected
+control-signal normalization also covers any control signal still arising in
+post-provider response processing.
+
+Native noncanonical CPython 3.11.16 diagnostics after the repair report:
+
+```text
+55 focused B-E2 runner tests passed
+439 affected B-04/B-E1/B-E2 CPU and invariant tests passed
+Ruff 0.16.3 and Black 26.5.1 pass the changed Python files
+```
+
+GitHub's pinned environment remains shipping acceptance. The successor PR
+records its exact CI and merge identity externally under OWNER-DX-03. The
+repair changes no B-04 terminal precedence, retry history, comparison, MMS,
+artifact-origin, qualification, or maturity semantics. B-E4 remains `todo`
+and unstarted.

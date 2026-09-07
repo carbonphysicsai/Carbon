@@ -93,3 +93,28 @@ scientific value is implemented. B-E2 may earn bounded SPECIFIED, IMPLEMENTED,
 and TESTED fixture engineering only. Every scientific, security, network,
 commercial, production, qualification, ranking, frontier, settlement, weight,
 emission, and LIVE state remains unearned.
+
+## Successor repair B-E2-R1 — 2026-09-08
+
+Historical B-E2 merge `602628d3c62f01524336db888da8fcfc7ed379d7`
+is not rewritten. The successor branch starts from current main
+`bb22a6a356f7e649fc7060e8c620f1956e4643b7` after inspecting PR #101's
+documentation-only integration impact.
+
+The repair keeps the B-04/B-E2 object graph and wraps the existing response
+boundary with one pre-comparison reconstruction pass. It rebuilds every exact
+response carrier, every `component_bindings` element, and the closed
+`observed_reasons` tuple before equality or terminal selection can consume
+them. Wrong element types and incomplete carriers become malformed response
+failures without invoking their equality behavior. Complete but cross-bound
+nested identities retain the existing identity-failure class. A protected
+control signal that can still arise during post-provider processing is
+normalized through the existing fixed B-04 control-signal pattern after the
+attempt is burned.
+
+Runner-level primary and witness tests cover wrong nested element types,
+incomplete exact carriers, cross-bound nested identities, repeated invocation,
+unchanged valid responses, and unchanged malformed/provenance/identity
+classification. B-E4 remains `todo` and unstarted. No adjacent runtime module,
+public interface, fixture authority, status vocabulary, fallback, scoring,
+truth/candidate authority, production behavior, or LIVE capability changes.

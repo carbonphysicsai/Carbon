@@ -7,7 +7,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 3.3
+**Version:** 3.4
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -207,21 +207,23 @@ unchanged candidate passes applicable acceptance and normally merges. B-E1
 stays `todo`, unstarted, and outside this delivery. No listener, authenticated
 transport, quote/admission, real training, scientific/security/rights
 qualification, production, network, commercial, or LIVE authority is granted.
-**B-E1 completion / B-E2 conditional closeout:** PR #98 normally merged
+**B-E1 completion / B-E2 delivery and successor repair:** PR #98 normally merged
 accepted head `7b88bc4aa1138d264aaa3f98d35f5a79a318c655` as
 `527877bdd132c33569ac64c11b0a4360f5a08718` after run `34109277665`
 passed applicable acceptance and Merge gate, making B-07G `done` in bounded
 local composition/conformance scope. PR #99 accepted B-E1 head
 `831a34598d6779d369f01de3523c3d8ee0385d18` passed run `34124228848`,
 including `Merge gate`, and normally merged as the second parent of main
-`c484fd308d866d4b05a2765a984ec014dd96386e`. Version 3.3 specifies,
-implements, and tests B-E2's exact registered-service failure seam and
-deterministic TEST_ONLY evidence graph. B-E2 bounded `done` and the B-E4
-handoff become authoritative only after the unchanged candidate passes
-applicable acceptance and normally merges. B-E4 stays `todo`, unstarted, and
-outside this delivery. No Julia repair, scientific/security qualification,
-production backend, ranking, frontier, network, settlement, emission, or LIVE
-authority is granted.
+`c484fd308d866d4b05a2765a984ec014dd96386e`. PR #100 then accepted B-E2 head
+`69620f76397c3e72b58ee0d59faf70505963fce1` in run `34137457116` and
+normally merged it as `602628d3c62f01524336db888da8fcfc7ed379d7`.
+Version 3.4 preserves that historical bounded `done` state and records the
+B-E2-R1 successor repair: every untrusted nested response carrier is
+reconstructed before comparison. The repair becomes complete after its
+unchanged candidate passes applicable acceptance and normally merges. B-E4
+stays `todo`, unstarted, and outside this delivery. No Julia repair,
+scientific/security qualification, production backend, ranking, frontier,
+network, settlement, emission, or LIVE authority is granted.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`
@@ -405,9 +407,11 @@ applicable acceptance and normal merge. PR #97 completed B-07F, and PR #98
 completed B-07G, after applicable acceptance and normal merge. B-E1 accepted
 head `831a34598d6779d369f01de3523c3d8ee0385d18` then passed run
 `34124228848`, including `Merge gate`, and normally merged as the second parent
-of main `c484fd308d866d4b05a2765a984ec014dd96386e`. Version 3.3 prepares B-E2
-bounded `done` on accepted normal merge and leaves B-E4 next, `todo`, and
-unstarted; later gauntlet and closeout work remains absent.
+of main `c484fd308d866d4b05a2765a984ec014dd96386e`. PR #100 accepted and
+normally merged B-E2 as `602628d3c62f01524336db888da8fcfc7ed379d7`.
+Version 3.4 preserves that bounded historical completion, records B-E2-R1's
+nested response-validation successor candidate, and leaves B-E4 next, `todo`,
+and unstarted; later gauntlet and closeout work remains absent.
 B-06's five historical complete-diff reviews found nine actionable defects;
 CR-001 through CR-009 are repaired. Those reviews and approvals remain
 historical evidence for the pre-integration tree. OWNER-DX-03 requires no

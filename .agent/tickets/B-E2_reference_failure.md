@@ -47,3 +47,20 @@ do not establish numerical authority.
 Return a fake truth asset, average a disagreement into truth, convert reference
 failure to mandatory-gate failure, relabel an MMS fixture as validated physics,
 fall back silently, or claim Julia inclusion equals validation.
+
+## Successor repair B-E2-R1 — nested response validation
+
+PR #100 and merge `602628d3c62f01524336db888da8fcfc7ed379d7`
+remain the immutable historical B-E2 delivery. A later audit found that the
+registered service boundary checked the exact outer type of response tuples
+before reconstructing their elements. Python tuple equality could therefore
+invoke an unvalidated element before `RealizedComponentBinding` validation.
+
+The bounded successor repair reconstructs every response carrier and each
+nested tuple element before identity, provenance, assessment, artifact, or
+terminal comparison. Structurally invalid nested values remain
+`PROVIDER_RESULT_MALFORMED`; complete cross-bound identities remain
+`VERSION_OR_IDENTITY_MISMATCH`; valid, provenance, terminal-precedence,
+one-use, retry, comparison, MMS, and `FIXTURE_ONLY` behavior remain unchanged.
+The repair adds no status, fallback, score, candidate/truth authority,
+production behavior, or LIVE capability. B-E4 remains `todo` and unstarted.

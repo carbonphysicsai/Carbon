@@ -24,6 +24,7 @@ from carbon.evaluation.enums import (
 )
 from carbon.evaluation.errors import ReferenceInputCode, ReferenceValidationError
 from carbon.evaluation.fixtures import build_b04_fixture_reference_graph
+from carbon.evaluation.model import RealizedComponentBinding
 from carbon.evaluation.policy import (
     primary_target_for_entry,
     validate_reference_policy_graph,
@@ -31,6 +32,7 @@ from carbon.evaluation.policy import (
 from carbon.evaluation.service_boundary import (
     ReferenceServiceAttemptHistory,
     RegisteredPrimaryReferenceServiceRunner,
+    RegisteredWitnessReferenceServiceRunner,
 )
 from carbon.evaluation.service_fixtures import (
     build_be2_reference_failure_fixture_graph,
@@ -196,6 +198,280 @@ class _ResponseProvider:
         del grant, request
         self.calls += 1
         return self.response
+
+    def execute_witness(self, grant, request):
+        del grant, request
+        self.calls += 1
+        return self.response
+
+
+class _SyntheticResponseSignal(BaseException):
+    pass
+
+
+class _HostileEquality:
+    def __init__(self, signal: BaseException) -> None:
+        self.calls = 0
+        self.signal = signal
+
+    def __eq__(self, other: object) -> bool:
+        del other
+        self.calls += 1
+        raise self.signal
+
+
+def _fresh_witness_response(label: str):
+    graph = build_b04_fixture_reference_graph()
+    request = service_fixtures.b04_fixtures._request(
+        label=f"be2_{label}",
+        policy=graph.policy,
+        case_ref=graph.case_ref,
+        witness=True,
+    )
+    grant = service_fixtures.b04_fixtures._grant(
+        label=f"be2_{label}",
+        request=request,
+        component_entry_refs=(graph.entries[-1].to_ref(),),
+    )
+    resolution = service_fixtures.b04_fixtures._resolution(
+        label=f"be2_{label}",
+        request=request,
+        grant=grant,
+        policy=graph.policy,
+        entries=graph.entries,
+        compositions=graph.compositions,
+        manifest=graph.precomputed_manifest,
+    )
+    context = service_fixtures._context(grant, graph, label)
+    response = service_fixtures._response(request, grant, resolution, context)
+    return graph, request, grant, resolution, context, response
+
+
+def _fresh_role_response(role: str, label: str):
+    if role == "primary":
+        return _fresh_response(label)
+    return _fresh_witness_response(label)
+
+
+def _runner_for_response(
+    role: str,
+    request,
+    grant,
+    resolution,
+    context,
+    response,
+):
+    provider = _ResponseProvider(response)
+    if role == "primary":
+        runner = RegisteredPrimaryReferenceServiceRunner(
+            provider, request, grant, resolution, context
+        )
+        return provider, runner, lambda: runner.run_primary(grant, request)
+    runner = RegisteredWitnessReferenceServiceRunner(
+        provider, request, grant, resolution, context
+    )
+    return provider, runner, lambda: runner.run_witness(grant, request)
+
+
+def _cross_bound_component(
+    component: RealizedComponentBinding,
+) -> RealizedComponentBinding:
+    challenge = ChallengeKey("be2_cross_bound_nested", "1.0")
+    identities = {
+        name: replace(getattr(component, name), challenge_key=challenge)
+        for name in (
+            "configuration_ref",
+            "environment_ref",
+            "hardware_ref",
+            "implementation_ref",
+            "method_ref",
+            "precision_ref",
+        )
+    }
+    return replace(
+        component,
+        entry_ref=replace(component.entry_ref, challenge_key=challenge),
+        **identities,
+    )
+
+
+@pytest.mark.parametrize("role", ("primary", "witness"))
+@pytest.mark.parametrize(
+    "signal_type",
+    (SystemExit, KeyboardInterrupt, _SyntheticResponseSignal),
+)
+def test_hostile_nested_response_control_signal_is_sanitized_and_one_use(
+    role: str,
+    signal_type: type[BaseException],
+) -> None:
+    marker = "SYNTHETIC_RESPONSE_CANARY"
+    hostile = _HostileEquality(signal_type(marker))
+    signal_label = {
+        SystemExit: "exit",
+        KeyboardInterrupt: "interrupt",
+        _SyntheticResponseSignal: "custom",
+    }[signal_type]
+    if role == "primary":
+        _, request, grant, resolution, context, response = _fresh_response(
+            f"nested_{signal_label}"
+        )
+        runner_type = RegisteredPrimaryReferenceServiceRunner
+        invoke = lambda runner: runner.run_primary(grant, request)
+    else:
+        _, request, grant, resolution, context, response = _fresh_witness_response(
+            f"nested_{signal_label}"
+        )
+        runner_type = RegisteredWitnessReferenceServiceRunner
+        invoke = lambda runner: runner.run_witness(grant, request)
+    response = replace(response, component_bindings=(hostile,))
+    provider = _ResponseProvider(response)
+    runner = runner_type(provider, request, grant, resolution, context)
+
+    run = invoke(runner)
+
+    assert run.outcome is ReferenceRunOutcome.MALFORMED_OR_PROVENANCE_FAILURE
+    assert run.reason.value is ReferenceFailureReason.PROVIDER_RESULT_MALFORMED
+    assert hostile.calls == 0
+    assert marker not in repr(run)
+    assert marker not in str(run)
+    assert provider.calls == 1
+    with pytest.raises(ReferenceValidationError):
+        invoke(runner)
+    assert provider.calls == 1
+
+
+@pytest.mark.parametrize("role", ("primary", "witness"))
+def test_incomplete_nested_response_carrier_is_malformed_and_one_use(
+    role: str,
+) -> None:
+    _, request, grant, resolution, context, response = _fresh_role_response(
+        role, "incomplete_nested"
+    )
+    incomplete = object.__new__(RealizedComponentBinding)
+    object.__setattr__(
+        incomplete, "entry_ref", response.component_bindings[0].entry_ref
+    )
+    response = replace(response, component_bindings=(incomplete,))
+    provider, _, invoke = _runner_for_response(
+        role, request, grant, resolution, context, response
+    )
+
+    run = invoke()
+
+    assert run.outcome is ReferenceRunOutcome.MALFORMED_OR_PROVENANCE_FAILURE
+    assert run.reason.value is ReferenceFailureReason.PROVIDER_RESULT_MALFORMED
+    assert run.component_bindings == context.component_bindings
+    assert not run.artifact_binding.is_bound
+    assert provider.calls == 1
+    with pytest.raises(ReferenceValidationError):
+        invoke()
+    assert provider.calls == 1
+
+
+@pytest.mark.parametrize("role", ("primary", "witness"))
+def test_cross_bound_nested_identity_remains_identity_failure(role: str) -> None:
+    _, request, grant, resolution, context, response = _fresh_role_response(
+        role, "cross_bound_nested"
+    )
+    response = replace(
+        response,
+        component_bindings=(_cross_bound_component(response.component_bindings[0]),),
+    )
+    provider, _, invoke = _runner_for_response(
+        role, request, grant, resolution, context, response
+    )
+
+    run = invoke()
+
+    assert run.outcome is ReferenceRunOutcome.MALFORMED_OR_PROVENANCE_FAILURE
+    assert run.reason.value is ReferenceFailureReason.VERSION_OR_IDENTITY_MISMATCH
+    assert run.component_bindings == context.component_bindings
+    assert not run.artifact_binding.is_bound
+    assert provider.calls == 1
+
+
+@pytest.mark.parametrize("role", ("primary", "witness"))
+def test_valid_nested_response_is_unchanged(role: str) -> None:
+    _, request, grant, resolution, context, response = _fresh_role_response(
+        role, "valid_nested"
+    )
+    provider, _, invoke = _runner_for_response(
+        role, request, grant, resolution, context, response
+    )
+
+    run = invoke()
+
+    assert run.outcome is ReferenceRunOutcome.SUPPORTED
+    assert run.reason.value is None
+    assert run.component_bindings == context.component_bindings
+    assert run.provenance_binding == context.provenance_binding
+    assert run.artifact_binding.value == response.artifact_content
+    assert provider.calls == 1
+
+
+@pytest.mark.parametrize("role", ("primary", "witness"))
+@pytest.mark.parametrize(
+    ("mutation", "expected_reason"),
+    (
+        ("malformed", ReferenceFailureReason.PROVIDER_RESULT_MALFORMED),
+        ("provenance", ReferenceFailureReason.PROVENANCE_INVALID),
+        ("identity", ReferenceFailureReason.VERSION_OR_IDENTITY_MISMATCH),
+    ),
+)
+def test_nested_reconstruction_preserves_existing_failure_classes(
+    role: str,
+    mutation: str,
+    expected_reason: ReferenceFailureReason,
+) -> None:
+    graph, request, grant, resolution, context, response = _fresh_role_response(
+        role, f"unchanged_{mutation}"
+    )
+    if mutation == "malformed":
+        response = replace(response, observed_reasons=("not-a-reason",))
+    elif mutation == "provenance":
+        alternate = (
+            graph.witness_run.provenance_binding.source_ref
+            if role == "primary"
+            else graph.primary_run.provenance_binding.source_ref
+        )
+        response = replace(
+            response,
+            provenance_binding=replace(
+                response.provenance_binding,
+                source_ref=alternate,
+            ),
+        )
+    else:
+        response = replace(response, run_version="2.0")
+    provider, _, invoke = _runner_for_response(
+        role, request, grant, resolution, context, response
+    )
+
+    run = invoke()
+
+    assert run.outcome is ReferenceRunOutcome.MALFORMED_OR_PROVENANCE_FAILURE
+    assert run.reason.value is expected_reason
+    assert not run.artifact_binding.is_bound
+    assert provider.calls == 1
+
+
+def test_hostile_nested_response_exception_is_rejected_without_callback() -> None:
+    hostile = _HostileEquality(RuntimeError("SYNTHETIC_RESPONSE_EXCEPTION_CANARY"))
+    _, request, grant, resolution, context, response = _fresh_response(
+        "hostile_nested_exception"
+    )
+    response = replace(response, component_bindings=(hostile,))
+    provider = _ResponseProvider(response)
+    runner = RegisteredPrimaryReferenceServiceRunner(
+        provider, request, grant, resolution, context
+    )
+
+    run = runner.run_primary(grant, request)
+
+    assert run.outcome is ReferenceRunOutcome.MALFORMED_OR_PROVENANCE_FAILURE
+    assert run.reason.value is ReferenceFailureReason.PROVIDER_RESULT_MALFORMED
+    assert hostile.calls == 0
+    assert provider.calls == 1
 
 
 @pytest.mark.parametrize(
