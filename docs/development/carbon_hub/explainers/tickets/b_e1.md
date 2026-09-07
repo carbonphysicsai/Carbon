@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-E1`
 
-**Status:** TODO
+**Status:** DONE
 
 **Target phase:** WB-2/3
 
@@ -16,7 +16,7 @@ Candidate order can change under reconstruction or evaluation variance. Carbon n
 
 ## What it adds
 
-A statistical evidence harness for unstable or unresolved comparisons.
+A deterministic TEST_ONLY harness with separate R0/R1/R2 results, exact crossed evidence, injected qualified decisions, typed contested outcomes, and staged reconstruction audit.
 
 ## Placement and handoff
 
@@ -28,19 +28,22 @@ A statistical evidence harness for unstable or unresolved comparisons.
 
 ## Explicit non-goals
 
-Partial evidence, screens, forecasts, or heuristic futility cannot create SUPERIOR.
+Partial evidence, screens, forecasts, or heuristic futility cannot create SUPERIOR; the harness supplies no real statistical value, qualification, ranking, frontier, production, or LIVE authority.
 
 ## Current stage
 
-No more specific stage is supported; use the captured status and repository evidence.
+Implemented and tested in the shipping candidate; bounded completion awaits accepted normal merge. B-E2 remains next, todo, and unstarted.
 
 ## Maturity ceiling
 
-Planned on the controlling board; not current implementation permission.
+SPECIFIED, IMPLEMENTED, and TESTED are prepared only for deterministic TEST_ONLY reproducibility fixtures. Every scientific, security, network, commercial, production, ranking, frontier, and LIVE authority remains unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/tickets/B-E1_reproducibility.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/79143d13e1e69e6f8e32ac066828b47fe5f9b060/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/tickets/B-E1_reproducibility.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/WAVE_B.md)
+- [B-E1 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/plans/B-E1_reproducibility_harness.md)
+- [B-E1 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/.agent/evidence/wave_b/b-e1.md)
+- [B-E1 fixture contract](https://github.com/carbonphysicsai/Carbon/blob/51a7fb0802fd05d84aa91e30033053a1c399c629/Design_Specs/Reproducibility_Harness_Contract.md)
 
-> This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.
+> The harness is deterministic fixture engineering only. Exact bits do not imply numerical or decision reproducibility, unresolved evidence cannot rank, and every real scientific or production value remains human-owned and absent.
