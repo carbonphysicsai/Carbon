@@ -1130,7 +1130,7 @@
       "if_changed": "Forecast wire versioning, provider constructors, provenance bindings, tests, and later B-07G composition require a prospective migration and the relevant owner authority.",
       "affects": ["WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/32b7f86aa9568a5ba19ad57e22bae0f081019438/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/f7a58e1952d6e2ee729530aea7fde881fae6b9e7/.agent/DECISIONS.md"
     },
     {
       "decision_id": "B-07F-D1",
@@ -1148,7 +1148,7 @@
       "if_changed": "The adapter contract, registered lever semantics, receipt identity, A7/A8 compatibility tests, and downstream parity evidence require prospective review and migration.",
       "affects": ["WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5566242789",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/5dc41eef62025a0114ee11bb98db3f9b877b247d/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/f7a58e1952d6e2ee729530aea7fde881fae6b9e7/.agent/DECISIONS.md"
     }
   ]
 }

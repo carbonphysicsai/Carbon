@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `32b7f86aa9568a5ba19ad57e22bae0f081019438` on `main`, captured 2026-09-07T05:38:36Z.
+**Authority snapshot:** `f7a58e1952d6e2ee729530aea7fde881fae6b9e7` on `main`, captured 2026-09-07T07:31:24Z.
 **Current:** Wave B, ticket B-07F. The fixture-only resolved-plan adapter is implemented and tested in the shipping candidate. Bounded completion becomes authoritative after applicable acceptance and normal merge; B-07G remains next and unstarted.
 
 ## Wave spine
