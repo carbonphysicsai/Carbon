@@ -117,6 +117,8 @@ B07E_MODULES = ("carbon.research.resource_estimation",)
 
 B07F_MODULES = ("carbon.traineval.resolved_fixture",)
 
+B07G_MODULES = ("carbon.research.service",)
+
 INSTALLED_MODULES = (
     "carbon",
     *ROLE_PACKAGES,
@@ -130,6 +132,7 @@ INSTALLED_MODULES = (
     *B07D_MODULES,
     *B07E_MODULES,
     *B07F_MODULES,
+    *B07G_MODULES,
 )
 
 

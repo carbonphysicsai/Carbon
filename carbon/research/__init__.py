@@ -50,6 +50,8 @@ from .refs import *
 from .refs import __all__ as _ref_exports
 from .resource_estimation import *
 from .resource_estimation import __all__ as _resource_estimation_exports
+from .service import *
+from .service import __all__ as _service_exports
 
 __all__ = (  # noqa: PLE0604 - composed from the three explicit string registries
     *_model_exports,
@@ -59,6 +61,7 @@ __all__ = (  # noqa: PLE0604 - composed from the three explicit string registrie
     *_prior_store_exports,
     *_record_exports,
     *_resource_estimation_exports,
+    *_service_exports,
     *_ref_exports,
     "CanonicalWireError",
     "DiscoveryProviderUnavailable",
