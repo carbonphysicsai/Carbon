@@ -32,7 +32,7 @@ Historical fit or local improvement cannot establish safe utility without the pr
 
 ## Current stage
 
-Unblocked engineering is implemented in the current candidate. No qualifying gauntlet ran; completion is blocked on the eight human-supplied preregistration inputs and five-owner exact-design ratification.
+The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
 
 ## Maturity ceiling
 
@@ -40,7 +40,10 @@ B-E4 is specified, implemented, and tested only for the bounded fixture-engineer
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/92a6364fe84dff33d76b6f1b87cccca91053d62b/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/WAVE_B.md)
+- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/plans/B-E4_agent_gauntlet.md)
+- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/evidence/wave_b/b-e4.md)
+- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/tests/cpu/test_be4_successor_validation_repair.py)
 
-> The harness records descriptive fixture observations only. It cannot create a utility, diversity, leakage, security, scientific, or production verdict, and B-GATE remains unstarted.
+> The harness records descriptive fixture observations only. Design content is digest-bound, v2 pins are arm- and Challenge-checked, and integrity outcomes are restricted to case-applicable existing owner codes; none of these checks proves authorization, owner ratification, execution, utility, leakage, or security, and B-GATE remains unstarted.

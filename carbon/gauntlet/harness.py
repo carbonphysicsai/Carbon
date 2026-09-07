@@ -61,13 +61,18 @@ def validate_experiment_matrix(
     budgets: tuple[MatchedBudget, ...],
     runs: tuple[RunIdentity, ...],
 ) -> None:
-    """Validate the full matched matrix without interpreting scientific values."""
+    """Validate a declared non-qualifying matrix without interpreting values.
+
+    This structural check neither verifies owner ratification nor validates the
+    B-07D3 pack-to-receipt authorization. Both remain separate owner seams.
+    """
 
     if type(preregistration) is not GauntletPreregistration:
         raise TypeError("exact preregistration is required")
     if not preregistration.is_complete:
         raise GauntletPreflightError(
-            "qualifying gauntlet blocked: " + ",".join(preregistration.missing_inputs)
+            "declared experiment matrix blocked: "
+            + ",".join(preregistration.missing_inputs)
         )
     if type(budgets) is not tuple or any(
         type(item) is not MatchedBudget for item in budgets
@@ -81,6 +86,21 @@ def validate_experiment_matrix(
         )
     if type(runs) is not tuple or any(type(item) is not RunIdentity for item in runs):
         raise TypeError("runs require exact RunIdentity values")
+    try:
+        runs = tuple(
+            RunIdentity(
+                item.profile,
+                item.arm,
+                item.replicate,
+                item.prior_pack_ref,
+                item.test_only_authorization_ref,
+            )
+            for item in runs
+        )
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise GauntletPreflightError(
+            "every run identity must survive exact nested reconstruction"
+        ) from exc
     replicates = {item.replicate for item in runs}
     expected = {
         (profile, arm, replicate)

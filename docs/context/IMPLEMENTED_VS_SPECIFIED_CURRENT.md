@@ -1,8 +1,8 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through the B-E2
-shipping candidate, plus the prospective `OWNER-NET-01` roadmap candidate only
-where explicitly labeled.
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through the merged B-E4
+engineering checkpoint and its bounded successor validation repair, plus the
+prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
@@ -22,8 +22,11 @@ where explicitly labeled.
 > normally merged. The current B-E2 candidate wraps the exact B-04 identities,
 > grants, outcomes, failures, provenance, and comparison results with an exact
 > registered-service seam and deterministic TEST_ONLY fixture evidence.
-> B-E2 closeout is conditional on applicable acceptance and normal merge; B-E4
-> remains next, `todo`, and unstarted.
+> PR #102 merged the bounded B-E2 successor repair. PR #103 merged B-E4's
+> initial fail-closed engineering harness and semantic toy fixture. B-E4 remains
+> `in_progress`; a bounded successor validation repair prevents caller-created
+> qualifying records, tightens TEST_ONLY pin structure, and restricts integrity
+> outcomes to applicable existing owner codes. No qualifying execution ran.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -367,6 +370,7 @@ the bounded implementation.
 | R0/R1/R2 reproducibility harness | B-E1 fixture contract | Separate exact-identity, injected numerical, and injected decision results; B-02A exact population/SamplingPlan/case refs; complete incumbent/challenger × producer-independent reconstruction × case graph; stress strata and interaction/dependence retention; explicit shared dependencies and six factor classes; exact B-04 outcomes; exact B-05 policy/shortcut binding; staged reconstruction campaign audit; deterministic canonical refs and fail-closed contested outcomes | No | bounded TEST_ONLY fixture engineering only; no real tolerance, sample size, dependence model, interval/applicability procedure, coverage/power target, stopping rule, audit rate, production backend, ranking, or frontier authority |
 | Registered reference-service failure boundary | B-E2 fixture contract | Exact B-04 request/grant/resolution/run identities; one-use invocation; typed supported, uncertainty, non-applicable, unsupported, numerical/conditioning, malformed, provenance, timeout, unavailable, transport, and process outcomes; immutable retry trace; primary/witness disagreement remains B-04 comparison evidence | No | deterministic TEST_ONLY fixture evidence only; archived Julia remains absent and no reference implementation, method, environment, MMS/analytic fixture, fallback, tolerance, applicability, uncertainty, or scientific authority is qualified |
 | Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
+| B-E4 gauntlet engineering | Yes — human-reserved execution design values remain absent | Profile/arm identities, exact service wrappers, raw observation schemas, shared semantic toy fixture, TEST_ONLY structural pin validation, explicit owner-code integrity fixture matrix, and evaluator-held shadow seam; qualifying-record construction is unavailable | No | No autonomous-agent or attack execution, verified owner-ratification integration, B-07D3 authorization certification at the gauntlet layer, decision thresholds, utility result, leakage result, security/privacy qualification, production, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |
@@ -464,8 +468,8 @@ No paper/deck may imply:
 > **At the initial documentation working base `91b023a`, reconciled for
 > delivery with current `origin/main` at `602628d`, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
-> `.agent/WAVE.md` records Wave B with B-E2 done and B-E4 next, todo and
-> unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
+> `.agent/WAVE.md` records Wave B with B-E4 in progress, qualifying execution
+> blocked, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
 > specified only. Archive, Concierge, EvidenceBrief, D12, paid research,
 > advanced Research Scientist, network, scientific/security/commercial/

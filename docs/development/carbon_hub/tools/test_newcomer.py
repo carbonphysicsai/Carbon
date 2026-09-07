@@ -88,7 +88,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn(
             f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
         )
-        self.assertIn("Unblocked engineering is implemented", self.output)
+        self.assertIn("bounded successor validation repair is implemented", self.output)
         self.assertIn("B-GATE is unstarted", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 

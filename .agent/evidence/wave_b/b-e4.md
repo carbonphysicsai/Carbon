@@ -5,6 +5,10 @@
 **Primary Hub map_ref:** `WAVE-B/B-E4`
 **Maturity ceiling:** bounded SPECIFIED / IMPLEMENTED / TESTED engineering only
 
+**Merged engineering checkpoint:** PR #103, merge
+`ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`, accepted head
+`c2af1f2f593ec5d7557452facfef101111ee79e6`, exact-head CI `34155642414`
+
 ## Implemented
 
 `carbon.gauntlet` supplies closed representative profile and experimental-arm
@@ -73,3 +77,32 @@ The exact outstanding human decisions are:
 
 B-E4 therefore remains in progress and blocked only at qualifying execution
 and completion. B-GATE remains `todo` and unstarted.
+
+## Successor validation findings and repair
+
+Focused regressions reproduced all three post-merge findings against the PR
+#103 implementation: a changed design field retained declared completeness; a
+caller Boolean created an empty qualifying record; PUBLIC, cross-Challenge, and
+non-v2 arbitrary pin values passed gauntlet construction; and unrelated enums
+could fill a complete integrity matrix.
+
+The successor repair binds the eight design fields to a recomputed,
+domain-separated digest. It exposes syntactic completeness and declared owner
+records separately, while `is_verified_owner_ratified` remains fail-closed
+false because no domain-owned verifier is integrated. `GauntletRecord` rejects
+every `qualifying_execution=True` construction; no status can claim a
+qualifying execution from caller data.
+
+`RunIdentity` now reconstructs nested v2 refs before comparison, requires a
+`TEST_ONLY_FIXTURE` pack and one Challenge across pack and receipt, and rejects
+all non-v2 pin values except exact `None`. Matrix validation still freezes one
+exact pair but expressly does not certify authorization; ordinary B-07D3
+provider lookup remains the sole pack-to-receipt authorization owner.
+
+Integrity fixture observations now accept only explicit existing research,
+resource-policy, and Dossier error-code enums, including the research-service
+reference-mismatch outcome, and
+case-applicable members. Unrelated enums, wrong-domain outcomes, duplicate or
+incomplete case matrices, and non-rejection dispositions fail closed. These
+are typed synthetic rejection records, not evidence that attacks ran or that
+security/privacy passed.

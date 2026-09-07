@@ -28,6 +28,7 @@ from carbon.gauntlet import (
     validate_integrity_matrix,
 )
 from carbon.practice import PracticeAggregateKind
+from carbon.qualification.errors import DossierInputCode
 from carbon.registry import ChallengeKey
 from carbon.research import (
     PriorChannel,
@@ -38,6 +39,7 @@ from carbon.research import (
 from carbon.research import (
     TestOnlyPriorAuthorizationReceiptRef as AuthorizationReceiptRef,
 )
+from carbon.resource_policy.errors import ResourcePolicyInputCode
 from carbon.toy import (
     FIXTURE_HELDOUT_OBSERVATIONS,
     FIXTURE_TRAINING_OBSERVATIONS,
@@ -51,12 +53,8 @@ DIGEST = "sha256:" + "a" * 64
 def _preregistration(*, complete: bool) -> GauntletPreregistration:
     if not complete:
         return GauntletPreregistration()
-    ratifications = tuple(
-        OwnerRatification(owner, DIGEST, f"fixture-{owner.value.lower()}-ratification")
-        for owner in RatifyingOwner
-    )
-    return GauntletPreregistration(
-        DIGEST,
+    draft = GauntletPreregistration(
+        None,
         "owner-supplied-agent-profile-registration",
         "owner-supplied-matched-budget-registration",
         "owner-supplied-utility-estimand",
@@ -65,7 +63,19 @@ def _preregistration(*, complete: bool) -> GauntletPreregistration:
         "owner-supplied-diversity-metric",
         "owner-supplied-diversity-floor",
         "owner-supplied-conditional-leakage-limit",
-        ratifications,
+        (),
+    )
+    digest = draft.computed_design_digest
+    assert digest is not None
+    return replace(
+        draft,
+        design_digest=digest,
+        ratifications=tuple(
+            OwnerRatification(
+                owner, digest, f"fixture-{owner.value.lower()}-ratification"
+            )
+            for owner in RatifyingOwner
+        ),
     )
 
 
@@ -101,11 +111,11 @@ def test_missing_preregistration_blocks_qualifying_execution() -> None:
     preregistration = _preregistration(complete=False)
     assert "utility_estimand" in preregistration.missing_inputs
     assert "ratification:security" in preregistration.missing_inputs
-    with pytest.raises(GauntletPreflightError, match="qualifying gauntlet blocked"):
+    with pytest.raises(GauntletPreflightError, match="experiment matrix blocked"):
         validate_experiment_matrix(
             preregistration=preregistration, budgets=_budgets(), runs=_runs()
         )
-    with pytest.raises(ValueError, match="blocked before complete preregistration"):
+    with pytest.raises(ValueError, match="qualifying execution recording unavailable"):
         GauntletRecord(preregistration, (), (), (), (), qualifying_execution=True)
 
 
@@ -141,11 +151,26 @@ def test_raw_observations_remain_separate_from_preregistered_decisions() -> None
         ("fixture_sampling_level",),
         DIGEST,
     )
+    outcomes = {
+        IntegrityCase.DUPLICATE_LINEAGE: DossierInputCode.DUPLICATE_IDENTITY,
+        IntegrityCase.TIMING_RESOURCE_SURFACE: ResourcePolicyInputCode.LIMIT_NOT_BOUND,
+        IntegrityCase.PRIOR_POISONING: ResearchServiceErrorCode.TEST_ONLY_AUTHORITY_INVALID,
+        IntegrityCase.DUPLICATE_EVIDENCE: DossierInputCode.DUPLICATE_IDENTITY,
+        IntegrityCase.RAW_STRING: ResearchServiceErrorCode.REQUEST_TYPE_INVALID,
+        IntegrityCase.STRUCTURAL_LABEL_MISREPRESENTATION: DossierInputCode.ROLE_CONFUSION,
+        IntegrityCase.EVIDENCE_ROLE_SUBSTITUTION: DossierInputCode.ROLE_CONFUSION,
+        IntegrityCase.REFERENCE_CANDIDATE_FAILURE_COLLAPSE: ResearchServiceErrorCode.REFERENCE_MISMATCH,
+        IntegrityCase.PARTIAL_PROXY_SUPERIOR: DossierInputCode.PLACEHOLDER_EVIDENCE,
+        IntegrityCase.LEARNED_COMPONENT_WRONG_ROLE: DossierInputCode.ROLE_CONFUSION,
+        IntegrityCase.LEARNED_COMPONENT_INCOMPATIBLE_IO: DossierInputCode.SLOT_MISMATCH,
+        IntegrityCase.LEARNED_COMPONENT_STALE_PIN: DossierInputCode.VERSION_MISMATCH,
+        IntegrityCase.LEARNED_COMPONENT_SIDE_EFFECT: DossierInputCode.ROLE_CONFUSION,
+    }
     integrity = tuple(
         IntegrityObservation(
             case,
             IntegrityDisposition.TYPED_REJECTION,
-            ResearchServiceErrorCode.DISCLOSURE_REJECTED,
+            outcomes.get(case, ResearchServiceErrorCode.DISCLOSURE_REJECTED),
         )
         for case in IntegrityCase
     )

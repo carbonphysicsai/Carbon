@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from carbon.gauntlet import GauntletPreregistration, GauntletRecord, RunIdentity
+from carbon.gauntlet import (
+    GauntletPreregistration,
+    GauntletRecord,
+    GauntletStatus,
+    RunIdentity,
+)
 
 pytestmark = pytest.mark.invariant
 
@@ -49,3 +54,5 @@ def test_reserved_inputs_default_missing_and_v2_pins_are_nominal() -> None:
     assert preregistration.missing_inputs
     assert "prior_pack_ref" in RunIdentity.__dataclass_fields__
     assert "test_only_authorization_ref" in RunIdentity.__dataclass_fields__
+    assert "authorization_verified" not in RunIdentity.__dataclass_fields__
+    assert "QUALIFYING_EXECUTION_RECORDED" not in GauntletStatus.__members__
