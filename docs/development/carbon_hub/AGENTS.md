@@ -16,6 +16,12 @@ The hub explains what, why, where, status, dependency, and handoff. It cannot
 activate a wave or ticket, change scientific meaning, grant maturity, or
 substitute for repository code, review, decisions, tests, or evidence.
 
+Present-tense development position has one source:
+`data/hub_data_v2.json` → `current`. Its `last_completed_ticket`, nullable
+`selected_ticket`, and `next_selected_ticket` roles are projected by the
+renderer. Do not restate current/active/next/completed status in newcomer or
+validator projection prose.
+
 ## Editable source
 
 - `data/hub_data_v2.json`;

@@ -111,6 +111,10 @@ def load_validator_exam_map() -> dict[str, Any]:
         raise SystemExit("validator exam map must bind to SYSTEM/DEVELOPMENT-HUB")
     if exam.get("product_decision") != "OWNER-HUB-01":
         raise SystemExit("validator exam map must bind to OWNER-HUB-01")
+    if not str(exam.get("maturity_boundary", "")).strip():
+        raise SystemExit(
+            "validator exam map must define its invariant maturity boundary"
+        )
     if exam.get("depths") != ["Investor", "Engineer", "CFD", "Physics PhD"]:
         raise SystemExit("validator exam map must expose the four required depths")
     layers = exam.get("layers")
@@ -238,6 +242,58 @@ def artifact_coverage(ticket: dict[str, Any]) -> str:
     return "<ul>" + "".join(rows) + "</ul>"
 
 
+def current_role(current: dict[str, Any], name: str) -> dict[str, Any] | None:
+    """Return one canonical current-position ticket role, if populated."""
+    value = current.get(name)
+    return value if isinstance(value, dict) else None
+
+
+def current_anchor(current: dict[str, Any]) -> dict[str, Any]:
+    """Return the active ticket, or the last completion when none is active."""
+    return current_role(current, "selected_ticket") or current["last_completed_ticket"]
+
+
+def current_focus(current: dict[str, Any]) -> dict[str, Any]:
+    """Return the active ticket, or the next selection for reader orientation."""
+    return (
+        current_role(current, "selected_ticket")
+        or current_role(current, "next_selected_ticket")
+        or current["last_completed_ticket"]
+    )
+
+
+def current_position_label(current: dict[str, Any]) -> str:
+    selected = current_role(current, "selected_ticket")
+    return (
+        f"Wave {current['wave']} / {selected['id']}"
+        if selected
+        else f"Wave {current['wave']} / no active ticket"
+    )
+
+
+def ticket_stage(data: dict[str, Any], ticket: dict[str, Any]) -> str:
+    """Project present-tense ticket roles from the canonical current record."""
+    current = data["current"]
+    for role in ("selected_ticket", "last_completed_ticket", "next_selected_ticket"):
+        record = current_role(current, role)
+        if record and record.get("id") == ticket.get("id"):
+            return str(record["summary"])
+    return str(
+        ticket.get("current_stage")
+        or "No more specific stage is supported; use the captured status and repository evidence."
+    )
+
+
+def project_exam_map(data: dict[str, Any], exam: dict[str, Any]) -> dict[str, Any]:
+    """Bind the exam projection to the one canonical present-position summary."""
+    projected = json.loads(json.dumps(exam))
+    projected["current_maturity"] = (
+        f"Target-state orientation only. {data['current']['stage']} "
+        f"{exam['maturity_boundary']}"
+    )
+    return projected
+
+
 def ordered_unique(values: Iterable[object]) -> list[str]:
     """Return source-ordered, stringified values without duplicates."""
     return list(dict.fromkeys(str(value) for value in values))
@@ -352,10 +408,11 @@ def render_static(
 ) -> str:
     meta, current = data["meta"], data["current"]
     current_wave_plain = newcomer["waves"][str(current["wave"])]
-    current_ticket_plain = newcomer["tickets"][str(current["ticket"])]
-    current_stage_plain = (
-        current_ticket_plain.get("current_stage_plain") or current["stage"]
-    )
+    selected = current_role(current, "selected_ticket")
+    last_completed = current["last_completed_ticket"]
+    next_selected = current_role(current, "next_selected_ticket")
+    focus = current_focus(current)
+    focus_plain = newcomer["tickets"][str(focus["id"])]
     ticket_waves = ticket_inventory_label(data)
     wave_summary = wave_status_summary(data)
     snapshot_commit = str(meta["authority_snapshot_commit"])
@@ -446,10 +503,7 @@ def render_static(
         downstream = list(ticket.get("unlocks", [])) + list(
             ticket.get("unlocks_context", [])
         )
-        stage = (
-            ticket.get("current_stage")
-            or "No more specific current stage is supported; use the captured status and repository evidence."
-        )
+        stage = ticket_stage(data, ticket)
         ticket_cards.append(
             f"""<article class="card ticket {esc(ticket["status"])}" id="ticket-{esc(ticket["id"])}"><span class="status {esc(ticket["status"])}">{esc(NEWCOMER_STATUS_LABELS[str(ticket["status"])])}</span><h3>{esc(ticket["id"])} — {esc(plain["title"])}</h3><p class="newcomer-question"><strong>What are we doing?</strong> {esc(plain["what"])}</p><p class="newcomer-question"><strong>Why does it matter?</strong> {esc(plain["why"])}</p><p class="newcomer-question"><strong>What changes when this is finished?</strong> {esc(plain["changes"])}</p><p class="boundary"><strong>What does this ticket not do?</strong> {esc(plain["not_yet"])}</p><details class="technical"><summary>Technical detail</summary><p><strong>Canonical ticket:</strong> {esc(ticket["id"])}: {esc(ticket["title"])}</p><p><strong>Exact canonical status:</strong> {esc(ticket["status"])}</p><p><strong>Purpose:</strong> {esc(ticket["one_line"])}</p><p><strong>What it adds:</strong> {esc(ticket["adds"])}</p><p><strong>Why now:</strong> {esc(ticket["why"])}</p><p class="boundary"><strong>Explicit non-goals:</strong> {esc(ticket["does_not"])}</p><div class="meta"><div><strong>Map ref</strong><code>{esc(plain["map_ref"])}</code></div><div><strong>Driver</strong>{esc(ticket["owner"])}</div><div><strong>Reviewer route</strong>{esc(ticket["reviewer"])}</div><div><strong>Target phase</strong>{esc(ticket["target"])}</div></div><p><strong>Dependencies:</strong> {badges(dependencies)}</p><p><strong>Downstream consumers:</strong> {badges(downstream)}</p><p><strong>Exact objects / contracts:</strong> {esc(ticket["what"])}</p><p><strong>Current stage:</strong> {esc(stage)}</p><p><strong>Maturity ceiling:</strong> {esc(ceiling(data, ticket, "ticket"))}</p><h4>Repository detail</h4>{links_html(ticket.get("repo_links", []))}<h4>Artifact coverage</h4>{artifact_coverage(ticket)}</details></article>"""
         )
@@ -480,10 +534,38 @@ def render_static(
         f'<article class="card"><h3>{esc(item["term"])}</h3><p>{esc(item["definition"])}</p></article>'
         for item in data["glossary"]
     )
+    focus_role = "Current Ticket" if selected else "Next Selected Ticket"
+    focus_lede = (
+        f'<strong>{esc(NEWCOMER_STATUS_LABELS[str(focus["status"])])}:</strong> '
+        f'{esc(focus_plain["title"])} inside Wave {esc(current["wave"])} — '
+        f'{esc(current_wave_plain["title"])}.'
+    )
+    active_note = (
+        f'Active ticket <strong>{esc(selected["id"])}</strong> '
+        f'(<strong>{esc(selected["status"])}</strong>).'
+        if selected
+        else "No implementation ticket is currently active."
+    )
+    selected_delivery = selected.get("delivery") if selected else None
+    selected_delivery_note = (
+        f'<p><a href="{esc(selected_delivery["url"])}" target="_blank" '
+        f'rel="noopener noreferrer">{esc(selected_delivery["reference"])} · '
+        f'{esc(selected_delivery["status"])}</a></p>'
+        if isinstance(selected_delivery, dict)
+        else ""
+    )
+    next_selected_card = (
+        f'<p><strong>{esc(next_selected["id"])}</strong> · '
+        f'{esc(next_selected["status"])} / '
+        f'{esc(next_selected["implementation_state"])}</p>'
+        f'<p>{esc(next_selected["summary"])}</p>'
+        if next_selected
+        else "<p>No later ticket is selected.</p>"
+    )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="description" content="Carbon Development Hub: static-first orientation, map, router, and repository handoff."><title>Carbon Development Hub v{esc(meta["version"])}</title><style>{CSS}</style></head><body><a class="skip" href="#main-content">Skip to main content</a><header class="hero"><p class="eyebrow">Orientation layer · repository authority remains controlling</p><h1>Carbon Development Hub</h1><p>{esc(meta["purpose"])}</p><p>Version {esc(meta["version"])} · authority snapshot <strong>{esc(snapshot_short)}</strong> on <strong>{esc(meta["branch"])}</strong> · captured {esc(meta["captured_at_utc"])}</p></header><nav class="nav" aria-label="Development Hub sections"><ul>{nav}</ul></nav><main id="main-content">
 <section class="section" id="start"><p class="eyebrow">New to Carbon</p><h2>Understand Carbon before reading the repository</h2><p class="lede">{esc(newcomer["summary"])}</p><div class="grid">{orientation_html}</div><p class="boundary"><strong>Core rule:</strong> Carbon may widen what participants and agents can discover without changing who controls the official grade. The exam must be qualified before it may qualify candidates.</p></section>
-<section class="section current" id="current"><p class="eyebrow">Where Carbon is now</p><h2>Wave {esc(current["wave"])} · {esc(current["ticket"])}</h2><p class="lede"><strong>{esc(NEWCOMER_STATUS_LABELS[str(current["ticket_status"])])}:</strong> {esc(current_ticket_plain["title"])} inside Wave {esc(current["wave"])} — {esc(current_wave_plain["title"])}.</p><p><strong>Current stage:</strong> {esc(current_stage_plain)}</p><div class="grid"><article class="card"><h3>Current Wave</h3><p><strong>What are we building?</strong> {esc(current_wave_plain["what"])}</p><p><strong>Why does Carbon need it?</strong> {esc(current_wave_plain["why"])}</p><p class="boundary"><strong>What is still not true yet?</strong> {esc(current_wave_plain["not_yet"])}</p></article><article class="card"><h3>Current Ticket</h3><p><strong>What are we doing?</strong> {esc(current_ticket_plain["what"])}</p><p><strong>Why does it matter?</strong> {esc(current_ticket_plain["why"])}</p><p><strong>What changes when this is finished?</strong> {esc(current_ticket_plain["changes"])}</p><p class="boundary"><strong>What does this ticket not do?</strong> {esc(current_ticket_plain["not_yet"])}</p></article></div><details class="technical"><summary>Technical detail for the current repository position</summary><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; ticket <strong>{esc(current["ticket_status"])}</strong>.</p><p class="muted">{esc(current["maturity_summary"])}</p></article><article class="card"><h3>Direct dependencies</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave {esc(current["wave"])} context: {badges(current["other_completed_wave_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">Every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}<p class="muted">Next selected ticket: {esc(current["next_selected_ticket"] or "none captured")}</p></article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></details></section>
+<section class="section current" id="current"><p class="eyebrow">Where Carbon is now</p><h2>{esc(current_position_label(current))}</h2><p class="lede">{focus_lede}</p><p><strong>Current stage:</strong> {esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current Wave</h3><p><strong>What are we building?</strong> {esc(current_wave_plain["what"])}</p><p><strong>Why does Carbon need it?</strong> {esc(current_wave_plain["why"])}</p><p class="boundary"><strong>What is still not true yet?</strong> {esc(current_wave_plain["not_yet"])}</p></article><article class="card"><h3>{focus_role}</h3><p><strong>What are we doing?</strong> {esc(focus_plain["what"])}</p><p><strong>Why does it matter?</strong> {esc(focus_plain["why"])}</p><p><strong>What changes when this is finished?</strong> {esc(focus_plain["changes"])}</p><p class="boundary"><strong>What does this ticket not do?</strong> {esc(focus_plain["not_yet"])}</p></article></div><details class="technical"><summary>Technical detail for the current repository position</summary><p class="lede">{esc(current["stage"])}</p><div class="grid"><article class="card"><h3>Current authority</h3><p><strong>{esc(current["wave_title"])}</strong></p><p>{esc(current["wave_status"])}; {active_note}</p>{selected_delivery_note}<p class="muted">{esc(current["maturity_summary"])}</p></article><article class="card"><h3>Last completed ticket</h3><p><strong>{esc(last_completed["id"])}</strong> · {esc(last_completed["status"])}</p><p>{esc(last_completed["summary"])}</p><p><a href="{esc(last_completed["delivery"]["url"])}" target="_blank" rel="noopener noreferrer">{esc(last_completed["delivery"]["reference"])} · {esc(last_completed["delivery"]["status"])}</a></p></article><article class="card"><h3>Next selected ticket</h3>{next_selected_card}</article><article class="card"><h3>Direct dependencies</h3>{list_html(current["recent_dependencies"])}<p class="muted">Other completed Wave {esc(current["wave"])} context: {badges(current["other_completed_wave_context"])}</p></article><article class="card"><h3>Downstream handoffs</h3>{list_html(current["downstream_handoffs"])}<p class="muted">Every handoff retains its own dependencies and gate.</p></article><article class="card"><h3>Parallel context</h3>{list_html(current["parallel_context"])}</article><article class="card"><h3>Decision lanes</h3><p><a href="{esc(current["technical_decision_route"])}" target="_blank" rel="noopener noreferrer">SciML / Technical Lead inbox #42</a></p><p><a href="{esc(current["owner_decision_route"])}" target="_blank" rel="noopener noreferrer">Owner inbox #41</a></p><p class="muted">Notification provides visibility; silence does not grant reserved authority.</p></article><article class="card"><h3>Decision-series status</h3><p>{esc(current["decision_series_status"])}</p></article></div><div class="fail"><strong>Still fail closed</strong>{list_html(current["fail_closed"])}</div></details></section>
 {render_exam_map(exam)}
 <section class="section" id="waves"><p class="eyebrow">Development sequence</p><h2>Wave {esc(waves[0]["id"])} through Wave {esc(waves[-1]["id"])}</h2><p class="lede">{esc(wave_summary)}</p><div class="grid">{"".join(wave_cards)}</div></section>
 <section class="section" id="tickets"><p class="eyebrow">Captured ticket map</p><h2>Captured tickets across {esc(ticket_waves)}</h2><p class="lede">Each explainer shows placement and purpose. Repository records remain authoritative; unsupported artifact links are marked missing or future.</p><div class="grid">{"".join(ticket_cards)}</div></section>
@@ -512,7 +594,7 @@ def render_interactive(data: dict[str, Any], events: list[dict[str, Any]]) -> st
     current = data["current"]
     template = template.replace(
         "__CURRENT_POSITION__",
-        f"Wave {esc(current['wave'])} / {esc(current['ticket'])}",
+        esc(current_position_label(current)),
     ).replace("__CURRENT_STAGE__", esc(current["stage"]))
     interactive_data = {**data, "change_events": events}
     payload = json.dumps(
@@ -613,10 +695,7 @@ def render_ticket(data: dict[str, Any], ticket: dict[str, Any]) -> str:
     downstream = list(ticket.get("unlocks", [])) + list(
         ticket.get("unlocks_context", [])
     )
-    stage = (
-        ticket.get("current_stage")
-        or "No more specific stage is supported; use the captured status and repository evidence."
-    )
+    stage = ticket_stage(data, ticket)
     return f"""# {ticket["id"]}: {ticket["title"]}
 
 **Wave:** {ticket["wave"]}
@@ -667,6 +746,15 @@ def render_ticket(data: dict[str, Any], ticket: dict[str, Any]) -> str:
 
 def render_start_here(data: dict[str, Any]) -> str:
     current = data["current"]
+    selected = current_role(current, "selected_ticket")
+    last_completed = current["last_completed_ticket"]
+    next_selected = current_role(current, "next_selected_ticket")
+    next_selected_label = (
+        f'{next_selected["id"]} — {next_selected["title"]} '
+        f'(`{next_selected["status"]}` / `{next_selected["implementation_state"]}`)'
+        if next_selected
+        else "none selected"
+    )
     return f"""# Start Here: Carbon Development Hub
 
 ## Carbon in one minute
@@ -692,7 +780,9 @@ does not prove.
 ## Where Carbon is now
 
 - **Current wave:** Wave {current["wave"]} — {current["wave_title"]}
-- **Current ticket:** {current["ticket"]} — {current["ticket_title"]}
+- **Current ticket:** {f'{selected["id"]} — {selected["title"]}' if selected else 'none active'}
+- **Last completed ticket:** {last_completed["id"]} — {last_completed["title"]} (`{last_completed["status"]}`)
+- **Next selected ticket:** {next_selected_label}
 - **Current stage:** {current["stage"]}
 - **Captured maturity:** {current["maturity_summary"]}
 
@@ -787,13 +877,20 @@ def render_glossary(data: dict[str, Any]) -> str:
 
 def render_compact(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     meta, current = data["meta"], data["current"]
+    selected = current_role(current, "selected_ticket")
+    selected_label = selected["id"] if selected else "none active"
+    last_completed = current["last_completed_ticket"]
+    next_selected = current_role(current, "next_selected_ticket")
+    next_label = next_selected["id"] if next_selected else "none selected"
     lines = [
         "# Carbon Development Hub v2.1",
         "",
         f"**Purpose:** {meta['purpose']}",
         "",
         f"**Authority snapshot:** `{meta['authority_snapshot_commit']}` on `{meta['branch']}`, captured {meta['captured_at_utc']}.",
-        f"**Current:** Wave {current['wave']}, ticket {current['ticket']}. {current['stage']}",
+        f"**Current:** Wave {current['wave']}, ticket {selected_label}. {current['stage']}",
+        f"**Last completed:** {last_completed['id']} (`{last_completed['status']}`).",
+        f"**Next selected:** {next_label}.",
         "",
         "## Wave spine",
         "",
@@ -831,6 +928,15 @@ def render_compact(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
 
 def render_readme(data: dict[str, Any], events: list[dict[str, Any]]) -> str:
     current = data["current"]
+    selected = current_role(current, "selected_ticket")
+    last_completed = current["last_completed_ticket"]
+    next_selected = current_role(current, "next_selected_ticket")
+    next_selected_label = (
+        f'**{next_selected["id"]}** (`{next_selected["status"]}` / '
+        f'`{next_selected["implementation_state"]}`)'
+        if next_selected
+        else "**none selected**"
+    )
     waves = data["waves"]
     ticket_waves = ticket_inventory_label(data)
     return f"""# Carbon Development Hub v2.1
@@ -851,7 +957,7 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 
 ## Captured current position
 
-Wave **{current["wave"]}**, ticket **{current["ticket"]}** (`{current["ticket_status"]}`). {current["stage"]}
+Wave **{current["wave"]}**; current ticket: **{selected["id"] if selected else "none active"}**. Last completed: **{last_completed["id"]}** (`{last_completed["status"]}`). Next selected: {next_selected_label}. {current["stage"]}
 
 ## Maintain
 
@@ -910,7 +1016,7 @@ def collect_outputs(
     data: dict[str, Any], events: list[dict[str, Any]]
 ) -> dict[Path, str]:
     newcomer = load_newcomer_projection(data)
-    exam = load_validator_exam_map()
+    exam = project_exam_map(data, load_validator_exam_map())
     index_data = {
         "meta": data["meta"],
         "presentation": data["presentation"],

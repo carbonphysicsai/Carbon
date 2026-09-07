@@ -32,7 +32,7 @@ Partial evidence, screens, forecasts, or heuristic futility cannot create SUPERI
 
 ## Current stage
 
-PR #99 accepted and normally merged B-E1; it is done only in bounded TEST_ONLY reproducibility scope.
+B-E1 is done in bounded TEST_ONLY reproducibility scope after PR #99. Its former B-E2 handoff is historical; B-E2 later completed.
 
 ## Maturity ceiling
 

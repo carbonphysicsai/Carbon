@@ -14,7 +14,9 @@ class NewcomerProjectionTests(unittest.TestCase):
         cls.data = render_hub.load_json(render_hub.DATA_PATH)
         cls.events = render_hub.load_json(render_hub.EVENTS_PATH)["events"]
         cls.projection = render_hub.load_newcomer_projection(cls.data)
-        cls.exam = render_hub.load_validator_exam_map()
+        cls.exam = render_hub.project_exam_map(
+            cls.data, render_hub.load_validator_exam_map()
+        )
         cls.output = render_hub.render_static(
             cls.data, cls.events, cls.projection, cls.exam
         )
@@ -80,17 +82,39 @@ class NewcomerProjectionTests(unittest.TestCase):
             self.assertIn(render_hub.NEWCOMER_STATUS_LABELS[status], self.output)
             self.assertIn(f"Exact canonical status:</strong> {status}", self.output)
 
-    def test_current_stage_preserves_active_ticket_boundary(self) -> None:
-        stage = self.projection["tickets"][str(self.data["current"]["ticket"])].get(
-            "current_stage_plain"
+    def test_current_stage_comes_only_from_canonical_position(self) -> None:
+        current = self.data["current"]
+        self.assertEqual(current["selected_ticket"]["id"], "B-E4")
+        self.assertEqual(current["selected_ticket"]["status"], "in_progress")
+        self.assertEqual(current["selected_ticket"]["delivery"]["reference"], "PR #105")
+        self.assertIsNone(current["next_selected_ticket"])
+        self.assertFalse(
+            any(
+                "current_stage_plain" in item
+                for item in self.projection["tickets"].values()
+            )
         )
-        self.assertTrue(stage)
         self.assertIn(
-            f"<strong>Current stage:</strong> {render_hub.esc(stage)}", self.output
+            f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
+            self.output,
         )
-        self.assertIn("bounded successor validation repair is implemented", self.output)
-        self.assertIn("B-GATE is unstarted", self.output)
+        self.assertIn("PR #105 merged B-E4", self.output)
+        self.assertIn("B-E4 remains the selected in-progress ticket", self.output)
+        self.assertIn("No later ticket is selected", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
+
+    def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
+        changed = dict(self.data)
+        changed["current"] = dict(self.data["current"])
+        changed["current"]["stage"] = "SENTINEL current-stage replacement."
+        changed_exam = render_hub.project_exam_map(
+            changed, render_hub.load_validator_exam_map()
+        )
+        output = render_hub.render_static(
+            changed, self.events, self.projection, changed_exam
+        )
+        self.assertGreaterEqual(output.count("SENTINEL current-stage replacement."), 2)
+        self.assertNotIn("awaits applicable acceptance and normal merge", output)
 
     def test_primary_page_is_static_and_has_no_remote_autoload(self) -> None:
         self.assertIsNone(re.search(r"<script\b", self.output, flags=re.IGNORECASE))
@@ -133,7 +157,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "currently in Wave B authoring work",
+            "B-E4 remains the selected in-progress ticket",
+            "No later ticket is selected",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

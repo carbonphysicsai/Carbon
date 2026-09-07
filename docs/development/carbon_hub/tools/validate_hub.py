@@ -138,9 +138,9 @@ CURRENT_POSITION_FIELDS = {
     "wave",
     "wave_title",
     "wave_status",
-    "ticket",
-    "ticket_title",
-    "ticket_status",
+    "last_completed_ticket",
+    "selected_ticket",
+    "next_selected_ticket",
     "controlling_register",
     "controlling_register_version",
     "controlling_board_fingerprint",
@@ -151,7 +151,6 @@ CURRENT_POSITION_FIELDS = {
     "other_completed_wave_context",
     "downstream_handoffs",
     "parallel_context",
-    "next_selected_ticket",
     "fail_closed",
     "maturity_states",
     "maturity_summary",
@@ -529,6 +528,37 @@ class Validator:
     def warn(self, message: str) -> None:
         self.warnings.append(message)
 
+    @staticmethod
+    def current_role(current: Any, name: str) -> dict[str, Any] | None:
+        if not isinstance(current, dict):
+            return None
+        value = current.get(name)
+        return value if isinstance(value, dict) else None
+
+    @classmethod
+    def current_anchor_id(cls, current: Any) -> str | None:
+        role = cls.current_role(current, "selected_ticket") or cls.current_role(
+            current, "last_completed_ticket"
+        )
+        value = (
+            role.get("id")
+            if role
+            else current.get("ticket") if isinstance(current, dict) else None
+        )
+        return value if isinstance(value, str) else None
+
+    @classmethod
+    def current_focus_id(cls, current: Any) -> str | None:
+        role = cls.current_role(current, "selected_ticket") or cls.current_role(
+            current, "next_selected_ticket"
+        )
+        value = (
+            role.get("id")
+            if role
+            else current.get("ticket") if isinstance(current, dict) else None
+        )
+        return value if isinstance(value, str) else None
+
     def load_json_object(self, path: Path, label: str) -> dict[str, Any]:
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
@@ -577,7 +607,7 @@ class Validator:
                 snapshot_commits = frozenset({candidate})
             current = value.get("current")
             if normalized_ticket_revisions is None:
-                selected = current.get("ticket") if isinstance(current, dict) else None
+                selected = cls.current_anchor_id(current)
                 normalized_ticket_revisions = dict.fromkeys(
                     [selected] if isinstance(selected, str) else [],
                     snapshot_commits or frozenset(),
@@ -686,7 +716,13 @@ class Validator:
                 return None
             current_record = value.get("current")
             candidate = (
-                current_record.get(field) if isinstance(current_record, dict) else None
+                cls.current_anchor_id(current_record)
+                if field == "ticket"
+                else (
+                    current_record.get(field)
+                    if isinstance(current_record, dict)
+                    else None
+                )
             )
             return candidate if isinstance(candidate, str) else None
 
@@ -996,7 +1032,7 @@ class Validator:
             self.fail("authority_source_checks contains duplicate paths")
 
         current = self.data.get("current", {})
-        selected_id = current.get("ticket") if isinstance(current, dict) else None
+        selected_id = self.current_anchor_id(current)
         selected = next(
             (
                 item
@@ -1345,6 +1381,71 @@ class Validator:
 
         current = self.data.get("current")
         if self.require_keys(current, CURRENT_POSITION_FIELDS, "current"):
+            role_fields = {
+                "last_completed_ticket": (
+                    "id",
+                    "title",
+                    "status",
+                    "summary",
+                    "delivery",
+                ),
+            }
+            for role, fields in role_fields.items():
+                self.require_keys(current.get(role), fields, f"current.{role}")
+            selected_role = current.get("selected_ticket")
+            if selected_role is not None:
+                self.require_keys(
+                    selected_role,
+                    ("id", "title", "status", "summary"),
+                    "current.selected_ticket",
+                )
+            next_role = current.get("next_selected_ticket")
+            if next_role is not None:
+                self.require_keys(
+                    next_role,
+                    ("id", "title", "status", "implementation_state", "summary"),
+                    "current.next_selected_ticket",
+                )
+            last_delivery = self.current_role(current, "last_completed_ticket")
+            delivery = last_delivery.get("delivery") if last_delivery else None
+            if self.require_keys(
+                delivery,
+                ("reference", "status", "url", "merge_commit"),
+                "current.last_completed_ticket.delivery",
+            ):
+                if delivery.get("status") != "merged":
+                    self.fail("current last-completed delivery must be merged")
+                if not re.fullmatch(
+                    r"[0-9a-f]{40}", str(delivery.get("merge_commit", ""))
+                ):
+                    self.fail(
+                        "current last-completed delivery must name an exact merge commit"
+                    )
+                self.validate_https_url(
+                    delivery.get("url"), "current.last_completed_ticket.delivery.url"
+                )
+            selected_delivery = (
+                selected_role.get("delivery")
+                if isinstance(selected_role, dict)
+                else None
+            )
+            if selected_delivery is not None and self.require_keys(
+                selected_delivery,
+                ("reference", "status", "url", "merge_commit"),
+                "current.selected_ticket.delivery",
+            ):
+                if selected_delivery.get("status") != "merged":
+                    self.fail("current selected-ticket delivery must be merged")
+                if not re.fullmatch(
+                    r"[0-9a-f]{40}", str(selected_delivery.get("merge_commit", ""))
+                ):
+                    self.fail(
+                        "current selected-ticket delivery must name an exact merge commit"
+                    )
+                self.validate_https_url(
+                    selected_delivery.get("url"),
+                    "current.selected_ticket.delivery.url",
+                )
             for field in (
                 "completed_wave_tickets",
                 "recent_dependencies",
@@ -1553,7 +1654,7 @@ class Validator:
                 self.fail(f"{ticket_id} references unknown wave {ticket.get('wave')!r}")
             if ticket.get("status") not in TICKET_STATUSES:
                 self.fail(f"{ticket_id} has invalid status {ticket.get('status')!r}")
-            if ticket_id == current.get("ticket"):
+            if ticket_id == self.current_anchor_id(current):
                 selected_maturity = ticket.get("maturity_states")
                 if not isinstance(selected_maturity, dict):
                     self.fail(
@@ -1561,7 +1662,7 @@ class Validator:
                     )
                 elif selected_maturity != current.get("maturity_states"):
                     self.fail(
-                        "current.maturity_states must exactly match the selected "
+                        "current.maturity_states must exactly match the position anchor "
                         f"ticket {ticket_id} maturity_states"
                     )
             for field in ("depends_on", "unlocks", "unlocks_context"):
@@ -1578,6 +1679,7 @@ class Validator:
                         self.fail(
                             f"{ticket_id}.{field} has unknown ticket references: {unknown}"
                         )
+
                     if not _unique(refs):
                         self.fail(f"{ticket_id}.{field} contains duplicate references")
             context = ticket.get("depends_on_context", [])
@@ -1679,6 +1781,191 @@ class Validator:
                 f"maturity[{index}]",
             )
         self.validate_events(wave_set, ticket_set)
+
+    @staticmethod
+    def _status_claim_is_negated(sentence: str, claim: str) -> bool:
+        return bool(
+            re.search(
+                rf"\b(?:not|never)\s+(?:the\s+)?{re.escape(claim)}\b|"
+                rf"\bno\s+(?:implementation\s+ticket\s+is\s+)?{re.escape(claim)}\b",
+                sentence,
+            )
+        )
+
+    def validate_current_position_semantics(self) -> None:
+        """Reject present-tense status drift across source and generated surfaces."""
+        current = self.data.get("current", {})
+        tickets = {
+            str(ticket.get("id")): ticket
+            for ticket in self.data.get("tickets", [])
+            if isinstance(ticket, dict)
+        }
+        last_completed = self.current_role(current, "last_completed_ticket")
+        selected = self.current_role(current, "selected_ticket")
+        next_selected = self.current_role(current, "next_selected_ticket")
+        roles = {
+            "last_completed_ticket": last_completed,
+            "selected_ticket": selected,
+            "next_selected_ticket": next_selected,
+        }
+        populated_ids: list[str] = []
+        for role_name, role in roles.items():
+            if role is None:
+                continue
+            ticket_id = str(role.get("id", ""))
+            populated_ids.append(ticket_id)
+            ticket = tickets.get(ticket_id)
+            if ticket is None:
+                self.fail(
+                    f"current.{role_name} references unknown ticket {ticket_id!r}"
+                )
+                continue
+            if role.get("title") != ticket.get("title"):
+                self.fail(f"current.{role_name}.title disagrees with canonical ticket")
+            if role.get("status") != ticket.get("status"):
+                self.fail(f"current.{role_name}.status disagrees with canonical ticket")
+        if len(populated_ids) != len(set(populated_ids)):
+            self.fail("current-position ticket roles must be distinct")
+        if last_completed and last_completed.get("status") != "done":
+            self.fail("current.last_completed_ticket must have status done")
+        if selected and selected.get("status") != "in_progress":
+            self.fail(
+                "current.selected_ticket may exist only for an in_progress ticket"
+            )
+        if next_selected:
+            if next_selected.get("status") != "todo":
+                self.fail("current.next_selected_ticket must have status todo")
+            if next_selected.get("implementation_state") != "unstarted":
+                self.fail("current.next_selected_ticket must be explicitly unstarted")
+
+        stage = str(current.get("stage", ""))
+        stage_roles = (
+            (("selected", selected),)
+            if selected
+            else (("last completed", last_completed), ("next selected", next_selected))
+        )
+        for role_name, role in stage_roles:
+            if role and str(role.get("id")) not in stage:
+                self.fail(f"current.stage must name the {role_name} ticket")
+        if selected is None and not re.search(
+            r"\bno\s+(?:implementation\s+)?ticket\s+is\s+currently\s+active\b",
+            stage,
+            flags=re.IGNORECASE,
+        ):
+            self.fail("current.stage must explicitly say when no ticket is active")
+        if (
+            selected
+            and next_selected is None
+            and not re.search(
+                r"\bno\s+later\s+ticket\s+is\s+selected\b",
+                stage,
+                flags=re.IGNORECASE,
+            )
+        ):
+            self.fail(
+                "current.stage must explicitly say when no later ticket is selected"
+            )
+
+        for ticket_id, ticket in tickets.items():
+            summary = str(ticket.get("current_stage", ""))
+            for sentence in re.split(r"(?<=[.!?])\s+", summary):
+                lowered = sentence.casefold()
+                if ticket_id.casefold() not in lowered or "histor" in lowered:
+                    continue
+                claims = ("current", "active", "in progress")
+                if ticket.get("status") == "done":
+                    for claim in claims:
+                        if re.search(
+                            rf"\b{re.escape(claim)}\b", lowered
+                        ) and not self._status_claim_is_negated(lowered, claim):
+                            self.fail(
+                                f"{ticket_id}.current_stage contradicts done status with {claim!r}"
+                            )
+                if ticket.get("status") == "todo":
+                    for claim in (*claims, "implemented", "complete", "done"):
+                        if re.search(
+                            rf"\b{re.escape(claim)}\b", lowered
+                        ) and not self._status_claim_is_negated(lowered, claim):
+                            self.fail(
+                                f"{ticket_id}.current_stage contradicts todo status with {claim!r}"
+                            )
+
+        for role in (last_completed, selected):
+            if not role:
+                continue
+            delivery = role.get("delivery", {})
+            if not isinstance(delivery, dict) or delivery.get("status") != "merged":
+                continue
+            delivery_surfaces = [
+                stage,
+                str(role.get("summary", "")),
+                str(tickets.get(str(role.get("id")), {}).get("current_stage", "")),
+            ]
+            if any(
+                re.search(
+                    r"(?:await|pending).{0,40}(?:normal\s+)?merge",
+                    text,
+                    flags=re.IGNORECASE,
+                )
+                for text in delivery_surfaces
+            ):
+                self.fail(
+                    "merged current-position delivery is described as awaiting merge"
+                )
+
+        newcomer_paths = (
+            self.hub_root / "data/newcomer_tickets_wave_a_v1.json",
+            self.hub_root / "data/newcomer_tickets_wave_b_v1.json",
+        )
+        for path in newcomer_paths:
+            projection = self.load_json_object(path, path.name)
+            records = projection.get("tickets", {})
+            if isinstance(records, dict):
+                duplicated = [
+                    ticket_id
+                    for ticket_id, item in records.items()
+                    if isinstance(item, dict) and "current_stage_plain" in item
+                ]
+                if duplicated:
+                    self.fail(
+                        f"{path.name} duplicates present-tense current stages for {duplicated!r}"
+                    )
+
+        expected_by_path: dict[Path, tuple[str, ...]] = {
+            self.hub_root / "README.md": (stage,),
+            self.hub_root / "Carbon_Development_Hub_v2.md": (stage,),
+            self.hub_root / "orientation/START_HERE.md": (stage,),
+        }
+        for role in (last_completed, selected, next_selected):
+            if role:
+                filename = str(role["id"]).lower().replace("-", "_") + ".md"
+                expected_by_path[self.hub_root / "explainers/tickets" / filename] = (
+                    str(role.get("summary", "")),
+                )
+        for path, expected_values in expected_by_path.items():
+            try:
+                text = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeError) as exc:
+                self.fail(f"Cannot inspect semantic Hub surface {path.name}: {exc}")
+                continue
+            for expected in expected_values:
+                if expected and expected not in text:
+                    self.fail(
+                        f"{path.relative_to(self.hub_root)} disagrees with canonical current position"
+                    )
+
+        interactive = self.hub_root / "interactive.html"
+        try:
+            interactive_text = html.unescape(interactive.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError) as exc:
+            self.fail(f"Cannot inspect semantic Hub surface interactive.html: {exc}")
+        else:
+            if stage not in interactive_text:
+                self.fail("interactive.html disagrees with canonical current stage")
+            if '"selected_ticket":null' not in interactive_text and selected is None:
+                self.fail(
+                    "interactive.html does not preserve the no-active-ticket state"
+                )
 
     def validate_ticket_paths(self, ticket: dict[str, Any]) -> None:
         ticket_id = str(ticket.get("id", "unknown"))
@@ -2008,7 +2295,7 @@ class Validator:
                 )
             current = self.data.get("current", {})
             current_wave = str(current.get("wave", ""))
-            current_ticket = str(current.get("ticket", ""))
+            current_ticket = str(self.current_focus_id(current) or "")
             for phrase in (
                 "Carbon Development Hub",
                 "Wave A through Wave N",
@@ -2378,12 +2665,6 @@ class Validator:
         for label, actual, expected in (
             ("current.wave", current.get("wave"), authoritative_wave),
             ("current.wave_status", current.get("wave_status"), authority["state"]),
-            ("current.ticket", current.get("ticket"), authoritative_ticket),
-            (
-                "current.ticket_status",
-                current.get("ticket_status"),
-                authoritative_status,
-            ),
             (
                 "current.controlling_register",
                 current.get("controlling_register"),
@@ -2398,6 +2679,33 @@ class Validator:
             if actual != expected:
                 self.fail(
                     f"{source_label}: {label} is {actual!r}, but authority says {expected!r}"
+                )
+        selected_role = self.current_role(current, "selected_ticket")
+        last_completed_role = self.current_role(current, "last_completed_ticket")
+        if authoritative_status == "in_progress":
+            if not selected_role or selected_role.get("id") != authoritative_ticket:
+                self.fail(
+                    f"{source_label}: current.selected_ticket must be active authority "
+                    f"ticket {authoritative_ticket!r}"
+                )
+            elif selected_role.get("status") != authoritative_status:
+                self.fail(
+                    f"{source_label}: selected-ticket status disagrees with authority"
+                )
+        else:
+            if selected_role is not None:
+                self.fail(
+                    f"{source_label}: current.selected_ticket must be null when the "
+                    "authority-selected ticket is not active"
+                )
+            if (
+                not last_completed_role
+                or last_completed_role.get("id") != authoritative_ticket
+                or last_completed_role.get("status") != authoritative_status
+            ):
+                self.fail(
+                    f"{source_label}: current.last_completed_ticket must match completed "
+                    f"authority selection {authoritative_ticket!r}"
                 )
         if view.get("board_version") != authority["register_version"]:
             self.fail(
@@ -2520,18 +2828,13 @@ class Validator:
                 f"{source_label}: selected ticket status is {selected.get('status')!r}; "
                 f"authority says {authoritative_status!r}"
             )
-        if current.get("ticket_title") != selected.get("title"):
+        anchor_role = selected_role or last_completed_role
+        if not anchor_role or anchor_role.get("title") != selected.get("title"):
             self.fail(
-                f"{source_label}: current.ticket_title must match selected ticket"
+                f"{source_label}: current position anchor title must match authority ticket"
             )
-        stage_tokens = re.findall(r"[a-z0-9]+", str(current.get("stage", "")).lower())
-        selected_stage_tokens = re.findall(
-            r"[a-z0-9]+", str(selected.get("current_stage", "")).lower()
-        )
-        if not selected_stage_tokens or stage_tokens != selected_stage_tokens:
-            self.fail(
-                f"{source_label}: current.stage must match selected ticket current_stage"
-            )
+        if authoritative_ticket not in str(current.get("stage", "")):
+            self.fail(f"{source_label}: current.stage must name the authority ticket")
         selected_dependencies = selected.get("depends_on", [])
         if current.get("recent_dependencies") != selected_dependencies:
             self.fail(
@@ -2602,11 +2905,26 @@ class Validator:
                     f"{source_label}: parallel ticket {parallel_id} has unresolved "
                     f"dependencies {unresolved!r}"
                 )
-        if current.get("next_selected_ticket") != authority["next_ticket"]:
+        next_role = self.current_role(current, "next_selected_ticket")
+        next_id = next_role.get("id") if next_role else None
+        if next_id != authority["next_ticket"]:
             self.fail(
-                f"{source_label}: current.next_selected_ticket must be "
+                f"{source_label}: current.next_selected_ticket.id must be "
                 f"{authority['next_ticket']!r}"
             )
+        elif next_id is not None:
+            board_status = board_rows.get(next_id, {}).get("status")
+            if next_role.get("status") != board_status:
+                self.fail(
+                    f"{source_label}: next-selected status must match controlling board"
+                )
+            if (
+                board_status == "todo"
+                and next_role.get("implementation_state") != "unstarted"
+            ):
+                self.fail(
+                    f"{source_label}: todo next-selected ticket must be unstarted"
+                )
         repository_url = str(self.data.get("meta", {}).get("repository", "")).rstrip(
             "/"
         )
@@ -2953,7 +3271,7 @@ class Validator:
         if source_target("controlling_board") != controlling_register:
             self.fail("sources.controlling_board must pin current.controlling_register")
 
-        selected_ticket = str(current.get("ticket", ""))
+        selected_ticket = str(self.current_anchor_id(current) or "")
         selected = next(
             (
                 item
@@ -3580,9 +3898,7 @@ class Validator:
         now_current = current_view.get("current", {})
         if base_current != now_current:
             wave = now_current.get("wave") if isinstance(now_current, dict) else None
-            ticket = (
-                now_current.get("ticket") if isinstance(now_current, dict) else None
-            )
+            ticket = self.current_anchor_id(now_current)
             if isinstance(wave, str) and isinstance(ticket, str):
                 refs.add(f"WAVE-{wave}/{ticket}")
             elif isinstance(wave, str):
@@ -3795,7 +4111,7 @@ class Validator:
             register = current.get("controlling_register")
             if isinstance(register, str):
                 paths.add(register)
-            selected_id = current.get("ticket")
+            selected_id = self.current_anchor_id(current)
             for ticket in self.data.get("tickets", []):
                 if (
                     isinstance(ticket, dict)
@@ -4294,6 +4610,7 @@ class Validator:
         # structured validation errors instead of triggering secondary tracebacks.
         if self.errors:
             return self.report()
+        self.validate_current_position_semantics()
         self.validate_html()
         self.validate_renderer_drift()
         self.validate_root_integration()

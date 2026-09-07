@@ -9,7 +9,8 @@ const primary = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const data = JSON.parse(fs.readFileSync(path.join(root, 'data', 'hub_data_v2.json'), 'utf8'));
 const eventBundle = JSON.parse(fs.readFileSync(path.join(root, 'data', 'change_events.json'), 'utf8'));
 const currentWave = data.waves.find(wave => wave.id === data.current.wave);
-const currentTicket = data.tickets.find(ticket => ticket.id === data.current.ticket);
+const currentPosition = data.current.selected_ticket || data.current.next_selected_ticket;
+const currentTicket = data.tickets.find(ticket => ticket.id === currentPosition.id);
 const ticketWaveIds = [...new Set(data.tickets.map(ticket => ticket.wave))];
 function humanJoin(values) {
   if (values.length === 1) return values[0];
@@ -124,7 +125,8 @@ function element() {
 }
 
 const interactive = fs.readFileSync(path.join(root, 'interactive.html'), 'utf8');
-if (!interactive.includes(`<strong>Wave ${data.current.wave} / ${data.current.ticket}</strong>`) ||
+const sidebarPosition = data.current.selected_ticket ? `Wave ${data.current.wave} / ${data.current.selected_ticket.id}` : `Wave ${data.current.wave} / no active ticket`;
+if (!interactive.includes(`<strong>${sidebarPosition}</strong>`) ||
     !interactive.includes(data.current.stage) ||
     interactive.includes('__CURRENT_POSITION__') || interactive.includes('__CURRENT_STAGE__')) {
   console.error('FAIL interactive sidebar current-position binding');
@@ -230,15 +232,24 @@ const livingStateFixture = vm.runInContext(`(() => {
       wave: 'C',
       wave_title: 'Portfolio learning',
       wave_status: 'active in bounded fixture scope',
-      ticket: 'C-01',
-      ticket_title: fixtureTitle,
-      ticket_status: 'in_progress',
+      last_completed_ticket: {
+        id: 'B-E2', title: 'Fixture predecessor', status: 'done',
+        summary: 'B-E2 is the fixture predecessor.',
+        delivery: {reference:'fixture',status:'merged',url:'https://example.test/merged',merge_commit:'f'.repeat(40)}
+      },
+      selected_ticket: {
+        id: 'C-01', title: fixtureTitle, status: 'in_progress',
+        summary: 'C-01 is the selected current fixture ticket.'
+      },
+      next_selected_ticket: {
+        id: 'C-02', title: 'Fixture successor', status: 'todo',
+        implementation_state: 'unstarted', summary: 'C-02 is next and unstarted.'
+      },
       stage: 'C-01 is the selected current fixture ticket.',
       recent_dependencies: [],
       other_completed_wave_context: [],
       downstream_handoffs: [],
       parallel_context: [],
-      next_selected_ticket: null,
       maturity_summary: 'C-01 is specified in this fixture; later maturity states remain unearned.',
       decision_series: ['C-01-D1'],
       decision_series_status: 'C-01-D1 is the captured fixture decision.',
@@ -280,7 +291,7 @@ const fixtureExpectations = {
   home: [livingStateFixture.homeHtml, ['Wave C', 'C-01', 'C-01-D1']],
   tickets: [livingStateFixture.ticketsHtml, ['Wave C', 'value="C"', 'ticket C-01']],
   wave: [livingStateFixture.waveHtml, ['Wave C:', 'C-01']],
-  maturity: [livingStateFixture.maturityHtml, ['Example: current C-01', 'C-01 is specified in this fixture']],
+  maturity: [livingStateFixture.maturityHtml, ['Example: current selected C-01', 'C-01 is specified in this fixture']],
   emptyAnchor: [livingStateFixture.emptyAnchorHtml, ['No current Wave C ticket anchor', 'WAVE-C/C-01']]
 };
 for (const [surface, [html, expectedText]] of Object.entries(fixtureExpectations)) {

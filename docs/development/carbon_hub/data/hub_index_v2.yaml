@@ -25,7 +25,7 @@ validator_exam_map:
   product_decision: "OWNER-HUB-01"
   title: "Carbon Independent Exam / Validator Execution Map"
   purpose: "One canonical target process for qualifying Carbon's exam and then executing that qualified exam for each candidate."
-  current_maturity: "Target-state orientation only. Carbon is currently in Wave B authoring work. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  maturity_boundary: "The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
   science_boundary: "Science ends after R14 produces the canonical scientific result. R15 is a separate network and economic policy decision and cannot rewrite scientific truth."
   depths:
     - "Investor"
@@ -126,7 +126,7 @@ validator_exam_map:
           engineer: "Thresholds and transforms are evidence-backed frozen configuration, not validator-tunable constants."
           cfd: "Candidate differences below discretization, interpolation, reference, or test-set uncertainty are not meaningful improvements."
           physics_phd: "Define estimands, admissibility tests, and decision procedures with qualified uncertainty propagation."
-          maturity_note: "B-05 authoring is current Wave B work; no real thresholds, weights, or scientific qualification are implied."
+          maturity_note: "B-05 authoring is completed historical Wave B work; no real thresholds, weights, or scientific qualification were earned."
           authority:
             -
               label: "Scoring"
@@ -437,17 +437,36 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
+  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
   wave_status: "active in bounded development scope"
-  ticket: "B-E4"
-  ticket_title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
-  ticket_status: "in_progress"
+  last_completed_ticket:
+    id: "B-E2"
+    title: "Julia and reference failure contract"
+    status: "done"
+    summary: "B-E2 is complete in bounded engineering scope. Its B-E2-R1 nested-response validation repair passed acceptance and normally merged in PR #102."
+    delivery:
+      reference: "PR #102"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/102"
+      merge_commit: "b5608b46973869d93300d961749a860096aa6db4"
+  selected_ticket:
+    id: "B-E4"
+    title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
+    status: "in_progress"
+    summary: "PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its bounded successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration."
+    delivery:
+      reference: "PR #105"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/105"
+      merge_commit: "5932ed7870e8684f1c2532f129e5ed42c597d77f"
+  next_selected_ticket: null
   controlling_register: ".agent/WAVE_B.md"
   controlling_register_version: "3.6"
   controlling_board_fingerprint: "a020eb45dec184ae36237f235910101384ee04ff5e3bc3ee45d8b4db750fe91b"
-  stage: "The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran."
+  stage: "Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -507,7 +526,6 @@ current:
     - "B-GATE"
   parallel_context:
     - "B-01G remains todo as a future non-blocking tooling proof."
-  next_selected_ticket: null
   fail_closed:
     - "PR #94 reconciled B-05 and B-07C as bounded merged work; it did not authorize practice-result ingestion, scientific qualification, official outcomes, security acceptance, production readiness, or LIVE."
     - "PR #95 completed B-07D1/D2/D3 only in their bounded engineering scopes; B-07D2 accepts synthetic records only and public prior activation remains unavailable."
@@ -2942,6 +2960,35 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/MATURITY"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-HUB"
+    event_type: "adjustment"
+    event_id: "HUB-CURRENT-POSITION-01"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "The Hub now derives present-tense development position from one canonical record: Wave B is active, B-E2 is the last completed ticket, PR #105 merged B-E4's bounded successor validation repair, B-E4 remains selected and in progress behind its verified-ratification and execution-evidence block, and no later ticket is selected."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/105"
+    affects:
+      - "WAVE-B/B-01G"
+      - "WAVE-B/B-01H"
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-06"
+      - "WAVE-B/B-07A"
+      - "WAVE-B/B-07B"
+      - "WAVE-B/B-07D1"
+      - "WAVE-B/B-07D2"
+      - "WAVE-B/B-07D3"
+      - "WAVE-B/B-07E"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-07G"
+      - "WAVE-B/B-07S"
+      - "WAVE-B/B-E1"
+      - "WAVE-B/B-E2"
+      - "WAVE-B/B-E3"
+      - "WAVE-B/B-E4"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

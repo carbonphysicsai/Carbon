@@ -137,6 +137,49 @@ class ValidatorContractTests(unittest.TestCase):
     def load_hub_data() -> dict[str, object]:
         return json.loads(HUB_DATA_PATH.read_text(encoding="utf-8"))
 
+    def current_position_errors(self, mutate) -> list[str]:
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = self.load_hub_data()
+        mutate(validator.data)
+        validator.validate_current_position_semantics()
+        return validator.errors
+
+    def test_completed_b05_cannot_be_described_as_active(self) -> None:
+        def mutate(data: dict[str, object]) -> None:
+            ticket = next(item for item in data["tickets"] if item["id"] == "B-05")
+            ticket["current_stage"] = "B-05 is now active."
+
+        self.assertTrue(
+            any(
+                "B-05.current_stage contradicts done status" in error
+                for error in self.current_position_errors(mutate)
+            )
+        )
+
+    def test_todo_ticket_cannot_be_described_as_started(self) -> None:
+        def mutate(data: dict[str, object]) -> None:
+            ticket = next(item for item in data["tickets"] if item["id"] == "B-01G")
+            ticket["current_stage"] = "B-01G is implemented and active."
+
+        errors = self.current_position_errors(mutate)
+        self.assertTrue(
+            any(
+                "B-01G.current_stage contradicts todo status" in error
+                for error in errors
+            )
+        )
+
+    def test_merged_be2_repair_cannot_be_described_as_awaiting_merge(self) -> None:
+        def mutate(data: dict[str, object]) -> None:
+            data["current"]["last_completed_ticket"][
+                "summary"
+            ] = "B-E2-R1 repair is awaiting normal merge."
+
+        self.assertIn(
+            "merged current-position delivery is described as awaiting merge",
+            self.current_position_errors(mutate),
+        )
+
     def test_collect_diff_includes_and_captures_deletions(self) -> None:
         validator = DiffValidator()
         validator.data = {}
@@ -1600,15 +1643,42 @@ class ValidatorContractTests(unittest.TestCase):
         state = "active in bounded fixture scope"
         register = f".agent/WAVE_{wave}.md"
         selected_status = str(selected_record["status"])
+        selected_role = (
+            {
+                "id": selected,
+                "title": selected_record["title"],
+                "status": selected_status,
+                "summary": f"{selected} is the selected fixture stage.",
+            }
+            if selected_status == "in_progress"
+            else None
+        )
+        completed_anchor = (
+            selected_record
+            if selected_status == "done"
+            else next(
+                (ticket for ticket in reversed(tickets) if ticket["status"] == "done"),
+                {
+                    "id": f"{predecessor}-GATE",
+                    "title": "Fixture predecessor",
+                    "status": "done",
+                },
+            )
+        )
         validator.data = {
             "meta": {"repository": REPOSITORY_URL},
             "current": {
                 "wave": wave,
                 "wave_title": f"Wave {wave} title",
                 "wave_status": state,
-                "ticket": selected,
-                "ticket_title": selected_record["title"],
-                "ticket_status": selected_status,
+                "last_completed_ticket": {
+                    "id": completed_anchor["id"],
+                    "title": completed_anchor["title"],
+                    "status": "done",
+                    "summary": f"{completed_anchor['id']} is complete in the fixture.",
+                    "delivery": {},
+                },
+                "selected_ticket": selected_role,
                 "controlling_register": register,
                 "controlling_register_version": version,
                 "controlling_board_fingerprint": validator.board_fingerprint(
@@ -1621,7 +1691,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "downstream_handoffs": selected_record["unlocks"],
                 "parallel_context": parallel_context or [],
                 "next_selected_ticket": None,
-                "stage": selected_record["current_stage"],
+                "stage": f"{selected} is the selected fixture stage.",
                 "technical_decision_route": f"{REPOSITORY_URL}/issues/42",
                 "owner_decision_route": f"{REPOSITORY_URL}/issues/41",
                 "decision_series": [],
@@ -2028,11 +2098,20 @@ class ValidatorContractTests(unittest.TestCase):
         b05 = next(ticket for ticket in baseline["tickets"] if ticket["id"] == "B-05")
         baseline["current"].update(
             {
-                "ticket": "B-04",
-                "ticket_title": b04["title"],
-                "ticket_status": "in_progress",
+                "selected_ticket": {
+                    "id": "B-04",
+                    "title": b04["title"],
+                    "status": "in_progress",
+                    "summary": "B-04 fixture implementation is selected.",
+                },
                 "stage": "B-04 fixture implementation is selected.",
-                "next_selected_ticket": "B-05",
+                "next_selected_ticket": {
+                    "id": "B-05",
+                    "title": b05["title"],
+                    "status": "todo",
+                    "implementation_state": "unstarted",
+                    "summary": "B-05 remains queued in the fixture.",
+                },
             }
         )
         b04["status"] = "in_progress"
@@ -2049,11 +2128,33 @@ class ValidatorContractTests(unittest.TestCase):
         )
         advanced["current"].update(
             {
-                "ticket": "B-05",
-                "ticket_title": advanced_b05["title"],
-                "ticket_status": "in_progress",
+                "last_completed_ticket": {
+                    "id": "B-04",
+                    "title": advanced_b04["title"],
+                    "status": "done",
+                    "summary": "B-04 is done only in bounded fixture engineering scope.",
+                    "delivery": baseline["current"]["last_completed_ticket"][
+                        "delivery"
+                    ],
+                },
+                "selected_ticket": {
+                    "id": "B-05",
+                    "title": advanced_b05["title"],
+                    "status": "in_progress",
+                    "summary": "B-05 fixture authoring is selected.",
+                },
                 "stage": "B-05 fixture authoring is selected.",
-                "next_selected_ticket": "B-06",
+                "next_selected_ticket": {
+                    "id": "B-06",
+                    "title": next(
+                        ticket["title"]
+                        for ticket in advanced["tickets"]
+                        if ticket["id"] == "B-06"
+                    ),
+                    "status": "todo",
+                    "implementation_state": "unstarted",
+                    "summary": "B-06 remains queued in the fixture.",
+                },
             }
         )
         advanced_b04["status"] = "done"
@@ -2141,6 +2242,8 @@ class ValidatorContractTests(unittest.TestCase):
                 "explainers/waves/wave_b.md",
                 "explainers/tickets/b_04.md",
                 "explainers/tickets/b_05.md",
+                "explainers/tickets/b_06.md",
+                "explainers/tickets/b_e2.md",
             },
         )
 
@@ -3090,7 +3193,7 @@ class ValidatorContractTests(unittest.TestCase):
         )
         stale_validator.validate_authority_view(advanced_view, "candidate HEAD")
         self.assertTrue(
-            any("current.ticket" in error for error in stale_validator.errors),
+            any("current.selected_ticket" in error for error in stale_validator.errors),
             stale_validator.errors,
         )
 

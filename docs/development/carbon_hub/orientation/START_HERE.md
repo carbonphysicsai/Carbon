@@ -24,7 +24,9 @@ does not prove.
 
 - **Current wave:** Wave B — Science-ready authoring skeletons
 - **Current ticket:** B-E4 — Agent utility, leakage, poisoning, and aligned-cheating gauntlet
-- **Current stage:** The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
+- **Last completed ticket:** B-E2 — Julia and reference failure contract (`done`)
+- **Next selected ticket:** none selected
+- **Current stage:** Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted.
 - **Captured maturity:** B-E4 has bounded engineering schemas, a semantically responsive toy fixture, and repaired record, prior-pin, and integrity-outcome validation. No qualifying gauntlet was executed and no utility, diversity, leakage, scientific, security, network, commercial, production, qualification, ranking, frontier, or LIVE maturity is earned.
 
 ## How to use the hub

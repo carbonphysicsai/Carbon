@@ -32,7 +32,7 @@ Historical fit or local improvement cannot establish safe utility without the pr
 
 ## Current stage
 
-The bounded successor validation repair is implemented in the current candidate. Qualifying recording is unavailable without verified owner-ratification and execution-evidence integration; no qualifying gauntlet ran.
+PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its bounded successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration.
 
 ## Maturity ceiling
 

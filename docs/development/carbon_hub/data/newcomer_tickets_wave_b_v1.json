@@ -41,7 +41,6 @@
       "why": "An iterative agent loop is useful only if model assertions cannot replace evidence, protected material stays outside role context, and final review and merge remain independent gates.",
       "changes": "Carbon gains optional, resumable development tooling for bounded multi-iteration implementation work.",
       "not_yet": "Its bounded completion does not choose B-05 scientific values, qualify any behavior, expose hidden evaluation, or create LIVE authority. The installed Codex adapter remains fail-closed unavailable.",
-      "current_stage_plain": "B-01H completed its bounded delivery predicate through PR #86. B-05 is now active; harness adapter compatibility remains a separate fail-closed infrastructure fact.",
       "map_ref": "WAVE-B/B-01H"
     },
     "B-02A": {
@@ -82,16 +81,14 @@
       "why": "A candidate can only be judged against an adequate, registered source of truth; silent fallback would corrupt the evidence.",
       "changes": "Measurements and qualification gain an explicit truth-authority boundary.",
       "not_yet": "This does not declare one solver universally authoritative or allow an unregistered fallback.",
-      "current_stage_plain": "Completed in bounded implemented-and-tested fixture-runtime scope through PR #75; scientific, security, production, and LIVE qualification remain unearned.",
       "map_ref": "WAVE-B/B-04"
     },
     "B-05": {
       "title": "Decide how the exam measures a model",
       "what": "Define the rules that turn reference answers and model outputs into scientific measurements and a final evaluation result.",
       "why": "Having answer data is not enough. Carbon must decide in advance what to measure, where it applies, how uncertainty enters, and which failures make a candidate ineligible before ranking.",
-      "changes": "PR #87 merged the repaired measurement tree. The current combined candidate reverifies its substantive requirements and prepares bounded closeout under OWNER-DX-03 before B-07C.",
+      "changes": "PR #94 completed the bounded B-05 verification and status reconciliation with no measurement runtime repair.",
       "not_yet": "This does not choose real scientific thresholds, qualify a Challenge, or make the current system live.",
-      "current_stage_plain": "PR #94 accepted and normally merged the current verification with no measurement runtime gap. B-05 is complete only in bounded engineering scope; scientific and production authority remains unearned.",
       "map_ref": "WAVE-B/B-05"
     },
     "B-06": {
@@ -100,7 +97,6 @@
       "why": "A folder full of completed components is weaker than a traceable case that the whole exam is fit for its intended claim.",
       "changes": "Four bounded slices add exact D1-D12 identity, typed evidence and non-substitution, a deterministic qualification candidate compared with one supplied A3 draft record, and exact acquisition/result manifests. PR #88 passed applicable acceptance and Merge gate and merged normally.",
       "not_yet": "A populated template, compatible evidence mapping, pending dependence field, PASS label, external signer-result flag, matching registry snapshot, signature, or fixture does not prove authorization, scientific or security qualification, production readiness, or LIVE activation.",
-      "current_stage_plain": "B-06 is done in bounded merged engineering scope. B-05's current verification found delivery/status lag only; scientific and security judgments stay human-owned.",
       "map_ref": "WAVE-B/B-06"
     },
     "B-07R": {
@@ -117,7 +113,6 @@
       "why": "An architecture diagram is not enough to guarantee interoperable or fail-closed behavior.",
       "changes": "The exact local v2 protocol is ratified: twelve operations, closed types and bounds, deterministic task/prior rules, fixture capability separation, and one semantic owner per operation.",
       "not_yet": "This does not implement B-07A-G, alter official v1, publish a public prior, or authorize identity, signing, transport, credentials, quoting, qualification, production service, or LIVE.",
-      "current_stage_plain": "B-07S is complete in bounded specification and ratification scope. B-07A has now completed its bounded shared-core and discovery delivery; B-07B is next but has not started.",
       "map_ref": "WAVE-B/B-07S"
     },
     "B-07A": {
@@ -126,7 +121,6 @@
       "why": "Researchers need to know what the system offers without guessing or invoking capabilities the Challenge never registered.",
       "changes": "The research service gains one exact shared v2 type/serialization core and a local discovery layer for Challenge information and the sole InteractionManifest wire resource, including immutable historical versions and explicit unavailable capabilities.",
       "not_yet": "This cannot expose official submission/result operations, execute the other ten research operations, compose the full service, or invent capabilities that were never registered. It grants no scientific, security, production, or LIVE authority.",
-      "current_stage_plain": "B-07A remains complete in bounded implemented-and-tested shared-core and two-operation discovery scope. B-07B has now completed its separate bounded local task-and-record delivery.",
       "map_ref": "WAVE-B/B-07A"
     },
     "B-07B": {
@@ -135,7 +129,6 @@
       "why": "Practice, shared history, utility studies, and rights controls all depend on exact provenance.",
       "changes": "Wave B gains a local task lifecycle with stable duplicate handling, immutable inputs, cancellation and retry rules, private evidence records, and public-safe terminal receipts.",
       "not_yet": "A research receipt is not an official score, ranking, qualification, or frontier event. The local requester binding is not authentication, and no science, security, rights, network, production, or LIVE approval is created.",
-      "current_stage_plain": "B-07B is complete in bounded local task, private-record, and receipt scope. The combined candidate now implements B-07C through those boundaries; B-07D1 remains next but unstarted.",
       "map_ref": "WAVE-B/B-07B"
     },
     "B-07C": {
@@ -144,7 +137,6 @@
       "why": "Researchers need feedback, but practice must not reveal protected cases, official mixtures, exact margins, or official ordering.",
       "changes": "The combined candidate adds exact mock-only scopes and packs, a non-champion scaffold, reconstruction rehearsal, single practice, paired common-case comparison, and resource-facts-only calibration through B-07B.",
       "not_yet": "Practice cannot admit, reject, rank, prequalify, score, publish, or submit an official candidate. Real science, security, rights, production sandboxing, and LIVE remain unavailable.",
-      "current_stage_plain": "PR #94 accepted and normally merged the implementation only for in-process synthetic fixtures. Practice results do not become prior-ingestion or official evidence.",
       "map_ref": "WAVE-B/B-07C"
     },
     "B-07D1": {
@@ -153,7 +145,6 @@
       "why": "Carbon cannot safely share research history until the history has exact identity and a stable data contract.",
       "changes": "The grouped candidate adds exact immutable storage, authorization-bound indexes and history, withdrawal audit retention, and a private offline compatibility projection.",
       "not_yet": "This does not publicly publish a qualified learned prior, install a v2-backed v1 provider, choose production signing, or personalize history.",
-      "current_stage_plain": "PR #95 accepted and normally merged D1 with D2/D3; D1 is done in bounded immutable-store and private-projection scope.",
       "map_ref": "WAVE-B/B-07D1"
     },
     "B-07D2": {
@@ -162,7 +153,6 @@
       "why": "Several individually safe releases can reveal protected structure when combined, so disclosure must be controlled across time.",
       "changes": "The grouped candidate adds a synthetic-only publisher, exact-byte fixture checks and authorization, a persistent cumulative disclosure ledger, and one atomic ledger/receipt/index commit.",
       "not_yet": "This does not ingest B-07C practice or official records, authorize public activation or learned publication, qualify utility, or choose signing custody.",
-      "current_stage_plain": "PR #95 accepted and normally merged D2 after D1; D2 is done only for persistent TEST_ONLY / NOT_UTILITY_QUALIFIED synthetic fixtures.",
       "map_ref": "WAVE-B/B-07D2"
     },
     "B-07D3": {
@@ -171,7 +161,6 @@
       "why": "Every researcher should receive the same approved Challenge-level history and predictable handling of versions.",
       "changes": "The grouped candidate adds separate public and fixture static providers, authorization-bound exact/active retrieval, task pinning, and deterministic structural alignment.",
       "not_yet": "This does not create personalized guidance, request-time private analytics, public activation, dispatch, or official scores, gates, ranks, or winners.",
-      "current_stage_plain": "PR #95 accepted and normally merged D3 after D1/D2; D3 is done in bounded static-provider and deterministic-alignment scope.",
       "map_ref": "WAVE-B/B-07D3"
     },
     "B-07E": {
@@ -180,7 +169,6 @@
       "why": "Researchers and operators need cost information, but an estimate must not become a capacity commitment, price, or scientific claim.",
       "changes": "PR #96 added exact plan-derived inspection through the registered compiler and resource policy, an ordinary forecast that remains UNRESOLVED without authorized calibration, and a distinct synthetic TEST_ONLY calibration harness.",
       "not_yet": "Real calibration and support criteria remain unavailable. This does not set prices, quotas, remote fees, capacity, create quotes/admission or observed receipts, or predict official outcomes.",
-      "current_stage_plain": "PR #96 accepted and normally merged B-07E; it is done only in bounded static-inspection and fail-closed forecast scope.",
       "map_ref": "WAVE-B/B-07E"
     },
     "B-07F": {
@@ -189,7 +177,6 @@
       "why": "Wave B needs to prove that the authored plan can enter the evaluation path through one explicit integration point.",
       "changes": "PR #97 added a separate fixture-only provider that recompiles through B-02B, checks B-02C, consumes one registered plan lever, performs deterministic toy construction and held-out measurement, scores through unchanged A5, and binds private exact receipts.",
       "not_yet": "This does not run production reconstruction, arbitrary code, real training, scientific evidence, ranking, dispatch, or emissions.",
-      "current_stage_plain": "PR #97 accepted and normally merged B-07F; it is done only in bounded TEST_ONLY engineering scope.",
       "map_ref": "WAVE-B/B-07F"
     },
     "B-07G": {
@@ -198,7 +185,6 @@
       "why": "Individual modules can be correct while the assembled service routes requests incorrectly or absorbs authority it does not own.",
       "changes": "PR #98 added the exact local twelve-operation v2 composition, canonical call/reply boundary, disclosure enforcement, and conformance matrix while delegating each operation to its existing owner.",
       "not_yet": "This is not a network service and does not own official submission, B-07F execution, scientific policy, shared-history policy, credentials, quotes, admission, production, LIVE, or other domain-specific meaning.",
-      "current_stage_plain": "PR #98 accepted and normally merged B-07G; it is done only in bounded local composition/conformance scope.",
       "map_ref": "WAVE-B/B-07G"
     },
     "B-E1": {
@@ -207,7 +193,6 @@
       "why": "Candidate order can change under variance. Carbon needs a way to say the evidence did not resolve the comparison.",
       "changes": "PR #99 accepted and normally merged the separate exact-identity, numerical, and decision results; complete dependence-preserving reconstruction-by-case fixture graph; injected qualified decision procedures; typed contested outcomes; and staged reconstruction-evidence audit.",
       "not_yet": "No real tolerance, statistical model, sample size, coverage or power target, stopping rule, supported production backend, qualification, ranking, frontier, production, or LIVE authority is supplied.",
-      "current_stage_plain": "PR #99 accepted and normally merged B-E1; it is done only in bounded TEST_ONLY reproducibility scope.",
       "map_ref": "WAVE-B/B-E1"
     },
     "B-E2": {
@@ -216,7 +201,6 @@
       "why": "Carbon must preserve truth-system failures instead of silently turning them into a candidate score or switching to another source.",
       "changes": "The candidate adds an exact primary/witness registered-service seam over B-04, one-use invocation, typed hostile-response and infrastructure failures, immutable retry traces, and deterministic TEST_ONLY supported/failure/disagreement/MMS fixtures.",
       "not_yet": "Archived Julia remains absent. No real provider, solver, method, environment, retry/fallback policy, scientific/security qualification, production, ranking, frontier, or LIVE authority is supplied.",
-      "current_stage_plain": "PR #102 normally merged the bounded successor repair. B-E4 engineering is active; qualifying execution remains blocked on human preregistration.",
       "map_ref": "WAVE-B/B-E2"
     },
     "B-E3": {
@@ -225,7 +209,6 @@
       "why": "A technically complete system can still overclaim if nobody can show which evidence supports each statement and which evidence is missing.",
       "changes": "Carbon gains an exact claim-to-source crosswalk, distinct evidence categories and maturity, permitted-use records, explicit absent or pending evidence, fail-closed validation, strict canonical bytes, and audience-safe reports.",
       "not_yet": "A crosswalk cannot fill an evidence gap, make MMS prove physical validity, trust an asserted owner or approval, disclose protected identities, or turn design intent into scientific or production qualification.",
-      "current_stage_plain": "B-E3 is complete in bounded structural engineering scope. B-07S ratified the exact local protocol, and B-07A has completed its bounded shared-core and discovery delivery. B-07B is next but unstarted.",
       "map_ref": "WAVE-B/B-E3"
     },
     "B-E4": {
@@ -234,7 +217,6 @@
       "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
       "changes": "Carbon gains a fail-closed profile-by-arm harness, separate raw observations, a semantically responsive toy fixture, typed integrity cases, evaluator-held shadow cases, and repaired record, prior-pin, and protocol-outcome validation.",
       "not_yet": "The owners have not supplied or ratified the preregistered design, and no verified owner-ratification or execution-evidence integration exists. No qualifying run, utility decision, leakage decision, security acceptance, or production claim exists.",
-      "current_stage_plain": "The bounded successor validation repair is implemented in the current candidate. Qualifying recording and execution remain unavailable; B-GATE is unstarted.",
       "map_ref": "WAVE-B/B-E4"
     },
     "B-GATE": {

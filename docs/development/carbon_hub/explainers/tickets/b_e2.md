@@ -32,7 +32,7 @@ It does not restore Julia, select or qualify a solver, permit an unregistered fa
 
 ## Current stage
 
-PR #102 normally merged the bounded B-E2-R1 successor repair. B-E4 engineering is now active; the qualifying gauntlet remains blocked on preregistration.
+B-E2 is complete in bounded engineering scope. Its B-E2-R1 nested-response validation repair passed acceptance and normally merged in PR #102.
 
 ## Maturity ceiling
 
