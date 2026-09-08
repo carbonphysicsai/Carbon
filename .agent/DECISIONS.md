@@ -12607,3 +12607,25 @@ accounting states, and publish owner-unapproved pilot v2. Please flag an
 incorrect technical premise before a later implementation freeze. This notice
 does not request or imply approval, spending, disclosure, inference, pilot, or
 qualifying authority.”
+
+## 2026-09-09 — B-E4-D18: give clean-image acceptance its canonical time budget
+
+**Ticket:** B-E4
+**Status:** implemented delivery-infrastructure correction
+
+**Problem.** Exact-head CI run `34279195892` completed every clean development-
+image step successfully, including canonical acceptance and cleanup, but
+GitHub classified the job cancelled at exactly its 30-minute job limit. The
+same canonical suite already has a 45-minute ceiling outside the image job.
+
+**Decision.** Raise only the clean development-image job timeout from 30 to 45
+minutes. Keep its pinned, no-cache image build, exact candidate checkout,
+canonical command, merge-gate dependency, and every test unchanged.
+
+**Rationale, alternatives, and reversibility.** Repeated retries would make
+acceptance depend on runner timing luck. Removing or shortening the clean-image
+suite would weaken the environment invariant and was rejected. The 45-minute
+limit matches the existing canonical budget and can be reduced later if suite
+runtime falls with measured margin. This is delivery reliability only; it
+grants no scientific, security, spending, provider, pilot, qualification, or
+LIVE authority.
