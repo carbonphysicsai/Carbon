@@ -216,6 +216,12 @@ def _finite(value: object, name: str) -> float:
     return value
 
 
+def _finite_signed(value: object, name: str) -> float:
+    if type(value) is not float or not math.isfinite(value):
+        raise ValueError(f"{name} must be a finite float")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class OwnerRatification:
     owner: RatifyingOwner
@@ -520,9 +526,11 @@ class ConditionalLeakageObservation:
         for name in (
             "transcript_information",
             "shadow_case_control",
-            "conditional_leakage_statistic",
         ):
             _finite(getattr(self, name), name)
+        _finite_signed(
+            self.conditional_leakage_statistic, "conditional_leakage_statistic"
+        )
         _digest(self.shadow_fixture_digest, "shadow_fixture_digest")
 
 

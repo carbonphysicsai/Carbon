@@ -8,10 +8,13 @@ from pathlib import Path
 import pytest
 
 from carbon.gauntlet import (
+    DesignAnalysisClassification,
     GauntletPreregistration,
     GauntletRecord,
     GauntletStatus,
+    ProposedGauntletDesign,
     RunIdentity,
+    parse_proposed_design,
 )
 
 pytestmark = pytest.mark.invariant
@@ -56,3 +59,17 @@ def test_reserved_inputs_default_missing_and_v2_pins_are_nominal() -> None:
     assert "test_only_authorization_ref" in RunIdentity.__dataclass_fields__
     assert "authorization_verified" not in RunIdentity.__dataclass_fields__
     assert "QUALIFYING_EXECUTION_RECORDED" not in GauntletStatus.__members__
+
+
+@pytest.mark.invariant
+def test_design_analysis_artifact_has_no_ratification_or_execution_authority() -> None:
+    path = ROOT / ".agent" / "preregistrations" / "B-E4_recommended_design_v2.json"
+    design = parse_proposed_design(path.read_text(encoding="utf-8"))
+    assert type(design) is ProposedGauntletDesign
+    assert not design.qualifying_execution_ready
+    assert not design.is_verified_owner_ratified
+    assert not hasattr(design, "ratifications")
+    assert all(
+        item.value.startswith("DESIGN_ANALYSIS_ONLY_")
+        for item in DesignAnalysisClassification
+    )

@@ -215,8 +215,8 @@
       "title": "Try to break the research loop before trusting it",
       "what": "Attack the research workflow for hidden-exam leakage, poisoning, gaming, collapsed method diversity, and unsafe evidence use while also testing whether it produces useful research.",
       "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
-      "changes": "Carbon gains a fail-closed profile-by-arm harness, separate raw observations, a semantically responsive toy fixture, typed integrity cases, evaluator-held shadow cases, and repaired record, prior-pin, and protocol-outcome validation.",
-      "not_yet": "The owners have not supplied or ratified the preregistered design, and no verified owner-ratification or execution-evidence integration exists. No qualifying run, utility decision, leakage decision, security acceptance, or production claim exists.",
+      "changes": "Carbon gains a fail-closed profile-by-arm harness, separate raw observations, a semantically responsive toy fixture, typed integrity cases, evaluator-held shadow cases, repaired validators, and a content-bound analysis-only preregistration proposal with deterministic sensitivity helpers and an owner decision pack.",
+      "not_yet": "The recommendation cannot fill an evidence gap: all eight values remain proposed, the current fixture/prior cannot identify the proposed utility/diversity claim, and exact execution artifacts, verified five-owner ratification, and qualifying evidence do not exist. No utility, leakage, security, science, production, qualification, or LIVE claim exists.",
       "map_ref": "WAVE-B/B-E4"
     },
     "B-GATE": {

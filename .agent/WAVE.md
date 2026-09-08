@@ -9,11 +9,13 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.6
+**Controlling register:** `.agent/WAVE_B.md` version 3.7
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
-engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`;
-the bounded successor validation repair is in progress
+engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
+PR #105 normally merged the bounded validation repair as
+`5932ed7870e8684f1c2532f129e5ed42c597d77f`; this snapshot implements the
+analysis-only preregistration-design checkpoint
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on complete human-ratified preregistration; B-GATE remains unstarted
 **Next eligible status:** no later ticket is selected
@@ -74,10 +76,14 @@ passed run `34124228848` and normally merged
 without reopening that history or changing B-E2 maturity.
 **B-E4 status:** `in_progress`; PR #103 merged the unblocked fixture
 engineering harness, schemas, semantic toy repair, integrity matrix, and
-shadow-case seam. A bounded successor repair closes record-integrity gaps while
-keeping qualifying recording unavailable. Qualifying execution and completion
-remain fail-closed on complete human-ratified preregistration and verified
-execution-evidence integration. B-GATE is unstarted.
+shadow-case seam, and PR #105 merged its bounded validation repair. This
+snapshot binds a concrete analysis-only blocked execution-design proposal and
+owner decision pack. Audit shows the current one-family toy and singleton-targeted
+prior cannot identify the proposed utility/diversity claim. Final freeze and
+qualifying execution remain fail-closed on the separately bounded fixture/
+prior readiness repair, exact executable artifacts and metering, complete
+human-ratified preregistration, verified attack/ratification/execution evidence,
+and every existing completion criterion. B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

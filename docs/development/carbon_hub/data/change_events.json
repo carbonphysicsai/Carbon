@@ -1381,6 +1381,24 @@
         "SYSTEM/DEVELOPMENT-SEQUENCING"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "blocker",
+      "event_id": "B-E4-PREREGISTRATION-DESIGN-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "blocked",
+      "summary": "B-E4 now has a content-bound analysis-only preregistration proposal and concrete owner decision pack, but the current one-family fixture and singleton-targeted prior cannot identify the recommended utility/diversity claim. A bounded readiness repair, pinned execution artifacts, and five-owner ratification of a later execution-ready digest must precede qualifying execution.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": null
     }
   ]
 }

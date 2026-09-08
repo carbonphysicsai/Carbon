@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-07T20:47:24Z"
+  captured_at_utc: "2026-09-07T23:36:48Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "62974047a165f05c1b77c9e5e95387cdffd2d7f4"
+  authority_snapshot_commit: "00a53a0b16652a1f5058206a1be59d75d0972101"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -437,7 +437,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
-  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. This candidate adds a blocked analysis-only preregistration proposal and concrete owner pack; it does not run the gauntlet. Fixture/prior readiness, exact execution integrations, and five-owner ratification still block final freeze and qualifying execution. No later ticket is selected; B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
@@ -456,7 +456,7 @@ current:
     id: "B-E4"
     title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
     status: "in_progress"
-    summary: "PR #103 merged B-E4's first bounded engineering checkpoint, and PR #105 merged its bounded successor validation repair. B-E4 remains selected and in progress because no qualifying gauntlet ran; qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration."
+    summary: "PR #105 merged B-E4's bounded successor validation repair. This candidate adds a content-bound, analysis-only preregistration proposal and owner decision pack, but the current fixture/prior is not identifiable for the proposed claim and no qualifying gauntlet ran. Final freeze, qualifying recording, and completion remain blocked."
     delivery:
       reference: "PR #105"
       status: "merged"
@@ -464,9 +464,9 @@ current:
       merge_commit: "5932ed7870e8684f1c2532f129e5ed42c597d77f"
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "3.6"
-  controlling_board_fingerprint: "a020eb45dec184ae36237f235910101384ee04ff5e3bc3ee45d8b4db750fe91b"
-  stage: "Wave B remains active in bounded development scope. PR #105 merged B-E4's bounded successor validation repair; B-E4 remains the selected in-progress ticket because no qualifying gauntlet ran and qualifying recording and completion remain blocked on verified owner ratification and execution-evidence integration. No later ticket is selected; B-GATE remains unstarted."
+  controlling_register_version: "3.7"
+  controlling_board_fingerprint: "bb7c3c911a6f2a5be12d535cab8d83975be3e03e5197dead453c59a43bce3732"
+  stage: "Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. This candidate adds a blocked analysis-only preregistration proposal and concrete owner pack; it does not run the gauntlet. Fixture/prior readiness, exact execution integrations, and five-owner ratification still block final freeze and qualifying execution. No later ticket is selected; B-GATE remains unstarted."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -537,7 +537,7 @@ current:
     - "B-07G is merged local in-process composition only; it supplies no listener, authenticated transport, credentials, quote, admission, observed-resource authority, official submission/result path, scientific qualification, production, or LIVE."
     - "B-E1 is a TEST_ONLY fixture harness with no real statistical values, qualified backend, ranking, frontier, scientific/security qualification, production, or LIVE authority."
     - "B-E2 is deterministic TEST_ONLY reference-service fixture evidence; archived Julia remains absent and no reference method, environment, retry/fallback policy, scientific qualification, production, or LIVE authority is supplied."
-    - "B-E4 qualifying recording remains structurally unavailable until a domain-owned verifier binds all eight preregistered design inputs and five-owner ratification to one exact design and a separate integration verifies execution evidence."
+    - "B-E4's blocked proposal recommends all eight inputs but carries no approval. The current one-family fixture and singleton-targeted TEST_ONLY prior cannot identify the proposed utility/diversity claim; exact drivers, arms, metering, shadow/attack campaigns, analysis implementation, and trusted ratification/execution integration remain unavailable."
     - "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
@@ -552,14 +552,16 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-E4 has bounded engineering schemas, a semantically responsive toy fixture, and repaired record, prior-pin, and integrity-outcome validation. No qualifying gauntlet was executed and no utility, diversity, leakage, scientific, security, network, commercial, production, qualification, ranking, frontier, or LIVE maturity is earned."
-  decision_series_status: "B-E4-D1/D2/D3 are implemented working engineering decisions; verified owner ratification, execution evidence, every preregistered decision value, and five-owner ratification remain absent and fail closed."
+  maturity_summary: "B-E4 has bounded engineering schemas, a semantically responsive toy fixture, repaired validators, and an analysis-only content-bound design proposal with deterministic sensitivity helpers. It has no execution-ready frozen design, ratification, or qualifying evidence. No utility, diversity, leakage, scientific, security, network, commercial, production, qualification, ranking, frontier, or LIVE maturity is earned."
+  decision_series_status: "B-E4-D1/D2/D3/D4 are implemented working engineering decisions. B-E4-D5 is a HUMAN_REQUIRED readiness finding. All eight values remain PROPOSED, and exact execution integrations, authenticated role assignments, verified five-owner ratification, and qualifying evidence remain absent and fail closed."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
     - "B-E4-D1"
     - "B-E4-D2"
     - "B-E4-D3"
+    - "B-E4-D4"
+    - "B-E4-D5"
 waves:
   -
     id: "A"
@@ -2989,6 +2991,22 @@ events:
       - "WAVE-B/B-E4"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
+    supersedes: null
+  -
+    map_ref: "WAVE-B/B-E4"
+    event_type: "blocker"
+    event_id: "B-E4-PREREGISTRATION-DESIGN-01"
+    owner_lane: "research_science_statistics_security_protocol"
+    status: "blocked"
+    summary: "B-E4 now has a content-bound analysis-only preregistration proposal and concrete owner decision pack, but the current one-family fixture and singleton-targeted prior cannot identify the recommended utility/diversity claim. A bounded readiness repair, pinned execution artifacts, and five-owner ratification of a later execution-ready digest must precede qualifying execution."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md"
+    affects:
+      - "WAVE-B"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

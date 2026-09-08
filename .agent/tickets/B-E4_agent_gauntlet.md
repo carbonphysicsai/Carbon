@@ -2,10 +2,11 @@
 
 **Wave:** B candidate
 **Status:** in_progress
-**Execution boundary:** engineering harness implemented; successor validation repair
-keeps qualifying recording unavailable pending verified owner-ratification and
-execution-evidence integration, and qualifying execution remains blocked on
-human preregistration
+**Execution boundary:** engineering harness and successor validation repair are
+merged; preregistration-design checkpoint supplies concrete analysis-only
+defaults and full blocked-proposal binding, while qualifying execution remains
+blocked on fixture/prior readiness, executable pinned artifacts, verified
+owner ratification, and execution-evidence integration
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
@@ -70,6 +71,28 @@ Research, security, science, statistics, and protocol owners approve the complet
 pre-execution gauntlet design and decision thresholds. If any required value is
 absent, B-E4 is blocked before execution rather than closed on descriptive
 metrics alone.
+
+The current recommendation is recorded in
+`docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md` and its
+machine-readable companion. Every value remains `PROPOSED`; no owner approval
+is inferred from the proposal. Final five-owner ratification must bind the
+later execution-ready complete-design digest, not only eight text labels.
+
+## Current pre-execution readiness blocker
+
+The current shared toy fixture is semantically responsive for one registered
+two-level family, but B-E4's meaningful diversity/utility design requires at
+least three independently effectful canonical families. The available fixture
+TEST_ONLY prior targets a fixed singleton lever rather than the causal family.
+Before final freeze, a separately bounded repair must extend the fixture through
+the existing B-02B/B-07C/B-07F owners and stage the exact causally relevant
+pack/authorization through B-07D2/B-07D3. Exact profile drivers, arm artifacts,
+total-compute metering, shadow campaign, non-rejection attack evidence, and
+ratification verification must also be implemented and pinned.
+
+These are engineering readiness requirements, not permission to weaken or
+invent the eight human-reserved decisions. B-E4 remains `in_progress`; B-GATE
+is unstarted.
 
 ## Must not
 
