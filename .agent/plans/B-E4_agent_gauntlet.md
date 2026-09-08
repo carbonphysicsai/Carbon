@@ -6,9 +6,12 @@
 **Successor-repair base tree:** `6a92a2b8f65cd6f3ce1b308538f3fd41005a9f8c`
 **Preregistration-design base:** `5932ed7870e8684f1c2532f129e5ed42c597d77f`
 **Preregistration-design base tree:** `1a3d6330bf2272c249105d142f5a3dd366702b88`
+**Execution-readiness base:** `a37b1058ea0b65ba28144b6d919714a1a5ad8a2f`
+**Execution-readiness base tree:** `e0ece9eb4581468917003eb536b7aad5b1edf33f`
 **Ticket:** `.agent/tickets/B-E4_agent_gauntlet.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
-**Current state:** unblocked engineering implemented; qualifying execution blocked
+**Current state:** bounded preflight/readiness engineering implemented;
+complete execution integration, ratification, and qualifying execution blocked
 
 ## Readiness audit — KEEP → WRAP → REPAIR → REPLACE
 
@@ -84,7 +87,7 @@ engineering observations; it cannot synthesize a pass/fail result from them.
 No qualifying gauntlet run is part of either engineering candidate. B-GATE
 remains unstarted.
 
-## Preregistration-design checkpoint
+## Historical preregistration-design checkpoint
 
 This checkpoint implements the owner's directed proposal-first workflow
 without crossing the human-reserved boundary:
@@ -141,3 +144,163 @@ Exact wall-time and normalized total-compute caps are derived by the frozen
 arm-neutral p99 dry-run rule after the drivers and meter exist. These proposed
 values and simulations are design-analysis evidence only. B-E4 remains
 `in_progress`; B-GATE remains unstarted.
+
+## Execution-readiness checkpoint
+
+This checkpoint prospectively supersedes the v2 recommendation without
+rewriting its analysis or digest:
+
+1. Extend the B-02B catalog with `fixture_curriculum_emphasis` and
+   `fixture_feature_degree` while retaining `fixture_sampling_level`. The three
+   closed UInt64 `1..2` families control selected-observation count,
+   curriculum reprioritization/retained-observation weight, and feature
+   exponent respectively. Curriculum level 2 changes the all-level-1 scaffold
+   under both tested seed parities.
+2. Consume those exact semantics in B-07C and B-07F while preserving their
+   separate random contexts, lifecycles, and evidence roles. Preserve B-07F's
+   exact historical sampling-only asset/reconstruction/result identities; use
+   the prospective identity-v2 path only when all three registered families are
+   consumed. The v2 asset digest is
+   `sha256:1d92c7d8e3ae0e9dbfe36731860a4a892788464fa5215b855180e8ce14d20c36`.
+   Each new family declares one conservative B-02B abstract resource unit;
+   B-07E retains resource-policy ownership.
+3. Stage an exact private three-family pack through B-07D2/B-07D3. Its items
+   are exploratory `EXPLORE` / `COMPARE` / `MIXED` guidance, not directional
+   answers, and retain `TEST_ONLY / NOT_UTILITY_QUALIFIED`.
+4. Pin five deterministic, data-only fixture drivers and a closed semantic
+   policy-work meter. Build content-bound four-arm preflight plans with common
+   block randomness and exact v2 pack/authorization pins. Treat their declared
+   runtime/policy digests as configuration/prose identities only; they do not
+   bind exact executable source bytes, which remains a freeze blocker. Use
+   `build_nonqualifying_preflight_arm_artifacts` only for centralized exact
+   design-analysis surrogates; the required GENERIC domain-neutral workflow
+   artifact and exact v1 `PrivatePriorProjection` remain unmaterialized.
+5. Add B-07B-record-derived semantic intervention identities, evaluator-held
+   shadow registration and mechanical point-estimation helpers, untrusted
+   attack and execution-evidence drafts, and a structural ratification audit
+   that cannot produce positive verification. Keep recorded diversity blocked
+   until B-07B tasks are authoritatively bound to B-E4 profile/replicate IDs.
+6. Run non-qualifying preflight/design analyses and bounded TEST_ONLY
+   official-shaped integration diagnostics only. Keep the preflight and
+   submission no-qualification ceilings distinct. Do not run paired B-07C
+   practice, a qualifying attack campaign, or the qualifying matrix.
+
+### Current recommendation
+
+- eight attempted candidates and `223` fixture units per complete proposed
+  run (`8 x (11 + 15) + 15`);
+- `636` complete four-arm blocks/profile plus `52` prospectively numbered
+  reserves, or `12,720` planned / `13,760` maximum agent-arm runs;
+- proposed normalized policy-work caps of `35`, `35`, `39`, `39`, and `20`
+  for planner, code-generating, evolutionary, literature-grounded, and
+  minimalist profiles;
+- proposed wall caps of `1`, `1`, `1`, `1`, and `1` seconds for the same
+  profiles;
+- aggregate proposed accounting of `427,392` / `462,336` policy-work units,
+  `12,720` / `13,760` wall seconds, and `2,836,560` / `3,068,480` B-07E
+  fixture units for planned / maximum matrices;
+- canonical deterministic non-qualifying calibration over `125` complete
+  four-arm profile blocks and `500` preflights with zero typed infrastructure
+  failures; raw-manifest content digest
+  `sha256:616267e476c5f1709fee427cc3535033010048bcf333f77e156c875a9c56a9bf`,
+  ordered preflight-transcript-set digest
+  `sha256:ad56a4105532a61fa2eb5fc48b1ee3122719d4b076c7f27ce683f593ea60d0a3`,
+  and replay-stable digest
+  `sha256:da03b0cf89c5542b2c90ca84c6fcd1485abfab65e5bcce0417673e962bdff97f`;
+  the generator reconstructs the current fixture graph and rejects mismatched
+  declared design/configuration/driver/arm identities, without claiming source-
+  byte binding or final treatment materialization;
+  the replay-stable digest does not bind wall-time observations; separately
+  descriptive p99 wall/compute/resource triplets in profile order are
+  `.493625417/28/37`, `.589078917/28/37`, `.640862833/31/37`,
+  `.499347959/31/37`, and `.22612375/16/15`; explicitly not a full-lifecycle
+  failure-rate estimate or qualifying execution artifact. The calibration used
+  non-qualifying GENERIC/v1 surrogates; materializing the final GENERIC workflow
+  and exact v1 `PrivatePriorProjection` requires fresh arm-neutral/full-
+  lifecycle non-qualifying calibration and a new proposal/digest;
+- final current-code replay preserved the ordered transcript/replay-stable
+  digests, zero block-infrastructure failures, and compute/resource p99s, but
+  host wall p99s were
+  `.747780750/1.054919875/.837789875/.866410250/.524846667`, implying replay-
+  only caps `1/2/2/2/1`. Its wall-dependent raw digest
+  `sha256:0eaef4daa3c47db455d7255f178e891a2a54cf69a16758336420d02fa6fd7454`
+  is not stored canonical evidence. This sensitivity leaves the canonical v3
+  values unchanged while confirming they are tentative preflight-run-specific
+  wall caps that require fresh full-lifecycle calibration before freeze;
+- held-out quality anchors `0.0` and `90.0`, primary transform
+  `LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1` with
+  `Q=(log1p(90)-log1p(L))/(log1p(90)-log1p(0))`, minimum legal quality
+  resolution `0.02002402490929653`, parity-robust feature-degree reference step
+  `h*=0.803470143049295`, and practical floor
+  `delta=0.4017350715246475`;
+- mandatory transfer endpoint `TRANSFER_TOY_MSE_Q`, equal-profile v2 minus each
+  baseline, raw-MSE anchors `0.0 / 650.0`, invalid candidate `Q=0`, and
+  `LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1`, with the uncertainty-rule
+  non-inferiority margin `margin_q=delta=0.4017350715246475`;
+- the six-aggregate-constraint bounded-SD calculation requires `24` blocks/
+  profile but does not power the four-of-five profile guard; the
+  retained leakage assumptions—cluster SD `0.4`, limit `0.05`, adverse
+  alternative `0.075`, four targets, and 90% one-target detection—drive the
+  continuous requirement `3,177.268979614933` independent transcript clusters,
+  or `635.4537959229866` per profile before balancing. The `636` recommendation
+  is conditional on an explicitly unvalidated exchangeable cross-profile ICC
+  `rho=0`; four-arm-balanced sensitivity for `rho=0/.25/.5/.75/1` is
+  `636/1,272/1,908/2,544/3,180` blocks/profile. Cross-profile dependence remains
+  a blocker. Under the unvalidated 5% independent block-infrastructure-failure
+  model, `R=51`
+  gives retention lower bound `0.988334132478569` and `R=52` gives
+  `0.9926266466108926`, making 52 the smallest count above the proposed 99%
+  target;
+- seeded non-qualifying sensitivity at seed `20260908` and `20,000` draws:
+  continuous utility `N=22.447718245989485`, balanced `N=24`, analytic/simulated
+  power diagnostics `0.9308748005864085 / 0.93095` at 24 and `1.0 / 1.0` at 636
+  for the six aggregate endpoint constraints only; these omit the four-of-five
+  profile nonregression guard and do not establish full-rule power or a unique
+  heterogeneity-aware N. At `N=636`, full-rule scenarios pass for homogeneous
+  `0.803470143049295` effects at rate `1.0` and four `1.0`/one `-0.1` effects at
+  rate `1.0`, but fail at rate `0.0` for three `1.0`/two `-0.1` effects despite
+  equal-profile mean `0.56`; these demonstrate the guard, not its power;
+  analytic/simulated leakage null clearance `0.999996943921504 / 1.0`, and
+  adverse one-target detection `0.9002654032997404 / 0.90045`;
+- the diversity rule remains `D_guard>=2.0`. A fixed-proposal enumeration under
+  an assumed, non-authoritative mapping produces supported and guarded
+  diversity of zero; the recorded analyzer itself fails closed because no
+  authoritative B-07B task-to-B-E4 profile/replicate binding exists. At
+  `N=636`, three supported families require at least `64` retained roots/family
+  in four profiles, or `768` profile-family occurrences.
+
+Every number is a `PROPOSED` design-analysis recommendation. The wall and
+policy-work observations cover preflight only; the leakage assumptions are not
+validated by a trusted shadow campaign; and the diversity observation is a
+blocker, not a qualifying failure. Full B-07C practice/feedback/final-selection
+orchestration, the GENERIC domain-neutral workflow artifact, the exact v1
+`PrivatePriorProjection`, candidate-bound fixture seeds, identifiable v2
+treatment behavior across all registered profiles, complete-run
+budget enforcement, trusted non-rejection attack assessment, simultaneous
+leakage inference, authenticated five-role verification, and qualifying
+evidence storage remain unavailable. So do the trusted primary/transfer
+endpoint receipt and v3-Q pipeline, profile-specific reserve/retained-set
+binding, complete driver/arm artifact manifests, and authoritative task-to-run
+binding. Exact executable-source-byte binding for every driver and validated
+cross-profile transcript-cluster dependence are also absent. Exact shadow-case
+count and case-to-profile allocation are unpinned; `636` is conditional planning
+N, not a qualifying shadow allocation. The untrusted
+execution draft accepts only unreplaced complete
+matrices. Existing B-07S results do not all expose exact proposal/request
+correlation, so the prepared preflight carrier cannot independently prove that
+mapping. Prepared ingress canonical-roundtrips its header and candidate results,
+re-derives successful reply digests, and rechecks discovery/v2/Challenge/
+resource/compute relationships. A repeated same-session submit is rejected once
+metered work changes. A separate bounded TEST_ONLY official-shaped submission
+association binds the preflight slot, selected proposal, and A7 receipt under a
+distinct no-qualification ceiling. Those guards do not bind requester/session,
+prove trusted service origin or exact request-to-result correlation, enforce
+full lifecycle/final-slot policy, or create qualifying evidence. The v3
+proposal is `STILL_BLOCKED`; B-E4
+remains `in_progress` and B-GATE remains unstarted. Its exact eight-value design
+digest is
+`sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538`
+and its full proposal digest is
+`sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce`;
+neither is approval or execution authority, and
+`qualifying_execution_ready=false`.

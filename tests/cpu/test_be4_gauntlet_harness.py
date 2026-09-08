@@ -119,6 +119,14 @@ def test_missing_preregistration_blocks_qualifying_execution() -> None:
         GauntletRecord(preregistration, (), (), (), (), qualifying_execution=True)
 
 
+def test_declared_complete_empty_record_remains_blocked_on_verification_and_evidence() -> (
+    None
+):
+    record = GauntletRecord(_preregistration(complete=True), (), (), (), ())
+    assert record.status is GauntletStatus.BLOCKED_VERIFICATION_AND_EXECUTION_EVIDENCE
+    assert "ENGINEERING_READY" not in GauntletStatus.__members__
+
+
 def test_complete_matrix_freezes_exact_v2_pack_and_receipt() -> None:
     validate_experiment_matrix(
         preregistration=_preregistration(complete=True),

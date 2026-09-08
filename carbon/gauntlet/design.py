@@ -12,12 +12,28 @@ import hashlib
 import json
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from dataclasses import field as dataclass_field
 from enum import Enum
 from statistics import NormalDist, StatisticsError
 
-from .model import AgentProfile, ExperimentalArm
+from carbon.construction import (
+    BoundTrainingLever,
+    CandidateAssemblyContract,
+    ParameterCatalog,
+    ParameterCatalogRef,
+    TrainingSupportSemanticOwner,
+)
+from carbon.construction.canonical import encode_model
+from carbon.construction.catalog import catalog_entries_by_surface
+from carbon.research import (
+    ExperimentRecord,
+    ResearchEvidenceClass,
+    ResearchTaskKind,
+)
+from carbon.research.refs import PriorChannel
+
+from .model import AgentProfile, ExperimentalArm, RunIdentity
 
 DESIGN_SCHEMA_VERSION = "carbon.be4.preregistration-design.v2"
 DESIGN_STATUS = "PROPOSED_DESIGN_ANALYSIS_ONLY"
@@ -35,6 +51,7 @@ PROTECTED_TARGETS = (
 
 _DESIGN_FACTORY_TOKEN = object()
 _DIVERSITY_FACTORY_TOKEN = object()
+_RECORDED_INTERVENTION_FACTORY_TOKEN = object()
 _MAX_REGISTERED_COUNT = 10_000_000
 _MAX_PROTECTED_TARGETS = 64
 _MIN_PROBABILITY = 1e-12
@@ -1068,6 +1085,224 @@ class CanonicalIntervention:
 
 
 @dataclass(frozen=True, slots=True)
+class RecordedCanonicalIntervention:
+    """Semantic identity derived from B-07B, with no trusted run binding yet."""
+
+    intervention: CanonicalIntervention
+    experiment_task_identity: str
+    experiment_record_digest: str
+    _factory_token: object = dataclass_field(repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not RecordedCanonicalIntervention
+            or self._factory_token is not _RECORDED_INTERVENTION_FACTORY_TOKEN
+            or type(self.intervention) is not CanonicalIntervention
+            or type(self.experiment_task_identity) is not str
+            or not self.experiment_task_identity.startswith("sha256:")
+            or len(self.experiment_task_identity) != 71
+            or type(self.experiment_record_digest) is not str
+            or not self.experiment_record_digest.startswith("sha256:")
+            or len(self.experiment_record_digest) != 71
+        ):
+            raise TypeError("recorded interventions require the owner extractor")
+
+    @property
+    def has_authoritative_task_to_run_binding(self) -> bool:
+        """Current B-07B records do not bind B-E4 profile/replicate identity."""
+
+        return False
+
+
+def _identity_bytes(value: object) -> bytes:
+    if value is None:
+        return b"n"
+    if type(value) is bool:
+        return b"b1" if value else b"b0"
+    if type(value) is str:
+        payload = value.encode("utf-8", errors="strict")
+        return b"s" + len(payload).to_bytes(8, "big") + payload
+    if type(value) is int:
+        payload = str(value).encode("ascii")
+        return b"i" + len(payload).to_bytes(8, "big") + payload
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("identity floats must be finite")
+        payload = value.hex().encode("ascii")
+        return b"f" + len(payload).to_bytes(8, "big") + payload
+    if type(value) is bytes:
+        return b"y" + len(value).to_bytes(8, "big") + value
+    if isinstance(value, Enum):
+        return _identity_bytes(
+            (
+                "enum",
+                type(value).__module__,
+                type(value).__qualname__,
+                value.value,
+            )
+        )
+    if type(value) is tuple:
+        payload = b"".join(
+            len(item).to_bytes(8, "big") + item
+            for item in (_identity_bytes(item) for item in value)
+        )
+        return b"t" + len(value).to_bytes(8, "big") + payload
+    if is_dataclass(value) and not isinstance(value, type):
+        return _identity_bytes(
+            (
+                "record",
+                type(value).__module__,
+                type(value).__qualname__,
+                tuple((item.name, getattr(value, item.name)) for item in fields(value)),
+            )
+        )
+    return b"m" + encode_model(value)
+
+
+def _identity_digest(domain: bytes, values: tuple[object, ...]) -> str:
+    digest = hashlib.sha256(domain)
+    for value in values:
+        encoded = _identity_bytes(value)
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return "sha256:" + digest.hexdigest()
+
+
+def canonical_intervention_from_experiment_record(
+    record: ExperimentRecord,
+    *,
+    catalog: ParameterCatalog,
+    candidate_assembly: CandidateAssemblyContract,
+    catalog_ref: ParameterCatalogRef,
+    run_identity: RunIdentity,
+) -> RecordedCanonicalIntervention:
+    """Derive semantic identities from an exact owner record for design analysis.
+
+    This extractor recognizes only successful v2 TEST_ONLY paired practice.
+    Raw agent labels, task ids, and caller-provided identity strings are absent
+    from all three semantic identities.  The supplied profile and replicate are
+    not authenticated by B-07B, so the result cannot enter the prevalence
+    analysis until a future task-to-run binding owner verifies that association.
+    """
+
+    if (
+        type(record) is not ExperimentRecord
+        or type(catalog) is not ParameterCatalog
+        or type(candidate_assembly) is not CandidateAssemblyContract
+        or type(catalog_ref) is not ParameterCatalogRef
+        or type(run_identity) is not RunIdentity
+        or run_identity.arm is not ExperimentalArm.V2_TEST_ONLY_PRIOR
+    ):
+        raise TypeError("canonical extraction requires exact owner values")
+    if catalog.to_ref(candidate_assembly=candidate_assembly) != catalog_ref:
+        raise ValueError("catalog reference does not bind the supplied catalog")
+    difference = record.plan_difference
+    prior_ref = record.prior_resolution.prior_pack_ref
+    task_prior_ref = record.task_bindings.prior_pack_ref
+    task_index_ref = record.task_bindings.prior_index_snapshot_ref
+    resolved_bindings_match = len(record.task_bindings.strategy_bindings) == len(
+        record.resolved_strategies
+    ) and all(
+        resolved.strategy_hash == binding.strategy_hash
+        and resolved.training_sampling_policy_ref
+        == binding.training_sampling_policy_ref
+        and resolved.resolved_plan_ref == binding.resolved_plan_ref
+        for resolved, binding in zip(
+            record.resolved_strategies,
+            record.task_bindings.strategy_bindings,
+            strict=True,
+        )
+    )
+    if (
+        record.task_bindings.task_kind is not ResearchTaskKind.PAIRED_PRACTICE
+        or record.evidence_class is not ResearchEvidenceClass.PRACTICE_NON_AUTHORITATIVE
+        or record.scientific_failure_category is not None
+        or difference is None
+        or prior_ref is None
+        or prior_ref.channel is not PriorChannel.TEST_ONLY_FIXTURE
+        or task_prior_ref != prior_ref
+        or record.prior_resolution.index_snapshot_ref != task_index_ref
+        or run_identity.prior_pack_ref != prior_ref
+        or run_identity.test_only_authorization_ref is None
+        or run_identity.test_only_authorization_ref.challenge_key
+        != record.challenge_key
+        or not resolved_bindings_match
+        or record.challenge_key != catalog.challenge_key
+        or any(
+            strategy.resolved_plan.parameter_catalog_ref != catalog_ref
+            for strategy in record.resolved_strategies
+        )
+    ):
+        raise ValueError("record is not admissible v2 paired-practice evidence")
+    try:
+        entry = catalog_entries_by_surface(catalog)[difference.surface_id]
+    except KeyError:
+        raise ValueError("plan difference is absent from the pinned catalog") from None
+    lever = entry.training_lever_binding
+    owner = entry.semantic_owner_binding
+    if (
+        type(lever) is not BoundTrainingLever
+        or type(owner) is not TrainingSupportSemanticOwner
+    ):
+        raise ValueError("plan difference is not an owned training family")
+
+    family_identity = _identity_digest(
+        b"carbon.be4.intervention-family.v1\x00",
+        (
+            catalog_ref,
+            entry.surface_id,
+            owner,
+            entry.consumer_target,
+            lever.kind,
+            lever.executable_semantics_ref,
+        ),
+    )
+    semantic_bucket_identity = _identity_digest(
+        b"carbon.be4.intervention-bucket.v1\x00",
+        (
+            family_identity,
+            difference.baseline_surface_digest,
+            difference.intervention_surface_digest,
+        ),
+    )
+    lineage_root_identity = _identity_digest(
+        b"carbon.be4.intervention-lineage.v1\x00",
+        (
+            record.challenge_key,
+            tuple(
+                strategy.strategy_hash.value for strategy in record.resolved_strategies
+            ),
+            tuple(
+                parent.value if parent is not None else None
+                for parent in record.parent_strategy_hashes
+            ),
+        ),
+    )
+    record_digest = _identity_digest(
+        b"carbon.be4.experiment-record-binding.v1\x00",
+        (record,),
+    )
+    task_identity = _identity_digest(
+        b"carbon.be4.experiment-task-identity.v1\x00",
+        (record.challenge_key, record.task_id.value),
+    )
+    return RecordedCanonicalIntervention(
+        CanonicalIntervention(
+            run_identity.profile,
+            run_identity.arm,
+            run_identity.replicate,
+            family_identity,
+            semantic_bucket_identity,
+            lineage_root_identity,
+            True,
+        ),
+        task_identity,
+        record_digest,
+        _RECORDED_INTERVENTION_FACTORY_TOKEN,
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class InterventionDiversityAnalysis:
     matrix_complete: bool
     complete_profile_coverage: bool
@@ -1234,6 +1469,27 @@ def analyze_intervention_diversity(
         guarded,
         _DIVERSITY_FACTORY_TOKEN,
     )
+
+
+def analyze_recorded_intervention_diversity(
+    interventions: tuple[RecordedCanonicalIntervention, ...],
+    *,
+    expected_replicates_per_profile: int,
+    minimum_profile_prevalence: float = 0.10,
+    matrix_complete: bool,
+) -> InterventionDiversityAnalysis:
+    """Fail closed until B-07B tasks bind authoritative B-E4 run identities."""
+
+    if type(interventions) is not tuple or any(
+        type(item) is not RecordedCanonicalIntervention for item in interventions
+    ):
+        raise TypeError("recorded diversity requires exact extracted records")
+    del (
+        expected_replicates_per_profile,
+        minimum_profile_prevalence,
+        matrix_complete,
+    )
+    raise ValueError("authoritative task-to-run identity binding is unavailable")
 
 
 def classify_diversity_boundary(
@@ -1405,6 +1661,62 @@ def analytic_joint_leakage_clearance(
         limit * math.sqrt(transcript_clusters) / cluster_sd - critical
     )
     return max(0.0, 1.0 - protected_targets * (1.0 - one_target))
+
+
+def required_leakage_replicates_per_profile(
+    *,
+    cluster_sd: float,
+    limit: float,
+    over_limit_alternative: float,
+    familywise_alpha: float,
+    detection_power_target: float,
+    protected_targets: int,
+    cross_profile_icc: float,
+) -> float:
+    """Return normal-planning N/profile under an explicit profile-cluster ICC.
+
+    The five profile transcripts belonging to one replicate may share fixture,
+    shadow, or other design structure.  The exchangeable design effect
+    ``1 + (P - 1) * rho`` prevents silently treating those observations as five
+    independent effective clusters.  This remains a synthetic planning helper;
+    it neither establishes the ICC nor supplies an execution decision.
+    """
+
+    for value in (
+        cluster_sd,
+        limit,
+        over_limit_alternative,
+        familywise_alpha,
+        detection_power_target,
+        cross_profile_icc,
+    ):
+        if type(value) is not float or not math.isfinite(value):
+            raise ValueError("leakage replication inputs must be finite floats")
+    if (
+        cluster_sd <= 0.0
+        or limit <= 0.0
+        or over_limit_alternative <= limit
+        or not _MIN_PROBABILITY <= familywise_alpha < 1.0
+        or not _MIN_PROBABILITY <= detection_power_target < 1.0
+        or not 0.0 <= cross_profile_icc <= 1.0
+        or type(protected_targets) is not int
+        or not 1 <= protected_targets <= _MAX_PROTECTED_TARGETS
+    ):
+        raise ValueError("leakage replication controls are invalid")
+    normal = NormalDist()
+    independent_clusters = (
+        (
+            normal.inv_cdf(1.0 - familywise_alpha / protected_targets)
+            + normal.inv_cdf(detection_power_target)
+        )
+        * cluster_sd
+        / (over_limit_alternative - limit)
+    ) ** 2
+    design_effect = 1.0 + (len(AgentProfile) - 1.0) * cross_profile_icc
+    result = independent_clusters * design_effect / len(AgentProfile)
+    if not math.isfinite(result) or result > _MAX_REGISTERED_COUNT:
+        raise ValueError("leakage replication design exceeds the bounded domain")
+    return result
 
 
 def complete_block_retention_probability(

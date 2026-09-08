@@ -11956,3 +11956,348 @@ execution, result, or later maturity. The existing named human owners retain
 those decisions, and missing authority remains fail closed. The canonical
 response surfaces remain issue #41 for reserved owner decisions and issue #42
 for technical/SciML visibility.
+
+## 2026-09-08 — B-E4-D6: register three distinct causal toy-construction families
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; fixture-only
+
+**Problem.** B-E4-D5 correctly found that one effectful sampling family and a
+singleton-targeted prior could not identify the proposed multi-family utility
+or diversity claim. The smallest repair must create genuinely distinct
+construction choices without adding arbitrary code, changing evaluator-owned
+controls, or merging B-07C practice with B-07F fixture-official evidence.
+
+**Decision.** KEEP `fixture_sampling_level`, whose values select one or two
+training observations. Add two prospectively registered UInt64 `1..2` B-02B
+families: `fixture_curriculum_emphasis`, whose level 2 reprioritizes the
+seed-bound later curriculum item before sampling and upweights later retained
+observations, and `fixture_feature_degree`, which changes the fitted and
+evaluated feature from `x` to `x^2`. The curriculum family is causal from the
+all-level-1 scaffold under both tested seed parities. Require distinct
+semantic-owner and executable-semantics identities for all three. The shared
+`carbon.toy.physics` arithmetic remains synthetic; B-07C and B-07F supply
+separate contexts, seeds, lifecycles, and evidence roles. Each added family
+declares one conservative abstract B-02B resource contribution, while B-07E
+retains resource-policy ownership.
+
+B-07F's historical sampling-only asset, reconstruction-receipt, and result-
+receipt identities remain byte-for-byte unchanged. The three-family path is a
+prospective identity-v2 extension only; its asset digest is
+`sha256:1d92c7d8e3ae0e9dbfe36731860a4a892788464fa5215b855180e8ce14d20c36`.
+Legacy sampling-only records never acquire v2 identity fields merely because
+the new families exist.
+
+Stage the associated private pack only through the existing B-07D2 publisher/
+store and B-07D3 authorization/provider. The pack is bound to the exact
+Challenge, catalog, template, publication evidence, pack ref, and authorization
+receipt. Its items are exploratory `EXPLORE` / `COMPARE` / `MIXED` guidance,
+not directional answers, and retain `TEST_ONLY / NOT_UTILITY_QUALIFIED`.
+
+**Alternatives rejected.** Renaming equivalent parameters or counting numeric
+levels as separate families would manufacture diversity. Adding an arbitrary
+graph or executable callback would cross the fixed construction boundary.
+Creating a B-E4 evaluator or prior provider would duplicate B-07F or B-07D3
+ownership. Encoding the preferred level, held-out answer, protected seed/case,
+exact margin, or shadow identity would make the prior a protected-realization
+shortcut rather than an experimental treatment.
+
+**Reversibility and remaining limits.** The extension is a removable,
+prospectively versioned fixture catalog and TEST_ONLY pack. It changes no
+public/official wire or scientific authority. Three causal families make the
+diversity question structurally testable; they do not prove useful search,
+achieved diversity, transferable physics, privacy, or security. B-E4 remains
+`in_progress`; B-GATE remains unstarted.
+
+## 2026-09-08 — B-E4-D7: pin fixed data-only drivers and semantic preflight accounting
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; preflight only
+
+**Problem.** The v2 proposal named five fixture policies but had no exact
+drivers, common randomness, arm-bound plans, or normalized compute identity.
+CPU time is not reproducible enough to serve as arm-neutral normalized compute,
+while B-07E fixture units and raw wall time have different owners and meanings.
+
+**Decision.** Implement versioned deterministic drivers for `PLANNER`,
+`CODE_GENERATING`, `EVOLUTIONARY`, `LITERATURE_GROUNDED`, and `MINIMALIST`.
+They emit typed Strategy data only, share exact arm-neutral block randomness,
+burn an invalid semantic attempt, and have no network, shell, filesystem,
+subprocess, generated-code execution, evaluator state, or direct domain API.
+The literature driver uses one frozen fixture corpus. Bind profile, arm
+material, block/replicate, RNG roles, attempt budget, fixture ceiling,
+scaffold/practice refs, v2 pack/authorization, and submission slot in an
+immutable non-qualifying plan.
+
+The declared driver runtime, policy, and corpus digests bind canonical
+configuration/prose identities only. They do not hash or otherwise bind the
+exact executable Python source bytes that implement driver behavior. Exact
+implementation-artifact binding therefore remains an execution-readiness
+blocker rather than an inferred property of those declared digests.
+
+Use a closed deterministic policy-work vocabulary for fixture-agent compute.
+Keep that receipt separate from B-07E fixture resources and raw elapsed time.
+Enforce its bound before each recorded preflight operation and bind service
+replies, compile/resource results, and the immutable receipt into the replay
+transcript.
+
+**Boundary.** The implemented runner performs B-07S discovery, compile, dry
+validation, and resource inspection only. It does not start/poll B-07C
+practice, provide practice-result feedback, select a practice-best final
+Strategy, or enforce cumulative practice-plus-final resources and wall time.
+Separately, a bounded integration can submit one factory-produced prepared
+Strategy through the unchanged TEST_ONLY A7/A8 fixture path and read its
+result. Its
+`DESIGN_ANALYSIS_TEST_ONLY_OFFICIAL_FIXTURE_SUBMISSION_NO_QUALIFICATION_AUTHORITY`
+ceiling is distinct from the preflight-only ceiling. The domain-separated
+association binds the preflight slot, selected proposal, and A7 receipt, but it
+does not bind requester/session identity, prove exact B-07S service origin or
+request-to-result correlation, enforce one-use/final-slot lifecycle policy, or
+create qualifying evidence.
+The normal factory preserves call order and content-binds returned carriers,
+but not every current B-07S outcome exposes exact request/proposal correlation;
+the prepared carrier cannot independently attest that mapping.
+The fixed driver/session structure is not a sandbox for arbitrary in-process
+Python. `build_nonqualifying_preflight_arm_artifacts` centralizes exact
+design-analysis surrogates only; it does not materialize the required GENERIC
+domain-neutral workflow with no surface/direction or the exact v1
+`PrivatePriorProjection`. Those two treatment artifacts, the remaining
+lifecycle, and source binding are disclosed blockers, not reasons to infer a
+complete execution runner.
+
+**Alternatives rejected.** Raw wall time or host CPU counters would produce an
+environment-dependent compute metric. Letting faster arms create extra attempts
+would change the estimand. Allowing generated program text to execute would
+introduce arbitrary-code authority. Calling a preflight-executable first
+candidate “practice best” would fabricate evidence the current lifecycle never
+observed.
+
+**Reversibility and maturity.** The preflight types and meter are additive and
+fixture-only. A later complete lifecycle may wrap them and must issue new
+driver/runtime/artifact identities and a new design digest if behavior changes.
+Before freeze it must also add a verified digest over the exact executable
+implementation artifact. No qualifying execution, utility, security,
+production, or LIVE maturity is created.
+
+## 2026-09-08 — B-E4-D8: derive readiness carriers without manufacturing trust
+
+**Ticket:** B-E4
+**Status:** implemented fail-closed engineering boundary
+
+**Problem.** Shadow, attack, execution, and ratification structures are needed
+for owner review, but caller-provided digests, enums, labels, or Booleans cannot
+prove an attack ran, an evaluator decided, owners approved, or qualifying
+evidence exists.
+
+**Decision.** Bind a fixture-only evaluator-held shadow registration to exact
+distribution, sampler, target, fold, feature, clustering, clipping, and
+estimator identities and keep it non-serializable into the agent session.
+Derive signed Lambda point estimates mechanically from exact fold observations.
+Bind attack registrations and stored design-analysis receipts to exact
+procedures, execution identities, typed protocol observations, transcript,
+provenance, evaluator-input, and evidence refs. The current untrusted
+execution-evidence draft binds only an unreplaced complete matrix plus aggregate
+artifact pins, observations, attack/shadow refs, analysis identity, and seed.
+It rejects replacement rows: profile-specific reserve selection, the exact
+retained analysis set, and complete five-driver/four-arm artifact manifests are
+not integrated and therefore cannot be represented as qualifying evidence.
+
+B-07B remains the owner of task and ExperimentRecord identity. No authoritative
+mapping currently binds a B-07B task to a B-E4 profile/replicate identity, so
+the recorded-intervention diversity analyzer fails closed rather than trusting
+a caller-supplied run label. The semantic extractor alone is not diversity
+evidence.
+
+Every available attack or execution draft remains explicitly untrusted and
+non-qualifying. Trusted non-rejection dispositions require future owner
+execution/assessment adapters. A structural ratification audit may reject
+missing, duplicate, wrong-digest, or inconsistent declarations, but positive
+verification and the qualifying-evidence constructor remain unavailable until
+Carbon has an authenticated current-role trust root and trusted evidence store.
+
+**Alternatives rejected.** A caller assertion cannot create
+`TRANSFERABLE_PHYSICS`, `EXAM_VULNERABILITY`, or
+`INSUFFICIENT_EVIDENCE`. A point estimate cannot substitute for simultaneous
+denominator and influence-interval analysis. PR authorship, Git author fields,
+arbitrary role strings, and general owner engineering authorization cannot
+substitute for the five reserved ratifications.
+
+**Reversibility and remaining work.** Future owner adapters may replace the
+unavailable positive seams prospectively while retaining current fixture
+records as design-analysis evidence. No attack campaign or qualifying gauntlet
+ran, and no security/privacy, science, execution, or qualification claim is
+earned.
+
+## 2026-09-08 — B-E4-D9: issue a revised v3 proposal as STILL_BLOCKED
+
+**Ticket:** B-E4
+**Status:** human-required values remain PROPOSED; execution blocked
+
+**Problem.** The fixture, resource grid, and planning effect changed after the
+v2 proposal, while the readiness audit exposed incomplete lifecycle and trust
+integrations. Reusing the v2 values or digest would bind the wrong experiment.
+Calling the new design execution-ready would hide material missing evidence.
+
+**Decision.** Preserve
+`.agent/preregistrations/B-E4_recommended_design_v2.json` and digest
+`sha256:e2529e84d9d06882c5296b0a39b3f65219627fac49fbcb278950f753a8b66e37`
+as historical analysis. Issue a separate v3 content-bound recommendation with
+status `STILL_BLOCKED`, empty ratifications, false qualifying readiness, and an
+exact link to v2. Keep all eight values `PROPOSED`.
+
+The v3 preregistration/eight-value design digest is
+`sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538`;
+the full proposal digest is
+`sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce`.
+Neither digest is an approval or execution authorization.
+
+The v3 recommendation uses `223` fixture units/run; proposed per-profile
+policy-work caps `35 / 35 / 39 / 39 / 20`; proposed wall caps
+`1 / 1 / 1 / 1 / 1` seconds; held-out loss anchors `0.0 / 90.0`; primary
+transform `LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1`, exactly
+`Q=(log1p(90)-log1p(L))/(log1p(90)-log1p(0))`; minimum legal
+quality resolution `0.02002402490929653`; parity-robust feature-degree quality
+step `h*=0.803470143049295`; and proposed floor
+`delta=0.4017350715246475`. Its mandatory transfer endpoint is
+`TRANSFER_TOY_MSE_Q`, equal-profile v2 minus each baseline, raw-MSE anchors
+`0.0 / 650.0`, invalid candidate `Q=0`, and
+`LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1`. The transfer non-inferiority margin on that
+Q scale is exactly `margin_q=delta=0.4017350715246475`. The six aggregate
+utility/transfer constraints need `24` balanced blocks/
+profile under the bounded paired-SD assumption; that diagnostic omits the four-
+of-five profile guard. The still-unvalidated
+leakage planning assumptions—cluster SD `0.4`, limit `0.05`, adverse
+alternative `0.075`, four targets, and 90% one-target detection—conditionally
+drive `636` complete blocks/profile plus `52` reserves. That is
+`12,720 / 13,760`
+planned/maximum arm runs,
+`427,392 / 462,336` policy-work units, `12,720 / 13,760` wall seconds, and
+`2,836,560 / 3,068,480` fixture units.
+The leakage continuous requirement is `3,177.268979614933` independent
+transcript clusters total, or `635.4537959229866` per profile before four-arm
+balancing. `636` per profile is conditional on the explicit, unvalidated
+exchangeable cross-profile ICC assumption `rho=0`, under which the five profile
+blocks contribute `5N` effective clusters. Rounded four-arm-balanced
+sensitivity is `636`, `1,272`, `1,908`, `2,544`, and `3,180` blocks/profile at
+`rho=0`, `0.25`, `0.5`, `0.75`, and `1` respectively. Cross-profile dependence
+must be validated or the design revised before freeze.
+Under the still-unvalidated 5% independent binomial block-infrastructure-
+failure model,
+`R=51` retains the complete matrix with lower bound `0.988334132478569`, while
+`R=52` gives `0.9926266466108926`; 52 is the smallest count above the proposed
+99% target.
+
+After driver-transcript-v2 hardening invalidated the earlier transcript
+identities, the deterministic non-qualifying calibration was rerun over `125`
+complete four-arm profile blocks and `500` preflights with zero typed
+infrastructure failures. The canonical calibration manifest has raw-manifest
+content digest
+`sha256:616267e476c5f1709fee427cc3535033010048bcf333f77e156c875a9c56a9bf`,
+ordered preflight-transcript-set digest
+`sha256:ad56a4105532a61fa2eb5fc48b1ee3122719d4b076c7f27ce683f593ea60d0a3`,
+and replay-stable digest
+`sha256:da03b0cf89c5542b2c90ca84c6fcd1485abfab65e5bcce0417673e962bdff97f`.
+The calibration generator reconstructs the current fixture graph and rejects a
+mismatch in its declared design, configuration, driver, or arm identities.
+That graph comparison does not turn the declared runtime/policy digests into
+executable-source-byte bindings or make surrogate arm artifacts final.
+The replay-stable identity does not bind wall-time observations; the p99
+measurements below are separate descriptive diagnostics.
+Planner/code/evolutionary/literature/minimalist p99 wall seconds were
+`0.493625417 / 0.589078917 / 0.640862833 / 0.499347959 / 0.22612375`;
+p99 policy-work units were `28 / 28 / 31 / 31 / 16`; p99 resource units were
+`37 / 37 / 37 / 37 / 15`. These preflight diagnostics do not estimate the
+unexecuted full lifecycle or constitute qualifying execution evidence.
+One final current-code replay preserved the ordered transcript/replay-stable
+digests, zero block-infrastructure failures, and compute/resource p99s, while
+host wall p99s moved to
+`0.747780750 / 1.054919875 / 0.837789875 / 0.866410250 / 0.524846667`, implying
+replay-only caps `1 / 2 / 2 / 2 / 1`. Its wall-dependent raw digest
+`sha256:0eaef4daa3c47db455d7255f178e891a2a54cf69a16758336420d02fa6fd7454`
+is not stored canonical evidence and does not change the v3 digests. The jitter
+confirms that the stored wall caps are preflight-run-specific, tentative
+planning values and reinforces the required arm-neutral/full-lifecycle
+recalibration before freeze.
+The stored v3 proposed wall caps remain the canonical-manifest per-profile p99
+ceilings, `1 / 1 / 1 / 1 / 1` seconds; they are not final execution caps.
+These wall and policy-work values were calibrated with non-qualifying GENERIC/
+v1 surrogates. Materializing the domain-neutral GENERIC workflow and exact v1
+`PrivatePriorProjection` requires a fresh arm-neutral and full-lifecycle non-
+qualifying calibration and a new proposal/digest before ratification; the
+current caps do not carry forward automatically.
+Seeded design sensitivity at seed `20260908` and `20,000` synthetic Gaussian
+draws gives continuous utility `N=22.447718245989485`, balanced `N=24`, and
+analytic/simulated power diagnostics `0.9308748005864085 / 0.93095` at 24 and
+`1.0 / 1.0` at 636 for the six aggregate endpoint constraints only: three
+primary plus three transfer constraints. Those diagnostics omit the separate
+four-of-five profile nonregression guard and therefore do not establish full-
+rule power or a unique heterogeneity-aware sample size. At `N=636`, seeded
+full-rule scenarios pass with homogeneous profile effects `0.803470143049295`
+at pass rate `1.0` and with four effects `1.0` plus one `-0.1` (equal-profile
+mean `0.78`) at pass rate `1.0`, but fail at pass rate `0.0` with three effects
+`1.0` plus two `-0.1` even though the equal-profile mean is `0.56`, above the
+practical floor. These scenarios demonstrate the guard; they do not power it.
+Analytic/simulated leakage null clearance is
+`0.999996943921504 / 1.0`; adverse-`0.075` one-target detection is
+`0.9002654032997404 / 0.90045`. These are planning diagnostics under
+unvalidated assumptions, not qualifying observations.
+
+The diversity floor remains `D_guard>=2.0`. A fixed-proposal enumeration under
+an assumed, non-authoritative task-to-run mapping yields supported-family count
+and guarded diversity of zero, but the recorded analyzer itself fails closed
+because Carbon has no authoritative B-07B task-to-B-E4 profile/replicate
+binding. At `N=636`, the 10% prevalence rule
+requires `64` retained roots/family in at least four profiles; three supported
+families therefore require at least `768` profile-family occurrences. The
+wall/compute observations cover preflight only, and the leakage precision
+assumptions have not been validated by a trusted shadow campaign. The shadow
+case count and exact case-to-profile allocation are also unpinned;
+no qualifying count may be inferred from the conditional planning calculation.
+Four profiles
+currently expose the same v2 candidate set, so their primary v2 treatment
+contrast is not identifiable; the candidate-bound fixture-seed design is also
+unresolved. A trusted receipt pipeline for the frozen primary/transfer endpoints
+and v3 Q transforms is also absent. The untrusted execution draft supports no
+replacement rows, profile-specific retained-reserve mapping, or complete
+driver/arm manifest. Although the normal preflight factory invokes the exact
+services and transcript-binds returned values, current B-07S outcomes—most
+notably rejected compile—do not all carry an exact proposal/request
+correlation. A prepared candidate therefore cannot independently prove that
+mapping. Prepared ingress now canonical-roundtrips its header and candidate
+results, re-derives ordered successful-reply digests, and rechecks discovery,
+v2, Challenge, resource, compute, and cap relationships; a repeated same-session
+submission is rejected after metered work advances. Those hostile-carrier and
+work-state guards do not establish trusted service origin, requester/session
+identity, or exact request-to-result correlation for an otherwise valid same-
+Challenge carrier. The separate TEST_ONLY official-shaped association is
+factory/digest-consistent but does not supply the missing trusted endpoint
+correlation or full lifecycle/final-slot policy. These facts independently
+require `STILL_BLOCKED`.
+
+The declared driver runtime/policy digests also do not bind executable source
+bytes, and the `N=636` recommendation depends on the unvalidated `rho=0` cross-
+profile independence assumption. The required GENERIC domain-neutral workflow
+artifact and exact v1 `PrivatePriorProjection` are likewise unmaterialized;
+centralized preflight surrogates do not close either seam. All are independent
+readiness blockers.
+
+**Alternatives and sensitivity.** Keeping v2 would ignore the changed causal
+surface. Using the finest incidental quality spacing as the practical floor
+would count a much smaller effect than the parity-robust registered feature
+step. Sizing only for utility would use 24 blocks/profile but leave the proposed
+leakage decision underpowered; that 24-block diagnostic also omits the four-of-
+five profile guard. Lowering the diversity floor or leakage standard to fit the
+current plumbing would tune reserved criteria to implementation limitations and
+is rejected.
+
+**Human and execution boundary.** Research, exact-protocol, science,
+statistics, and security owners must approve or modify the eight exact values,
+identify authenticated current role holders and multi-role/currentness/
+revocation policy, and ratify one later complete execution-ready digest before
+a separate one-use authorization. No v2/v3 proposal, issue comment, dry run,
+engineering test, or matching digest label is approval. Complete practice,
+trusted attack/leakage, ratification verification, and qualifying-evidence
+integrations—including trusted endpoint receipts, retained-reserve mapping,
+complete artifact manifests, and authoritative task-to-run binding—must be
+implemented and tested first. B-E4 stays `in_progress`;
+B-GATE stays unstarted.
