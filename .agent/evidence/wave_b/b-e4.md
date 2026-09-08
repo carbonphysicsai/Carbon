@@ -398,6 +398,53 @@ profile-family occurrences. The three-family domain makes that rule
 mathematically expressible, but the current fixed binary lineages do not
 satisfy it.
 
+### Complete non-qualifying lifecycle delivery
+
+The bounded successor implementation runs the smallest complete deterministic
+integration matrix: five registered fixture-policy profiles, four exact arms,
+one block per profile, and 20 total arm runs. Each run uses B-07S discovery,
+candidate dry validation/compilation/resource inspection, B-07B task identity,
+B-07C paired practice on common fresh fixture cases, one public aggregate-only
+feedback value per executable proposal, an arm-neutral feedback-selection
+policy, and the unchanged A7/A8 fixture-official-shaped lifecycle.
+
+The final treatment carriers bind the exact domain-neutral GENERIC workflow,
+the existing private v2-to-v1 projection receipt and source pack, and the exact
+B-07D2/D3 TEST_ONLY pack/authorization path. The v2 ceiling remains
+`TEST_ONLY / NOT_UTILITY_QUALIFIED`. Driver artifacts additionally bind the
+installed `agents.py` source bytes to the existing profile registration,
+runtime, policy and optional corpus identities. Drivers retain no network,
+shell, filesystem, subprocess, arbitrary-code, internal-domain, worker,
+private-record, held-out, transfer, shadow, or protected-evaluator capability.
+
+The trusted orchestrator alone advances the B-07B worker and A7/A8 fixture
+worker. B-07C `ExperimentRecord` and `ResearchReceipt` identities bind each
+practice result; only the public observed range reaches the driver. The chosen
+candidate is re-bound at submission. B-07F now emits a private endpoint receipt
+that binds raw held-out and transfer MSE to the reconstruction and measurement
+contract, while the v3 `0/90` and `0/650` Q transforms remain expressly
+design-analysis-only. Cumulative practice plus final static fixture units,
+attempts, normalized policy work including service operations, and observed
+wall time are capped. Saved time does not add attempts. Typed practice and
+fixture infrastructure, reference, measurement, and candidate failures remain
+separate.
+
+Focused execution evidence is `73 passed` across the new 5x4 lifecycle test and
+the affected B-E4 execution/readiness, B-07C practice, B-07F adapter, and
+three-family fixture tests. The 20-run demonstration produced practice,
+selection, held-out, transfer, reconstruction and public-result observations
+under
+`DESIGN_ANALYSIS_FIXTURE_REHEARSAL_ONLY_NO_QUALIFICATION_AUTHORITY`; no
+qualifying run or attack campaign occurred.
+
+This delivery closes only the mechanical lifecycle, exact treatment
+materialization, executable-source binding, bounded feedback/selection, raw
+endpoint/Q plumbing, and complete-run budget enforcement blockers. It does not
+close authoritative task-to-B-E4 run correlation, immutable campaign evidence,
+reserve/replacement lineage, frozen full-lifecycle calibration, autonomous-
+agent population scope, treatment-effect identifiability, diversity, leakage,
+attack assessment, ratification, execution authorization, or qualification.
+
 ### Shadow, attack, execution, and ratification boundaries
 
 The evaluator-held shadow registration binds the synthetic distribution,

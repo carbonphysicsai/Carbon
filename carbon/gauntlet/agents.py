@@ -8,6 +8,7 @@ received through B-07S into bounded Strategy data for a trusted orchestrator.
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -41,6 +42,8 @@ _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z", re.ASCII)
 _PROPOSAL_DOMAIN = b"carbon.be4.data-only-proposal.v1\x00"
 _RNG_DOMAIN = b"carbon.be4.common-arm-rng.v2\x00"
 _DRIVER_TRANSCRIPT_DOMAIN = b"carbon.be4.driver-transcript.v2\x00"
+_PRACTICE_FEEDBACK_DOMAIN = b"carbon.be4.allowed-practice-feedback.v1\x00"
+_SELECTION_DOMAIN = b"carbon.be4.practice-selection.v1\x00"
 
 
 class ProposalDirection(str, Enum):
@@ -548,6 +551,146 @@ class DriverProposalBatch:
             )
 
 
+@dataclass(frozen=True, slots=True)
+class AllowedPracticeFeedback:
+    """Only the bounded public B-07C aggregate exposed to a fixture policy."""
+
+    attempt: int
+    proposal_digest: str
+    observed_range: tuple[float, float]
+    content_digest: str
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not AllowedPracticeFeedback
+            or type(self.attempt) is not int
+            or not 1 <= self.attempt <= 8
+            or type(self.proposal_digest) is not str
+            or _DIGEST.fullmatch(self.proposal_digest) is None
+            or type(self.observed_range) is not tuple
+            or len(self.observed_range) != 2
+            or any(
+                type(item) is not float or not math.isfinite(item)
+                for item in self.observed_range
+            )
+            or self.observed_range[0] > self.observed_range[1]
+            or type(self.content_digest) is not str
+            or _DIGEST.fullmatch(self.content_digest) is None
+        ):
+            raise TypeError("practice feedback requires an exact bounded aggregate")
+        expected = (
+            "sha256:"
+            + hashlib.sha256(
+                _PRACTICE_FEEDBACK_DOMAIN
+                + b"\x00".join(
+                    (
+                        str(self.attempt).encode("ascii"),
+                        self.proposal_digest.encode("ascii"),
+                        self.observed_range[0].hex().encode("ascii"),
+                        self.observed_range[1].hex().encode("ascii"),
+                    )
+                )
+            ).hexdigest()
+        )
+        if self.content_digest != expected:
+            raise ValueError("practice feedback digest does not bind its content")
+
+    @classmethod
+    def from_public_range(
+        cls,
+        *,
+        attempt: int,
+        proposal_digest: str,
+        observed_range: tuple[float, ...],
+    ) -> AllowedPracticeFeedback:
+        if (
+            type(observed_range) is not tuple
+            or len(observed_range) != 2
+            or any(type(item) is not float for item in observed_range)
+        ):
+            raise TypeError("practice feedback requires one exact public range")
+        pair = (observed_range[0], observed_range[1])
+        digest = (
+            "sha256:"
+            + hashlib.sha256(
+                _PRACTICE_FEEDBACK_DOMAIN
+                + b"\x00".join(
+                    (
+                        str(attempt).encode("ascii"),
+                        proposal_digest.encode("ascii"),
+                        pair[0].hex().encode("ascii"),
+                        pair[1].hex().encode("ascii"),
+                    )
+                )
+            ).hexdigest()
+        )
+        return cls(attempt, proposal_digest, pair, digest)
+
+    @property
+    def comparison_value(self) -> float:
+        return math.fsum(self.observed_range) / 2.0
+
+
+@dataclass(frozen=True, slots=True)
+class DriverSelection:
+    driver_ref: FixtureDriverRef
+    selected_attempt: int
+    selected_proposal_digest: str
+    feedback_digests: tuple[str, ...]
+    content_digest: str
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not DriverSelection
+            or type(self.driver_ref) is not FixtureDriverRef
+            or type(self.selected_attempt) is not int
+            or not 1 <= self.selected_attempt <= 8
+            or type(self.selected_proposal_digest) is not str
+            or _DIGEST.fullmatch(self.selected_proposal_digest) is None
+            or type(self.feedback_digests) is not tuple
+            or not self.feedback_digests
+            or any(
+                type(item) is not str or _DIGEST.fullmatch(item) is None
+                for item in self.feedback_digests
+            )
+            or type(self.content_digest) is not str
+            or _DIGEST.fullmatch(self.content_digest) is None
+        ):
+            raise TypeError("driver selection requires exact bounded values")
+        expected = _driver_selection_digest(
+            self.driver_ref,
+            self.selected_attempt,
+            self.selected_proposal_digest,
+            self.feedback_digests,
+        )
+        if self.content_digest != expected:
+            raise ValueError("driver selection digest does not bind its content")
+
+
+def _driver_selection_digest(
+    driver_ref: FixtureDriverRef,
+    selected_attempt: int,
+    selected_proposal_digest: str,
+    feedback_digests: tuple[str, ...],
+) -> str:
+    fields = (
+        driver_ref.profile.value,
+        driver_ref.driver_id,
+        driver_ref.driver_version,
+        driver_ref.runtime_digest,
+        driver_ref.policy_digest,
+        str(selected_attempt),
+        selected_proposal_digest,
+        *feedback_digests,
+    )
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            _SELECTION_DOMAIN + b"\x00".join(item.encode("ascii") for item in fields)
+        ).hexdigest()
+    )
+
+
 _POLICY_LABELS = {
     AgentProfile.PLANNER: "one-factor-agenda-then-canonical-selection",
     AgentProfile.CODE_GENERATING: "typed-strategy-data-with-compile-feedback",
@@ -808,6 +951,58 @@ class FixtureAgentDriver:
             _driver_transcript_digest(driver_ref, rng.stream_digest, proposal_tuple),
         )
 
+    def select_after_practice(
+        self,
+        *,
+        proposal_batch: DriverProposalBatch,
+        feedback: tuple[AllowedPracticeFeedback, ...],
+        rng: CommonArmRng,
+        meter: PolicyWorkMeter,
+    ) -> DriverSelection:
+        """Select from public aggregate practice feedback without endpoint access."""
+
+        if (
+            type(proposal_batch) is not DriverProposalBatch
+            or proposal_batch.driver_ref != self.ref
+            or type(feedback) is not tuple
+            or not feedback
+            or any(type(item) is not AllowedPracticeFeedback for item in feedback)
+            or type(rng) is not CommonArmRng
+            or type(meter) is not PolicyWorkMeter
+        ):
+            raise TypeError("practice selection inputs are invalid")
+        proposal_by_attempt = {item.attempt: item for item in proposal_batch.proposals}
+        if len({item.attempt for item in feedback}) != len(feedback) or any(
+            item.attempt not in proposal_by_attempt
+            or item.proposal_digest != proposal_by_attempt[item.attempt].strategy_digest
+            for item in feedback
+        ):
+            raise ValueError("practice feedback does not bind the proposed candidates")
+        meter.record(PolicyWorkKind.POLICY_TRANSITION)
+        if len(feedback) > 1:
+            meter.record(PolicyWorkKind.CANDIDATE_COMPARISON, len(feedback) - 1)
+        best = min(item.comparison_value for item in feedback)
+        tied = tuple(item for item in feedback if item.comparison_value == best)
+        if len(tied) == 1:
+            selected = tied[0]
+        else:
+            index = rng.draw_uint64("final_candidate_tie_break", 0, meter) % len(tied)
+            selected = tied[index]
+        proposal = proposal_by_attempt[selected.attempt]
+        feedback_digests = tuple(item.content_digest for item in feedback)
+        return DriverSelection(
+            self.ref,
+            selected.attempt,
+            proposal.strategy_digest,
+            feedback_digests,
+            _driver_selection_digest(
+                self.ref,
+                selected.attempt,
+                proposal.strategy_digest,
+                feedback_digests,
+            ),
+        )
+
 
 def fixture_agent_drivers() -> tuple[FixtureAgentDriver, ...]:
     return tuple(FixtureAgentDriver(profile) for profile in AgentProfile)
@@ -822,9 +1017,11 @@ __all__ = (
     "FIXTURE_CORPUS_VERSION",
     "FIXTURE_METHOD_CORPUS",
     "REGISTERED_EFFECTFUL_SURFACES",
+    "AllowedPracticeFeedback",
     "CommonArmRng",
     "DataOnlyStrategyProposal",
     "DriverProposalBatch",
+    "DriverSelection",
     "FixtureAgentDriver",
     "FixtureDriverRef",
     "FixtureMethodCorpusEntry",

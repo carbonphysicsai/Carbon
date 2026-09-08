@@ -3,14 +3,14 @@
 **Wave:** B candidate
 **Status:** in_progress
 **Execution boundary:** the engineering harness, validation repair, and
-analysis-only preregistration design are merged. This execution-readiness
-checkpoint adds three registered toy families, an exploratory private
-TEST_ONLY prior, fixed data-only drivers, preflight accounting, and fail-closed
-readiness carriers. It does not run B-07C practice or a qualifying gauntlet.
-Qualifying execution remains blocked on complete lifecycle integration,
-executable-driver-source binding, validated cross-profile dependence and other
-design assumptions, trusted attack/leakage evidence, verified owner
-ratification, and qualifying execution-evidence integration.
+analysis-only preregistration design are merged. The current bounded successor
+checkpoint is implementing and rehearsing the complete non-qualifying fixture
+lifecycle over those foundations. It runs B-07C practice and A7/A8 fixture-
+official-shaped evaluation only under an explicit design-analysis ceiling; it
+does not run a qualifying gauntlet. Qualifying execution remains blocked on
+authoritative autonomous-agent population scope, validated cross-profile
+dependence and other design assumptions, trusted attack/leakage evidence,
+verified owner ratification, and qualifying execution-evidence integration.
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
@@ -85,6 +85,22 @@ bind a later execution-ready complete-design digest, not only eight text
 labels.
 
 ## Current execution-readiness result
+
+The first successor delivery now exercises the smallest complete deterministic
+integration matrix: five registered fixture-policy profiles by four treatment
+arms by one block. The ordinary B-07S/B-07B/B-07C path performs paired practice,
+returns only the public observed-range aggregate to the fixed driver, and lets
+the arm-neutral selection policy choose the lowest permitted practice midpoint.
+The selected Strategy then uses the unchanged A7/A8 fixture lifecycle. A
+private B-07F endpoint receipt binds held-out and transfer MSE to reconstruction
+and measurement identities; proposed v3 Q transforms remain design analysis.
+Exact GENERIC workflow, v1 `PrivatePriorProjection`, v2 TEST_ONLY pack, and
+source-bound driver identities are retained under
+`DESIGN_ANALYSIS_FIXTURE_REHEARSAL_ONLY_NO_QUALIFICATION_AUTHORITY`. Complete-
+run policy work, service operations, wall time, and cumulative practice-plus-
+final fixture units are checked. This closes the mechanics-only lifecycle and
+source/treatment materialization gaps; it does not establish representative
+autonomous-agent scope, utility, diversity, leakage, or qualification.
 
 The earlier one-family identifiability defect is repaired in bounded fixture
 engineering. The exact registered toy surface now has three independently

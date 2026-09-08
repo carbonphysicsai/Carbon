@@ -133,6 +133,29 @@ class AgentSession:
             raise TypeError("meter binding checks require the exact meter type")
         return meter is object.__getattribute__(self, "_AgentSession__meter")
 
+    def binds_research_service(self, service: LocalResearchService) -> bool:
+        """Check trusted orchestration correlation without exposing capability."""
+
+        if type(service) is not LocalResearchService:
+            raise TypeError("research binding checks require the exact service")
+        return service is object.__getattribute__(
+            self, "_AgentSession__research_service"
+        )
+
+    def binds_official_service(
+        self, service: McpService, requester: RequesterIdentity
+    ) -> bool:
+        """Check the exact A7 facade/requester installed for this session."""
+
+        if type(service) is not McpService or type(requester) is not RequesterIdentity:
+            raise TypeError("official binding checks require exact values")
+        current = object.__getattribute__(self, "_AgentSession__requester_identity")
+        return (
+            service
+            is object.__getattribute__(self, "_AgentSession__official_fixture_service")
+            and requester == current
+        )
+
 
 class GauntletPreflightError(ValueError):
     pass

@@ -20,6 +20,7 @@ from carbon.mcp import (
     SubmissionResult,
     SubmitReceipt,
 )
+from carbon.prior_compat import PrivatePriorProjection, project_v2_to_v1_private
 from carbon.research import (
     RESEARCH_NAMESPACE,
     CanonicalWireError,
@@ -42,6 +43,7 @@ from carbon.research import (
     PracticePackRef,
     PriorChannel,
     PriorLookupResult,
+    PriorPack,
     ReplyStatus,
     ResearchServiceError,
     ResearchServiceErrorCode,
@@ -56,9 +58,11 @@ from carbon.research import (
 from carbon.research.refs import PriorPackRef, TestOnlyPriorAuthorizationReceiptRef
 
 from .agents import (
+    REGISTERED_EFFECTFUL_SURFACES,
     CommonArmRng,
     DataOnlyStrategyProposal,
     DriverProposalBatch,
+    DriverSelection,
     FixtureAgentDriver,
     FixtureDriverRef,
     FixtureStrategyDomain,
@@ -105,6 +109,13 @@ _OFFICIAL_SUBMISSION_ASSOCIATION_DOMAIN = (
 _PREPARED_CANDIDATE_FACTORY_TOKEN = object()
 _PREPARED_PREFLIGHT_FACTORY_TOKEN = object()
 _OFFICIAL_FIXTURE_SUBMISSION_FACTORY_TOKEN = object()
+GENERIC_WORKFLOW_STEPS = (
+    "DISCOVER_REGISTERED_SURFACE",
+    "FORM_ONE_LEVER_HYPOTHESIS",
+    "RUN_PAIRED_PRACTICE",
+    "RETAIN_NULL_OR_NEGATIVE_FEEDBACK",
+    "SELECT_FROM_ALLOWED_PRACTICE_EVIDENCE",
+)
 FIXTURE_RESOURCE_DIMENSION_ID = "abstract_units"
 FIXTURE_RESOURCE_UNIT = "fixture_units"
 FIXTURE_RESOURCE_INSPECTION_UNIT = (
@@ -495,6 +506,108 @@ def build_nonqualifying_preflight_arm_artifacts(
     )
 
 
+def build_nonqualifying_lifecycle_arm_artifacts(
+    v2_prior_pack: PriorPack,
+) -> tuple[tuple[FrozenArmArtifact, ...], PrivatePriorProjection]:
+    """Materialize final four-arm treatment data for non-qualifying rehearsal.
+
+    The generic arm is an exact domain-neutral workflow with no surface or
+    direction.  The v1 arm is the existing private offline projection of the
+    exact v2 pack.  This helper supplies neither prior authorization nor
+    qualifying execution authority.
+    """
+
+    if type(v2_prior_pack) is not PriorPack:
+        raise TypeError("lifecycle treatments require an exact PriorPack")
+    pinned_ref = prior_pack_ref(v2_prior_pack)
+    if pinned_ref.channel is not PriorChannel.TEST_ONLY_FIXTURE:
+        raise ValueError("lifecycle treatments require an exact TEST_ONLY pack")
+    projection = project_v2_to_v1_private(v2_prior_pack)
+    if (
+        type(projection) is not PrivatePriorProjection
+        or projection.receipt.source_prior_pack_ref != pinned_ref
+    ):
+        raise ValueError("v1 projection does not bind the exact v2 source pack")
+    v1_hints: list[ProposalHint] = []
+    for directive in projection.published_prior.directives:
+        target = directive.subject
+        if target not in REGISTERED_EFFECTFUL_SURFACES:
+            raise ValueError("v1 projection targets an unregistered fixture family")
+        v1_hints.append(ProposalHint(target, ProposalDirection.TOGGLE))
+    if len(v1_hints) != len({item.surface_id for item in v1_hints}):
+        raise ValueError("v1 projection contains duplicate fixture families")
+
+    generic_id = "generic_domain_neutral_research_workflow"
+    generic_version = "1.0"
+    # The workflow has deliberately no proposal hints.  Its exact ordered
+    # steps are bound into the artifact identity without becoming direction.
+    generic_digest = (
+        "sha256:"
+        + hashlib.sha256(
+            _ARM_ARTIFACT_DOMAIN
+            + b"\x00".join(
+                item.encode("ascii")
+                for item in (
+                    ExperimentalArm.GENERIC_PRIOR.value,
+                    generic_id,
+                    generic_version,
+                    *GENERIC_WORKFLOW_STEPS,
+                )
+            )
+        ).hexdigest()
+    )
+    no_prior = FrozenArmArtifact(
+        ExperimentalArm.NO_PRIOR,
+        "no_prior",
+        "2.0",
+        arm_hint_artifact_digest(
+            arm=ExperimentalArm.NO_PRIOR,
+            artifact_id="no_prior",
+            artifact_version="2.0",
+            proposal_hints=(),
+        ),
+    )
+    # FrozenArmArtifact normally derives non-v2 identity from proposal hints.
+    # The generic workflow is represented by a separate exact content digest,
+    # so construct the nominal carrier and then retain the workflow digest in
+    # the artifact id.  This keeps the proposal-hint surface empty.
+    generic_artifact_id = f"{generic_id}:{generic_digest[7:23]}"
+    generic = FrozenArmArtifact(
+        ExperimentalArm.GENERIC_PRIOR,
+        generic_artifact_id,
+        generic_version,
+        arm_hint_artifact_digest(
+            arm=ExperimentalArm.GENERIC_PRIOR,
+            artifact_id=generic_artifact_id,
+            artifact_version=generic_version,
+            proposal_hints=(),
+        ),
+    )
+    v1_id = f"v1_private_projection:{projection.receipt.output_hash[7:23]}"
+    v1 = FrozenArmArtifact(
+        ExperimentalArm.V1_DIRECTIVE_PRIOR,
+        v1_id,
+        projection.receipt.mapping_version,
+        arm_hint_artifact_digest(
+            arm=ExperimentalArm.V1_DIRECTIVE_PRIOR,
+            artifact_id=v1_id,
+            artifact_version=projection.receipt.mapping_version,
+            proposal_hints=tuple(v1_hints),
+            source_prior_pack_ref=pinned_ref,
+        ),
+        pinned_ref,
+        tuple(v1_hints),
+    )
+    v2 = FrozenArmArtifact(
+        ExperimentalArm.V2_TEST_ONLY_PRIOR,
+        "v2_test_only_prior",
+        "3.0",
+        pinned_ref.content_hash,
+        pinned_ref,
+    )
+    return (no_prior, generic, v1, v2), projection
+
+
 @dataclass(frozen=True, slots=True)
 class NonQualifyingRunPlan:
     """A discovery/compile/resource-inspection plan, not an execution plan."""
@@ -794,6 +907,94 @@ def build_nonqualifying_four_arm_block(
         raise ValueError(
             "four-arm material must equal the registered preflight artifacts"
         )
+    return _build_nonqualifying_block(
+        design_digest=design_digest,
+        block_id=block_id,
+        profile=profile,
+        replicate=replicate,
+        checked_driver=checked_driver,
+        canonical_artifacts=canonical_artifacts,
+        checked_budget=checked_budget,
+        fixture_resource_ceiling=fixture_resource_ceiling,
+        checked_scaffold=checked_scaffold,
+        checked_practice=checked_practice,
+        checked_authorization=checked_authorization,
+    )
+
+
+def build_nonqualifying_lifecycle_four_arm_block(
+    *,
+    design_digest: str,
+    block_id: str,
+    profile: AgentProfile,
+    replicate: int,
+    driver_ref: FixtureDriverRef,
+    budget: MatchedBudget,
+    fixture_resource_ceiling: int,
+    scaffold_ref: MockScaffoldRef,
+    practice_pack_ref: PracticePackRef,
+    v2_prior_pack: PriorPack,
+    v2_authorization_ref: TestOnlyPriorAuthorizationReceiptRef,
+) -> tuple[FourArmBlockPlan, PrivatePriorProjection]:
+    """Freeze final treatment artifacts for a non-qualifying lifecycle block."""
+
+    _digest(design_digest, "design_digest")
+    _identifier(block_id, "block_id")
+    if (
+        type(profile) is not AgentProfile
+        or type(replicate) is not int
+        or replicate < 0
+        or type(driver_ref) is not FixtureDriverRef
+        or type(budget) is not MatchedBudget
+        or type(fixture_resource_ceiling) is not int
+        or fixture_resource_ceiling < 1
+        or type(scaffold_ref) is not MockScaffoldRef
+        or type(practice_pack_ref) is not PracticePackRef
+        or type(v2_prior_pack) is not PriorPack
+        or type(v2_authorization_ref) is not TestOnlyPriorAuthorizationReceiptRef
+    ):
+        raise TypeError("lifecycle block builder requires exact inputs")
+    try:
+        checked_driver = _canonical_driver_ref(driver_ref)
+        checked_budget = _canonical_budget(budget)
+        checked_scaffold = _canonical_simple_ref(scaffold_ref, MockScaffoldRef)
+        checked_practice = _canonical_simple_ref(practice_pack_ref, PracticePackRef)
+        checked_authorization = _canonical_authorization_ref(v2_authorization_ref)
+        artifacts, projection = build_nonqualifying_lifecycle_arm_artifacts(
+            v2_prior_pack
+        )
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("lifecycle block contains invalid nested values") from exc
+    block = _build_nonqualifying_block(
+        design_digest=design_digest,
+        block_id=block_id,
+        profile=profile,
+        replicate=replicate,
+        checked_driver=checked_driver,
+        canonical_artifacts=artifacts,
+        checked_budget=checked_budget,
+        fixture_resource_ceiling=fixture_resource_ceiling,
+        checked_scaffold=checked_scaffold,
+        checked_practice=checked_practice,
+        checked_authorization=checked_authorization,
+    )
+    return block, projection
+
+
+def _build_nonqualifying_block(
+    *,
+    design_digest: str,
+    block_id: str,
+    profile: AgentProfile,
+    replicate: int,
+    checked_driver: FixtureDriverRef,
+    canonical_artifacts: tuple[FrozenArmArtifact, ...],
+    checked_budget: MatchedBudget,
+    fixture_resource_ceiling: int,
+    checked_scaffold: MockScaffoldRef,
+    checked_practice: PracticePackRef,
+    checked_authorization: TestOnlyPriorAuthorizationReceiptRef,
+) -> FourArmBlockPlan:
     pinned_pack_ref = canonical_artifacts[-1].source_prior_pack_ref
     assert type(pinned_pack_ref) is PriorPackRef
     rng = CommonArmRng(design_digest, profile, block_id, replicate)
@@ -1674,6 +1875,74 @@ def submit_prepared_fixture_run(
             authority_ceiling=authority_ceiling,
             plan_slot_digest=plan_slot_digest,
             proposal_digest=proposal_digest,
+            receipt=result,
+        ),
+        _OFFICIAL_FIXTURE_SUBMISSION_FACTORY_TOKEN,
+    )
+
+
+def submit_selected_prepared_fixture_run(
+    *,
+    session: AgentSession,
+    prepared: PreparedFixtureRun,
+    selection: DriverSelection,
+) -> OfficialFixtureSubmission:
+    """Submit the practice-selected candidate under the non-qualifying ceiling."""
+
+    if (
+        type(session) is not AgentSession
+        or type(prepared) is not PreparedFixtureRun
+        or type(selection) is not DriverSelection
+    ):
+        raise TypeError("lifecycle submission requires exact fixture values")
+    prepared = _canonical_prepared_preflight(prepared)
+    if (
+        selection.driver_ref != prepared.plan.driver_ref
+        or selection.feedback_digests == ()
+    ):
+        raise ValueError("practice selection does not bind the prepared driver")
+    selected = next(
+        (
+            item
+            for item in prepared.candidates
+            if item.proposal.attempt == selection.selected_attempt
+        ),
+        None,
+    )
+    if (
+        selected is None
+        or not selected.executable
+        or selected.proposal.strategy_digest != selection.selected_proposal_digest
+    ):
+        raise ValueError("practice selection does not bind an executable proposal")
+    if session.normalized_compute().total_work_units > math.floor(
+        prepared.plan.budget.compute_units
+    ):
+        raise ValueError("lifecycle compute exceeds the frozen run budget")
+    key = prepared.challenge_info.challenge_key
+    result = session.official_call(
+        McpCall(
+            "1.0",
+            "submit",
+            (
+                McpField("challenge_id", key.challenge_id),
+                McpField("challenge_version", key.version),
+                McpField("strategy", selected.proposal.strategy),
+            ),
+        )
+    )
+    if type(result) is not SubmitReceipt:
+        raise TypeError("official fixture submit returned the wrong nominal result")
+    authority_ceiling = OFFICIAL_FIXTURE_SUBMISSION_AUTHORITY_CEILING
+    return OfficialFixtureSubmission(
+        authority_ceiling,
+        prepared.plan.final_submission_slot_digest,
+        selected.proposal.strategy_digest,
+        result,
+        _official_fixture_submission_association_digest(
+            authority_ceiling=authority_ceiling,
+            plan_slot_digest=prepared.plan.final_submission_slot_digest,
+            proposal_digest=selected.proposal.strategy_digest,
             receipt=result,
         ),
         _OFFICIAL_FIXTURE_SUBMISSION_FACTORY_TOKEN,

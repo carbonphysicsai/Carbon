@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -634,11 +635,51 @@ class FixtureResultReceipt(_PrivateFixtureValue):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
+class FixtureEndpointObservationReceipt(_PrivateFixtureValue):
+    """Private raw fixture measurements; never an A5/public score surface."""
+
+    reconstruction_receipt_ref: str
+    measurement_contract_ref: MeasurementContractRef
+    heldout_mean_squared_error: float
+    transfer_mean_squared_error: float
+    authority_marker: str = field(default=_AUTHORITY, init=False)
+
+    def __post_init__(self) -> None:
+        if (
+            not _is_digest(self.reconstruction_receipt_ref)
+            or type(self.measurement_contract_ref) is not MeasurementContractRef
+            or type(self.heldout_mean_squared_error) is not float
+            or type(self.transfer_mean_squared_error) is not float
+            or not math.isfinite(self.heldout_mean_squared_error)
+            or not math.isfinite(self.transfer_mean_squared_error)
+            or self.heldout_mean_squared_error < 0.0
+            or self.transfer_mean_squared_error < 0.0
+        ):
+            raise FixtureRunRequestError()
+
+    def canonical_bytes(self) -> bytes:
+        return _json_bytes(
+            {
+                "authority": self.authority_marker,
+                "reconstruction_receipt_ref": self.reconstruction_receipt_ref,
+                "measurement_contract_ref": _ref_value(self.measurement_contract_ref),
+                "heldout_mean_squared_error": self.heldout_mean_squared_error.hex(),
+                "transfer_mean_squared_error": self.transfer_mean_squared_error.hex(),
+            }
+        )
+
+    @property
+    def receipt_ref(self) -> str:
+        return _digest(self.canonical_bytes())
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class ResolvedFixtureCompletedRun(_PrivateFixtureValue):
     completed_run: CompletedFixtureRun
     construction_plan_ref: ResolvedConstructionPlanRef
     reconstruction_receipt: FixtureReconstructionReceipt
     result_receipt: FixtureResultReceipt
+    endpoint_observation_receipt: FixtureEndpointObservationReceipt
     emission_capable: ClassVar[bool] = False
 
     def __post_init__(self) -> None:
@@ -647,6 +688,8 @@ class ResolvedFixtureCompletedRun(_PrivateFixtureValue):
             or type(self.construction_plan_ref) is not ResolvedConstructionPlanRef
             or type(self.reconstruction_receipt) is not FixtureReconstructionReceipt
             or type(self.result_receipt) is not FixtureResultReceipt
+            or type(self.endpoint_observation_receipt)
+            is not FixtureEndpointObservationReceipt
             or self.result_receipt.reconstruction_receipt_ref
             != self.reconstruction_receipt.receipt_ref
             or self.result_receipt.identity_version
@@ -660,6 +703,10 @@ class ResolvedFixtureCompletedRun(_PrivateFixtureValue):
             != self.result_receipt.result_status
             or _result_digest(self.completed_run.internal_result)
             != self.result_receipt.result_digest
+            or self.endpoint_observation_receipt.reconstruction_receipt_ref
+            != self.reconstruction_receipt.receipt_ref
+            or self.endpoint_observation_receipt.measurement_contract_ref
+            != self.reconstruction_receipt.measurement_contract_ref
         ):
             raise FixtureRunRequestError()
 
@@ -1134,6 +1181,11 @@ class ResolvedPlanFixtureTrainEvalService:
                 self.__fixture_asset.heldout_observations,
                 feature_degree=configuration.feature_degree,
             )
+            transfer_error = _evaluate_fixture_reference(
+                coefficient,
+                self.__fixture_asset.transfer_observations,
+                feature_degree=configuration.feature_degree,
+            )
         except Exception:  # noqa: BLE001 - reference failures are classified.
             return FixtureReferenceFailed(
                 handle, FixtureReferenceCause.REFERENCE_EVALUATION_FAILED
@@ -1205,11 +1257,18 @@ class ResolvedPlanFixtureTrainEvalService:
             _result_digest(owned_result),
             reconstruction.identity_version,
         )
+        endpoint_receipt = FixtureEndpointObservationReceipt(
+            reconstruction.receipt_ref,
+            self.__fixture_asset.measurement_contract_ref,
+            float(heldout_error),
+            float(transfer_error),
+        )
         return ResolvedFixtureCompletedRun(
             completed,
             compiled.construction_plan_ref,
             reconstruction,
             result_receipt,
+            endpoint_receipt,
         )
 
 
@@ -1218,6 +1277,7 @@ __all__ = (
     "FixtureConstructionCause",
     "FixtureConstructionFailed",
     "FixtureConsumedLever",
+    "FixtureEndpointObservationReceipt",
     "FixtureMeasurementCause",
     "FixtureMeasurementFailed",
     "FixtureReconstructionReceipt",
