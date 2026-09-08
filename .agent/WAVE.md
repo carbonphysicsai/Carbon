@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.0
+**Controlling register:** `.agent/WAVE_B.md` version 4.1
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -18,9 +18,11 @@ PR #105 normally merged the bounded validation repair as
 analysis-only preregistration-design checkpoint as
 `a37b1058ea0b65ba28144b6d919714a1a5ad8a2f`. PR #107 normally merged the
 bounded execution-readiness checkpoint as
-`ffbb621c76acc73b8e27911df50ad607e0b5193c`; this successor candidate completes
-the non-qualifying deterministic fixture lifecycle without running the
-qualifying gauntlet.
+`ffbb621c76acc73b8e27911df50ad607e0b5193c`; PR #108 merged the complete
+non-qualifying lifecycle as `d4a496b6b43d5139fc636428556822e6a5ec82e6`, and
+PR #109 merged its factory-bound rehearsal evidence as
+`8c907181b7f63b5c0153e2fa097ce28ec647ebb5`. This successor candidate records
+the prospectively frozen full-lifecycle calibration and blocked v4 proposal.
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on the recorded execution-integration gaps, validated pre-execution design, and
 complete human-ratified preregistration; B-GATE remains unstarted.
@@ -81,20 +83,18 @@ passed run `34124228848` and normally merged
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
 **B-E4 status:** `in_progress`; PR #108 merged the complete non-qualifying
-lifecycle delivery. This successor rehearsal-evidence candidate binds exact
-successful/rejected B-07S request/reply correlation, B-07B task/run lineage,
-driver/treatment/proposal/selection/session/resource/A7/A8/private-endpoint
-identities, transcript/provenance clusters, and canonical v2 intervention
-provenance into private-factory run and campaign records. Prospective reserves
-may replace only retained same-profile infrastructure/reference failures;
-candidate failure, forged slot metadata, and duplicates fail closed. Every
-record remains design-analysis rehearsal evidence with no promotion path. The
-v3 recommendation stays `STILL_BLOCKED`: frozen full-lifecycle calibration,
-representative autonomous-agent scope, utility identifiability, diversity,
-shadow/dependence/leakage, trusted attack evidence, authenticated five-role
-verification, one-use execution authority, and qualifying storage remain
-unavailable. All eight values remain `PROPOSED`; no qualifying run occurred.
-B-GATE is unstarted.
+lifecycle and PR #109 merged factory-bound rehearsal evidence. The frozen fresh
+calibration candidate records 25 complete primary four-arm blocks and 100 runs,
+with zero invalid attempts/failures/replacements but only an 11.2928% one-sided
+95% failure-rate upper bound. Deterministic repeats have zero paired SD, v2 is
+non-positive, and three family identities collapse to three global lineage
+roots. V4 therefore remains `STILL_BLOCKED`, proposes calibrated work/wall caps
+and a separately anchored transfer margin, and preserves all eight values as
+`PROPOSED`. Representative autonomous-agent scope, seed design, stochastic and
+dependence evidence, diversity, shadow/leakage, trusted attacks, authenticated
+five-role ratification, one-use authorization and qualifying storage remain
+unavailable. No qualifying, shadow, or attack campaign ran. B-GATE is
+unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

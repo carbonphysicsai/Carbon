@@ -588,3 +588,72 @@ therefore implements none of the positive verification or authorization path.
 Fresh frozen full-lifecycle calibration is the next bounded engineering stage.
 All v3 values remain `PROPOSED / STILL_BLOCKED`; B-E4 remains `in_progress` and
 B-GATE remains unstarted.
+
+## Frozen calibration update and v4 recommendation
+
+**Outcome.** A prospectively frozen, fresh, non-qualifying campaign completed
+25 primary four-arm blocks (five/profile), or 100 full-lifecycle runs. All 100
+were practice-admissible and reconstructed; none used a reserve. The campaign
+consumed 89.107146586 observed host seconds, 3,465 normalized work units, 7,220
+fixture units, and 1,625 service calls. The canonical artifact is
+`.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json` with content
+digest
+`sha256:1b34500736b08a3e8f049fa94230bbe64e4a528bf48310fb3a6601ba8e71997e`.
+It is design-analysis evidence only.
+
+**Integrity.** The first attempt stopped before storing observations because a
+wall-field implementation defect was discovered. That zero-row event is
+retained separately. The repaired generator and freeze received new digests,
+and the full campaign restarted with fresh designated blocks. No observations
+were pooled. Attack, shadow, qualifying, approval and authorization call counts
+remain exactly zero.
+
+**Revised one-page proposed approval table.**
+
+| Reserved input | V4 recommended default | Status / owner action |
+|---|---|---|
+| Representative profiles | The same five source-bound deterministic fixture policies only for integration/calibration; require an explicit owner decision on a separately pinned autonomous-agent population before treating the ticket's agent-population requirement as met | PROPOSED; Research + exact protocol |
+| Matched budgets | 8 attempts; work caps `49/49/53/53/27`; wall caps `2/2/2/2/1` seconds; 223 fixture units/run; 636 complete blocks/profile plus 52 reserves remain conditional | PROPOSED; Research + statistics + exact protocol |
+| Utility estimand | Equal-profile v2-minus-each-of-three-baselines held-out Q ITT, with transfer as mandatory separate non-inferiority support | PROPOSED; Science + statistics + research |
+| Practical effect floor | `0.4017350715246475` held-out Q on frozen `0/90` anchors | PROPOSED; Science + statistics |
+| Uncertainty rule | Simultaneous interval rule, all three primary contrasts, all three transfer constraints, at least four of five profiles non-regressing, equality not pass, indeterminate distinct | PROPOSED; Statistics + science + research |
+| Diversity metric | Supported-family equal-profile inverse Simpson with canonical experiment/lineage collapse | PROPOSED; Science + statistics + research + security |
+| Diversity floor | At least 3 supported families in at least 4 profiles, prevalence >= 0.10, effective diversity >= 2.0, maximum family share <= 0.50 | PROPOSED; Science + statistics + research + security |
+| Conditional leakage | Lambda <= 0.05 for all four protected targets under the registered cross-fitted estimator; 636 remains conditional on unvalidated cross-profile ICC zero | PROPOSED; Security + statistics + exact protocol |
+
+**Primary and transfer are now separate.** The primary floor remains half the
+parity-robust held-out feature step, `0.4017350715246475` Q on the `0/90`
+transform. Reusing that number on the `0/650` transfer transform would permit a
+different raw-loss geometry. V4 recommends transfer margin
+`0.2797202700265491` Q, which preserves the same multiplicative `loss + 1`
+factor under the transfer anchors. It is stricter than v3's copied Q margin and
+remains a proposal, not an approved scientific tolerance.
+
+**What calibration falsified or left unknown.** Observed work/wall p99 exceeded
+v3 caps, hence the revisions above. Zero typed failures only bounds the failure
+rate above by 11.2928 percent at one-sided 95 percent confidence and cannot
+validate the proposed 5 percent model or 52 reserves. Repeated blocks have zero
+within-profile paired SD because the policies are deterministic; 636 repeats
+would not supply stochastic population evidence. V2 ties all baselines in four
+profiles and is worse than no/generic for the minimalist. Three canonical
+families collapse to three global lineage roots, so repetition cannot meet the
+diversity prevalence floor. No shadow campaign means cross-profile dependence,
+leakage precision and exact shadow allocation remain unknown. Aggregate-only
+power calculations still do not establish power for the complete rule.
+
+**Smallest decisions before the next engineering checkpoint.** Research and
+exact-protocol owners must decide whether B-E4 requires separately pinned
+autonomous research agents (recommended: yes) and approve their capability and
+seed design. The five domain owners must then approve, modify or reject the
+eight v4 values before any execution-ready freeze. A next bounded engineering
+checkpoint may perform only non-qualifying stochastic/dependence and shadow
+calibration under that approved population design. Trusted non-rejection attack
+assessment, authenticated five-role ratification, exact-design verification,
+and a separate one-use execution authorization remain later gates.
+
+V4 design digest:
+`sha256:038eecfa8c17ae5bb309e9417f9397777168ddeaf281c9601ca35402b5caf836`.
+V4 proposal digest:
+`sha256:faffff8e9d7f4c6748d76c84cfc0cd26f19eb996ece96d9705b89362d86d4f37`.
+Status remains `STILL_BLOCKED / DESIGN_ANALYSIS_ONLY`; no item above is
+approved. B-E4 remains `in_progress`; B-GATE remains unstarted.

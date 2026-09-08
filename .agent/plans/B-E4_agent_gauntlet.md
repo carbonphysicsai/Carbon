@@ -249,6 +249,43 @@ attacks, or establish a representative autonomous-agent population. Those
 seams remain explicit and fail closed. Fresh frozen full-lifecycle calibration
 is the next authorized stage after this candidate passes acceptance and merges.
 
+### Stage-3 frozen full-lifecycle calibration checkpoint
+
+Stage 3 froze five fresh primary blocks plus one reserve per deterministic
+fixture profile before execution. It then exercised 25 complete four-arm blocks
+and 100 full lifecycle runs. Attempt 1 retained no observations after detecting
+a nominal wall-field integration defect; the repair changed the frozen
+generator identity and forced a fresh attempt. Attempt 2 is the sole canonical
+calibration dataset and remains permanently non-qualifying.
+
+The fresh campaign completed all 25 primaries with no invalid attempts,
+infrastructure/reference failures, or reserve use. The 95-percent one-sided
+failure-rate upper bound is nevertheless 11.2928 percent, so it does not
+validate the proposed 5-percent failure ceiling. Repeated deterministic blocks
+have zero within-profile paired SD and cannot validate the assumed stochastic
+variance or representative autonomous-agent population. V2 ties all baselines
+in four profiles and is worse than no/generic for the minimalist. Three
+canonical intervention families collapse to three global lineage roots, so
+the proposed prevalence condition cannot be reached by repetition. No shadow,
+leakage, attack, ratification, authorization, or qualifying execution occurred.
+
+The successor v4 proposal changes only design content supported by this
+calibration: work caps are `49/49/53/53/27`, wall caps are `2/2/2/2/1`, and
+the transfer non-inferiority margin is independently mapped to the transfer
+endpoint at `0.2797202700265491` Q. The primary floor remains proposed at
+`0.4017350715246475`; 223 fixture units, 636 blocks/profile and 52 reserves are
+retained as conditional proposals. V4 remains `STILL_BLOCKED` with all eight
+inputs `PROPOSED`.
+
+The next engineering checkpoint must not be a qualifying execution. It must
+first resolve, through human owners, whether pinned autonomous research agents
+are required for the B-E4 population; then freeze any approved population and
+seed design and perform non-qualifying stochastic/dependence and shadow
+calibration sufficient to revisit SD, failure, reserve and leakage allocation.
+Trusted non-rejection attack assessment, authenticated five-role ratification,
+and one-use execution authorization remain separate later seams. B-E4 stays
+`in_progress`; B-GATE stays unstarted.
+
 ### Current recommendation
 
 - eight attempted candidates and `223` fixture units per complete proposed

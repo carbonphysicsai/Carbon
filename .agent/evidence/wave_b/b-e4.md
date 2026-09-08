@@ -631,3 +631,74 @@ autonomous-agent population scope, utility identifiability, diversity,
 shadow/dependence/leakage, trusted attacks, five-owner ratification, one-use
 authorization, and qualification remain open. B-E4 stays `in_progress`; B-GATE
 stays unstarted.
+
+## Frozen full-lifecycle calibration delivery
+
+The calibration was prospectively frozen as
+`.agent/preregistrations/B-E4_full_lifecycle_calibration_v1.json` with purpose
+`CALIBRATION`, five primary plus one reserve slot per profile, four arms,
+30 host-wall seconds, 250 normalized work units, eight attempts and 223 fixture
+units per run. Its implementation, generator, stopping rule, typed replacement
+rule, and no-attack/no-shadow/no-qualification boundary are content-bound.
+
+Attempt 1 stopped before retaining observations when the generator referenced
+the wrong nominal wall field. Its zero-row abort record is retained at
+`.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-attempt-1.json`; code and
+freeze were versioned and a fresh campaign was required. No observations were
+pooled across implementations. Fresh attempt 2 produced the canonical evidence
+`.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json`, content digest
+`sha256:1b34500736b08a3e8f049fa94230bbe64e4a528bf48310fb3a6601ba8e71997e`
+and replay-stable digest
+`sha256:3361fe291d1c2eef40ee0e78b3638fb3b520520d237f58a8ff7d8bf873612d35`.
+
+All 25 intended primary blocks completed: 100 arm runs, 100 practice-admissible
+results, 100 reconstructions, zero invalid attempts, zero typed primary
+failures, and zero reserves/replacements. Observed totals were
+`89.107146586` host seconds, 3,465 normalized work units, 7,220 fixture units,
+and 1,625 service calls. Zero failures in 25 blocks imply a one-sided 95 percent
+upper bound of `0.11292814500684323`, not proof of zero failures and not
+validation of the proposed 5 percent ceiling.
+
+Per-profile work-p99 / fixture-p99 / wall-p99 were planner
+`39 / 81 / 1.108558`, code-generating `39 / 81 / 1.087558375`, evolutionary
+`42 / 81 / 1.321483875`, literature-grounded
+`42 / 81 / 1.139728041`, and minimalist `21 / 41 / 0.502758917`. V4 therefore
+proposes 25-percent rounded-up headroom at work caps `49/49/53/53/27` and wall
+caps `2/2/2/2/1`. The theoretical 223-unit full eight-attempt fixture ceiling
+is retained so present short trajectories do not narrow the future search.
+
+Every within-profile paired-difference SD is zero because repeated blocks are
+deterministic. V2 ties all three baselines in planner, code-generating,
+evolutionary and literature-grounded profiles. In minimalist it ties v1 and is
+worse than no/generic by `-0.15027728251119815` held-out Q and
+`-0.058196324599974904` transfer Q. These are preserved descriptive facts, not
+a PASS/FAIL utility decision. More repeats of the same deterministic policies
+would not validate a stochastic SD or autonomous-agent population model.
+
+The campaign records 100 unique transcript-cluster digests but only five
+shared-provenance cluster digests. V2 exposes three canonical family identities
+but repeated executions collapse to three global lineage roots. The proposed
+family-prevalence rule is therefore not satisfied by repetition. Cross-profile
+dependence remains `UNVALIDATED_NO_SHADOW_CAMPAIGN`; no leakage or attack
+assessment was performed.
+
+The historical v3 design remains immutable. Successor v4 at
+`.agent/preregistrations/B-E4_recommended_design_v4.json` has proposed design
+digest
+`sha256:038eecfa8c17ae5bb309e9417f9397777168ddeaf281c9601ca35402b5caf836`
+and proposal digest
+`sha256:faffff8e9d7f4c6748d76c84cfc0cd26f19eb996ece96d9705b89362d86d4f37`.
+It separates the transfer margin from the primary benefit floor: primary stays
+proposed at `0.4017350715246475` Q on `0/90`; transfer becomes
+`0.2797202700265491` Q on `0/650`, preserving the same multiplicative
+`loss + 1` factor under the two log transforms. This is an endpoint-geometry
+recommendation, not owner approval.
+
+V4 retains `636` blocks/profile and `52` reserves only as conditional proposed
+planning values. The calibration cannot validate the 5 percent failure model,
+the SD bound, cross-profile independence, exact shadow allocation, diversity,
+or complete-rule power. The deterministic population is not authorized as the
+representative autonomous-agent population required to close the ticket. No
+qualifying gauntlet, attack campaign, shadow campaign, ratification, or one-use
+execution authorization occurred. B-E4 remains `in_progress`; B-GATE remains
+unstarted.
