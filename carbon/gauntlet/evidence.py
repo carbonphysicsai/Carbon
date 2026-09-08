@@ -18,13 +18,16 @@ from carbon.construction import (
 from carbon.research import ResearchServiceErrorCode
 
 from .design import canonical_intervention_from_experiment_record
-from .execution import ResearchOperationFailure
+from .execution import NonQualifyingRunPlan, ResearchOperationFailure
+from .harness import AgentSession
 from .lifecycle import (
+    LifecycleExecutionBinding,
     LifecycleFailureKind,
     LifecycleResourceObservation,
     NonQualifyingLifecycleError,
     NonQualifyingLifecycleRun,
     ReplacementEligibility,
+    _make_lifecycle_execution_binding,
 )
 from .model import AgentProfile, ExperimentalArm, MatchedBudget
 
@@ -43,7 +46,7 @@ _RUN_DOMAIN = b"carbon.be4.rehearsal-run-evidence.v1\x00"
 _BUDGET_DOMAIN = b"carbon.be4.rehearsal-budget.v1\x00"
 _IMPLEMENTATION_DOMAIN = b"carbon.be4.rehearsal-implementation.v1\x00"
 _MANIFEST_DOMAIN = b"carbon.be4.rehearsal-campaign-manifest.v1\x00"
-_FAILURE_DOMAIN = b"carbon.be4.rehearsal-block-failure.v2\x00"
+_FAILURE_DOMAIN = b"carbon.be4.rehearsal-block-failure.v3\x00"
 _REJECTION_DOMAIN = b"carbon.be4.rehearsal-rejected-operation.v1\x00"
 _REPLACEMENT_DOMAIN = b"carbon.be4.rehearsal-block-replacement.v1\x00"
 _CAMPAIGN_DOMAIN = b"carbon.be4.rehearsal-campaign-evidence.v1\x00"
@@ -311,6 +314,43 @@ def build_rehearsal_campaign_manifest(
         EXECUTION_AUTHORIZATION_STATUS,
         digest,
         _MANIFEST_FACTORY_TOKEN,
+    )
+
+
+def bind_rehearsal_execution(
+    *,
+    manifest: RehearsalCampaignManifest,
+    slot: RehearsalBlockSlot,
+    plan: NonQualifyingRunPlan,
+    session: AgentSession,
+) -> LifecycleExecutionBinding:
+    """Bind one prospective manifest slot to the exact run and session."""
+
+    if (
+        type(manifest) is not RehearsalCampaignManifest
+        or type(slot) is not RehearsalBlockSlot
+        or type(plan) is not NonQualifyingRunPlan
+        or type(session) is not AgentSession
+    ):
+        raise TypeError("execution binding requires exact campaign and run owners")
+    registered = next(
+        (item for item in manifest.slots if item.block_id == slot.block_id), None
+    )
+    if registered != slot:
+        raise ValueError("execution slot does not belong to the frozen manifest")
+    if (
+        plan.design_digest != manifest.design_digest
+        or plan.identity.profile is not slot.profile
+        or plan.identity.replicate != slot.number
+        or plan.block_id != slot.block_id
+    ):
+        raise ValueError("run plan does not match the frozen campaign slot")
+    return _make_lifecycle_execution_binding(
+        manifest_digest=manifest.content_digest,
+        slot_role=slot.role.value,
+        slot_number=slot.number,
+        plan=plan,
+        session=session,
     )
 
 
@@ -594,11 +634,17 @@ def record_rehearsal_run(
 
 @dataclass(frozen=True, slots=True)
 class BlockFailureEvidence:
+    manifest_digest: str
     slot: RehearsalBlockSlot
+    affected_arm: ExperimentalArm
+    replicate: int
+    plan_slot_digest: str
+    session_binding_digest: str
     failure_kind: LifecycleFailureKind
     stage: str
     replacement_eligibility: ReplacementEligibility
     owner_failure_digest: str | None
+    owner_failure_subjects: tuple[str, ...]
     resource_observation: LifecycleResourceObservation | None
     content_digest: str
     _factory_token: object = dataclass_field(repr=False, compare=False)
@@ -608,6 +654,9 @@ class BlockFailureEvidence:
             type(self) is not BlockFailureEvidence
             or self._factory_token is not _FAILURE_FACTORY_TOKEN
             or type(self.slot) is not RehearsalBlockSlot
+            or type(self.affected_arm) is not ExperimentalArm
+            or type(self.replicate) is not int
+            or self.replicate < 0
             or type(self.failure_kind) is not LifecycleFailureKind
             or type(self.replacement_eligibility) is not ReplacementEligibility
             or (
@@ -616,8 +665,17 @@ class BlockFailureEvidence:
             )
         ):
             raise TypeError("block failures require the trusted failure factory")
+        _digest(self.manifest_digest, "manifest_digest")
+        _digest(self.plan_slot_digest, "plan_slot_digest")
+        _digest(self.session_binding_digest, "session_binding_digest")
+        if self.replicate != self.slot.number:
+            raise ValueError("failure replicate does not match its prospective slot")
+        if type(self.owner_failure_subjects) is not tuple or any(
+            type(item) is not str or not item for item in self.owner_failure_subjects
+        ):
+            raise TypeError("owner failure subjects must be exact retained identities")
         if self.replacement_eligibility is ReplacementEligibility.NOT_ELIGIBLE:
-            if self.owner_failure_digest is not None:
+            if self.owner_failure_digest is not None or self.owner_failure_subjects:
                 raise ValueError("non-replaceable failure has owner attribution")
         elif (
             self.failure_kind is LifecycleFailureKind.INFRASTRUCTURE
@@ -629,6 +687,8 @@ class BlockFailureEvidence:
             is ReplacementEligibility.VERIFIED_REFERENCE
         ):
             _digest(self.owner_failure_digest, "owner_failure_digest")
+            if not self.owner_failure_subjects:
+                raise ValueError("replaceable failure lacks owner subject identities")
         else:
             raise ValueError("replacement eligibility conflicts with failure kind")
         _identifier(self.stage, "stage")
@@ -636,14 +696,20 @@ class BlockFailureEvidence:
         expected = _hash(
             _FAILURE_DOMAIN,
             (
+                self.manifest_digest,
                 self.slot.profile.value,
                 self.slot.role.value,
                 str(self.slot.number),
                 self.slot.block_id,
+                self.affected_arm.value,
+                str(self.replicate),
+                self.plan_slot_digest,
+                self.session_binding_digest,
                 self.failure_kind.value,
                 self.stage,
                 self.replacement_eligibility.value,
                 self.owner_failure_digest or "NO_OWNER_FAILURE",
+                *(self.owner_failure_subjects or ("NO_OWNER_SUBJECTS",)),
                 (
                     "NO_RESOURCE_OBSERVATION"
                     if self.resource_observation is None
@@ -656,24 +722,48 @@ class BlockFailureEvidence:
 
 
 def record_block_failure(
-    slot: RehearsalBlockSlot, error: NonQualifyingLifecycleError
+    manifest: RehearsalCampaignManifest, error: NonQualifyingLifecycleError
 ) -> BlockFailureEvidence:
     if (
-        type(slot) is not RehearsalBlockSlot
+        type(manifest) is not RehearsalCampaignManifest
         or type(error) is not NonQualifyingLifecycleError
     ):
         raise TypeError("failure recording requires exact typed values")
+    binding = error.execution_binding
+    if type(binding) is not LifecycleExecutionBinding:
+        raise ValueError("unbound lifecycle failure cannot become campaign evidence")
+    if binding.manifest_digest != manifest.content_digest:
+        raise ValueError("lifecycle failure belongs to another campaign manifest")
+    slot = next(
+        (
+            item
+            for item in manifest.slots
+            if item.block_id == binding.block_id
+            and item.profile is binding.profile
+            and item.role.value == binding.slot_role
+            and item.number == binding.slot_number
+        ),
+        None,
+    )
+    if slot is None:
+        raise ValueError("lifecycle failure is not associated with a frozen slot")
     digest = _hash(
         _FAILURE_DOMAIN,
         (
+            manifest.content_digest,
             slot.profile.value,
             slot.role.value,
             str(slot.number),
             slot.block_id,
+            binding.arm.value,
+            str(binding.replicate),
+            binding.plan_slot_digest,
+            binding.session_binding_digest,
             error.kind.value,
             error.stage,
             error.replacement_eligibility.value,
             error.owner_failure_digest or "NO_OWNER_FAILURE",
+            *(error.owner_failure_subjects or ("NO_OWNER_SUBJECTS",)),
             (
                 "NO_RESOURCE_OBSERVATION"
                 if error.resource_observation is None
@@ -682,11 +772,17 @@ def record_block_failure(
         ),
     )
     return BlockFailureEvidence(
+        manifest.content_digest,
         slot,
+        binding.arm,
+        binding.replicate,
+        binding.plan_slot_digest,
+        binding.session_binding_digest,
         error.kind,
         error.stage,
         error.replacement_eligibility,
         error.owner_failure_digest,
+        error.owner_failure_subjects,
         error.resource_observation,
         digest,
         _FAILURE_FACTORY_TOKEN,
@@ -787,6 +883,14 @@ class RetainedBlockMapping:
                 ReplacementEligibility.VERIFIED_INFRASTRUCTURE,
                 ReplacementEligibility.VERIFIED_REFERENCE,
             )
+            or (
+                self.failed.resource_observation is not None
+                and (
+                    self.failed.resource_observation.reserved_fixture_units != 0.0
+                    or self.failed.resource_observation.unreconciled_fixture_units
+                    != 0.0
+                )
+            )
         ):
             raise ValueError("replacement is not authorized by the typed failure rule")
         _digest(self.content_digest, "content_digest")
@@ -868,13 +972,37 @@ class RehearsalCampaignEvidence:
         if len(set(run_keys)) != len(run_keys):
             raise ValueError("campaign contains a duplicate profile/block/arm slot")
         if any(
-            item.slot.block_id not in slots or slots[item.slot.block_id] != item.slot
+            item.manifest_digest != self.manifest.content_digest
+            or item.slot.block_id not in slots
+            or slots[item.slot.block_id] != item.slot
             for item in self.failures
         ) or any(
             item.slot.block_id not in slots or slots[item.slot.block_id] != item.slot
             for item in self.rejected_operations
         ):
             raise ValueError("failure evidence does not belong to the frozen manifest")
+        failure_blocks = tuple(
+            (item.slot.profile, item.slot.block_id) for item in self.failures
+        )
+        if (
+            len({item.content_digest for item in self.failures}) != len(self.failures)
+            or len(set(failure_blocks)) != len(failure_blocks)
+            or len({item.plan_slot_digest for item in self.failures})
+            != len(self.failures)
+        ):
+            raise ValueError("duplicate failed source or failed block is rejected")
+        owner_sources = tuple(
+            item.owner_failure_digest
+            for item in self.failures
+            if item.owner_failure_digest is not None
+        )
+        if len(set(owner_sources)) != len(owner_sources):
+            raise ValueError("one owner failure source cannot support multiple blocks")
+        if any(
+            (item.slot.profile, item.slot.block_id, item.affected_arm) in run_keys
+            for item in self.failures
+        ):
+            raise ValueError("one arm cannot be both completed and failed")
         expected_unique = tuple(
             dict.fromkeys(
                 digest for run in self.runs for digest in run.experiment_record_digests
@@ -888,8 +1016,16 @@ class RehearsalCampaignEvidence:
             or item.replacement.block_id not in slots
             or slots[item.replacement.block_id] != item.replacement
             for item in self.replacements
-        ) or len({item.replacement.block_id for item in self.replacements}) != len(
-            self.replacements
+        ) or any(
+            len(values) != len(self.replacements)
+            for values in (
+                {item.replacement.block_id for item in self.replacements},
+                {item.failed.content_digest for item in self.replacements},
+                {
+                    (item.failed.slot.profile, item.failed.slot.block_id)
+                    for item in self.replacements
+                },
+            )
         ):
             raise ValueError("replacement mappings do not retain unique failures")
         _digest(self.content_digest, "content_digest")
@@ -940,6 +1076,29 @@ class RehearsalCampaignEvidence:
             if item.role is RehearsalSlotRole.PRIMARY
         }
         return expected <= completed | failed
+
+    @property
+    def retained_analysis_runs(self) -> tuple[RehearsalRunEvidence, ...]:
+        """Complete-block rows only; partial failed blocks remain evidence, not rows."""
+
+        failed = {
+            (item.slot.profile, item.slot.block_id)
+            for item in (*self.failures, *self.rejected_operations)
+        }
+        complete = {
+            (run.profile, run.block_id)
+            for run in self.runs
+            if (run.profile, run.block_id) not in failed
+            and {
+                item.arm
+                for item in self.runs
+                if item.profile is run.profile and item.block_id == run.block_id
+            }
+            == set(ExperimentalArm)
+        }
+        return tuple(
+            run for run in self.runs if (run.profile, run.block_id) in complete
+        )
 
 
 def record_rehearsal_campaign(
@@ -998,6 +1157,7 @@ __all__ = (
     "RejectedOperationEvidence",
     "RetainedBlockMapping",
     "authorize_replacement",
+    "bind_rehearsal_execution",
     "build_rehearsal_campaign_manifest",
     "record_block_failure",
     "record_rehearsal_campaign",

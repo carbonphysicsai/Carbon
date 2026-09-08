@@ -4,15 +4,16 @@
 **Status:** in_progress
 **Execution boundary:** the engineering harness, validation repair, analysis-
 only preregistration design, complete non-qualifying fixture lifecycle,
-factory-bound rehearsal evidence, and frozen deterministic calibration are
-merged. The current bounded repair makes resource-policy exhaustion and
-ambiguous timeouts nonreplaceable, retains stop observations, and accepts a
-reserve only after an exact existing owner establishes an eligible external
-infrastructure or reference failure. It does not run a qualifying, shadow, or
-attack campaign. Qualifying execution remains blocked on an owner-approved
-autonomous-agent population, validated stochastic/dependence and shadow
-assumptions, trusted attack/leakage evidence, verified owner ratification, and
-qualifying execution-evidence integration.
+factory-bound rehearsal evidence, frozen deterministic calibration, and the
+first execution-correctness repair are merged. The current correction binds
+failure evidence to its exact prospective campaign/run/session, enforces
+one-use replacement, accounts separately for predicted, reserved, confirmed,
+and unreconciled resource use, and publishes a strict v2 pilot proposal plus
+offline-only state/task/payload design helpers. It runs no provider inference,
+pilot, shadow, attack, or qualifying campaign. Qualifying execution remains
+blocked on an owner-approved autonomous-agent population, validated stochastic/
+dependence and shadow assumptions, trusted attack/leakage evidence, verified
+owner ratification, and qualifying execution-evidence integration.
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
@@ -247,4 +248,40 @@ population/capabilities; task/adaptation/seed/evidence design; pilot
 resources/cost/stopping; and permitted evidence use. A separate one-use pilot
 authorization is then required. These decisions do not approve v4's eight
 qualification inputs. No inference or campaign ran. B-E4 remains
+`in_progress`; B-GATE remains unstarted.
+
+## Rehearsal-accounting correction and pilot proposal v2
+
+The current bounded correction prospectively binds every lifecycle execution
+to one registered manifest slot, exact run plan, and requester/session before
+failure evidence can exist. `record_block_failure` derives the slot from that
+binding rather than accepting one from the caller. A campaign rejects duplicate
+failed sources, duplicate failed blocks, reused reserves, and cross-profile,
+cross-session, or cross-campaign evidence. A failed four-arm block retains all
+partial evidence but contributes no favorable subset to analysis. Outstanding
+or unknown resource use cannot consume a reserve.
+
+Resource observations now separate inspected requirement, admitted
+reservation, confirmed consumption, and unreconciled consumption. The complete
+scaffold-plus-candidate practice pair is admitted before execution; confirmed
+practice survives later failures; rejected work is not booked as consumed; and
+ambiguous dispatched work conservatively retains its reservation. Historical
+calibration files keep their original schema and interpretation; the change is
+prospective.
+
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`, digest
+`sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5`,
+supersedes pilot v1 prospectively while preserving v1 and its digest as
+history. V2 specifies one common model, five arm-neutral policies, a four-call
+adaptive proposal loop plus a separately metered selection-only call, one-shot
+minimalist behavior, exact nested deadlines, a concrete bounded 12-cell
+synthetic task distribution, a strict payload allow-list, and separate 40-run
+development / 240-run calibration / 20-run reserve stages. The closed validator
+establishes only semantic proposal validity; the offline helpers expose no
+provider client, network permission, approval act, authorization, or campaign
+executor.
+
+All five grouped pilot decisions remain `PROPOSED / OWNER_UNAPPROVED /
+PILOT_NOT_AUTHORIZED`. V4 remains `STILL_BLOCKED` and all eight qualification
+inputs remain human-reserved. No inference or campaign ran. B-E4 remains
 `in_progress`; B-GATE remains unstarted.

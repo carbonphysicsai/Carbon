@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.3
+**Controlling register:** `.agent/WAVE_B.md` version 4.4
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -24,9 +24,11 @@ PR #109 merged its factory-bound rehearsal evidence as
 `8c907181b7f63b5c0153e2fa097ce28ec647ebb5`. PR #110 merged the frozen
 full-lifecycle calibration as `b693bbe2e23774c93303d24416f55ebdd5f6c0e9`.
 PR #111 merged the policy-exhaustion/replacement-integrity repair as
-`47677572e72795338236a283eb588357a25dbda2`. The current successor candidate
-adds a content-bound autonomous-agent pilot proposal that remains explicitly
-owner-unapproved and unauthorized.
+`47677572e72795338236a283eb588357a25dbda2`. PR #112 merged the first
+content-bound, owner-unapproved autonomous-agent pilot proposal as
+`c6d6c1dc257b00be06d24f5736f7159e68849b04`. The current successor candidate
+repairs rehearsal association/resource accounting and issues strict pilot v2;
+it remains explicitly owner-unapproved and unauthorized.
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on the recorded execution-integration gaps, validated pre-execution design, and
 complete human-ratified preregistration; B-GATE remains unstarted.
@@ -95,13 +97,17 @@ non-positive, and three family identities collapse to three global lineage
 roots. V4 therefore remains `STILL_BLOCKED`, proposes calibrated work/wall caps
 and a separately anchored transfer margin, and preserves all eight values as
 `PROPOSED`. PR #111 makes all policy exhaustion and ambiguous timeouts
-nonreplaceable and retains their resource observations. Conditional
-on the historical baseline means, maximum endpoint headroom is below the
-proposed primary floor; this is not a population bound or utility result.
-The current proposal recommends a single Terra model with five arm-neutral
-policies, a 12-cell task distribution, four-attempt adaptation, and a maximum
-300-run/$98.304 pilot ceiling, but its four grouped owner decisions remain
-`PROPOSED` and no provider/execution path exists. Representative autonomous-
+nonreplaceable and retains their resource observations. The current correction
+also binds the failure to its exact pre-execution campaign/run/session,
+prevents failed-source reuse, admits complete paired practice, and separates
+predicted, reserved, confirmed, and unreconciled resource use. Conditional on
+the historical baseline means, maximum endpoint headroom is below the proposed
+primary floor; this is not a population bound or utility result. Pilot v2
+recommends one Terra model with five arm-neutral policies, an exact bounded
+12-cell distribution, four adaptive proposal calls plus one metered selection-
+only call, and a maximum 300-run/$98.304 ceiling. Its five grouped owner
+decisions remain `PROPOSED`; only strict validation and offline state/task/
+payload helpers exist, with no provider/execution path. Representative autonomous-
 agent scope, seed design, stochastic and dependence evidence, diversity,
 shadow/leakage, trusted attacks, authenticated five-role ratification, one-use
 authorization and qualifying storage remain unavailable. No qualifying,
