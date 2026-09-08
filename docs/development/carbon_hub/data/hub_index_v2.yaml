@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-08T22:04:18Z"
+  captured_at_utc: "2026-09-08T22:09:58Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "c58ee990ccf3117d57b2d9fc809fc40b07e14f77"
+  authority_snapshot_commit: "a3c98dc99ea711756e96c755149cf34d75da5447"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -3161,7 +3161,7 @@ events:
     owner_lane: "research_science_statistics_security_protocol"
     status: "implemented"
     summary: "The bounded B-E4 correction pre-binds genuine failure evidence to one exact campaign/run/session, enforces one-use failed-source and reserve mappings, separates predicted, reserved, confirmed, and unreconciled resource use, and issues strict pilot v2 with an offline interaction/payload/12-cell task contract. Pilot v2 remains owner-unapproved and unauthorized, v4 remains STILL_BLOCKED, and no provider inference or campaign ran."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/c58ee990ccf3117d57b2d9fc809fc40b07e14f77/.agent/evidence/wave_b/b-e4.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/a3c98dc99ea711756e96c755149cf34d75da5447/.agent/evidence/wave_b/b-e4.md"
     affects:
       - "WAVE-B/B-02C"
       - "WAVE-B/B-07B"
