@@ -1229,6 +1229,20 @@
         "map_ref": "WAVE-B/B-E4"
       },
       {
+        "id": "b-e4-full-lifecycle-calibration-attempt",
+        "match_type": "exact",
+        "path": ".agent/evidence/wave_b/b-e4-full-lifecycle-calibration-attempt-1.json",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-B/B-E4"
+      },
+      {
+        "id": "b-e4-full-lifecycle-calibration-evidence",
+        "match_type": "exact",
+        "path": ".agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-B/B-E4"
+      },
+      {
         "id": "ticket-evidence",
         "match_type": "ticket_record",
         "path": ".agent/evidence/",
@@ -1246,6 +1260,20 @@
         "id": "b-e4-execution-readiness-proposal",
         "match_type": "exact",
         "path": ".agent/preregistrations/B-E4_recommended_design_v3.json",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-B/B-E4"
+      },
+      {
+        "id": "b-e4-full-lifecycle-calibration-freeze",
+        "match_type": "exact",
+        "path": ".agent/preregistrations/B-E4_full_lifecycle_calibration_v1.json",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-B/B-E4"
+      },
+      {
+        "id": "b-e4-post-calibration-proposal",
+        "match_type": "exact",
+        "path": ".agent/preregistrations/B-E4_recommended_design_v4.json",
         "impact_class": "mapped_detail",
         "map_ref": "WAVE-B/B-E4"
       },
