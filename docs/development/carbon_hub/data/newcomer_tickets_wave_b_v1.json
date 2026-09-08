@@ -215,8 +215,8 @@
       "title": "Try to break the research loop before trusting it",
       "what": "Attack the research workflow for hidden-exam leakage, poisoning, gaming, collapsed method diversity, and unsafe evidence use while also testing whether it produces useful research.",
       "why": "A research assistant can appear to improve performance by exploiting the evaluator or narrowing search instead of producing transferable scientific improvement.",
-      "changes": "Carbon now has three independently causal toy-construction families, a private exploratory TEST_ONLY pack, five deterministic data-only fixture drivers, four non-qualifying preflight surrogate arms, policy-work accounting, canonical intervention identities, evaluator-held shadow estimation, fail-closed readiness carriers, and a content-bound v3 recommendation.",
-      "not_yet": "The v3 recommendation is STILL_BLOCKED by 21 engineering gaps. The complete practice-to-final lifecycle, final GENERIC and v1 treatments, trusted endpoints and attack/leakage evidence, authenticated five-owner ratification, and qualifying evidence do not exist. All eight values remain proposed; no utility, leakage, security/privacy, science, production, qualification, or LIVE claim exists.",
+      "changes": "Carbon now has three causal toy-construction families, a private exploratory TEST_ONLY pack, five deterministic data-only fixture drivers, an exact four-arm non-qualifying practice-to-final lifecycle, complete-run metering, immutable rehearsal campaign evidence, exact service/task/session/endpoint correlation, canonical v2 lineage, and prospective typed reserves.",
+      "not_yet": "The v3 recommendation remains STILL_BLOCKED. Frozen full-lifecycle calibration, representative autonomous-agent scope, identifiable utility and diversity, trusted attack/leakage evidence, authenticated five-owner ratification, one-use authorization, and qualifying evidence do not exist. All eight values remain proposed; no utility, leakage, security/privacy, science, production, qualification, or LIVE claim exists.",
       "map_ref": "WAVE-B/B-E4"
     },
     "B-GATE": {

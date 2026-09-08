@@ -1450,6 +1450,27 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-EXECUTION-READINESS-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-REHEARSAL-EVIDENCE-01",
+      "owner_lane": "research_engineering",
+      "status": "implemented",
+      "summary": "The B-E4 successor candidate binds exact non-qualifying service, task/run, session, selection, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence. Prospective same-profile reserves are limited to retained typed infrastructure/reference failures; frozen full-lifecycle calibration remains next, v3 remains STILL_BLOCKED, and no qualifying gauntlet or attack campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-NONQUALIFYING-LIFECYCLE-01"
     }
   ]
 }
