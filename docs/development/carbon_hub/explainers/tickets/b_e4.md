@@ -16,7 +16,7 @@ A research assistant can improve apparent performance by exploiting the evaluato
 
 ## What it adds
 
-Three independently causal two-level toy-construction families, a private exploratory TEST_ONLY pack, five deterministic data-only fixture drivers, four content-bound non-qualifying preflight surrogate arms, a closed policy-work meter, canonical intervention identities, evaluator-held shadow estimation, fail-closed attack/ratification/execution carriers, and a v3 STILL_BLOCKED owner proposal.
+Three independently causal two-level toy-construction families, a private exploratory TEST_ONLY pack, five deterministic data-only fixture drivers, an exact four-arm non-qualifying practice-to-final lifecycle, complete-run metering, private-factory rehearsal campaign evidence, exact service/task/session/endpoint correlation, canonical v2 lineage, and prospective typed reserve handling.
 
 ## Placement and handoff
 
@@ -28,35 +28,37 @@ Three independently causal two-level toy-construction families, a private explor
 
 ## Explicit non-goals
 
-The candidate does not implement the complete practice-to-final lifecycle, final GENERIC or v1 treatment artifacts, trusted attack/leakage evidence, authenticated ratification, or qualifying evidence. No proposal, calibration, dry run, synthetic result, or fixture association establishes utility, leakage clearance, security/privacy, science, production, qualification, or LIVE authority.
+The candidate does not establish representative autonomous-agent scope, frozen full-lifecycle calibration, utility/diversity sufficiency, trusted attack/leakage evidence, authenticated ratification, one-use execution authorization, or qualifying evidence. No proposal, calibration, dry run, synthetic result, or rehearsal record establishes utility, leakage clearance, security/privacy, science, production, qualification, or LIVE authority.
 
 ## Current stage
 
-PR #107 merged B-E4's bounded execution-readiness checkpoint. This successor candidate completes the non-qualifying deterministic 5-profile by 4-arm lifecycle through paired practice, feedback selection, and fixture-official-shaped endpoints; v3 remains STILL_BLOCKED and no qualifying gauntlet or attack campaign ran.
+PR #108 merged B-E4's complete non-qualifying 5-profile by 4-arm lifecycle. This successor candidate binds exact rehearsal run/campaign correlation, provenance, and prospective typed reserve handling; v3 remains STILL_BLOCKED and no qualifying gauntlet or attack campaign ran.
 
 ## Maturity ceiling
 
-B-E4 is specified, implemented, and tested only for bounded fixture semantics, non-qualifying lifecycle rehearsal and preflight calibration, and fail-closed design-analysis carriers. Utility, leakage, diversity, scientific, security/privacy, network, production, qualification, frontier, settlement, emission, and LIVE maturity remain unearned.
+B-E4 is specified, implemented, and tested only for bounded fixture semantics, non-qualifying lifecycle rehearsal and immutable rehearsal evidence, preflight calibration, and fail-closed design-analysis carriers. Utility, leakage, diversity, scientific, security/privacy, network, production, qualification, frontier, settlement, emission, and LIVE maturity remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/WAVE_B.md)
-- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/plans/B-E4_agent_gauntlet.md)
-- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/evidence/wave_b/b-e4.md)
-- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/tests/cpu/test_be4_successor_validation_repair.py)
-- [Historical v2 preregistration proposal](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/preregistrations/B-E4_recommended_design_v2.json)
-- [Historical v2 owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
-- [v3 STILL_BLOCKED execution-readiness proposal](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/preregistrations/B-E4_recommended_design_v3.json)
-- [Execution-readiness owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md)
-- [Non-qualifying preflight calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json)
-- [Execution-readiness integration](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/carbon/gauntlet/execution.py)
-- [Complete non-qualifying lifecycle](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/carbon/gauntlet/lifecycle.py)
-- [Non-qualifying lifecycle integration regressions](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/tests/cpu/test_be4_nonqualifying_lifecycle.py)
-- [Fail-closed readiness carriers](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/carbon/gauntlet/readiness.py)
-- [Execution-readiness integration regressions](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/tests/cpu/test_be4_execution_integration.py)
-- [Preregistration design helpers](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/carbon/gauntlet/design.py)
-- [Preregistration design regressions](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/tests/cpu/test_be4_preregistration_design.py)
-- [B-E4 decision series](https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/DECISIONS.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/WAVE_B.md)
+- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/plans/B-E4_agent_gauntlet.md)
+- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/evidence/wave_b/b-e4.md)
+- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/tests/cpu/test_be4_successor_validation_repair.py)
+- [Historical v2 preregistration proposal](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/preregistrations/B-E4_recommended_design_v2.json)
+- [Historical v2 owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
+- [v3 STILL_BLOCKED execution-readiness proposal](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/preregistrations/B-E4_recommended_design_v3.json)
+- [Execution-readiness owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md)
+- [Non-qualifying preflight calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json)
+- [Execution-readiness integration](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/carbon/gauntlet/execution.py)
+- [Complete non-qualifying lifecycle](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/carbon/gauntlet/lifecycle.py)
+- [Non-qualifying lifecycle integration regressions](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/tests/cpu/test_be4_nonqualifying_lifecycle.py)
+- [Non-qualifying rehearsal evidence](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/carbon/gauntlet/evidence.py)
+- [Rehearsal integrity regressions](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/tests/cpu/test_be4_rehearsal_evidence.py)
+- [Fail-closed readiness carriers](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/carbon/gauntlet/readiness.py)
+- [Execution-readiness integration regressions](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/tests/cpu/test_be4_execution_integration.py)
+- [Preregistration design helpers](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/carbon/gauntlet/design.py)
+- [Preregistration design regressions](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/tests/cpu/test_be4_preregistration_design.py)
+- [B-E4 decision series](https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/DECISIONS.md)
 
-> The one-family blocker is repaired with sampling count, curriculum emphasis, and feature degree, and the private exploratory TEST_ONLY pack reaches all three through B-07D2/B-07D3. Five fixed data-only drivers and NO_PRIOR, GENERIC, v1, and v2 preflight arms now support non-qualifying calibration, but GENERIC and v1 remain surrogates rather than final treatments. The v3 design digest is sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538 and the full proposal digest is sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce. All eight values remain PROPOSED, ratifications are empty, qualifying_execution_ready is false, and 21 explicit engineering blockers remain. No qualifying run occurred, no later ticket is selected, and B-GATE remains unstarted.
+> The 20-run development demonstration now completes exact treatments, B-07C practice and permitted selection, A7/A8/private endpoints, and complete-run budgets. Private-factory rehearsal records bind exact successful/rejected B-07S correlation, B-07B task/run lineage, requester/session, final candidate, resources, transcript/provenance clusters, and canonical v2 interventions; prospective reserves are restricted to retained same-profile infrastructure/reference failures. The v3 design digest is sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538 and the full proposal digest is sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce. All eight values remain PROPOSED, ratifications are empty, qualifying_execution_ready is false, and role verification/authorization remain unavailable. No qualifying run occurred, no later ticket is selected, and B-GATE remains unstarted.

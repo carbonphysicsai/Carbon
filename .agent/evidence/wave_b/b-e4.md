@@ -577,3 +577,57 @@ may establish only the exact bounded engineering behavior above; they cannot
 validate the statistical assumptions or create a utility, diversity, leakage,
 scientific, security/privacy, production, qualification, or LIVE result. B-E4
 remains `in_progress`; B-GATE remains `todo` and unstarted.
+
+## Rehearsal integrity and evidence candidate
+
+The successor candidate adds `carbon.gauntlet.evidence` and strengthens the
+existing lifecycle carriers. The completed 5-profile x 4-arm x 1-block
+development demonstration is assembled into one prospective development
+manifest and 20 content-bound run-evidence records. Every record remains below
+`DESIGN_ANALYSIS_REHEARSAL_EVIDENCE_ONLY_NOT_QUALIFYING_EVIDENCE` and reports
+`qualifying_execution_ready=false`.
+
+Successful B-07S operations now retain exact ordered request and reply digests;
+typed rejected operations retain operation, protocol outcome, request digest,
+and reply digest. Each run record correlates exact design/profile/block/arm,
+installed driver source identity, treatment artifact, proposal transcript,
+B-07B task and receipt, practice attempt correlation, sampling plan, worker and
+environment, final selection, A7 submission association, A8 reconstruction and
+result, private held-out/transfer endpoint, requester/session, and normalized
+compute. Hostile substitutions of those fields fail digest or owner-correlation
+validation.
+
+The campaign manifest prospectively registers exact primary and reserve slots.
+Replacement is permitted only for a retained typed infrastructure/reference
+failure, only into an unused same-profile reserve. Candidate failure,
+cross-profile replacement, duplicate run evidence, duplicate profile/block/arm
+slots, and a forged full slot that merely reuses a real block ID are rejected.
+Failed/replaced evidence remains retained. V2 canonical intervention identity
+is reconstructed from the actual B-07B `ExperimentRecord` and run identity, and
+copied record digests collapse at campaign scope without treating independent
+executions as new semantic families.
+
+The focused affected regression set reported `122 passed in 48.44s`. It covers
+the new rehearsal evidence, complete lifecycle, execution/readiness,
+three-family fixture, B-07C practice, and B-07F adapter interactions. This is
+local engineering evidence pending canonical delivery acceptance.
+
+No current-role authentication, approval verification, one-use authorization,
+shadow allocation, leakage inference, or non-rejection attack assessment was
+implemented or executed. Their recommended repository-native seam is an
+immutable approval act binding author/principal, role-registry snapshot,
+validity and revocation snapshot, exact complete-design artifact manifest and
+digest; a verifier must reconstruct those bytes and verify all five current
+roles. Revocation is append-only and invalidates rather than mutates approval.
+A separate atomic one-use receipt must bind the verified design, campaign
+manifest, and nonce before a qualifying execution can be admitted. No such
+trust/authorization contract currently exists, so positive verification and
+qualifying construction remain unavailable.
+
+This stage closes the authoritative rehearsal correlation, immutable campaign
+evidence, prospective typed reserve lineage, and exact successful/rejected
+service-correlation engineering blockers. Frozen full-lifecycle calibration,
+autonomous-agent population scope, utility identifiability, diversity,
+shadow/dependence/leakage, trusted attacks, five-owner ratification, one-use
+authorization, and qualification remain open. B-E4 stays `in_progress`; B-GATE
+stays unstarted.

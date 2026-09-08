@@ -168,3 +168,29 @@ Tune the protected exam after seeing preferred candidates, equate low
 practice/official correlation with safety, let a fixture evidence role acquire
 unregistered authority, or call fixture utility a production agent-mining
 claim.
+
+## Non-qualifying rehearsal-evidence checkpoint
+
+The completed lifecycle is now wrapped by a candidate factory-only rehearsal
+manifest and campaign-evidence layer. It binds the exact development or
+calibration purpose, design, installed implementation/runtime, treatments,
+drivers, matched budgets, prospective primary/reserve slots, stopping rule,
+typed failure handling, exact successful and rejected B-07S request/reply
+correlations, B-07B task/run lineage, permitted final selection, A7/A8 and
+private endpoint identities, requester/session, resources, canonical v2
+intervention provenance, transcript clusters, and shared-provenance clusters.
+
+The replacement rule is restricted to prospectively numbered same-profile
+reserves following a retained typed infrastructure/reference failure. Candidate
+failure and forged slot metadata fail closed. Development and calibration
+records carry only
+`DESIGN_ANALYSIS_REHEARSAL_EVIDENCE_ONLY_NOT_QUALIFYING_EVIDENCE`; there is no
+promotion Boolean or qualifying constructor. A complete development matrix is
+descriptive integration evidence only.
+
+Current-role authentication, revocation verification, exact-design approval,
+one-use execution authorization, shadow allocation/inference, trusted
+non-rejection attack assessment, and qualifying evidence admission remain
+unimplemented or unavailable. The next bounded delivery is frozen full-
+lifecycle calibration. No qualifying execution, attack campaign, B-E4
+completion, or B-GATE start is authorized by this checkpoint.

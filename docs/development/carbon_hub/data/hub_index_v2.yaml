@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-08T08:28:27Z"
+  captured_at_utc: "2026-09-08T09:45:42Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "4d79d71842630b0866e7781d40d66165a461800e"
+  authority_snapshot_commit: "7f08476c5640a4d37091373bf2850226ccc2dede"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -437,7 +437,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
-  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. The current candidate completes a non-qualifying deterministic 5-profile by 4-arm fixture lifecycle with exact treatments, source-bound drivers, paired practice, permitted feedback selection, A7/A8 endpoints, and complete-run budget checks. Campaign integrity/evidence and frozen full-lifecycle calibration remain next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #108 merged the complete non-qualifying lifecycle. The current candidate binds exact service, task/run, selection, session, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence with prospective same-profile reserves restricted to typed infrastructure/reference failures. Frozen full-lifecycle calibration remains next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
@@ -456,17 +456,17 @@ current:
     id: "B-E4"
     title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
     status: "in_progress"
-    summary: "PR #107 merged B-E4's bounded execution-readiness checkpoint. This successor candidate completes the non-qualifying deterministic 5-profile by 4-arm lifecycle through paired practice, feedback selection, and fixture-official-shaped endpoints; v3 remains STILL_BLOCKED and no qualifying gauntlet or attack campaign ran."
+    summary: "PR #108 merged B-E4's complete non-qualifying 5-profile by 4-arm lifecycle. This successor candidate binds exact rehearsal run/campaign correlation, provenance, and prospective typed reserve handling; v3 remains STILL_BLOCKED and no qualifying gauntlet or attack campaign ran."
     delivery:
-      reference: "PR #107"
+      reference: "PR #108"
       status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/107"
-      merge_commit: "ffbb621c76acc73b8e27911df50ad607e0b5193c"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/108"
+      merge_commit: "d4a496b6b43d5139fc636428556822e6a5ec82e6"
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "3.9"
-  controlling_board_fingerprint: "2870787482da8b6012795cff1c49a54c1caca56a87db9cff5a84981171ad500f"
-  stage: "Wave B remains active in bounded development scope. B-E4 remains selected and in progress. The current candidate completes a non-qualifying deterministic 5-profile by 4-arm fixture lifecycle with exact treatments, source-bound drivers, paired practice, permitted feedback selection, A7/A8 endpoints, and complete-run budget checks. Campaign integrity/evidence and frozen full-lifecycle calibration remain next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted."
+  controlling_register_version: "4.0"
+  controlling_board_fingerprint: "30dd206f3d396780e47d7c7d17a8bf71541246088078272787c9ff59b4b18674"
+  stage: "Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #108 merged the complete non-qualifying lifecycle. The current candidate binds exact service, task/run, selection, session, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence with prospective same-profile reserves restricted to typed infrastructure/reference failures. Frozen full-lifecycle calibration remains next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -537,7 +537,7 @@ current:
     - "B-07G is merged local in-process composition only; it supplies no listener, authenticated transport, credentials, quote, admission, observed-resource authority, official submission/result path, scientific qualification, production, or LIVE."
     - "B-E1 is a TEST_ONLY fixture harness with no real statistical values, qualified backend, ranking, frontier, scientific/security qualification, production, or LIVE authority."
     - "B-E2 is deterministic TEST_ONLY reference-service fixture evidence; archived Julia remains absent and no reference method, environment, retry/fallback policy, scientific qualification, production, or LIVE authority is supplied."
-    - "B-E4's v3 proposal remains STILL_BLOCKED. The deterministic 5-profile by 4-arm non-qualifying lifecycle, final GENERIC/v1/v2 treatments, installed-source driver binding, paired practice and feedback selection, private primary/transfer endpoints, and complete-run budget checks now exist. Representative autonomous-agent population scope, identifiable broad treatment benefit, authoritative campaign correlation/evidence, retained reserve mapping, frozen lifecycle calibration, diversity task mapping, simultaneous leakage analysis, shadow allocation/dependence, trusted attacks, authenticated ratification, one-use authorization, and qualifying evidence remain unavailable."
+    - "B-E4's v3 proposal remains STILL_BLOCKED. The deterministic 5-profile by 4-arm non-qualifying lifecycle, final treatments, installed-source drivers, paired practice/selection, endpoints, exact service/task/session/resource correlation, immutable rehearsal campaign evidence, and prospective typed reserve mapping now exist. Representative autonomous-agent population scope, identifiable broad treatment benefit, frozen lifecycle calibration, diversity sufficiency, simultaneous leakage analysis, shadow allocation/dependence, trusted attacks, authenticated ratification, one-use authorization, and qualifying evidence remain unavailable."
     - "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
@@ -552,8 +552,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-E4 is specified, implemented, and tested only for bounded fixture engineering, non-qualifying lifecycle rehearsal, preflight calibration, and design analysis. The v3 proposal is STILL_BLOCKED; all eight values remain PROPOSED, and no verified ratification or qualifying evidence exists. No utility, diversity, leakage, scientific, security/privacy, network, commercial, production, qualification, ranking, frontier, settlement, emission, or LIVE maturity is earned."
-  decision_series_status: "B-E4-D1/D2/D3/D4, D6/D7/D8, and D10 are implemented working engineering decisions. D10 completes only the non-qualifying lifecycle; D9 keeps v3 STILL_BLOCKED and HUMAN_REQUIRED. All eight values, autonomous-agent population scope, authenticated role assignments, five-owner ratification, separate execution authorization, and qualifying evidence remain unavailable."
+  maturity_summary: "B-E4 is specified, implemented, and tested only for bounded fixture engineering, non-qualifying lifecycle rehearsal and rehearsal evidence, preflight calibration, and design analysis. The v3 proposal is STILL_BLOCKED; all eight values remain PROPOSED, and no verified ratification or qualifying evidence exists. No utility, diversity, leakage, scientific, security/privacy, network, commercial, production, qualification, ranking, frontier, settlement, emission, or LIVE maturity is earned."
+  decision_series_status: "B-E4-D1/D2/D3/D4, D6/D7/D8, D10, and D11 are implemented working engineering decisions. D10 completes only the non-qualifying lifecycle; D11 binds only non-qualifying rehearsal evidence; D9 keeps v3 STILL_BLOCKED and HUMAN_REQUIRED. All eight values, autonomous-agent population scope, authenticated role assignments, five-owner ratification, separate execution authorization, and qualifying evidence remain unavailable."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -567,6 +567,7 @@ current:
     - "B-E4-D8"
     - "B-E4-D9"
     - "B-E4-D10"
+    - "B-E4-D11"
 waves:
   -
     id: "A"
@@ -3060,6 +3061,25 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/MATURITY"
     supersedes: "B-E4-EXECUTION-READINESS-01"
+  -
+    map_ref: "WAVE-B/B-E4"
+    event_type: "adjustment"
+    event_id: "B-E4-REHEARSAL-EVIDENCE-01"
+    owner_lane: "research_engineering"
+    status: "implemented"
+    summary: "The B-E4 successor candidate binds exact non-qualifying service, task/run, session, selection, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence. Prospective same-profile reserves are limited to retained typed infrastructure/reference failures; frozen full-lifecycle calibration remains next, v3 remains STILL_BLOCKED, and no qualifying gauntlet or attack campaign ran."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/7f08476c5640a4d37091373bf2850226ccc2dede/.agent/evidence/wave_b/b-e4.md"
+    affects:
+      - "WAVE-B/B-07B"
+      - "WAVE-B/B-07C"
+      - "WAVE-B/B-07G"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-E4-NONQUALIFYING-LIFECYCLE-01"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

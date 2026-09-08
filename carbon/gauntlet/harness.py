@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Protocol
 
 from carbon.fees import RequesterIdentity, SubmissionRequestError
@@ -154,6 +155,41 @@ class AgentSession:
             service
             is object.__getattribute__(self, "_AgentSession__official_fixture_service")
             and requester == current
+        )
+
+    def correlation_digest(self, plan_slot_digest: str) -> str:
+        """Bind the non-secret session composition to one immutable run slot.
+
+        The digest records which requester and concrete owner implementations
+        were installed after the identity-only bridge checks succeeded.  It is
+        correlation evidence, not a credential or an authorization receipt.
+        """
+
+        if (
+            type(plan_slot_digest) is not str
+            or not plan_slot_digest.startswith("sha256:")
+            or len(plan_slot_digest) != 71
+        ):
+            raise TypeError("session correlation requires an exact plan digest")
+        research = object.__getattribute__(self, "_AgentSession__research_service")
+        official = object.__getattribute__(
+            self, "_AgentSession__official_fixture_service"
+        )
+        requester = object.__getattribute__(self, "_AgentSession__requester_identity")
+        meter = object.__getattribute__(self, "_AgentSession__meter")
+        fields = (
+            plan_slot_digest,
+            requester.value,
+            f"{type(research).__module__}.{type(research).__qualname__}",
+            f"{type(official).__module__}.{type(official).__qualname__}",
+            f"{type(meter).__module__}.{type(meter).__qualname__}",
+        )
+        return (
+            "sha256:"
+            + hashlib.sha256(
+                b"carbon.be4.session-correlation.v1\x00"
+                + b"\x00".join(item.encode("utf-8") for item in fields)
+            ).hexdigest()
         )
 
 

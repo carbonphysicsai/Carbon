@@ -12343,3 +12343,53 @@ integrations—including trusted endpoint receipts, retained-reserve mapping,
 complete artifact manifests, and authoritative task-to-run binding—must be
 implemented and tested first. B-E4 stays `in_progress`;
 B-GATE stays unstarted.
+
+## 2026-09-08 — B-E4-D11: factory-bound rehearsal correlation and prospective reserves
+
+**Ticket:** B-E4
+
+**Problem.** The complete non-qualifying lifecycle crossed B-07S, B-07B/B-07C,
+A7/A8, and the private B-07F endpoint, but its returned values did not yet form
+one immutable campaign record. Exact successful/rejected service correlation,
+task/run lineage, retained failures, and prospective reserve use were therefore
+not independently reviewable. Caller-assembled records or post-hoc replacement
+could launder rehearsal results into a complete-looking matrix.
+
+**Decision.** Keep all execution authority with the existing owners and wrap
+their exact identities in private-factory, domain-separated rehearsal evidence.
+Freeze development/calibration purpose, design and implementation digests,
+four treatments, five drivers, per-profile budgets, all primary/reserve slots,
+stopping/failure policy, and transcript/provenance clustering before a
+campaign. Bind successful and rejected B-07S request/reply digests, B-07B task
+and receipt identities, execution/sampling provenance, proposal/selection,
+A7/A8/endpoint, requester/session, and compute. Reconstruct v2 canonical
+interventions from actual B-07B records and B-E4 identities; collapse copied
+record digests. Permit replacement only from a retained exact primary
+infrastructure/reference failure to one prospectively registered unused
+same-profile reserve. Preserve every failed and replacement record.
+
+**Authority boundary.** Development and calibration evidence permanently carry
+`DESIGN_ANALYSIS_REHEARSAL_EVIDENCE_ONLY_NOT_QUALIFYING_EVIDENCE` and expose no
+promotion path. The manifest records shadow allocation, current-role
+verification, and one-use authorization as unavailable. Deterministic fixture
+policies do not become representative autonomous agents. No leakage inference,
+attack conclusion, owner approval, qualification, production, or LIVE claim is
+created.
+
+**Alternatives.** Inferring correlation from call order was rejected because it
+does not survive hostile carrier substitution. Caller-provided identifiers were
+rejected because they can assert the fact under test. Retrying any failed block
+or replacing candidate failures was rejected because it changes the retained
+estimand. A separate evidence ontology was rejected in favor of existing typed
+owner outcomes and identities.
+
+**Reversibility and next seam.** The wrapper is additive and can be versioned
+prospectively; retained historical evidence remains immutable. Before any
+qualifying execution, Carbon still needs repository-native authenticated
+current-role verification with append-only revocation, exact-design approval,
+and a separate atomic one-use execution authorization. The recommended contract
+binds author/principal, role-registry and revocation snapshots, validity,
+complete artifact manifest/design digest, campaign manifest, and a unique
+authorization nonce. No present verifier can prove those acts, so positive
+verification remains fail closed. Fresh frozen full-lifecycle calibration is
+the next bounded delivery. B-E4 remains `in_progress`; B-GATE is unstarted.

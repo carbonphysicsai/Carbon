@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 61 map-level change events
+- 62 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. The current candidate completes a non-qualifying deterministic 5-profile by 4-arm fixture lifecycle with exact treatments, source-bound drivers, paired practice, permitted feedback selection, A7/A8 endpoints, and complete-run budget checks. Campaign integrity/evidence and frozen full-lifecycle calibration remain next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #108 merged the complete non-qualifying lifecycle. The current candidate binds exact service, task/run, selection, session, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence with prospective same-profile reserves restricted to typed infrastructure/reference failures. Frozen full-lifecycle calibration remains next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted.
 
 ## Maintain
 

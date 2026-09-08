@@ -551,3 +551,40 @@ notification and is not approval.
 
 Until then, B-E4 remains `in_progress`; no qualifying gauntlet has run, and
 B-GATE remains unstarted.
+
+## Rehearsal-evidence successor checkpoint
+
+The complete lifecycle is now wrapped by a candidate immutable rehearsal
+manifest and campaign record. Exact successful/rejected research-service
+request/reply correlations, B-07B tasks and receipts, practice provenance,
+driver/treatment/proposal/selection, requester/session, A7/A8/private endpoint,
+resources, and canonical v2 intervention lineage are bound together. The 20-run
+development demonstration forms a complete descriptive development campaign;
+it is not qualifying evidence.
+
+Prospective reserves are fixed before a campaign and may replace only a
+retained typed infrastructure/reference failure in the same profile. Failed
+and replacement records remain visible. Candidate failures, duplicates,
+cross-profile reserves, and forged slot metadata cannot create completeness.
+
+This closes the engineering correlation, campaign-evidence, and typed-reserve
+seams listed above. It does not settle any of the eight decisions or the agent-
+population scope. Current-role verification, revocation, exact-design approval,
+and one-use authorization remain unavailable. The recommended repository-native
+integration is:
+
+1. an immutable approval act binds author/principal, one of the five required
+   roles, role-registry snapshot, validity interval, revocation snapshot, exact
+   complete-design artifact manifest, and its reconstructed digest;
+2. revocation is append-only and invalidates the freeze rather than mutating an
+   approval;
+3. a trusted verifier reconstructs the exact bytes and verifies all five
+   current acts; and
+4. a separate atomic one-use authorization binds that verified design, the
+   frozen campaign manifest, and a unique nonce before qualifying execution.
+
+Carbon has no current trust contract that can prove those facts. This checkpoint
+therefore implements none of the positive verification or authorization path.
+Fresh frozen full-lifecycle calibration is the next bounded engineering stage.
+All v3 values remain `PROPOSED / STILL_BLOCKED`; B-E4 remains `in_progress` and
+B-GATE remains unstarted.

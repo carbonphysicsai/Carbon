@@ -12,6 +12,7 @@ import hashlib
 import sys
 import time
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from enum import Enum
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from carbon.research import (
     ResearchTaskState,
     StartResearchTaskRequest,
     StartResearchTaskResult,
+    canonical_digest,
 )
 from carbon.traineval.model import InfrastructureFailedRun
 from carbon.traineval.resolved_fixture import (
@@ -79,6 +81,9 @@ DETERMINISTIC_POPULATION_SCOPE = (
 _DRIVER_ARTIFACT_DOMAIN = b"carbon.be4.executable-driver-artifact.v1\x00"
 _TREATMENT_DOMAIN = b"carbon.be4.lifecycle-treatment.v1\x00"
 _LIFECYCLE_DOMAIN = b"carbon.be4.nonqualifying-lifecycle.v1\x00"
+_PRACTICE_DOMAIN = b"carbon.be4.practice-correlation.v1\x00"
+_PRACTICE_FACTORY_TOKEN = object()
+_LIFECYCLE_FACTORY_TOKEN = object()
 
 
 def _sha(domain: bytes, fields: tuple[str, ...]) -> str:
@@ -269,10 +274,17 @@ class PracticeAttemptEvidence:
     receipt: ResearchReceipt
     experiment_record: ExperimentRecord
     feedback: AllowedPracticeFeedback
+    start_request_digest: str
+    start_reply_digest: str
+    poll_request_digest: str
+    poll_reply_digest: str
+    content_digest: str
+    _factory_token: object = dataclass_field(repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if (
             type(self) is not PracticeAttemptEvidence
+            or self._factory_token is not _PRACTICE_FACTORY_TOKEN
             or type(self.public_finding) is not PublicResearchFinding
             or type(self.receipt) is not ResearchReceipt
             or type(self.experiment_record) is not ExperimentRecord
@@ -284,6 +296,65 @@ class PracticeAttemptEvidence:
             or self.feedback.observed_range != self.public_finding.uncertainty_band
         ):
             raise ValueError("practice evidence does not bind its B-07B/B-07C lineage")
+        digests = (
+            self.start_request_digest,
+            self.start_reply_digest,
+            self.poll_request_digest,
+            self.poll_reply_digest,
+            self.content_digest,
+        )
+        if any(
+            type(item) is not str or not item.startswith("sha256:") or len(item) != 71
+            for item in digests
+        ):
+            raise TypeError("practice correlation digests are invalid")
+        expected = _practice_content_digest(
+            proposal_digest=self.proposal_digest,
+            public_finding=self.public_finding,
+            receipt=self.receipt,
+            experiment_record=self.experiment_record,
+            feedback=self.feedback,
+            start_request_digest=self.start_request_digest,
+            start_reply_digest=self.start_reply_digest,
+            poll_request_digest=self.poll_request_digest,
+            poll_reply_digest=self.poll_reply_digest,
+        )
+        if self.content_digest != expected:
+            raise ValueError("practice correlation digest does not bind its content")
+
+
+def _practice_content_digest(
+    *,
+    proposal_digest: str,
+    public_finding: PublicResearchFinding,
+    receipt: ResearchReceipt,
+    experiment_record: ExperimentRecord,
+    feedback: AllowedPracticeFeedback,
+    start_request_digest: str,
+    start_reply_digest: str,
+    poll_request_digest: str,
+    poll_reply_digest: str,
+) -> str:
+    execution = experiment_record.execution_identity
+    return _sha(
+        _PRACTICE_DOMAIN,
+        (
+            proposal_digest,
+            receipt.task_id.value,
+            receipt.receipt_ref.receipt_digest,
+            experiment_record.sampling_plan_ref.content_digest,
+            execution.worker_implementation_digest,
+            execution.environment_digest,
+            str(execution.attempts),
+            canonical_digest(public_finding),
+            feedback.content_digest,
+            start_request_digest,
+            start_reply_digest,
+            poll_request_digest,
+            poll_reply_digest,
+            NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING,
+        ),
+    )
 
 
 class ResearchLifecycleBridge:
@@ -341,6 +412,7 @@ class ResearchLifecycleBridge:
                 prepared.interaction_manifest.practice_scope_ref,
             )
             reply_digests: list[str] = []
+            start_request_digest = canonical_digest(request)
             started = _research_result(
                 session,
                 "start_research_task",
@@ -349,19 +421,23 @@ class ResearchLifecycleBridge:
                 reply_digests,
             )
             assert type(started) is StartResearchTaskResult
+            start_reply_digest = reply_digests[-1]
             worker_view = self._provider.run_queued_task(started.task.task_id)
+            poll_request = GetResearchResultRequest(
+                prepared.challenge_info.challenge_key,
+                started.task.task_id,
+                0,
+            )
+            poll_request_digest = canonical_digest(poll_request)
             polled = _research_result(
                 session,
                 "get_research_result",
-                GetResearchResultRequest(
-                    prepared.challenge_info.challenge_key,
-                    started.task.task_id,
-                    0,
-                ),
+                poll_request,
                 GetResearchResultResult,
                 reply_digests,
             )
             assert type(polled) is GetResearchResultResult
+            poll_reply_digest = reply_digests[-1]
             task = polled.task
             if task != worker_view or task.state is ResearchTaskState.FAILED_INFRA:
                 raise NonQualifyingLifecycleError(
@@ -398,6 +474,17 @@ class ResearchLifecycleBridge:
                 proposal_digest=candidate.proposal.strategy_digest,
                 observed_range=public.uncertainty_band,
             )
+            content_digest = _practice_content_digest(
+                proposal_digest=candidate.proposal.strategy_digest,
+                public_finding=public,
+                receipt=task.terminal_receipt,
+                experiment_record=record,
+                feedback=feedback,
+                start_request_digest=start_request_digest,
+                start_reply_digest=start_reply_digest,
+                poll_request_digest=poll_request_digest,
+                poll_reply_digest=poll_reply_digest,
+            )
             findings.append(
                 PracticeAttemptEvidence(
                     candidate.proposal.strategy_digest,
@@ -405,6 +492,12 @@ class ResearchLifecycleBridge:
                     task.terminal_receipt,
                     record,
                     feedback,
+                    start_request_digest,
+                    start_reply_digest,
+                    poll_request_digest,
+                    poll_reply_digest,
+                    content_digest,
+                    _PRACTICE_FACTORY_TOKEN,
                 )
             )
         if not findings:
@@ -511,11 +604,152 @@ class NonQualifyingLifecycleRun:
     normalized_compute: NormalizedComputeReceipt
     fixture_units: float
     wall_time: WallTimeObservation
+    session_binding_digest: str
     content_digest: str
+    _factory_token: object = dataclass_field(repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not NonQualifyingLifecycleRun
+            or self._factory_token is not _LIFECYCLE_FACTORY_TOKEN
+            or self.authority_ceiling != NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING
+            or self.population_scope != DETERMINISTIC_POPULATION_SCOPE
+            or type(self.plan) is not NonQualifyingRunPlan
+            or type(self.driver_artifact) is not ExecutableDriverArtifactRef
+            or type(self.treatment_artifact) is not LifecycleTreatmentArtifact
+            or type(self.prepared) is not PreparedFixturePreflight
+            or type(self.practice) is not tuple
+            or not self.practice
+            or any(type(item) is not PracticeAttemptEvidence for item in self.practice)
+            or type(self.selection) is not DriverSelection
+            or type(self.official_submission) is not OfficialFixtureSubmission
+            or type(self.official_outcome) is not ResolvedFixtureCompletedRun
+            or type(self.public_result) is not SubmissionResult
+            or type(self.normalized_compute) is not NormalizedComputeReceipt
+            or type(self.wall_time) is not WallTimeObservation
+        ):
+            raise TypeError("lifecycle runs require the trusted non-qualifying factory")
+        for item, name in (
+            (self.session_binding_digest, "session_binding_digest"),
+            (self.content_digest, "content_digest"),
+        ):
+            if (
+                type(item) is not str
+                or not item.startswith("sha256:")
+                or len(item) != 71
+            ):
+                raise TypeError(f"{name} is invalid")
+        endpoint = self.official_outcome.endpoint_observation_receipt
+        if (
+            self.plan != self.prepared.plan
+            or self.plan.identity.arm is not self.treatment_artifact.arm
+            or self.plan.driver_ref != self.driver_artifact.driver_ref
+            or self.selection.driver_ref != self.plan.driver_ref
+            or self.selection.selected_proposal_digest
+            != self.official_submission.proposal_digest
+            or self.official_submission.plan_slot_digest
+            != self.plan.final_submission_slot_digest
+            or self.heldout_mse != endpoint.heldout_mean_squared_error
+            or self.transfer_mse != endpoint.transfer_mean_squared_error
+            or self.heldout_quality_q != fixture_primary_quality(self.heldout_mse)
+            or self.transfer_quality_q != fixture_transfer_quality(self.transfer_mse)
+            or self.normalized_compute.total_work_units
+            > int(self.plan.budget.compute_units)
+            or self.fixture_units > self.plan.fixture_resource_ceiling
+        ):
+            raise ValueError("lifecycle run owner correlations changed")
+        expected = _lifecycle_content_digest(
+            plan=self.plan,
+            driver_artifact=self.driver_artifact,
+            treatment_artifact=self.treatment_artifact,
+            prepared=self.prepared,
+            practice=self.practice,
+            selection=self.selection,
+            submission=self.official_submission,
+            outcome=self.official_outcome,
+            public_result=self.public_result,
+            compute=self.normalized_compute,
+            fixture_units=self.fixture_units,
+            session_binding_digest=self.session_binding_digest,
+        )
+        if self.content_digest != expected:
+            raise ValueError("lifecycle digest does not bind the recorded execution")
 
     @property
     def qualifying_execution_ready(self) -> bool:
         return False
+
+
+def _lifecycle_content_digest(
+    *,
+    plan: NonQualifyingRunPlan,
+    driver_artifact: ExecutableDriverArtifactRef,
+    treatment_artifact: LifecycleTreatmentArtifact,
+    prepared: PreparedFixturePreflight,
+    practice: tuple[PracticeAttemptEvidence, ...],
+    selection: DriverSelection,
+    submission: OfficialFixtureSubmission,
+    outcome: ResolvedFixtureCompletedRun,
+    public_result: SubmissionResult,
+    compute: NormalizedComputeReceipt,
+    fixture_units: float,
+    session_binding_digest: str,
+) -> str:
+    return _sha(
+        _LIFECYCLE_DOMAIN,
+        (
+            plan.final_submission_slot_digest,
+            driver_artifact.content_digest,
+            treatment_artifact.content_digest,
+            prepared.transcript_digest,
+            *(item.content_digest for item in practice),
+            selection.content_digest,
+            submission.association_digest,
+            outcome.reconstruction_receipt.receipt_ref,
+            outcome.result_receipt.receipt_ref,
+            outcome.endpoint_observation_receipt.receipt_ref,
+            _public_result_digest(public_result),
+            compute.content_digest,
+            fixture_units.hex(),
+            session_binding_digest,
+            NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING,
+        ),
+    )
+
+
+def _public_result_digest(result: SubmissionResult) -> str:
+    if type(result) is not SubmissionResult or result.card is None:
+        raise TypeError("lifecycle evidence requires an exact published result")
+    card = result.card
+    components = card.component_scores
+    component_fields = (
+        ("NO_COMPONENTS",)
+        if components is None
+        else (
+            components.physics.hex(),
+            components.robustness.hex(),
+            components.accuracy.hex(),
+        )
+    )
+    return _sha(
+        b"carbon.be4.public-result-correlation.v1\x00",
+        (
+            result.schema_version,
+            result.status.submission_id.value,
+            result.status.state.value,
+            card.schema_version,
+            card.result_id,
+            card.status,
+            card.scoring_pack_hash,
+            "NO_OVERALL" if card.overall_score is None else card.overall_score.hex(),
+            *component_fields,
+            *(f"GATE:{item.gate_id}:{int(item.passed)}" for item in card.gate_results),
+            *(f"FAILURE:{item}" for item in card.failure_tags),
+            f"FIXTURE:{int(card.fixture_origin)}",
+            f"EMISSION:{int(card.eligible_for_emission)}",
+            card.disclosure_tier,
+        ),
+    )
 
 
 def run_nonqualifying_lifecycle(
@@ -598,22 +832,22 @@ def run_nonqualifying_lifecycle(
     endpoint = outcome.endpoint_observation_receipt
     driver_artifact = executable_driver_artifact(driver)
     treatment_artifact = lifecycle_treatment_artifact(plan, projection)
-    content_digest = _sha(
-        _LIFECYCLE_DOMAIN,
-        (
-            plan.final_submission_slot_digest,
-            driver_artifact.content_digest,
-            treatment_artifact.content_digest,
-            prepared.transcript_digest,
-            *(item.receipt.receipt_ref.receipt_digest for item in practice),
-            selection.content_digest,
-            submission.association_digest,
-            outcome.reconstruction_receipt.receipt_ref,
-            endpoint.receipt_ref,
-            compute.content_digest,
-            fixture_units.hex(),
-            NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING,
-        ),
+    session_binding_digest = session.correlation_digest(
+        plan.final_submission_slot_digest
+    )
+    content_digest = _lifecycle_content_digest(
+        plan=plan,
+        driver_artifact=driver_artifact,
+        treatment_artifact=treatment_artifact,
+        prepared=prepared,
+        practice=practice,
+        selection=selection,
+        submission=submission,
+        outcome=outcome,
+        public_result=public_result,
+        compute=compute,
+        fixture_units=fixture_units,
+        session_binding_digest=session_binding_digest,
     )
     return NonQualifyingLifecycleRun(
         NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING,
@@ -634,7 +868,9 @@ def run_nonqualifying_lifecycle(
         compute,
         fixture_units,
         WallTimeObservation(float(elapsed)),
+        session_binding_digest,
         content_digest,
+        _LIFECYCLE_FACTORY_TOKEN,
     )
 
 

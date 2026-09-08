@@ -418,6 +418,20 @@ def _rebind_hostile_preflight(prepared: object) -> None:
         candidates=prepared.candidates,
     )
     object.__setattr__(prepared, "service_reply_digests", reply_digests)
+    try:
+        request_digests = gauntlet_execution._prepared_service_request_digests(
+            plan=prepared.plan,
+            challenge_info=prepared.challenge_info,
+            interaction_manifest=prepared.interaction_manifest,
+            scaffold=prepared.scaffold,
+            candidates=prepared.candidates,
+        )
+    except (TypeError, ValueError):
+        # A malformed nested request may fail before it can be canonically
+        # reconstructed; retaining the old request transcript still exercises
+        # the outer-digest bypass attempt and must fail closed at submission.
+        request_digests = prepared.service_request_digests
+    object.__setattr__(prepared, "service_request_digests", request_digests)
     object.__setattr__(
         prepared,
         "transcript_digest",
@@ -433,6 +447,7 @@ def _rebind_hostile_preflight(prepared: object) -> None:
             first_preflight_executable_attempt=(
                 prepared.first_preflight_executable_attempt
             ),
+            service_request_digests=prepared.service_request_digests,
             service_reply_digests=prepared.service_reply_digests,
             preflight_compute=prepared.preflight_compute,
         ),
@@ -601,6 +616,7 @@ def test_complete_readiness_graph_is_nonqualifying_and_exposes_prior_limit(
             first_preflight_executable_attempt=(
                 hostile_service_evidence.first_preflight_executable_attempt
             ),
+            service_request_digests=hostile_service_evidence.service_request_digests,
             service_reply_digests=hostile_service_evidence.service_reply_digests,
             preflight_compute=hostile_service_evidence.preflight_compute,
         ),
@@ -662,6 +678,7 @@ def test_complete_readiness_graph_is_nonqualifying_and_exposes_prior_limit(
                 first_preflight_executable_attempt=(
                     hostile_resource.first_preflight_executable_attempt
                 ),
+                service_request_digests=hostile_resource.service_request_digests,
                 service_reply_digests=hostile_resource.service_reply_digests,
                 preflight_compute=hostile_resource.preflight_compute,
             ),
@@ -818,6 +835,7 @@ def test_complete_readiness_graph_is_nonqualifying_and_exposes_prior_limit(
             first_preflight_executable_attempt=(
                 hostile_replies.first_preflight_executable_attempt
             ),
+            service_request_digests=hostile_replies.service_request_digests,
             service_reply_digests=hostile_replies.service_reply_digests,
             preflight_compute=hostile_replies.preflight_compute,
         ),
