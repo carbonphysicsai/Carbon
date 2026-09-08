@@ -10,8 +10,10 @@
 **Execution-readiness base tree:** `e0ece9eb4581468917003eb536b7aad5b1edf33f`
 **Ticket:** `.agent/tickets/B-E4_agent_gauntlet.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
-**Current state:** bounded preflight/readiness engineering implemented;
-complete execution integration, ratification, and qualifying execution blocked
+**Current state:** bounded rehearsal correlation, prospective resource
+accounting, and strict pilot-v2 proposal/state/task validation implemented;
+provider execution, owner approval, ratification, and qualifying execution
+blocked
 
 ## Readiness audit — KEEP → WRAP → REPAIR → REPLACE
 
@@ -460,3 +462,34 @@ four grouped pilot decisions, a verified implementation freeze, and separate
 one-use pilot authorization remain necessary. V4's eight qualification
 decisions and all qualifying work remain outside this stage. B-E4 stays
 `in_progress`; B-GATE stays unstarted.
+
+### Stage-6 evidence/resource correction and concrete pilot-v2 checkpoint
+
+1. Reproduce failure rebinding, failed-source reuse, partial-consumption loss,
+   pair under-admission, rejected-work overcounting, and fresh-digest pilot
+   contradictions through legitimate existing-owner paths.
+2. Bind each lifecycle attempt before execution to the exact campaign, slot,
+   run plan, profile/arm/block, and requester/session. Derive failure evidence
+   from that binding and exact existing-owner failure subjects; enforce one
+   failed source to one prospective reserve and retain the failed whole block.
+3. Version prospective resource observations into predicted, reserved,
+   confirmed, and unreconciled quantities. Admit paired practice as one full
+   requirement, carry confirmed partial work through later stops, and retain
+   uncertain in-flight reservations until reconciliation.
+4. Publish pilot proposal v2 with a closed nested schema, exact five-profile
+   interaction state machine, one separately budgeted selection-only call for
+   adaptive profiles, one-shot minimalist policy, exact deadlines and counter
+   effects, concrete bounded 12-cell fixture recipes, provider payload
+   allow-list, price/cache arithmetic, and development/calibration/reserve
+   separation.
+5. Add deterministic offline state, payload, and task-audit helpers only. The
+   12-by-8 design audit is structural evidence; do not add a provider client,
+   inference path, approval verifier, campaign executor, or qualifying status.
+6. Preserve pilot v1 and frozen calibration as immutable history; reconcile
+   ticket, evidence, decisions, Wave registers, maturity ledger, and Hub. Run
+   focused and canonical acceptance and normally merge under OWNER-DX-03.
+
+This stage ends with a semantically valid, owner-reviewable proposal only. The
+five grouped pilot decisions, exact later implementation freeze, approval
+evidence, and separate one-use authorization remain outstanding. V4 stays
+`STILL_BLOCKED`; B-E4 stays `in_progress`; B-GATE stays unstarted.

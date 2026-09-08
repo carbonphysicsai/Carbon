@@ -363,6 +363,7 @@ def generate_manifest() -> dict[str, Any]:
         RehearsalSlotRole,
         ResearchLifecycleBridge,
         authorize_replacement,
+        bind_rehearsal_execution,
         build_nonqualifying_lifecycle_four_arm_block,
         build_rehearsal_campaign_manifest,
         executable_driver_artifact,
@@ -481,6 +482,9 @@ def generate_manifest() -> dict[str, Any]:
                 )
                 meter = PolicyWorkMeter()
                 session = AgentSession(service, official, requester, meter)
+                execution_binding = bind_rehearsal_execution(
+                    manifest=manifest, slot=slot, plan=plan, session=session
+                )
                 try:
                     run = run_nonqualifying_lifecycle(
                         session=session,
@@ -495,9 +499,10 @@ def generate_manifest() -> dict[str, Any]:
                         official_bridge=OfficialLifecycleBridge(
                             official, submission, adapter, requester
                         ),
+                        execution_binding=execution_binding,
                     )
                 except NonQualifyingLifecycleError as exc:
-                    failed = record_block_failure(slot, exc)
+                    failed = record_block_failure(manifest, exc)
                     failures.append(failed)
                     break
                 evidence = record_rehearsal_run(

@@ -12500,3 +12500,132 @@ modify, or reject a prospective successor. Fresh source/corpus/task/
 implementation verification and separate one-use authorization are required
 before any pilot. This approves no v4 input, ratification, campaign, B-E4
 completion, or B-GATE start.
+
+## 2026-09-09 — B-E4-D15: bind failures before execution and spend each reserve once
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; non-qualifying only
+
+**Problem.** `record_block_failure(slot, error)` combined a caller-selected
+slot with genuine existing-owner failure evidence without proving they came
+from the same run. Campaign validation protected reserve destinations but not
+failed sources, so one source could be rebound and used more than once.
+
+**Decision.** Create a private-factory execution binding from the exact frozen
+campaign manifest, prospective slot, run plan, profile, arm, replicate, block,
+final plan slot, exact local session instance, and requester/session correlation
+before lifecycle execution. Permit a
+block-failure record only from an error carrying that exact binding and exact
+existing-owner failure subjects. Derive the slot inside the recorder. Reject
+duplicate failure source/content, duplicate failed block/plan slot, reused
+reserve, and cross-campaign/profile/session association. Retain partial arm
+evidence while excluding the failed whole block from analysis. One source may
+map to one same-profile reserve, and outstanding unknown use blocks replacement.
+
+**Rationale and alternatives.** A digest over caller-supplied fields was
+rejected because it would attest only to the assertion under test. Call-order
+inference was rejected because it is not stable under copied carriers. A broad
+retry rule was rejected because it enables favorable row selection. Existing
+B-07B/B-07C and A7/A8 outcomes continue to own failure facts; this wrapper owns
+only the rehearsal association.
+
+**Reversibility and boundary.** The binding/evidence schema is prospective and
+can be superseded without rewriting historical calibration. This does not
+authenticate a human approval, authorize execution, or prove a production
+failure policy. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+## 2026-09-09 — B-E4-D16: separate requirements, reservations, consumption, and unknown use
+
+**Ticket:** B-E4
+**Status:** implemented prospective engineering decision
+
+**Problem.** The lifecycle updated its outer fixture total only after paired
+practice returned, booked a predicted final requirement as consumed before
+execution, inspected only the candidate before executing a paired comparison,
+and had no representation for a dispatched operation with unknown usage.
+
+**Decision.** Version the prospective observation into four quantities:
+predicted requirement, reserved/admitted amount, confirmed consumption, and
+unknown/unreconciled consumption. Inspect and admit the complete scaffold-plus-
+candidate pair before execution. Confirm work from exact B-07B resource
+observations as it completes, including before later failure. Release known
+pre-dispatch rejection, but retain conservative in-flight reservation after
+ambiguous dispatch until verified reconciliation. Admit final evaluation before
+dispatch and confirm it only after a known execution outcome.
+
+**Rationale and alternatives.** Missing usage as zero was rejected because it
+can understate cost and grant an unsafe retry. Candidate-only admission was
+rejected because both comparison sides execute. Charging prediction as actual
+was rejected because it corrupts cost evidence. The existing resource owners
+remain unchanged; the lifecycle aggregates their facts.
+
+**Reversibility and history.** Historical calibration artifacts and their
+original resource fields/digests remain immutable. A future exact usage receipt
+may reconcile prospective unknown reservations; it must not rewrite old facts.
+No budget or spending authorization is created.
+
+## 2026-09-09 — B-E4-D17: issue a strict concrete pilot v2 without execution authority
+
+**Ticket:** B-E4
+**Status:** `PROPOSED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED`
+
+**Problem.** Pilot v1 left material nested semantics weakly checked and did not
+fully specify final selection, minimalist failure behavior, task recipes,
+resource/cost admission, provider egress, or stage transitions. A valid digest
+could therefore bind a contradictory proposal.
+
+**Decision.** Preserve v1 and issue
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`, digest
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`.
+Validate an exact closed versioned contract while keeping proposal validity,
+owner approval, execution authorization, and execution evidence distinct.
+Recommend four adaptive proposal calls plus one separately metered selection-
+only call that can choose an existing admissible ancestor or stop; keep the
+minimalist to one attempt. Recommend the exact bounded 3 x 2 x 2 task recipe,
+40 development / 240 calibration / 20 reserve runs, `$98.304` current spending
+ceiling, exact payload allow-list, `store=false`, no extended caching, and
+security-owner retention/egress selection. An all-input-cache-write maximum of
+`$108.1344` is recorded only as an owner-unapproved alternative.
+
+**Rationale and alternatives.** A frozen deterministic selector is cheaper and
+more replayable, but removes the final profile-policy reasoning choice; the
+bounded selection-only call preserves it without adding a fifth candidate.
+Fewer task cells are cheaper but weaken heterogeneity diagnostics. A hardcoded
+approved digest was rejected in favor of strict versioned semantics. The
+offline 96-check inclusion audit establishes only structural fixture behavior.
+
+**Authority, alternatives, and reversibility.** Owners may modify or reject
+any proposed pilot choice through a new version/digest. No provider client,
+network permission, inference, campaign, approval, or authorization is
+implemented. V4 and its eight human-reserved qualification choices are
+unchanged and `STILL_BLOCKED`; B-E4 remains `in_progress`; B-GATE remains
+unstarted.
+
+**Prepared notification text; not sent in this session.** “B-E4 working
+decisions D15–D17 prospectively bind rehearsal failures, separate resource
+accounting states, and publish owner-unapproved pilot v2. Please flag an
+incorrect technical premise before a later implementation freeze. This notice
+does not request or imply approval, spending, disclosure, inference, pilot, or
+qualifying authority.”
+
+## 2026-09-09 — B-E4-D18: give clean-image acceptance its canonical time budget
+
+**Ticket:** B-E4
+**Status:** implemented delivery-infrastructure correction
+
+**Problem.** Exact-head CI run `34279195892` completed every clean development-
+image step successfully, including canonical acceptance and cleanup, but
+GitHub classified the job cancelled at exactly its 30-minute job limit. The
+same canonical suite already has a 45-minute ceiling outside the image job.
+
+**Decision.** Raise only the clean development-image job timeout from 30 to 45
+minutes. Keep its pinned, no-cache image build, exact candidate checkout,
+canonical command, merge-gate dependency, and every test unchanged.
+
+**Rationale, alternatives, and reversibility.** Repeated retries would make
+acceptance depend on runner timing luck. Removing or shortening the clean-image
+suite would weaken the environment invariant and was rejected. The 45-minute
+limit matches the existing canonical budget and can be reduced later if suite
+runtime falls with measured margin. This is delivery reliability only; it
+grants no scientific, security, spending, provider, pilot, qualification, or
+LIVE authority.

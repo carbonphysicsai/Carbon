@@ -1,36 +1,221 @@
 # B-E4 execution-readiness owner decision pack
 
-**Date:** 2026-09-08
+**Current through:** 2026-09-09
 
-**Overall status:** `STILL_BLOCKED / DESIGN_ANALYSIS_ONLY`
+**Current status:** `B-E4 in_progress / PILOT PROPOSED / OWNER_UNAPPROVED /
+PILOT_NOT_AUTHORIZED`
 
-**Machine-readable proposal:**
-`.agent/preregistrations/B-E4_recommended_design_v3.json`
+**Current pilot contract:**
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`
 
-**Preregistration/eight-value design digest:**
-`sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538`
+**Current pilot digest:**
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`
 
-**Full proposal digest:**
-`sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce`
+**Current qualification proposal:**
+`.agent/preregistrations/B-E4_recommended_design_v4.json`, `STILL_BLOCKED`
 
-**Qualifying execution ready:** `false`
+**Authority ceiling:** proposal validation and offline synthetic design analysis
+only. No provider inference, autonomous-agent run, pilot, shadow campaign,
+attack campaign, qualifying execution, approval, ratification, scientific or
+security/privacy qualification, production, or LIVE authority.
 
-**Engineering blockers:** `21`, including
-`SHADOW_CASE_COUNT_AND_PROFILE_ALLOCATION_UNPINNED`
+## Current owner summary
 
-**Historical proposal:**
-`.agent/preregistrations/B-E4_recommended_design_v2.json`, digest
-`sha256:e2529e84d9d06882c5296b0a39b3f65219627fac49fbcb278950f753a8b66e37`
+### 1. Current implemented engineering
 
-The canonical v3 JSON owns both exact v3 digests. Neither digest is an approval
-or execution authorization. The v2 proposal's design content and digest remain
-immutable historical design analysis.
+The rehearsal layer now binds a prospective manifest slot to the exact
+campaign, profile, block, arm, run plan, exact local session instance, and
+requester/session correlation before the lifecycle starts. A later block
+failure can be recorded only from that
+factory-issued binding and the exact existing-owner failure subjects produced
+by the bound run. Campaign validation rejects reused failure sources, reused
+reserve destinations, cross-campaign/profile/session evidence, and multiple
+replacement mappings for one failed block. Partial arm evidence is retained,
+while the entire failed four-arm block is excluded from analysis. Outstanding
+or unreconciled resource use cannot purchase a retry.
 
-**Authority ceiling:** no qualifying execution or attack campaign; no utility,
-diversity, leakage, scientific, security/privacy, production, qualification,
-network, frontier, settlement, emission, or LIVE authority
+Lifecycle resources are prospectively versioned into predicted requirement,
+reserved/admitted amount, confirmed consumption, and unknown/unreconciled
+consumption. The complete scaffold-plus-candidate practice pair is inspected
+and admitted before execution. Completed practice remains counted if a later
+operation fails; rejected preflight/final work is not reported as consumed;
+and an ambiguous dispatched operation retains a conservative reservation until
+verified reconciliation. The frozen historical calibration remains unchanged
+and keeps its original accounting interpretation.
 
-## Current execution-correctness update
+The pilot validator now checks the complete closed, versioned nested contract,
+including owner sets, profile behavior, interaction transitions, tasks and
+inclusion bounds, seed visibility, stage separation, model/service/pricing/
+cache consistency, all resource ceilings, data egress, and proposal-versus-
+approval-versus-authorization boundaries. It rejects missing, extra, duplicate,
+wrong-type, unsupported, or internally contradictory content even after a
+caller recomputes the digest. Validator success means only that a proposal is
+well formed. An offline-only state machine, payload allow-list checker, twelve-
+cell task recipe, and bounded inclusion audit exist; there is no provider
+client or campaign executor.
+
+### 2. Current blocked v4 qualification proposal
+
+The eight B-E4 qualification inputs remain exactly those proposed in v4 and
+remain `PROPOSED / STILL_BLOCKED`. Deterministic calibration did not establish
+a representative autonomous-agent population, sufficient endpoint headroom,
+stochastic/dependence behavior, intervention-diversity prevalence, shadow-case
+allocation, conditional leakage, or trusted non-rejection attack evidence.
+Nothing in this pilot checkpoint changes v4's numerical values or turns them
+into approved qualification criteria.
+
+### 3. Current owner-unapproved pilot proposal
+
+V2 recommends one common `gpt-5.6-terra` Responses model across the five
+required policy profiles, with medium reasoning, low verbosity, no built-in
+tools or external network, `store=false`, isolated arm/run conversations, and
+requested/returned model, service-tier, and timestamp recording. The provider
+currently advertises an undated Terra alias rather than a distinct immutable
+snapshot; availability, behavior, and prices must therefore be reverified at
+the later freeze.
+
+Adaptive profiles receive up to four proposal-generating calls and one
+separately metered selection-only call after the fourth available practice
+result. The selection call may choose an existing practice-admissible ancestor
+or stop; it cannot create or evaluate another candidate. This is recommended
+over a frozen deterministic selector because it preserves the intended
+profile-policy reasoning question without granting an unmetered fifth research
+attempt. A deterministic selector is cheaper and more replayable, but would
+remove that final policy-dependent choice. `MINIMALIST` receives exactly one
+proposal attempt and no model selection call; an invalid first proposal ends
+the run.
+
+The proposed 12-cell distribution crosses three exact resource regimes, two
+training-only deterministic Rademacher noise amplitudes, and two transfer
+covariate shifts. The agent-visible target alternates between `y=x` and
+`y=x^2`; evaluator-held seeds, realized signs, held-out/transfer realizations,
+references, and scorer internals remain hidden. One realization per cell gives
+coverage and diagnostics only—it does not identify within-cell task variation,
+provider randomness, or a future qualifying sample size.
+
+### 4. Exact decisions requested now
+
+| Pilot-direction decision | Recommended default | Required owners | Status |
+|---|---|---|---|
+| Population and interaction | One common Terra model; five frozen arm-neutral policies; four adaptive proposal calls plus one bounded selection-only call; minimalist one attempt then stop; isolated transcripts; no arbitrary code/network | Research, exact protocol, security | PROPOSED |
+| Task fixture, seeds, and analysis | Exact 3 x 2 x 2 synthetic distribution; hidden domain-separated evaluator seeds; four arms paired within each profile/task block; bounded structural inclusion; one realization/cell is diagnostic only | Research, exact protocol, science, statistics, security | PROPOSED |
+| Resources, cost, and stopping | 40 development + 240 calibration + 20 prospective reserve runs; the exact nested call/token/service/fixture/time limits below; `$98.304` current proposed spend ceiling; no unknown-use retry | Research, exact protocol, statistics | PROPOSED |
+| Provider egress and retention | Exact payload allow-list, forbidden-field canary tests, `store=false`, no extended caching, and a security-owner choice among applicable account-level retention controls | Exact protocol, security | PROPOSED |
+| Staged evidence use | Development retained but never pooled into calibration; calibration proceeds on implementation integrity, not positive v2 performance; neither stage may qualify B-E4 or substitute for attack/shadow evidence | Research, exact protocol, science, statistics, security | PROPOSED |
+
+Approval of pilot direction is not approval of later source/corpus/task/
+implementation manifests. Those exact artifacts do not yet exist and require a
+successor freeze, exact-proposal approval evidence, and separate one-use
+execution authorization.
+
+### 5. Remaining implementation and execution prerequisites
+
+Before any pilot call, Carbon still needs an approved provider adapter; frozen
+system/profile prompts and literature corpus; exact task-generator and
+evaluator artifacts; prospective development/calibration/reserve manifests;
+model/price/retention reverification; authenticated approval evidence for the
+exact successor digest; a cost-reserving admission owner; and separate bounded
+execution authorization. Before any qualifying B-E4 execution it additionally
+needs approved v4-or-successor eight-value preregistration, five-owner
+ratification, shadow/leakage and trusted attack integrations, and qualifying
+evidence storage. B-GATE remains unstarted.
+
+## Current v2 pilot contract
+
+### Interaction and stopping
+
+Valid, invalid, malformed, refused, truncated, and output-budget-exhausted
+model responses each consume their registered request and, except a verified
+external provider failure, their research attempt. A verified external
+provider failure permits at most one retry inside the original call/run/stage/
+campaign deadline. An ambiguous timeout consumes the attempt, terminates the
+run, and retains its in-flight billing reservation. Practice success or failure
+updates only the same run's state. Explicit stop and budget exhaustion are
+terminal. Before each call, admission uses the minimum remaining call, run,
+stage, and campaign time; no retry receives a fresh run deadline.
+
+### Concrete task distribution and bounded audit
+
+| Factor | Exact proposed levels |
+|---|---|
+| Resource | `DATA_SCARCE`: training x `[1,2]`, candidate/pair units `11/22`; `BALANCED`: `[1,2,3,4]`, `17/34`; `COMPUTE_SCARCE`: `[1,2,3,4]`, feature-cost-only change, `29/58` |
+| Training noise | Domain-separated SHA-256 Rademacher additive signs with amplitude `1` or `4`, mean zero, training only |
+| Transfer | `NEAR_TRANSFER` x `[5,6]`; `FAR_TRANSFER` x `[9,12]`; target law and measurement fixed |
+| Candidate space | Three binary registered families, exactly eight direct candidates; held-out x `[3,4]` |
+
+Each of 12 cells permits at most four generator attempts and eight candidate
+checks/attempt: at most 48 task generations and 384 checks, bounded separately
+at 7,680 fixture units and 43,200 seconds. Failure to produce every required
+eligible cell stops the stage. Rejected identities/reasons are retained and
+audit outputs remain invisible to agents. The checks require all candidates to
+reconstruct, each family to change constructed state, nonzero held-out and
+transfer ranges, no single candidate to dominate all cells, arm-neutral
+baselines, and saturation diagnostics. They never select for v2 superiority.
+
+The deterministic offline audit exercised the 12 recipes against all eight
+candidates (96 checks; 1,824 fixture units): all reconstructed, all three
+families were causally active, endpoint ranges were nonzero, the explicit
+linear/quadratic/single-lever baselines were present, per-cell unique endpoint
+counts were recorded as `7/8/8/8/7/8/8/8/8/8/8/8`, and no candidate dominated
+every cell. This is fixture design analysis, not evidence about model agents or
+utility.
+
+### Exact proposed budget and cost
+
+| Quantity | Proposed ceiling |
+|---|---:|
+| Development / calibration / reserve runs | `40 / 240 / 20` |
+| Maximum runs | `300` |
+| Maximum provider request attempts | `2,520` |
+| Billable input / output-plus-reasoning tokens | `19,660,800 / 4,915,200` |
+| Research-service calls | `19,200` |
+| Fixture units | `78,300` |
+| Call / run deadline | `120 / 900` seconds |
+| Development / calibration / reserve stage wall | `57,600 / 345,600 / 28,800` seconds |
+| Campaign wall | `432,000` seconds |
+| Current proposed monetary ceiling | `$98.304` |
+
+Official prices reverified on 2026-09-09 are `$2.00`/million uncached input,
+`$2.50`/million cache-write input, `$0.20`/million cached input, and
+`$12.00`/million output. `max_output_tokens` includes visible and reasoning
+tokens, so the output ceiling includes both. The per-run input ceiling includes
+repeated conversation history, and retry admission re-reserves applicable
+input rather than treating it as free. The `$27.52512` value is only a
+60%-token, no-retry, uncached scenario—not an expectation. At all-input-cache-
+write treatment, the full token maxima would cost about `$108.1344`; that is a
+separate owner-unapproved alternative request, not spending authority. To keep
+the current `$98.304` ceiling, cache-write input admission is capped at
+15,728,640 tokens. Each request reserves the worst applicable input, output,
+cache, and in-flight amount before dispatch. Taxes, independently billed
+infrastructure, and the separately reported task audit are excluded.
+
+### Provider payload and stages
+
+Only the frozen system/profile policy, agent-visible synthetic task,
+current-arm permitted prior, current-run permitted practice feedback, public
+resource facts, and current-run existing candidate identities may leave
+Carbon. Evaluator seeds, hidden cases, private references, shadow data, scorer
+internals, credentials, unrelated private records, and other arms/runs'
+transcripts are forbidden. `store=false` controls Responses application-state
+storage but is not a promise of zero abuse-monitoring retention; security must
+choose and approve the applicable account-level control. Proposal validity
+grants neither network nor disclosure permission.
+
+Development comprises 40 retained public-task runs and can expose defects.
+After any revision, freeze a new version before the 240 disjoint private
+calibration runs; never pool incompatible versions or development rows.
+Calibration may begin only after implementation integrity and interpretable
+evidence are established, not because v2 looks positive. Twenty reserves are
+prospective and one-use. Calibration approval and execution authorization are
+not issued here.
+
+# Historical qualification and pilot design material
+
+The sections below preserve v2/v3/v4 qualification analysis and autonomous
+pilot v1 as history. Their stale blocker inventories and summaries are not the
+current front matter. Historical content and digests are not rewritten.
+
+## Historical execution-correctness update
 
 The successor runtime repair makes policy-controlled attempt, service,
 normalized-compute, fixture-unit, and wall-time exhaustion nonreplaceable.
@@ -51,7 +236,7 @@ bounds, v2 outcomes, or a utility decision. They instead require the owner-
 unapproved autonomous-agent pilot proposal to treat estimand feasibility as an
 explicit decision and prevent any post-outcome floor adjustment.
 
-## Owner summary
+## Historical v3 owner summary
 
 The earlier one-family fixture blocker is repaired: sampling count,
 curriculum reprioritization/retained-observation weighting, and feature degree
@@ -111,7 +296,7 @@ The revised numerical recommendation is therefore concrete but not ready for
 ratification. Every reserved decision below remains `PROPOSED`, and several
 statistical assumptions remain unvalidated.
 
-## One-page proposed approval table
+## Historical v3 proposed approval table
 
 | Reserved decision | Exact v3 recommendation | Required decision owners | Status |
 |---|---|---|---|

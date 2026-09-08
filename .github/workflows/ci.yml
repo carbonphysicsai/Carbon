@@ -117,7 +117,7 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
     steps:

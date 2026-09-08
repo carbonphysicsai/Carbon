@@ -5,6 +5,10 @@
 **Primary Hub map_ref:** `WAVE-B/B-E4`
 **Maturity ceiling:** bounded SPECIFIED / IMPLEMENTED / TESTED engineering only
 
+**Current correction base:** main
+`c6d6c1dc257b00be06d24f5736f7159e68849b04`, tree
+`b211adf15751d5a54205eaa978ed2c82c79caf8a`
+
 **Merged engineering checkpoint:** PR #103, merge
 `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`, accepted head
 `c2af1f2f593ec5d7557452facfef101111ee79e6`, exact-head CI `34155642414`
@@ -766,3 +770,131 @@ dependence calibration, shadow/leakage inference, trusted non-rejection attack
 assessment, authenticated five-owner ratification, one-use authorization, and
 qualifying storage remain open. B-E4 remains `in_progress`; B-GATE remains
 unstarted.
+
+## Rehearsal evidence, resource accounting, and pilot-v2 correction
+
+### Reproduced findings
+
+Focused tests and direct legitimate-path diagnostics reproduced the reviewed
+defects before changing behavior:
+
+- one exact eligible existing-owner failure could be rebound to two unrelated
+  caller-supplied slots and could support multiple replacement mappings;
+- completed paired practice followed by a pre-operation timeout returned zero
+  fixture consumption because only the outer lifecycle updated its total;
+- a ceiling sufficient for one candidate but not the scaffold-plus-candidate
+  pair admitted and executed the full pair before stopping;
+- preflight rejection reported the inspected final requirement as consumed;
+- fresh-digest mutations could make evaluator seed material visible, make
+  invalid work free, discard partial/failed evidence, pool development into
+  calibration, remove owners or task rules, disable required adaptation, use
+  an unsupported service tier, contradict stopping/deadline/resource limits,
+  and add or omit nested fields while retaining proposal validity.
+
+These are evidence-integrity and validation defects. They do not demonstrate a
+provider, owner-approval, authorization, or qualification bypass.
+
+### Association and one-use repair
+
+The private lifecycle binding now derives from one exact rehearsal campaign
+manifest, registered slot, run plan, profile/arm/replicate/block, final plan
+slot, exact local `AgentSession` instance, and requester/session correlation
+before the run starts.
+Only an error emitted from that bound lifecycle can become
+`BlockFailureEvidence`; the recorder derives the failed slot rather than
+accepting it from a caller. Evidence retains exact existing-owner failure
+subjects, permitted class, affected arm, and the run's prospective resource
+observation.
+
+Campaign validation rejects copied source subjects, duplicate failure content,
+duplicate failed blocks or plan slots, reused reserve destinations, and
+cross-profile/cross-session/cross-campaign association. One replacement maps
+one exact failed whole block to one same-profile prospective reserve. All
+partial arm observations remain retained evidence, but no arm from the failed
+block enters the analysis set. Policy exhaustion, ambiguous attribution, and
+any outstanding/unreconciled resource reservation remain nonreplaceable.
+
+### Prospective resource-accounting v2
+
+`LifecycleResourceObservation` now separates predicted requirement,
+reserved/admitted amount, confirmed consumption, and unknown/unreconciled
+consumption. Paired practice inspects and admits both scaffold and candidate
+before either executes. Exact B-07B resource observations confirm completed
+work even if later polling, work budget, service budget, timeout, provider, or
+final evaluation stops the run. Known pre-dispatch rejection releases a
+reservation; a dispatched ambiguous operation conservatively retains it as
+unreconciled. Final admission records the requirement but confirms cost only
+after execution.
+
+The historical full-lifecycle calibration and its digest retain their original
+schema/meaning and were not regenerated. New observations are prospective;
+missing usage evidence is never converted to zero.
+
+### Strict pilot-v2 proposal and offline contract
+
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json` has digest
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`
+and status `PROPOSED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED`. V1 and digest
+`sha256:8ca1a79a9cd9866d54f52c797baf0ea392087c4652a1439017339a66610469f3`
+remain immutable history.
+
+The versioned validator now checks closed exact shapes and types, supported
+model/service/cache values, nonempty exact owner sets, one common model and
+profile-specific behavior, seed and transcript isolation, attempt/request/
+retry/deadline counter effects, task definitions and bounded inclusion,
+stage/evidence separation, and all token/service/fixture/time/cost arithmetic.
+Duplicate JSON members, unsupported extra members, recomputed-digest semantic
+contradictions, self-approval, execution authorization, and execution-evidence
+claims fail closed. A valid result means only `WELL_FORMED_SEMANTICALLY_VALID_
+PROPOSAL_ONLY`.
+
+The offline interaction contract gives each adaptive profile four proposal
+calls and a separately metered selection-only fifth call after the final
+available practice result. That call may select a recorded practice-admissible
+ancestor or stop and cannot create/evaluate a candidate. The minimalist has one
+proposal attempt and then stops. Verified provider failure may retry once
+inside the original deadlines without consuming a research attempt; refusal,
+malformed/truncated output, output exhaustion, and ambiguous timeout are not
+free retries. Conversations are isolated by arm and run.
+
+The exact task recipe crosses three resource regimes, SHA-256-derived
+Rademacher training-noise amplitudes 1/4, and near/far transfer x-values
+`[5,6]` / `[9,12]`, with counterbalanced agent-visible `y=x` / `y=x^2`
+targets. Generation is bounded at four attempts/cell, 48 total, 384 candidate
+checks, 7,680 fixture units, and 43,200 seconds. A deterministic offline
+12-cell-by-8-candidate audit performed 96 checks and consumed 1,824 declared
+fixture units: every candidate reconstructed, all three registered families
+changed constructed state, endpoint ranges were nonzero, explicit arm-neutral
+baselines were present, per-cell unique endpoint counts were recorded, and no
+candidate dominated every cell. The audit did not select for a v2 advantage
+and is not autonomous-agent or utility evidence.
+
+The proposed stage design is 40 development, 240 calibration, and 20
+prospective reserve runs, maximum 300. Exact maxima are 2,520 provider request
+attempts, 19,660,800 input tokens including repeated history,
+4,915,200 output-plus-reasoning tokens,
+19,200 research-service calls, 78,300 fixture units, and 432,000 campaign-wall
+seconds. The current proposed financial ceiling remains `$98.304`; the
+`$27.52512` 60%-utilization amount is a scenario. An all-input-cache-write
+token-maximum case would be `$108.1344` and is an owner-unapproved alternative,
+not spending authority. Unknown billing stays reserved.
+
+Provider payload construction has an exact allow-list and recursive forbidden-
+field canaries. `store=false` is required but is not represented as zero
+retention; account-level retention and egress remain a security-owner choice.
+No network or disclosure permission follows from validation or offline tests.
+
+### Evidence and remaining boundary
+
+The focused correction suite passed 79 tests before final documentation
+reconciliation; the complete affected and canonical acceptance results are
+recorded with the delivered candidate. No inference, autonomous-agent run,
+pilot, shadow campaign, attack campaign, or qualifying execution occurred.
+
+Five pilot-direction choices—population/interaction, task/seeds/analysis,
+resource/cost/stopping, provider egress/retention, and staged evidence use—need
+their named owners' approval. A later implementation freeze, authenticated
+approval evidence, and separate one-use authorization remain necessary before
+any pilot. V4 remains `STILL_BLOCKED`; all eight qualification inputs and the
+five-owner ratification remain human-reserved. B-E4 stays `in_progress`;
+B-GATE stays unstarted.
