@@ -66,6 +66,13 @@ from .execution import (
     summarize_nonqualifying_preflight_calibration,
     validate_fixture_resource_inspection,
 )
+from .harness import (
+    AgentDriver,
+    AgentSession,
+    GauntletPreflightError,
+    validate_experiment_matrix,
+    validate_integrity_matrix,
+)
 from .lifecycle import (
     DETERMINISTIC_POPULATION_SCOPE,
     NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING,
@@ -80,13 +87,6 @@ from .lifecycle import (
     executable_driver_artifact,
     lifecycle_treatment_artifact,
     run_nonqualifying_lifecycle,
-)
-from .harness import (
-    AgentDriver,
-    AgentSession,
-    GauntletPreflightError,
-    validate_experiment_matrix,
-    validate_integrity_matrix,
 )
 from .model import *
 from .proposal import (
@@ -138,9 +138,9 @@ __all__ = (
     "DesignAnalysisClassification",
     "DesignDocumentError",
     "DriverProposalBatch",
+    "ExecutableDriverArtifactRef",
     "ExecutionEvidenceDraft",
     "ExecutionReadinessProposal",
-    "ExecutableDriverArtifactRef",
     "FixtureAgentDriver",
     "FixtureDriverRef",
     "FixtureStrategyDomain",
@@ -187,18 +187,18 @@ __all__ = (
     "classify_utility_boundary",
     "complete_block_retention_probability",
     "compose_design_analysis_gates",
+    "executable_driver_artifact",
     "fixture_agent_drivers",
     "fixture_driver_ref",
     "fixture_resolution_quality",
     "fixture_strategy_domain",
-    "executable_driver_artifact",
     "lifecycle_treatment_artifact",
     "parse_execution_readiness_proposal",
     "parse_proposed_design",
     "prepare_nonqualifying_preflight",
     "required_replicates_per_profile",
-    "run_nonqualifying_power_analysis",
     "run_nonqualifying_lifecycle",
+    "run_nonqualifying_power_analysis",
     "summarize_nonqualifying_preflight_calibration",
     "validate_experiment_matrix",
     "validate_fixture_resource_inspection",
