@@ -9,7 +9,7 @@ PILOT_NOT_AUTHORIZED`
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`
 
 **Current pilot digest:**
-`sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5`
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`
 
 **Current qualification proposal:**
 `.agent/preregistrations/B-E4_recommended_design_v4.json`, `STILL_BLOCKED`

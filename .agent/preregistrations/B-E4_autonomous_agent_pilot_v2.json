@@ -237,7 +237,7 @@
     "provider_retry_rule": "AT_MOST_ONE_RETRY_ONLY_AFTER_VERIFIED_EXTERNAL_PROVIDER_FAILURE_WITHIN_ORIGINAL_CALL_AND_RUN_DEADLINES",
     "ambiguous_timeout_rule": "NO_RETRY_RETAIN_IN_FLIGHT_TOKEN_AND_COST_RESERVATION_UNTIL_RECONCILED",
     "policy_exhaustion_replaceable": false,
-    "pricing_verified_at_utc": "2026-09-09T00:00:00Z",
+    "pricing_verified_at_utc": "2026-09-08T22:00:32Z",
     "standard_input_usd_per_million_tokens": 2.0,
     "cache_write_input_usd_per_million_tokens": 2.5,
     "cache_read_input_usd_per_million_tokens": 0.2,
@@ -287,9 +287,9 @@
     {"decision": "STAGED_EVIDENCE_USE", "required_owners": ["RESEARCH", "EXACT_PROTOCOL", "SCIENCE", "STATISTICS", "SECURITY"], "status": "PROPOSED"}
   ],
   "source_verification": [
-    {"claim": "GPT-5.6 Terra supports Responses and medium reasoning; standard text prices are USD 2 input, USD 0.20 cached input, USD 2.50 cache-write input, and USD 12 output per million tokens; only an undated model alias is advertised.", "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "verified_at_utc": "2026-09-09T00:00:00Z"},
-    {"claim": "Responses max_output_tokens includes visible and reasoning tokens, usage reports cached/cache-write and reasoning tokens, store defaults true, and returned service tier can differ from the requested tier.", "url": "https://developers.openai.com/api/reference/cli/resources/responses/methods/create", "verified_at_utc": "2026-09-09T00:00:00Z"},
-    {"claim": "API data is not used for training unless opted in; default abuse-monitoring logs may be retained up to 30 days; Modified Abuse Monitoring and Zero Data Retention require approval; Responses application state and prompt-caching retention are distinct controls.", "url": "https://platform.openai.com/docs/models/default-usage-policies-by-endpoint", "verified_at_utc": "2026-09-09T00:00:00Z"}
+    {"claim": "GPT-5.6 Terra supports Responses and medium reasoning; standard text prices are USD 2 input, USD 0.20 cached input, USD 2.50 cache-write input, and USD 12 output per million tokens; only an undated model alias is advertised.", "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra", "verified_at_utc": "2026-09-08T22:00:32Z"},
+    {"claim": "Responses max_output_tokens includes visible and reasoning tokens, usage reports cached/cache-write and reasoning tokens, store defaults true, and returned service tier can differ from the requested tier.", "url": "https://developers.openai.com/api/reference/cli/resources/responses/methods/create", "verified_at_utc": "2026-09-08T22:00:32Z"},
+    {"claim": "API data is not used for training unless opted in; default abuse-monitoring logs may be retained up to 30 days; Modified Abuse Monitoring and Zero Data Retention require approval; Responses application state and prompt-caching retention are distinct controls.", "url": "https://platform.openai.com/docs/models/default-usage-policies-by-endpoint", "verified_at_utc": "2026-09-08T22:00:32Z"}
   ],
-  "proposal_digest": "sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5"
+  "proposal_digest": "sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31"
 }

@@ -270,7 +270,7 @@ calibration files keep their original schema and interpretation; the change is
 prospective.
 
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`, digest
-`sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5`,
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`,
 supersedes pilot v1 prospectively while preserving v1 and its digest as
 history. V2 specifies one common model, five arm-neutral policies, a four-call
 adaptive proposal loop plus a separately metered selection-only call, one-shot

@@ -12576,7 +12576,7 @@ could therefore bind a contradictory proposal.
 
 **Decision.** Preserve v1 and issue
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`, digest
-`sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5`.
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`.
 Validate an exact closed versioned contract while keeping proposal validity,
 owner approval, execution authorization, and execution evidence distinct.
 Recommend four adaptive proposal calls plus one separately metered selection-

@@ -833,7 +833,7 @@ missing usage evidence is never converted to zero.
 ### Strict pilot-v2 proposal and offline contract
 
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json` has digest
-`sha256:f836433a10fc654cfa884e125189d655500959a55d1711123562eda8ca11eaa5`
+`sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31`
 and status `PROPOSED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED`. V1 and digest
 `sha256:8ca1a79a9cd9866d54f52c797baf0ea392087c4652a1439017339a66610469f3`
 remain immutable history.
