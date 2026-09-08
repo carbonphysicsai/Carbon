@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Protocol
 
+from carbon.fees import RequesterIdentity, SubmissionRequestError
+from carbon.mcp.model import McpCall
 from carbon.mcp.service import McpService
 from carbon.research import LocalResearchService, ServiceCall, ServiceReply
 
+from .meter import NormalizedComputeReceipt, PolicyWorkKind, PolicyWorkMeter
 from .model import (
     AgentProfile,
     ExperimentalArm,
@@ -25,30 +27,111 @@ class AgentDriver(Protocol):
     ) -> object: ...
 
 
-@dataclass(frozen=True, slots=True)
 class AgentSession:
-    """The only two planes available to a B-E4 agent driver."""
+    """Opaque two-plane facade for fixed, trusted fixture-policy drivers.
 
-    research_service: LocalResearchService
-    official_fixture_service: McpService
+    This is a capability-reducing in-process facade, not a Python sandbox.  No
+    arbitrary participant program is executed by the B-E4 fixture harness.
+    """
 
-    def __post_init__(self) -> None:
+    __slots__ = (
+        "__meter",
+        "__official_fixture_service",
+        "__requester_identity",
+        "__research_service",
+    )
+
+    def __init__(
+        self,
+        research_service: LocalResearchService,
+        official_fixture_service: McpService,
+        requester_identity: RequesterIdentity,
+        meter: PolicyWorkMeter,
+    ) -> None:
         if (
             type(self) is not AgentSession
-            or type(self.research_service) is not LocalResearchService
-            or type(self.official_fixture_service) is not McpService
+            or type(research_service) is not LocalResearchService
+            or type(official_fixture_service) is not McpService
+            or type(requester_identity) is not RequesterIdentity
+            or type(meter) is not PolicyWorkMeter
         ):
-            raise TypeError("session requires exact B-07G and Wave-A services")
+            raise TypeError(
+                "session requires exact B-07G, Wave-A, requester, and meter values"
+            )
+        try:
+            requester = RequesterIdentity(requester_identity.value)
+        except (AttributeError, SubmissionRequestError, TypeError, ValueError):
+            raise TypeError("session requester identity is invalid") from None
+        object.__setattr__(self, "_AgentSession__research_service", research_service)
+        object.__setattr__(
+            self, "_AgentSession__official_fixture_service", official_fixture_service
+        )
+        object.__setattr__(self, "_AgentSession__requester_identity", requester)
+        object.__setattr__(self, "_AgentSession__meter", meter)
+
+    def __repr__(self) -> str:
+        return "AgentSession(<bounded-fixture-capabilities>)"
+
+    def __setattr__(self, name: str, value: object) -> None:
+        del name, value
+        raise AttributeError("AgentSession is immutable")
+
+    def __delattr__(self, name: str) -> None:
+        del name
+        raise AttributeError("AgentSession is immutable")
+
+    def __getstate__(self) -> object:
+        raise TypeError("AgentSession does not support serialization")
+
+    def __reduce_ex__(self, protocol: int) -> object:
+        del protocol
+        raise TypeError("AgentSession does not support serialization")
 
     def research_call(self, call: ServiceCall) -> ServiceReply:
-        return self.research_service.call(call)
+        if type(call) is not ServiceCall:
+            raise TypeError("research calls require the exact B-07S envelope")
+        meter = object.__getattribute__(self, "_AgentSession__meter")
+        meter.record(PolicyWorkKind.SERVICE_OPERATION)
+        service = object.__getattribute__(self, "_AgentSession__research_service")
+        return service.call(call)
 
-    def official_call(self, operation: str, payload: dict[str, object]) -> object:
-        if operation not in ("submit", "get_submission_result"):
+    def official_call(self, call: McpCall) -> object:
+        if type(call) is not McpCall:
+            raise TypeError("official calls require the exact Wave-A envelope")
+        try:
+            operation = call.tool
+        except AttributeError:
+            raise GauntletPreflightError("official call is malformed") from None
+        if type(operation) is not str or operation not in (
+            "submit",
+            "get_submission_result",
+        ):
             raise GauntletPreflightError(
                 "only the unchanged official operations are available"
             )
-        return self.official_fixture_service.call(operation, payload)
+        meter = object.__getattribute__(self, "_AgentSession__meter")
+        meter.record(PolicyWorkKind.SERVICE_OPERATION)
+        service = object.__getattribute__(
+            self, "_AgentSession__official_fixture_service"
+        )
+        requester = object.__getattribute__(self, "_AgentSession__requester_identity")
+        return service.call(call, RequesterIdentity(requester.value))
+
+    def normalized_compute(self) -> NormalizedComputeReceipt:
+        meter = object.__getattribute__(self, "_AgentSession__meter")
+        return meter.snapshot()
+
+    def binds_meter(self, meter: PolicyWorkMeter) -> bool:
+        """Return whether a trusted orchestrator supplied this run's meter.
+
+        This reveals no service or requester capability.  It prevents a driver
+        from reporting work into a different counter than the one attached to
+        its exact service session.
+        """
+
+        if type(meter) is not PolicyWorkMeter:
+            raise TypeError("meter binding checks require the exact meter type")
+        return meter is object.__getattribute__(self, "_AgentSession__meter")
 
 
 class GauntletPreflightError(ValueError):

@@ -78,6 +78,19 @@ NUMERIC_KEYS = (
     "accuracy_error_b",
 )
 BOOLEAN_KEYS = ("finite_ok",)
+LEGACY_FIXTURE_ASSET_DIGEST = (
+    "sha256:34aa7e562fbe1cd83bc8457a71e0ce5148a23d9fb03684ec66fc860b092e8c83"
+)
+LEGACY_FIXTURE_RECEIPT_REFS = {
+    1: (
+        "sha256:9778144b61eece688dd1b66a900a1338d9e498bc3c706c3720e7b7ab85a09d69",
+        "sha256:35809595bef7fd5f44848efebdbbff230c3410c43399f3b21e795eda91e16944",
+    ),
+    2: (
+        "sha256:983726748d736adadb00f3015ee39076b6e927d0376d3793673afdafbef5e21a",
+        "sha256:59a3321b8e468fc8c894e749bb9d496f8ff9c42be1a5da13929674ebd67c2dbf",
+    ),
+}
 
 
 def _material(label: bytes) -> bytes:
@@ -316,6 +329,34 @@ def test_a7_to_plan_to_fixture_to_a5_to_publication(tmp_path: Path, level: int) 
         "SCORED",
         "MANDATORY_GATE_FAILED",
     }
+
+
+@pytest.mark.parametrize("level", (1, 2))
+def test_sampling_only_identity_bytes_match_origin_main_goldens(
+    tmp_path: Path, level: int
+) -> None:
+    adapter, resource, pack, environment = _adapter(tmp_path)
+    lifecycle = _a7(tmp_path, resource, pack, environment)
+    strategy = dict(resource.compile_fixture.strategy)
+    strategy["parameters"] = {"fixture_sampling_level": level}
+    _, _, envelope = _start(lifecycle, resource, strategy)
+
+    outcome = adapter.run_fixture(envelope)
+    assert type(outcome) is ResolvedFixtureCompletedRun
+    reconstruction_ref, result_ref = LEGACY_FIXTURE_RECEIPT_REFS[level]
+    assert outcome.reconstruction_receipt.fixture_asset_digest == (
+        LEGACY_FIXTURE_ASSET_DIGEST
+    )
+    assert outcome.reconstruction_receipt.receipt_ref == reconstruction_ref
+    assert outcome.result_receipt.receipt_ref == result_ref
+
+    reconstruction_value = json.loads(outcome.reconstruction_receipt.canonical_bytes())
+    assert reconstruction_value["surface"] == ["fixture_sampling_level", level]
+    assert "consumed_levers" not in reconstruction_value
+    assert "identity_version" not in reconstruction_value
+    assert "identity_version" not in json.loads(
+        outcome.result_receipt.canonical_bytes()
+    )
 
 
 def test_registered_lever_changes_plan_construction_and_heldout_behavior(

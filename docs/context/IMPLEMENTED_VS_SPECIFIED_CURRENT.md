@@ -1,9 +1,9 @@
 # Carbon — Current Implemented vs Specified Ledger
 
 **Status:** OWNER-CANONICAL maturity ledger, reconciled through the merged B-E4
-engineering checkpoint and bounded successor validation repair and the current
-analysis-only preregistration-design checkpoint, plus the prospective
-`OWNER-NET-01` roadmap candidate only where explicitly labeled.
+engineering, validation-repair, and analysis-only preregistration-design
+checkpoints and the current bounded execution-readiness checkpoint, plus the
+prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
@@ -25,11 +25,32 @@ analysis-only preregistration-design checkpoint, plus the prospective
 > registered-service seam and deterministic TEST_ONLY fixture evidence.
 > PR #102 merged the bounded B-E2 successor repair. PR #103 merged B-E4's
 > initial fail-closed engineering harness and semantic toy fixture. PR #105
-> merged the bounded successor validation repair. B-E4 remains `in_progress`;
-> the current checkpoint adds a full blocked content-bound proposal, concrete owner
-> recommendations, and deterministic non-qualifying design analysis. Audit
-> shows the current one-family fixture and singleton-targeted prior cannot
-> identify the proposed utility/diversity claim. No qualifying execution ran.
+> merged the bounded successor validation repair, and PR #106 merged the
+> analysis-only preregistration-design checkpoint. B-E4 remains `in_progress`;
+> the current checkpoint adds three causal registered toy families, an
+> exploratory three-family private TEST_ONLY pack, five fixed data-only
+> drivers, preflight plans/accounting, canonical intervention identity, and
+> fail-closed shadow/attack/execution/ratification carriers. Exact historical
+> B-07F sampling-only identities remain unchanged; only the three-family path
+> uses prospective identity v2. The centralized arm factory provides exact
+> non-qualifying preflight surrogates only; the required GENERIC domain-neutral
+> workflow artifact and exact v1 `PrivatePriorProjection` remain unmaterialized.
+> Its v3
+> recommendation is `STILL_BLOCKED`: the lifecycle remains preflight-only,
+> four profiles lack an identifiable v2 treatment contrast, candidate-bound
+> fixture seeds remain unresolved, and fixed-proposal diversity is zero only
+> under a non-authoritative task-to-run mapping while the recorded analyzer
+> fails closed. Trusted endpoint receipts/Q transforms, preflight-result/
+> request correlation, retained-reserve/artifact binding, attack/leakage,
+> owner-verification, and qualifying-evidence integrations are absent. Driver
+> configuration/prose digests do not bind executable source bytes. A separate
+> bounded TEST_ONLY official-shaped association binds only a preflight slot/
+> proposal to an A7 receipt under a distinct no-qualification ceiling; it does
+> not bind requester/session, trusted B-07S origin/request-to-result correlation,
+> or full lifecycle/final-slot policy. Exact shadow-case count/profile allocation
+> is unpinned, and the 636-block recommendation assumes unvalidated cross-profile
+> ICC `rho=0`. No
+> qualifying execution ran.
 > `OWNER-NET-01` changes only the post-Wave-B planning roadmap. It neither
 > reorders Wave B nor starts/selects C, H, or I work.
 >
@@ -372,8 +393,8 @@ the bounded implementation.
 | Dossier credibility crosswalk | B-E3 working contract | Exact B-06 manifest/claim/evidence links; responsible owners; distinct evidence categories and maturity; source permitted-use refs; explicit absent/pending/inapplicable rows; structural MMS non-substitution; fail-closed missing/stale/mismatch/circular/role/maturity/unresolved checks; strict deterministic canonical form; audience-allow-listed Markdown report | No | bounded structural implementation and tests only; complete crosswalk never certifies adequacy, compliance, product/production qualification, or LIVE; scientific, standards, security, commercial, decision, and launch inputs remain human-reserved |
 | R0/R1/R2 reproducibility harness | B-E1 fixture contract | Separate exact-identity, injected numerical, and injected decision results; B-02A exact population/SamplingPlan/case refs; complete incumbent/challenger × producer-independent reconstruction × case graph; stress strata and interaction/dependence retention; explicit shared dependencies and six factor classes; exact B-04 outcomes; exact B-05 policy/shortcut binding; staged reconstruction campaign audit; deterministic canonical refs and fail-closed contested outcomes | No | bounded TEST_ONLY fixture engineering only; no real tolerance, sample size, dependence model, interval/applicability procedure, coverage/power target, stopping rule, audit rate, production backend, ranking, or frontier authority |
 | Registered reference-service failure boundary | B-E2 fixture contract | Exact B-04 request/grant/resolution/run identities; one-use invocation; typed supported, uncertainty, non-applicable, unsupported, numerical/conditioning, malformed, provenance, timeout, unavailable, transport, and process outcomes; immutable retry trace; primary/witness disagreement remains B-04 comparison evidence | No | deterministic TEST_ONLY fixture evidence only; archived Julia remains absent and no reference implementation, method, environment, MMS/analytic fixture, fallback, tolerance, applicability, uncertainty, or scientific authority is qualified |
-| Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
-| B-E4 gauntlet engineering | Yes — recommendations across all eight categories are proposed, while execution-ready values remain blocked | Profile/arm identities, exact service wrappers, raw observation schemas, shared semantic toy fixture, TEST_ONLY structural pin validation, explicit owner-code integrity fixture matrix, evaluator-held shadow seam, blocked execution-design canonical proposal/digest, signed leakage-estimate retention, and deterministic design-analysis boundary/sensitivity helpers; qualifying-record construction remains unavailable | No | Current fixture has only one effectful family and its TEST_ONLY prior targets a fixed singleton; exact drivers/arms/meter/shadow/attack/verifier and five-owner ratification remain absent. No autonomous-agent or attack execution, utility/diversity/leakage result, security/privacy qualification, production, or LIVE authority |
+| Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams, with exact historical sampling-only identity preserved and a prospective identity-v2 path for three-family use; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
+| B-E4 gauntlet engineering | Yes — revised recommendations across all eight categories are proposed; no design is approved or execution-ready | Profile/arm identities and service wrappers; three separately causal registered synthetic families shared across isolated B-07C/B-07F roles; private exploratory three-family TEST_ONLY pack; centralized exact non-qualifying preflight arm surrogates; five versioned data-only drivers; deterministic preflight plan/work-unit accounting; factory-produced TEST_ONLY preflight-slot/proposal/A7-receipt association under a distinct no-qualification ceiling; B-07B-record semantic diversity extraction with fail-closed analyzer; evaluator-held shadow registration and point-estimate mechanics; content-bound untrusted attack/execution drafts; historical v2 plus `STILL_BLOCKED` v3 design artifacts; qualifying construction remains unavailable | No | Current orchestration/calibration stops before B-07C practice and final selection; the required GENERIC domain-neutral workflow artifact and exact v1 `PrivatePriorProjection`, candidate-bound fixture seeds, primary v2 treatment identifiability for four profiles, complete-run budgets, authoritative B-07B-task-to-B-E4-run binding, trusted endpoint receipts/Q transforms, exact preflight-result/request correlation, requester/session association, full lifecycle/final-slot enforcement, retained-reserve binding, complete artifact manifests, and exact executable-driver-source binding remain incomplete; exact shadow-case count/profile allocation and cross-profile transcript-cluster dependence are unpinned; fixed-proposal diversity is zero only under a non-authoritative assumed mapping; other leakage planning assumptions, trusted attack assessment, authenticated five-owner ratification, and qualifying evidence remain unavailable. No utility/diversity/leakage result, scientific/security/privacy qualification, production, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |
@@ -469,10 +490,11 @@ No paper/deck may imply:
 # 8. Current one-line status
 
 > **At the initial documentation working base `91b023a`, reconciled through
-> merged B-E4 validation-repair main `5932ed7`, Carbon has an
+> merged B-E4 preregistration-design main `a37b105`, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
 > `.agent/WAVE.md` records Wave B with B-E4 in progress, qualifying execution
-> blocked, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
+> blocked behind remaining execution integration, assumption validation, and
+> human ratification, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
 > specified only. Archive, Concierge, EvidenceBrief, D12, paid research,
 > advanced Research Scientist, network, scientific/security/commercial/

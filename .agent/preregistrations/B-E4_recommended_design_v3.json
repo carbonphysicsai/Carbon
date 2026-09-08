@@ -1,0 +1,461 @@
+{
+  "authority_ceiling": "DESIGN_ANALYSIS_ONLY_NO_EXECUTION_OR_QUALIFICATION_AUTHORITY",
+  "design_inputs": {
+    "conditional_leakage_limit": {
+      "change_from_v2": "Retains the proposed 0.05 limit and 0.075 adverse alternative, makes the unvalidated rho-zero cross-profile planning assumption explicit with deterministic ICC sensitivity, and discloses that the full simultaneous shadow interval is not integrated.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "clipping_policy": "epsilon_1_over_2_n_train_plus_1_renormalized/v1",
+        "cross_profile_icc_assumption": 0.0,
+        "cross_profile_icc_sensitivity": [
+          {
+            "replicates_per_profile": 636,
+            "rho": 0.0
+          },
+          {
+            "replicates_per_profile": 1272,
+            "rho": 0.25
+          },
+          {
+            "replicates_per_profile": 1908,
+            "rho": 0.5
+          },
+          {
+            "replicates_per_profile": 2544,
+            "rho": 0.75
+          },
+          {
+            "replicates_per_profile": 3180,
+            "rho": 1.0
+          }
+        ],
+        "cross_profile_icc_status": "UNVALIDATED_RHO_ZERO_CONDITIONAL_PLANNING_ASSUMPTION",
+        "effective_cluster_policy": "ONE_WHOLE_TRANSCRIPT_CLUSTER_PER_PROFILE_BLOCK_PROPOSED",
+        "estimator_id": "cross_fitted_shadow_plus_transcript_log_loss/v1",
+        "familywise_alpha": 0.05,
+        "indeterminate_on_invalid_denominator": true,
+        "limit": 0.05,
+        "over_limit_alternative": 0.075,
+        "planning_cluster_sd": 0.4,
+        "planning_status": "UNVALIDATED_NO_SHADOW_CAMPAIGN",
+        "protected_targets": [
+          "PROTECTED_CASE_IDENTITY",
+          "PROTECTED_MIXTURE_IDENTITY",
+          "RELEASE_VARIANT_IDENTITY",
+          "MEMBERSHIP_BIT"
+        ],
+        "single_target_detection_power_target": 0.9
+      },
+      "required_owners": [
+        "SECURITY",
+        "STATISTICS",
+        "EXACT_PROTOCOL"
+      ],
+      "status": "PROPOSED"
+    },
+    "intervention_diversity_floor": {
+      "change_from_v2": "Retains the three-family, four-profile, anti-concentration floor as a proposal only.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "maximum_family_share": 0.5,
+        "minimum_effective_diversity": 2.0,
+        "minimum_profile_prevalence": 0.1,
+        "minimum_profiles": 4,
+        "minimum_supported_families": 3
+      },
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH",
+        "SECURITY"
+      ],
+      "status": "PROPOSED"
+    },
+    "intervention_diversity_metric": {
+      "change_from_v2": "Retains the semantic-family metric now supported by three distinct fixture families while disclosing that B-07B tasks are not yet authoritatively bound to B-E4 profile/replicate identities.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": "supported_family_equal_profile_inverse_simpson/v2",
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH",
+        "SECURITY"
+      ],
+      "status": "PROPOSED"
+    },
+    "matched_time_compute_budgets": {
+      "change_from_v2": "Replaces formula placeholders with preflight-calibrated caps, 636 balanced blocks/profile, 52 reserves, and the 223-unit prospective full-run fixture cap.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "attempt_limit": 8,
+        "block_failure_ceiling": 0.05,
+        "fixture_units_per_run": 223,
+        "meter_policy_digest": "sha256:72b3fad38d24f740c8dd6bd68f2191554fd1d09911482fc50b9384ddcc363f18",
+        "profile_caps": [
+          {
+            "normalized_compute_units": 35,
+            "profile": "PLANNER",
+            "wall_time_seconds": 1
+          },
+          {
+            "normalized_compute_units": 35,
+            "profile": "CODE_GENERATING",
+            "wall_time_seconds": 1
+          },
+          {
+            "normalized_compute_units": 39,
+            "profile": "EVOLUTIONARY",
+            "wall_time_seconds": 1
+          },
+          {
+            "normalized_compute_units": 39,
+            "profile": "LITERATURE_GROUNDED",
+            "wall_time_seconds": 1
+          },
+          {
+            "normalized_compute_units": 20,
+            "profile": "MINIMALIST",
+            "wall_time_seconds": 1
+          }
+        ],
+        "replicates_per_profile": 636,
+        "reserve_blocks_per_profile": 52,
+        "reserve_retention_target": 0.99,
+        "saved_time_creates_extra_attempts": false
+      },
+      "required_owners": [
+        "RESEARCH",
+        "STATISTICS",
+        "EXACT_PROTOCOL"
+      ],
+      "status": "PROPOSED"
+    },
+    "practical_effect_floor": {
+      "change_from_v2": "Replaces the v2 midpoint with half the parity-robust feature-family Q step.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": 0.4017350715246475,
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS"
+      ],
+      "status": "PROPOSED"
+    },
+    "representative_agent_profiles": {
+      "change_from_v2": "Replaces unimplemented v2 archetypes with five exact deterministic fixture-driver v2 pins; full B-07C practice orchestration remains blocked.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "capability_policy": "B07S_PLUS_SUBMIT_RESULT_NO_EXTERNAL_IO_OR_CODE_EXECUTION",
+        "model_provider": "NONE_DETERMINISTIC_FIXTURE_POLICY",
+        "profiles": [
+          {
+            "corpus_digest": null,
+            "driver_id": "be4_planner_fixture_driver",
+            "driver_version": "2.0",
+            "policy_digest": "sha256:8e1dd01e4b0e02c56f8e0afc02139d3becea9d38399ba9b82af117fda63b74d4",
+            "profile": "PLANNER",
+            "runtime_digest": "sha256:f27c9ab8b90acdac7f9c0cf5ccccde10c9b756cadf7ed1678942c017fe4a4ac8"
+          },
+          {
+            "corpus_digest": null,
+            "driver_id": "be4_code_generating_fixture_driver",
+            "driver_version": "2.0",
+            "policy_digest": "sha256:3947099e6ce4d2d93abc040587169a7cdaafe9be827a15d5675076806d5ff8e3",
+            "profile": "CODE_GENERATING",
+            "runtime_digest": "sha256:f27c9ab8b90acdac7f9c0cf5ccccde10c9b756cadf7ed1678942c017fe4a4ac8"
+          },
+          {
+            "corpus_digest": null,
+            "driver_id": "be4_evolutionary_fixture_driver",
+            "driver_version": "2.0",
+            "policy_digest": "sha256:66874b0d128caace20e207bad354ec263378fd7724c763dda4708cdc25f77738",
+            "profile": "EVOLUTIONARY",
+            "runtime_digest": "sha256:f27c9ab8b90acdac7f9c0cf5ccccde10c9b756cadf7ed1678942c017fe4a4ac8"
+          },
+          {
+            "corpus_digest": "sha256:03e625bc1af0dbbce6d15bcf6602568a00d00e0f311b5b90bc5acdfe65881675",
+            "driver_id": "be4_literature_grounded_fixture_driver",
+            "driver_version": "2.0",
+            "policy_digest": "sha256:09df8b86172223ad73ca6b8598e95a8af75eee7b46e2e5d627c2a499265251b2",
+            "profile": "LITERATURE_GROUNDED",
+            "runtime_digest": "sha256:f27c9ab8b90acdac7f9c0cf5ccccde10c9b756cadf7ed1678942c017fe4a4ac8"
+          },
+          {
+            "corpus_digest": null,
+            "driver_id": "be4_minimalist_fixture_driver",
+            "driver_version": "2.0",
+            "policy_digest": "sha256:605f53cd3e794997705a71ba5c8d873f0c86e83aafc5fe48db556942c74c9e24",
+            "profile": "MINIMALIST",
+            "runtime_digest": "sha256:f27c9ab8b90acdac7f9c0cf5ccccde10c9b756cadf7ed1678942c017fe4a4ac8"
+          }
+        ]
+      },
+      "required_owners": [
+        "RESEARCH",
+        "EXACT_PROTOCOL"
+      ],
+      "status": "PROPOSED"
+    },
+    "uncertainty_aware_decision_rule": {
+      "change_from_v2": "Recomputes the balanced block count from the frozen utility and leakage planning assumptions; no qualifying outcomes were used.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "equality_passes": false,
+        "familywise_alpha": 0.05,
+        "id": "profile_stratified_paired_simultaneous_interval/v1",
+        "indeterminate_distinct": true,
+        "joint_power_target": 0.9,
+        "paired_sd_bound": 1.0,
+        "primary_contrasts": 3,
+        "profile_nonregression_minimum": 4,
+        "transfer_noninferiority_margin_q": 0.4017350715246475,
+        "transfer_constraints": 3
+      },
+      "required_owners": [
+        "STATISTICS",
+        "SCIENCE",
+        "RESEARCH"
+      ],
+      "status": "PROPOSED"
+    },
+    "utility_estimand": {
+      "change_from_v2": "Freezes the equal-profile three-baseline held-out-Q estimand, both exact Q transforms, the transfer non-inferiority margin, and robust fixture anchors while disclosing the unresolved candidate-bound seed and trusted endpoint pipelines.",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_proposal.py"
+      ],
+      "recommended_value": {
+        "baseline_arms": [
+          "NO_PRIOR",
+          "GENERIC_PRIOR",
+          "V1_DIRECTIVE_PRIOR"
+        ],
+        "id": "equal_profile_v2_minus_each_baseline_heldout_q_itt/v1",
+        "invalid_candidate_q": 0.0,
+        "loss_best": 0.0,
+        "loss_worst": 90.0,
+        "practical_reference_basis": "PARITY_ROBUST_MINIMUM_FEATURE_DEGREE_1_TO_2_Q_GAIN",
+        "practical_reference_step": 0.803470143049295,
+        "primary_endpoint": "INDEPENDENT_HELDOUT_TOY_MSE_Q",
+        "primary_transform": "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1",
+        "profile_weighting": "EQUAL_REGISTERED_PROFILE",
+        "seed_design_status": "UNRESOLVED_CANDIDATE_BOUND_FIXTURE_SEED_BLOCKER",
+        "semantic_resolution": 0.02002402490929653,
+        "transfer_contrast": "EQUAL_PROFILE_V2_MINUS_EACH_BASELINE",
+        "transfer_endpoint": "TRANSFER_TOY_MSE_Q",
+        "transfer_invalid_candidate_q": 0.0,
+        "transfer_loss_best": 0.0,
+        "transfer_loss_worst": 650.0,
+        "transfer_role": "MANDATORY_NON_INFERIORITY_SUPPORT",
+        "transfer_transform": "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1"
+      },
+      "required_owners": [
+        "SCIENCE",
+        "STATISTICS",
+        "RESEARCH"
+      ],
+      "status": "PROPOSED"
+    }
+  },
+  "engineering_readiness": {
+    "agent_drivers": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "B07C_PRACTICE_LIFECYCLE_AND_FINAL_SELECTION_NOT_ORCHESTRATED",
+        "CANDIDATE_BOUND_FIXTURE_SEED_DESIGN_UNRESOLVED",
+        "EXACT_DRIVER_IMPLEMENTATION_ARTIFACT_DIGEST_BINDING_UNAVAILABLE",
+        "V2_PRIMARY_UTILITY_CAUSAL_CONTRAST_NOT_IDENTIFIABLE_FOR_FOUR_PROFILES"
+      ],
+      "component_ref": "carbon.gauntlet.agents/v2",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_execution_readiness.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "Five declared data-only fixture policy identities and replicate-bound common RNG exist, but their digests do not bind an executable source artifact, the candidate-bound fixture-seed design and B-07C final selection are absent, and four profiles expose the same v2 candidate set; this is trusted preflight policy code, not an agent sandbox."
+    },
+    "arm_artifacts": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "GENERIC_DOMAIN_NEUTRAL_WORKFLOW_ARTIFACT_UNMATERIALIZED",
+        "V1_PRIVATE_PRIOR_PROJECTION_ARTIFACT_UNMATERIALIZED"
+      ],
+      "component_ref": "carbon.gauntlet.execution.FrozenArmArtifact/v2",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_execution_readiness.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "An exact content-bound four-arm surrogate set supports non-qualifying preflight calibration, but the proposed domain-neutral generic workflow and exact PrivatePriorProjection remain unmaterialized and cannot be treated as final execution treatments."
+    },
+    "attack_evidence": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "TRUSTED_NON_REJECTION_ATTACK_EXECUTION_AND_ASSESSMENT_UNAVAILABLE"
+      ],
+      "component_ref": "carbon.gauntlet.readiness.AttackEvidenceStore/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_evidence.py"
+      ],
+      "state": "BLOCKED",
+      "summary": "Untrusted fixture carriers and typed rejection evidence exist; non-rejection attack conclusions cannot be asserted into authority."
+    },
+    "calibration": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "PREFLIGHT_ONLY_NO_PRACTICE_OUTCOME_OR_FULL_LIFECYCLE_CALIBRATION"
+      ],
+      "component_ref": "carbon.gauntlet.execution.NonQualifyingPreflightCalibrationReport/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4-preflight-calibration-v1.json",
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_execution_readiness.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "Canonical raw manifest sha256:616267e476c5f1709fee427cc3535033010048bcf333f77e156c875a9c56a9bf, ordered-transcript-set digest sha256:ad56a4105532a61fa2eb5fc48b1ee3122719d4b076c7f27ce683f593ea60d0a3, and replay-stable digest sha256:da03b0cf89c5542b2c90ca84c6fcd1485abfab65e5bcce0417673e962bdff97f cover 125 complete blocks and 500 preflights with zero block infrastructure failures. Profile wall-p99/compute-p99/resource-p99 values were 0.493625417/28/37, 0.589078917/28/37, 0.640862833/31/37, 0.499347959/31/37, and 0.22612375/16/15 in canonical profile order. It remains descriptive because elapsed wall observations are host-run-specific and no practice outcome or full lifecycle was calibrated."
+    },
+    "diversity": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "AUTHORITATIVE_TASK_TO_RUN_IDENTITY_BINDING_UNAVAILABLE",
+        "GLOBAL_LINEAGE_PREVALENCE_UNACHIEVABLE_WITH_FIXED_BINARY_PROPOSALS"
+      ],
+      "component_ref": "carbon.gauntlet.design.RecordedCanonicalIntervention/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_fixture_families.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "Canonical semantic identities are derived from B-07B records, but their profile/replicate association lacks an authoritative task-to-run binding; separately, fixed binary proposals collapse lineage reuse to zero supported families at the proposed prevalence floor."
+    },
+    "execution_evidence": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "QUALIFYING_EXECUTION_EVIDENCE_FACTORY_AND_STORE_UNAVAILABLE",
+        "COMPLETE_DESIGN_FREEZE_DIGEST_INTEGRATION_UNAVAILABLE",
+        "TRUSTED_PRIMARY_AND_TRANSFER_ENDPOINT_MEASUREMENT_AND_V3_Q_TRANSFORM_PIPELINE_UNAVAILABLE",
+        "PROFILE_SPECIFIC_RESERVE_AND_RETAINED_MATRIX_BINDING_UNAVAILABLE",
+        "COMPLETE_DRIVER_AND_ARM_ARTIFACT_MANIFEST_BINDING_UNAVAILABLE",
+        "PREFLIGHT_RESULT_TO_EXACT_PROPOSAL_REQUEST_BINDING_UNAVAILABLE"
+      ],
+      "component_ref": "carbon.gauntlet.readiness.ExecutionEvidenceDraft/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_evidence.py"
+      ],
+      "state": "BLOCKED",
+      "summary": "The design-analysis carrier remains untrusted and mechanically non-qualifying. It accepts only unreplaced complete matrices; current B-07S result carriers do not all expose exact proposal-request correlation; and no trusted primary/transfer endpoint pipeline, retained reserve mapping, complete driver/arm manifest, positive evidence factory/store, or complete future freeze-digest integration exists."
+    },
+    "fixture_and_prior": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [],
+      "component_ref": "carbon.gauntlet.fixture.ThreeFamilyTestOnlyPackBuilder/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_fixture_families.py"
+      ],
+      "state": "READY",
+      "summary": "Three independently responsive toy families and one exact TEST_ONLY pack path are present through existing B-07 owners."
+    },
+    "meter": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "FULL_LIFECYCLE_WALL_RESOURCE_RESPONSE_BUDGET_ENFORCEMENT_UNAVAILABLE"
+      ],
+      "component_ref": "carbon.gauntlet.meter.PolicyWorkMeter/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_execution_readiness.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "Preflight compute is fail-before-work capped and B-07E plan units are checked; full lifecycle wall, response, and cumulative consumption limits remain absent."
+    },
+    "ratification_verifier": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "AUTHENTICATED_ROLE_TRUST_ROOT_UNAVAILABLE"
+      ],
+      "component_ref": "carbon.gauntlet.readiness.RatificationReadinessAudit/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_evidence.py"
+      ],
+      "state": "BLOCKED",
+      "summary": "Structural owner declarations can be audited, but authenticated approval verification and one-use authorization remain unavailable."
+    },
+    "shadow_campaign": {
+      "authority_ceiling": "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE",
+      "blockers": [
+        "SIMULTANEOUS_INFLUENCE_INTERVAL_PIPELINE_AND_EMPIRICAL_SD_BOUND_UNAVAILABLE",
+        "CROSS_PROFILE_TRANSCRIPT_CLUSTER_DEPENDENCE_UNVALIDATED",
+        "SHADOW_CASE_COUNT_AND_PROFILE_ALLOCATION_UNPINNED"
+      ],
+      "component_ref": "carbon.gauntlet.readiness.ShadowCampaignRegistration/v1",
+      "evidence_refs": [
+        ".agent/evidence/wave_b/b-e4.md",
+        "tests/cpu/test_be4_readiness_evidence.py"
+      ],
+      "state": "PARTIAL",
+      "summary": "Evaluator-held shadow identities and cross-fit point estimation exist; the simultaneous influence-interval pipeline, empirical SD validation, cross-profile transcript-cluster dependence validation, and exact case-count/profile allocation binding remain unimplemented."
+    }
+  },
+  "preregistration_design_digest": "sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538",
+  "previous_design_digest": "sha256:e2529e84d9d06882c5296b0a39b3f65219627fac49fbcb278950f753a8b66e37",
+  "ratifications": [],
+  "readiness": {
+    "engineering_blockers": [
+      "B07C_PRACTICE_LIFECYCLE_AND_FINAL_SELECTION_NOT_ORCHESTRATED",
+      "CANDIDATE_BOUND_FIXTURE_SEED_DESIGN_UNRESOLVED",
+      "EXACT_DRIVER_IMPLEMENTATION_ARTIFACT_DIGEST_BINDING_UNAVAILABLE",
+      "V2_PRIMARY_UTILITY_CAUSAL_CONTRAST_NOT_IDENTIFIABLE_FOR_FOUR_PROFILES",
+      "GENERIC_DOMAIN_NEUTRAL_WORKFLOW_ARTIFACT_UNMATERIALIZED",
+      "V1_PRIVATE_PRIOR_PROJECTION_ARTIFACT_UNMATERIALIZED",
+      "TRUSTED_NON_REJECTION_ATTACK_EXECUTION_AND_ASSESSMENT_UNAVAILABLE",
+      "PREFLIGHT_ONLY_NO_PRACTICE_OUTCOME_OR_FULL_LIFECYCLE_CALIBRATION",
+      "AUTHORITATIVE_TASK_TO_RUN_IDENTITY_BINDING_UNAVAILABLE",
+      "GLOBAL_LINEAGE_PREVALENCE_UNACHIEVABLE_WITH_FIXED_BINARY_PROPOSALS",
+      "QUALIFYING_EXECUTION_EVIDENCE_FACTORY_AND_STORE_UNAVAILABLE",
+      "COMPLETE_DESIGN_FREEZE_DIGEST_INTEGRATION_UNAVAILABLE",
+      "TRUSTED_PRIMARY_AND_TRANSFER_ENDPOINT_MEASUREMENT_AND_V3_Q_TRANSFORM_PIPELINE_UNAVAILABLE",
+      "PROFILE_SPECIFIC_RESERVE_AND_RETAINED_MATRIX_BINDING_UNAVAILABLE",
+      "COMPLETE_DRIVER_AND_ARM_ARTIFACT_MANIFEST_BINDING_UNAVAILABLE",
+      "PREFLIGHT_RESULT_TO_EXACT_PROPOSAL_REQUEST_BINDING_UNAVAILABLE",
+      "FULL_LIFECYCLE_WALL_RESOURCE_RESPONSE_BUDGET_ENFORCEMENT_UNAVAILABLE",
+      "AUTHENTICATED_ROLE_TRUST_ROOT_UNAVAILABLE",
+      "SIMULTANEOUS_INFLUENCE_INTERVAL_PIPELINE_AND_EMPIRICAL_SD_BOUND_UNAVAILABLE",
+      "CROSS_PROFILE_TRANSCRIPT_CLUSTER_DEPENDENCE_UNVALIDATED",
+      "SHADOW_CASE_COUNT_AND_PROFILE_ALLOCATION_UNPINNED"
+    ],
+    "human_ratifications_present": false,
+    "human_requirements": [
+      "HUMAN_OWNERS_APPROVE_OR_MODIFY_EIGHT_PROPOSED_VALUES",
+      "CARBON_OWNER_ASSIGNS_AUTHENTICATED_ROLE_PRINCIPALS_AND_CURRENTNESS_REVOCATION_POLICY",
+      "FIVE_CURRENT_ROLE_HOLDERS_RATIFY_ONE_FUTURE_COMPLETE_EXECUTION_READY_DIGEST",
+      "CARBON_OWNER_ISSUES_SEPARATE_ONE_USE_QUALIFYING_EXECUTION_AUTHORIZATION"
+    ],
+    "qualifying_execution_ready": false
+  },
+  "schema_version": "carbon.be4.execution-readiness-proposal.v3",
+  "status": "STILL_BLOCKED"
+}

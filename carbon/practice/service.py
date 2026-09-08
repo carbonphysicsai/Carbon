@@ -10,6 +10,13 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from carbon.authoring.model import EvidenceRole
+from carbon.construction import (
+    ConsumerTarget,
+    DefaultedSurface,
+    SelectedSurface,
+    SurfaceValue,
+    SurfaceValueType,
+)
 from carbon.research import (
     AuthorizedResearchOutcome,
     EvidenceContext,
@@ -38,8 +45,12 @@ from carbon.seeding import (
     derive_mock_seed,
 )
 from carbon.toy import (
+    FIXTURE_CURRICULUM_SURFACE_ID,
+    FIXTURE_FEATURE_SURFACE_ID,
     FIXTURE_HELDOUT_OBSERVATIONS,
+    FIXTURE_SAMPLING_SURFACE_ID,
     FIXTURE_TRAINING_OBSERVATIONS,
+    FixtureModelConfiguration,
     construct_fixture_model,
 )
 
@@ -50,6 +61,14 @@ from .model import (
     PracticeAggregateKind,
 )
 from .registry import VersionedMockPackRegistry
+
+_TOY_LEVER_CONSUMERS = {
+    FIXTURE_SAMPLING_SURFACE_ID: ConsumerTarget("fixture_training", "sampling_level"),
+    FIXTURE_CURRICULUM_SURFACE_ID: ConsumerTarget(
+        "fixture_training", "curriculum_emphasis"
+    ),
+    FIXTURE_FEATURE_SURFACE_ID: ConsumerTarget("fixture_training", "feature_degree"),
+}
 
 
 class PracticeExecutionError(ValueError):
@@ -194,6 +213,8 @@ class MockTrainEvalService:
                 or compiler.compiler_version != expected_compiler.version
                 or compiler.implementation_digest
                 != expected_compiler.implementation_digest
+                or resolved.resolved_plan.parameter_catalog_ref
+                != self._manifest.parameter_catalog_ref
                 or not resolved.resolved_plan.environment_pins
             ):
                 raise PracticeExecutionError("compiler or environment pin mismatch")
@@ -205,18 +226,57 @@ class MockTrainEvalService:
         return int.from_bytes(material[:8], "big") / float(1 << 64)
 
     @staticmethod
-    def _toy_level(plan) -> int:
-        matches = tuple(
-            surface
-            for surface in plan.resolved_surfaces
-            if surface.surface_id == "fixture_sampling_level"
-        )
-        if len(matches) != 1 or type(matches[0].value.value) is not int:
+    def _toy_configuration(plan) -> FixtureModelConfiguration:
+        by_id: dict[str, object] = {}
+        for surface in plan.resolved_surfaces:
+            surface_id = getattr(surface, "surface_id", None)
+            if surface_id in (
+                FIXTURE_SAMPLING_SURFACE_ID,
+                FIXTURE_CURRICULUM_SURFACE_ID,
+                FIXTURE_FEATURE_SURFACE_ID,
+            ):
+                if surface_id in by_id:
+                    raise PracticeExecutionError("registered toy lever is duplicated")
+                by_id[surface_id] = surface
+
+        sampling = by_id.get(FIXTURE_SAMPLING_SURFACE_ID)
+        if sampling is None:
             raise PracticeExecutionError("registered toy lever is unavailable")
-        level = matches[0].value.value
-        if level not in (1, 2):
-            raise PracticeExecutionError("registered toy lever value is unsupported")
-        return level
+
+        def value(surface_id: str, surface: object | None, default: int) -> int:
+            if surface is None:
+                return default
+            if (
+                type(surface) not in (SelectedSurface, DefaultedSurface)
+                or surface.consumer_target != _TOY_LEVER_CONSUMERS[surface_id]
+                or type(surface.value) is not SurfaceValue
+                or surface.value.value_type is not SurfaceValueType.UINT64
+                or type(surface.value.value) is not int
+                or surface.value.value not in (1, 2)
+            ):
+                raise PracticeExecutionError(
+                    "registered toy lever binding is unsupported"
+                )
+            return surface.value.value
+
+        try:
+            return FixtureModelConfiguration(
+                value(FIXTURE_SAMPLING_SURFACE_ID, sampling, 1),
+                value(
+                    FIXTURE_CURRICULUM_SURFACE_ID,
+                    by_id.get(FIXTURE_CURRICULUM_SURFACE_ID),
+                    1,
+                ),
+                value(
+                    FIXTURE_FEATURE_SURFACE_ID,
+                    by_id.get(FIXTURE_FEATURE_SURFACE_ID),
+                    1,
+                ),
+            )
+        except ArithmeticError:
+            raise PracticeExecutionError(
+                "registered toy lever value is unsupported"
+            ) from None
 
     def _context(
         self, attempt: ResearchExecutionAttempt, pack: MockPracticePack
@@ -497,16 +557,21 @@ class MockTrainEvalService:
             )
         eval_values: list[tuple[float, float]] = []
         coefficients = []
+        configurations = []
         for strategy_index, item in enumerate(attempt.resolved_strategies):
             seed = derive_mock_seed(
                 context, RoleKey("practice_training_role"), strategy_index
             ).as_backend_bytes()
+            configuration = self._toy_configuration(item.resolved_plan)
             coefficient, _ = construct_fixture_model(
                 FIXTURE_TRAINING_OBSERVATIONS,
-                self._toy_level(item.resolved_plan),
+                configuration.sampling_level,
                 seed,
+                curriculum_emphasis=configuration.curriculum_emphasis,
+                feature_degree=configuration.feature_degree,
             )
             coefficients.append(coefficient)
+            configurations.append(configuration)
         for index in range(pack.evaluation_case_count):
             x = self._unit_interval(
                 derive_mock_seed(context, RoleKey("practice_evaluation_case"), index)
@@ -519,7 +584,10 @@ class MockTrainEvalService:
             shifted_x = float(fixture_x) + x / 100.0
             reference = float(fixture_y) + (2.0 * fixture_x * x / 100.0)
             errors = tuple(
-                abs(coefficient * shifted_x - reference) for coefficient in coefficients
+                abs(coefficient * (shifted_x**configuration.feature_degree) - reference)
+                for coefficient, configuration in zip(
+                    coefficients, configurations, strict=True
+                )
             )
             if len(errors) == 1:
                 eval_values.append((errors[0], errors[0]))

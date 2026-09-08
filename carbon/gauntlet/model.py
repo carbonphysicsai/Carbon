@@ -181,7 +181,9 @@ _APPLICABLE_PROTOCOL_OUTCOMES = {
 
 class GauntletStatus(str, Enum):
     BLOCKED_PREREGISTRATION = "BLOCKED_PREREGISTRATION"
-    ENGINEERING_READY = "ENGINEERING_READY"
+    BLOCKED_VERIFICATION_AND_EXECUTION_EVIDENCE = (
+        "BLOCKED_VERIFICATION_AND_EXECUTION_EVIDENCE"
+    )
 
 
 _DESIGN_FIELDS = (
@@ -570,4 +572,4 @@ class GauntletRecord:
     def status(self) -> GauntletStatus:
         if not self.preregistration.is_complete:
             return GauntletStatus.BLOCKED_PREREGISTRATION
-        return GauntletStatus.ENGINEERING_READY
+        return GauntletStatus.BLOCKED_VERIFICATION_AND_EXECUTION_EVIDENCE

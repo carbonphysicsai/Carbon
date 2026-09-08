@@ -15,6 +15,12 @@
 **Authority ceiling:** no qualifying execution, utility result, scientific or
 security/privacy qualification, production qualification, or LIVE authority
 
+> **Historical proposal.** The v2 proposal's design content and digest remain
+> immutable historical design-analysis evidence. This document carries only a
+> prospective successor pointer; the current recommendation is the
+> [`STILL_BLOCKED` v3 execution-readiness pack](B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md).
+> Nothing in that successor approves either proposal or authorizes execution.
+
 ## Owner summary
 
 The proposed experiment uses five fixed fixture-agent profiles, four matched

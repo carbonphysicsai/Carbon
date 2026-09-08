@@ -18,6 +18,7 @@ from carbon.construction import (
     CompileRejected,
     CompilerIdentity,
     ConsumerTarget,
+    DefaultedSurface,
     ParameterCatalog,
     ParameterCatalogRef,
     ResolvedConstructionPlanRef,
@@ -28,6 +29,7 @@ from carbon.construction import (
     TrainingSamplingPolicyRef,
     compile_strategy,
 )
+from carbon.construction.canonical import encode_model
 from carbon.evaluation.refs import FixtureReferenceAssetRef
 from carbon.fees.model import (
     AdmissionKind,
@@ -64,8 +66,13 @@ from carbon.seeding import (
     derive_fixture_official_seed,
 )
 from carbon.toy import (
+    FIXTURE_CURRICULUM_SURFACE_ID,
+    FIXTURE_FEATURE_SURFACE_ID,
     FIXTURE_HELDOUT_OBSERVATIONS,
+    FIXTURE_SAMPLING_SURFACE_ID,
     FIXTURE_TRAINING_OBSERVATIONS,
+    FIXTURE_TRANSFER_OBSERVATIONS,
+    FixtureModelConfiguration,
     construct_fixture_model,
     evaluate_fixture_reference,
 )
@@ -88,10 +95,23 @@ from .service import (
 
 _TRAIN_ROLE = RoleKey("fixture_training_role_key")
 _AUTHORITY = "TEST_ONLY_FIXTURE_NOT_QUALIFIED"
-_LEVER_SURFACE = "fixture_sampling_level"
+# Legacy registered spelling retained for static ownership checks: fixture_sampling_level.
+_LEVER_SURFACE = FIXTURE_SAMPLING_SURFACE_ID
 _LEVER_CONSUMER = ConsumerTarget("fixture_training", "sampling_level")
+_CURRICULUM_CONSUMER = ConsumerTarget("fixture_training", "curriculum_emphasis")
+_FEATURE_CONSUMER = ConsumerTarget("fixture_training", "feature_degree")
+_EXPECTED_LEVERS = {
+    FIXTURE_SAMPLING_SURFACE_ID: (_LEVER_CONSUMER, TrainingLeverKind.SAMPLING),
+    FIXTURE_CURRICULUM_SURFACE_ID: (
+        _CURRICULUM_CONSUMER,
+        TrainingLeverKind.CURRICULUM,
+    ),
+    FIXTURE_FEATURE_SURFACE_ID: (_FEATURE_CONSUMER, TrainingLeverKind.AUGMENTATION),
+}
 _MAX_INPUT_KEYS = 64
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z", re.ASCII)
+_LEGACY_IDENTITY_VERSION = "1.0"
+_THREE_FAMILY_IDENTITY_VERSION = "2.0"
 
 
 class FixtureConstructionCause(str, Enum):
@@ -232,6 +252,7 @@ class FixtureToyAsset(_PrivateFixtureValue):
     measurement_contract_ref: MeasurementContractRef
     training_observations: tuple[tuple[int, int], ...] = field(init=False)
     heldout_observations: tuple[tuple[int, int], ...] = field(init=False)
+    transfer_observations: tuple[tuple[int, int], ...] = field(init=False)
     authority_marker: str = field(default=_AUTHORITY, init=False)
 
     def __init__(
@@ -269,9 +290,12 @@ class FixtureToyAsset(_PrivateFixtureValue):
         object.__setattr__(self, "measurement_contract_ref", measurement_contract_ref)
         object.__setattr__(self, "training_observations", FIXTURE_TRAINING_OBSERVATIONS)
         object.__setattr__(self, "heldout_observations", FIXTURE_HELDOUT_OBSERVATIONS)
+        object.__setattr__(self, "transfer_observations", FIXTURE_TRANSFER_OBSERVATIONS)
         object.__setattr__(self, "authority_marker", _AUTHORITY)
 
     def content_digest(self) -> str:
+        """Return the historical sampling-only asset identity unchanged."""
+
         return _digest(
             _json_bytes(
                 {
@@ -282,6 +306,25 @@ class FixtureToyAsset(_PrivateFixtureValue):
                     "measurement": _ref_value(self.measurement_contract_ref),
                     "reference": _ref_value(self.reference_asset_ref),
                     "training": self.training_observations,
+                }
+            )
+        )
+
+    def content_digest_v2(self) -> str:
+        """Bind the prospective three-family asset, including transfer cases."""
+
+        return _digest(
+            _json_bytes(
+                {
+                    "authority": self.authority_marker,
+                    "challenge": _challenge_value(self.challenge_key),
+                    "generator": _ref_value(self.generator_configuration_ref),
+                    "heldout": self.heldout_observations,
+                    "identity_version": _THREE_FAMILY_IDENTITY_VERSION,
+                    "measurement": _ref_value(self.measurement_contract_ref),
+                    "reference": _ref_value(self.reference_asset_ref),
+                    "training": self.training_observations,
+                    "transfer": self.transfer_observations,
                 }
             )
         )
@@ -352,6 +395,44 @@ class FixtureMeasurementFailed(_PrivateFixtureValue):
 
 
 @dataclass(frozen=True, slots=True, repr=False)
+class FixtureConsumedLever(_PrivateFixtureValue):
+    """One exact lever demonstrably consumed by the fixture construction."""
+
+    surface_id: str
+    consumer_target: ConsumerTarget
+    kind: TrainingLeverKind
+    value: int
+    resolved_binding_digest: str
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not FixtureConsumedLever
+            or self.surface_id
+            not in (
+                FIXTURE_SAMPLING_SURFACE_ID,
+                FIXTURE_CURRICULUM_SURFACE_ID,
+                FIXTURE_FEATURE_SURFACE_ID,
+            )
+            or type(self.consumer_target) is not ConsumerTarget
+            or not _exact_enum(self.kind, TrainingLeverKind)
+            or type(self.value) is not int
+            or self.value not in (1, 2)
+            or not _is_digest(self.resolved_binding_digest)
+            or (self.consumer_target, self.kind) != _EXPECTED_LEVERS[self.surface_id]
+        ):
+            raise FixtureRunRequestError()
+
+    def canonical_value(self) -> list[object]:
+        return [
+            self.surface_id,
+            [self.consumer_target.consumer_id, self.consumer_target.field_id],
+            self.kind.value,
+            self.value,
+            self.resolved_binding_digest,
+        ]
+
+
+@dataclass(frozen=True, slots=True, repr=False)
 class FixtureReconstructionReceipt(_PrivateFixtureValue):
     handle: ExecutionAttemptHandle
     strategy_hash: StrategyHash
@@ -369,8 +450,7 @@ class FixtureReconstructionReceipt(_PrivateFixtureValue):
     reference_asset_ref: FixtureReferenceAssetRef
     measurement_contract_ref: MeasurementContractRef
     fixture_asset_digest: str
-    consumed_surface_id: str
-    consumed_value: int
+    consumed_levers: tuple[FixtureConsumedLever, ...]
     constructed_artifact_digest: str
     authority_marker: str = field(default=_AUTHORITY, init=False)
 
@@ -390,10 +470,17 @@ class FixtureReconstructionReceipt(_PrivateFixtureValue):
             is not BurgersFixtureConfigurationRef
             or type(self.reference_asset_ref) is not FixtureReferenceAssetRef
             or type(self.measurement_contract_ref) is not MeasurementContractRef
-            or type(self.consumed_surface_id) is not str
-            or self.consumed_surface_id != _LEVER_SURFACE
-            or type(self.consumed_value) is not int
-            or self.consumed_value not in (1, 2)
+            or type(self.consumed_levers) is not tuple
+            or len(self.consumed_levers) not in (1, 3)
+            or any(
+                type(item) is not FixtureConsumedLever for item in self.consumed_levers
+            )
+            or tuple(item.surface_id for item in self.consumed_levers)
+            != tuple(sorted(item.surface_id for item in self.consumed_levers))
+            or len({item.surface_id for item in self.consumed_levers})
+            != len(self.consumed_levers)
+            or FIXTURE_SAMPLING_SURFACE_ID
+            not in {item.surface_id for item in self.consumed_levers}
             or self.handle.admission_kind is not AdmissionKind.FIXTURE
             or self.execution_environment != self.handle.environment_pin
             or any(
@@ -428,47 +515,82 @@ class FixtureReconstructionReceipt(_PrivateFixtureValue):
         handle = self.handle
         pin = handle.seed_pin
         binding_digest = _digest(pin.evaluation_binding._copy_bytes())
-        return _json_bytes(
-            {
-                "assembly": _ref_value(self.candidate_assembly_ref),
-                "assessment_digest": self.static_assessment_digest,
-                "attempt": [handle.submission_id.value, handle.attempt_number],
-                "authority": self.authority_marker,
-                "catalog": _ref_value(self.parameter_catalog_ref),
-                "compiler_digest": self.compiler_implementation_digest,
-                "constructed_artifact_digest": self.constructed_artifact_digest,
-                "environment": [
-                    self.execution_environment.backend_profile_id,
-                    self.execution_environment.container_digest,
-                ],
-                "fixture_asset_digest": self.fixture_asset_digest,
-                "generator": _ref_value(self.generator_configuration_ref),
-                "measurement": _ref_value(self.measurement_contract_ref),
-                "plan": _ref_value(self.construction_plan_ref),
-                "reference": _ref_value(self.reference_asset_ref),
-                "resource_class": _ref_value(self.resource_class_ref),
-                "resource_policy": _ref_value(self.resource_policy_ref),
-                "seed_pin_digest": _digest(
-                    _json_bytes(
-                        {
-                            "binding": binding_digest,
-                            "challenge": _challenge_value(pin.challenge_key),
-                            "generator": [pin.generator_version, pin.generator_digest],
-                            "scoring": [pin.scoring_version, pin.scoring_digest],
-                            "scheme": pin.seed_scheme,
-                        }
-                    )
-                ),
-                "strategy_hash": self.strategy_hash.value,
-                "surface": [self.consumed_surface_id, self.consumed_value],
-                "training_policy": _ref_value(self.training_policy_ref),
-                "training_support_digest": self.training_support_digest,
-            }
-        )
+        payload: dict[str, object] = {
+            "assembly": _ref_value(self.candidate_assembly_ref),
+            "assessment_digest": self.static_assessment_digest,
+            "attempt": [handle.submission_id.value, handle.attempt_number],
+            "authority": self.authority_marker,
+            "catalog": _ref_value(self.parameter_catalog_ref),
+            "compiler_digest": self.compiler_implementation_digest,
+            "constructed_artifact_digest": self.constructed_artifact_digest,
+            "environment": [
+                self.execution_environment.backend_profile_id,
+                self.execution_environment.container_digest,
+            ],
+            "fixture_asset_digest": self.fixture_asset_digest,
+            "generator": _ref_value(self.generator_configuration_ref),
+            "measurement": _ref_value(self.measurement_contract_ref),
+            "plan": _ref_value(self.construction_plan_ref),
+            "reference": _ref_value(self.reference_asset_ref),
+            "resource_class": _ref_value(self.resource_class_ref),
+            "resource_policy": _ref_value(self.resource_policy_ref),
+            "seed_pin_digest": _digest(
+                _json_bytes(
+                    {
+                        "binding": binding_digest,
+                        "challenge": _challenge_value(pin.challenge_key),
+                        "generator": [pin.generator_version, pin.generator_digest],
+                        "scoring": [pin.scoring_version, pin.scoring_digest],
+                        "scheme": pin.seed_scheme,
+                    }
+                )
+            ),
+            "strategy_hash": self.strategy_hash.value,
+            "training_policy": _ref_value(self.training_policy_ref),
+            "training_support_digest": self.training_support_digest,
+        }
+        if self.identity_version == _LEGACY_IDENTITY_VERSION:
+            # This is the exact pre-B-E4 sampling-only canonical shape. Its bytes
+            # and receipt refs are a compatibility contract.
+            payload["surface"] = [self.consumed_surface_id, self.consumed_value]
+        else:
+            payload.update(
+                {
+                    "identity_version": self.identity_version,
+                    "consumed_levers": [
+                        item.canonical_value() for item in self.consumed_levers
+                    ],
+                }
+            )
+        return _json_bytes(payload)
 
     @property
     def receipt_ref(self) -> str:
         return _digest(self.canonical_bytes())
+
+    @property
+    def identity_version(self) -> str:
+        return (
+            _LEGACY_IDENTITY_VERSION
+            if len(self.consumed_levers) == 1
+            else _THREE_FAMILY_IDENTITY_VERSION
+        )
+
+    @property
+    def consumed_surface_id(self) -> str:
+        """Compatibility projection for the original sampling-only receipt."""
+
+        return FIXTURE_SAMPLING_SURFACE_ID
+
+    @property
+    def consumed_value(self) -> int:
+        """Compatibility projection for the original sampling-only receipt."""
+
+        return next(
+            item.value
+            for item in self.consumed_levers
+            if item.surface_id == FIXTURE_SAMPLING_SURFACE_ID
+        )
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -477,6 +599,7 @@ class FixtureResultReceipt(_PrivateFixtureValue):
     score_pack_pin: ScorePackPin
     result_status: ScoreStatus
     result_digest: str
+    identity_version: str = _LEGACY_IDENTITY_VERSION
     authority_marker: str = field(default=_AUTHORITY, init=False)
 
     def __post_init__(self) -> None:
@@ -487,19 +610,23 @@ class FixtureResultReceipt(_PrivateFixtureValue):
             or self.result_status
             not in (ScoreStatus.SCORED, ScoreStatus.MANDATORY_GATE_FAILED)
             or not _is_digest(self.result_digest)
+            or type(self.identity_version) is not str
+            or self.identity_version
+            not in (_LEGACY_IDENTITY_VERSION, _THREE_FAMILY_IDENTITY_VERSION)
         ):
             raise FixtureRunRequestError()
 
     def canonical_bytes(self) -> bytes:
-        return _json_bytes(
-            {
-                "authority": self.authority_marker,
-                "reconstruction_receipt_ref": self.reconstruction_receipt_ref,
-                "result_digest": self.result_digest,
-                "result_status": self.result_status.value,
-                "score_pack": _score_pin_value(self.score_pack_pin),
-            }
-        )
+        payload: dict[str, object] = {
+            "authority": self.authority_marker,
+            "reconstruction_receipt_ref": self.reconstruction_receipt_ref,
+            "result_digest": self.result_digest,
+            "result_status": self.result_status.value,
+            "score_pack": _score_pin_value(self.score_pack_pin),
+        }
+        if self.identity_version == _THREE_FAMILY_IDENTITY_VERSION:
+            payload["identity_version"] = self.identity_version
+        return _json_bytes(payload)
 
     @property
     def receipt_ref(self) -> str:
@@ -522,6 +649,8 @@ class ResolvedFixtureCompletedRun(_PrivateFixtureValue):
             or type(self.result_receipt) is not FixtureResultReceipt
             or self.result_receipt.reconstruction_receipt_ref
             != self.reconstruction_receipt.receipt_ref
+            or self.result_receipt.identity_version
+            != self.reconstruction_receipt.identity_version
             or self.construction_plan_ref
             != self.reconstruction_receipt.construction_plan_ref
             or self.completed_run.handle != self.reconstruction_receipt.handle
@@ -547,19 +676,35 @@ ResolvedFixtureRunOutcome: TypeAlias = (
 
 
 def _construct_fixture_model(
-    observations: tuple[tuple[int, int], ...], level: int, seed: bytes
+    observations: tuple[tuple[int, int], ...],
+    level: int,
+    seed: bytes,
+    *,
+    curriculum_emphasis: int = 1,
+    feature_degree: int = 1,
 ) -> tuple[float, str]:
     """Compatibility seam delegating to the shared fixture semantic owner."""
 
-    return construct_fixture_model(observations, level, seed)
+    return construct_fixture_model(
+        observations,
+        level,
+        seed,
+        curriculum_emphasis=curriculum_emphasis,
+        feature_degree=feature_degree,
+    )
 
 
 def _evaluate_fixture_reference(
-    coefficient: float, observations: tuple[tuple[int, int], ...]
+    coefficient: float,
+    observations: tuple[tuple[int, int], ...],
+    *,
+    feature_degree: int = 1,
 ) -> float:
     """Compatibility seam delegating to the shared fixture semantic owner."""
 
-    return evaluate_fixture_reference(coefficient, observations)
+    return evaluate_fixture_reference(
+        coefficient, observations, feature_degree=feature_degree
+    )
 
 
 class ResolvedPlanFixtureTrainEvalService:
@@ -580,7 +725,7 @@ class ResolvedPlanFixtureTrainEvalService:
         "__expected_class_ref",
         "__expected_policy_ref",
         "__fixture_asset",
-        "__lever_semantics_ref",
+        "__lever_specs",
         "__numeric_input_keys",
         "__policy",
         "__policy_ref",
@@ -620,6 +765,8 @@ class ResolvedPlanFixtureTrainEvalService:
         lever_executable_semantics_ref: object,
         numeric_input_keys: tuple[str, ...],
         boolean_input_keys: tuple[str, ...],
+        curriculum_executable_semantics_ref: object | None = None,
+        feature_executable_semantics_ref: object | None = None,
     ) -> None:
         exact = (
             type(challenge_key) is ChallengeKey
@@ -652,6 +799,33 @@ class ResolvedPlanFixtureTrainEvalService:
             or len(boolean_input_keys) > _MAX_INPUT_KEYS
         ):
             raise FixtureRunRequestError()
+        if (curriculum_executable_semantics_ref is None) != (
+            feature_executable_semantics_ref is None
+        ):
+            raise FixtureRunRequestError()
+        lever_specs = (
+            (
+                FIXTURE_SAMPLING_SURFACE_ID,
+                _LEVER_CONSUMER,
+                TrainingLeverKind.SAMPLING,
+                lever_executable_semantics_ref,
+            ),
+        )
+        if curriculum_executable_semantics_ref is not None:
+            lever_specs += (
+                (
+                    FIXTURE_CURRICULUM_SURFACE_ID,
+                    _CURRICULUM_CONSUMER,
+                    TrainingLeverKind.CURRICULUM,
+                    curriculum_executable_semantics_ref,
+                ),
+                (
+                    FIXTURE_FEATURE_SURFACE_ID,
+                    _FEATURE_CONSUMER,
+                    TrainingLeverKind.AUGMENTATION,
+                    feature_executable_semantics_ref,
+                ),
+            )
         try:
             if (
                 candidate_assembly.to_ref() != candidate_assembly_ref
@@ -682,23 +856,30 @@ class ResolvedPlanFixtureTrainEvalService:
                 != len(numeric_input_keys) + len(boolean_input_keys)
             ):
                 raise FixtureRunIdentityError()
-            binding = next(
+            bound_entries = tuple(
                 entry
                 for entry in parameter_catalog.entries
-                if entry.surface_id == _LEVER_SURFACE
-            ).training_lever_binding
-            if (
-                type(binding) is not BoundTrainingLever
-                or binding.kind is not TrainingLeverKind.SAMPLING
-                or binding.executable_semantics_ref != lever_executable_semantics_ref
-                or next(
+                if type(entry.training_lever_binding) is BoundTrainingLever
+            )
+            if {entry.surface_id for entry in bound_entries} != {
+                spec[0] for spec in lever_specs
+            }:
+                raise FixtureRunIdentityError()
+            for surface_id, consumer, kind, semantics_ref in lever_specs:
+                entry = next(
                     entry
                     for entry in parameter_catalog.entries
-                    if entry.surface_id == _LEVER_SURFACE
-                ).consumer_target
-                != _LEVER_CONSUMER
-            ):
-                raise FixtureRunIdentityError()
+                    if entry.surface_id == surface_id
+                )
+                binding = entry.training_lever_binding
+                if (
+                    type(binding) is not BoundTrainingLever
+                    or binding.kind is not kind
+                    or binding.executable_semantics_ref != semantics_ref
+                    or entry.consumer_target != consumer
+                    or entry.value_type is not SurfaceValueType.UINT64
+                ):
+                    raise FixtureRunIdentityError()
             _preflight_score_pack(score_pack)
         except (FixtureRunIdentityError, FixtureRunRequestError):
             raise
@@ -728,7 +909,7 @@ class ResolvedPlanFixtureTrainEvalService:
             "strategy_limits": strategy_limits,
             "numeric_input_keys": numeric_input_keys,
             "boolean_input_keys": boolean_input_keys,
-            "lever_semantics_ref": lever_executable_semantics_ref,
+            "lever_specs": lever_specs,
         }.items():
             object.__setattr__(
                 self, f"_ResolvedPlanFixtureTrainEvalService__{name}", value
@@ -825,35 +1006,56 @@ class ResolvedPlanFixtureTrainEvalService:
                 handle, FixtureConstructionCause.PLAN_IDENTITY_MISMATCH
             )
 
-        level: int | None = None
+        configuration: FixtureModelConfiguration | None = None
+        consumed_levers: tuple[FixtureConsumedLever, ...] = ()
         try:
-            if (
-                type(policy) is not ResolvedTrainingSamplingPolicy
-                or len(policy.bindings) != 1
-            ):
+            if type(policy) is not ResolvedTrainingSamplingPolicy or len(
+                policy.bindings
+            ) != len(self.__lever_specs):
                 raise LookupError
-            binding = policy.bindings[0]
-            surface = next(
-                item
-                for item in plan.resolved_surfaces
-                if item.surface_id == _LEVER_SURFACE
-            )
-            if (
-                binding.surface_id != _LEVER_SURFACE
-                or binding.kind is not TrainingLeverKind.SAMPLING
-                or binding.executable_semantics_ref != self.__lever_semantics_ref
-                or type(surface) is not SelectedSurface
-                or surface.consumer_target != _LEVER_CONSUMER
-                or surface.value != binding.resolved_value
-                or binding.resolved_value.value_type is not SurfaceValueType.UINT64
-            ):
+            bindings = {binding.surface_id: binding for binding in policy.bindings}
+            surfaces = {
+                surface.surface_id: surface for surface in plan.resolved_surfaces
+            }
+            if len(bindings) != len(policy.bindings):
                 raise LookupError
-            value = binding.resolved_value.value
-            if type(value) is not int or value not in (1, 2):
-                return FixtureConstructionFailed(
-                    handle, FixtureConstructionCause.LEVER_VALUE_UNSUPPORTED
+            values: dict[str, int] = {}
+            consumed: list[FixtureConsumedLever] = []
+            for surface_id, consumer, kind, semantics_ref in self.__lever_specs:
+                binding = bindings[surface_id]
+                surface = surfaces[surface_id]
+                if (
+                    binding.kind is not kind
+                    or binding.executable_semantics_ref != semantics_ref
+                    or type(surface) not in (SelectedSurface, DefaultedSurface)
+                    or surface.consumer_target != consumer
+                    or surface.value != binding.resolved_value
+                    or binding.resolved_value.value_type is not SurfaceValueType.UINT64
+                ):
+                    raise LookupError
+                value = binding.resolved_value.value
+                if type(value) is not int or value not in (1, 2):
+                    return FixtureConstructionFailed(
+                        handle, FixtureConstructionCause.LEVER_VALUE_UNSUPPORTED
+                    )
+                values[surface_id] = value
+                consumed.append(
+                    FixtureConsumedLever(
+                        surface_id,
+                        consumer,
+                        kind,
+                        value,
+                        _digest(encode_model(binding)),
+                    )
                 )
-            level = value
+            configuration = FixtureModelConfiguration(
+                values[FIXTURE_SAMPLING_SURFACE_ID],
+                values.get(FIXTURE_CURRICULUM_SURFACE_ID, 1),
+                values.get(FIXTURE_FEATURE_SURFACE_ID, 1),
+            )
+            consumed_levers = tuple(
+                sorted(consumed, key=lambda item: item.surface_id.encode("ascii"))
+            )
         except Exception:  # noqa: BLE001 - malformed plan graphs stay redacted.
             return FixtureConstructionFailed(
                 handle, FixtureConstructionCause.REGISTERED_LEVER_IGNORED
@@ -912,8 +1114,13 @@ class ResolvedPlanFixtureTrainEvalService:
             context = None
 
         try:
+            assert configuration is not None
             coefficient, artifact_digest = _construct_fixture_model(
-                self.__fixture_asset.training_observations, level, train_seed
+                self.__fixture_asset.training_observations,
+                configuration.sampling_level,
+                train_seed,
+                curriculum_emphasis=configuration.curriculum_emphasis,
+                feature_degree=configuration.feature_degree,
             )
         except Exception:  # noqa: BLE001 - construction failures are classified.
             return FixtureConstructionFailed(
@@ -923,7 +1130,9 @@ class ResolvedPlanFixtureTrainEvalService:
             train_seed = b""
         try:
             heldout_error = _evaluate_fixture_reference(
-                coefficient, self.__fixture_asset.heldout_observations
+                coefficient,
+                self.__fixture_asset.heldout_observations,
+                feature_degree=configuration.feature_degree,
             )
         except Exception:  # noqa: BLE001 - reference failures are classified.
             return FixtureReferenceFailed(
@@ -981,9 +1190,12 @@ class ResolvedPlanFixtureTrainEvalService:
             self.__fixture_asset.generator_configuration_ref,
             self.__fixture_asset.reference_asset_ref,
             self.__fixture_asset.measurement_contract_ref,
-            self.__fixture_asset.content_digest(),
-            _LEVER_SURFACE,
-            level,
+            (
+                self.__fixture_asset.content_digest()
+                if len(consumed_levers) == 1
+                else self.__fixture_asset.content_digest_v2()
+            ),
+            consumed_levers,
             artifact_digest,
         )
         result_receipt = FixtureResultReceipt(
@@ -991,6 +1203,7 @@ class ResolvedPlanFixtureTrainEvalService:
             owned_result.pack_pin,
             owned_result.status,
             _result_digest(owned_result),
+            reconstruction.identity_version,
         )
         return ResolvedFixtureCompletedRun(
             completed,
@@ -1004,6 +1217,7 @@ __all__ = (
     "FixtureCompilationFailed",
     "FixtureConstructionCause",
     "FixtureConstructionFailed",
+    "FixtureConsumedLever",
     "FixtureMeasurementCause",
     "FixtureMeasurementFailed",
     "FixtureReconstructionReceipt",
