@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `c455bc8f4890fa94357e1a466d592006ded0721b` on `main`, captured 2026-09-08T20:58:04Z.
+**Authority snapshot:** `c58ee990ccf3117d57b2d9fc809fc40b07e14f77` on `main`, captured 2026-09-08T22:04:18Z.
 **Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #112 merged historical pilot v1. The current correction candidate pre-binds genuine failure evidence to one campaign/run/session, enforces one-use replacement, records predicted/reserved/confirmed/unreconciled resources prospectively, and proposes strict pilot v2. Pilot v2 keeps one common Terra model across five policies, defines 12 prospective task cells, 40 development plus 240 calibration runs and 20 reserves, and retains the $98.304 hard ceiling. Its five grouped decisions remain PROPOSED; it has no provider adapter, approval, execution authorization, or run evidence, and no inference, pilot, qualifying, shadow, or attack campaign ran. V4 remains STILL_BLOCKED; no later ticket is selected and B-GATE remains unstarted.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
