@@ -21,8 +21,10 @@ from .design import canonical_intervention_from_experiment_record
 from .execution import ResearchOperationFailure
 from .lifecycle import (
     LifecycleFailureKind,
+    LifecycleResourceObservation,
     NonQualifyingLifecycleError,
     NonQualifyingLifecycleRun,
+    ReplacementEligibility,
 )
 from .model import AgentProfile, ExperimentalArm, MatchedBudget
 
@@ -41,7 +43,7 @@ _RUN_DOMAIN = b"carbon.be4.rehearsal-run-evidence.v1\x00"
 _BUDGET_DOMAIN = b"carbon.be4.rehearsal-budget.v1\x00"
 _IMPLEMENTATION_DOMAIN = b"carbon.be4.rehearsal-implementation.v1\x00"
 _MANIFEST_DOMAIN = b"carbon.be4.rehearsal-campaign-manifest.v1\x00"
-_FAILURE_DOMAIN = b"carbon.be4.rehearsal-block-failure.v1\x00"
+_FAILURE_DOMAIN = b"carbon.be4.rehearsal-block-failure.v2\x00"
 _REJECTION_DOMAIN = b"carbon.be4.rehearsal-rejected-operation.v1\x00"
 _REPLACEMENT_DOMAIN = b"carbon.be4.rehearsal-block-replacement.v1\x00"
 _CAMPAIGN_DOMAIN = b"carbon.be4.rehearsal-campaign-evidence.v1\x00"
@@ -595,6 +597,9 @@ class BlockFailureEvidence:
     slot: RehearsalBlockSlot
     failure_kind: LifecycleFailureKind
     stage: str
+    replacement_eligibility: ReplacementEligibility
+    owner_failure_digest: str | None
+    resource_observation: LifecycleResourceObservation | None
     content_digest: str
     _factory_token: object = dataclass_field(repr=False, compare=False)
 
@@ -604,8 +609,28 @@ class BlockFailureEvidence:
             or self._factory_token is not _FAILURE_FACTORY_TOKEN
             or type(self.slot) is not RehearsalBlockSlot
             or type(self.failure_kind) is not LifecycleFailureKind
+            or type(self.replacement_eligibility) is not ReplacementEligibility
+            or (
+                self.resource_observation is not None
+                and type(self.resource_observation) is not LifecycleResourceObservation
+            )
         ):
             raise TypeError("block failures require the trusted failure factory")
+        if self.replacement_eligibility is ReplacementEligibility.NOT_ELIGIBLE:
+            if self.owner_failure_digest is not None:
+                raise ValueError("non-replaceable failure has owner attribution")
+        elif (
+            self.failure_kind is LifecycleFailureKind.INFRASTRUCTURE
+            and self.replacement_eligibility
+            is ReplacementEligibility.VERIFIED_INFRASTRUCTURE
+        ) or (
+            self.failure_kind is LifecycleFailureKind.REFERENCE
+            and self.replacement_eligibility
+            is ReplacementEligibility.VERIFIED_REFERENCE
+        ):
+            _digest(self.owner_failure_digest, "owner_failure_digest")
+        else:
+            raise ValueError("replacement eligibility conflicts with failure kind")
         _identifier(self.stage, "stage")
         _digest(self.content_digest, "content_digest")
         expected = _hash(
@@ -617,6 +642,13 @@ class BlockFailureEvidence:
                 self.slot.block_id,
                 self.failure_kind.value,
                 self.stage,
+                self.replacement_eligibility.value,
+                self.owner_failure_digest or "NO_OWNER_FAILURE",
+                (
+                    "NO_RESOURCE_OBSERVATION"
+                    if self.resource_observation is None
+                    else self.resource_observation.content_digest
+                ),
             ),
         )
         if self.content_digest != expected:
@@ -640,10 +672,24 @@ def record_block_failure(
             slot.block_id,
             error.kind.value,
             error.stage,
+            error.replacement_eligibility.value,
+            error.owner_failure_digest or "NO_OWNER_FAILURE",
+            (
+                "NO_RESOURCE_OBSERVATION"
+                if error.resource_observation is None
+                else error.resource_observation.content_digest
+            ),
         ),
     )
     return BlockFailureEvidence(
-        slot, error.kind, error.stage, digest, _FAILURE_FACTORY_TOKEN
+        slot,
+        error.kind,
+        error.stage,
+        error.replacement_eligibility,
+        error.owner_failure_digest,
+        error.resource_observation,
+        digest,
+        _FAILURE_FACTORY_TOKEN,
     )
 
 
@@ -736,8 +782,11 @@ class RetainedBlockMapping:
             or self.failed.slot.role is not RehearsalSlotRole.PRIMARY
             or self.replacement.role is not RehearsalSlotRole.RESERVE
             or self.failed.slot.profile is not self.replacement.profile
-            or self.failed.failure_kind
-            not in (LifecycleFailureKind.INFRASTRUCTURE, LifecycleFailureKind.REFERENCE)
+            or self.failed.replacement_eligibility
+            not in (
+                ReplacementEligibility.VERIFIED_INFRASTRUCTURE,
+                ReplacementEligibility.VERIFIED_REFERENCE,
+            )
         ):
             raise ValueError("replacement is not authorized by the typed failure rule")
         _digest(self.content_digest, "content_digest")

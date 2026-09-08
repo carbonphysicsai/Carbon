@@ -286,7 +286,7 @@ Trusted non-rejection attack assessment, authenticated five-role ratification,
 and one-use execution authorization remain separate later seams. B-E4 stays
 `in_progress`; B-GATE stays unstarted.
 
-### Current recommendation
+### Historical v3 recommendation (superseded by stage-3 v4)
 
 - eight attempted candidates and `223` fixture units per complete proposed
   run (`8 x (11 + 15) + 15`);
@@ -405,3 +405,36 @@ and its full proposal digest is
 `sha256:98d06ae32ce75f3966795d57d8a45b229254b14d717ebe00d5636cf1151301ce`;
 neither is approval or execution authority, and
 `qualifying_execution_ready=false`.
+
+### Stage-4 execution-correctness repair and autonomous-pilot design handoff
+
+The current repair separates experiment-policy exhaustion from failures that
+an existing runtime owner can prove were external infrastructure/reference
+failures. Attempt, service-operation, normalized-compute, fixture-unit, and
+wall-time exhaustion is `POLICY_EXHAUSTION`, remains in the evidence record,
+and cannot consume a reserve. An ambiguous timeout and a caller-labelled
+`INFRASTRUCTURE`/`REFERENCE` error are likewise nonreplaceable. Only exact
+B-07B/B-07C terminal receipts and exact A7/A8 fixture outcomes establish the
+closed eligible external classes used by the rehearsal wrapper. Admission is
+checked before each known inadmissible practice or final operation; an
+uncertain post-operation wall overrun is retained but not replaced.
+
+The historical full-lifecycle calibration remains frozen against its original
+implementation digest. It is not regenerated after this runtime repair. A
+separate conditional headroom diagnostic uses only its recorded baseline means
+and the registered endpoint maximum: no/generic mean `0.8300554565022396`
+leaves `0.16994454349776045` Q maximum improvement, while v1 mean `0.8`
+leaves `0.2` Q. Both are below the proposed strict primary floor
+`0.4017350715246475`. This is a necessary range observation conditional on
+those empirical means, not a population bound, v2 result, owner decision, or
+license to revise the floor after outcomes.
+
+After this repair is accepted and merged, the next bounded delivery is an
+engineering-accepted, owner-unapproved autonomous-agent pilot proposal. It may
+pin a candidate model/provider, five arm-neutral profile policies, task/seed
+pairing, adaptive practice protocol, evidence outputs, and hard resource and
+financial ceilings. It must perform no model inference, lifecycle run, shadow
+campaign, attack campaign, or qualifying execution. Any pilot remains
+unauthorized until its named human-reserved population, task-distribution,
+resource, and evidence decisions are approved. B-E4 remains `in_progress` and
+B-GATE remains unstarted.

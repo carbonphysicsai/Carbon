@@ -25,6 +25,7 @@ from carbon.gauntlet import (
     OfficialLifecycleBridge,
     RehearsalPurpose,
     RehearsalSlotRole,
+    ReplacementEligibility,
     ResearchLifecycleBridge,
     authorize_replacement,
     build_nonqualifying_lifecycle_four_arm_block,
@@ -38,15 +39,31 @@ from carbon.gauntlet import (
     run_nonqualifying_lifecycle,
 )
 from carbon.gauntlet.execution import ResearchOperationFailure
+from carbon.gauntlet.lifecycle import _verified_owner_failure
 from carbon.gauntlet.meter import PolicyWorkMeter
 from carbon.research import ResearchServiceErrorCode
+from carbon.traineval.model import (
+    InfrastructureCause,
+    InfrastructureFailedRun,
+    InfrastructureRetryClass,
+)
+from carbon.traineval.resolved_fixture import (
+    FixtureReferenceCause,
+    FixtureReferenceFailed,
+    ResolvedPlanFixtureTrainEvalService,
+)
 
 
 def _sha(character: str) -> str:
     return "sha256:" + character * 64
 
 
-def _one_v2_run(tmp_path: Path):
+def _one_v2_run(
+    tmp_path: Path,
+    *,
+    budget: MatchedBudget | None = None,
+    fixture_resource_ceiling: int = 223,
+):
     domain = _extended_resource_fixture(tmp_path / "domain")
     store, prior_provider, lookup = _published_prior(tmp_path / "prior", domain)
     service, provider, scaffold_ref, practice_pack_ref = _lifecycle_research_graph(
@@ -59,8 +76,8 @@ def _one_v2_run(tmp_path: Path):
         profile=driver.profile,
         replicate=0,
         driver_ref=driver.ref,
-        budget=MatchedBudget(driver.profile, 30.0, 250.0, 8),
-        fixture_resource_ceiling=223,
+        budget=budget or MatchedBudget(driver.profile, 30.0, 250.0, 8),
+        fixture_resource_ceiling=fixture_resource_ceiling,
         scaffold_ref=scaffold_ref,
         practice_pack_ref=practice_pack_ref,
         v2_prior_pack=store.read_pack(lookup.prior_pack_ref),
@@ -203,8 +220,10 @@ def test_manifest_and_typed_reserve_policy_preserve_failed_records() -> None:
     )
     failure = record_block_failure(
         primary,
-        NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "fixture_official"
+        _verified_owner_failure(
+            LifecycleFailureKind.INFRASTRUCTURE,
+            "fixture_official",
+            (_sha("1"), "BACKEND_UNAVAILABLE"),
         ),
     )
     mapping = authorize_replacement(failed=failure, replacement=reserve)
@@ -270,12 +289,200 @@ def test_candidate_failures_and_cross_profile_reserves_cannot_replace() -> None:
         authorize_replacement(failed=candidate, replacement=planner_reserve)
     infrastructure = record_block_failure(
         primary,
-        NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "fixture_official"
+        _verified_owner_failure(
+            LifecycleFailureKind.INFRASTRUCTURE,
+            "fixture_official",
+            (_sha("1"), "BACKEND_UNAVAILABLE"),
         ),
     )
     with pytest.raises(ValueError, match="not authorized"):
         authorize_replacement(failed=infrastructure, replacement=other_reserve)
+
+
+@pytest.mark.parametrize(
+    "stage",
+    (
+        "wall_budget_before_selection",
+        "wall_budget_after_endpoint",
+        "fixture_resource_budget",
+        "normalized_compute_budget",
+        "attempt_budget",
+        "service_budget",
+    ),
+)
+def test_policy_exhaustion_cannot_acquire_an_infrastructure_replacement(
+    stage: str,
+) -> None:
+    manifest = build_rehearsal_campaign_manifest(
+        purpose=RehearsalPurpose.DEVELOPMENT,
+        design_digest=_DESIGN_DIGEST,
+        implementation_digest=_sha("a"),
+        treatment_digests=tuple(_sha(str(i)) for i in range(4)),
+        driver_digests=tuple(_sha(chr(98 + i)) for i in range(5)),
+        budget_digests=tuple(_sha(character) for character in "56789"),
+        primary_blocks_per_profile=1,
+        reserve_blocks_per_profile=1,
+        campaign_id="be4-policy-exhaustion-no-replacement-v1",
+        stopping_rule="ATTEMPT_EVERY_PROSPECTIVE_PRIMARY_ONCE",
+        failure_handling="REPLACE_ONLY_INFRASTRUCTURE_OR_REFERENCE",
+    )
+    primary = next(
+        item
+        for item in manifest.slots
+        if item.profile is AgentProfile.PLANNER
+        and item.role is RehearsalSlotRole.PRIMARY
+    )
+    reserve = next(
+        item
+        for item in manifest.slots
+        if item.profile is AgentProfile.PLANNER
+        and item.role is RehearsalSlotRole.RESERVE
+    )
+    exhaustion = record_block_failure(
+        primary,
+        NonQualifyingLifecycleError(LifecycleFailureKind.INFRASTRUCTURE, stage),
+    )
+
+    with pytest.raises(ValueError, match="not authorized"):
+        authorize_replacement(failed=exhaustion, replacement=reserve)
+
+
+def test_caller_asserted_infrastructure_failure_cannot_grant_replacement() -> None:
+    manifest = build_rehearsal_campaign_manifest(
+        purpose=RehearsalPurpose.DEVELOPMENT,
+        design_digest=_DESIGN_DIGEST,
+        implementation_digest=_sha("a"),
+        treatment_digests=tuple(_sha(str(i)) for i in range(4)),
+        driver_digests=tuple(_sha(chr(98 + i)) for i in range(5)),
+        budget_digests=tuple(_sha(character) for character in "56789"),
+        primary_blocks_per_profile=1,
+        reserve_blocks_per_profile=1,
+        campaign_id="be4-forged-infrastructure-no-replacement-v1",
+        stopping_rule="ATTEMPT_EVERY_PROSPECTIVE_PRIMARY_ONCE",
+        failure_handling="REPLACE_ONLY_INFRASTRUCTURE_OR_REFERENCE",
+    )
+    primary = next(
+        item
+        for item in manifest.slots
+        if item.profile is AgentProfile.PLANNER
+        and item.role is RehearsalSlotRole.PRIMARY
+    )
+    reserve = next(
+        item
+        for item in manifest.slots
+        if item.profile is AgentProfile.PLANNER
+        and item.role is RehearsalSlotRole.RESERVE
+    )
+    asserted = record_block_failure(
+        primary,
+        NonQualifyingLifecycleError(
+            LifecycleFailureKind.INFRASTRUCTURE, "fixture_official"
+        ),
+    )
+
+    with pytest.raises(ValueError, match="not authorized"):
+        authorize_replacement(failed=asserted, replacement=reserve)
+
+
+@pytest.mark.parametrize(
+    ("budget", "fixture_ceiling", "expected_stage"),
+    (
+        (MatchedBudget(AgentProfile.PLANNER, 30.0, 1.0, 8), 223, "service_budget"),
+        (
+            MatchedBudget(AgentProfile.PLANNER, 0.000000001, 250.0, 8),
+            223,
+            "wall_budget_before_practice",
+        ),
+        (
+            MatchedBudget(AgentProfile.PLANNER, 30.0, 250.0, 8),
+            1,
+            "fixture_resource_budget_before_practice",
+        ),
+    ),
+)
+def test_executed_policy_exhaustion_retains_resources_and_never_replaces(
+    tmp_path: Path,
+    budget: MatchedBudget,
+    fixture_ceiling: int,
+    expected_stage: str,
+) -> None:
+    with pytest.raises(NonQualifyingLifecycleError) as captured:
+        _one_v2_run(
+            tmp_path,
+            budget=budget,
+            fixture_resource_ceiling=fixture_ceiling,
+        )
+    error = captured.value
+    assert error.kind is LifecycleFailureKind.POLICY_EXHAUSTION
+    assert error.stage == expected_stage
+    assert error.replacement_eligibility is ReplacementEligibility.NOT_ELIGIBLE
+    assert error.resource_observation is not None
+    assert error.resource_observation.normalized_compute.total_work_units >= 0
+    assert error.resource_observation.fixture_units >= 0.0
+    assert error.resource_observation.wall_time.elapsed_seconds >= 0.0
+
+
+@pytest.mark.parametrize(
+    ("retry_class", "cause", "expected"),
+    (
+        (
+            InfrastructureRetryClass.RETRYABLE,
+            InfrastructureCause.BACKEND_UNAVAILABLE,
+            ReplacementEligibility.VERIFIED_INFRASTRUCTURE,
+        ),
+        (
+            InfrastructureRetryClass.RETRYABLE,
+            InfrastructureCause.EXECUTION_TIMEOUT,
+            ReplacementEligibility.NOT_ELIGIBLE,
+        ),
+        (
+            InfrastructureRetryClass.NON_RETRYABLE,
+            InfrastructureCause.RESOURCE_VIOLATION,
+            ReplacementEligibility.NOT_ELIGIBLE,
+        ),
+    ),
+)
+def test_official_owner_outcome_controls_infrastructure_replacement_eligibility(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    retry_class: InfrastructureRetryClass,
+    cause: InfrastructureCause,
+    expected: ReplacementEligibility,
+) -> None:
+    monkeypatch.setattr(
+        ResolvedPlanFixtureTrainEvalService,
+        "run_fixture",
+        lambda _self, envelope: InfrastructureFailedRun(
+            envelope.handle, retry_class, cause
+        ),
+    )
+    with pytest.raises(NonQualifyingLifecycleError) as captured:
+        _one_v2_run(tmp_path)
+    assert captured.value.kind is LifecycleFailureKind.INFRASTRUCTURE
+    assert captured.value.replacement_eligibility is expected
+    assert (captured.value.owner_failure_digest is not None) is (
+        expected is ReplacementEligibility.VERIFIED_INFRASTRUCTURE
+    )
+
+
+def test_typed_reference_owner_outcome_remains_replaceable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        ResolvedPlanFixtureTrainEvalService,
+        "run_fixture",
+        lambda _self, envelope: FixtureReferenceFailed(
+            envelope.handle, FixtureReferenceCause.REFERENCE_EVALUATION_FAILED
+        ),
+    )
+    with pytest.raises(NonQualifyingLifecycleError) as captured:
+        _one_v2_run(tmp_path)
+    assert captured.value.kind is LifecycleFailureKind.REFERENCE
+    assert (
+        captured.value.replacement_eligibility
+        is ReplacementEligibility.VERIFIED_REFERENCE
+    )
+    assert captured.value.owner_failure_digest is not None
 
 
 def test_campaign_rejects_forged_slot_metadata_with_a_real_block_id() -> None:

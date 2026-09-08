@@ -28,6 +28,14 @@ _RECEIPT_DOMAIN = b"carbon.be4.fixture-policy-work-receipt.v1\x00"
 class PolicyWorkBudgetExceeded(ValueError):
     """A work event was rejected before it could cross the bound ceiling."""
 
+    def __init__(self, kind: PolicyWorkKind) -> None:
+        if type(kind) is not PolicyWorkKind:
+            raise TypeError("budget exhaustion requires an exact work kind")
+        self.kind = kind
+        super().__init__(
+            f"normalized policy-work ceiling would be exceeded by {kind.value}"
+        )
+
 
 class PolicyWorkKind(str, Enum):
     """Closed, equally weighted fixture-policy operation vocabulary."""
@@ -165,9 +173,7 @@ class PolicyWorkMeter:
             raise OverflowError("policy work count exceeds int63")
         ceiling = object.__getattribute__(self, "_PolicyWorkMeter__ceiling")
         if ceiling is not None and sum(counts) + count > ceiling:
-            raise PolicyWorkBudgetExceeded(
-                "normalized preflight compute ceiling would be exceeded"
-            )
+            raise PolicyWorkBudgetExceeded(kind)
         counts[index] = updated
 
     @property

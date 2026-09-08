@@ -123,6 +123,23 @@ FIXTURE_RESOURCE_INSPECTION_UNIT = (
 )
 
 
+class FixtureResourceBudgetExceeded(ValueError):
+    """A statically known fixture operation cannot fit the bound run ceiling."""
+
+    def __init__(self, quantity: float, ceiling: int) -> None:
+        if (
+            type(quantity) is not float
+            or not math.isfinite(quantity)
+            or quantity < 0.0
+            or type(ceiling) is not int
+            or ceiling < 1
+        ):
+            raise TypeError("fixture exhaustion requires exact bounded values")
+        self.quantity = quantity
+        self.ceiling = ceiling
+        super().__init__("fixture resource plan ceiling would be exceeded")
+
+
 def _digest(value: object, name: str) -> str:
     if type(value) is not str or _DIGEST.fullmatch(value) is None:
         raise TypeError(f"{name} must be an exact tagged SHA-256 digest")
@@ -1306,7 +1323,7 @@ def validate_fixture_resource_inspection(
         )
     quantity = math.fsum(item.quantity for item in inspection.line_items)
     if quantity > float(ceiling):
-        raise ValueError("fixture resource plan ceiling was exceeded")
+        raise FixtureResourceBudgetExceeded(float(quantity), ceiling)
     return quantity
 
 
@@ -2352,6 +2369,7 @@ __all__ = (
     "PROPOSED_RESERVE_BLOCKS_PER_PROFILE",
     "REGISTERED_RNG_ROLES",
     "CalibrationRunObservation",
+    "FixtureResourceBudgetExceeded",
     "FourArmBlockPlan",
     "FrozenArmArtifact",
     "NonQualifyingCalibrationReport",

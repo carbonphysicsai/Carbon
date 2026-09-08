@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.1
+**Controlling register:** `.agent/WAVE_B.md` version 4.2
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -21,8 +21,10 @@ bounded execution-readiness checkpoint as
 `ffbb621c76acc73b8e27911df50ad607e0b5193c`; PR #108 merged the complete
 non-qualifying lifecycle as `d4a496b6b43d5139fc636428556822e6a5ec82e6`, and
 PR #109 merged its factory-bound rehearsal evidence as
-`8c907181b7f63b5c0153e2fa097ce28ec647ebb5`. This successor candidate records
-the prospectively frozen full-lifecycle calibration and blocked v4 proposal.
+`8c907181b7f63b5c0153e2fa097ce28ec647ebb5`. PR #110 merged the frozen
+full-lifecycle calibration as `b693bbe2e23774c93303d24416f55ebdd5f6c0e9`.
+This successor candidate repairs policy-exhaustion/replacement integrity and
+records the conditional v4 headroom blocker.
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on the recorded execution-integration gaps, validated pre-execution design, and
 complete human-ratified preregistration; B-GATE remains unstarted.
@@ -83,14 +85,18 @@ passed run `34124228848` and normally merged
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
 **B-E4 status:** `in_progress`; PR #108 merged the complete non-qualifying
-lifecycle and PR #109 merged factory-bound rehearsal evidence. The frozen fresh
-calibration candidate records 25 complete primary four-arm blocks and 100 runs,
+lifecycle, PR #109 merged factory-bound rehearsal evidence, and PR #110 merged
+the frozen fresh calibration. It records 25 complete primary four-arm blocks and 100 runs,
 with zero invalid attempts/failures/replacements but only an 11.2928% one-sided
 95% failure-rate upper bound. Deterministic repeats have zero paired SD, v2 is
 non-positive, and three family identities collapse to three global lineage
 roots. V4 therefore remains `STILL_BLOCKED`, proposes calibrated work/wall caps
 and a separately anchored transfer margin, and preserves all eight values as
-`PROPOSED`. Representative autonomous-agent scope, seed design, stochastic and
+`PROPOSED`. The current repair makes all policy exhaustion and ambiguous
+timeouts nonreplaceable and retains their resource observations. Conditional
+on the historical baseline means, maximum endpoint headroom is below the
+proposed primary floor; this is not a population bound or utility result.
+Representative autonomous-agent scope, seed design, stochastic and
 dependence evidence, diversity, shadow/leakage, trusted attacks, authenticated
 five-role ratification, one-use authorization and qualifying storage remain
 unavailable. No qualifying, shadow, or attack campaign ran. B-GATE is

@@ -702,3 +702,43 @@ representative autonomous-agent population required to close the ticket. No
 qualifying gauntlet, attack campaign, shadow campaign, ratification, or one-use
 execution authorization occurred. B-E4 remains `in_progress`; B-GATE remains
 unstarted.
+
+## Execution-correctness repair and conditional headroom
+
+Focused regressions reproduced the reserve-integrity defect: attempt,
+service-operation, normalized-compute, fixture-unit, and wall-time exhaustion
+were mapped to `INFRASTRUCTURE`; caller-created infrastructure/reference
+errors could therefore authorize a prospectively numbered reserve. The repair
+adds the closed `POLICY_EXHAUSTION` disposition, records exact compute,
+fixture-unit, and wall observations at a stop, and makes policy stops,
+ambiguous timeouts, candidate failures, and caller assertions nonreplaceable.
+Replacement eligibility is now issued only while translating exact existing
+B-07B/B-07C terminal receipts or exact A7/A8 fixture outcomes. The eligible
+classes are closed to queue/worker/dependency loss, retryable backend
+unavailability/startup failure, and exact fixture/reference failure; actual
+failure ownership remains with those existing components.
+
+Admission checks precede every operation whose predicted resource use is
+already inadmissible. If an operation's actual resource or wall consumption is
+known only afterward, the complete observation is retained and the block is
+not replaced. The historical frozen calibration still binds its pre-repair
+implementation and generator digests; it is preserved rather than regenerated
+under the changed runtime.
+
+A new deterministic diagnostic tests a necessary endpoint-range condition
+without observing v2. Conditional on the frozen calibration's four-profile
+no/generic mean `0.8300554565022396`, the most a perfect-Q v2 result could gain
+is `0.16994454349776045`. Conditional on the v1 mean `0.8`, the maximum is
+`0.2`. Both are below the proposed strict primary floor
+`0.4017350715246475`. Because an empirical sample mean is not a registered
+population lower bound, this is
+`CONDITIONAL_DESIGN_FEASIBILITY_ONLY_NOT_A_POPULATION_BOUND_OR_UTILITY_RESULT`.
+It cannot decide utility or authorize post-outcome floor changes.
+
+No lifecycle, pilot, shadow, attack, or qualifying campaign ran in this repair.
+The current v4 proposal stays `STILL_BLOCKED`; all eight values remain
+`PROPOSED`. Autonomous-agent population/task/seed design, stochastic and
+dependence calibration, shadow/leakage inference, trusted non-rejection attack
+assessment, authenticated five-owner ratification, one-use authorization, and
+qualifying storage remain open. B-E4 remains `in_progress`; B-GATE remains
+unstarted.
