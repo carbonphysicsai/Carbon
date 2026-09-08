@@ -1048,12 +1048,24 @@ def _build_nonqualifying_block(
 class ResearchOperationFailure(RuntimeError):
     """Typed public B-07S failure; provider diagnostics are never retained."""
 
-    def __init__(self, operation: str, code: ResearchServiceErrorCode) -> None:
+    def __init__(
+        self,
+        operation: str,
+        code: ResearchServiceErrorCode,
+        request_digest: str,
+        reply_digest: str,
+    ) -> None:
         _identifier(operation, "operation")
-        if type(code) is not ResearchServiceErrorCode:
+        if (
+            type(code) is not ResearchServiceErrorCode
+            or _DIGEST.fullmatch(request_digest) is None
+            or _DIGEST.fullmatch(reply_digest) is None
+        ):
             raise TypeError("research failure requires an exact public error code")
         self.operation = operation
         self.code = code
+        self.request_digest = request_digest
+        self.reply_digest = reply_digest
         super().__init__(f"research operation {operation} failed with {code.value}")
 
 
@@ -1063,7 +1075,11 @@ def _research_result(
     request: object,
     expected_type: type[object],
     reply_digests: list[str],
+    request_digests: list[str] | None = None,
 ) -> object:
+    request_digest = canonical_digest(request)
+    if request_digests is not None:
+        request_digests.append(request_digest)
     reply = session.research_call(ServiceCall(RESEARCH_NAMESPACE, operation, request))
     if type(reply) is not ServiceReply:
         raise TypeError("research session returned a non-protocol reply")
@@ -1072,7 +1088,12 @@ def _research_result(
         error = reply.result
         if type(error) is not ResearchServiceError:
             raise TypeError("research error reply is not nominal")
-        raise ResearchOperationFailure(operation, error.code)
+        raise ResearchOperationFailure(
+            operation,
+            error.code,
+            request_digest,
+            reply_digests[-1],
+        )
     if reply.status is not ReplyStatus.OK or type(reply.result) is not expected_type:
         raise TypeError("research success reply has the wrong nominal result")
     return reply.result
@@ -1217,6 +1238,53 @@ def _prepared_service_reply_digests(
     )
 
 
+def _prepared_service_request_digests(
+    *,
+    plan: NonQualifyingRunPlan,
+    challenge_info: ChallengeInfo,
+    interaction_manifest: InteractionManifest,
+    scaffold: MockScaffold,
+    candidates: tuple[PreparedCandidate, ...],
+) -> tuple[str, ...]:
+    """Derive the exact ordered successful B-07S request transcript."""
+
+    key = challenge_info.challenge_key
+    requests: list[object] = [
+        GetChallengeInfoRequest(key),
+        GetInteractionManifestRequest(key),
+    ]
+    if plan.identity.arm is ExperimentalArm.V2_TEST_ONLY_PRIOR:
+        assert plan.identity.prior_pack_ref is not None
+        requests.append(
+            GetPriorRequest(key, ExactPriorSelector(plan.identity.prior_pack_ref))
+        )
+    requests.append(
+        GetMockScaffoldRequest(
+            key, challenge_info.training_support_ref, plan.identity.prior_pack_ref
+        )
+    )
+    for candidate in candidates:
+        requests.extend(
+            (
+                DryValidateRequest(key, candidate.proposal.strategy),
+                CompileStrategyRequest(
+                    key,
+                    candidate.proposal.strategy,
+                    challenge_info.training_support_ref,
+                ),
+            )
+        )
+        if candidate.resource_inspection is not None:
+            requests.append(
+                InspectResourcesRequest(
+                    key,
+                    candidate.proposal.strategy,
+                    interaction_manifest.resource_policy_ref,
+                )
+            )
+    return tuple(canonical_digest(item) for item in requests)
+
+
 def validate_fixture_resource_inspection(
     inspection: InspectResourcesResult, *, ceiling: int
 ) -> float:
@@ -1253,6 +1321,7 @@ def _prepared_transcript_digest(
     proposal_batch: DriverProposalBatch,
     candidates: tuple[PreparedCandidate, ...],
     first_preflight_executable_attempt: int | None,
+    service_request_digests: tuple[str, ...],
     service_reply_digests: tuple[str, ...],
     preflight_compute: NormalizedComputeReceipt,
 ) -> str:
@@ -1278,6 +1347,7 @@ def _prepared_transcript_digest(
         "NO_PRIOR_LOOKUP" if prior_lookup is None else canonical_digest(prior_lookup),
         canonical_digest(scaffold),
         proposal_batch.transcript_digest,
+        *service_request_digests,
         *service_reply_digests,
         *candidate_parts,
         (
@@ -1310,6 +1380,7 @@ class PreparedFixturePreflight:
     candidates: tuple[PreparedCandidate, ...]
     first_preflight_executable_attempt: int | None
     strategy_domain_digest: str
+    service_request_digests: tuple[str, ...]
     service_reply_digests: tuple[str, ...]
     preflight_compute: NormalizedComputeReceipt
     transcript_digest: str
@@ -1335,6 +1406,7 @@ class PreparedFixturePreflight:
             or any(type(item) is not PreparedCandidate for item in self.candidates)
             or type(self.first_preflight_executable_attempt) not in (type(None), int)
             or type(self.service_reply_digests) is not tuple
+            or type(self.service_request_digests) is not tuple
             or type(self.preflight_compute) is not NormalizedComputeReceipt
         ):
             raise TypeError("prepared fixture preflight is not canonical")
@@ -1368,9 +1440,14 @@ class PreparedFixturePreflight:
                 and len(selected) != 1
             )
             or len(self.service_reply_digests) != expected_reply_count
+            or len(self.service_request_digests) != expected_reply_count
             or any(
                 type(item) is not str or _DIGEST.fullmatch(item) is None
                 for item in self.service_reply_digests
+            )
+            or any(
+                type(item) is not str or _DIGEST.fullmatch(item) is None
+                for item in self.service_request_digests
             )
             or self.proposal_batch.driver_ref != self.plan.driver_ref
             or self.plan.driver_ref != fixture_driver_ref(self.plan.identity.profile)
@@ -1393,6 +1470,7 @@ class PreparedFixturePreflight:
             proposal_batch=self.proposal_batch,
             candidates=self.candidates,
             first_preflight_executable_attempt=self.first_preflight_executable_attempt,
+            service_request_digests=self.service_request_digests,
             service_reply_digests=self.service_reply_digests,
             preflight_compute=self.preflight_compute,
         )
@@ -1500,8 +1578,17 @@ def _canonical_prepared_preflight(value: object) -> PreparedFixturePreflight:
             scaffold=scaffold,
             candidates=candidates,
         )
+        request_digests = _prepared_service_request_digests(
+            plan=plan,
+            challenge_info=info,
+            interaction_manifest=manifest,
+            scaffold=scaffold,
+            candidates=candidates,
+        )
         if value.service_reply_digests != reply_digests:
             raise ValueError("stored service reply transcript changed")
+        if value.service_request_digests != request_digests:
+            raise ValueError("stored service request transcript changed")
         return PreparedFixturePreflight(
             value.authority_ceiling,
             plan,
@@ -1513,6 +1600,7 @@ def _canonical_prepared_preflight(value: object) -> PreparedFixturePreflight:
             candidates,
             value.first_preflight_executable_attempt,
             value.strategy_domain_digest,
+            request_digests,
             reply_digests,
             compute,
             value.transcript_digest,
@@ -1576,6 +1664,7 @@ def prepare_nonqualifying_preflight(
     # The floor is exact because meter events are integral semantic work units.
     meter.bind_ceiling(math.floor(plan.budget.compute_units))
     reply_digests: list[str] = []
+    request_digests: list[str] = []
     key = plan.scaffold_ref.challenge_key
     info = _research_result(
         session,
@@ -1583,6 +1672,7 @@ def prepare_nonqualifying_preflight(
         GetChallengeInfoRequest(key),
         ChallengeInfo,
         reply_digests,
+        request_digests,
     )
     assert type(info) is ChallengeInfo
     manifest = _research_result(
@@ -1591,6 +1681,7 @@ def prepare_nonqualifying_preflight(
         GetInteractionManifestRequest(key),
         InteractionManifest,
         reply_digests,
+        request_digests,
     )
     assert type(manifest) is InteractionManifest
     if manifest.parameter_catalog_ref != strategy_domain.parameter_catalog_ref:
@@ -1615,6 +1706,7 @@ def prepare_nonqualifying_preflight(
             GetPriorRequest(key, ExactPriorSelector(prior_ref)),
             PriorLookupResult,
             reply_digests,
+            request_digests,
         )
         assert type(value) is PriorLookupResult
         if (
@@ -1643,6 +1735,7 @@ def prepare_nonqualifying_preflight(
         ),
         MockScaffold,
         reply_digests,
+        request_digests,
     )
     assert type(scaffold_value) is MockScaffold
     if scaffold_value.scaffold_ref != plan.scaffold_ref:
@@ -1671,6 +1764,7 @@ def prepare_nonqualifying_preflight(
             DryValidateRequest(key, proposal.strategy),
             DryValidationResult,
             reply_digests,
+            request_digests,
         )
         assert type(validation) is DryValidationResult
         compilation = _research_result(
@@ -1679,6 +1773,7 @@ def prepare_nonqualifying_preflight(
             CompileStrategyRequest(key, proposal.strategy, info.training_support_ref),
             CompileStrategyResult,
             reply_digests,
+            request_digests,
         )
         assert type(compilation) is CompileStrategyResult
         inspection: InspectResourcesResult | None = None
@@ -1691,6 +1786,7 @@ def prepare_nonqualifying_preflight(
                 ),
                 InspectResourcesResult,
                 reply_digests,
+                request_digests,
             )
             assert type(value) is InspectResourcesResult
             validate_fixture_resource_inspection(
@@ -1720,6 +1816,7 @@ def prepare_nonqualifying_preflight(
         proposal_batch=batch,
         candidates=tuple(candidates),
         first_preflight_executable_attempt=first_preflight_executable,
+        service_request_digests=tuple(request_digests),
         service_reply_digests=tuple(reply_digests),
         preflight_compute=compute,
     )
@@ -1734,6 +1831,7 @@ def prepare_nonqualifying_preflight(
         tuple(candidates),
         first_preflight_executable,
         strategy_domain.content_digest,
+        tuple(request_digests),
         tuple(reply_digests),
         compute,
         transcript_digest,

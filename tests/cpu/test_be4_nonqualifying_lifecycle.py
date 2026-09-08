@@ -26,10 +26,16 @@ from carbon.gauntlet import (
     ExperimentalArm,
     MatchedBudget,
     OfficialLifecycleBridge,
+    RehearsalPurpose,
     ResearchLifecycleBridge,
     build_nonqualifying_lifecycle_four_arm_block,
+    build_rehearsal_campaign_manifest,
     fixture_agent_drivers,
     fixture_strategy_domain,
+    record_rehearsal_campaign,
+    record_rehearsal_run,
+    rehearsal_budget_digest,
+    rehearsal_implementation_digest,
     run_nonqualifying_lifecycle,
 )
 from carbon.gauntlet.meter import PolicyWorkMeter
@@ -188,10 +194,11 @@ def test_smallest_complete_profile_by_arm_lifecycle_matrix_is_nonqualifying(
         )
     )
     rows = []
+    campaign_id = "be4-development-lifecycle-v1"
     for driver in fixture_agent_drivers():
         block, projection = build_nonqualifying_lifecycle_four_arm_block(
             design_digest=_DESIGN_DIGEST,
-            block_id=f"lifecycle-{driver.profile.value.lower()}",
+            block_id=(f"{campaign_id}-{driver.profile.value.lower()}-primary-0000"),
             profile=driver.profile,
             replicate=0,
             driver_ref=driver.ref,
@@ -260,6 +267,57 @@ def test_smallest_complete_profile_by_arm_lifecycle_matrix_is_nonqualifying(
     }
     assert len({item.driver_artifact.content_digest for item in rows}) == 5
     assert len({item.treatment_artifact.content_digest for item in rows}) == 4
+    manifest = build_rehearsal_campaign_manifest(
+        purpose=RehearsalPurpose.DEVELOPMENT,
+        design_digest=_DESIGN_DIGEST,
+        implementation_digest=rehearsal_implementation_digest(),
+        treatment_digests=tuple(
+            next(
+                item.treatment_artifact.content_digest
+                for item in rows
+                if item.plan.identity.arm is arm
+            )
+            for arm in ExperimentalArm
+        ),
+        driver_digests=tuple(
+            next(
+                item.driver_artifact.content_digest
+                for item in rows
+                if item.plan.identity.profile is profile
+            )
+            for profile in type(rows[0].plan.identity.profile)
+        ),
+        budget_digests=tuple(
+            rehearsal_budget_digest(
+                next(
+                    item.plan.budget
+                    for item in rows
+                    if item.plan.identity.profile is profile
+                )
+            )
+            for profile in type(rows[0].plan.identity.profile)
+        ),
+        primary_blocks_per_profile=1,
+        reserve_blocks_per_profile=0,
+        campaign_id=campaign_id,
+        stopping_rule="ATTEMPT_EVERY_PROSPECTIVE_PRIMARY_ONCE",
+        failure_handling="NO_REPLACEMENT_WITHOUT_TYPED_RESERVE",
+    )
+    catalog_ref = domain.compile_fixture.catalog.to_ref(
+        candidate_assembly=domain.compile_fixture.assembly
+    )
+    evidence = tuple(
+        record_rehearsal_run(
+            item,
+            catalog=domain.compile_fixture.catalog,
+            candidate_assembly=domain.compile_fixture.assembly,
+            catalog_ref=catalog_ref,
+        )
+        for item in rows
+    )
+    campaign = record_rehearsal_campaign(manifest=manifest, runs=evidence)
+    assert campaign.primary_matrix_complete is True
+    assert campaign.qualifying_execution_ready is False
 
 
 def test_driver_and_service_substitution_fail_before_lifecycle_work(

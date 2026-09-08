@@ -766,6 +766,7 @@ def test_preflight_binds_catalog_replies_results_compute_and_resource_unit(
             prepared.candidates,
             prepared.first_preflight_executable_attempt,
             prepared.strategy_domain_digest,
+            prepared.service_request_digests,
             prepared.service_reply_digests,
             prepared.preflight_compute,
             prepared.transcript_digest,

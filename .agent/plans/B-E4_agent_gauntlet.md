@@ -199,12 +199,12 @@ reviewable stages:
    policy-work, service-operation, cumulative fixture-unit, and wall bounds.
    Exercise five deterministic profiles by four arms by one block only as an
    integration demonstration.
-2. **Rehearsal integrity and evidence — next.** Add factory-only, content-bound
+2. **Rehearsal integrity and evidence — implemented candidate.** Add factory-only, content-bound
    run/evidence manifests, exact request/result/task/session/candidate/seed
    correlation, canonical lineage and reserve/replacement handling, and hostile
    substitution tests. Preserve development evidence separately from later
    frozen calibration and qualifying evidence.
-3. **Frozen full-lifecycle calibration — after stage 2.** Freeze code,
+3. **Frozen full-lifecycle calibration — next after stage 2 acceptance.** Freeze code,
    treatments, purpose, matrix, budget, stopping and failure rules before using
    fresh calibration blocks. Measure complete-run wall/resource/work/failure/
    endpoint/adaptation/lineage behavior. Reassess proposed values without
@@ -216,6 +216,38 @@ not accept their labels as proof of a representative autonomous-agent
 population. That reserved scope decision remains explicit while non-qualifying
 engineering proceeds. No stage ratifies a proposal, runs the qualifying
 gauntlet or attack campaign, completes B-E4, or starts B-GATE.
+
+### Stage-2 rehearsal evidence checkpoint
+
+The stage-2 candidate wraps the completed lifecycle in private-factory,
+domain-separated evidence. The frozen rehearsal manifest prospectively binds
+purpose, design, installed implementation source set and runtime, all four
+treatment artifacts, all five driver artifacts, per-profile matched budgets,
+primary/reserve slots, stopping and typed failure rules, transcript/provenance
+cluster policy, and explicit unavailable shadow/role/authorization seams.
+
+Each successful run binds exact B-07S request and reply digests, B-07B task and
+receipt identity, practice execution/sampling/worker/environment lineage,
+proposal transcript, permitted selection, A7 submission association, A8
+reconstruction/result, private endpoint receipt, requester/session, and
+normalized compute. V2 canonical family/bucket/root extraction uses the actual
+B-07B `ExperimentRecord` and exact B-E4 run identity; copied record digests are
+collapsed at campaign assembly. Rejected B-07S operations retain their exact
+typed outcome and request/reply correlation.
+
+Only prospectively registered, same-profile reserves may replace a primary,
+and only after a retained exact `INFRASTRUCTURE` or `REFERENCE` failure.
+Candidate failures cannot authorize replacement. Full slot identity is checked
+against the manifest, so block-id reuse cannot alter profile, role, or number.
+All development/calibration records have a fixed design-analysis-only authority
+ceiling and no promotion path. The 5 x 4 x 1 development demonstration now also
+assembles one complete development campaign record; it remains non-qualifying.
+
+Stage 2 does not authenticate current role holders, allocate evaluator-held
+shadow cases, authorize an execution, infer leakage, assess non-rejection
+attacks, or establish a representative autonomous-agent population. Those
+seams remain explicit and fail closed. Fresh frozen full-lifecycle calibration
+is the next authorized stage after this candidate passes acceptance and merges.
 
 ### Current recommendation
 

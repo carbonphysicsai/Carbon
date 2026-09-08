@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.9
+**Controlling register:** `.agent/WAVE_B.md` version 4.0
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -80,23 +80,21 @@ passed run `34124228848` and normally merged
 **B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
-**B-E4 status:** `in_progress`; PR #107 merged the bounded execution-readiness
-checkpoint. This successor candidate materializes the exact GENERIC workflow
-and v1 private projection, binds installed driver source, and executes a
-5-profile x 4-arm x 1-block integration demonstration through B-07S,
-B-07B/B-07C paired practice, allowed feedback/final selection, and unchanged
-A7/A8 fixture evaluation. Private B-07F endpoint receipts bind held-out and
-transfer measurements; proposed Q transforms remain design analysis. Complete-
-run attempts, policy work/service calls, cumulative fixture units, and wall
-time are enforced under a no-qualification ceiling. The v3 recommendation
-remains `STILL_BLOCKED`: deterministic profile labels do not prove a
-representative autonomous-agent population, several profiles may still lack an
-identifiable v2 contrast, and authoritative campaign correlation/evidence,
-reserve/replacement binding, frozen full-lifecycle calibration, trusted attack
-and simultaneous-leakage evidence, authenticated owner verification, and
-qualifying evidence storage remain unavailable. Exact shadow allocation and
-cross-profile dependence remain unvalidated. All eight values remain
-`PROPOSED`; no qualifying run occurred. B-GATE is unstarted.
+**B-E4 status:** `in_progress`; PR #108 merged the complete non-qualifying
+lifecycle delivery. This successor rehearsal-evidence candidate binds exact
+successful/rejected B-07S request/reply correlation, B-07B task/run lineage,
+driver/treatment/proposal/selection/session/resource/A7/A8/private-endpoint
+identities, transcript/provenance clusters, and canonical v2 intervention
+provenance into private-factory run and campaign records. Prospective reserves
+may replace only retained same-profile infrastructure/reference failures;
+candidate failure, forged slot metadata, and duplicates fail closed. Every
+record remains design-analysis rehearsal evidence with no promotion path. The
+v3 recommendation stays `STILL_BLOCKED`: frozen full-lifecycle calibration,
+representative autonomous-agent scope, utility identifiability, diversity,
+shadow/dependence/leakage, trusted attack evidence, authenticated five-role
+verification, one-use execution authority, and qualifying storage remain
+unavailable. All eight values remain `PROPOSED`; no qualifying run occurred.
+B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
