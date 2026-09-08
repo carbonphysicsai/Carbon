@@ -703,6 +703,30 @@ qualifying gauntlet, attack campaign, shadow campaign, ratification, or one-use
 execution authorization occurred. B-E4 remains `in_progress`; B-GATE remains
 unstarted.
 
+## Autonomous-agent pilot proposal evidence
+
+The canonical proposal
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json` is bound by
+digest `sha256:8ca1a79a9cd9866d54f52c797baf0ea392087c4652a1439017339a66610469f3`.
+Its validator derives the profile/task/run/token/service/fixture/wall/cost
+facts and rejects authority, hidden-evaluation, post-hoc-use, budget,
+owner-status, or digest escalation. It always returns
+`pilot_authorized=false` and `qualifying_execution_ready=false` and implements
+no model or campaign executor.
+
+The proposal recommends a common `gpt-5.6-terra` population, five policies,
+four attempts against eight candidates, 12 task cells, 280 primary plus 20
+reserve runs, 2,400 request attempts, 19,660,800 input and 4,915,200 output
+billable tokens, 19,200 service calls, 35,700 fixture units, 270,000 aggregate
+run-wall seconds, 432,000 campaign-wall seconds, expected spend `$27.52512`,
+and a retry-inclusive `$98.304` ceiling at prices verified 2026-09-08.
+
+No inference or campaign was performed. Evidence is limited to source
+inspection, derived arithmetic, the immutable proposal, and adversarial
+validator tests. Four grouped pilot choices remain `PROPOSED`; v4 remains
+`STILL_BLOCKED` with all eight qualification inputs proposed. B-E4 remains
+`in_progress`; B-GATE remains unstarted.
+
 ## Execution-correctness repair and conditional headroom
 
 Focused regressions reproduced the reserve-integrity defect: attempt,

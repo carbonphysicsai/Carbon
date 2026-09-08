@@ -1519,6 +1519,32 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-FULL-LIFECYCLE-CALIBRATION-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "decision",
+      "event_id": "B-E4-AUTONOMOUS-PILOT-PROPOSAL-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "proposed",
+      "summary": "B-E4 now has a content-bound proposal for one common Terra model, five arm-neutral policies, 12 prospective task cells, four adaptive attempts, 280 primary plus 20 reserve runs, and a $98.304 hard ceiling. It remains ENGINEERING_ACCEPTED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED: four grouped owner decisions, implementation freeze, and separate one-use authorization are required, and no inference or campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cb04fc05e1a021f47fe109421f508f6635c9f939/.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-EXECUTION-CORRECTNESS-01"
     }
   ]
 }

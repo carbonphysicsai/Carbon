@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 64 map-level change events
+- 65 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #110 merged the frozen 25-block/100-run full-lifecycle calibration. The current candidate repairs policy-exhaustion and reserve integrity and records a conditional endpoint-headroom blocker. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent autonomous-agent and shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no pilot, qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #111 merged the execution-correctness repair. The current candidate proposes one common Terra model, five arm-neutral policies, 12 prospective task cells, four attempts, 280 primary plus 20 reserve runs, and a $98.304 hard ceiling. It is ENGINEERING_ACCEPTED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED: its four grouped decisions remain PROPOSED, it has no provider or execution path, and no inference, pilot, qualifying, shadow, or attack campaign ran. V4 remains STILL_BLOCKED with all eight qualification inputs PROPOSED; no later ticket is selected and B-GATE remains unstarted.
 
 ## Maintain
 
