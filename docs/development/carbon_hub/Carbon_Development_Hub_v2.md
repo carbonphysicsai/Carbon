@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `8060d1332face086053a5f6454fdf7d4104a4b9c` on `main`, captured 2026-09-08T06:19:41Z.
-**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. The bounded execution-readiness candidate adds three causal fixture families, five data-only drivers, four non-qualifying preflight surrogate arms, deterministic policy-work metering, and fail-closed readiness carriers. Its v3 proposal remains STILL_BLOCKED by 21 engineering gaps plus the unchanged human-reserved preregistration and ratification requirements. No qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted.
+**Authority snapshot:** `4d79d71842630b0866e7781d40d66165a461800e` on `main`, captured 2026-09-08T08:28:27Z.
+**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. The current candidate completes a non-qualifying deterministic 5-profile by 4-arm fixture lifecycle with exact treatments, source-bound drivers, paired practice, permitted feedback selection, A7/A8 endpoints, and complete-run budget checks. Campaign integrity/evidence and frozen full-lifecycle calibration remain next; v3 remains STILL_BLOCKED, no qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
 
@@ -145,6 +145,7 @@
 - `HUB-CURRENT-POSITION-01` — `SYSTEM/DEVELOPMENT-HUB` — The Hub now derives present-tense development position from one canonical record: Wave B is active, B-E2 is the last completed ticket, PR #105 merged B-E4's bounded successor validation repair, B-E4 remains selected and in progress behind its verified-ratification and execution-evidence block, and no later ticket is selected.
 - `B-E4-PREREGISTRATION-DESIGN-01` — `WAVE-B/B-E4` — B-E4 now has a content-bound analysis-only preregistration proposal and concrete owner decision pack, but the current one-family fixture and singleton-targeted prior cannot identify the recommended utility/diversity claim. A bounded readiness repair, pinned execution artifacts, and five-owner ratification of a later execution-ready digest must precede qualifying execution.
 - `B-E4-EXECUTION-READINESS-01` — `WAVE-B/B-E4` — B-E4 repairs the one-family fixture limitation and adds a private exploratory TEST_ONLY pack, five fixed data-only drivers, four non-qualifying preflight surrogate arms, policy-work metering, and fail-closed readiness carriers. The v3 proposal remains STILL_BLOCKED by 21 engineering gaps plus human approval of eight proposed values, authenticated five-role ratification, and separate one-use execution authorization; no qualifying gauntlet or attack campaign ran.
+- `B-E4-NONQUALIFYING-LIFECYCLE-01` — `WAVE-B/B-E4` — The B-E4 successor candidate completes a 20-run deterministic non-qualifying lifecycle demonstration with exact treatments, source-bound drivers, B-07C paired practice, permitted feedback selection, A7/A8 fixture endpoints, and complete-run budget checks. Campaign evidence integrity and frozen full-lifecycle calibration remain next; v3 is not ratified, no qualifying gauntlet or attack campaign ran, and B-GATE remains unstarted.
 
 ## Authority boundary
 

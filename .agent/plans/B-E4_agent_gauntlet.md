@@ -185,6 +185,38 @@ rewriting its analysis or digest:
    submission no-qualification ceilings distinct. Do not run paired B-07C
    practice, a qualifying attack campaign, or the qualifying matrix.
 
+## Non-qualifying lifecycle, integrity, and calibration checkpoint
+
+This successor checkpoint is one bounded B-E4 effort delivered in three
+reviewable stages:
+
+1. **Complete non-qualifying lifecycle — implemented candidate.** Materialize
+   the domain-neutral GENERIC workflow and exact private v1 projection; bind
+   installed driver source plus registration/runtime/policy/corpus identity;
+   execute B-07S discovery and preflight, B-07B/B-07C paired practice, permitted
+   feedback, arm-neutral final selection, unchanged A7/A8 fixture evaluation,
+   and trusted raw held-out/transfer observations. Enforce attempted-candidate,
+   policy-work, service-operation, cumulative fixture-unit, and wall bounds.
+   Exercise five deterministic profiles by four arms by one block only as an
+   integration demonstration.
+2. **Rehearsal integrity and evidence — next.** Add factory-only, content-bound
+   run/evidence manifests, exact request/result/task/session/candidate/seed
+   correlation, canonical lineage and reserve/replacement handling, and hostile
+   substitution tests. Preserve development evidence separately from later
+   frozen calibration and qualifying evidence.
+3. **Frozen full-lifecycle calibration — after stage 2.** Freeze code,
+   treatments, purpose, matrix, budget, stopping and failure rules before using
+   fresh calibration blocks. Measure complete-run wall/resource/work/failure/
+   endpoint/adaptation/lineage behavior. Reassess proposed values without
+   inspecting or tuning to qualifying outcomes and issue a successor proposal
+   only if registered content changes.
+
+The five policies remain deterministic fixture policies. Current authority does
+not accept their labels as proof of a representative autonomous-agent
+population. That reserved scope decision remains explicit while non-qualifying
+engineering proceeds. No stage ratifies a proposal, runs the qualifying
+gauntlet or attack campaign, completes B-E4, or starts B-GATE.
+
 ### Current recommendation
 
 - eight attempted candidates and `223` fixture units per complete proposed

@@ -1427,6 +1427,29 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-PREREGISTRATION-DESIGN-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-NONQUALIFYING-LIFECYCLE-01",
+      "owner_lane": "research_engineering",
+      "status": "implemented",
+      "summary": "The B-E4 successor candidate completes a 20-run deterministic non-qualifying lifecycle demonstration with exact treatments, source-bound drivers, B-07C paired practice, permitted feedback selection, A7/A8 fixture endpoints, and complete-run budget checks. Campaign evidence integrity and frozen full-lifecycle calibration remain next; v3 is not ratified, no qualifying gauntlet or attack campaign ran, and B-GATE remains unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/4d79d71842630b0866e7781d40d66165a461800e/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-EXECUTION-READINESS-01"
     }
   ]
 }

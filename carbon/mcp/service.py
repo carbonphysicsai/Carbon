@@ -1420,6 +1420,13 @@ class McpService:
     def __repr__(self) -> str:
         return "<McpService>"
 
+    def binds_submission_service(self, service: SubmissionService) -> bool:
+        """Return local composition identity without exposing the A7 service."""
+
+        if type(service) is not SubmissionService:
+            raise McpRequestError()
+        return service is self._submission_service
+
     def call(
         self, call: McpCall, requester_identity: RequesterIdentity
     ) -> (

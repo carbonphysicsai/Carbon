@@ -12128,6 +12128,48 @@ records as design-analysis evidence. No attack campaign or qualifying gauntlet
 ran, and no security/privacy, science, execution, or qualification claim is
 earned.
 
+## 2026-09-08 — B-E4-D10: complete the lifecycle only under a non-qualifying ceiling
+
+**Ticket:** B-E4
+**Status:** implemented working engineering decision; qualification blocked
+
+**Problem.** The prior checkpoint stopped at preflight, used surrogate GENERIC
+and v1 material, did not bind executable driver source, and did not connect
+paired practice, allowed feedback, final selection, A7/A8 evaluation, raw
+primary/transfer endpoints, or complete-run budget enforcement. Leaving those
+parts separate prevented meaningful full-lifecycle rehearsal and calibration.
+
+**Decision.** WRAP the current B-07S, B-07B/B-07C, B-07D2/D3,
+`PrivatePriorProjection`, B-07E, B-07F, A7/A8, and A5 owners in one trusted
+non-qualifying orchestrator. Bind the installed driver source to its existing
+registration/runtime/policy/corpus identity; bind the exact domain-neutral
+GENERIC workflow, v1 projection receipt/source pack, and v2 TEST_ONLY pack.
+Expose only B-07C's public aggregate observed range to the unchanged profile
+policy, select by its registered feedback rule, and keep private task records,
+workers, held-out/transfer observations, and evaluator state outside the driver
+session. Add a private B-07F endpoint receipt rather than changing A5 or public
+result semantics. Enforce attempts, normalized work/service calls, cumulative
+fixture units, and observed wall time across the complete run.
+
+**Rationale and alternatives.** Duplicating practice or official evaluation
+would steal ownership; giving drivers private records or endpoint values would
+create leakage; requiring v2-specific trajectory differences would engineer a
+favorable result. The wrapper instead permits identical candidates and zero or
+negative benefit while proving that permitted treatment and practice
+information can be consumed. Existing three-binary-family search can be
+exhausted within eight attempts, so final-quality utility may remain weakly
+identifiable even though time/order/resource effects are observable.
+
+**Scope boundary.** The 5x4x1 run is an integration demonstration over five
+deterministic fixture policies. Their labels do not prove representation of an
+autonomous-agent population. No qualifying run, attack campaign, ratification,
+scientific/security/privacy/production/LIVE qualification, B-E4 completion, or
+B-GATE start follows.
+
+**Reversibility.** The wrapper and private endpoint receipt can be replaced
+prospectively without changing B-07S, B-07C, A5, or public A7/A8 wire
+contracts. Historical rehearsal evidence retains its no-qualification ceiling.
+
 ## 2026-09-08 — B-E4-D9: issue a revised v3 proposal as STILL_BLOCKED
 
 **Ticket:** B-E4

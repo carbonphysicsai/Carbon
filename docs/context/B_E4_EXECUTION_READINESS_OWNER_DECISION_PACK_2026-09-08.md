@@ -438,6 +438,26 @@ features, or precision assumptions change the security/statistical question.
 
 ## Engineering readiness summary
 
+### Successor checkpoint: lifecycle delivery
+
+The first of three authorized successor deliveries now completes a 20-run
+non-qualifying integration demonstration over five deterministic fixture
+profiles and four exact arms. It materializes the GENERIC workflow and exact
+v1 private projection, binds installed driver source, executes B-07C paired
+practice and permitted feedback-based selection, runs the selected Strategy
+through A7/A8, records B-07F-held raw primary/transfer endpoints, applies the
+proposed Q transforms only for design analysis, and enforces complete-run
+attempt/work/service/resource/wall bounds.
+
+This removes those mechanics from the readiness blocker list. It does not
+approve v3 or show v2 benefit. The five profiles still describe deterministic
+fixture policies, not a human-approved representative autonomous-agent
+population. Authoritative campaign correlation/evidence and frozen full-
+lifecycle calibration are the next two engineering deliveries. Cross-profile
+dependence, exact shadow allocation, utility identifiability, diversity,
+leakage/attack evidence, owner-role verification, one-use execution authority,
+and all eight reserved approvals remain blocked.
+
 | Component | State | Exact remaining seam |
 |---|---|---|
 | Fixture and prior | READY for bounded fixture design analysis | Exact sampling-only B-07F historical identities are preserved; only the three-family path uses prospective identity v2; no utility or authorization claim follows from pack consistency |

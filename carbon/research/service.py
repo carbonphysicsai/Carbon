@@ -731,6 +731,11 @@ class LocalResearchService:
             return canonical_bytes(_failure(exc.code))
         return canonical_bytes(self.call(call))
 
+    def binds_research_task_provider(self, provider: object) -> bool:
+        """Expose identity-only local composition evidence, never the provider."""
+
+        return provider is self._context.research_task_provider
+
     def _preflight_capability(self, request: object) -> ServiceReply | None:
         if type(request) is GetPriorRequest:
             if type(request.selector) is NoPriorSelector:
