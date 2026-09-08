@@ -194,3 +194,37 @@ non-rejection attack assessment, and qualifying evidence admission remain
 unimplemented or unavailable. The next bounded delivery is frozen full-
 lifecycle calibration. No qualifying execution, attack campaign, B-E4
 completion, or B-GATE start is authorized by this checkpoint.
+
+## Frozen full-lifecycle calibration result
+
+The third successor delivery froze and executed a non-qualifying 5-profile x
+5-primary-block x 4-arm calibration: 25 complete blocks and 100 lifecycle runs.
+The canonical fresh attempt recorded 100 practice-admissible results and 100
+successful reconstructions with zero invalid attempts, typed primary failures,
+or reserve replacements. It consumed 89.107146586 observed host seconds, 3,465
+normalized work units, 7,220 fixture units, and 1,625 service calls. The first
+attempt retained zero rows and is separately preserved because its generator
+used the wrong nominal wall field; no incompatible observations were pooled.
+
+This calibration does not establish readiness. Zero failures across 25 blocks
+has a one-sided 95-percent upper bound of 0.11292814500684323. Every repeated
+within-profile contrast has zero SD because these are deterministic policies,
+not because population variance is known. V2 ties all baselines for four
+profiles and is worse than no/generic for the minimalist. Three family
+identities collapse to three global lineage roots. Cross-profile transcript
+dependence and leakage remain unvalidated because no shadow campaign ran.
+
+Successor v4 proposes work caps `49/49/53/53/27`, wall caps `2/2/2/2/1`, and
+a separately anchored transfer tolerance `0.2797202700265491` Q while retaining
+the primary floor `0.4017350715246475` Q. The 223-unit fixture cap and
+636-block/52-reserve matrix remain conditional proposals. All eight values are
+still human-reserved and `PROPOSED`; v4 is `STILL_BLOCKED`.
+
+The unresolved population question is explicit: current authority does not
+accept the five deterministic fixture-policy labels as a representative
+autonomous-agent population for this ticket's Definition of Done. Owners must
+approve the population and seed design before a later non-qualifying
+stochastic/dependence calibration. Trusted shadow/leakage and non-rejection
+attack evidence, authenticated five-owner ratification, a frozen complete
+execution design, and a separate one-use authorization remain required before
+qualifying execution. B-E4 remains `in_progress`; B-GATE remains unstarted.

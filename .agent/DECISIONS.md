@@ -12393,3 +12393,45 @@ complete artifact manifest/design digest, campaign manifest, and a unique
 authorization nonce. No present verifier can prove those acts, so positive
 verification remains fail closed. Fresh frozen full-lifecycle calibration is
 the next bounded delivery. B-E4 remains `in_progress`; B-GATE is unstarted.
+
+## 2026-09-08 — B-E4-D12: preserve adverse calibration and separate endpoint geometry
+
+**Ticket:** B-E4
+
+**Problem.** Preflight-only caps understated the complete lifecycle, the same
+`0.4017350715246475` Q quantity had been proposed both as a primary benefit
+floor and as transfer deterioration tolerance despite different `0/90` and
+`0/650` anchors, and repeated deterministic fixture runs could be mistaken for
+population or variance evidence.
+
+**Decision.** Freeze the calibration before execution, retain the aborted first
+attempt separately after its wall-field implementation defect, and use only the
+fresh repaired attempt. Preserve all observed non-positive v2 contrasts. Issue
+v4 because registered content changes: work caps become p99 plus 25 percent
+rounded-up headroom (`49/49/53/53/27`) and wall caps become
+`2/2/2/2/1` seconds. Keep the 223-unit fixture ceiling because it is the
+prospective eight-attempt lifecycle ceiling; tightening it to observed short
+trajectories would change the search estimand. Keep the primary floor proposed
+at `0.4017350715246475`. Propose transfer margin
+`0.2797202700265491`, which maps through the transfer transform to the same
+`loss + 1` factor as the primary quantity instead of reusing its Q coordinate.
+
+**Evidence limits.** The fresh campaign contains 25 primary blocks and 100 arm
+runs, all admissible and reconstructed, with no typed failures. The exact
+one-sided 95 percent upper bound is nevertheless `0.11292814500684323`, so the
+proposed five-percent failure ceiling and 52-reserve calculation remain
+unvalidated. Within-profile paired SD is zero because each deterministic
+policy repeats its trajectory. V2 ties all baselines in four profiles and is
+worse than no/generic prior for the minimalist; this is descriptive
+calibration, not a utility decision. Three canonical families collapse to only
+three global lineage roots, so repetition cannot satisfy the proposed
+prevalence rule. Cross-profile dependence and leakage remain unknown because no
+shadow campaign ran.
+
+**Authority boundary.** V4 is `PROPOSED / STILL_BLOCKED`. Deterministic fixture
+policy names do not establish the ticket's representative autonomous-agent
+population. No effect, transfer, diversity, leakage, attack, approval,
+authorization, qualification, production, or LIVE decision is made. The five
+owners must decide population scope and all eight values against a later
+complete execution-ready freeze; a separate one-use authorization is still
+required. B-E4 remains `in_progress`; B-GATE remains unstarted.

@@ -42,10 +42,12 @@ from .design import (
 from .model import AgentProfile, GauntletPreregistration
 
 READINESS_PROPOSAL_SCHEMA_VERSION = "carbon.be4.execution-readiness-proposal.v3"
+READINESS_PROPOSAL_SCHEMA_VERSION_V4 = "carbon.be4.execution-readiness-proposal.v4"
 READINESS_PROPOSAL_AUTHORITY_CEILING = (
     "DESIGN_ANALYSIS_ONLY_NO_EXECUTION_OR_QUALIFICATION_AUTHORITY"
 )
 READINESS_PROPOSAL_HEADER = b"carbon.be4.execution-readiness-proposal.v3\x00"
+READINESS_PROPOSAL_HEADER_V4 = b"carbon.be4.execution-readiness-proposal.v4\x00"
 READINESS_PROPOSAL_STATUSES = ("EXECUTION_READY_PROPOSED", "STILL_BLOCKED")
 ENGINEERING_COMPONENT_AUTHORITY_CEILING = (
     "FIXTURE_ONLY_DESIGN_ANALYSIS_NOT_QUALIFYING_EVIDENCE"
@@ -55,6 +57,9 @@ NONQUALIFYING_SENSITIVITY_AUTHORITY_CEILING = (
 )
 HISTORICAL_V2_DESIGN_DIGEST = (
     "sha256:e2529e84d9d06882c5296b0a39b3f65219627fac49fbcb278950f753a8b66e37"
+)
+HISTORICAL_V3_DESIGN_DIGEST = (
+    "sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538"
 )
 FIXTURE_PRIMARY_TRANSFORM = "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1"
 FIXTURE_TRANSFER_TRANSFORM = "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1"
@@ -161,6 +166,21 @@ FIXTURE_PARITY_ROBUST_REFERENCE_STEP = _FIXTURE_GRID_GEOMETRY.parity_robust_feat
 FIXTURE_PRACTICAL_EFFECT_FLOOR = FIXTURE_PARITY_ROBUST_REFERENCE_STEP / 2.0
 FIXTURE_TRANSFER_LOSS_BEST = _FIXTURE_GRID_GEOMETRY.transfer_loss_best
 FIXTURE_TRANSFER_LOSS_WORST = _FIXTURE_GRID_GEOMETRY.transfer_loss_worst
+# Preserve the v3 primary floor's raw ``loss + 1`` deterioration factor while
+# expressing it on the transfer endpoint's independently anchored transform.
+# This is a proposal constant, not an approved scientific threshold.
+FIXTURE_TRANSFER_NONINFERIORITY_MARGIN = (
+    FIXTURE_PRACTICAL_EFFECT_FLOOR
+    * math.log1p(FIXTURE_LOSS_WORST - FIXTURE_LOSS_BEST)
+    / math.log1p(FIXTURE_TRANSFER_LOSS_WORST - FIXTURE_TRANSFER_LOSS_BEST)
+)
+_V4_PROFILE_CAPS = (
+    ("PLANNER", 49, 2),
+    ("CODE_GENERATING", 49, 2),
+    ("EVOLUTIONARY", 53, 2),
+    ("LITERATURE_GROUNDED", 53, 2),
+    ("MINIMALIST", 27, 1),
+)
 
 REQUIRED_ENGINEERING_READINESS_SECTIONS = (
     "agent_drivers",
@@ -312,7 +332,9 @@ def fixture_transfer_quality(loss: float) -> float:
     )
 
 
-def _validate_recommended_values(inputs: dict[str, object]) -> None:
+def _validate_recommended_values(
+    inputs: dict[str, object], *, schema_version: str
+) -> None:
     """Validate the eight proposed values, including their cross-bindings."""
 
     values = {
@@ -423,6 +445,17 @@ def _validate_recommended_values(inputs: dict[str, object]) -> None:
             )
         _positive_int(item["normalized_compute_units"], "normalized_compute_units")
         _positive_int(item["wall_time_seconds"], "wall_time_seconds")
+        if schema_version == READINESS_PROPOSAL_SCHEMA_VERSION_V4:
+            expected_profile, expected_work, expected_wall = _V4_PROFILE_CAPS[index]
+            if item != {
+                "normalized_compute_units": expected_work,
+                "profile": expected_profile,
+                "wall_time_seconds": expected_wall,
+            }:
+                raise ReadinessProposalError(
+                    "v4 profile caps must equal the frozen calibration p99 plus "
+                    "25 percent rounded-up headroom"
+                )
 
     utility = _exact_object(
         values["utility_estimand"],
@@ -600,14 +633,23 @@ def _validate_recommended_values(inputs: dict[str, object]) -> None:
     )
     if min(alpha, power, paired_sd) <= 0.0:
         raise ReadinessProposalError("analysis probabilities and SD must be positive")
+    expected_transfer_margin = (
+        effect_floor
+        if schema_version == READINESS_PROPOSAL_SCHEMA_VERSION
+        else FIXTURE_TRANSFER_NONINFERIORITY_MARGIN
+    )
     if not math.isclose(
         transfer_margin,
-        effect_floor,
+        expected_transfer_margin,
         rel_tol=0.0,
         abs_tol=1e-15,
     ):
+        if schema_version == READINESS_PROPOSAL_SCHEMA_VERSION:
+            raise ReadinessProposalError(
+                "the transfer noninferiority margin must equal the practical effect floor"
+            )
         raise ReadinessProposalError(
-            "the transfer noninferiority margin must equal the practical effect floor"
+            "the transfer noninferiority margin does not match its endpoint geometry"
         )
     if (
         rule["primary_contrasts"] != 3
@@ -832,6 +874,7 @@ class ExecutionReadinessProposal:
         status: str,
         engineering_blockers: tuple[str, ...],
         human_requirements: tuple[str, ...],
+        proposal_header: bytes = READINESS_PROPOSAL_HEADER,
         *,
         _factory_token: object,
     ) -> None:
@@ -843,12 +886,13 @@ class ExecutionReadinessProposal:
             or status not in READINESS_PROPOSAL_STATUSES
             or type(engineering_blockers) is not tuple
             or type(human_requirements) is not tuple
+            or proposal_header
+            not in (READINESS_PROPOSAL_HEADER, READINESS_PROPOSAL_HEADER_V4)
             or _factory_token is not _PROPOSAL_FACTORY_TOKEN
         ):
             raise TypeError("readiness proposal requires its validating parser")
         expected = (
-            "sha256:"
-            + hashlib.sha256(READINESS_PROPOSAL_HEADER + canonical_payload).hexdigest()
+            "sha256:" + hashlib.sha256(proposal_header + canonical_payload).hexdigest()
         )
         if proposal_digest != expected:
             raise ReadinessProposalError("proposal digest does not bind its content")
@@ -1015,7 +1059,7 @@ class V3DesignSensitivityAnalysis:
 
 
 def parse_execution_readiness_proposal(document: str) -> ExecutionReadinessProposal:
-    """Validate and content-bind one v3 proposal without ratifying it."""
+    """Validate and content-bind one supported proposal without ratifying it."""
 
     if type(document) is not str:
         raise ReadinessProposalError("proposal must be bounded UTF-8 text")
@@ -1051,15 +1095,31 @@ def parse_execution_readiness_proposal(document: str) -> ExecutionReadinessPropo
         ),
         "/",
     )
-    if root["schema_version"] != READINESS_PROPOSAL_SCHEMA_VERSION:
+    schema_version = root["schema_version"]
+    if schema_version not in (
+        READINESS_PROPOSAL_SCHEMA_VERSION,
+        READINESS_PROPOSAL_SCHEMA_VERSION_V4,
+    ):
         raise ReadinessProposalError("unsupported readiness proposal schema")
+    proposal_header = (
+        READINESS_PROPOSAL_HEADER
+        if schema_version == READINESS_PROPOSAL_SCHEMA_VERSION
+        else READINESS_PROPOSAL_HEADER_V4
+    )
     status = root["status"]
     if status not in READINESS_PROPOSAL_STATUSES:
         raise ReadinessProposalError("readiness status is invalid")
     if root["authority_ceiling"] != READINESS_PROPOSAL_AUTHORITY_CEILING:
         raise ReadinessProposalError("readiness authority ceiling is invalid")
-    if root["previous_design_digest"] != HISTORICAL_V2_DESIGN_DIGEST:
-        raise ReadinessProposalError("proposal must preserve the historical v2 link")
+    expected_previous_design = (
+        HISTORICAL_V2_DESIGN_DIGEST
+        if schema_version == READINESS_PROPOSAL_SCHEMA_VERSION
+        else HISTORICAL_V3_DESIGN_DIGEST
+    )
+    if root["previous_design_digest"] != expected_previous_design:
+        raise ReadinessProposalError(
+            "proposal must preserve its historical design link"
+        )
     if root["ratifications"] != []:
         raise ReadinessProposalError("proposals cannot contain owner ratifications")
 
@@ -1097,7 +1157,7 @@ def parse_execution_readiness_proposal(document: str) -> ExecutionReadinessPropo
             raise ReadinessProposalError(f"{key} must name its exact approving owners")
 
     try:
-        _validate_recommended_values(inputs)
+        _validate_recommended_values(inputs, schema_version=schema_version)
     except (OverflowError, ValueError) as exc:
         if isinstance(exc, ReadinessProposalError):
             raise
@@ -1224,9 +1284,7 @@ def parse_execution_readiness_proposal(document: str) -> ExecutionReadinessPropo
         raise ReadinessProposalError("STILL_BLOCKED must disclose engineering blockers")
 
     canonical = _canonical_json(root)
-    digest = (
-        "sha256:" + hashlib.sha256(READINESS_PROPOSAL_HEADER + canonical).hexdigest()
-    )
+    digest = "sha256:" + hashlib.sha256(proposal_header + canonical).hexdigest()
     if _DIGEST.fullmatch(digest) is None:  # defensive and unreachable
         raise ReadinessProposalError("computed proposal digest is invalid")
     return ExecutionReadinessProposal(
@@ -1236,6 +1294,7 @@ def parse_execution_readiness_proposal(document: str) -> ExecutionReadinessPropo
         status,
         engineering_blockers,
         human_requirements,
+        proposal_header,
         _factory_token=_PROPOSAL_FACTORY_TOKEN,
     )
 
@@ -1496,11 +1555,14 @@ __all__ = (
     "FIXTURE_SEMANTIC_RESOLUTION",
     "FIXTURE_TRANSFER_LOSS_BEST",
     "FIXTURE_TRANSFER_LOSS_WORST",
+    "FIXTURE_TRANSFER_NONINFERIORITY_MARGIN",
     "FIXTURE_TRANSFER_TRANSFORM",
     "HISTORICAL_V2_DESIGN_DIGEST",
+    "HISTORICAL_V3_DESIGN_DIGEST",
     "NONQUALIFYING_SENSITIVITY_AUTHORITY_CEILING",
     "READINESS_PROPOSAL_AUTHORITY_CEILING",
     "READINESS_PROPOSAL_SCHEMA_VERSION",
+    "READINESS_PROPOSAL_SCHEMA_VERSION_V4",
     "READINESS_PROPOSAL_STATUSES",
     "REQUIRED_ENGINEERING_READINESS_SECTIONS",
     "REQUIRED_HUMAN_REQUIREMENTS",
