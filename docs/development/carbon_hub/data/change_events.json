@@ -1496,6 +1496,29 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-REHEARSAL-EVIDENCE-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-EXECUTION-CORRECTNESS-01",
+      "owner_lane": "research_engineering",
+      "status": "implemented",
+      "summary": "The B-E4 successor candidate makes policy-controlled work, fixture, and wall exhaustion and ambiguous timeout attribution nonreplaceable, retains exact stop-resource observations, and limits reserves to eligible external failures proven through exact existing-owner outcomes. A conditional endpoint-headroom diagnostic is not a population or utility result; no pilot, qualifying, shadow, or attack campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0c08bd417194d986910f207ae2a7756789236050/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-FULL-LIFECYCLE-CALIBRATION-01"
     }
   ]
 }

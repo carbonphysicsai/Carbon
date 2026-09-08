@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `4b76bda3ee137cce42726ca61f1b0c01cdf0ba05` on `main`, captured 2026-09-08T10:54:54Z.
-**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #109 merged factory-bound rehearsal evidence. The current candidate preserves a zero-row aborted attempt and records one fresh frozen 25-block/100-run full-lifecycle calibration. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted.
+**Authority snapshot:** `0c08bd417194d986910f207ae2a7756789236050` on `main`, captured 2026-09-08T13:36:48Z.
+**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #110 merged the frozen 25-block/100-run full-lifecycle calibration. The current candidate repairs policy-exhaustion and reserve integrity and records a conditional endpoint-headroom blocker. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent autonomous-agent and shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no pilot, qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
 
@@ -148,6 +148,7 @@
 - `B-E4-NONQUALIFYING-LIFECYCLE-01` — `WAVE-B/B-E4` — The B-E4 successor candidate completes a 20-run deterministic non-qualifying lifecycle demonstration with exact treatments, source-bound drivers, B-07C paired practice, permitted feedback selection, A7/A8 fixture endpoints, and complete-run budget checks. Campaign evidence integrity and frozen full-lifecycle calibration remain next; v3 is not ratified, no qualifying gauntlet or attack campaign ran, and B-GATE remains unstarted.
 - `B-E4-REHEARSAL-EVIDENCE-01` — `WAVE-B/B-E4` — The B-E4 successor candidate binds exact non-qualifying service, task/run, session, selection, resource, endpoint, transcript, and provenance identities into immutable rehearsal campaign evidence. Prospective same-profile reserves are limited to retained typed infrastructure/reference failures; frozen full-lifecycle calibration remains next, v3 remains STILL_BLOCKED, and no qualifying gauntlet or attack campaign ran.
 - `B-E4-FULL-LIFECYCLE-CALIBRATION-01` — `WAVE-B/B-E4` — A frozen fresh 25-block/100-run non-qualifying lifecycle calibration completed and issued v4 with calibrated caps and separate transfer geometry. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure upper bound, absent shadow evidence, and unresolved autonomous-agent scope keep v4 STILL_BLOCKED; no qualifying, shadow, or attack campaign ran.
+- `B-E4-EXECUTION-CORRECTNESS-01` — `WAVE-B/B-E4` — The B-E4 successor candidate makes policy-controlled work, fixture, and wall exhaustion and ambiguous timeout attribution nonreplaceable, retains exact stop-resource observations, and limits reserves to eligible external failures proven through exact existing-owner outcomes. A conditional endpoint-headroom diagnostic is not a population or utility result; no pilot, qualifying, shadow, or attack campaign ran.
 
 ## Authority boundary
 
