@@ -7,7 +7,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 3.8
+**Version:** 3.9
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -261,6 +261,22 @@ value and statistical assumption remains `PROPOSED`. B-E4 remains
 `in_progress`; B-GATE is `todo` and unstarted. No design proposal,
 simulation, dry run, or engineering test is a utility, leakage, scientific,
 security/privacy, production, qualification, or LIVE result.
+Version 3.9 prospectively supersedes that readiness snapshot for the first
+non-qualifying lifecycle delivery. PR #107 normally merged the readiness base
+as `ffbb621c76acc73b8e27911df50ad607e0b5193c`. The current successor candidate
+materializes the exact domain-neutral GENERIC workflow and existing private v1
+projection, binds installed driver source, and executes the 5-profile x 4-arm x
+1-block deterministic integration matrix through B-07S, B-07B/B-07C paired
+practice, public aggregate-only feedback, final selection, and unchanged A7/A8
+fixture evaluation. It adds private B-07F held-out/transfer endpoint binding
+and complete-run attempt/work/service/resource/wall enforcement without
+changing public wire contracts or granting qualification. Authoritative
+campaign evidence/correlation and frozen full-lifecycle calibration remain the
+next engineering deliveries. The deterministic population is not yet accepted
+as representative autonomous agents, and utility identifiability, diversity,
+shadow dependence/allocation, leakage/attack evidence, authenticated
+ratification, one-use authorization, and all eight reserved values remain
+blocked. B-E4 stays `in_progress`; B-GATE stays `todo` and unstarted.
 **Mission:** make one scientific exam authorable and make the miner research loop executable with fixtures, without claiming that the exam, practice signal, prior, backend, or network path is qualified.
 **Primary contract:** `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`
 **Codex entry point:** `.agent/WAVE_B_CODEX_HANDOFF.md`

@@ -9,15 +9,18 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 3.8
+**Controlling register:** `.agent/WAVE_B.md` version 3.9
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
 PR #105 normally merged the bounded validation repair as
 `5932ed7870e8684f1c2532f129e5ed42c597d77f`. PR #106 normally merged the
 analysis-only preregistration-design checkpoint as
-`a37b1058ea0b65ba28144b6d919714a1a5ad8a2f`; this snapshot implements the
-bounded execution-readiness checkpoint without running the gauntlet.
+`a37b1058ea0b65ba28144b6d919714a1a5ad8a2f`. PR #107 normally merged the
+bounded execution-readiness checkpoint as
+`ffbb621c76acc73b8e27911df50ad607e0b5193c`; this successor candidate completes
+the non-qualifying deterministic fixture lifecycle without running the
+qualifying gauntlet.
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on the recorded execution-integration gaps, validated pre-execution design, and
 complete human-ratified preregistration; B-GATE remains unstarted.
@@ -77,37 +80,23 @@ passed run `34124228848` and normally merged
 **B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
-**B-E4 status:** `in_progress`; PR #103 merged the bounded fixture engineering
-harness and PR #105 its validation repair; PR #106 merged the analysis-only v2
-proposal. This snapshot adds three separately causal registered toy families,
-an exploratory three-family private TEST_ONLY pack, five fixed data-only
-drivers, preflight plans/accounting, canonical intervention identity, and
-fail-closed shadow/attack/execution/ratification carriers. The successor v3
-path preserves exact historical B-07F sampling-only identities and gives only
-the three-family extension a prospective identity v2. Its centralized arm
-factory provides non-qualifying preflight surrogates only; the required GENERIC
-domain-neutral workflow artifact and exact v1 `PrivatePriorProjection` remain
-unmaterialized. The v3 recommendation is `STILL_BLOCKED`: the current runner/
-calibration stops at
-B-07S preflight, four profiles lack an identifiable v2 treatment contrast, and
-fixed binary proposals yield zero supported/guarded diversity only under a
-non-authoritative task-to-run mapping; the recorded analyzer fails closed.
-Complete practice/final selection, candidate-bound seeds, authoritative B-07B
-task-to-run binding, trusted endpoint receipts/Q transforms, exact preflight-
-result/request correlation, retained-reserve binding, complete artifact
-manifests, trusted attack and simultaneous-leakage evidence, authenticated
-owner verification, and qualifying evidence storage remain unavailable. The
-separate bounded TEST_ONLY official-shaped association has its own no-
-qualification ceiling and binds only a preflight slot/proposal to an A7
-receipt. It does not bind requester/session, prove trusted B-07S origin or
-request-to-result correlation, enforce full lifecycle/final-slot policy, or
-create qualifying evidence. Exact shadow-case count/profile allocation is also
-unpinned. The
-declared driver runtime/policy digests do not bind executable source bytes, and
-the `636` blocks/profile recommendation is conditional on an unvalidated
-cross-profile transcript-cluster ICC assumption of `rho=0`. All eight values
-and their statistical assumptions remain `PROPOSED`; no qualifying run
-occurred. B-GATE is unstarted.
+**B-E4 status:** `in_progress`; PR #107 merged the bounded execution-readiness
+checkpoint. This successor candidate materializes the exact GENERIC workflow
+and v1 private projection, binds installed driver source, and executes a
+5-profile x 4-arm x 1-block integration demonstration through B-07S,
+B-07B/B-07C paired practice, allowed feedback/final selection, and unchanged
+A7/A8 fixture evaluation. Private B-07F endpoint receipts bind held-out and
+transfer measurements; proposed Q transforms remain design analysis. Complete-
+run attempts, policy work/service calls, cumulative fixture units, and wall
+time are enforced under a no-qualification ceiling. The v3 recommendation
+remains `STILL_BLOCKED`: deterministic profile labels do not prove a
+representative autonomous-agent population, several profiles may still lack an
+identifiable v2 contrast, and authoritative campaign correlation/evidence,
+reserve/replacement binding, frozen full-lifecycle calibration, trusted attack
+and simultaneous-leakage evidence, authenticated owner verification, and
+qualifying evidence storage remain unavailable. Exact shadow allocation and
+cross-profile dependence remain unvalidated. All eight values remain
+`PROPOSED`; no qualifying run occurred. B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`
