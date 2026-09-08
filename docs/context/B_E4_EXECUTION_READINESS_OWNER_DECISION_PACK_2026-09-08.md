@@ -30,6 +30,27 @@ immutable historical design analysis.
 diversity, leakage, scientific, security/privacy, production, qualification,
 network, frontier, settlement, emission, or LIVE authority
 
+## Current execution-correctness update
+
+The successor runtime repair makes policy-controlled attempt, service,
+normalized-compute, fixture-unit, and wall-time exhaustion nonreplaceable.
+Ambiguous timeouts and caller-labelled failures are also nonreplaceable. A
+prospective reserve can be used only when an exact existing B-07B/B-07C or
+A7/A8 outcome proves one of the closed eligible external infrastructure or
+reference classes. Every early stop retains its exact normalized-compute,
+fixture-unit, and wall observation. This is rehearsal-record integrity only;
+it does not validate the proposed failure model or authorize any run.
+
+The historical calibration is immutable and remains bound to its original
+runtime. Conditional on its recorded no/generic baseline mean
+`0.8300554565022396`, a perfect v2 endpoint has only
+`0.16994454349776045` Q improvement headroom; conditional on the recorded v1
+mean `0.8`, it has `0.2` Q. Both are below the proposed strict primary floor
+`0.4017350715246475`. These sample-conditional calculations are not population
+bounds, v2 outcomes, or a utility decision. They instead require the owner-
+unapproved autonomous-agent pilot proposal to treat estimand feasibility as an
+explicit decision and prevent any post-outcome floor adjustment.
+
 ## Owner summary
 
 The earlier one-family fixture blocker is repaired: sampling count,

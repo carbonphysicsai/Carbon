@@ -12435,3 +12435,36 @@ authorization, qualification, production, or LIVE decision is made. The five
 owners must decide population scope and all eight values against a later
 complete execution-ready freeze; a separate one-use authorization is still
 required. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+## 2026-09-08 — B-E4-D13: policy exhaustion cannot purchase replacement
+
+**Ticket:** B-E4
+
+**Problem.** The rehearsal lifecycle classified attempt, service-operation,
+normalized-compute, fixture-unit, and wall-time exhaustion as infrastructure
+failure. The evidence layer then treated any caller-labelled infrastructure or
+reference error as enough to consume a prospectively numbered reserve. That
+made policy stops replaceable, obscured the consumed resource observation, and
+allowed a caller assertion to stand in for an existing owner's outcome.
+
+**Decision.** Add the closed `POLICY_EXHAUSTION` failure kind and the separate
+`NOT_ELIGIBLE / VERIFIED_INFRASTRUCTURE / VERIFIED_REFERENCE` replacement
+disposition. Retain normalized compute, fixture units, and wall time at every
+stop. Admit work before every known inadmissible operation. Issue a replaceable
+failure only while translating an exact B-07B/B-07C terminal receipt or exact
+A7/A8 fixture outcome in a closed externally caused class. Ambiguous timeouts,
+post-operation resource overruns, candidate/measurement failures, and direct
+caller constructions remain nonreplaceable.
+
+**Rationale and alternatives.** Failure-kind labels alone were rejected
+because they do not prove provenance. A generic caller verification Boolean
+was rejected because it simply relocates the assertion. Treating every timeout
+as external was rejected because elapsed time cannot distinguish provider loss
+from policy exhaustion or candidate behavior. The additive wrapper preserves
+owner semantics and can accept new eligible owner outcomes prospectively only
+through a reviewed mapping.
+
+**Authority boundary.** This decision repairs non-qualifying rehearsal record
+integrity. It does not validate the proposed failure probability, reserve
+count, population, utility, diversity, leakage, attack, approval, or execution
+design. No campaign ran. B-E4 remains `in_progress`; B-GATE remains unstarted.

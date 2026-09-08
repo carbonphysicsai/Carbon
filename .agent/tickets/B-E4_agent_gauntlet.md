@@ -2,15 +2,17 @@
 
 **Wave:** B candidate
 **Status:** in_progress
-**Execution boundary:** the engineering harness, validation repair, and
-analysis-only preregistration design are merged. The current bounded successor
-checkpoint is implementing and rehearsing the complete non-qualifying fixture
-lifecycle over those foundations. It runs B-07C practice and A7/A8 fixture-
-official-shaped evaluation only under an explicit design-analysis ceiling; it
-does not run a qualifying gauntlet. Qualifying execution remains blocked on
-authoritative autonomous-agent population scope, validated cross-profile
-dependence and other design assumptions, trusted attack/leakage evidence,
-verified owner ratification, and qualifying execution-evidence integration.
+**Execution boundary:** the engineering harness, validation repair, analysis-
+only preregistration design, complete non-qualifying fixture lifecycle,
+factory-bound rehearsal evidence, and frozen deterministic calibration are
+merged. The current bounded repair makes resource-policy exhaustion and
+ambiguous timeouts nonreplaceable, retains stop observations, and accepts a
+reserve only after an exact existing owner establishes an eligible external
+infrastructure or reference failure. It does not run a qualifying, shadow, or
+attack campaign. Qualifying execution remains blocked on an owner-approved
+autonomous-agent population, validated stochastic/dependence and shadow
+assumptions, trusted attack/leakage evidence, verified owner ratification, and
+qualifying execution-evidence integration.
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
@@ -78,13 +80,13 @@ metrics alone.
 
 The current recommendation is recorded in
 `docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md` and
-`.agent/preregistrations/B-E4_recommended_design_v3.json`. The v2 pack remains
-immutable historical analysis. Every v3 value remains `PROPOSED`; no owner
-approval is inferred from either proposal. Final five-owner ratification must
-bind a later execution-ready complete-design digest, not only eight text
+`.agent/preregistrations/B-E4_recommended_design_v4.json`. The v2 and v3 packs
+remain immutable historical analysis. Every v4 value remains `PROPOSED`; no
+owner approval is inferred from any proposal. Final five-owner ratification
+must bind a later execution-ready complete-design digest, not only eight text
 labels.
 
-## Current execution-readiness result
+## Historical execution-readiness result through stage 2
 
 The first successor delivery now exercises the smallest complete deterministic
 integration matrix: five registered fixture-policy profiles by four treatment

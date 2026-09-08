@@ -24,6 +24,7 @@ from carbon.research import (
     ExperimentRecord,
     GetResearchResultRequest,
     GetResearchResultResult,
+    InfrastructureFailureClass,
     InMemoryResearchTaskProvider,
     LocalResearchService,
     NoPriorSelector,
@@ -36,7 +37,11 @@ from carbon.research import (
     StartResearchTaskResult,
     canonical_digest,
 )
-from carbon.traineval.model import InfrastructureFailedRun
+from carbon.traineval.model import (
+    InfrastructureCause,
+    InfrastructureFailedRun,
+    InfrastructureRetryClass,
+)
 from carbon.traineval.resolved_fixture import (
     FixtureCompilationFailed,
     FixtureConstructionFailed,
@@ -58,6 +63,7 @@ from .agents import (
 )
 from .execution import (
     GENERIC_WORKFLOW_STEPS,
+    FixtureResourceBudgetExceeded,
     FrozenArmArtifact,
     NonQualifyingRunPlan,
     OfficialFixtureSubmission,
@@ -68,7 +74,13 @@ from .execution import (
     submit_selected_prepared_fixture_run,
 )
 from .harness import AgentSession
-from .meter import NormalizedComputeReceipt, PolicyWorkMeter, WallTimeObservation
+from .meter import (
+    NormalizedComputeReceipt,
+    PolicyWorkBudgetExceeded,
+    PolicyWorkKind,
+    PolicyWorkMeter,
+    WallTimeObservation,
+)
 from .model import ExperimentalArm
 from .proposal import fixture_primary_quality, fixture_transfer_quality
 
@@ -84,6 +96,7 @@ _LIFECYCLE_DOMAIN = b"carbon.be4.nonqualifying-lifecycle.v1\x00"
 _PRACTICE_DOMAIN = b"carbon.be4.practice-correlation.v1\x00"
 _PRACTICE_FACTORY_TOKEN = object()
 _LIFECYCLE_FACTORY_TOKEN = object()
+_OWNER_FAILURE_TOKEN = object()
 
 
 def _sha(domain: bytes, fields: tuple[str, ...]) -> str:
@@ -100,17 +113,139 @@ class LifecycleFailureKind(str, Enum):
     INFRASTRUCTURE = "INFRASTRUCTURE"
     REFERENCE = "REFERENCE"
     MEASUREMENT = "MEASUREMENT"
+    POLICY_EXHAUSTION = "POLICY_EXHAUSTION"
+
+
+class ReplacementEligibility(str, Enum):
+    """Closed rehearsal disposition; it is not an A7 retry decision."""
+
+    NOT_ELIGIBLE = "NOT_ELIGIBLE"
+    VERIFIED_INFRASTRUCTURE = "VERIFIED_INFRASTRUCTURE"
+    VERIFIED_REFERENCE = "VERIFIED_REFERENCE"
+
+
+@dataclass(frozen=True, slots=True)
+class LifecycleResourceObservation:
+    """Facts retained when a lifecycle terminates before a success record."""
+
+    normalized_compute: NormalizedComputeReceipt
+    fixture_units: float
+    wall_time: WallTimeObservation
+
+    def __post_init__(self) -> None:
+        if (
+            type(self) is not LifecycleResourceObservation
+            or type(self.normalized_compute) is not NormalizedComputeReceipt
+            or type(self.fixture_units) is not float
+            or not 0.0 <= self.fixture_units < float("inf")
+            or type(self.wall_time) is not WallTimeObservation
+        ):
+            raise TypeError("lifecycle resource observation is invalid")
+
+    @property
+    def content_digest(self) -> str:
+        return _sha(
+            b"carbon.be4.lifecycle-failure-resources.v1\x00",
+            (
+                self.normalized_compute.content_digest,
+                self.fixture_units.hex(),
+                self.wall_time.elapsed_seconds.hex(),
+            ),
+        )
 
 
 class NonQualifyingLifecycleError(RuntimeError):
     """Closed orchestration failure preserving B-E2 cause separation."""
 
-    def __init__(self, kind: LifecycleFailureKind, stage: str) -> None:
+    def __init__(
+        self,
+        kind: LifecycleFailureKind,
+        stage: str,
+        *,
+        resource_observation: LifecycleResourceObservation | None = None,
+        _owner_failure_digest: str | None = None,
+        _owner_failure_token: object | None = None,
+    ) -> None:
         if type(kind) is not LifecycleFailureKind or type(stage) is not str:
             raise TypeError("lifecycle failure requires exact closed values")
+        if (
+            resource_observation is not None
+            and type(resource_observation) is not LifecycleResourceObservation
+        ):
+            raise TypeError("failure resources require an exact observation")
+        if _owner_failure_token is _OWNER_FAILURE_TOKEN:
+            if (
+                kind
+                not in (
+                    LifecycleFailureKind.INFRASTRUCTURE,
+                    LifecycleFailureKind.REFERENCE,
+                )
+                or type(_owner_failure_digest) is not str
+                or not _owner_failure_digest.startswith("sha256:")
+                or len(_owner_failure_digest) != 71
+            ):
+                raise TypeError("verified owner failure binding is invalid")
+        elif _owner_failure_token is not None or _owner_failure_digest is not None:
+            raise TypeError("caller failure attribution is not accepted")
         self.kind = kind
         self.stage = stage
+        self.resource_observation = resource_observation
+        self._owner_failure_digest = _owner_failure_digest
+        self._owner_failure_token = _owner_failure_token
         super().__init__(f"{kind.value} lifecycle failure at {stage}")
+
+    @property
+    def replacement_eligibility(self) -> ReplacementEligibility:
+        if self._owner_failure_token is not _OWNER_FAILURE_TOKEN:
+            return ReplacementEligibility.NOT_ELIGIBLE
+        if self.kind is LifecycleFailureKind.REFERENCE:
+            return ReplacementEligibility.VERIFIED_REFERENCE
+        return ReplacementEligibility.VERIFIED_INFRASTRUCTURE
+
+    @property
+    def owner_failure_digest(self) -> str | None:
+        return self._owner_failure_digest
+
+    def with_resource_observation(
+        self, observation: LifecycleResourceObservation
+    ) -> NonQualifyingLifecycleError:
+        if type(observation) is not LifecycleResourceObservation:
+            raise TypeError("failure resources require an exact observation")
+        return NonQualifyingLifecycleError(
+            self.kind,
+            self.stage,
+            resource_observation=observation,
+            _owner_failure_digest=self._owner_failure_digest,
+            _owner_failure_token=self._owner_failure_token,
+        )
+
+
+_REPLACEABLE_PRACTICE_INFRASTRUCTURE = frozenset(
+    {
+        InfrastructureFailureClass.QUEUE_LOST,
+        InfrastructureFailureClass.WORKER_LOST,
+        InfrastructureFailureClass.DEPENDENCY_UNAVAILABLE,
+    }
+)
+_REPLACEABLE_OFFICIAL_INFRASTRUCTURE = frozenset(
+    {
+        InfrastructureCause.BACKEND_UNAVAILABLE,
+        InfrastructureCause.BACKEND_STARTUP_FAILURE,
+    }
+)
+
+
+def _verified_owner_failure(
+    kind: LifecycleFailureKind, stage: str, fields: tuple[str, ...]
+) -> NonQualifyingLifecycleError:
+    return NonQualifyingLifecycleError(
+        kind,
+        stage,
+        _owner_failure_digest=_sha(
+            b"carbon.be4.owner-verified-lifecycle-failure.v1\x00", fields
+        ),
+        _owner_failure_token=_OWNER_FAILURE_TOKEN,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -379,15 +514,38 @@ class ResearchLifecycleBridge:
         *,
         session: AgentSession,
         prepared: PreparedFixturePreflight,
+        fixture_resource_ceiling: int,
+        lifecycle_started_ns: int,
+        wall_time_seconds: float,
     ) -> tuple[PracticeAttemptEvidence, ...]:
-        if not session.binds_research_service(self._service):
+        if (
+            not session.binds_research_service(self._service)
+            or type(fixture_resource_ceiling) is not int
+            or fixture_resource_ceiling < 1
+            or type(lifecycle_started_ns) is not int
+            or type(wall_time_seconds) is not float
+            or wall_time_seconds <= 0.0
+        ):
             raise ValueError("research bridge is not bound to the run session")
         findings: list[PracticeAttemptEvidence] = []
+        consumed_fixture_units = 0.0
         for candidate in prepared.candidates:
             if not candidate.executable:
                 continue
             inspection = candidate.resource_inspection
             assert inspection is not None
+            elapsed = (time.monotonic_ns() - lifecycle_started_ns) / 1_000_000_000
+            if elapsed > wall_time_seconds:
+                raise NonQualifyingLifecycleError(
+                    LifecycleFailureKind.POLICY_EXHAUSTION,
+                    "wall_budget_before_practice",
+                )
+            candidate_units = sum(item.quantity for item in inspection.line_items)
+            if consumed_fixture_units + candidate_units > fixture_resource_ceiling:
+                raise NonQualifyingLifecycleError(
+                    LifecycleFailureKind.POLICY_EXHAUSTION,
+                    "fixture_resource_budget_before_practice",
+                )
             classes = {item.resource_class_ref for item in inspection.line_items}
             if len(classes) != 1:
                 raise NonQualifyingLifecycleError(
@@ -439,7 +597,25 @@ class ResearchLifecycleBridge:
             assert type(polled) is GetResearchResultResult
             poll_reply_digest = reply_digests[-1]
             task = polled.task
-            if task != worker_view or task.state is ResearchTaskState.FAILED_INFRA:
+            if task != worker_view:
+                raise NonQualifyingLifecycleError(
+                    LifecycleFailureKind.INFRASTRUCTURE, "paired_practice"
+                )
+            if task.state is ResearchTaskState.FAILED_INFRA:
+                receipt = task.terminal_receipt
+                if (
+                    receipt is not None
+                    and receipt.infrastructure_failure_class
+                    in _REPLACEABLE_PRACTICE_INFRASTRUCTURE
+                ):
+                    raise _verified_owner_failure(
+                        LifecycleFailureKind.INFRASTRUCTURE,
+                        "paired_practice",
+                        (
+                            receipt.receipt_ref.receipt_digest,
+                            receipt.infrastructure_failure_class.value,
+                        ),
+                    )
                 raise NonQualifyingLifecycleError(
                     LifecycleFailureKind.INFRASTRUCTURE, "paired_practice"
                 )
@@ -451,10 +627,29 @@ class ResearchLifecycleBridge:
                     LifecycleFailureKind.INFRASTRUCTURE, "paired_practice_terminal"
                 )
             record = self._provider.get_experiment_record(task.task_id)
+            consumed_fixture_units += sum(
+                observation.quantity for observation in record.resource_observations
+            )
+            if consumed_fixture_units > fixture_resource_ceiling:
+                elapsed = (time.monotonic_ns() - lifecycle_started_ns) / 1_000_000_000
+                raise NonQualifyingLifecycleError(
+                    LifecycleFailureKind.POLICY_EXHAUSTION,
+                    "fixture_resource_budget_after_practice",
+                    resource_observation=LifecycleResourceObservation(
+                        session.normalized_compute(),
+                        float(consumed_fixture_units),
+                        WallTimeObservation(float(elapsed)),
+                    ),
+                )
             category = record.scientific_failure_category
             if category is ResearchFailureCategory.REFERENCE:
-                raise NonQualifyingLifecycleError(
-                    LifecycleFailureKind.REFERENCE, "paired_practice"
+                raise _verified_owner_failure(
+                    LifecycleFailureKind.REFERENCE,
+                    "paired_practice",
+                    (
+                        task.terminal_receipt.receipt_ref.receipt_digest,
+                        category.value,
+                    ),
                 )
             if category is ResearchFailureCategory.MEASUREMENT:
                 raise NonQualifyingLifecycleError(
@@ -552,13 +747,33 @@ class OfficialLifecycleBridge:
         outcome = self._adapter.run_fixture(started.envelope)
         if type(outcome) is InfrastructureFailedRun:
             self._service.fail_infrastructure(outcome.handle)
+            if (
+                outcome.retry_class is InfrastructureRetryClass.RETRYABLE
+                and outcome.cause in _REPLACEABLE_OFFICIAL_INFRASTRUCTURE
+            ):
+                raise _verified_owner_failure(
+                    LifecycleFailureKind.INFRASTRUCTURE,
+                    "fixture_official",
+                    (
+                        outcome.handle.submission_id.value,
+                        str(outcome.handle.attempt_number),
+                        outcome.retry_class.value,
+                        outcome.cause.value,
+                    ),
+                )
             raise NonQualifyingLifecycleError(
                 LifecycleFailureKind.INFRASTRUCTURE, "fixture_official"
             )
         if type(outcome) is FixtureReferenceFailed:
             self._service.fail_infrastructure(outcome.handle)
-            raise NonQualifyingLifecycleError(
-                LifecycleFailureKind.REFERENCE, "fixture_official"
+            raise _verified_owner_failure(
+                LifecycleFailureKind.REFERENCE,
+                "fixture_official",
+                (
+                    outcome.handle.submission_id.value,
+                    str(outcome.handle.attempt_number),
+                    outcome.cause.value,
+                ),
             )
         if type(outcome) is FixtureMeasurementFailed:
             self._service.fail_infrastructure(outcome.handle)
@@ -752,6 +967,42 @@ def _public_result_digest(result: SubmissionResult) -> str:
     )
 
 
+def _failure_resources(
+    *, meter: PolicyWorkMeter, started_ns: int, fixture_units: float
+) -> LifecycleResourceObservation:
+    elapsed = (time.monotonic_ns() - started_ns) / 1_000_000_000
+    return LifecycleResourceObservation(
+        meter.snapshot(),
+        float(fixture_units),
+        WallTimeObservation(float(elapsed)),
+    )
+
+
+def _policy_work_failure_stage(error: PolicyWorkBudgetExceeded) -> str:
+    if error.kind is PolicyWorkKind.ATTEMPT:
+        return "attempt_budget"
+    if error.kind is PolicyWorkKind.SERVICE_OPERATION:
+        return "service_budget"
+    return "normalized_compute_budget"
+
+
+def _retain_failure_resources(
+    error: NonQualifyingLifecycleError,
+    *,
+    meter: PolicyWorkMeter,
+    started_ns: int,
+    fixture_units: float,
+) -> NonQualifyingLifecycleError:
+    observed = error.resource_observation
+    if observed is not None:
+        fixture_units = max(fixture_units, observed.fixture_units)
+    return error.with_resource_observation(
+        _failure_resources(
+            meter=meter, started_ns=started_ns, fixture_units=fixture_units
+        )
+    )
+
+
 def run_nonqualifying_lifecycle(
     *,
     session: AgentSession,
@@ -768,21 +1019,84 @@ def run_nonqualifying_lifecycle(
     """Execute one full fixture rehearsal with no qualification authority."""
 
     started_ns = time.monotonic_ns()
-    prepared = prepare_nonqualifying_preflight(
-        session=session,
-        plan=plan,
-        driver=driver,
-        strategy_domain=strategy_domain,
-        parameter_catalog=parameter_catalog,
-        candidate_assembly=candidate_assembly,
-        meter=meter,
-    )
-    practice = research_bridge.run_paired_practice(session=session, prepared=prepared)
+    fixture_units = 0.0
+    try:
+        prepared = prepare_nonqualifying_preflight(
+            session=session,
+            plan=plan,
+            driver=driver,
+            strategy_domain=strategy_domain,
+            parameter_catalog=parameter_catalog,
+            candidate_assembly=candidate_assembly,
+            meter=meter,
+        )
+    except PolicyWorkBudgetExceeded as error:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            _policy_work_failure_stage(error),
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        ) from None
+    except FixtureResourceBudgetExceeded as error:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "fixture_resource_budget_before_practice",
+            resource_observation=_failure_resources(
+                meter=meter,
+                started_ns=started_ns,
+                fixture_units=error.quantity,
+            ),
+        ) from None
     if (
         time.monotonic_ns() - started_ns
     ) / 1_000_000_000 > plan.budget.wall_time_seconds:
         raise NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "wall_budget_before_selection"
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "wall_budget_before_practice",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        )
+    try:
+        practice = research_bridge.run_paired_practice(
+            session=session,
+            prepared=prepared,
+            fixture_resource_ceiling=plan.fixture_resource_ceiling,
+            lifecycle_started_ns=started_ns,
+            wall_time_seconds=plan.budget.wall_time_seconds,
+        )
+    except PolicyWorkBudgetExceeded as error:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            _policy_work_failure_stage(error),
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        ) from None
+    except NonQualifyingLifecycleError as error:
+        raise _retain_failure_resources(
+            error,
+            meter=meter,
+            started_ns=started_ns,
+            fixture_units=fixture_units,
+        ) from None
+    fixture_units = float(
+        sum(
+            observation.quantity
+            for item in practice
+            for observation in item.experiment_record.resource_observations
+        )
+    )
+    if (
+        time.monotonic_ns() - started_ns
+    ) / 1_000_000_000 > plan.budget.wall_time_seconds:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "wall_budget_before_selection",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
         )
     rng = CommonArmRng(
         plan.design_digest,
@@ -790,44 +1104,86 @@ def run_nonqualifying_lifecycle(
         plan.block_id,
         plan.identity.replicate,
     )
-    selection = driver.select_after_practice(
-        proposal_batch=prepared.proposal_batch,
-        feedback=tuple(item.feedback for item in practice),
-        rng=rng,
-        meter=meter,
-    )
+    try:
+        selection = driver.select_after_practice(
+            proposal_batch=prepared.proposal_batch,
+            feedback=tuple(item.feedback for item in practice),
+            rng=rng,
+            meter=meter,
+        )
+    except PolicyWorkBudgetExceeded as error:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            _policy_work_failure_stage(error),
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        ) from None
     selected = next(
         item
         for item in prepared.candidates
         if item.proposal.attempt == selection.selected_attempt
     )
     assert selected.resource_inspection is not None
-    practice_units = sum(
-        observation.quantity
-        for item in practice
-        for observation in item.experiment_record.resource_observations
-    )
     final_units = sum(item.quantity for item in selected.resource_inspection.line_items)
-    fixture_units = float(practice_units + final_units)
+    fixture_units = float(fixture_units + final_units)
     if fixture_units > plan.fixture_resource_ceiling:
         raise NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "fixture_resource_budget"
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "fixture_resource_budget_before_endpoint",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
         )
-    submission = submit_selected_prepared_fixture_run(
-        session=session, prepared=prepared, selection=selection
-    )
-    outcome, public_result = official_bridge.complete(
-        session=session, submission=submission
-    )
+    if (
+        time.monotonic_ns() - started_ns
+    ) / 1_000_000_000 > plan.budget.wall_time_seconds:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "wall_budget_before_endpoint",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        )
+    try:
+        submission = submit_selected_prepared_fixture_run(
+            session=session, prepared=prepared, selection=selection
+        )
+        outcome, public_result = official_bridge.complete(
+            session=session, submission=submission
+        )
+    except PolicyWorkBudgetExceeded as error:
+        raise NonQualifyingLifecycleError(
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            _policy_work_failure_stage(error),
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
+        ) from None
+    except NonQualifyingLifecycleError as error:
+        raise _retain_failure_resources(
+            error,
+            meter=meter,
+            started_ns=started_ns,
+            fixture_units=fixture_units,
+        ) from None
     elapsed = (time.monotonic_ns() - started_ns) / 1_000_000_000
     if elapsed > plan.budget.wall_time_seconds:
         raise NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "wall_budget_after_endpoint"
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "wall_budget_after_endpoint",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
         )
     compute = meter.snapshot()
     if compute.total_work_units > int(plan.budget.compute_units):
         raise NonQualifyingLifecycleError(
-            LifecycleFailureKind.INFRASTRUCTURE, "normalized_compute_budget"
+            LifecycleFailureKind.POLICY_EXHAUSTION,
+            "normalized_compute_budget",
+            resource_observation=_failure_resources(
+                meter=meter, started_ns=started_ns, fixture_units=fixture_units
+            ),
         )
     endpoint = outcome.endpoint_observation_receipt
     driver_artifact = executable_driver_artifact(driver)
@@ -879,11 +1235,13 @@ __all__ = (
     "NONQUALIFYING_LIFECYCLE_AUTHORITY_CEILING",
     "ExecutableDriverArtifactRef",
     "LifecycleFailureKind",
+    "LifecycleResourceObservation",
     "LifecycleTreatmentArtifact",
     "NonQualifyingLifecycleError",
     "NonQualifyingLifecycleRun",
     "OfficialLifecycleBridge",
     "PracticeAttemptEvidence",
+    "ReplacementEligibility",
     "ResearchLifecycleBridge",
     "executable_driver_artifact",
     "lifecycle_treatment_artifact",

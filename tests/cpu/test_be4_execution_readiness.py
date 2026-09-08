@@ -166,8 +166,9 @@ def test_meter_rejects_work_before_crossing_its_immutable_ceiling() -> None:
     meter = PolicyWorkMeter()
     meter.bind_ceiling(1)
     meter.record(PolicyWorkKind.ATTEMPT)
-    with pytest.raises(PolicyWorkBudgetExceeded, match="ceiling"):
+    with pytest.raises(PolicyWorkBudgetExceeded, match="ceiling") as error:
         meter.record(PolicyWorkKind.SERVICE_OPERATION)
+    assert error.value.kind is PolicyWorkKind.SERVICE_OPERATION
     assert meter.snapshot().total_work_units == 1
     assert meter.bound_ceiling == 1
     with pytest.raises(ValueError, match="before preflight work"):

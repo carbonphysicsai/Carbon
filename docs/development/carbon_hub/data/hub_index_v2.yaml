@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-08T10:54:54Z"
+  captured_at_utc: "2026-09-08T13:36:48Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "4b76bda3ee137cce42726ca61f1b0c01cdf0ba05"
+  authority_snapshot_commit: "0c08bd417194d986910f207ae2a7756789236050"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -437,7 +437,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
-  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #109 merged factory-bound rehearsal evidence. The current candidate preserves a zero-row aborted attempt and records one fresh frozen 25-block/100-run full-lifecycle calibration. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #110 merged the frozen 25-block/100-run full-lifecycle calibration. The current candidate repairs policy-exhaustion and reserve integrity and records a conditional endpoint-headroom blocker. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent autonomous-agent and shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no pilot, qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
@@ -456,17 +456,17 @@ current:
     id: "B-E4"
     title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
     status: "in_progress"
-    summary: "PR #109 merged B-E4's rehearsal integrity/evidence stage. This successor candidate records a frozen 25-block/100-run full-lifecycle calibration and v4 proposal; v4 remains STILL_BLOCKED and no qualifying, shadow, or attack campaign ran."
+    summary: "PR #110 merged B-E4's frozen 25-block/100-run full-lifecycle calibration. This successor candidate repairs policy-exhaustion and reserve integrity and records a conditional endpoint-headroom blocker; v4 remains STILL_BLOCKED and no pilot, qualifying, shadow, or attack campaign ran."
     delivery:
-      reference: "PR #109"
+      reference: "PR #110"
       status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/109"
-      merge_commit: "8c907181b7f63b5c0153e2fa097ce28ec647ebb5"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/110"
+      merge_commit: "b693bbe2e23774c93303d24416f55ebdd5f6c0e9"
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "4.1"
-  controlling_board_fingerprint: "8b87bdca932108668dcf911f66466cfce6cfcd603d78fa58dac4988f1d7b483e"
-  stage: "Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #109 merged factory-bound rehearsal evidence. The current candidate preserves a zero-row aborted attempt and records one fresh frozen 25-block/100-run full-lifecycle calibration. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted."
+  controlling_register_version: "4.2"
+  controlling_board_fingerprint: "2515891a75781d2e7b840581a24945eb1fab00472b2290d4de1c111f3e4f10a1"
+  stage: "Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #110 merged the frozen 25-block/100-run full-lifecycle calibration. The current candidate repairs policy-exhaustion and reserve integrity and records a conditional endpoint-headroom blocker. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure-rate upper bound, and absent autonomous-agent and shadow evidence keep v4 STILL_BLOCKED. All eight inputs remain PROPOSED; no pilot, qualifying, shadow, or attack campaign ran; no later ticket is selected; and B-GATE remains unstarted."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -537,7 +537,7 @@ current:
     - "B-07G is merged local in-process composition only; it supplies no listener, authenticated transport, credentials, quote, admission, observed-resource authority, official submission/result path, scientific qualification, production, or LIVE."
     - "B-E1 is a TEST_ONLY fixture harness with no real statistical values, qualified backend, ranking, frontier, scientific/security qualification, production, or LIVE authority."
     - "B-E2 is deterministic TEST_ONLY reference-service fixture evidence; archived Julia remains absent and no reference method, environment, retry/fallback policy, scientific qualification, production, or LIVE authority is supplied."
-    - "B-E4's v4 proposal remains STILL_BLOCKED. Frozen full-lifecycle calibration exists but its deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, 11.2928 percent failure upper bound, and absent shadow campaign do not establish utility, diversity, leakage, autonomous-agent scope, or readiness. Authenticated ratification, one-use authorization, trusted attacks, and qualifying evidence remain unavailable."
+    - "B-E4's v4 proposal remains STILL_BLOCKED. Frozen full-lifecycle calibration exists but its deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, 11.2928 percent failure upper bound, conditional primary-endpoint headroom shortfall, and absent autonomous-agent/shadow campaigns do not establish utility, diversity, leakage, population scope, or readiness. Policy exhaustion and ambiguous timeouts are nonreplaceable. Authenticated ratification, one-use authorization, trusted attacks, and qualifying evidence remain unavailable."
     - "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
@@ -553,7 +553,7 @@ current:
     commercially_validated: "unearned"
     production_qualified: "unearned"
   maturity_summary: "B-E4 is specified, implemented, and tested only for bounded fixture engineering, non-qualifying lifecycle/rehearsal evidence, frozen full-lifecycle calibration, and design analysis. The v4 proposal is STILL_BLOCKED; all eight values remain PROPOSED, and no verified ratification or qualifying evidence exists. No utility, diversity, leakage, scientific, security/privacy, network, commercial, production, qualification, ranking, frontier, settlement, emission, or LIVE maturity is earned."
-  decision_series_status: "B-E4-D1/D2/D3/D4, D6/D7/D8, D10, D11, and D12 are implemented working engineering decisions. D12 preserves the frozen non-qualifying calibration and issues v4 only for changed caps and transfer geometry. All eight values, autonomous-agent population scope, authenticated role assignments, five-owner ratification, separate execution authorization, and qualifying evidence remain unavailable."
+  decision_series_status: "B-E4-D1/D2/D3/D4, D6/D7/D8, D10, D11, D12, and D13 are implemented working engineering decisions. D12 preserves the frozen non-qualifying calibration and issues v4 only for changed caps and transfer geometry; D13 makes policy exhaustion and unverified failure attribution nonreplaceable. All eight values, autonomous-agent population scope, authenticated role assignments, five-owner ratification, separate execution authorization, and qualifying evidence remain unavailable."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -569,6 +569,7 @@ current:
     - "B-E4-D10"
     - "B-E4-D11"
     - "B-E4-D12"
+    - "B-E4-D13"
 waves:
   -
     id: "A"
@@ -3104,6 +3105,27 @@ events:
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/MATURITY"
     supersedes: "B-E4-REHEARSAL-EVIDENCE-01"
+  -
+    map_ref: "WAVE-B/B-E4"
+    event_type: "adjustment"
+    event_id: "B-E4-EXECUTION-CORRECTNESS-01"
+    owner_lane: "research_engineering"
+    status: "implemented"
+    summary: "The B-E4 successor candidate makes policy-controlled work, fixture, and wall exhaustion and ambiguous timeout attribution nonreplaceable, retains exact stop-resource observations, and limits reserves to eligible external failures proven through exact existing-owner outcomes. A conditional endpoint-headroom diagnostic is not a population or utility result; no pilot, qualifying, shadow, or attack campaign ran."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/0c08bd417194d986910f207ae2a7756789236050/.agent/evidence/wave_b/b-e4.md"
+    affects:
+      - "WAVE-B/B-07B"
+      - "WAVE-B/B-07C"
+      - "WAVE-B/B-07E"
+      - "WAVE-B/B-07F"
+      - "WAVE-B/B-E2"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+    supersedes: "B-E4-FULL-LIFECYCLE-CALIBRATION-01"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

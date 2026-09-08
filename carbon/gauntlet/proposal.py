@@ -63,6 +63,9 @@ HISTORICAL_V3_DESIGN_DIGEST = (
 )
 FIXTURE_PRIMARY_TRANSFORM = "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1"
 FIXTURE_TRANSFER_TRANSFORM = "LOG1P_FROZEN_ANCHOR_QUALITY_Q/v1"
+HEADROOM_DIAGNOSTIC_AUTHORITY_CEILING = (
+    "CONDITIONAL_DESIGN_FEASIBILITY_ONLY_NOT_A_POPULATION_BOUND_OR_UTILITY_RESULT"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,6 +79,105 @@ class FixtureGridGeometry:
     transfer_loss_worst: float
     semantic_resolution: float
     parity_robust_feature_step: float
+
+
+@dataclass(frozen=True, slots=True)
+class EndpointHeadroomAssessment:
+    """Necessary superiority headroom under one explicit baseline premise."""
+
+    authority_ceiling: str
+    basis: str
+    endpoint_upper_bound: float
+    baseline_value: float
+    maximum_possible_improvement: float
+    practical_effect_floor: float
+    strict_floor_is_feasible: bool
+    population_bound_established: bool
+
+    def __post_init__(self) -> None:
+        values = (
+            self.endpoint_upper_bound,
+            self.baseline_value,
+            self.maximum_possible_improvement,
+            self.practical_effect_floor,
+        )
+        if (
+            type(self) is not EndpointHeadroomAssessment
+            or self.authority_ceiling != HEADROOM_DIAGNOSTIC_AUTHORITY_CEILING
+            or self.basis
+            not in (
+                "REGISTERED_BASELINE_LOWER_BOUND",
+                "EMPIRICAL_BASELINE_MEAN_CONDITIONAL",
+            )
+            or any(
+                type(value) is not float or not math.isfinite(value) for value in values
+            )
+            or self.maximum_possible_improvement
+            != self.endpoint_upper_bound - self.baseline_value
+            or type(self.strict_floor_is_feasible) is not bool
+            or type(self.population_bound_established) is not bool
+            or self.population_bound_established
+            != (self.basis == "REGISTERED_BASELINE_LOWER_BOUND")
+        ):
+            raise TypeError("endpoint headroom assessment is invalid")
+
+
+def assess_endpoint_headroom(
+    *,
+    endpoint_upper_bound: float,
+    practical_effect_floor: float,
+    registered_baseline_lower_bound: float | None = None,
+    empirical_baseline_observations: tuple[float, ...] | None = None,
+) -> EndpointHeadroomAssessment:
+    """Check a necessary range condition without observing a treatment outcome.
+
+    An empirical baseline mean is explicitly conditional and is never promoted
+    into a population bound. Exactly one baseline premise must be supplied.
+    """
+
+    if (
+        type(endpoint_upper_bound) is not float
+        or not math.isfinite(endpoint_upper_bound)
+        or type(practical_effect_floor) is not float
+        or not math.isfinite(practical_effect_floor)
+        or practical_effect_floor < 0.0
+        or (registered_baseline_lower_bound is None)
+        == (empirical_baseline_observations is None)
+    ):
+        raise TypeError("headroom analysis requires exact endpoint and baseline inputs")
+    if registered_baseline_lower_bound is not None:
+        if type(registered_baseline_lower_bound) is not float or not math.isfinite(
+            registered_baseline_lower_bound
+        ):
+            raise TypeError("registered baseline bound must be an exact finite float")
+        baseline = registered_baseline_lower_bound
+        basis = "REGISTERED_BASELINE_LOWER_BOUND"
+    else:
+        assert empirical_baseline_observations is not None
+        if (
+            type(empirical_baseline_observations) is not tuple
+            or not empirical_baseline_observations
+            or any(
+                type(value) is not float or not math.isfinite(value)
+                for value in empirical_baseline_observations
+            )
+        ):
+            raise TypeError("empirical baseline observations must be exact finite data")
+        baseline = math.fsum(empirical_baseline_observations) / len(
+            empirical_baseline_observations
+        )
+        basis = "EMPIRICAL_BASELINE_MEAN_CONDITIONAL"
+    headroom = endpoint_upper_bound - baseline
+    return EndpointHeadroomAssessment(
+        HEADROOM_DIAGNOSTIC_AUTHORITY_CEILING,
+        basis,
+        endpoint_upper_bound,
+        float(baseline),
+        float(headroom),
+        practical_effect_floor,
+        headroom > practical_effect_floor,
+        basis == "REGISTERED_BASELINE_LOWER_BOUND",
+    )
 
 
 def derive_fixture_grid_geometry() -> FixtureGridGeometry:
@@ -1557,6 +1659,7 @@ __all__ = (
     "FIXTURE_TRANSFER_LOSS_WORST",
     "FIXTURE_TRANSFER_NONINFERIORITY_MARGIN",
     "FIXTURE_TRANSFER_TRANSFORM",
+    "HEADROOM_DIAGNOSTIC_AUTHORITY_CEILING",
     "HISTORICAL_V2_DESIGN_DIGEST",
     "HISTORICAL_V3_DESIGN_DIGEST",
     "NONQUALIFYING_SENSITIVITY_AUTHORITY_CEILING",
@@ -1566,6 +1669,7 @@ __all__ = (
     "READINESS_PROPOSAL_STATUSES",
     "REQUIRED_ENGINEERING_READINESS_SECTIONS",
     "REQUIRED_HUMAN_REQUIREMENTS",
+    "EndpointHeadroomAssessment",
     "ExecutionReadinessProposal",
     "FixtureGridGeometry",
     "LeakageIccSensitivityPoint",
@@ -1573,6 +1677,7 @@ __all__ = (
     "ReadinessProposalError",
     "V3DesignSensitivityAnalysis",
     "V3ResourceEstimate",
+    "assess_endpoint_headroom",
     "derive_fixture_grid_geometry",
     "derive_v3_resource_estimate",
     "fixture_primary_quality",
