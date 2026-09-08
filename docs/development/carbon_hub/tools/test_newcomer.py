@@ -86,7 +86,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         current = self.data["current"]
         self.assertEqual(current["selected_ticket"]["id"], "B-E4")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
-        self.assertEqual(current["selected_ticket"]["delivery"]["reference"], "PR #108")
+        self.assertEqual(current["selected_ticket"]["delivery"]["reference"], "PR #109")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
             any(
@@ -98,7 +98,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("PR #108 merged B-E4", self.output)
+        self.assertIn("PR #109 merged", self.output)
         self.assertIn("B-E4 remains selected and in progress", self.output)
         self.assertIn("No later ticket is selected", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)

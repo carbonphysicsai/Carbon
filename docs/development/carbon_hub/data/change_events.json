@@ -1471,6 +1471,31 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-NONQUALIFYING-LIFECYCLE-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "blocker",
+      "event_id": "B-E4-FULL-LIFECYCLE-CALIBRATION-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "blocked",
+      "summary": "A frozen fresh 25-block/100-run non-qualifying lifecycle calibration completed and issued v4 with calibrated caps and separate transfer geometry. Deterministic zero-SD repeats, non-positive v2 contrasts, three global lineage roots, an 11.2928 percent failure upper bound, absent shadow evidence, and unresolved autonomous-agent scope keep v4 STILL_BLOCKED; no qualifying, shadow, or attack campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/4b76bda3ee137cce42726ca61f1b0c01cdf0ba05/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-REHEARSAL-EVIDENCE-01"
     }
   ]
 }
