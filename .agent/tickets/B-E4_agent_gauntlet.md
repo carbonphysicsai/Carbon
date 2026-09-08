@@ -230,3 +230,21 @@ stochastic/dependence calibration. Trusted shadow/leakage and non-rejection
 attack evidence, authenticated five-owner ratification, a frozen complete
 execution design, and a separate one-use authorization remain required before
 qualifying execution. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+## Autonomous-agent pilot proposal checkpoint
+
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json` is
+`ENGINEERING_ACCEPTED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED`. It proposes
+one common `gpt-5.6-terra` base model behind five frozen arm-neutral profile
+policies, four adaptive attempts against eight direct candidates, a prospective
+3 x 2 x 2 task distribution, four-arm paired task blocks, 280 primary plus at
+most 20 reserve runs, and derived token/service/fixture/wall/cost ceilings. The
+artifact is content-bound and exposes no provider client, approval act,
+execution path, or qualifying-status path.
+
+Before pilot execution, owners must approve or revise four grouped choices:
+population/capabilities; task/adaptation/seed/evidence design; pilot
+resources/cost/stopping; and permitted evidence use. A separate one-use pilot
+authorization is then required. These decisions do not approve v4's eight
+qualification inputs. No inference or campaign ran. B-E4 remains
+`in_progress`; B-GATE remains unstarted.

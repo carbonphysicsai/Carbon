@@ -1,0 +1,235 @@
+{
+  "adaptive_protocol": {
+    "attempts_include_invalid_or_rejected_proposals": true,
+    "feedback_available": [
+      "PRACTICE_ADMISSIBILITY",
+      "PUBLIC_OBSERVED_RANGE",
+      "TYPED_PROTOCOL_REJECTION",
+      "PUBLIC_RESOURCE_FACTS"
+    ],
+    "final_selection": "ONE_PRACTICE_ADMISSIBLE_ANCESTOR_USING_AGENT_VISIBLE_FEEDBACK_ONLY",
+    "heldout_transfer_shadow_visible_to_agent": false,
+    "loop": "PROPOSAL_TO_PRACTICE_TO_PERMITTED_FEEDBACK_TO_NEXT_PROPOSAL",
+    "maximum_attempts_per_run": 4,
+    "nonadaptive_profile": "MINIMALIST_STOPS_AFTER_FIRST_PRACTICE_ADMISSIBLE_PROPOSAL",
+    "saved_budget_creates_extra_attempts": false,
+    "v2_specific_branch": false
+  },
+  "authority_ceiling": "PROPOSAL_ONLY_NO_MODEL_INFERENCE_OR_CAMPAIGN_EXECUTION_AUTHORITY",
+  "budget": {
+    "calibration_blocks_per_profile": 12,
+    "campaign_wall_seconds": 432000,
+    "development_blocks_per_profile": 2,
+    "expected_spend_usd": 27.52512,
+    "expected_token_utilization": 0.6,
+    "fixture_units_per_run": 119,
+    "hard_financial_ceiling_usd": 98.304,
+    "input_usd_per_million_tokens": 2.0,
+    "maximum_billable_input_tokens": 19660800,
+    "maximum_billable_output_tokens": 4915200,
+    "maximum_fixture_units": 35700,
+    "maximum_provider_attempts_per_turn": 2,
+    "maximum_provider_request_attempts": 2400,
+    "maximum_research_service_calls": 19200,
+    "maximum_run_wall_seconds": 270000,
+    "maximum_runs": 300,
+    "model_call_deadline_seconds": 120,
+    "model_turns_per_run": 4,
+    "output_usd_per_million_tokens": 12.0,
+    "policy_exhaustion_replaceable": false,
+    "pricing_basis": "OPENAI_STANDARD_TEXT_TOKEN_PRICES_VERIFIED_2026-09-08_NO_BUILT_IN_TOOL_FEES",
+    "primary_runs": 280,
+    "provider_retry_rule": "AT_MOST_ONE_RETRY_ONLY_AFTER_VERIFIED_EXTERNAL_PROVIDER_FAILURE_RETAIN_BILLED_USAGE",
+    "research_service_calls_per_run": 64,
+    "reserve_blocks_per_profile": 1,
+    "reserve_runs": 20,
+    "successful_input_tokens_per_run": 32768,
+    "successful_output_tokens_per_run": 8192,
+    "wall_seconds_per_run": 900
+  },
+  "evidence_use": {
+    "development_rows_excluded_from_calibration": true,
+    "may_count_as_shadow_or_attack_evidence": false,
+    "may_qualify_b_e4": false,
+    "may_set_posthoc_thresholds": false,
+    "may_support_pilot_engineering_and_design_revision": true,
+    "partial_and_failed_runs_retained": true,
+    "permitted_outputs": [
+      "INTERFACE_AND_SCHEMA_DEFECTS",
+      "MODEL_TOKEN_LATENCY_AND_FAILURE_DISTRIBUTIONS",
+      "TASK_AND_PROFILE_VARIANCE_COMPONENT_DIAGNOSTICS",
+      "BASELINE_ENDPOINT_AND_HEADROOM_DIAGNOSTICS",
+      "ADAPTATION_AND_LINEAGE_DIAGNOSTICS",
+      "RESOURCE_AND_COST_CALIBRATION"
+    ],
+    "transcripts": "PRIVATE_CONTENT_BOUND_NO_PUBLIC_TEST_ONLY_PRIOR_DISCLOSURE"
+  },
+  "inference_executed": false,
+  "model_population": {
+    "api": "RESPONSES",
+    "built_in_tools_enabled": false,
+    "context_limit_tokens": 32768,
+    "design": "ONE_COMMON_BASE_MODEL_ACROSS_PROFILE_POLICIES",
+    "documented_responses_seed_available": false,
+    "exact_output_replay_claimed": false,
+    "model_id": "gpt-5.6-terra",
+    "model_pin": "EXACT_LISTED_MODEL_ID_WITH_NO_DISTINCT_DATED_REVISION_ADVERTISED_REVERIFY_BEFORE_FREEZE",
+    "provider": "OPENAI_API",
+    "reasoning_effort": "medium",
+    "response_format": "STRICT_STRUCTURED_STRATEGY_OR_TYPED_STOP",
+    "service_tier": "default",
+    "store": false,
+    "temperature": "UNSET_PROVIDER_MODEL_DEFAULT",
+    "top_p": "UNSET_PROVIDER_MODEL_DEFAULT",
+    "verbosity": "low"
+  },
+  "owner_decisions": [
+    {
+      "decision": "POPULATION_AND_CAPABILITIES",
+      "required_owners": [
+        "RESEARCH",
+        "EXACT_PROTOCOL",
+        "SECURITY"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "decision": "TASK_ADAPTATION_SEEDS_AND_EVIDENCE",
+      "required_owners": [
+        "RESEARCH",
+        "SCIENCE",
+        "STATISTICS",
+        "EXACT_PROTOCOL",
+        "SECURITY"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "decision": "PILOT_RESOURCES_COST_AND_STOPPING",
+      "required_owners": [
+        "RESEARCH",
+        "EXACT_PROTOCOL",
+        "STATISTICS"
+      ],
+      "status": "PROPOSED"
+    },
+    {
+      "decision": "PERMITTED_PILOT_EVIDENCE_USE",
+      "required_owners": [
+        "RESEARCH",
+        "SCIENCE",
+        "STATISTICS",
+        "EXACT_PROTOCOL",
+        "SECURITY"
+      ],
+      "status": "PROPOSED"
+    }
+  ],
+  "pilot_authorized": false,
+  "profiles": [
+    {
+      "adaptive": true,
+      "corpus": null,
+      "generated_code_execution": false,
+      "method": "HYPOTHESIS_TABLE_THEN_MAXIMUM_EXPECTED_INFORMATION_GAIN_FROM_PERMITTED_FEEDBACK",
+      "policy_id": "be4_model_planner_policy/1.0",
+      "profile": "PLANNER"
+    },
+    {
+      "adaptive": true,
+      "corpus": null,
+      "generated_code_execution": false,
+      "method": "EMIT_AND_REVISE_DECLARATIVE_TYPED_STRATEGY_DATA_WITHOUT_EXECUTING_GENERATED_TEXT",
+      "policy_id": "be4_model_code_generating_policy/1.0",
+      "profile": "CODE_GENERATING"
+    },
+    {
+      "adaptive": true,
+      "corpus": null,
+      "generated_code_execution": false,
+      "method": "PARENT_CHILD_MUTATION_LINEAGE_WITH_FEEDBACK_BASED_SURVIVOR_SELECTION",
+      "policy_id": "be4_model_evolutionary_policy/1.0",
+      "profile": "EVOLUTIONARY"
+    },
+    {
+      "adaptive": true,
+      "corpus": "FROZEN_PUBLIC_SAFE_SYNTHETIC_METHOD_CORPUS_DIGEST_REQUIRED_BEFORE_EXECUTION",
+      "generated_code_execution": false,
+      "method": "CITE_FROZEN_CORPUS_CHUNKS_AND_UPDATE_HYPOTHESES_FROM_PERMITTED_FEEDBACK",
+      "policy_id": "be4_model_literature_grounded_policy/1.0",
+      "profile": "LITERATURE_GROUNDED"
+    },
+    {
+      "adaptive": false,
+      "corpus": null,
+      "generated_code_execution": false,
+      "method": "ONE_PROPOSAL_ONE_PRACTICE_RESULT_THEN_STOP_WITH_NO_SAVED_BUDGET_REUSE",
+      "policy_id": "be4_model_minimalist_policy/1.0",
+      "profile": "MINIMALIST"
+    }
+  ],
+  "proposal_digest": "sha256:8ca1a79a9cd9866d54f52c797baf0ea392087c4652a1439017339a66610469f3",
+  "proposal_id": "B-E4-AUTONOMOUS-AGENT-PILOT-V1",
+  "research_question": "Can one common model, differentiated only by five frozen research policies and four prior-information arms, use the exact permitted research interface and practice feedback to produce reconstructable strategies under matched ceilings, while revealing nondegenerate task, profile, failure, resource, and dependence behavior needed to design a later qualifying experiment?",
+  "schema_version": "1.0",
+  "seed_pairing": {
+    "agent_visible_seed_material": false,
+    "candidate_construction_seed": "CANDIDATE_BOUND_B03_OWNER_DERIVATION_DISTINCT_FROM_EVALUATION",
+    "distinct_hashes_claim_independence": false,
+    "experimental_unit": "ONE_PROFILE_BY_FROZEN_TASK_REALIZATION_BLOCK_CONTAINING_FOUR_PAIRED_ARMS",
+    "four_arms_share_task_and_evaluator_realization": true,
+    "future_shadow_allocated": false,
+    "future_shadow_rule": "SEPARATE_EVALUATOR_HELD_NAMESPACE_ONLY_AFTER_LATER_APPROVAL",
+    "practice_seed": "PROFILE_TASK_BOUND_AND_SHARED_ACROSS_ARMS_UNDER_EXISTING_OWNER",
+    "provider_randomness_is_seed_paired": false,
+    "provider_randomness_rule": "PROSPECTIVE_DRAW_ORDINAL_RECORDED_PER_PROFILE_TASK_ARM_NO_RETRY_EXCEPT_VERIFIED_EXTERNAL_FAILURE",
+    "task_seed": "EVALUATOR_HELD_TASK_CELL_BOUND_SHARED_ACROSS_PROFILES_AND_ARMS",
+    "transfer_and_heldout_seed": "EVALUATOR_HELD_CANDIDATE_INDEPENDENT_SHARED_ACROSS_ARMS",
+    "variance_analysis": "DESCRIPTIVE_CROSSED_TASK_AND_PROFILE_COMPONENTS_WITH_WHOLE_BLOCK_CLUSTERING_NO_FINAL_N"
+  },
+  "source_verification": [
+    {
+      "claim": "GPT-5.6 Terra is listed for Responses, medium reasoning, and standard text pricing of USD 2 input and USD 12 output per million tokens.",
+      "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+      "verified_at_utc": "2026-09-08T14:00:00Z"
+    },
+    {
+      "claim": "The Responses create contract supports explicit model, instructions, output-token, tool-call, storage, and reasoning configuration; the current contract does not document a seed field.",
+      "url": "https://developers.openai.com/api/reference/cli/resources/responses/methods/create",
+      "verified_at_utc": "2026-09-08T14:00:00Z"
+    },
+    {
+      "claim": "gpt-oss-20b is an Apache-2.0 open-weight alternative that can run with 16 GB memory, but Carbon has no approved local inference integration or cost calibration for it.",
+      "url": "https://openai.com/index/introducing-gpt-oss/",
+      "verified_at_utc": "2026-09-08T14:00:00Z"
+    }
+  ],
+  "status": "ENGINEERING_ACCEPTED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED",
+  "task_distribution": {
+    "calibration_realizations_per_cell": 1,
+    "candidate_space_policy": "KEEP_EXISTING_THREE_BINARY_REGISTERED_FAMILIES_NO_V2_BENEFIT_DRIVEN_EXPANSION",
+    "development_tasks": "TWO_PUBLIC_FIXED_BOUNDARY_TASKS_PER_PROFILE_EXCLUDED_FROM_CALIBRATION",
+    "direct_candidate_combinations": 8,
+    "factorial_cells": 12,
+    "factors": {
+      "observation_noise": [
+        "LOW_REGISTERED",
+        "HIGH_REGISTERED"
+      ],
+      "resource_regime": [
+        "DATA_SCARCE",
+        "BALANCED",
+        "COMPUTE_SCARCE"
+      ],
+      "transfer_shift": [
+        "NEAR_REGISTERED",
+        "FAR_REGISTERED"
+      ]
+    },
+    "inclusion_rule": "BEFORE_MODEL_OUTPUT_ALL_EIGHT_CANDIDATES_RECONSTRUCT_EACH_FAMILY_IS_CAUSALLY_ACTIVE_ENDPOINT_RANGE_IS_NONZERO_AND_NO_SINGLE_CANDIDATE_DOMINATES_EVERY_REGISTERED_CELL",
+    "rejected_task_policy": "RETAIN_IDENTITY_AND_STRUCTURAL_REJECTION_REASON_NEVER_SEARCH_FOR_FAVORABLE_V2_EFFECT",
+    "requires_owner_approval_and_fixture_implementation": true,
+    "selected_using_future_v2_outcomes": false,
+    "separation": "PUBLIC_DEVELOPMENT_TASKS_THEN_FROZEN_PRIVATE_PILOT_CALIBRATION_THEN_DISJOINT_FUTURE_QUALIFYING_NAMESPACE"
+  }
+}

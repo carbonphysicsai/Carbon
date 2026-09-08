@@ -12468,3 +12468,35 @@ through a reviewed mapping.
 integrity. It does not validate the proposed failure probability, reserve
 count, population, utility, diversity, leakage, attack, approval, or execution
 design. No campaign ran. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+## 2026-09-08 — B-E4-D14: one common-model pilot remains owner-unapproved
+
+**Ticket:** B-E4
+
+**Problem.** Deterministic drivers prove plumbing, not the representative
+autonomous-agent population required by B-E4. Owners need a concrete bounded
+pilot choice without turning engineering design into approval or authority.
+
+**Decision.** Recommend one exact listed `gpt-5.6-terra` model across five
+frozen profile policies, Responses/medium/no built-in tools, a four-iteration
+arm-neutral practice loop, and a prospective 12-cell task distribution. One
+profile-by-task block contains all four arms; tasks are shared across profiles,
+provider draws are not seed-paired, and hashes do not prove independence. The
+proposal has 280 primary and at most 20 reserve runs with 300-run, token,
+service, fixture, wall, retry, and `$98.304` ceilings. Evidence is engineering
+and design calibration only.
+
+**Rationale and alternatives.** A common capable model avoids a model-policy
+confound. Luna is cheaper but could weaken interpretation; separate models
+confound capability with policy; local gpt-oss-20b lacks an approved Carbon
+adapter and calibrated hardware/cost basis. Four attempts keep the existing
+eight-candidate surface non-exhaustive, and prospective structural inclusion
+avoids selecting tasks for favorable v2 effects.
+
+**Authority and reversibility.** The exact artifact is content-bound, but all
+four grouped decisions remain `PROPOSED`; the parser has no execution path and
+always reports pilot and qualification unavailable. Owners may approve,
+modify, or reject a prospective successor. Fresh source/corpus/task/
+implementation verification and separate one-use authorization are required
+before any pilot. This approves no v4 input, ratification, campaign, B-E4
+completion, or B-GATE start.

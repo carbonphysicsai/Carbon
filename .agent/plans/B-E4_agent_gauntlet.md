@@ -438,3 +438,25 @@ campaign, attack campaign, or qualifying execution. Any pilot remains
 unauthorized until its named human-reserved population, task-distribution,
 resource, and evidence decisions are approved. B-E4 remains `in_progress` and
 B-GATE remains unstarted.
+
+### Stage-5 owner-unapproved autonomous-agent pilot proposal
+
+1. Freeze a content-bound common-model/five-policy proposal without arbitrary
+   code execution or network access.
+2. Specify a four-iteration practice-feedback loop; invalid/rejected work
+   consumes budget and held-out/transfer/shadow/protected data stays hidden.
+3. Define 12 prospective task cells and structural inclusion/rejection rules;
+   keep four attempts below the eight-candidate direct surface and separate
+   development, pilot calibration, and future qualification.
+4. Define the profile-by-task four-arm block as the experimental unit, retain
+   crossed-profile dependence, and refuse independence claims from hashes.
+5. Derive 280-primary/20-reserve/300-maximum run, token, service, fixture,
+   wall, retry, and financial ceilings.
+6. Fail closed on content/arithmetic/owner-status/authority mutations and
+   reconcile the canonical owner pack, authority, maturity, and Hub views.
+
+This stage ends at proposal acceptance and runs no inference or campaign. The
+four grouped pilot decisions, a verified implementation freeze, and separate
+one-use pilot authorization remain necessary. V4's eight qualification
+decisions and all qualifying work remain outside this stage. B-E4 stays
+`in_progress`; B-GATE stays unstarted.

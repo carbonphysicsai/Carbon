@@ -678,3 +678,165 @@ V4 proposal digest:
 `sha256:faffff8e9d7f4c6748d76c84cfc0cd26f19eb996ece96d9705b89362d86d4f37`.
 Status remains `STILL_BLOCKED / DESIGN_ANALYSIS_ONLY`; no item above is
 approved. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+## Autonomous-agent pilot proposal v1
+
+**Status:** `ENGINEERING_ACCEPTED / OWNER_UNAPPROVED / PILOT_NOT_AUTHORIZED`
+
+The canonical machine-readable proposal is
+`.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json`, digest
+`sha256:8ca1a79a9cd9866d54f52c797baf0ea392087c4652a1439017339a66610469f3`.
+It is an immutable design proposal, not an approval, authorization, model call,
+campaign record, qualification design, or substitute for v4's eight reserved
+decisions. No autonomous inference or pilot, shadow, attack, or qualifying
+campaign ran while preparing it.
+
+### Recommended pilot
+
+**Research question.** Can one common model, differentiated only by five
+frozen research policies and four prior-information arms, use the exact
+permitted B-07S/B-07B/B-07C research path and public practice feedback to
+produce reconstructable strategies under matched ceilings, while revealing
+nondegenerate task, profile, failure, resource, and dependence behavior needed
+to design a later qualifying experiment?
+
+**Population.** Use the exact listed OpenAI API model ID `gpt-5.6-terra` for
+all five policies, through Responses with medium reasoning, low verbosity,
+`store=false`, no built-in tools, no temperature/top-p override, and 32,768
+input plus 8,192 output tokens/run. The provider currently advertises no
+distinct dated Terra revision and Responses documents no seed input. Therefore
+the future freeze must reverify the listed model and pricing and retain the
+resolved response/model identity; it must not claim exact output replay.
+
+This common-model design tests policy/interface behavior without adding a
+model-comparison confound. `gpt-5.6-luna` is the cheaper hosted alternative,
+but weaker capability could make a negative pilot less interpretable.
+Separately pinned models may better resemble heterogeneous miners but confound
+policy and model effects. Local `gpt-oss-20b` offers open weights and greater
+runtime control, but Carbon presently has no approved inference adapter,
+hardware calibration, or cost model for it.
+
+The frozen policies are:
+
+| Profile | Arm-neutral behavior | Capability boundary |
+|---|---|---|
+| PLANNER | Maintain a hypothesis table and choose the next proposal by expected information gain from permitted feedback | Declarative Strategy only |
+| CODE_GENERATING | Emit and revise typed Strategy data | Generated text is never executed |
+| EVOLUTIONARY | Record parent-child mutations and select survivors using permitted feedback | No hidden fitness signal |
+| LITERATURE_GROUNDED | Cite a frozen public-safe synthetic-method corpus and revise hypotheses | No network; corpus digest required before execution |
+| MINIMALIST | Make one proposal, inspect one practice result, then stop | Saved budget creates no extra attempt |
+
+All arms receive the same system/capability policy, context ceiling, starting
+information, network isolation, tool restrictions, retry rule, stopping rule,
+and transcript/artifact recording. Only the registered prior material differs.
+
+**Adaptation.** Adaptive profiles receive at most four iterations of
+proposal -> B-07C practice -> permitted feedback -> next proposal. Feedback is
+limited to practice admissibility, public observed ranges, typed protocol
+rejections, and public resource facts. Invalid/rejected proposals consume an
+attempt. Held-out, transfer, shadow, protected-realization, private reference,
+and scorer information remain hidden. The final Strategy must descend from a
+practice-admissible recorded ancestor. There is no v2-specific branch and ties,
+negative effects, unchanged trajectories, and failure to find a candidate are
+valid results.
+
+**Task/search distribution.** Retain the existing three binary registered
+construction families, hence eight direct candidates, but allow only four
+attempts/run. Prospectively generate 12 task cells from three resource regimes
+(data-scarce, balanced, compute-scarce), two registered observation-noise
+levels, and two registered transfer shifts. One frozen calibration realization
+per cell/profile is shared across all four arms; two public development blocks
+per profile are excluded from calibration.
+
+Before any model output, retain a task only if all eight candidates reconstruct,
+each registered family is causally active, the endpoint has nonzero range, and
+no candidate dominates every cell. Retain rejected task identities and
+structural reasons. Never search for a favorable v2 effect. Any task change
+requires a new prospective version and disjoint future qualifying namespace.
+This makes final quality a real limited-search question while retaining time,
+attempt, compute, and service use as supporting efficiency endpoints.
+
+**Pairing and experimental unit.** One experimental unit is a
+profile-by-frozen-task-realization block containing all four arms. The arms
+share task and evaluator realization. The task is also shared across profiles,
+so profile observations are crossed/dependent. Task, practice, candidate
+construction, held-out/transfer, and future shadow seeds remain under their
+existing owners and are separately derived for their roles; evaluator-held
+material is not agent-visible. Provider randomness is a prospective recorded
+draw ordinal, not seed-paired. Distinct hashes do not establish independence,
+and common provenance alone does not prove a statistical cluster. The pilot
+estimates descriptive crossed task/profile nuisance variation; it does not set
+the final qualifying N. No shadow cases are allocated by this proposal.
+
+**Size and resources.** The primary design is
+`5 profiles x 4 arms x (2 development + 12 calibration) = 280 runs`.
+One prospectively numbered reserve block/profile across four arms permits at
+most 20 replacement runs, for a hard maximum of 300 runs. Each run has at most
+four successful model turns and two provider attempts/turn, where the second
+attempt is allowed only after verified external provider failure. This yields
+hard ceilings of 2,400 provider request attempts, 19,660,800 billable input
+tokens, 4,915,200 billable output tokens, 19,200 research-service calls,
+35,700 fixture units, 270,000 aggregate run-wall seconds, and 432,000 seconds
+campaign wall time.
+
+At the official standard text prices verified on 2026-09-08 ($2/million input,
+$12/million output), the retry-inclusive financial ceiling is **$98.304**.
+Primary runs at 60% token utilization and no retries are estimated at
+**$27.52512**. These exclude any future taxes, rate changes, or separately
+priced features; built-in tools are disabled. Reverify before freeze.
+
+Policy exhaustion, invalid candidates, and ambiguous timeout causes are not
+replaceable. A reserve may replace only an exact retained external
+infrastructure/reference failure established through the closed existing-owner
+mapping. Partial, failed, rejected, and billed attempts remain evidence.
+Exhausting the campaign without usable calibration is permitted and is recorded
+as insufficient pilot evidence.
+
+**Evidence use.** Pilot evidence may diagnose interface/schema defects,
+token/latency/failure distributions, task/profile variance, baseline endpoint
+and headroom, adaptation/lineage, and resource/cost calibration. Development
+rows are excluded from calibration. Pilot evidence may not qualify B-E4,
+approve or tune post-hoc thresholds, count as shadow/attack evidence, or earn
+scientific, security/privacy, production, qualification, or LIVE maturity.
+
+### Endpoint feasibility retained as proposed
+
+V4's primary held-out equal-profile v2-minus-baseline Q estimand and separate
+transfer non-inferiority support remain proposed; this pilot does not replace
+them. Conditional on the historical no/generic mean `0.8300554565022396`, a
+perfect v2 result can gain at most `0.16994454349776045` Q; conditional on the
+v1 mean `0.8`, at most `0.2` Q. Both fall below the proposed strict primary
+floor `0.4017350715246475`. These are empirical-configuration headroom facts,
+not population bounds or reasons to lower the floor after observing outcomes.
+
+The proposed transfer margin `0.2797202700265491` implies, for one paired
+comparison at the boundary, `(loss_v2 + 1)/(loss_baseline + 1) <=
+651^0.2797202700265491`, approximately `6.123724356957948`. Across averaged
+log-quality contrasts it constrains the corresponding geometric mean, not
+every run. Matching transform geometry alone is not a scientific justification
+for accepting that deterioration; science/statistics owners must approve or
+replace it.
+
+### Four decisions required before pilot execution
+
+| Decision | Recommended default | Material alternative / consequence | Required owners | Status |
+|---|---|---|---|---|
+| Population and capabilities | One common `gpt-5.6-terra` model with the five frozen, arm-neutral policies and closed capabilities above | Luna reduces spend but weakens interpretability; separate/local models add model or infrastructure confounds | Research, exact protocol, security | PROPOSED |
+| Task, adaptation, seeds and evidence | Twelve prospectively included cells; four attempts; paired four-arm task blocks; crossed-profile dependence; hidden evaluator roles; permitted diagnostics only | Fewer cells/one-shot policies are cheaper but cannot calibrate heterogeneity/adaptation; more search risks saturation | Research, science, statistics, exact protocol, security | PROPOSED |
+| Pilot resources, cost and stopping | 280 primary, 20 reserve, 300 maximum; exact ceilings and nonreplacement policy above; $98.304 hard ceiling | Smaller campaigns cost less but may not reveal stable nuisance/failure structure; larger work is unjustified before calibration | Research, statistics, exact protocol | PROPOSED |
+| Permitted pilot evidence use | Design/engineering calibration only; no qualification, shadow/attack substitution, threshold approval, or post-hoc tuning | Broader use risks circularity and leakage into the future qualification design | Research, science, statistics, exact protocol, security | PROPOSED |
+
+Owner approval must bind the exact proposal digest (or a prospectively revised
+successor), frozen model/source/corpus/task/implementation manifests, resource
+ceilings, and permitted evidence use through the repository-native approval
+contract. Only then may a separate one-use pilot authorization be considered.
+Approval of these four decisions does not approve v4's eight qualification
+values, owner ratification, shadow/attack execution, or a qualifying campaign.
+
+**Next step if all four decisions are approved:** implement and verify the
+provider adapter, frozen corpus, prospective task generator/inclusion audit,
+and exact pilot campaign manifest; reverify model availability/pricing; bind
+the approved digest and approval evidence; obtain separate bounded pilot
+authorization; then execute only the non-qualifying pilot. Until then the
+proposal remains owner-unapproved and pilot execution is unavailable. B-E4
+remains `in_progress`; B-GATE remains unstarted.
