@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 59 map-level change events
+- 60 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. This candidate adds a blocked analysis-only preregistration proposal and concrete owner pack; it does not run the gauntlet. Fixture/prior readiness, exact execution integrations, and five-owner ratification still block final freeze and qualifying execution. No later ticket is selected; B-GATE remains unstarted.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains the selected in-progress ticket. The bounded execution-readiness candidate adds three causal fixture families, five data-only drivers, four non-qualifying preflight surrogate arms, deterministic policy-work metering, and fail-closed readiness carriers. Its v3 proposal remains STILL_BLOCKED by 21 engineering gaps plus the unchanged human-reserved preregistration and ratification requirements. No qualifying gauntlet or attack campaign ran, no later ticket is selected, and B-GATE remains unstarted.
 
 ## Maintain
 

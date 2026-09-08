@@ -1399,6 +1399,34 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "blocker",
+      "event_id": "B-E4-EXECUTION-READINESS-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "blocked",
+      "summary": "B-E4 repairs the one-family fixture limitation and adds a private exploratory TEST_ONLY pack, five fixed data-only drivers, four non-qualifying preflight surrogate arms, policy-work metering, and fail-closed readiness carriers. The v3 proposal remains STILL_BLOCKED by 21 engineering gaps plus human approval of eight proposed values, authenticated five-role ratification, and separate one-use execution authorization; no qualifying gauntlet or attack campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md",
+      "affects": [
+        "WAVE-B/B-02B",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-PREREGISTRATION-DESIGN-01"
     }
   ]
 }
