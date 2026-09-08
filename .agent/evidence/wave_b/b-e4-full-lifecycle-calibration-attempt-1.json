@@ -1,0 +1,14 @@
+{
+  "attempt": 1,
+  "authority_ceiling": "DESIGN_ANALYSIS_REHEARSAL_EVIDENCE_ONLY_NOT_QUALIFYING_EVIDENCE",
+  "classification": "CALIBRATION_GENERATOR_DEFECT",
+  "evidence_artifact_produced": false,
+  "failed_freeze_commit": "be6a0c65f228dd62d1d60231ff643c5064b6a9e4",
+  "failed_freeze_digest": "sha256:bf9a02f9ef01807fd805b17a01b710a765fab932b4674c06ee9d63de6957c5bd",
+  "failure": "WallTimeObservation.seconds does not exist; the exact owner field is elapsed_seconds",
+  "pool_with_successor": false,
+  "qualifying_execution_ready": false,
+  "rows_retained": 0,
+  "status": "ABORTED_BEFORE_EVIDENCE_ARTIFACT",
+  "successor_requirement": "REPAIR_FREEZE_AND_RUN_FRESH_CALIBRATION"
+}

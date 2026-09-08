@@ -190,7 +190,7 @@ def _row(run: object, evidence: object, role: str, number: int) -> dict[str, Any
         "replicate": run.plan.identity.replicate,
         "run_evidence_digest": evidence.content_digest,
         "lifecycle_digest": run.content_digest,
-        "wall_seconds": run.wall_time.seconds,
+        "wall_seconds": run.wall_time.elapsed_seconds,
         "normalized_compute_units": run.normalized_compute.total_work_units,
         "policy_work_counts": counts,
         "service_request_count": len(run.prepared.service_request_digests)
