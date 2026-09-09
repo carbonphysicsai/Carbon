@@ -898,3 +898,112 @@ approval evidence, and separate one-use authorization remain necessary before
 any pilot. V4 remains `STILL_BLOCKED`; all eight qualification inputs and the
 five-owner ratification remain human-reserved. B-E4 stays `in_progress`;
 B-GATE stays unstarted.
+
+## Runnable development-pilot engineering evidence
+
+### Frozen package
+
+The exact owner-review request is
+`.agent/preregistrations/B-E4_development_execution_request_v1.json`:
+
+- request digest
+  `sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca`;
+- campaign-manifest digest
+  `sha256:2711c16a0e5dd4b00cbba10de968685e31b0ddc9ea13015e7c1cab1cbe1c04c6`;
+- implementation digest
+  `sha256:63f4233f646e85d29dd588b5be70e1b274178294ee5d31187b819580d59cb7cf`;
+- artifact-manifest digest
+  `sha256:bca231b8a5d096f5e8bb6c390fea7aa57c8737d384df6a654c9b6eb2142451d8`.
+
+The implementation identity covers all 176 Carbon Python files, the exact
+runner, and the eight reused fixture-builder sources. The artifact manifest
+exposes and binds all five profile prompt policies, the frozen three-entry
+literature corpus, four exact treatment artifacts, two task/observation/hidden-
+seed commitments, candidate/catalog/resource/scaffold/practice identities, and
+the exact B-07D3 TEST_ONLY pack and authorization receipt. It never exposes the
+seed values to the provider.
+
+### Executable lifecycle and transport
+
+`scripts/dev/run_be4_development_pilot.py` runs the balanced/interleaved 40-slot
+DEVELOPMENT schedule sequentially. Each run obtains discovery and its permitted
+treatment through B-07S/B-07D3, requests strict data-only Strategy proposals,
+uses existing compilation/resource admission, executes B-07C scaffold-plus-
+candidate practice, returns only permitted same-run feedback, performs the
+registered final selection, and uses separate A7/A8/B-07F fixture execution and
+endpoint evidence. Conversations are bound to the exact run/profile/arm and do
+not cross arms or runs.
+
+The real Responses adapter sends no tools, uses strict JSON proposal/selection
+schemas, records requested/returned model and service tier, timestamps,
+response IDs, exact raw responses, input/cache/output/reasoning usage, and
+repeated history. It requires a separately approved provider project and keeps
+credential values out of payloads, journal records, artifacts, and reports.
+The current admission type has no issuer: without the missing authenticated
+five-owner and one-use verifier it fails before network dispatch.
+
+The SQLite journal uses full synchronous commits and writes intent before
+dispatch. Confirmed results replay without provider dispatch; unknown dispatch
+retains its complete worst-case reservation and blocks replay; a partial local
+run remains unresolved rather than being re-created under a new identity. Run
+and campaign deadline origins persist across restart. Exact request bodies and
+raw provider result text are retained.
+
+### Offline integration result
+
+The canonical artifact
+`.agent/evidence/wave_b/b-e4-development-offline-integration-v1.json` completed
+all 40 registered slots through Carbon's actual TEST_ONLY service graphs with
+only the provider inference replaced by the deterministic transport:
+
+- 40 retained completed runs and 40 reconstructed official-shaped fixture
+  endpoints;
+- all five profiles, all four arms, and both development tasks;
+- 168 deterministic provider results and 104 paired-practice results;
+- 4,216 confirmed fixture units, 1,106 normalized work units, and 834 service
+  operations;
+- 380,942 simulated input tokens, 18,258 simulated output tokens including
+  6,040 simulated reasoning tokens; modeled price arithmetic `$0.98098`, not a
+  bill or expectation;
+- `model_inference_executed=false`, `paid_execution_occurred=false`, and
+  `qualifying_execution_ready=false`.
+
+Adaptive runs consumed three practice-admissible candidates, recorded the
+fourth duplicate as an invalid attempt, and made the separately metered
+selection after the last available feedback. Minimalist runs made one proposal
+and stopped under their registered rule. Fault regressions cover refusal,
+malformed/truncated output, explicit stop, invalid Strategy, one permitted
+verified-failure retry, ambiguous timeout/no resend, provider receipt overrun,
+deadline persistence, exact journal replay, same-run/arm transcript isolation,
+forbidden payload canaries, context admission, and fail-closed real transport.
+The focused exact-candidate runner suite passed 17 tests; the current affected
+B-E4/B-07C/B-07F set passed 158 tests. Black, Ruff, and compileall also passed.
+Canonical automated acceptance is recorded with delivery of the candidate.
+
+### Resource and approval boundary
+
+The stage enforces 65,536 input and 16,384 output-plus-reasoning tokens/run;
+2,621,440 and 655,360 stage tokens; 64 normalized work/service operations and
+153 fixture units/run; nested 120/900/57,600/432,000-second deadlines; at most
+two provider attempts per logical call; and no unallocated replacement runs.
+At current verified prices the registered all-input-cache-write maxima are
+`$14.41792`, so the concrete request rounds up to `$14.42`. The suggested `$15`
+is unnecessary and the existing proposed overall `$98.304` ceiling is not
+expanded. Taxes, independent infrastructure, and offline task audit costs are
+excluded.
+
+Five owners must approve the exact population/interaction, tasks/seeds,
+resources, provider egress/retention, and evidence-use package. Security must
+approve the named provider project's account-level retention control; the
+recommendation is a verified Zero Data Retention project, otherwise execution
+stays blocked unless security explicitly approves a named alternative. A
+repository-native verifier must then bind those approval references and issue
+one DEVELOPMENT-stage authorization for the exact request, implementation,
+artifact manifest, payload, project controls, and limits. No such approval,
+authorization, credential, provider call, or spend exists in this checkpoint.
+
+This artifact is runnable integration software, not a representative-agent or
+utility result. V4 remains `STILL_BLOCKED`; all eight qualification inputs and
+the qualifying shadow/attack/ratification/evidence integrations remain
+unresolved. No calibration, shadow, attack, or qualifying campaign ran. B-E4
+remains `in_progress`; B-GATE remains unstarted.

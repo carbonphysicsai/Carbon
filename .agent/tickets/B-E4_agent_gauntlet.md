@@ -4,16 +4,19 @@
 **Status:** in_progress
 **Execution boundary:** the engineering harness, validation repair, analysis-
 only preregistration design, complete non-qualifying fixture lifecycle,
-factory-bound rehearsal evidence, frozen deterministic calibration, and the
-first execution-correctness repair are merged. The current correction binds
-failure evidence to its exact prospective campaign/run/session, enforces
-one-use replacement, accounts separately for predicted, reserved, confirmed,
-and unreconciled resource use, and publishes a strict v2 pilot proposal plus
-offline-only state/task/payload design helpers. It runs no provider inference,
-pilot, shadow, attack, or qualifying campaign. Qualifying execution remains
-blocked on an owner-approved autonomous-agent population, validated stochastic/
-dependence and shadow assumptions, trusted attack/leakage evidence, verified
-owner ratification, and qualifying execution-evidence integration.
+factory-bound rehearsal evidence, frozen deterministic calibration, execution-
+correctness repair, evidence/resource correction, and strict v2 pilot proposal
+are merged. The current candidate implements one sequential 40-slot development
+runner, strict Responses transport, durable intent/result journal, exact source/
+prompt/corpus/treatment/task manifest, cost admission, and a deterministic
+offline integration run through Carbon's actual TEST_ONLY service paths. The
+real transport remains unavailable because authenticated five-owner approval
+and one-use execution-authorization verification do not exist. No provider
+inference, paid pilot, calibration, shadow, attack, or qualifying campaign ran.
+Qualifying execution remains blocked on an owner-approved autonomous-agent
+population, validated stochastic/dependence and shadow assumptions, trusted
+attack/leakage evidence, verified owner ratification, and qualifying execution-
+evidence integration.
 **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
 **Build Out:** Wave B miner-loop and disclosure proof
 **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
@@ -171,6 +174,42 @@ Tune the protected exam after seeing preferred candidates, equate low
 practice/official correlation with safety, let a fixture evidence role acquire
 unregistered authority, or call fixture utility a production agent-mining
 claim.
+
+## Development runner checkpoint
+
+The current candidate adds
+`scripts/dev/run_be4_development_pilot.py` as the single sequential entry point
+for the exact `5 x 4 x 2 = 40` development matrix. It uses pilot-v2 task cells
+`04` and `07`, all five frozen profiles, all four arms, B-07S discovery and
+TEST_ONLY retrieval, B-07B/B-07C paired practice, same-run public feedback,
+selection, and separate A7/A8 fixture submission/results. It uses no direct
+evaluator calls and grants the model no tools, code execution, network, hidden
+seed/case/reference, scorer, shadow, other-arm, or other-run material.
+
+`.agent/preregistrations/B-E4_development_execution_request_v1.json` binds the
+exact pilot-v2/design, implementation, artifact, task, seed-commitment, prompt,
+corpus, treatment, TEST_ONLY pack/authorization, schedule, payload, resource,
+and price identities. It is an owner request, not approval. The proposed
+development monetary ceiling is `$14.42`, the rounded-up exact `$14.41792`
+all-input-cache-write bound for the registered stage token ceilings, inside the
+unchanged owner-unapproved `$98.304` pilot ceiling.
+
+The deterministic offline artifact at
+`.agent/evidence/wave_b/b-e4-development-offline-integration-v1.json` records
+40 completed fixture-service runs, 168 simulated provider results, 104 paired-
+practice results, and 40 reconstructed official-shaped fixture endpoints. It
+records zero provider inference and zero paid execution. This proves integration
+and fail-closed behavior only; it is not autonomous-agent, utility, diversity,
+leakage, attack, scientific, security/privacy, qualification, production, or
+LIVE evidence.
+
+Before the first paid DEVELOPMENT call, the five required roles must approve
+the exact frozen request, the security owner must approve its six-field payload
+and named provider-project retention controls, the monetary ceiling must be
+approved, and a repository-native verifier must issue and consume one
+campaign-bound authorization once. Until that seam exists, `--responses` exits
+blocked before network dispatch. Calibration cannot start automatically.
+B-E4 remains `in_progress`; B-GATE remains unstarted.
 
 ## Non-qualifying rehearsal-evidence checkpoint
 

@@ -1,0 +1,840 @@
+{
+  "approval_request": {
+    "account_retention_control": "RECOMMEND_VERIFIED_ZERO_DATA_RETENTION_PROJECT_BLOCK_IF_UNAVAILABLE_UNLESS_SECURITY_OWNER_APPROVES_A_NAMED_ALTERNATIVE",
+    "authenticated_owner_roles_required": [
+      "RESEARCH",
+      "EXACT_PROTOCOL",
+      "SCIENCE",
+      "STATISTICS",
+      "SECURITY"
+    ],
+    "development_monetary_ceiling_usd": "14.42",
+    "execution_authorization": "ONE_USE_DEVELOPMENT_STAGE_REQUIRED",
+    "overall_pilot_ceiling_unchanged_usd": "98.304",
+    "proposal_and_design": "APPROVE_EXACT_DESIGN_PROPOSAL_IMPLEMENTATION_ARTIFACT_AND_MANIFEST_DIGESTS",
+    "provider_account_configuration": {
+      "api_key_source": "OPENAI_API_KEY",
+      "credential_values_recorded": false,
+      "organization_id_source": "OPENAI_ORGANIZATION_ID_OPTIONAL",
+      "project_id_source": "OPENAI_PROJECT_ID"
+    },
+    "provider_payload_egress": "APPROVE_EXACT_SIX_FIELD_ALLOWLIST_IN_BOUND_MANIFEST_ONLY",
+    "requested_status": "PROPOSED_NOT_APPROVED_NOT_AUTHORIZED"
+  },
+  "artifact_identities": {
+    "candidate_assembly_ref": "sha256:c04c223bb68af1dc05b69d59deca3e48ef4d381009f72b28efe4a2b47e45ce21",
+    "fixture_method_corpus": {
+      "content_digest": "sha256:03e625bc1af0dbbce6d15bcf6602568a00d00e0f311b5b90bc5acdfe65881675",
+      "corpus_id": "be4_frozen_fixture_method_corpus",
+      "entries": [
+        {
+          "direction": "INCREASE",
+          "method_id": "bounded_sampling_probe",
+          "surface_keyword": "sampling"
+        },
+        {
+          "direction": "INCREASE",
+          "method_id": "bounded_curriculum_probe",
+          "surface_keyword": "curriculum"
+        },
+        {
+          "direction": "INCREASE",
+          "method_id": "bounded_feature_probe",
+          "surface_keyword": "feature"
+        }
+      ],
+      "version": "1.0"
+    },
+    "implementation_components": {
+      "components": [
+        {
+          "component_id": "carbon_python_package",
+          "content_digest": "sha256:547c92bad0cc46a158f39e5888a670ebec0a56d1ccfe0998d1daba3003d554b1",
+          "file_count": 176
+        },
+        {
+          "component_id": "development_runner",
+          "content_digest": "sha256:909974487af9965b3882f06356c4cc912204aac5e578620d1f28dc4f291f8f06",
+          "file_count": 1
+        },
+        {
+          "component_id": "reused_fixture_builders",
+          "content_digest": "sha256:782036e59351b2a7c6ab1fdc127817f139960620daae847075fb80efac67806b",
+          "file_count": 8
+        }
+      ],
+      "schema_version": "carbon.be4.development-implementation.v1"
+    },
+    "parameter_catalog_ref": "sha256:41d03afa834642fb090134bef8be556ee47316b87438c2545b0c5f5adfa6d8f8",
+    "profile_prompt_policies": [
+      {
+        "content_digest": "sha256:374b4bc40bf2c57e2e9a46ad1f2fccfb8f9d5df39b65b228cb8ea0967119c720",
+        "payload": {
+          "allowed_action": "TYPED_STRATEGY_OR_STOP_THEN_SELECTION_ONLY",
+          "corpus": null,
+          "corpus_digest": null,
+          "generated_text_execution": false,
+          "method": "HYPOTHESIS_TABLE_THEN_MAXIMUM_EXPECTED_INFORMATION_GAIN_FROM_PERMITTED_FEEDBACK",
+          "network_access": false,
+          "policy_id": "be4_model_planner_policy/2.0",
+          "profile": "PLANNER",
+          "provider_model": "gpt-5.6-terra",
+          "response_contract": "STRICT_JSON_SCHEMA",
+          "system_policy": "Use only this payload. Return one schema-valid response. Do not request tools, execute code, or infer unavailable evaluator material."
+        },
+        "profile": "PLANNER"
+      },
+      {
+        "content_digest": "sha256:05f7b305ecb5c93c9d7655bb071427c6682abefda162fe0115c861876f822cec",
+        "payload": {
+          "allowed_action": "TYPED_STRATEGY_OR_STOP_THEN_SELECTION_ONLY",
+          "corpus": null,
+          "corpus_digest": null,
+          "generated_text_execution": false,
+          "method": "EMIT_AND_REVISE_DECLARATIVE_TYPED_STRATEGY_DATA_WITHOUT_EXECUTING_GENERATED_TEXT",
+          "network_access": false,
+          "policy_id": "be4_model_code_generating_policy/2.0",
+          "profile": "CODE_GENERATING",
+          "provider_model": "gpt-5.6-terra",
+          "response_contract": "STRICT_JSON_SCHEMA",
+          "system_policy": "Use only this payload. Return one schema-valid response. Do not request tools, execute code, or infer unavailable evaluator material."
+        },
+        "profile": "CODE_GENERATING"
+      },
+      {
+        "content_digest": "sha256:40e59d6f6b4899eb462badc86c752bf3377fa136c9f8d1600a48c1682e63a78b",
+        "payload": {
+          "allowed_action": "TYPED_STRATEGY_OR_STOP_THEN_SELECTION_ONLY",
+          "corpus": null,
+          "corpus_digest": null,
+          "generated_text_execution": false,
+          "method": "PARENT_CHILD_MUTATION_LINEAGE_WITH_FEEDBACK_BASED_SURVIVOR_SELECTION",
+          "network_access": false,
+          "policy_id": "be4_model_evolutionary_policy/2.0",
+          "profile": "EVOLUTIONARY",
+          "provider_model": "gpt-5.6-terra",
+          "response_contract": "STRICT_JSON_SCHEMA",
+          "system_policy": "Use only this payload. Return one schema-valid response. Do not request tools, execute code, or infer unavailable evaluator material."
+        },
+        "profile": "EVOLUTIONARY"
+      },
+      {
+        "content_digest": "sha256:24f472fe820c25a565ecd67d646c2ac6e84d15b76102c389b1cb2565d4ad1705",
+        "payload": {
+          "allowed_action": "TYPED_STRATEGY_OR_STOP_THEN_SELECTION_ONLY",
+          "corpus": [
+            {
+              "direction": "INCREASE",
+              "method_id": "bounded_sampling_probe",
+              "surface_keyword": "sampling"
+            },
+            {
+              "direction": "INCREASE",
+              "method_id": "bounded_curriculum_probe",
+              "surface_keyword": "curriculum"
+            },
+            {
+              "direction": "INCREASE",
+              "method_id": "bounded_feature_probe",
+              "surface_keyword": "feature"
+            }
+          ],
+          "corpus_digest": "sha256:03e625bc1af0dbbce6d15bcf6602568a00d00e0f311b5b90bc5acdfe65881675",
+          "generated_text_execution": false,
+          "method": "CITE_FROZEN_CORPUS_CHUNKS_AND_UPDATE_HYPOTHESES_FROM_PERMITTED_FEEDBACK",
+          "network_access": false,
+          "policy_id": "be4_model_literature_grounded_policy/2.0",
+          "profile": "LITERATURE_GROUNDED",
+          "provider_model": "gpt-5.6-terra",
+          "response_contract": "STRICT_JSON_SCHEMA",
+          "system_policy": "Use only this payload. Return one schema-valid response. Do not request tools, execute code, or infer unavailable evaluator material."
+        },
+        "profile": "LITERATURE_GROUNDED"
+      },
+      {
+        "content_digest": "sha256:44dd4a8d810920004ec9a5b7ada50be960cdaa9551eeddba808090bf9537f88b",
+        "payload": {
+          "allowed_action": "ONE_TYPED_STRATEGY_OR_STOP",
+          "corpus": null,
+          "corpus_digest": null,
+          "generated_text_execution": false,
+          "method": "ONE_PROPOSAL_ATTEMPT_THEN_STOP_INVALID_FIRST_PROPOSAL_GETS_NO_REPLACEMENT_ATTEMPT",
+          "network_access": false,
+          "policy_id": "be4_model_minimalist_policy/2.0",
+          "profile": "MINIMALIST",
+          "provider_model": "gpt-5.6-terra",
+          "response_contract": "STRICT_JSON_SCHEMA",
+          "system_policy": "Use only this payload. Return one schema-valid response. Do not request tools, execute code, or infer unavailable evaluator material."
+        },
+        "profile": "MINIMALIST"
+      }
+    ],
+    "resource_policy_ref": "sha256:2d2a1f7864e13e441a59c3adabdac78a9574c37652b9351903643af32ad389bd",
+    "schema_version": "carbon.be4.development-artifacts.v1",
+    "tasks": [
+      {
+        "evaluator_seed_commitment": "sha256:eab3506d744c13bc94118733862a2e37dde996cb788e9369446cd10fac5fec86",
+        "evaluator_seed_egress": false,
+        "observation_set_digest": "sha256:ceba505c287114ee87e8f3d113ab234ae9c09bd8ce57c3c82ff9a2b00173e656",
+        "practice_pack_ref": "sha256:c1b696507cc37ecc733c7c785fe6b0635a06e31d8ff5d142c167b488ed61e103",
+        "scaffold_ref": "sha256:e1b1a31b16db124a58d03c880df04260f3f3f7b1fdc70a8b47ab77e24bd6d3fb",
+        "task_digest": "sha256:5b08478ec5335f93370776be00e4d87f1f8c70b7916d2638b97f90f7b27fcdfc",
+        "task_id": "be4-pilot-v2-04"
+      },
+      {
+        "evaluator_seed_commitment": "sha256:7ec21d60d908441e7bee26077e2b4abfcdf908dd449652289b5e4d46521a5a50",
+        "evaluator_seed_egress": false,
+        "observation_set_digest": "sha256:6eca6ad6785dea211f7dac6dd62201bb4907a54b3cc6e6179f19184dbea40a10",
+        "practice_pack_ref": "sha256:c1b696507cc37ecc733c7c785fe6b0635a06e31d8ff5d142c167b488ed61e103",
+        "scaffold_ref": "sha256:e1b1a31b16db124a58d03c880df04260f3f3f7b1fdc70a8b47ab77e24bd6d3fb",
+        "task_digest": "sha256:bf9749f9ea43100be7c2fb3b74346942fe6d83756289f4ede20e4351a37fe5a9",
+        "task_id": "be4-pilot-v2-07"
+      }
+    ],
+    "treatments": [
+      {
+        "arm": "NO_PRIOR",
+        "artifact_digest": "sha256:f03270ff9c8af49f574e98f8e96c2fd334c4bae4239a3d606f9acbf17426bad3",
+        "artifact_id": "no_prior",
+        "artifact_version": "2.0",
+        "limitations": [
+          "TEST_ONLY",
+          "NOT_UTILITY_QUALIFIED",
+          "NONQUALIFYING_DEVELOPMENT"
+        ],
+        "material": null,
+        "suggested_surfaces": []
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "artifact_digest": "sha256:c5090a99b43bb9ef78ffb5e46b2e9e9026b2643e9ca56a318e2650e668ea8ff4",
+        "artifact_id": "generic_domain_neutral_research_workflow:297fac2c3149ed3b",
+        "artifact_version": "1.0",
+        "limitations": [
+          "TEST_ONLY",
+          "NOT_UTILITY_QUALIFIED",
+          "NONQUALIFYING_DEVELOPMENT"
+        ],
+        "material": [
+          "DISCOVER_REGISTERED_SURFACE",
+          "FORM_ONE_LEVER_HYPOTHESIS",
+          "RUN_PAIRED_PRACTICE",
+          "RETAIN_NULL_OR_NEGATIVE_FEEDBACK",
+          "SELECT_FROM_ALLOWED_PRACTICE_EVIDENCE"
+        ],
+        "suggested_surfaces": []
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "artifact_digest": "sha256:4367ad317c952d4b160549060d4bea6e060e42e59375abfafca8bc698f35a33c",
+        "artifact_id": "v1_private_projection:5613ba525be2f684",
+        "artifact_version": "1.0",
+        "limitations": [
+          "TEST_ONLY",
+          "NOT_UTILITY_QUALIFIED",
+          "NONQUALIFYING_DEVELOPMENT"
+        ],
+        "material": [
+          {
+            "kind": "explore",
+            "subject": "fixture_curriculum_emphasis",
+            "tokens": [
+              "compare",
+              "uint64_1",
+              "mixed"
+            ]
+          },
+          {
+            "kind": "explore",
+            "subject": "fixture_feature_degree",
+            "tokens": [
+              "compare",
+              "uint64_1",
+              "mixed"
+            ]
+          },
+          {
+            "kind": "explore",
+            "subject": "fixture_sampling_level",
+            "tokens": [
+              "compare",
+              "uint64_1",
+              "mixed"
+            ]
+          }
+        ],
+        "suggested_surfaces": [
+          "fixture_curriculum_emphasis",
+          "fixture_feature_degree",
+          "fixture_sampling_level"
+        ]
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "artifact_digest": "sha256:168ec55fd07d049d6adc8acc8ba77e49cd0c01110d9d7e972291ff6c64dc6fa0",
+        "artifact_id": "v2_test_only_prior",
+        "artifact_version": "3.0",
+        "limitations": [
+          "TEST_ONLY",
+          "NOT_UTILITY_QUALIFIED",
+          "NONQUALIFYING_DEVELOPMENT"
+        ],
+        "material": [
+          {
+            "action": "COMPARE",
+            "baseline_ref": "uint64_1",
+            "expected_directions": [
+              "MIXED"
+            ],
+            "guidance_kind": "EXPLORE",
+            "item_id": "be4_fixture_curriculum_emphasis_guidance",
+            "surface_id": "fixture_curriculum_emphasis",
+            "to_ref": "uint64_2"
+          },
+          {
+            "action": "COMPARE",
+            "baseline_ref": "uint64_1",
+            "expected_directions": [
+              "MIXED"
+            ],
+            "guidance_kind": "EXPLORE",
+            "item_id": "be4_fixture_feature_degree_guidance",
+            "surface_id": "fixture_feature_degree",
+            "to_ref": "uint64_2"
+          },
+          {
+            "action": "COMPARE",
+            "baseline_ref": "uint64_1",
+            "expected_directions": [
+              "MIXED"
+            ],
+            "guidance_kind": "EXPLORE",
+            "item_id": "be4_fixture_sampling_level_guidance",
+            "surface_id": "fixture_sampling_level",
+            "to_ref": "uint64_2"
+          }
+        ],
+        "pack_ref": {
+          "challenge_id": "fixture_authoring",
+          "challenge_version": "1.0",
+          "channel": "TEST_ONLY_FIXTURE",
+          "content_hash": "sha256:168ec55fd07d049d6adc8acc8ba77e49cd0c01110d9d7e972291ff6c64dc6fa0",
+          "publication_sequence": 0
+        },
+        "suggested_surfaces": [
+          "fixture_curriculum_emphasis",
+          "fixture_feature_degree",
+          "fixture_sampling_level"
+        ]
+      }
+    ],
+    "v2_test_only_authorization_ref": {
+      "authorization_id": "be4_fixture_authorization",
+      "challenge_id": "fixture_authoring",
+      "challenge_version": "1.0",
+      "content_digest": "sha256:e22b46303b1dfe5b1799383e6cd3c0ff65f1e6c2f34dd59e6bb0f3bbac18c77b"
+    },
+    "v2_test_only_prior_pack_ref": {
+      "challenge_id": "fixture_authoring",
+      "challenge_version": "1.0",
+      "channel": "TEST_ONLY_FIXTURE",
+      "content_hash": "sha256:168ec55fd07d049d6adc8acc8ba77e49cd0c01110d9d7e972291ff6c64dc6fa0",
+      "publication_sequence": 0
+    }
+  },
+  "content_digest": "sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca",
+  "current_admission_status": "BLOCKED_NO_REPOSITORY_NATIVE_AUTHENTICATED_FIVE_OWNER_AND_ONE_USE_VERIFIER",
+  "design_digest": "sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538",
+  "manifest": {
+    "approval_boundary": {
+      "actual_execution_evidence": false,
+      "authenticated_five_owner_approval": false,
+      "one_use_execution_authorization": false,
+      "paid_provider_execution": false
+    },
+    "artifact_manifest_digest": "sha256:bca231b8a5d096f5e8bb6c390fea7aa57c8737d384df6a654c9b6eb2142451d8",
+    "authority_ceiling": "NONQUALIFYING_DEVELOPMENT_INTEGRATION_ONLY_NO_PILOT_OR_QUALIFICATION_AUTHORITY",
+    "budget": {
+      "adaptive_logical_calls_per_run": 5,
+      "call_wall_seconds": 120,
+      "campaign_wall_seconds": 432000,
+      "development_approval_request_usd": "14.42",
+      "development_input_token_ceiling": 2621440,
+      "development_maximum_provider_request_attempts": 336,
+      "development_output_token_ceiling": 655360,
+      "development_stage_wall_seconds": 57600,
+      "development_worst_case_cost_usd": "14.41792",
+      "maximum_fixture_units": 6120,
+      "maximum_provider_attempts_per_logical_call": 2,
+      "minimalist_logical_calls_per_run": 1,
+      "overall_proposed_pilot_ceiling_usd": "98.304",
+      "run_input_token_ceiling": 65536,
+      "run_normalized_policy_work_ceiling": 64,
+      "run_output_token_ceiling": 16384,
+      "run_research_service_call_ceiling": 64,
+      "run_wall_seconds": 900
+    },
+    "campaign_id": "be4-autonomous-development-v1",
+    "content_digest": "sha256:2711c16a0e5dd4b00cbba10de968685e31b0ddc9ea13015e7c1cab1cbe1c04c6",
+    "implementation_digest": "sha256:63f4233f646e85d29dd588b5be70e1b274178294ee5d31187b819580d59cb7cf",
+    "model": {
+      "api": "RESPONSES",
+      "built_in_tools": [],
+      "context_limit_tokens": 32768,
+      "model_id": "gpt-5.6-terra",
+      "reasoning_effort": "medium",
+      "service_tier": "default",
+      "store": false,
+      "verbosity": "low"
+    },
+    "proposal_digest": "sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31",
+    "provider_contract": {
+      "account_controls": {
+        "abuse_monitoring_default_retention_days": 30,
+        "background_mode": false,
+        "credential_values_must_not_be_recorded": true,
+        "project_retention_selection": "SECURITY_OWNER_APPROVAL_REQUIRED",
+        "prompt_cache": "EXPLICIT_MODE_NO_BREAKPOINTS_TTL_30M",
+        "required_runtime_configuration_names": [
+          "OPENAI_API_KEY",
+          "OPENAI_PROJECT_ID",
+          "OPENAI_ORGANIZATION_ID_OPTIONAL"
+        ],
+        "store_false_is_not_zero_data_retention": true,
+        "zero_data_retention_or_modified_abuse_monitoring": "SECURITY_OWNER_SELECTION_REQUIRED_IF_ACCOUNT_ELIGIBLE"
+      },
+      "payload_allowlist": [
+        "frozen_system_and_profile_policy",
+        "agent_visible_synthetic_task_description",
+        "current_arm_permitted_prior_material",
+        "current_run_permitted_practice_feedback",
+        "public_resource_facts",
+        "current_run_existing_candidate_ids"
+      ],
+      "pricing_and_contract_sources": [
+        "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+        "https://developers.openai.com/api/reference/cli/resources/responses/methods/create",
+        "https://developers.openai.com/api/docs/guides/your-data"
+      ],
+      "pricing_per_million_usd": {
+        "cache_write_input": "2.50",
+        "cached_input": "0.20",
+        "output_including_reasoning": "12.00",
+        "standard_input": "2.00"
+      },
+      "pricing_verified_utc_date": "2026-09-09",
+      "spend_exclusions": [
+        "TAXES",
+        "INDEPENDENTLY_BILLED_INFRASTRUCTURE",
+        "OFFLINE_TASK_GENERATION_AND_INCLUSION_AUDIT"
+      ],
+      "usage_accounting": "REPEATED_INPUT_HISTORY_AND_OUTPUT_INCLUDING_REASONING_TOKENS"
+    },
+    "reserve_policy": "NO_DEVELOPMENT_RESERVES_ALLOCATED_NO_SILENT_REPLACEMENT",
+    "run_count": 40,
+    "schedule": [
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-04",
+        "ordinal": 0,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-04-no_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-04",
+        "ordinal": 1,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-04-generic_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-04",
+        "ordinal": 2,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-04-v1_directive_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-04",
+        "ordinal": 3,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-04-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-04",
+        "ordinal": 4,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-04-no_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-07",
+        "ordinal": 5,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-07-generic_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-07",
+        "ordinal": 6,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-07-v1_directive_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-07",
+        "ordinal": 7,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-07-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-07",
+        "ordinal": 8,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-07-no_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-07",
+        "ordinal": 9,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-07-generic_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-04",
+        "ordinal": 10,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-04-generic_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-04",
+        "ordinal": 11,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-04-v1_directive_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-04",
+        "ordinal": 12,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-04-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-04",
+        "ordinal": 13,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-04-no_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-04",
+        "ordinal": 14,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-04-generic_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-07",
+        "ordinal": 15,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-07-v1_directive_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-07",
+        "ordinal": 16,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-07-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-07",
+        "ordinal": 17,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-07-no_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-07",
+        "ordinal": 18,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-07-generic_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-07",
+        "ordinal": 19,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-07-v1_directive_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-04",
+        "ordinal": 20,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-04-v1_directive_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-04",
+        "ordinal": 21,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-04-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-04",
+        "ordinal": 22,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-04-no_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-04",
+        "ordinal": 23,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-04-generic_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-04",
+        "ordinal": 24,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-04-v1_directive_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-07",
+        "ordinal": 25,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-07-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-07",
+        "ordinal": 26,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-07-no_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-07",
+        "ordinal": 27,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-07-generic_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-07",
+        "ordinal": 28,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-07-v1_directive_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-07",
+        "ordinal": 29,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-07-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-04",
+        "ordinal": 30,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-04-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-04",
+        "ordinal": 31,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-04-no_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-04",
+        "ordinal": 32,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-04-generic_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-04",
+        "ordinal": 33,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-04-v1_directive_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-04",
+        "ordinal": 34,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-04-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-04",
+        "task_ordinal": 0
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-planner-be4-pilot-v2-07",
+        "ordinal": 35,
+        "profile": "PLANNER",
+        "run_id": "be4-development-planner-be4-pilot-v2-07-no_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "GENERIC_PRIOR",
+        "block_id": "be4-development-code_generating-be4-pilot-v2-07",
+        "ordinal": 36,
+        "profile": "CODE_GENERATING",
+        "run_id": "be4-development-code_generating-be4-pilot-v2-07-generic_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V1_DIRECTIVE_PRIOR",
+        "block_id": "be4-development-evolutionary-be4-pilot-v2-07",
+        "ordinal": 37,
+        "profile": "EVOLUTIONARY",
+        "run_id": "be4-development-evolutionary-be4-pilot-v2-07-v1_directive_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "V2_TEST_ONLY_PRIOR",
+        "block_id": "be4-development-literature_grounded-be4-pilot-v2-07",
+        "ordinal": 38,
+        "profile": "LITERATURE_GROUNDED",
+        "run_id": "be4-development-literature_grounded-be4-pilot-v2-07-v2_test_only_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      },
+      {
+        "arm": "NO_PRIOR",
+        "block_id": "be4-development-minimalist-be4-pilot-v2-07",
+        "ordinal": 39,
+        "profile": "MINIMALIST",
+        "run_id": "be4-development-minimalist-be4-pilot-v2-07-no_prior",
+        "task_id": "be4-pilot-v2-07",
+        "task_ordinal": 1
+      }
+    ],
+    "schema_version": "carbon.be4.development-pilot.v1",
+    "stage": "DEVELOPMENT",
+    "stopping_rule": "ATTEMPT_EACH_REGISTERED_SLOT_ONCE_SEQUENTIALLY_STOP_ON_STAGE_BUDGET_OR_UNRESOLVED_PROVIDER_DISPATCH_NEVER_START_CALIBRATION",
+    "tasks": [
+      {
+        "agent_visible_description": {
+          "candidate_space": "EIGHT_REGISTERED_BINARY_CONFIGURATIONS",
+          "noise_class": "LOW_NOISE",
+          "registered_strategy_schema": "CARBON_STRATEGY_1_0_FNO",
+          "resource_regime": "BALANCED",
+          "target_family": "Y_EQUALS_X",
+          "training_observation_count": 4,
+          "transfer_class": "NEAR_TRANSFER"
+        },
+        "candidate_fixture_units": 17,
+        "cell_id": "be4-pilot-v2-04",
+        "content_digest": "sha256:5b08478ec5335f93370776be00e4d87f1f8c70b7916d2638b97f90f7b27fcdfc",
+        "maximum_run_fixture_units": 153,
+        "observation_set_digest": "sha256:ceba505c287114ee87e8f3d113ab234ae9c09bd8ce57c3c82ff9a2b00173e656",
+        "task_id": "be4-pilot-v2-04"
+      },
+      {
+        "agent_visible_description": {
+          "candidate_space": "EIGHT_REGISTERED_BINARY_CONFIGURATIONS",
+          "noise_class": "HIGH_NOISE",
+          "registered_strategy_schema": "CARBON_STRATEGY_1_0_FNO",
+          "resource_regime": "BALANCED",
+          "target_family": "Y_EQUALS_X_SQUARED",
+          "training_observation_count": 4,
+          "transfer_class": "FAR_TRANSFER"
+        },
+        "candidate_fixture_units": 17,
+        "cell_id": "be4-pilot-v2-07",
+        "content_digest": "sha256:bf9749f9ea43100be7c2fb3b74346942fe6d83756289f4ede20e4351a37fe5a9",
+        "maximum_run_fixture_units": 153,
+        "observation_set_digest": "sha256:6eca6ad6785dea211f7dac6dd62201bb4907a54b3cc6e6179f19184dbea40a10",
+        "task_id": "be4-pilot-v2-07"
+      }
+    ]
+  },
+  "paid_execution_occurred": false,
+  "qualifying_execution_ready": false,
+  "schema_version": "carbon.be4.development-execution-request.v1"
+}

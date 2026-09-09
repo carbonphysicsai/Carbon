@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.4
+**Controlling register:** `.agent/WAVE_B.md` version 4.5
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -26,9 +26,12 @@ full-lifecycle calibration as `b693bbe2e23774c93303d24416f55ebdd5f6c0e9`.
 PR #111 merged the policy-exhaustion/replacement-integrity repair as
 `47677572e72795338236a283eb588357a25dbda2`. PR #112 merged the first
 content-bound, owner-unapproved autonomous-agent pilot proposal as
-`c6d6c1dc257b00be06d24f5736f7159e68849b04`. The current successor candidate
-repairs rehearsal association/resource accounting and issues strict pilot v2;
-it remains explicitly owner-unapproved and unauthorized.
+`c6d6c1dc257b00be06d24f5736f7159e68849b04`. PR #113 merged the rehearsal-
+association/resource-accounting repair and strict pilot v2 as
+`f5f6a82a1dfd8193c4eafa73ad5370076e8ee10b`. The current successor candidate
+implements the disabled real transport, sequential development runner, durable
+journal, exact approval request, and full deterministic offline integration; it
+remains explicitly owner-unapproved and unauthorized.
 **Selection boundary:** B-E4 qualifying execution and completion remain blocked
 on the recorded execution-integration gaps, validated pre-execution design, and
 complete human-ratified preregistration; B-GATE remains unstarted.
@@ -106,11 +109,15 @@ primary floor; this is not a population bound or utility result. Pilot v2
 recommends one Terra model with five arm-neutral policies, an exact bounded
 12-cell distribution, four adaptive proposal calls plus one metered selection-
 only call, and a maximum 300-run/$98.304 ceiling. Its five grouped owner
-decisions remain `PROPOSED`; only strict validation and offline state/task/
-payload helpers exist, with no provider/execution path. Representative autonomous-
-agent scope, seed design, stochastic and dependence evidence, diversity,
-shadow/leakage, trusted attacks, authenticated five-role ratification, one-use
-authorization and qualifying storage remain unavailable. No qualifying,
+decisions remain `PROPOSED`. The current candidate adds an exact 40-slot
+sequential DEVELOPMENT runner, strict Responses and deterministic transports,
+persistent operation journal, exact source/prompt/corpus/treatment/task
+manifest, `$14.42` development request, and 40-run offline fixture-service
+integration. The real transport has no approval/admission issuer and fails
+before network dispatch. Representative autonomous-agent scope, seed design,
+stochastic and dependence evidence, diversity, shadow/leakage, trusted
+attacks, authenticated five-role ratification, one-use authorization and
+qualifying storage remain unavailable. No paid, qualifying, calibration,
 shadow, or attack campaign ran. B-GATE is unstarted.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below

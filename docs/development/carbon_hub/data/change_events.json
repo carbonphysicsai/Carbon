@@ -1574,6 +1574,35 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": "B-E4-AUTONOMOUS-PILOT-PROPOSAL-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-DEVELOPMENT-RUNNER-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "implemented",
+      "summary": "The B-E4 candidate implements one sequential 5-profile x 4-arm x 2-task DEVELOPMENT runner through Carbon's existing TEST_ONLY research, paired-practice, and fixture lifecycle, plus a strict real-but-disabled Responses adapter, deterministic transport, durable intent/result journal, exact artifact/request identities, and a $14.42 owner request. All 40 offline integration slots completed with zero inference and zero spend. Owner approval, provider-project retention approval, and verified one-use DEVELOPMENT admission remain absent; no paid, calibration, shadow, attack, or qualifying campaign ran.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/363931d72f24d20e9c8fee978859de4474a56449/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "supersedes": "B-E4-EVIDENCE-RESOURCE-PILOT-CORRECTION-01"
     }
   ]
 }

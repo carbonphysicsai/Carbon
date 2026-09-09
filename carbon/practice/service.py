@@ -47,10 +47,10 @@ from carbon.seeding import (
 from carbon.toy import (
     FIXTURE_CURRICULUM_SURFACE_ID,
     FIXTURE_FEATURE_SURFACE_ID,
-    FIXTURE_HELDOUT_OBSERVATIONS,
     FIXTURE_SAMPLING_SURFACE_ID,
-    FIXTURE_TRAINING_OBSERVATIONS,
+    LEGACY_FIXTURE_OBSERVATION_SET,
     FixtureModelConfiguration,
+    FixtureObservationSet,
     construct_fixture_model,
 )
 
@@ -155,6 +155,7 @@ class MockTrainEvalService:
         "_aggregates",
         "_contexts",
         "_manifest",
+        "_observation_set",
         "_registry",
         "_resource_recorder",
     )
@@ -166,15 +167,21 @@ class MockTrainEvalService:
         interaction_manifest: InteractionManifest,
         context_factory: MockContextFactory | None = None,
         resource_recorder: ObservedResourceRecorder | None = None,
+        observation_set: FixtureObservationSet = LEGACY_FIXTURE_OBSERVATION_SET,
     ) -> None:
         if type(registry) is not VersionedMockPackRegistry:
             raise TypeError("practice service requires the exact mock registry")
         if type(interaction_manifest) is not InteractionManifest:
             raise TypeError("practice service requires the exact shared manifest")
+        if type(observation_set) is not FixtureObservationSet:
+            raise TypeError(
+                "practice service requires an exact fixture observation set"
+            )
         self._registry = registry
         self._manifest = interaction_manifest
         self._contexts = context_factory or FreshMockContextFactory()
         self._resource_recorder = resource_recorder
+        self._observation_set = observation_set
         self._aggregates: dict[PrivateIdentityRef, PracticeAggregate] = {}
 
     @staticmethod
@@ -564,7 +571,7 @@ class MockTrainEvalService:
             ).as_backend_bytes()
             configuration = self._toy_configuration(item.resolved_plan)
             coefficient, _ = construct_fixture_model(
-                FIXTURE_TRAINING_OBSERVATIONS,
+                self._observation_set.training_observations,
                 configuration.sampling_level,
                 seed,
                 curriculum_emphasis=configuration.curriculum_emphasis,
@@ -576,8 +583,8 @@ class MockTrainEvalService:
             x = self._unit_interval(
                 derive_mock_seed(context, RoleKey("practice_evaluation_case"), index)
             )
-            fixture_x, fixture_y = FIXTURE_HELDOUT_OBSERVATIONS[
-                index % len(FIXTURE_HELDOUT_OBSERVATIONS)
+            fixture_x, fixture_y = self._observation_set.heldout_observations[
+                index % len(self._observation_set.heldout_observations)
             ]
             # Fresh mock cases jitter the public toy coordinates without exposing
             # B-07F's fixture-official seed or result path.

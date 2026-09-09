@@ -14,10 +14,11 @@ PILOT_NOT_AUTHORIZED`
 **Current qualification proposal:**
 `.agent/preregistrations/B-E4_recommended_design_v4.json`, `STILL_BLOCKED`
 
-**Authority ceiling:** proposal validation and offline synthetic design analysis
-only. No provider inference, autonomous-agent run, pilot, shadow campaign,
-attack campaign, qualifying execution, approval, ratification, scientific or
-security/privacy qualification, production, or LIVE authority.
+**Authority ceiling:** runnable non-qualifying development integration and
+offline fixture evidence only. No provider inference, paid autonomous-agent
+run, pilot calibration, shadow campaign, attack campaign, qualifying execution,
+approval, ratification, scientific or security/privacy qualification,
+production, or LIVE authority.
 
 ## Current owner summary
 
@@ -50,9 +51,15 @@ cache consistency, all resource ceilings, data egress, and proposal-versus-
 approval-versus-authorization boundaries. It rejects missing, extra, duplicate,
 wrong-type, unsupported, or internally contradictory content even after a
 caller recomputes the digest. Validator success means only that a proposal is
-well formed. An offline-only state machine, payload allow-list checker, twelve-
-cell task recipe, and bounded inclusion audit exist; there is no provider
-client or campaign executor.
+well formed.
+
+The current candidate now implements one sequential 40-slot development runner,
+a strict Responses adapter, deterministic offline transport, durable operation
+journal, complete source/prompt/corpus/treatment/task manifest, resource/cost/
+deadline admission, and an exact owner approval request. The real adapter has
+no admission issuer and cannot dispatch. The canonical offline matrix traversed
+Carbon's actual B-07S/B-07B/B-07C/A7/A8 TEST_ONLY paths for all five profiles,
+four arms, and two tasks with zero inference and zero spend.
 
 ### 2. Current blocked v4 qualification proposal
 
@@ -66,13 +73,15 @@ into approved qualification criteria.
 
 ### 3. Current owner-unapproved pilot proposal
 
-V2 recommends one common `gpt-5.6-terra` Responses model across the five
+V2 and the current disabled runner use one common `gpt-5.6-terra` Responses
+model across the five
 required policy profiles, with medium reasoning, low verbosity, no built-in
 tools or external network, `store=false`, isolated arm/run conversations, and
 requested/returned model, service-tier, and timestamp recording. The provider
 currently advertises an undated Terra alias rather than a distinct immutable
-snapshot; availability, behavior, and prices must therefore be reverified at
-the later freeze.
+snapshot. Availability, API shape, prices, cache accounting, and retention
+documentation were reverified for this freeze on 2026-09-09; the alias and
+returned identity still must be recorded at execution.
 
 Adaptive profiles receive up to four proposal-generating calls and one
 separately metered selection-only call after the fourth available practice
@@ -99,26 +108,152 @@ provider randomness, or a future qualifying sample size.
 |---|---|---|---|
 | Population and interaction | One common Terra model; five frozen arm-neutral policies; four adaptive proposal calls plus one bounded selection-only call; minimalist one attempt then stop; isolated transcripts; no arbitrary code/network | Research, exact protocol, security | PROPOSED |
 | Task fixture, seeds, and analysis | Exact 3 x 2 x 2 synthetic distribution; hidden domain-separated evaluator seeds; four arms paired within each profile/task block; bounded structural inclusion; one realization/cell is diagnostic only | Research, exact protocol, science, statistics, security | PROPOSED |
-| Resources, cost, and stopping | 40 development + 240 calibration + 20 prospective reserve runs; the exact nested call/token/service/fixture/time limits below; `$98.304` current proposed spend ceiling; no unknown-use retry | Research, exact protocol, statistics | PROPOSED |
-| Provider egress and retention | Exact payload allow-list, forbidden-field canary tests, `store=false`, no extended caching, and a security-owner choice among applicable account-level retention controls | Exact protocol, security | PROPOSED |
+| Resources, cost, and stopping | Approve only the 40-run DEVELOPMENT stage now: 65,536/16,384 input/output-plus-reasoning tokens per run; 2,621,440/655,360 stage tokens; 64 work/service operations and 153 fixture units/run; nested deadlines; `$14.42` stage ceiling; no reserves or unknown-use retry. Preserve `$98.304` as the unexpanded overall proposal | Research, exact protocol, statistics | PROPOSED |
+| Provider egress and retention | Approve the exact six-field payload, `store=false`, tools disabled, explicit 30-minute cache mode, and the named provider project. Recommended account control: verified Zero Data Retention; otherwise block unless security approves one named alternative | Exact protocol, security | PROPOSED |
 | Staged evidence use | Development retained but never pooled into calibration; calibration proceeds on implementation integrity, not positive v2 performance; neither stage may qualify B-E4 or substitute for attack/shadow evidence | Research, exact protocol, science, statistics, security | PROPOSED |
 
-Approval of pilot direction is not approval of later source/corpus/task/
-implementation manifests. Those exact artifacts do not yet exist and require a
-successor freeze, exact-proposal approval evidence, and separate one-use
-execution authorization.
+The exact source/corpus/task/implementation artifacts now exist and are bound in
+the request below. Merging or validating them is not owner approval, provider
+egress permission, spending authority, or execution authorization.
 
 ### 5. Remaining implementation and execution prerequisites
 
-Before any pilot call, Carbon still needs an approved provider adapter; frozen
-system/profile prompts and literature corpus; exact task-generator and
-evaluator artifacts; prospective development/calibration/reserve manifests;
-model/price/retention reverification; authenticated approval evidence for the
-exact successor digest; a cost-reserving admission owner; and separate bounded
-execution authorization. Before any qualifying B-E4 execution it additionally
-needs approved v4-or-successor eight-value preregistration, five-owner
-ratification, shadow/leakage and trusted attack integrations, and qualifying
-evidence storage. B-GATE remains unstarted.
+The provider adapter, prompts, corpus, two development tasks, schedule, source/
+artifact manifest, journal, and cost-reserving runner are implemented. Before
+any paid call Carbon still needs authenticated approval references from all five
+named roles for the exact request, a security-approved provider project and
+account retention setting, the approved `$14.42` ceiling, and a repository-
+native verifier that converts those references into one consumed-once
+DEVELOPMENT authorization. Credentials then must be supplied out of band.
+
+Before any qualifying B-E4 execution it additionally needs approved v4-or-
+successor eight-value preregistration, five-owner ratification, shadow/leakage
+and trusted attack integrations, and qualifying evidence storage. Calibration
+is not authorized and cannot launch after development. B-GATE remains
+unstarted.
+
+## Exact development execution package
+
+### Frozen identities
+
+| Artifact | Exact identity |
+|---|---|
+| Pilot v2 proposal | `sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31` |
+| V4 exact design content | `sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538` |
+| Development execution request | `sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca` |
+| Development campaign manifest | `sha256:2711c16a0e5dd4b00cbba10de968685e31b0ddc9ea13015e7c1cab1cbe1c04c6` |
+| Implementation | `sha256:63f4233f646e85d29dd588b5be70e1b274178294ee5d31187b819580d59cb7cf` |
+| Artifact manifest | `sha256:bca231b8a5d096f5e8bb6c390fea7aa57c8737d384df6a654c9b6eb2142451d8` |
+
+The canonical request is
+`.agent/preregistrations/B-E4_development_execution_request_v1.json`. It
+contains the readable exact five prompts, corpus, four treatments, two task and
+hidden-seed commitments, TEST_ONLY pack/authorization, implementation
+components, schedule, provider contract, and limits. Owners approve this exact
+request, not a prose approximation.
+
+### Commands and offline result
+
+The runner entry point is `scripts/dev/run_be4_development_pilot.py`. The full
+offline verification command is:
+
+```bash
+.venv/bin/python scripts/dev/run_be4_development_pilot.py --offline \
+  --journal /private/tmp/be4-development-offline.sqlite \
+  --report .agent/evidence/wave_b/b-e4-development-offline-integration-v1.json
+```
+
+It completed all 40 slots, 168 deterministic provider responses, 104 paired-
+practice results, and 40 fixture endpoints through Carbon services. It consumed
+4,216 fixture units and 1,106 normalized work units. Its token-shaped offline
+traffic models `$0.98098`; that is neither a bill nor expected model use.
+
+The reserved paid-stage command is:
+
+```bash
+.venv/bin/python scripts/dev/run_be4_development_pilot.py --responses \
+  --journal .agent/runtime/be4-development.sqlite \
+  --report .agent/evidence/wave_b/b-e4-development-provider-run-v1.json
+```
+
+At this checkpoint it deliberately exits `PAID_EXECUTION_BLOCKED` before any
+network dispatch. The command may become usable only after the repository-
+native approval/one-use admission integration described below; owners should
+not work around that boundary.
+
+### Safe synthetic payload example
+
+The actual request uses exactly these six top-level fields; this readable
+example omits no field and contains no seed, hidden case, private reference,
+shadow data, scorer internal, credential, or other-run transcript:
+
+```json
+{
+  "frozen_system_and_profile_policy": {
+    "profile": "PLANNER",
+    "policy_id": "be4_model_planner_policy/2.0",
+    "provider_model": "gpt-5.6-terra",
+    "network_access": false,
+    "generated_text_execution": false,
+    "response_contract": "STRICT_JSON_SCHEMA"
+  },
+  "agent_visible_synthetic_task_description": {
+    "target_family": "Y_EQUALS_X",
+    "noise_class": "LOW_NOISE",
+    "resource_regime": "BALANCED",
+    "transfer_class": "NEAR_TRANSFER",
+    "candidate_space": "EIGHT_REGISTERED_BINARY_CONFIGURATIONS"
+  },
+  "current_arm_permitted_prior_material": {
+    "arm": "NO_PRIOR",
+    "material": null,
+    "suggested_surfaces": []
+  },
+  "current_run_permitted_practice_feedback": [],
+  "public_resource_facts": {
+    "candidate_fixture_units": 17,
+    "maximum_run_fixture_units": 153,
+    "registered_strategy_surfaces": [
+      "fixture_sampling_level",
+      "fixture_curriculum_emphasis",
+      "fixture_feature_degree"
+    ]
+  },
+  "current_run_existing_candidate_ids": []
+}
+```
+
+The wire request additionally disables built-in tools and parallel tool calls,
+uses strict JSON schema output, `store=false`, medium reasoning, low verbosity,
+default service tier, and explicit cache mode with a 30-minute TTL.
+
+### Credential and one-use authorization procedure
+
+Runtime configuration names are `OPENAI_API_KEY`, `OPENAI_PROJECT_ID`, and
+optionally `OPENAI_ORGANIZATION_ID`. Values must never enter prompts, journals,
+request artifacts, logs, Hub data, or reports. `OPENAI_PROJECT_ID` must identify
+the exact security-approved project; `store=false` does not prove account-level
+retention.
+
+The smallest pre-execution procedure is:
+
+1. Research, exact-protocol, science, statistics, and security owners each
+   record an authenticated approval act for request digest
+   `sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca`.
+2. Security's act names the permitted project, six-field egress policy, and
+   verified retention control; statistics/research/protocol acts include the
+   `$14.42` development ceiling and registered evidence role.
+3. A bounded repository-native verifier checks current role assignments and
+   approval references, revalidates every bound digest, and issues one
+   authorization for campaign `be4-autonomous-development-v1` only.
+4. The journal records that authorization identity before the first dispatch.
+   Resume reuses it; it cannot issue another entitlement or change manifests.
+5. The verifier consumes it on first dispatch. Unknown billing remains reserved
+   until trusted reconciliation. Completion never launches calibration.
+
+That authenticated approval/one-use verifier is the only remaining engineering
+integration seam before paid DEVELOPMENT execution. This pack does not invent
+role holders, signatures, approval acts, credentials, or the authorization.
 
 ## Current v2 pilot contract
 
