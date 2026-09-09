@@ -179,7 +179,11 @@ class CandidateJournal:
     def _complete_fixture(self, record):
         """Private adapter seam: the service calls only after A7 publication."""
         encoded = canonical(
-            {**asdict(record), "candidate": record.candidate.identity}
+            {
+                **asdict(record),
+                "candidate": record.candidate.identity,
+                "component_hex": list(record.component_hex),
+            }
         ).decode()
         with self.receipts.transaction() as db:
             row = self._row(db, record.candidate)

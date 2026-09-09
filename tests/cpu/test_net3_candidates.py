@@ -18,6 +18,7 @@ from test_traineval_stub import (
 )
 
 from carbon.candidates.model import (
+    AcceptedFixtureRecord,
     CandidateFailure,
     CandidateRef,
     FixtureEvaluationContext,
@@ -165,6 +166,44 @@ def test_no_caller_evaluator_or_acceptance_capability(tmp_path):
         FixtureCandidateService(journal, object(), object())
     assert not hasattr(FixtureCandidateService, "accept")
     assert not hasattr(FixtureCandidateService, "evaluate_production")
+
+
+def test_private_fixture_projection_serializes_tuple_and_replays_after_restart(
+    tmp_path,
+):
+    """Serialization unit only; synthetic construction is not science evidence."""
+    from carbon.fees.strategy_identity import identify_strategy
+    from carbon.transport.models import canonical, digest
+
+    journal, gate = setup(tmp_path)
+    ref = journal.commit(*signed(gate))
+    artifact, receipt_ref = journal._claim(ref)
+    receipt = journal.receipts.resolve(receipt_ref)
+    journal._transition(ref, "DISPATCHING", "RUNNING")
+    record = AcceptedFixtureRecord(
+        ref,
+        journal.context.identity,
+        receipt.challenge_id,
+        receipt.challenge_version,
+        digest(canonical(artifact)),
+        identify_strategy(artifact, _limits()).strategy_hash.value,
+        receipt.ref.sequence,
+        receipt.ref.digest,
+        receipt.hotkey,
+        receipt.coldkey,
+        receipt.registered_at,
+        receipt.snapshot_id,
+        receipt.finalized_block,
+        "123e4567-e89b-42d3-a456-426614174000",
+        (0.99).hex(),
+        ((0.99).hex(), (0.98).hex(), (0.97).hex()),
+    )
+    journal._complete_fixture(record)
+    journal._complete_fixture(record)
+    restarted = CandidateJournal(journal.receipts, journal.context, _limits())
+    assert restarted.resolve_accepted_fixture(ref) == record
+    with pytest.raises(CandidateFailure, match="CONFLICT"):
+        journal._complete_fixture(replace(record, score_hex=(0.98).hex()))
 
 
 @pytest.mark.skipif(

@@ -52,3 +52,10 @@ failure, correctly rejected by the implementation. Repair sorts the namespace
 independently reconstructed gate input is 0.6186188674954336 under unchanged
 threshold 1.0. No scientific threshold/formula or runtime code was changed.
 The failed run remains failed evidence; acceptance of the repaired head is required.
+
+Run 34411459662 passed 173 invariants and 1,027 focused CPU checks. The passing
+scientific fixture exposed one projection encoding defect: canonical JSON rejects
+tuples. Repair explicitly encodes aggregate score tuples as JSON lists and adds
+a native persistence/restart/exact-and-conflicting-replay regression. The focused
+repair diagnostic passed 68 tests with six explicit Linux integration skips.
+The runtime still accepts only after existing A7 publication; no score changed.
