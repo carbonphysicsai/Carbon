@@ -538,7 +538,7 @@ class DriverProposalBatch:
                 type(item) is not DataOnlyStrategyProposal for item in self.proposals
             )
             or tuple(item.attempt for item in self.proposals)
-            != tuple(range(1, len(self.proposals) + 1))
+            != tuple(sorted({item.attempt for item in self.proposals}))
             or type(self.transcript_digest) is not str
             or _DIGEST.fullmatch(self.transcript_digest) is None
         ):
@@ -549,6 +549,37 @@ class DriverProposalBatch:
             raise ValueError(
                 "driver proposal batch transcript does not bind its exact content"
             )
+
+
+def bind_data_only_proposal_batch(
+    *,
+    driver_ref: FixtureDriverRef,
+    rng_stream_digest: str,
+    proposals: tuple[DataOnlyStrategyProposal, ...],
+) -> DriverProposalBatch:
+    """Bind externally produced Strategy data to a registered profile policy.
+
+    This factory proves only canonical data, ordering, and profile-policy
+    association.  It does not claim that the in-process fixture policy created
+    the proposals; a provider execution artifact must establish that separate
+    provenance in the development-pilot journal.
+    """
+
+    if (
+        type(driver_ref) is not FixtureDriverRef
+        or type(rng_stream_digest) is not str
+        or _DIGEST.fullmatch(rng_stream_digest) is None
+        or type(proposals) is not tuple
+        or not proposals
+        or any(type(item) is not DataOnlyStrategyProposal for item in proposals)
+    ):
+        raise TypeError("proposal batch binding requires exact data-only values")
+    return DriverProposalBatch(
+        driver_ref,
+        rng_stream_digest,
+        proposals,
+        _driver_transcript_digest(driver_ref, rng_stream_digest, proposals),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -688,6 +719,51 @@ def _driver_selection_digest(
         + hashlib.sha256(
             _SELECTION_DOMAIN + b"\x00".join(item.encode("ascii") for item in fields)
         ).hexdigest()
+    )
+
+
+def bind_data_only_selection(
+    *,
+    driver_ref: FixtureDriverRef,
+    proposal_batch: DriverProposalBatch,
+    feedback: tuple[AllowedPracticeFeedback, ...],
+    selected_proposal_digest: str,
+) -> DriverSelection:
+    """Bind one provider selection to an existing admissible ancestor."""
+
+    if (
+        type(driver_ref) is not FixtureDriverRef
+        or type(proposal_batch) is not DriverProposalBatch
+        or proposal_batch.driver_ref != driver_ref
+        or type(feedback) is not tuple
+        or not feedback
+        or any(type(item) is not AllowedPracticeFeedback for item in feedback)
+        or type(selected_proposal_digest) is not str
+        or _DIGEST.fullmatch(selected_proposal_digest) is None
+    ):
+        raise TypeError("selection binding requires exact recorded values")
+    proposals = {item.strategy_digest: item for item in proposal_batch.proposals}
+    selected = proposals.get(selected_proposal_digest)
+    feedback_by_digest = {item.proposal_digest: item for item in feedback}
+    if (
+        selected is None
+        or selected_proposal_digest not in feedback_by_digest
+        or len(feedback_by_digest) != len(feedback)
+        or any(item.proposal_digest not in proposals for item in feedback)
+    ):
+        raise ValueError("selection is not an existing practice-admissible ancestor")
+    feedback_digests = tuple(item.content_digest for item in feedback)
+    return DriverSelection(
+        driver_ref,
+        selected.attempt,
+        selected_proposal_digest,
+        feedback_digests,
+        _driver_selection_digest(
+            driver_ref,
+            selected.attempt,
+            selected_proposal_digest,
+            feedback_digests,
+        ),
     )
 
 
@@ -1029,6 +1105,8 @@ __all__ = (
     "ProposalDirection",
     "ProposalHint",
     "UInt64SurfaceDomain",
+    "bind_data_only_proposal_batch",
+    "bind_data_only_selection",
     "fixture_agent_drivers",
     "fixture_driver_ref",
     "fixture_strategy_domain",

@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 
 FIXTURE_TRAINING_OBSERVATIONS = ((1, 1), (2, 4))
@@ -18,6 +19,7 @@ FIXTURE_TRANSFER_OBSERVATIONS = ((5, 25), (6, 36))
 FIXTURE_SAMPLING_SURFACE_ID = "fixture_sampling_level"
 FIXTURE_CURRICULUM_SURFACE_ID = "fixture_curriculum_emphasis"
 FIXTURE_FEATURE_SURFACE_ID = "fixture_feature_degree"
+_TASK_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z", re.ASCII)
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +42,57 @@ class FixtureModelConfiguration:
             raise ArithmeticError
 
 
+@dataclass(frozen=True, slots=True)
+class FixtureObservationSet:
+    """Evaluator-held observations shared exactly by B-07C and B-07F.
+
+    This fixture-data carrier is neither an agent-facing disclosure nor an
+    execution authorization.  Its digest lets a campaign bind one toy task
+    without persisting evaluator-held values in the provider transcript.
+    """
+
+    task_id: str
+    training_observations: tuple[tuple[int, int], ...]
+    heldout_observations: tuple[tuple[int, int], ...]
+    transfer_observations: tuple[tuple[int, int], ...]
+
+    def __post_init__(self) -> None:
+        groups = (
+            self.training_observations,
+            self.heldout_observations,
+            self.transfer_observations,
+        )
+        if (
+            type(self) is not FixtureObservationSet
+            or type(self.task_id) is not str
+            or _TASK_ID.fullmatch(self.task_id) is None
+            or any(
+                type(group) is not tuple
+                or not group
+                or any(
+                    type(item) is not tuple
+                    or len(item) != 2
+                    or type(item[0]) is not int
+                    or type(item[1]) is not int
+                    for item in group
+                )
+                for group in groups
+            )
+        ):
+            raise TypeError("fixture observation set is invalid")
+
+    @property
+    def content_digest(self) -> str:
+        return _digest(
+            {
+                "heldout": self.heldout_observations,
+                "task_id": self.task_id,
+                "training": self.training_observations,
+                "transfer": self.transfer_observations,
+            }
+        )
+
+
 def _digest(value: object) -> str:
     payload = json.dumps(
         value,
@@ -49,6 +102,14 @@ def _digest(value: object) -> str:
         separators=(",", ":"),
     ).encode("ascii")
     return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+LEGACY_FIXTURE_OBSERVATION_SET = FixtureObservationSet(
+    "legacy-toy-physics-v1",
+    FIXTURE_TRAINING_OBSERVATIONS,
+    FIXTURE_HELDOUT_OBSERVATIONS,
+    FIXTURE_TRANSFER_OBSERVATIONS,
+)
 
 
 def construct_fixture_model(

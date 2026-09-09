@@ -11,9 +11,11 @@
 **Ticket:** `.agent/tickets/B-E4_agent_gauntlet.md`
 **Delivery:** one branch and pull request under OWNER-DX-03
 **Current state:** bounded rehearsal correlation, prospective resource
-accounting, and strict pilot-v2 proposal/state/task validation implemented;
-provider execution, owner approval, ratification, and qualifying execution
-blocked
+accounting, strict pilot-v2 proposal validation, one sequential 40-slot
+development runner, real-but-disabled Responses transport, durable journal,
+exact execution request, and full deterministic offline fixture integration are
+implemented. Provider execution, owner approval, ratification, calibration,
+shadow/attack work, and qualifying execution remain unavailable.
 
 ## Readiness audit — KEEP → WRAP → REPAIR → REPLACE
 
@@ -493,3 +495,41 @@ This stage ends with a semantically valid, owner-reviewable proposal only. The
 five grouped pilot decisions, exact later implementation freeze, approval
 evidence, and separate one-use authorization remain outstanding. V4 stays
 `STILL_BLOCKED`; B-E4 stays `in_progress`; B-GATE stays unstarted.
+
+### Stage-7 runnable development pilot checkpoint
+
+1. Freeze two exact BALANCED development tasks (`be4-pilot-v2-04` and `07`),
+   five profile prompts, the literature corpus, all four treatment artifacts,
+   TEST_ONLY pack/receipt pins, full Carbon Python source, exact reused fixture
+   builders, and the sequential balanced/interleaved 40-run schedule.
+2. Implement one strict Responses transport and one deterministic offline
+   transport. Retain requested/returned model and tier, timestamps, response
+   identity, exact request/result, usage, and reasoning-token accounting. Keep
+   the real transport unavailable without a provider project, credentials,
+   authenticated five-owner approval, and one-use execution admission.
+3. Orchestrate discovery/treatment, strict model response, compile/admission,
+   B-07C paired practice, permitted same-run feedback, final selection, and
+   A7/A8 fixture completion through existing owners. Bind transcript history to
+   the exact run/profile/arm and never expose evaluator-held material.
+4. Journal operation intent before dispatch and result afterward. Reuse
+   completed operations and runs after restart; block incomplete/unknown
+   operations rather than redispatching or issuing a new campaign identity.
+5. Enforce 64 normalized-work/service operations and 153 fixture units/run;
+   65,536 input and 16,384 output-plus-reasoning tokens/run; 2,621,440 and
+   655,360 stage tokens; nested 120/900/57,600/432,000-second deadlines; and a
+   `$14.42` development request derived from the exact `$14.41792` worst
+   registered cache-write case. Do not expand the proposed `$98.304` pilot
+   ceiling.
+6. Execute the entire 40-slot matrix only with the deterministic provider over
+   actual Carbon TEST_ONLY service paths. Retain the output as integration
+   evidence with explicit zero inference/spend/qualification fields.
+7. Publish one content-bound execution request and current owner pack. Keep
+   approval, one-use authorization, credentials, and paid execution absent.
+
+Stage 7 ends before the first provider call. Its next exact action is human
+review of the consolidated request plus a bounded repository-native
+authenticated approval/one-use verifier integration. A valid request or merged
+runner does not approve population, tasks/seeds, budget, provider egress/
+retention, evidence use, v4's eight qualification inputs, or execution.
+Calibration, shadow, attack, and qualifying campaigns remain disabled. B-E4
+stays `in_progress`; B-GATE stays unstarted.

@@ -7,7 +7,9 @@ from .physics import (
     FIXTURE_SAMPLING_SURFACE_ID,
     FIXTURE_TRAINING_OBSERVATIONS,
     FIXTURE_TRANSFER_OBSERVATIONS,
+    LEGACY_FIXTURE_OBSERVATION_SET,
     FixtureModelConfiguration,
+    FixtureObservationSet,
     construct_fixture_model,
     evaluate_fixture_reference,
 )
@@ -19,7 +21,9 @@ __all__ = (
     "FIXTURE_SAMPLING_SURFACE_ID",
     "FIXTURE_TRAINING_OBSERVATIONS",
     "FIXTURE_TRANSFER_OBSERVATIONS",
+    "LEGACY_FIXTURE_OBSERVATION_SET",
     "FixtureModelConfiguration",
+    "FixtureObservationSet",
     "construct_fixture_model",
     "evaluate_fixture_reference",
 )

@@ -69,11 +69,10 @@ from carbon.seeding import (
 from carbon.toy import (
     FIXTURE_CURRICULUM_SURFACE_ID,
     FIXTURE_FEATURE_SURFACE_ID,
-    FIXTURE_HELDOUT_OBSERVATIONS,
     FIXTURE_SAMPLING_SURFACE_ID,
-    FIXTURE_TRAINING_OBSERVATIONS,
-    FIXTURE_TRANSFER_OBSERVATIONS,
+    LEGACY_FIXTURE_OBSERVATION_SET,
     FixtureModelConfiguration,
+    FixtureObservationSet,
     construct_fixture_model,
     evaluate_fixture_reference,
 )
@@ -254,6 +253,7 @@ class FixtureToyAsset(_PrivateFixtureValue):
     training_observations: tuple[tuple[int, int], ...] = field(init=False)
     heldout_observations: tuple[tuple[int, int], ...] = field(init=False)
     transfer_observations: tuple[tuple[int, int], ...] = field(init=False)
+    observation_set_ref: str = field(init=False)
     authority_marker: str = field(default=_AUTHORITY, init=False)
 
     def __init__(
@@ -263,12 +263,14 @@ class FixtureToyAsset(_PrivateFixtureValue):
         generator_configuration_ref: BurgersFixtureConfigurationRef,
         reference_asset_ref: FixtureReferenceAssetRef,
         measurement_contract_ref: MeasurementContractRef,
+        observation_set: FixtureObservationSet = LEGACY_FIXTURE_OBSERVATION_SET,
     ) -> None:
         if (
             type(challenge_key) is not ChallengeKey
             or type(generator_configuration_ref) is not BurgersFixtureConfigurationRef
             or type(reference_asset_ref) is not FixtureReferenceAssetRef
             or type(measurement_contract_ref) is not MeasurementContractRef
+            or type(observation_set) is not FixtureObservationSet
             or any(
                 ref.challenge_key != challenge_key
                 for ref in (
@@ -289,9 +291,16 @@ class FixtureToyAsset(_PrivateFixtureValue):
         )
         object.__setattr__(self, "reference_asset_ref", reference_asset_ref)
         object.__setattr__(self, "measurement_contract_ref", measurement_contract_ref)
-        object.__setattr__(self, "training_observations", FIXTURE_TRAINING_OBSERVATIONS)
-        object.__setattr__(self, "heldout_observations", FIXTURE_HELDOUT_OBSERVATIONS)
-        object.__setattr__(self, "transfer_observations", FIXTURE_TRANSFER_OBSERVATIONS)
+        object.__setattr__(
+            self, "training_observations", observation_set.training_observations
+        )
+        object.__setattr__(
+            self, "heldout_observations", observation_set.heldout_observations
+        )
+        object.__setattr__(
+            self, "transfer_observations", observation_set.transfer_observations
+        )
+        object.__setattr__(self, "observation_set_ref", observation_set.content_digest)
         object.__setattr__(self, "authority_marker", _AUTHORITY)
 
     def content_digest(self) -> str:
@@ -314,21 +323,20 @@ class FixtureToyAsset(_PrivateFixtureValue):
     def content_digest_v2(self) -> str:
         """Bind the prospective three-family asset, including transfer cases."""
 
-        return _digest(
-            _json_bytes(
-                {
-                    "authority": self.authority_marker,
-                    "challenge": _challenge_value(self.challenge_key),
-                    "generator": _ref_value(self.generator_configuration_ref),
-                    "heldout": self.heldout_observations,
-                    "identity_version": _THREE_FAMILY_IDENTITY_VERSION,
-                    "measurement": _ref_value(self.measurement_contract_ref),
-                    "reference": _ref_value(self.reference_asset_ref),
-                    "training": self.training_observations,
-                    "transfer": self.transfer_observations,
-                }
-            )
-        )
+        payload = {
+            "authority": self.authority_marker,
+            "challenge": _challenge_value(self.challenge_key),
+            "generator": _ref_value(self.generator_configuration_ref),
+            "heldout": self.heldout_observations,
+            "identity_version": _THREE_FAMILY_IDENTITY_VERSION,
+            "measurement": _ref_value(self.measurement_contract_ref),
+            "reference": _ref_value(self.reference_asset_ref),
+            "training": self.training_observations,
+            "transfer": self.transfer_observations,
+        }
+        if self.observation_set_ref != LEGACY_FIXTURE_OBSERVATION_SET.content_digest:
+            payload["observation_set_ref"] = self.observation_set_ref
+        return _digest(_json_bytes(payload))
 
 
 @dataclass(frozen=True, slots=True, repr=False)

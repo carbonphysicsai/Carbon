@@ -12629,3 +12629,72 @@ limit matches the existing canonical budget and can be reduced later if suite
 runtime falls with measured margin. This is delivery reliability only; it
 grants no scientific, security, spending, provider, pilot, qualification, or
 LIVE authority.
+
+## 2026-09-09 — B-E4-D19: freeze one sequential development runner behind one-use admission
+
+**Ticket:** B-E4
+**Status:** implemented engineering; owner-unapproved and execution-disabled
+
+**Problem.** Pilot v2 specified a concrete autonomous-agent development stage,
+but Carbon had no provider adapter, campaign runner, durable operation journal,
+or exact implementation/artifact approval package. Proposal validity alone
+could not safely become paid execution, and missing provider usage could not be
+treated as zero.
+
+**Decision.** Implement one sequential `5 profiles x 4 arms x 2 tasks` runner
+over the exact B-07S/B-07B/B-07C and A7/A8 TEST_ONLY fixture paths. Use cells
+`be4-pilot-v2-04` and `be4-pilot-v2-07` as the two balanced development tasks,
+preserving opposite noise/target/transfer conditions. Adaptive profiles receive
+four metered proposal calls and one selection-only call; minimalist receives one
+proposal attempt. Bind every conversation turn to one campaign run, profile,
+arm, task, frozen prompt policy, treatment, and permitted same-run feedback.
+Persist provider intent before dispatch and the exact request/result afterward
+in a campaign-bound SQLite journal. Completed work resumes without redispatch;
+unknown dispatch remains reserved and blocks blind replay.
+
+Add a strict Responses adapter for `gpt-5.6-terra`, medium reasoning, low
+verbosity, default service tier, `store=false`, no built-in tools, strict JSON
+schemas, explicit 30-minute prompt-cache mode, requested/returned identities,
+timestamps, response IDs, exact raw response retention, and usage including
+reasoning tokens. Require an approved provider project identity; never retain
+credential values. Keep its admission carrier unconstructible because the
+repository still has no authenticated five-owner plus one-use authorization
+verifier.
+
+The development ceiling is 65,536 input and 16,384 output-plus-reasoning tokens
+per run, 2,621,440 and 655,360 for the stage, 64 normalized work/service
+operations and 153 fixture units per run, 120-second calls, 900-second runs,
+57,600-second development stage, and 432,000-second campaign. At the verified
+all-input-cache-write price bound, the exact token maxima cost `$14.41792`; ask
+owners for `$14.42`, rather than the suggested `$15`, under the unchanged
+overall proposed `$98.304` pilot ceiling. Taxes, independent infrastructure,
+and task-generation/audit costs remain excluded.
+
+**Rationale and alternatives.** Sequential execution avoids an unnecessary
+scheduler and makes accounting, time order, and restart behavior inspectable.
+Balanced/interleaved arms reduce alias-time confounding without claiming model
+replay. A frozen deterministic selector was rejected because pilot v2 reserves
+the final policy-dependent choice; the separate selection schema prevents an
+extra candidate. A narrow wrapper-only source digest was rejected in favor of
+content-binding the complete Carbon Python package, runner, and exact reused
+fixture builders. The owner request exposes exact prompt, corpus, treatment,
+task/seed-commitment, TEST_ONLY pack/receipt, runtime, and source component
+identities rather than asking owners to approve an opaque digest.
+
+**Evidence and authority boundary.** The exact request remains `PROPOSED`, with
+no approvals or authorization. The deterministic 40-slot run is integration
+evidence only: it performs no model inference and cannot establish model
+capability, utility, diversity, leakage, security/privacy, qualification,
+production, or LIVE maturity. Provider execution requires named five-owner
+approval of the exact request, security approval of egress and account-level
+retention controls, an approved monetary ceiling, credentials supplied outside
+the journal, and one separately verified, consumed-once DEVELOPMENT-stage
+authorization. Calibration, shadow, attack, and qualifying campaigns remain
+disabled. B-E4 stays `in_progress`; B-GATE stays unstarted.
+
+**Prepared notification text; not sent in this session.** “B-E4 working
+decision D19 implements the exact sequential development runner and freezes a
+`$14.42` owner-review request. The real provider path remains disabled pending
+five-owner approval, security-approved project controls, and a one-use
+authorization verifier. No inference, spending, pilot, calibration, shadow,
+attack, qualification, or B-GATE work occurred.”

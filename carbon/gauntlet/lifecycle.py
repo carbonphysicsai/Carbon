@@ -205,7 +205,7 @@ class LifecycleResourceObservation:
         )
 
 
-class _LifecycleResourceAccount:
+class LifecycleResourceAccount:
     """Mutable orchestration-only ledger; observations remain immutable."""
 
     __slots__ = (
@@ -802,23 +802,28 @@ class ResearchLifecycleBridge:
         *,
         session: AgentSession,
         prepared: PreparedFixturePreflight,
-        resource_account: _LifecycleResourceAccount,
+        resource_account: LifecycleResourceAccount,
         meter: PolicyWorkMeter,
         lifecycle_started_ns: int,
         wall_time_seconds: float,
+        attempt: int | None = None,
     ) -> tuple[PracticeAttemptEvidence, ...]:
         if (
             not session.binds_research_service(self._service)
-            or type(resource_account) is not _LifecycleResourceAccount
+            or type(resource_account) is not LifecycleResourceAccount
             or type(meter) is not PolicyWorkMeter
             or not session.binds_meter(meter)
             or type(lifecycle_started_ns) is not int
             or type(wall_time_seconds) is not float
             or wall_time_seconds <= 0.0
+            or type(attempt) not in (type(None), int)
+            or (type(attempt) is int and attempt < 1)
         ):
             raise ValueError("research bridge is not bound to the run session")
         findings: list[PracticeAttemptEvidence] = []
         for candidate in prepared.candidates:
+            if attempt is not None and candidate.proposal.attempt != attempt:
+                continue
             if not candidate.executable:
                 continue
             inspection = candidate.resource_inspection
@@ -1112,6 +1117,11 @@ class ResearchLifecycleBridge:
             raise NonQualifyingLifecycleError(
                 LifecycleFailureKind.CANDIDATE, "no_practice_admissible_candidate"
             )
+        if attempt is not None and len(findings) != 1:
+            raise NonQualifyingLifecycleError(
+                LifecycleFailureKind.CANDIDATE,
+                "practice_attempt_identity_ambiguous",
+            )
         return tuple(findings)
 
 
@@ -1145,14 +1155,14 @@ class OfficialLifecycleBridge:
         *,
         session: AgentSession,
         submission: OfficialFixtureSubmission,
-        resource_account: _LifecycleResourceAccount,
+        resource_account: LifecycleResourceAccount,
         expected_fixture_units: float,
         meter: PolicyWorkMeter,
         lifecycle_started_ns: int,
     ) -> tuple[ResolvedFixtureCompletedRun, SubmissionResult]:
         if (
             not session.binds_official_service(self._facade, self._requester)
-            or type(resource_account) is not _LifecycleResourceAccount
+            or type(resource_account) is not LifecycleResourceAccount
             or type(expected_fixture_units) is not float
             or type(meter) is not PolicyWorkMeter
             or not session.binds_meter(meter)
@@ -1454,7 +1464,7 @@ def _public_result_digest(result: SubmissionResult) -> str:
 
 def _failure_resources(
     *,
-    account: _LifecycleResourceAccount,
+    account: LifecycleResourceAccount,
     meter: PolicyWorkMeter,
     started_ns: int,
 ) -> LifecycleResourceObservation:
@@ -1474,7 +1484,7 @@ def _retain_failure_resources(
     *,
     meter: PolicyWorkMeter,
     started_ns: int,
-    account: _LifecycleResourceAccount,
+    account: LifecycleResourceAccount,
 ) -> NonQualifyingLifecycleError:
     observed = error.resource_observation
     if observed is not None:
@@ -1505,7 +1515,7 @@ def _run_nonqualifying_lifecycle(
     """Execute one full fixture rehearsal with no qualification authority."""
 
     started_ns = time.monotonic_ns()
-    resource_account = _LifecycleResourceAccount(plan.fixture_resource_ceiling)
+    resource_account = LifecycleResourceAccount(plan.fixture_resource_ceiling)
     try:
         prepared = prepare_nonqualifying_preflight(
             session=session,
@@ -1800,6 +1810,7 @@ __all__ = (
     "ExecutableDriverArtifactRef",
     "LifecycleExecutionBinding",
     "LifecycleFailureKind",
+    "LifecycleResourceAccount",
     "LifecycleResourceObservation",
     "LifecycleTreatmentArtifact",
     "NonQualifyingLifecycleError",

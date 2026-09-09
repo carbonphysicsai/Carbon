@@ -68,6 +68,7 @@ from .agents import (
     FixtureStrategyDomain,
     ProposalDirection,
     ProposalHint,
+    bind_data_only_proposal_batch,
     fixture_driver_ref,
     fixture_strategy_domain,
 )
@@ -76,6 +77,7 @@ from .harness import AgentSession
 from .meter import (
     NormalizedComputeReceipt,
     PolicyWorkCount,
+    PolicyWorkKind,
     PolicyWorkMeter,
     WallTimeObservation,
 )
@@ -1189,6 +1191,291 @@ class PreparedCandidate:
     @property
     def executable(self) -> bool:
         return self.resource_inspection is not None
+
+
+class AdaptivePreflightBuilder:
+    """One-run B-07S builder for proposal/practice interleaving.
+
+    The builder is held only by the trusted development orchestrator.  It
+    performs discovery once, admits each provider-produced Strategy through
+    the unchanged B-07S operations, and can freeze the accumulated evidence
+    into the existing immutable preflight carrier.  It grants no provider,
+    practice, official-execution, or qualification authority.
+    """
+
+    __slots__ = (
+        "_candidates",
+        "_info",
+        "_lookup",
+        "_manifest",
+        "_meter",
+        "_plan",
+        "_reply_digests",
+        "_request_digests",
+        "_scaffold",
+        "_session",
+        "_strategy_domain",
+    )
+
+    def __init__(
+        self,
+        *,
+        session: AgentSession,
+        plan: NonQualifyingRunPlan,
+        strategy_domain: FixtureStrategyDomain,
+        parameter_catalog: ParameterCatalog,
+        candidate_assembly: CandidateAssemblyContract,
+        meter: PolicyWorkMeter,
+    ) -> None:
+        if (
+            type(self) is not AdaptivePreflightBuilder
+            or type(session) is not AgentSession
+            or type(plan) is not NonQualifyingRunPlan
+            or type(strategy_domain) is not FixtureStrategyDomain
+            or type(parameter_catalog) is not ParameterCatalog
+            or type(candidate_assembly) is not CandidateAssemblyContract
+            or type(meter) is not PolicyWorkMeter
+            or not session.binds_meter(meter)
+        ):
+            raise TypeError("adaptive preflight requires exact bound capabilities")
+        checked_plan = _canonical_run_plan(plan)
+        expected_domain = fixture_strategy_domain(
+            parameter_catalog.to_ref(candidate_assembly=candidate_assembly)
+        )
+        if strategy_domain != expected_domain:
+            raise ValueError("adaptive strategy domain does not match B-02B owners")
+        meter.bind_ceiling(math.floor(checked_plan.budget.compute_units))
+        requests: list[str] = []
+        replies: list[str] = []
+        key = checked_plan.scaffold_ref.challenge_key
+        info = _research_result(
+            session,
+            "get_challenge_info",
+            GetChallengeInfoRequest(key),
+            ChallengeInfo,
+            replies,
+            requests,
+        )
+        manifest = _research_result(
+            session,
+            "get_interaction_manifest",
+            GetInteractionManifestRequest(key),
+            InteractionManifest,
+            replies,
+            requests,
+        )
+        assert type(info) is ChallengeInfo and type(manifest) is InteractionManifest
+        if (
+            manifest.parameter_catalog_ref != expected_domain.parameter_catalog_ref
+            or parameter_catalog.to_ref(candidate_assembly=candidate_assembly)
+            != expected_domain.parameter_catalog_ref
+        ):
+            raise ValueError("adaptive discovery does not match B-02B owners")
+        lookup: PriorLookupResult | None = None
+        if checked_plan.identity.arm is ExperimentalArm.V2_TEST_ONLY_PRIOR:
+            prior_ref = checked_plan.identity.prior_pack_ref
+            assert type(prior_ref) is PriorPackRef
+            value = _research_result(
+                session,
+                "get_prior",
+                GetPriorRequest(key, ExactPriorSelector(prior_ref)),
+                PriorLookupResult,
+                replies,
+                requests,
+            )
+            assert type(value) is PriorLookupResult
+            if (
+                value.prior_pack_ref != prior_ref
+                or type(value.authorization) is not FixturePriorAuthorization
+                or value.authorization.receipt_ref
+                != checked_plan.identity.test_only_authorization_ref
+            ):
+                raise ValueError("adaptive B-07D3 result does not match frozen pins")
+            # Reapply the existing semantic adapter even though the provider
+            # payload uses the disclosure-safe PriorPack, not these hints.
+            proposal_hints_from_test_only_lookup(
+                value,
+                catalog=parameter_catalog,
+                candidate_assembly=candidate_assembly,
+                expected_prior_pack_ref=prior_ref,
+                expected_authorization_ref=(
+                    checked_plan.identity.test_only_authorization_ref
+                ),
+            )
+            lookup = value
+        scaffold = _research_result(
+            session,
+            "get_mock_scaffold",
+            GetMockScaffoldRequest(
+                key,
+                info.training_support_ref,
+                checked_plan.identity.prior_pack_ref,
+            ),
+            MockScaffold,
+            replies,
+            requests,
+        )
+        assert type(scaffold) is MockScaffold
+        if scaffold.scaffold_ref != checked_plan.scaffold_ref:
+            raise ValueError("adaptive scaffold does not match the frozen run")
+        self._session = session
+        self._plan = checked_plan
+        self._strategy_domain = expected_domain
+        self._meter = meter
+        self._info = info
+        self._manifest = manifest
+        self._lookup = lookup
+        self._scaffold = scaffold
+        self._request_digests = requests
+        self._reply_digests = replies
+        self._candidates: list[PreparedCandidate] = []
+
+    @property
+    def challenge_info(self) -> ChallengeInfo:
+        return self._info
+
+    @property
+    def interaction_manifest(self) -> InteractionManifest:
+        return self._manifest
+
+    @property
+    def prior_lookup(self) -> PriorLookupResult | None:
+        return self._lookup
+
+    @property
+    def scaffold(self) -> MockScaffold:
+        return self._scaffold
+
+    @property
+    def candidates(self) -> tuple[PreparedCandidate, ...]:
+        return tuple(self._candidates)
+
+    def add_strategy(
+        self,
+        *,
+        attempt: int,
+        surface_id: str,
+        strategy: dict[str, object],
+    ) -> PreparedCandidate:
+        if (
+            type(attempt) is not int
+            or not 1 <= attempt <= self._plan.budget.attempt_limit
+            or any(item.proposal.attempt == attempt for item in self._candidates)
+            or (self._candidates and attempt <= self._candidates[-1].proposal.attempt)
+            or type(surface_id) is not str
+            or surface_id not in REGISTERED_EFFECTFUL_SURFACES
+            or type(strategy) is not dict
+            or len(self._candidates) >= self._plan.budget.attempt_limit
+        ):
+            raise TypeError("adaptive proposal is outside the registered bounds")
+        self._meter.record(PolicyWorkKind.ATTEMPT)
+        self._meter.record(PolicyWorkKind.CANDIDATE_PROPOSAL)
+        proposal = DataOnlyStrategyProposal(
+            self._info.challenge_key, attempt, surface_id, strategy
+        )
+        if any(
+            item.proposal.strategy_digest == proposal.strategy_digest
+            for item in self._candidates
+        ):
+            raise ValueError("adaptive proposal duplicates an existing Strategy")
+        validation = _research_result(
+            self._session,
+            "dry_validate",
+            DryValidateRequest(self._info.challenge_key, proposal.strategy),
+            DryValidationResult,
+            self._reply_digests,
+            self._request_digests,
+        )
+        compilation = _research_result(
+            self._session,
+            "compile_strategy",
+            CompileStrategyRequest(
+                self._info.challenge_key,
+                proposal.strategy,
+                self._info.training_support_ref,
+            ),
+            CompileStrategyResult,
+            self._reply_digests,
+            self._request_digests,
+        )
+        assert type(validation) is DryValidationResult
+        assert type(compilation) is CompileStrategyResult
+        inspection: InspectResourcesResult | None = None
+        if validation.valid and compilation.accepted:
+            result = _research_result(
+                self._session,
+                "inspect_resources",
+                InspectResourcesRequest(
+                    self._info.challenge_key,
+                    proposal.strategy,
+                    self._manifest.resource_policy_ref,
+                ),
+                InspectResourcesResult,
+                self._reply_digests,
+                self._request_digests,
+            )
+            assert type(result) is InspectResourcesResult
+            validate_fixture_resource_inspection(
+                result, ceiling=self._plan.fixture_resource_ceiling
+            )
+            inspection = result
+        candidate = PreparedCandidate(
+            proposal,
+            validation,
+            compilation,
+            inspection,
+            _PREPARED_CANDIDATE_FACTORY_TOKEN,
+        )
+        self._candidates.append(candidate)
+        return candidate
+
+    def freeze(self) -> PreparedFixturePreflight:
+        if not self._candidates:
+            raise ValueError("adaptive preflight has no recorded proposal")
+        proposals = tuple(item.proposal for item in self._candidates)
+        batch = bind_data_only_proposal_batch(
+            driver_ref=self._plan.driver_ref,
+            rng_stream_digest=self._plan.rng_stream_digest,
+            proposals=proposals,
+        )
+        candidates = tuple(self._candidates)
+        first = next(
+            (item.proposal.attempt for item in candidates if item.executable), None
+        )
+        compute = self._session.normalized_compute()
+        request_digests = tuple(self._request_digests)
+        reply_digests = tuple(self._reply_digests)
+        transcript = _prepared_transcript_digest(
+            plan=self._plan,
+            strategy_domain_digest=self._strategy_domain.content_digest,
+            challenge_info=self._info,
+            interaction_manifest=self._manifest,
+            prior_lookup=self._lookup,
+            scaffold=self._scaffold,
+            proposal_batch=batch,
+            candidates=candidates,
+            first_preflight_executable_attempt=first,
+            service_request_digests=request_digests,
+            service_reply_digests=reply_digests,
+            preflight_compute=compute,
+        )
+        return PreparedFixturePreflight(
+            PREFLIGHT_AUTHORITY_CEILING,
+            self._plan,
+            self._info,
+            self._manifest,
+            self._lookup,
+            self._scaffold,
+            batch,
+            candidates,
+            first,
+            self._strategy_domain.content_digest,
+            request_digests,
+            reply_digests,
+            compute,
+            transcript,
+            _PREPARED_PREFLIGHT_FACTORY_TOKEN,
+        )
 
 
 def _canonical_research_result(value: object, expected_type: type[object]) -> object:
@@ -2368,6 +2655,7 @@ __all__ = (
     "PROPOSED_PRIMARY_BLOCKS_PER_PROFILE",
     "PROPOSED_RESERVE_BLOCKS_PER_PROFILE",
     "REGISTERED_RNG_ROLES",
+    "AdaptivePreflightBuilder",
     "CalibrationRunObservation",
     "FixtureResourceBudgetExceeded",
     "FourArmBlockPlan",
@@ -2389,6 +2677,7 @@ __all__ = (
     "prepare_nonqualifying_run",
     "read_official_fixture_result",
     "submit_prepared_fixture_run",
+    "submit_selected_prepared_fixture_run",
     "summarize_nonqualifying_calibration",
     "summarize_nonqualifying_preflight_calibration",
     "validate_fixture_resource_inspection",
