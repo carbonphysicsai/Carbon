@@ -59,9 +59,19 @@ NETWORK_TESTS = (
     "tests/cpu/test_net1_chain_adapter.py",
     "tests/cpu/test_net2_transport.py",
     "tests/cpu/test_mcp_skeleton.py",
+    "tests/cpu/test_net3_candidates.py",
+    "tests/cpu/test_submission_fsm.py",
+    "tests/cpu/test_traineval_stub.py",
 )
 _NETWORK_PATHS = frozenset(
     {
+        "carbon/candidates/__init__.py",
+        "carbon/candidates/model.py",
+        "carbon/candidates/store.py",
+        "carbon/candidates/service.py",
+        "tests/cpu/test_net3_candidates.py",
+        "tests/invariants/test_net3_candidate_boundary.py",
+        "docs/development/CANDIDATE_COMMITMENTS.md",
         "carbon/chain/__init__.py",
         "carbon/chain/models.py",
         "carbon/chain/adapter.py",
@@ -147,6 +157,14 @@ def only_transport_root_added(before: str, after: str) -> bool:
     )
 
 
+def only_candidate_root_added(before: str, after: str) -> bool:
+    original = '    "carbon/cards",\n'
+    return (
+        before.count(original) == 1
+        and before.replace(original, '    "carbon/candidates",\n' + original) == after
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -169,11 +187,14 @@ def main() -> int:
                 check=False,
             )
             if result.returncode == 0:
-                root_addition = only_transport_root_added(
-                    result.stdout,
-                    (args.repository / ".agent/CODE_AUTHORITY.toml").read_text(
-                        encoding="utf-8"
-                    ),
+                root_addition = any(
+                    proof(
+                        result.stdout,
+                        (args.repository / ".agent/CODE_AUTHORITY.toml").read_text(
+                            encoding="utf-8"
+                        ),
+                    )
+                    for proof in (only_transport_root_added, only_candidate_root_added)
                 )
         profile = select_cpu_profile(
             paths,

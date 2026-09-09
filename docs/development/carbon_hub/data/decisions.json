@@ -1975,6 +1975,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609045669",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/docs/development/AUTHENTICATED_TRANSPORT.md"
+    },
+    {
+      "decision_id": "NET-3-D1",
+      "map_ref": "WAVE-C/NET-3",
+      "wave": "C",
+      "ticket": "NET-3",
+      "title": "Durable commitments around existing scientific owners",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should authenticated artifacts enter evaluation without creating a second scientific authority?",
+      "recommendation": "KEEP A7 identity and admission, A8 fixture evaluation and A6 publication; wrap them with bounded rows in the existing receipt journal.",
+      "why": "Copies must retain identity and original receipt order; interrupted process-local A7 work cannot be blindly dispatched again.",
+      "if_kept": "C-REWARD consumes resolved fixture-only accepted records with exact scientific score bytes.",
+      "if_changed": "Version the journal migration and preserve original receipts, accepted scores and ambiguous dispatch state.",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609284142",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/210946eb6fcce788ac6122ab4bf14f1e89148685/docs/development/CANDIDATE_COMMITMENTS.md"
     }
   ]
 }

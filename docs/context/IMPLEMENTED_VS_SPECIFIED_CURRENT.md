@@ -2,7 +2,8 @@
 
 > **Current C0 implementation:** NET-1 is merged in PR #120 at
 > 6dad22db26e4b8babadf73c4de2527a17485a2b1, with canonical installed-SDK
-> and read-only contract evidence. NET-2 is the sole active implementation
+> and read-only contract evidence. NET-2 merged in PR #121 at 97725a1f4c6c8c65234e96770c847622273fc55e.
+> NET-3 is the sole active implementation
 > candidate, adding authenticated ingress and durable receipts around the
 > unchanged MCP core. Its canonical integration/merge remains pending.
 > Later C0 tickets remain unstarted; G2/localnet, scientific, security,
@@ -27,8 +28,8 @@ the prospective `OWNER-ROADMAP-02` dependency correction.
 > **Current development state.** `.agent/WAVE.md` records Wave B closed in
 > bounded engineering scope after PR #118 accepted head `c510095b...` passed
 > run `34365282759` and normally merged as `ac050fd5...`, tree `46b3844...`.
-> Wave C/C0 is active with NET-2 as the sole selected ticket. NET-1 is merged;
-> NET-2 remains a candidate pending canonical acceptance. PR #94 completed B-05 and B-07C in their bounded
+> Wave C/C0 is active with NET-3 as the sole selected ticket. NET-1 and NET-2 are merged;
+> NET-3 remains a candidate pending canonical acceptance. PR #94 completed B-05 and B-07C in their bounded
 > engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as
 > separate bounded immutable-store, TEST_ONLY publisher/ledger, and authorized
 > static-provider/alignment scopes. PR #96 completed B-07E exact static
@@ -446,7 +447,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0 NET foundation / `ChainAdapter` / authenticated transport | active; NET-2 selected | NET-1 only | NET-1 only | NET-1 merged with canonical tests; NET-2 candidate and later C0 deliveries remain unqualified |
+| C0 NET foundation / `ChainAdapter` / authenticated transport | active; NET-3 selected | NET-1, NET-2 | NET-1, NET-2 | NET-1 and NET-2 merged with canonical tests; NET-3 candidate and later C0 deliveries remain unqualified |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |

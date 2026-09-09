@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-2`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ Canonical v1 ingress, SDK signatures, durable nonce/request receipts, identity a
 ## Placement and handoff
 
 - **Depends on:** NET-1
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-3
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No evaluator, accepted flag, public listener, public deployment, weight publicat
 
 ## Current stage
 
-NET-2 candidate implemented with native diagnostics; canonical SDK/MCP acceptance and merge remain pending.
+NET-2 is merged with canonical authenticated transport and SDK/MCP tests (PR #121).
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ Local development implementation only; no scientific, security, network or produ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/tickets/NET-2_authenticated_transport.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/evidence/wave_c/net-2.md)
-- [Transport contract](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/docs/development/AUTHENTICATED_TRANSPORT.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/tickets/NET-2_authenticated_transport.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/evidence/wave_c/net-2.md)
+- [Transport contract](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/docs/development/AUTHENTICATED_TRANSPORT.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/WAVE_C.md)
 
 > Transport authenticates who supplied bytes; existing owners still decide admission, scoring and disclosure.

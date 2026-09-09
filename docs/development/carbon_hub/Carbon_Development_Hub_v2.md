@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `134280e39db0d5dfa3d4ce5e1f07fbea1b226994` on `main`, captured 2026-09-09T21:37:08Z.
-**Current:** Wave C, ticket NET-2. Wave C/C0 has NET-2 selected as its one active ticket after NET-1 merged in PR #120. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
-**Last completed:** NET-1 (`done`).
+**Authority snapshot:** `c18bbb3771888def2c5c3a6c12a199e7f6371f79` on `main`, captured 2026-09-09T22:21:34Z.
+**Current:** Wave C, ticket NET-3. Wave C/C0 has NET-3 selected as its one active ticket after NET-2 merged in PR #121. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
+**Last completed:** NET-2 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -73,7 +73,8 @@
 | [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | deferred |
 | [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | done |
 | [NET-1](explainers/tickets/net_1.md) | Translate read-only Bittensor network identity into explicit Carbon-owned snapshots behind one narrow adapter. | done |
-| [NET-2](explainers/tickets/net_2.md) | Authenticate canonical requests and retain original receipts across restart. | in_progress |
+| [NET-2](explainers/tickets/net_2.md) | Authenticate canonical requests and retain original receipts across restart. | done |
+| [NET-3](explainers/tickets/net_3.md) | Bind available artifacts to authenticated identity and existing fixture acceptance. | in_progress |
 
 ## Change routes
 
@@ -162,6 +163,7 @@
 - `NET-1-D1` — `WAVE-C/NET-1` — NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.
 - `NET-1-D2` — `WAVE-C/NET-1` — Owner authorizes focused NET acceptance. Explicit network/tooling regressions retain all invariants and package checks. Initial broad run found bootstrap environment inheritance; repair covers both dependency groups. No resolved dependency changed.
 - `NET-2-D1` — `WAVE-C/NET-2` — NET-1 merged with canonical installed-SDK evidence. NET-2 is selected and implemented as an outer authenticated MCP wrapper with durable original receipts; Linux acceptance remains pending. No admission/scientific authority or public deployment.
+- `NET-3-D1` — `WAVE-C/NET-3` — NET-2 merged with canonical transport evidence. NET-3 composes authenticated artifact commitments and existing A7/A8/A6 fixture acceptance, with durable exact scores and explicit indeterminate interrupted work. Canonical acceptance remains pending; no real science or localnet claim.
 
 ## Authority boundary
 
