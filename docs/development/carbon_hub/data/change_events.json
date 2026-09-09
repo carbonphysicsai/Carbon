@@ -1691,6 +1691,28 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "OWNER-ROADMAP-02"
+    },
+    {
+      "map_ref": "WAVE-C/NET-1",
+      "event_type": "decision",
+      "event_id": "OWNER-WAVE-C0-NET1-01",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE_C.md",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-GATE",
+        "WAVE-B/B-E4",
+        "WAVE-C",
+        "WAVE-D",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "supersedes": "B-GATE-CLOSEOUT-CANDIDATE-01"
     }
   ]
 }

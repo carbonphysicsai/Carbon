@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `55d2e411dbf85c5d36bc3de5d8c5fd7a19d8774e` on `main`, captured 2026-09-09T14:37:50Z.
-**Current:** Wave B, ticket B-GATE. Wave B remains active with B-GATE selected. Its exact closeout candidate has not yet passed the delivery predicate, so B-GATE remains in progress. The candidate consolidates the existing engineering evidence and adds ticket-local C/D contracts. No later ticket is selected. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED; no paid, calibration, shadow, attack, or qualifying campaign is required or authorized.
-**Last completed:** B-E2 (`done`).
+**Authority snapshot:** `29d6a6d35918ebf796c76c12e930c99d45f80d91` on `main`, captured 2026-09-09T16:07:30Z.
+**Current:** Wave C, ticket NET-1. Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED.
+**Last completed:** B-GATE (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -12,8 +12,8 @@
 | Wave | Purpose | Status |
 |---|---|---|
 | [A](explainers/waves/wave_a.md) | Prove Carbon's software authority boundaries before real scientific execution. | closed |
-| [B](explainers/waves/wave_b.md) | Make one scientific exam authorable and the miner research loop executable with fixtures. | active |
-| [C](explainers/waves/wave_c.md) | Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights. | planned |
+| [B](explainers/waves/wave_b.md) | Make one scientific exam authorable and the miner research loop executable with fixtures. | closed |
+| [C](explainers/waves/wave_c.md) | Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights. | active |
 | [D](explainers/waves/wave_d.md) | Qualify the first exact Challenge without inferring science from testnet weights. | planned |
 | [E](explainers/waves/wave_e.md) | Learn from authoritative experiments without letting learned memory control the judge. | planned |
 | [F](explainers/waves/wave_f.md) | Separate search success from deployable product evidence. | planned |
@@ -71,7 +71,8 @@
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | done |
 | [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
 | [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | deferred |
-| [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | in_progress |
+| [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | done |
+| [NET-1](explainers/tickets/net_1.md) | Translate read-only Bittensor network identity into explicit Carbon-owned snapshots behind one narrow adapter. | in_progress |
 
 ## Change routes
 
@@ -156,6 +157,7 @@
 - `B-E4-DEVELOPMENT-APPROVER-CORRECTION-01` — `WAVE-B/B-E4` — The owner corrected only the one-campaign DEVELOPMENT approver to the authenticated fitz-lang6 / 317786409 account while preserving jbequ5's broader repository-owner role and all experiment choices. Owner-decision v2 and request v3 rebind the prospective source/artifacts; the deterministic 40-slot path passes, no authorization was issued, and no provider call or charge occurred. Qualification and B-GATE remain blocked and unstarted.
 - `OWNER-ROADMAP-02` — `WAVE-B/B-GATE` — The owner makes B-E4 OPTIONAL / DEFERRED / NON-BLOCKING, preserves its engineering and historical evidence without calling it complete, removes research-specific utility/diversity/shadow/calibration/ratification dependencies from delivery, selects revised B-GATE, and replaces separate Concierge empirical qualification with bounded engineering acceptance. The network path may ship with Concierge disabled.
 - `B-GATE-CLOSEOUT-CANDIDATE-01` — `WAVE-B/B-GATE` — The B-GATE candidate consolidates the merged fixture-chain and fail-closed correctness evidence, adds focused closeout assertions and the required ticket-local C/D contracts, and produces the Wave B report. Wave B remains active until exact-head acceptance, normal merge, and merge-identity reconciliation; B-E4 remains optional/deferred/non-blocking and UNMEASURED.
+- `OWNER-WAVE-C0-NET1-01` — `WAVE-C/NET-1` — Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created.
 
 ## Authority boundary
 

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-09T14:37:50Z"
+  captured_at_utc: "2026-09-09T16:07:30Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "55d2e411dbf85c5d36bc3de5d8c5fd7a19d8774e"
+  authority_snapshot_commit: "29d6a6d35918ebf796c76c12e930c99d45f80d91"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -17,6 +17,7 @@ presentation:
   ticket_projections:
     - "data/newcomer_tickets_wave_a_v1.json"
     - "data/newcomer_tickets_wave_b_v1.json"
+    - "data/newcomer_tickets_wave_c_v1.json"
   validator_exam_map: "data/validator_exam_map_v1.json"
   authority_ceiling: "Presentation, orientation, routing, and maintenance enforcement only; the projection cannot change canonical status, maturity, scientific meaning, sequencing, or activation."
 validator_exam_map:
@@ -437,90 +438,42 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. Wave B remains active with B-GATE selected. Its exact closeout candidate has not yet passed the delivery predicate, so B-GATE remains in progress. The candidate consolidates the existing engineering evidence and adds ticket-local C/D contracts. No later ticket is selected. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED; no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
-  wave: "B"
-  wave_title: "Science-ready authoring skeletons"
-  wave_status: "active in bounded development scope"
+  wave: "C"
+  wave_title: "Network foundation and real testnet vertical"
+  wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "B-E2"
-    title: "Julia and reference failure contract"
-    status: "done"
-    summary: "B-E2 is complete in bounded engineering scope. Its B-E2-R1 nested-response validation repair passed acceptance and normally merged in PR #102."
-    delivery:
-      reference: "PR #102"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/102"
-      merge_commit: "b5608b46973869d93300d961749a860096aa6db4"
-  selected_ticket:
     id: "B-GATE"
     title: "Wave B integration and closeout gate"
+    status: "done"
+    summary: "B-GATE is complete in bounded engineering scope. Accepted head c510095b passed run 34365282759 and normally merged in PR #118 as ac050fd5 with tree 46b3844."
+    delivery:
+      reference: "PR #118"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/118"
+      merge_commit: "ac050fd53ee18bf3788c167ee7b0736bbfd7a46b"
+  selected_ticket:
+    id: "NET-1"
+    title: "Read-only Bittensor chain adapter and identity snapshots"
     status: "in_progress"
-    summary: "The B-GATE evidence candidate consolidates the existing fixture-chain and fail-closed engineering receipts, adds ticket-local C/D contracts, and awaits exact-head canonical acceptance and normal merge. B-E4 remains optional/deferred/non-blocking and UNMEASURED."
+    summary: "NET-1 is the sole selected C0 ticket. It will add a pinned, SDK-contained, read-only ChainAdapter with explicit network/snapshot identity, metagraph hotkey/UID associations, and classified provider failures. No live-chain, key, signing, publication, or deployment action is authorized."
   next_selected_ticket: null
-  controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "4.8"
-  controlling_board_fingerprint: "0ad044cc551a4a52010bc0857a9193c3d1a53380f6ddbe6d2ba8aa26f12c4af5"
-  stage: "Wave B remains active with B-GATE selected. Its exact closeout candidate has not yet passed the delivery predicate, so B-GATE remains in progress. The candidate consolidates the existing engineering evidence and adds ticket-local C/D contracts. No later ticket is selected. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED; no paid, calibration, shadow, attack, or qualifying campaign is required or authorized."
-  most_recent_closed_wave: "A"
+  controlling_register: ".agent/WAVE_C.md"
+  controlling_register_version: "0.1"
+  controlling_board_fingerprint: "33fbfdd98b5da68baed86147974bc91db60e7a300089a0f52d50ca9efb1a0532"
+  stage: "Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED."
+  most_recent_closed_wave: "B"
   completed_wave_tickets:
-    - "B-01"
-    - "B-01E"
-    - "B-01F"
-    - "B-01H"
-    - "B-02A"
-    - "B-02B"
-    - "B-02C"
-    - "B-03"
-    - "B-04"
-    - "B-05"
-    - "B-06"
-    - "B-07R"
-    - "B-07S"
-    - "B-07A"
-    - "B-07B"
-    - "B-07C"
-    - "B-07D1"
-    - "B-07D2"
-    - "B-07D3"
-    - "B-07E"
-    - "B-07F"
-    - "B-07G"
-    - "B-E1"
-    - "B-E2"
-    - "B-E3"
+    []
   recent_dependencies:
-    - "B-01"
-    - "B-01E"
-    - "B-01F"
-    - "B-01H"
-    - "B-02A"
-    - "B-02B"
-    - "B-02C"
-    - "B-03"
-    - "B-04"
-    - "B-05"
-    - "B-06"
-    - "B-07R"
-    - "B-07S"
-    - "B-07A"
-    - "B-07B"
-    - "B-07C"
-    - "B-07D1"
-    - "B-07D2"
-    - "B-07D3"
-    - "B-07E"
-    - "B-07F"
-    - "B-07G"
-    - "B-E1"
-    - "B-E2"
-    - "B-E3"
+    - "B-GATE"
   other_completed_wave_context:
     []
   downstream_handoffs:
     []
   parallel_context:
-    - "B-01G remains todo as a future non-blocking tooling proof."
+    []
   fail_closed:
     - "PR #94 reconciled B-05 and B-07C as bounded merged work; it did not authorize practice-result ingestion, scientific qualification, official outcomes, security acceptance, production readiness, or LIVE."
     - "PR #95 completed B-07D1/D2/D3 only in their bounded engineering scopes; B-07D2 accepts synthetic records only and public prior activation remains unavailable."
@@ -537,6 +490,7 @@ current:
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
+    - "NET-1 is selected but not implemented by this transition. Live-chain access, wallets/keys, authenticated transport, commitments, transactions, weights, readback, localnet, deployment, and security acceptance remain unavailable."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
     specified: "earned"
@@ -547,8 +501,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-GATE is selected for engineering integration and closeout only. It has not yet earned completion. Scientific, security, network, commercial, production, LIVE, launch, settlement, weight, and emission authority remain unearned."
-  decision_series_status: "OWNER-ROADMAP-02 is owner-decided and prospectively implemented. B-E4 is deferred/non-blocking rather than passed or completed; B-GATE is selected."
+  maturity_summary: "B-GATE earned bounded implemented/tested closure. NET-1 is selected but has not yet earned implementation or test maturity. Scientific, security, network, commercial, production, LIVE, launch, settlement, weight, and emission authority remain unearned."
+  decision_series_status: "OWNER-WAVE-C0-NET1-01 closes Wave B in bounded engineering scope and activates C0 with NET-1 alone. OWNER-ROADMAP-02 continues to keep B-E4 deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -577,7 +531,7 @@ waves:
   -
     id: "B"
     title: "Science-ready authoring skeletons"
-    status: "active"
+    status: "closed"
     explainer: "explainers/waves/wave_b.md"
     tickets:
       - "B-01"
@@ -611,10 +565,10 @@ waves:
   -
     id: "C"
     title: "Network foundation and real testnet vertical"
-    status: "planned"
+    status: "active"
     explainer: "explainers/waves/wave_c.md"
     tickets:
-      []
+      - "NET-1"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -1568,7 +1522,7 @@ tickets:
     id: "B-GATE"
     wave: "B"
     title: "Wave B integration and closeout gate"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/b_gate.md"
     repo_path: ".agent/tickets/B-GATE_closeout.md"
     depends_on:
@@ -1597,6 +1551,21 @@ tickets:
       - "B-E1"
       - "B-E2"
       - "B-E3"
+    depends_on_context:
+      []
+    unlocks:
+      - "NET-1"
+    unlocks_context:
+      []
+  -
+    id: "NET-1"
+    wave: "C"
+    title: "Read-only Bittensor chain adapter and identity snapshots"
+    status: "in_progress"
+    explainer: "explainers/tickets/net_1.md"
+    repo_path: ".agent/tickets/NET-1_chain_adapter.md"
+    depends_on:
+      - "B-GATE"
     depends_on_context:
       []
     unlocks:
@@ -3268,6 +3237,26 @@ events:
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/MATURITY"
     supersedes: "OWNER-ROADMAP-02"
+  -
+    map_ref: "WAVE-C/NET-1"
+    event_type: "decision"
+    event_id: "OWNER-WAVE-C0-NET1-01"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE_C.md"
+    affects:
+      - "WAVE-B"
+      - "WAVE-B/B-GATE"
+      - "WAVE-B/B-E4"
+      - "WAVE-C"
+      - "WAVE-D"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+    supersedes: "B-GATE-CLOSEOUT-CANDIDATE-01"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

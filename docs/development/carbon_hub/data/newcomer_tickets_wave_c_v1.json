@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+  "product_decision": "OWNER-HUB-01",
+  "tickets": {
+    "NET-1": {
+      "title": "Read Bittensor identity safely without adding chain writes",
+      "what": "Build a small read-only boundary that turns one exact network and metagraph observation into Carbon-owned wallet, hotkey, and UID associations.",
+      "why": "UIDs can disappear or be reassigned and provider responses can fail. Carbon must bind identity to the observed network snapshot instead of treating chain state as timeless scientific truth.",
+      "changes": "Carbon gains a deterministic, testable way to read and classify network identity while keeping the Bittensor SDK inside the chain adapter.",
+      "not_yet": "This does not authenticate application requests, bind candidates, load keys, sign transactions, publish weights, run localnet, contact a live chain in tests, or qualify network security or production use.",
+      "map_ref": "WAVE-C/NET-1"
+    }
+  }
+}

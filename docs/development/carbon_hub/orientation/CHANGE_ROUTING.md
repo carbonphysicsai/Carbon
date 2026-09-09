@@ -258,7 +258,7 @@ Attach the defect to the ticket that owns the violated contract, then preserve t
 
 **Waves:** Wave A, Wave B, Wave C, Wave D, Wave E, Wave F, Wave G, Wave H, Wave I, Wave J, Wave K, Wave L, Wave M, Wave N
 
-**Current ticket anchors:** No current Wave B ticket anchor is captured.
+**Current ticket anchors:** No current Wave C ticket anchor is captured.
 
 **Why this route:** A bug needs one owning node even when its effects cross the system. The map should show placement and impact while the PR carries the technical detail.
 
@@ -304,7 +304,7 @@ Route customer-facing capability through rights, privacy, truth access, delivery
 
 **Waves:** Wave F, Wave G, Wave M
 
-**Current ticket anchors:** No current Wave B ticket anchor is captured.
+**Current ticket anchors:** No current Wave C ticket anchor is captured.
 
 **Why this route:** A commercial wrapper can change data access, deployment identity, support, acceptance, and rights without changing the scientific standard.
 

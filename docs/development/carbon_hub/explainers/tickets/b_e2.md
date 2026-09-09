@@ -32,7 +32,7 @@ It does not restore Julia, select or qualify a solver, permit an unregistered fa
 
 ## Current stage
 
-B-E2 is complete in bounded engineering scope. Its B-E2-R1 nested-response validation repair passed acceptance and normally merged in PR #102.
+B-E2 is done in bounded fixture-engineering scope. PR #102 merged its B-E2-R1 successor repair; B-E4 subsequently became the selected in-progress ticket.
 
 ## Maturity ceiling
 

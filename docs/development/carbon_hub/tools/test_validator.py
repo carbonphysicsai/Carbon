@@ -1857,6 +1857,24 @@ class ValidatorContractTests(unittest.TestCase):
         validator.validate_authority_view(view, "fixture Wave C")
         self.assertEqual(validator.errors, [])
 
+    def test_living_wave_c_board_accepts_net_family_ticket(self) -> None:
+        rows = [("NET-1", "in_progress", "owner-net", "reviewer-net", ["B-GATE"])]
+        validator, view = self.authority_fixture(
+            wave="C", predecessor="B", selected="NET-1", rows=rows
+        )
+        validator.data["tickets"].append(
+            {
+                "id": "B-GATE",
+                "wave": "B",
+                "status": "done",
+                "owner": "owner-b",
+                "reviewer": "reviewer-b",
+                "depends_on": [],
+            }
+        )
+        validator.validate_authority_view(view, "fixture NET-1")
+        self.assertEqual(validator.errors, [])
+
     def test_loader_follows_named_wave_c_board_without_wave_b_file(self) -> None:
         rows = [("C-01", "in_progress", "owner-c1", "reviewer-c1", [])]
         with tempfile.TemporaryDirectory() as raw:
@@ -1897,8 +1915,9 @@ class ValidatorContractTests(unittest.TestCase):
         validator = validate_hub.Validator(REPO_ROOT)
         validator.data = self.load_hub_data()
         cases = {
-            ".agent/WAVE.md": ("map_structural", "WAVE-B"),
+            ".agent/WAVE.md": ("map_structural", "WAVE-C"),
             ".agent/WAVE_B.md": ("map_structural", "WAVE-B"),
+            ".agent/evidence/wave_c/README.md": ("mapped_detail", "WAVE-C"),
             ".agent/evidence/wave_b/b-03.md": (
                 "mapped_detail",
                 "WAVE-B/B-03",
@@ -2086,7 +2105,7 @@ class ValidatorContractTests(unittest.TestCase):
             self.assertTrue(render_hub.write_if_changed(path, "stable\n"))
             self.assertEqual(path.read_bytes(), b"stable\n")
 
-    def test_b04_to_b05_transition_changes_exact_nine_semantic_outputs(self) -> None:
+    def test_b04_to_b05_transition_changes_expected_semantic_outputs(self) -> None:
         baseline = self.load_hub_data()
         events = json.loads(
             (
@@ -2240,10 +2259,11 @@ class ValidatorContractTests(unittest.TestCase):
                 "data/hub_index_v2.yaml",
                 "orientation/START_HERE.md",
                 "explainers/waves/wave_b.md",
+                "explainers/waves/wave_c.md",
                 "explainers/tickets/b_04.md",
                 "explainers/tickets/b_05.md",
                 "explainers/tickets/b_06.md",
-                "explainers/tickets/b_e2.md",
+                "explainers/tickets/b_gate.md",
             },
         )
 
