@@ -825,11 +825,12 @@ permit only exact-ref retrieval through the private fixture context, and cannot
 enter a public channel, public active index, public or production v1 provider,
 external surface, or publication-class promotion. It may be input only to the
 private offline compatibility projector in §9.7; that output remains a private
-test artifact and is never used by the B-E4 v2-prior arm. B-E4 then pins those
-exact pack and authorization references for every v2-prior arm run and
-replicate. A passing B-E4 result
-creates separate gauntlet evidence but leaves the pack test-only. A failure or
-indeterminate result also blocks Wave B closeout.
+test artifact and is never used by the B-E4 v2-prior arm. B-E4 may pin those
+exact pack and authorization references for any separately funded future
+v2-prior arm run and replicate. Any B-E4 result creates only research evidence
+and leaves the pack test-only. Under `OWNER-ROADMAP-02`, a positive, negative,
+indeterminate, or absent result does not block B-GATE, Wave C, network
+delivery, or Research Concierge delivery.
 
 ### External/public publication gate
 

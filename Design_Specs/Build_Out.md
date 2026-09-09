@@ -597,9 +597,10 @@ active main. Archive presence grants no current implementation authority.
       approval-snapshot, history, and exact-ref retrieval tests; public
       publication remains unavailable
 - [ ] Fixture prior evidence is mechanically limited to `TEST_ONLY`; it cannot activate bootstrap/learned guidance and no v2-backed projection enters the public v1 provider
-- [ ] The preregistered autoresearch utility decision passes and the
-      conditional-leakage decision finds no protected-realization shortcut on
-      the fixture loop; failure or indeterminacy blocks Wave B closeout
+- [ ] Preserve the autoresearch utility and conditional-leakage studies as
+      optional deferred research. Their positive, negative, indeterminate, or
+      absent result does not affect Wave B closeout; only the shipping
+      correctness checks assigned to B-GATE and the domain contracts apply.
 
 ### Wave C done when
 
