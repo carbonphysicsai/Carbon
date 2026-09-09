@@ -1996,6 +1996,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609284142",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/210946eb6fcce788ac6122ab4bf14f1e89148685/docs/development/CANDIDATE_COMMITMENTS.md"
+    },
+    {
+      "decision_id": "C-REWARD-D1",
+      "map_ref": "WAVE-C/C-REWARD",
+      "wave": "C",
+      "ticket": "C-REWARD",
+      "title": "Accepted-record gain checkpoints and complete burn targets",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How does DEVELOPMENT reward policy preserve scientific acceptance, identity and credit age?",
+      "recommendation": "Resolve accepted fixture records through NET-3, retain canonical scientific bytes, checkpoint unrounded gain at finalized activation and floor targets to Q12 with all remainder unearned.",
+      "why": "Caller flags, timestamps or rounded public scores must not create or refresh reward authority.",
+      "if_kept": "NET-4A/4B consume complete fixture projections; optional treasury remains disabled.",
+      "if_changed": "Version the contract and preserve accepted provenance, credit age, funding commitments and disclosure accounting.",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609628725",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/docs/development/SCORE_REWARDS.md"
     }
   ]
 }
