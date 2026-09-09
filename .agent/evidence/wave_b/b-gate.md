@@ -1,7 +1,11 @@
 # B-GATE evidence — Wave B engineering closeout
 
 **Starting main:** `7c2b876eabc42171f4fb7bfabb3995b206d0729f`
-**Delivery:** the exact PR head containing this record must pass the applicable automated checks and `Merge gate`, then normally merge with the expected-head guard
+**Accepted delivery:** PR #118 head
+`c510095b5501587cf93c04632a26b7c303d7d48b` passed run `34365282759`,
+including Canonical environment, Development Hub validation, and `Merge gate`,
+then normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`,
+tree `46b38440f13a8048db18bc480ddb6907396c9017`.
 **Maturity claimed:** `IMPLEMENTED` and `TESTED` for the bounded Wave B engineering/fixture scope only
 
 ## Reused integrated evidence
@@ -19,7 +23,13 @@
 | Reference disagreement/failure cannot manufacture candidate or economic evidence | `tests/cpu/test_be2_reference_failure_boundary.py::test_disagreement_stays_contested_and_has_no_combined_artifact`, `test_no_failure_path_manufactures_truth_candidate_or_economic_authority` |
 | Fixture evidence cannot activate LIVE or turn infrastructure into science | `tests/invariants/test_a12_invariants.py::test_a12_r05_live_requires_complete_exact_qualification`, `test_a12_r07_infrastructure_cannot_be_scored_as_science`, `test_a12_r09_fixture_values_cannot_gain_live_or_emission_authority` |
 
-The canonical full CPU, invariant, package/wheel/outside-tree, code-authority, quality, and clean-image lanes are the delivery receipt. `tests/cpu/test_b_gate_closeout.py` additionally verifies the revised dependency wording, retained shipping-correctness receipts, and ticket-local C/D requirements.
+The accepted Canonical environment lane is the delivery receipt for full CPU,
+invariant, package/wheel/outside-tree, code-authority, and quality acceptance.
+The classifier correctly skipped non-applicable lanes; the aggregate `Merge
+gate` passed. `tests/cpu/test_b_gate_closeout.py` additionally verifies the
+revised dependency wording, retained shipping-correctness receipts, and
+ticket-local C/D requirements. This transition reuses that completed
+acceptance and does not rerun it.
 
 ## Research disposition
 

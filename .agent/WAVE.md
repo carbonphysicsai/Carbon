@@ -6,11 +6,20 @@
 > applies. Older process descriptions below are superseded; ticket scope,
 > historical evidence, and human-reserved scientific/security authority remain.
 
-**Current wave:** B
-**State:** **active in bounded development scope**
+**Current wave:** C
+**Current phase:** C0 network foundation
+**State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.8
-**Selected ticket:** B-GATE — `in_progress`
+**Wave B:** closed in bounded engineering scope after PR #118 accepted head
+`c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
+normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
+`46b38440f13a8048db18bc480ddb6907396c9017`
+**Controlling register:** `.agent/WAVE_C.md` version 0.1
+**Selected ticket:** NET-1 — `in_progress`
+**Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
+owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
+engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
+its separate implementation delivery without another approval.
 **Deferred non-blocking research:** B-E4 — `deferred`,
 `OPTIONAL / DEFERRED / NON-BLOCKING`; empirical effectiveness `UNMEASURED`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
@@ -43,8 +52,8 @@ and no provider dispatch occurred.
 **Selection boundary:** OWNER-ROADMAP-02 preserves the frozen DEVELOPMENT
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
-No provider execution is requested. B-GATE is the sole active ticket.
-**Next eligible status:** Wave C transition after revised B-GATE passes
+No provider execution is requested. B-GATE subsequently passed and is closed.
+**Current C0 status:** Wave C/C0 is active with NET-1 selected alone.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -131,7 +140,7 @@ the provider setup remains outside this delivery. Representative autonomous-agen
 stochastic and dependence evidence, diversity, shadow/leakage, trusted
 attacks, qualification-grade independent ratification, and qualifying storage
 remain unavailable. No paid, qualifying, calibration, shadow, or attack
-campaign ran. B-GATE is selected `in_progress`. Empirical prior effectiveness
+campaign ran. B-GATE is `done` in bounded engineering scope. Empirical prior effectiveness
 remains `UNMEASURED`; no research result is called passed, qualified, or
 completed.
 **B-03 status:** `done` in bounded merged engineering scope

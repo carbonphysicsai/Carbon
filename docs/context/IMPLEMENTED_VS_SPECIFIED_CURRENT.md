@@ -1,6 +1,7 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through merged B-E4
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through merged B-GATE
+and the Wave C0 / NET-1 activation transition, following merged B-E4
 engineering, readiness, lifecycle, rehearsal, calibration, execution-
 correctness, association/resource correction, strict pilot-v2 proposal,
 runnable development pilot, and current DEVELOPMENT execution-admission
@@ -15,8 +16,11 @@ the prospective `OWNER-ROADMAP-02` dependency correction.
 > replaces separate Concierge empirical qualification with bounded engineering
 > acceptance, and permits the network path to ship with Concierge disabled.
 
-> **Current development state.** `.agent/WAVE.md` records Wave B active in
-> bounded development scope. PR #94 completed B-05 and B-07C in their bounded
+> **Current development state.** `.agent/WAVE.md` records Wave B closed in
+> bounded engineering scope after PR #118 accepted head `c510095b...` passed
+> run `34365282759` and normally merged as `ac050fd5...`, tree `46b3844...`.
+> Wave C/C0 is active with NET-1 as the sole selected ticket. No NET-1 runtime
+> is implemented by the transition. PR #94 completed B-05 and B-07C in their bounded
 > engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as
 > separate bounded immutable-store, TEST_ONLY publisher/ledger, and authorized
 > static-provider/alignment scopes. PR #96 completed B-07E exact static
@@ -434,7 +438,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0 NET foundation / `ChainAdapter` / authenticated transport | roadmap specified | No | No | future Wave C0 after revised B-GATE; NET-1 is the first planned selection |
+| C0 NET foundation / `ChainAdapter` / authenticated transport | active; NET-1 selected | No | No | Wave C0 active after accepted B-GATE; NET-1 is in progress and later network tickets remain unstarted |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |
@@ -521,7 +525,8 @@ No paper/deck may imply:
 > current DEVELOPMENT approver-correction successor, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
 > `.agent/WAVE.md` records Wave B with B-E4 optional/deferred/non-blocking and
-> B-GATE selected. OWNER-ROADMAP-02 preserves C0/C1/C2 → D → H → I while
+> B-GATE accepted and Wave B closed in bounded engineering scope. Wave C/C0 is
+> active with NET-1 selected alone. OWNER-ROADMAP-02 preserves C0/C1/C2 → D → H → I while
 > removing prior/agent/Concierge empirical research as a delivery dependency;
 > the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are

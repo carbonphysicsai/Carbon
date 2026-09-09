@@ -2,8 +2,11 @@
 
 **Scope:** bounded engineering and fixture integration
 **Starting authority:** main `7c2b876eabc42171f4fb7bfabb3995b206d0729f`, merging owner-roadmap PR #117
-**Closeout rule:** the exact candidate containing this report must pass applicable automated acceptance and `Merge gate` and normally merge with the expected-head guard
-**Result:** Wave B closes only in engineering scope when that predicate completes
+**Accepted closeout:** PR #118 head
+`c510095b5501587cf93c04632a26b7c303d7d48b` passed run `34365282759` and
+normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`,
+tree `46b38440f13a8048db18bc480ddb6907396c9017`
+**Result:** Wave B is closed in bounded engineering scope only
 
 ## Completed engineering
 
@@ -16,7 +19,12 @@
 
 ## Acceptance result
 
-The evidence map is recorded in `.agent/evidence/wave_b/b-gate.md`. Delivery requires one exact-head canonical run covering full CPU, invariant, quality, package/wheel/outside-tree, code-authority, Hub, and clean-image acceptance. The immutable PR check suite and merge identity are the final execution receipt; no separate GPT receipt, human approval ceremony, repeated full-suite run, or external closeout response is required by `OWNER-DX-03`.
+The evidence map is recorded in `.agent/evidence/wave_b/b-gate.md`. Accepted
+run `34365282759` covered the applicable canonical runtime and Hub lanes and
+passed `Merge gate` for exact head `c510095b...`. The immutable PR check suite
+and merge identity above are the final execution receipt; no separate GPT
+receipt, human approval ceremony, repeated full-suite run, or external
+closeout response is required by `OWNER-DX-03`.
 
 ## Deferred research
 
@@ -34,4 +42,6 @@ B-E4 remains `OPTIONAL / DEFERRED / NON-BLOCKING` and empirical prior effectiven
 
 ## Prospective transition
 
-After the closeout merge, Wave C may be activated separately with exactly one ticket selected. Dependency order makes NET-1 the first actionable ticket. No deferred B-E4 item blocks that transition.
+`OWNER-WAVE-C0-NET1-01` activates Wave C/C0 in a separate prospective
+transition with NET-1 as the sole selected ticket. No deferred B-E4 item blocks
+that transition.
