@@ -1,7 +1,9 @@
 # Ticket B-GATE - Wave B fixture integration and closeout
 
 **Wave:** B candidate
-**Status:** in_progress; closeout evidence candidate assembled, with exact-head automated acceptance, `Merge gate`, normal merge, and subsequent merge-identity status reconciliation still required
+**Status:** in_progress
+**Closeout state:** evidence candidate assembled; exact-head automated acceptance,
+`Merge gate`, normal merge, and subsequent merge-identity reconciliation remain.
 **Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3
 **Non-blocking context:** B-01G and B-E4 are explicitly non-blocking.
 **Build Out:** Wave B acceptance
