@@ -2113,6 +2113,17 @@ class ValidatorContractTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )["events"]
         baseline = copy.deepcopy(baseline)
+        # This renderer fixture has a fixed predecessor. Do not inherit the
+        # live last-completed ticket as the network program advances.
+        predecessor = next(
+            ticket for ticket in baseline["tickets"] if ticket["id"] == "B-GATE"
+        )
+        baseline["current"]["last_completed_ticket"].update(
+            id="B-GATE",
+            title=predecessor["title"],
+            status="done",
+            summary="B-GATE is the completed predecessor in this renderer fixture.",
+        )
         b04 = next(ticket for ticket in baseline["tickets"] if ticket["id"] == "B-04")
         b05 = next(ticket for ticket in baseline["tickets"] if ticket["id"] == "B-05")
         baseline["current"].update(
