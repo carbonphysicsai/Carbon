@@ -1825,6 +1825,33 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-4A",
+      "event_type": "adjustment",
+      "event_id": "NET-4A-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "C-REWARD merged with canonical reward evidence. NET-4A adds journal-issued localnet intent provenance, short validity, supersession and quarantine checks. Public-testnet and optional treasury families remain separately unavailable; no signing or G2 claim.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610127520",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

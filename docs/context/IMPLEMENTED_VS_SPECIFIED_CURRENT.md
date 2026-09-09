@@ -447,7 +447,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0 NET foundation / `ChainAdapter` / authenticated transport | active; C-REWARD selected | NET-1, NET-2, NET-3 | NET-1, NET-2, NET-3 | NET-1 through NET-3 merged with canonical tests; C-REWARD candidate and later C0 deliveries remain unqualified |
+| C0 NET foundation / `ChainAdapter` / authenticated transport | active; NET-4A selected | NET-1, NET-2, NET-3, C-REWARD | NET-1, NET-2, NET-3, C-REWARD | NET-1 through C-REWARD merged with canonical tests; NET-4A candidate and later C0 deliveries remain unqualified |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |

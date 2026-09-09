@@ -13023,3 +13023,9 @@ decision, alternatives, migration path and limits are in
 Prospective working decision under OWNER-C0-REWARD-01. The full decision,
 arithmetic, alternatives, migration and maturity limits are in
 `.agent/tickets/C-REWARD_score_reward_core.md`, C-REWARD-D1.
+
+## NET-4A-D1 — Journal-issued nominal localnet publication authority
+
+See `.agent/tickets/NET-4A_weight_intents.md`: exact reward provenance, immutable
+validity, supersession and non-paying no-winner semantics. Public-testnet and
+optional treasury issuers remain unavailable under their owning future contracts.
