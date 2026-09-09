@@ -1085,6 +1085,20 @@
     ],
     "rules": [
       {
+        "id": "c0-score-reward-program",
+        "match_type": "exact",
+        "path": ".agent/plans/C0_score_reward_program.md",
+        "impact_class": "map_structural",
+        "map_ref": "WAVE-C/NET-1"
+      },
+      {
+        "id": "launch-direct-payment-successor",
+        "match_type": "exact",
+        "path": "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
         "id": "root-agent-instructions",
         "match_type": "exact",
         "path": "AGENTS.md",
@@ -1674,20 +1688,6 @@
         "path": "docs/publications/",
         "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
-      },
-      {
-        "id": "c0-score-reward-program",
-        "match_type": "exact",
-        "path": ".agent/plans/C0_score_reward_program.md",
-        "impact_class": "map_structural",
-        "map_ref": "WAVE-C/NET-1"
-      },
-      {
-        "id": "launch-direct-payment-successor",
-        "match_type": "exact",
-        "path": "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md",
-        "impact_class": "map_structural",
-        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       }
     ]
   },

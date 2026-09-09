@@ -1724,7 +1724,15 @@
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620",
       "affects": [
         "WAVE-C",
-        "SYSTEM/DEVELOPMENT-SEQUENCING"
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
       ],
       "supersedes": null
     }

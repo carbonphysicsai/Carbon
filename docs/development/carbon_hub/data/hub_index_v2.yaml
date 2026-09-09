@@ -3268,6 +3268,14 @@ events:
     affects:
       - "WAVE-C"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
