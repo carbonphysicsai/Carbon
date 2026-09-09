@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-3`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ Bounded durable commitments and fixture accepted records with exact scientific s
 ## Placement and handoff
 
 - **Depends on:** NET-2
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** C-REWARD
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + scientific integration
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No real scientific acceptance, second evaluator, arbitrary execution, hidden dis
 
 ## Current stage
 
-NET-3 candidate implemented with native diagnostics; canonical A7/A8 integration acceptance and merge remain pending.
+NET-3 is merged with canonical A7/A8/A6 fixture integration, original receipts and exact accepted scores (PR #122).
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ C0 fixture integration only; no real scientific, security, network or production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/tickets/NET-3_candidate_commitments.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/evidence/wave_c/net-3.md)
-- [Commitment contract](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/docs/development/CANDIDATE_COMMITMENTS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/c18bbb3771888def2c5c3a6c12a199e7f6371f79/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/tickets/NET-3_candidate_commitments.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/evidence/wave_c/net-3.md)
+- [Commitment contract](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/docs/development/CANDIDATE_COMMITMENTS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/WAVE_C.md)
 
 > Original receipt order and artifact identity survive restart; an interrupted process-local A7 attempt remains indeterminate.

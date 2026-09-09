@@ -95,6 +95,12 @@ class ReceiptJournal:
                 "SELECT block FROM transport_meta WHERE id=1"
             ).fetchone()[0]
 
+    def highest_receipt(self) -> int:
+        with self._connection() as connection:
+            return connection.execute(
+                "SELECT COALESCE(MAX(sequence),0) FROM receipt"
+            ).fetchone()[0]
+
     @contextmanager
     def transaction(self):
         """Trusted Carbon journal extensions share the receipt database/lock.

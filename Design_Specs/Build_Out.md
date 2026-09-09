@@ -109,7 +109,7 @@ These rules bind every component. Tests must cover them where enforceable in cod
 | C12 | Card store | **High** | Internal + budgeted paths | Disclosure tier confirm |
 | C13 | Fees | **High** | Ledger, idempotency, fee≠score | Fee amount |
 | C14 | Leaderboard | **High** | Public fields only | — |
-| C15 | Bittensor/network | **Med** | Post-Wave-B C0 adapter/auth/identity/localnet, C1 real vertical wiring, and C2 typed temporary testnet policy | SDK/network pinning, security acceptance, reward window, sink identity/custody, quorum/stake/audit, treasury/mainnet values |
+| C15 | Bittensor/network | **Med** | Post-Wave-B C0 adapter/auth/identity/localnet, C1 real vertical wiring, and C2 typed direct-winner-plus-burn testnet policy | SDK/network pinning, security acceptance, reward window, sink identity/custody, quorum/stake/audit, treasury/mainnet values |
 | C16 | Observability | **High** | Logs/metrics | Alert thresholds |
 | C17–18 | Landscape / specialists | **Out P0** | Card schema hooks only in P0; Waves E–F in §18 | See `Landscape_Agent.md`, `Specialist_Bank.md` |
 | C19 | Reference solvers | **Low** | Wrapper + pin skeleton | Convergence evidence |
@@ -148,6 +148,7 @@ WAVE C0 — network foundation (begins only after Wave B)
   NET-1 ChainAdapter / metagraph / wallet / UID / classified errors
   NET-2 hotkey-authenticated application transport / replay protection
   NET-3 candidate commitment / availability / hotkey binding
+  C-REWARD accepted-record gain ledger / decay / burn accounting / A6 scorecard
   NET-4A nominal StructuralLocalnetWeightIntent, TestnetWinnerWeightIntent,
          TreasuryRoutingWeightIntent
   NET-4B compiler / chain constraints / non-paying sink / readback / receipts
@@ -161,7 +162,7 @@ WAVE C1 — real scientific vertical
   sandbox/resources/reference/truth/failure separation
   authenticated Miner MCP E2E + secondary execution/disagreement/free-rider evidence
 
-WAVE C2 — temporary direct-weight testnet integration
+WAVE C2 — direct-winner-plus-burn testnet integration
   C-W1 TestnetWeightEligibilityEvent
   C-W2 winner-only expiry / supersession / explicit no-winner sink
   C-W3 publication / validator agreement / readback / recovery
@@ -179,14 +180,14 @@ POST-D PARALLEL LANES (see §18)
 
 POST-D LAUNCH-CRITICAL BRANCH
   WAVE H — frontier promotion / finality
-  WAVE I — treasury routing / scientific-economic ledger / settlement
+  WAVE I — scientific-economic ledger / settlement; treasury routing optional
 ```
 
 **Stub policy:** Wave A may use the fixture-official A8 stub for bounded
 lifecycle/contract CI. Wave B may add nominal practice/research plumbing only
-after its separate request/resource/disclosure contract is ratified. **Synthetic
-stub material must never write weights or LIVE leaderboard ranks.** Exact real
-C2 provenance is the only non-LIVE path that may create temporary
+after its separate request/resource/disclosure contract is ratified. **Synthetic material may exercise authorized disposable localnet weights only;
+it must never create real scientific ranks or public-network authority.** Exact real
+C2 provenance is required for
 `TESTNET_ONLY`, `NON_SETTLING` integration weights. It cannot create
 production emissions, frontier state, treasury settlement, or mainnet
 authority. Wave C1 requires a real backend; Wave D alone qualifies the first

@@ -26,6 +26,14 @@
       "changes": "Bounded durable commitments and fixture accepted records with exact scientific score bytes, immutable context and explicit interrupted-dispatch state.",
       "not_yet": "No real scientific acceptance, second evaluator, arbitrary execution, hidden disclosure, weight publication, localnet success or LIVE authority.",
       "map_ref": "WAVE-C/NET-3"
+    },
+    "C-REWARD": {
+      "title": "Reward accepted improvements and preserve the unearned share",
+      "what": "Register accepted baselines, immutable allocation and funding terms; close authenticated batches and persist improvement credit with finalized-chain age.",
+      "why": "Reward targets must preserve scientific authority, copied-artifact identity, restart age and every challenge allocation.",
+      "changes": "Q12 floor/remainder reward ledger, shared-holder aggregation, burn-only targets, weekly review and A6 aliased scorecard.",
+      "not_yet": "No real scientific qualification, signing, runtime burn proof, treasury deployment, public transaction, economic optimality or LIVE claim.",
+      "map_ref": "WAVE-C/C-REWARD"
     }
   }
 }

@@ -33,6 +33,7 @@ implementation_roots = [
     "carbon/reproducibility",
     "carbon/research",
     "carbon/resource_policy",
+    "carbon/rewards",
     "carbon/schema",
     "carbon/scoring",
     "carbon/seeding",

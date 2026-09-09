@@ -18,6 +18,7 @@ from select_cpu_profile import (
     chain_constraint_tightening,
     main,
     only_candidate_root_added,
+    only_reward_root_added,
     only_transport_root_added,
     select_cpu_profile,
 )
@@ -224,4 +225,27 @@ def test_candidate_profile_preserves_scientific_owners_and_exact_authority_delta
         "tests/cpu/test_net3_candidates.py",
         "tests/cpu/test_submission_fsm.py",
         "tests/cpu/test_traineval_stub.py",
+    }.issubset(NETWORK_TESTS)
+
+
+def test_reward_profile_keeps_a6_and_scientific_regressions_and_full_fallback():
+    before = 'implementation_roots = [\n    "carbon/resource_policy",\n]\n'
+    after = before.replace(
+        '    "carbon/resource_policy",\n',
+        '    "carbon/resource_policy",\n    "carbon/rewards",\n',
+    )
+    assert only_reward_root_added(before, after)
+    assert not only_reward_root_added(before, after + "# unrelated\n")
+    assert select_cpu_profile(["carbon/rewards/core.py"]) == "NETWORK_FOUNDATION"
+    assert (
+        select_cpu_profile(["carbon/rewards/core.py", "carbon/scoring/engine.py"])
+        == "RUNTIME_FULL"
+    )
+    assert select_cpu_profile(["carbon/rewards/core.py", "uv.lock"]) == "RUNTIME_FULL"
+    assert {
+        "tests/cpu/test_reward_core.py",
+        "tests/cpu/test_reward_ledger.py",
+        "tests/cpu/test_card_store.py",
+        "tests/cpu/test_scoring_engine.py",
+        "tests/cpu/test_leaderboard.py",
     }.issubset(NETWORK_TESTS)

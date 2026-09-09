@@ -13017,3 +13017,9 @@ unchanged.
 Prospective delegated working decision under OWNER-C0-REWARD-01. The complete
 decision, alternatives, migration path and limits are in
 `.agent/tickets/NET-3_candidate_commitments.md`, Decision NET-3-D1.
+
+## C-REWARD-D1 — Bounded-linear development reward and disclosure
+
+Prospective working decision under OWNER-C0-REWARD-01. The full decision,
+arithmetic, alternatives, migration and maturity limits are in
+`.agent/tickets/C-REWARD_score_reward_core.md`, C-REWARD-D1.
