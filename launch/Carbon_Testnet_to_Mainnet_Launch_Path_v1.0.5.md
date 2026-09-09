@@ -1,10 +1,10 @@
 # Carbon Testnet-to-Mainnet Launch Path — v1.0.5 successor
 
 **Status:** CURRENT OWNER-RATIFIED ROADMAP after merge; planning and sequencing
-authority only, not deployment or launch approval  
-**Date:** 9 September 2026  
-**Decision:** `OWNER-ROADMAP-02`  
-**Supersedes:** the research-dependency and Concierge-launch clauses in v1.0.4  
+authority only, not deployment or launch approval
+**Date:** 9 September 2026
+**Decision:** `OWNER-ROADMAP-02`
+**Supersedes:** the research-dependency and Concierge-launch clauses in v1.0.4
 **Unchanged base:** `Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`
 
 This successor changes only the dependency and delivery policy below. All
@@ -73,4 +73,3 @@ deployment approval requirements.
 These are effort ranges, not launch dates or approval gates. Live testnet
 transactions, paid infrastructure, mainnet activation, custody choices, and
 production economics remain separately authorized operator actions.
-

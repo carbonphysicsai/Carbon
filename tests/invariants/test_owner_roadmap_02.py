@@ -46,4 +46,3 @@ def test_concierge_release_contract_is_not_research_qualification() -> None:
     assert concierge["statistical_utility_lift_required"] is False
     assert concierge["independent_research_qualification_required"] is False
     assert len(concierge["required_engineering_controls"]) >= 10
-
