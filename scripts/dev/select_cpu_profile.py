@@ -161,7 +161,7 @@ def only_candidate_root_added(before: str, after: str) -> bool:
     original = '    "carbon/cards",\n'
     return (
         before.count(original) == 1
-        and before.replace(original, original + '    "carbon/candidates",\n') == after
+        and before.replace(original, '    "carbon/candidates",\n' + original) == after
     )
 
 

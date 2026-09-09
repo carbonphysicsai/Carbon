@@ -41,3 +41,14 @@ Completion is conditional on focused canonical tests/required Merge gate passing
 on the unchanged expected PR head and normal guarded merge. GitHub run/head/merge
 and completion comment are external facts, not invented here. After delivery,
 C-REWARD is next. G2 and C1/C2 scientific/launch states remain unearned.
+
+## First canonical run and repair
+
+Run 34410816684 on abd509a passed all 173 invariants and 1,025 focused CPU
+checks; two checks failed. CODE_AUTHORITY required alphabetical order for the
+new root. The success-path fixture's default entropy produced a mandatory gate
+failure, correctly rejected by the implementation. Repair sorts the namespace
+(and exact classifier proof) and uses a fixed synthetic passing fixture whose
+independently reconstructed gate input is 0.6186188674954336 under unchanged
+threshold 1.0. No scientific threshold/formula or runtime code was changed.
+The failed run remains failed evidence; acceptance of the repaired head is required.

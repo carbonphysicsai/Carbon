@@ -204,7 +204,7 @@ def test_runtime_cannot_request_tooling_tests(
 def test_candidate_profile_preserves_scientific_owners_and_exact_authority_delta():
     before = 'implementation_roots = [\n    "carbon/cards",\n]\n'
     after = before.replace(
-        '    "carbon/cards",\n', '    "carbon/cards",\n    "carbon/candidates",\n'
+        '    "carbon/cards",\n', '    "carbon/candidates",\n    "carbon/cards",\n'
     )
     assert only_candidate_root_added(before, after)
     assert not only_candidate_root_added(before, after + "# unrelated\n")

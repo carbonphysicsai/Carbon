@@ -12,6 +12,7 @@ from test_traineval_stub import (
     _environment,
     _limits,
     _profile,
+    _provider,
     _service,
     _strategy,
 )
@@ -234,7 +235,10 @@ def test_existing_scientific_lifecycle_and_durable_exact_score(tmp_path):
     journal, gate = setup(tmp_path)
     receipt, body = signed(gate)
     ref = journal.commit(receipt, body)
-    submissions, evaluator = _a7_service(tmp_path / "science"), _service()
+    submissions = _a7_service(tmp_path / "science")
+    # Fixed DEVELOPMENT entropy exercises the passing path under the unchanged
+    # mandatory threshold. Default entropy is tested separately for rejection.
+    evaluator = _service(provider=_provider(b"NET-3 synthetic passing fixture 2"))
     service = FixtureCandidateService(journal, submissions, evaluator)
     record = service.evaluate(ref)
     assert record.receipt_sequence == receipt.sequence
@@ -256,3 +260,17 @@ def test_existing_scientific_lifecycle_and_durable_exact_score(tmp_path):
         )
     with pytest.raises(CandidateFailure, match="CONFLICT"):
         restarted.resolve_accepted_fixture(ref)
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="A3 fixture filesystem requires canonical Linux"
+)
+def test_existing_default_fixture_mandatory_failure_is_not_accepted(tmp_path):
+    journal, gate = setup(tmp_path)
+    ref = journal.commit(*signed(gate))
+    service = FixtureCandidateService(
+        journal, _a7_service(tmp_path / "science"), _service()
+    )
+    with pytest.raises(CandidateFailure, match="NOT_ACCEPTED"):
+        service.evaluate(ref)
+    assert journal.state(ref) == "REJECTED_SCIENCE"
