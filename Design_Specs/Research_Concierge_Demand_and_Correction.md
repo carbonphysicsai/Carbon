@@ -101,4 +101,19 @@ Impact assessment finds affected briefs, priors, responses, models, reports, rec
 
 ## 8. Evaluation and launch separation
 
-Concierge evaluation uses held-out representative research tasks, groundedness, abstention, counterevidence handling, cost, latency, and downstream research usefulness. Human owners set thresholds prospectively. Dialogue security/operations readiness is independent of Challenge scientific qualification: launching dialogue does not qualify a Challenge, and qualifying a Challenge does not approve dialogue.
+Concierge release acceptance is an engineering contract. Focused deterministic
+tests and bounded integration checks cover approved-source retrieval and source
+references, groundedness, abstention, counterevidence, stale/unavailable
+sources, failure honesty, suggestion-versus-official-result separation,
+authentication, tenant/session isolation, protected-data boundaries, quotas,
+cost/latency limits, feedback capture, monitoring, and kill switches. Human
+security, privacy, and operations owners retain deployment acceptance for the
+exact surface.
+
+A paid benchmark campaign, statistically significant utility improvement,
+independent research qualification, or new certification framework is not a
+launch prerequisite. Empirical effectiveness is `UNMEASURED` until ordinary
+operational feedback or separately budgeted research supplies evidence.
+Dialogue readiness is independent of Challenge scientific qualification, and
+the Concierge does not gate the core network path: Carbon may release it
+disabled and enable it later after its engineering checks pass.

@@ -10,7 +10,15 @@
 **Version:** 1.5<br>
 **Status:** Executable requirements contract  
 **Companions:** `SPEC.md`, `Miner_MCP.md` (v2.2+), `Scoring.md`, `Generator_Creation.md`, `Generator_Validation.md`, `Evidence_and_Envelope_Standards.md`, `Data_Management.md`, `Launch_Bar.md`, `POC_Burgers_FNO.md`  
-**Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`, `Agentic_Development_Master_Plan.md`, `../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`
+**Post-P0 companions:** `Landscape_Agent.md`, `Specialist_Bank.md`, `Customer_Bounds_Specialist.md`, `Use_Cases_by_Phase.md`, `Agentic_Development_Master_Plan.md`, `../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md`
+
+> **OWNER-ROADMAP-02 sequencing amendment (2026-09-09).** The B-E4 research
+> program is optional/deferred/non-blocking and is not Wave-B or launch
+> acceptance. Keep its reusable engineering and evidence, but do not require a
+> utility/diversity/shadow result before B-GATE or any network milestone.
+> Research Concierge delivery is governed by deterministic and bounded
+> engineering acceptance; empirical effectiveness remains `UNMEASURED` and is
+> not a launch gate.
 
 ---
 
@@ -804,5 +812,5 @@ WAVE I — Treasury routing and settlement (mainnet-critical)
 *Build_Out v1.5 — Waves A–D, post-D parallel E/F/G, and launch-critical H/I.
 **Sequencing authority only.** Domain ownership: SPEC (architecture), Scoring
 (mathematics), Trustless/Data (seeds/exam identity), Miner_MCP (miner surface),
-Launch_Bar (stop-ships), Specialist_Bank (productization), and launch v1.0.4
+Launch_Bar (stop-ships), Specialist_Bank (productization), and launch v1.0.5
 (G2–G7 network/launch crosswalk).*

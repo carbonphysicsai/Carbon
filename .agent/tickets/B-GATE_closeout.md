@@ -1,8 +1,8 @@
 # Ticket B-GATE - Wave B fixture integration and closeout
 
 **Wave:** B candidate
-**Status:** todo
-**Depends on:** B-01, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4
+**Status:** in_progress
+**Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3. B-01G and B-E4 are explicitly non-blocking.
 **Build Out:** Wave B acceptance
 **Master questions:** MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
@@ -74,10 +74,11 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       contains no shadow semantics or stores, and neither exposes nor delegates
       v1 official operations.
 - [ ] Pass focused, subsystem, full CPU, invariant, quality, packaging, installed-wheel, and applicable PoC/Julia contract checks.
-- [ ] Complete B-E4 only after its preregistered utility rule passes and its
-      conditional-leakage and evidence-authority decisions find no protected-
-      realization shortcut or authority bypass; failed or indeterminate
-      gauntlet evidence blocks closeout.
+- [ ] Record B-E4 honestly as `OPTIONAL / DEFERRED / NON-BLOCKING`, retain its
+      engineering and historical evidence, and confirm that no utility,
+      diversity, shadow, calibration, or ratification requirement remains a
+      direct or semantic closeout dependency. Do not call B-E4 passed,
+      qualified, or completed.
 - [ ] Before any prospective Wave C authorization, verify that the canonical C
       and D ticket files created under the controlling roadmap inline the
       approved requirements for C-02/C-04/C-05/C-06/C-07/C-10 and

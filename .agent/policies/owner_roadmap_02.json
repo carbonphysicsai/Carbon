@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "decision_id": "OWNER-ROADMAP-02",
+  "research_program": {
+    "ticket": "B-E4",
+    "status": "DEFERRED",
+    "disposition": [
+      "OPTIONAL",
+      "NON_BLOCKING"
+    ],
+    "evidence_status": "UNMEASURED",
+    "retained_engineering": true,
+    "paid_execution_authorized": false
+  },
+  "must_not_gate": [
+    "B-GATE",
+    "WAVE-C",
+    "NETWORK_INTEGRATION",
+    "TESTNET",
+    "MAINNET",
+    "RESEARCH_CONCIERGE"
+  ],
+  "removed_prerequisites": [
+    "PRIOR_UTILITY_SUPERIORITY",
+    "EXPERIMENTAL_DIVERSITY_THRESHOLD",
+    "QUALIFYING_AGENT_GAUNTLET",
+    "SHADOW_RESEARCH_CAMPAIGN",
+    "RESEARCH_CALIBRATION",
+    "RESEARCH_RATIFICATION",
+    "SEPARATE_CONCIERGE_UTILITY_QUALIFICATION"
+  ],
+  "concierge": {
+    "empirical_effectiveness": "UNMEASURED",
+    "network_path_blocking": false,
+    "disabled_release_allowed": true,
+    "paid_benchmark_required": false,
+    "statistical_utility_lift_required": false,
+    "independent_research_qualification_required": false,
+    "required_engineering_controls": [
+      "APPROVED_PUBLIC_BOOTSTRAP_SOURCES",
+      "SOURCE_REFERENCES",
+      "SUGGESTION_OFFICIAL_RESULT_SEPARATION",
+      "PROTECTED_DATA_AND_EVALUATOR_BOUNDARY",
+      "AUTHENTICATION_AND_AUTHORIZATION",
+      "TENANT_AND_SESSION_ISOLATION",
+      "RESOURCE_CONTROLS",
+      "TRUTHFUL_UNAVAILABLE_AND_FAILURE_OUTCOMES",
+      "FEEDBACK_COLLECTION",
+      "OPERATIONAL_MONITORING",
+      "KILL_SWITCH"
+    ]
+  }
+}
+
