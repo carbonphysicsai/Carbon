@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `81add1d1bbaac437cd80def1181df60ab7d687fc` on `main`, captured 2026-09-09T10:14:49Z.
-**Current:** Wave B, ticket B-E4. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission and honest partial/unknown-billing reports. The current correction changes only the development-specific principal: the production issuer now requires the verified GitHub viewer fitz-lang6 / 317786409, while jbequ5 / 99085788 retains Carbon's broader repository-owner role. Owner-decision record v2 and execution request v3 prospectively rebind the exact source and artifacts without changing the frozen population, tasks, treatments, six-field egress, retention choice, evidence role, stopping rules, 40-slot schedule, or $14.42 provider-charge cap. The refreshed deterministic 40-slot Carbon path passed with zero inference and spend. No one-use authorization was issued or claimed, and no provider request was dispatched. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
+**Authority snapshot:** `91e5502d52645135d8391d4da7a824cdb733e87e` on `main`, captured 2026-09-09T12:43:21Z.
+**Current:** Wave B, ticket B-GATE. Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
 
@@ -70,8 +70,8 @@
 | [B-E1](explainers/tickets/b_e1.md) | Build R0/R1/R2 reproducibility, dependence-aware reconstruction by whole-case intervals, staged-evidence audit, and typed contested-outcome harnesses. | done |
 | [B-E2](explainers/tickets/b_e2.md) | Implement the complete typed reference outcome and failure contract for Julia and other registered reference paths. | done |
 | [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
-| [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | in_progress |
-| [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | todo |
+| [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | deferred |
+| [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | in_progress |
 
 ## Change routes
 
@@ -154,6 +154,7 @@
 - `B-E4-DEVELOPMENT-RUNNER-01` — `WAVE-B/B-E4` — The B-E4 candidate implements one sequential 5-profile x 4-arm x 2-task DEVELOPMENT runner through Carbon's existing TEST_ONLY research, paired-practice, and fixture lifecycle, plus a strict real-but-disabled Responses adapter, deterministic transport, durable intent/result journal, exact artifact/request identities, and a $14.42 owner request. All 40 offline integration slots completed with zero inference and zero spend. Owner approval, provider-project retention approval, and verified one-use DEVELOPMENT admission remain absent; no paid, calibration, shadow, attack, or qualifying campaign ran.
 - `B-E4-DEVELOPMENT-EXECUTION-ADMISSION-01` — `WAVE-B/B-E4` — The owner approved one 40-slot non-qualifying DEVELOPMENT envelope, and the successor candidate freezes request v2 plus authenticated, journal-bound, one-use issuance/resume, project/retention/source/limit validation, real partial/stopped reporting, and conservative unknown-billing reservations. Controlled HTTP and deterministic 40-slot paths pass offline. The current workspace lacks the assigned owner authentication and provider project/key, so no capability, provider call, or charge occurred; calibration, shadow, attack, qualification, and B-GATE remain unauthorized.
 - `B-E4-DEVELOPMENT-APPROVER-CORRECTION-01` — `WAVE-B/B-E4` — The owner corrected only the one-campaign DEVELOPMENT approver to the authenticated fitz-lang6 / 317786409 account while preserving jbequ5's broader repository-owner role and all experiment choices. Owner-decision v2 and request v3 rebind the prospective source/artifacts; the deterministic 40-slot path passes, no authorization was issued, and no provider call or charge occurred. Qualification and B-GATE remain blocked and unstarted.
+- `OWNER-ROADMAP-02` — `WAVE-B/B-GATE` — The owner makes B-E4 OPTIONAL / DEFERRED / NON-BLOCKING, preserves its engineering and historical evidence without calling it complete, removes research-specific utility/diversity/shadow/calibration/ratification dependencies from delivery, selects revised B-GATE, and replaces separate Concierge empirical qualification with bounded engineering acceptance. The network path may ship with Concierge disabled.
 
 ## Authority boundary
 

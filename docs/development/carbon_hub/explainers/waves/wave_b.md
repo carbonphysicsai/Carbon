@@ -19,7 +19,7 @@ A real Challenge needs an exact scientific object before Carbon can reconstruct 
 
 ## Success and unlocks
 
-Carbon can demonstrate the board's fixture-only chain from public scientific contracts through a resolved plan, nominal practice and research records, a fixture-official reconstruction path, TEST_ONLY prior handling, and a dossier that still fails closed for LIVE.
+Carbon can demonstrate the board's fixture-only engineering chain and all cross-domain authority boundaries while preserving B-E4 as optional deferred research and keeping LIVE fail closed.
 
 Wave C can connect one real candidate to one real, qualified single-Challenge execution path.
 
@@ -75,13 +75,13 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-E1](../tickets/b_e1.md): Reproducibility, uncertainty, and contested outcomes [done]
 - [B-E2](../tickets/b_e2.md): Julia and reference failure contract [done]
 - [B-E3](../tickets/b_e3.md): Credibility crosswalk and evidence manifest [done]
-- [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [in_progress]
-- [B-GATE](../tickets/b_gate.md): Wave B integration and closeout gate [todo]
+- [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [deferred]
+- [B-GATE](../tickets/b_gate.md): Wave B integration and closeout gate [in_progress]
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

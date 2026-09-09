@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-E4`
 
-**Status:** IN_PROGRESS
+**Status:** DEFERRED
 
 **Target phase:** WB-5
 
@@ -21,18 +21,18 @@ Three causal TEST_ONLY families, an exact four-arm non-qualifying lifecycle, pre
 ## Placement and handoff
 
 - **Depends on:** B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12
-- **Feeds:** B-GATE
+- **Feeds:** No downstream ticket captured.
 - **Driver:** Codex + research + security
 - **Review route:** Research + security + science + statistics + protocol
 - **Master questions:** MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026
 
 ## Explicit non-goals
 
-The owner approved one DEVELOPMENT envelope, not calibration or qualification. The corrected approver identity is verified, but no live authorization was issued or claimed, no provider request was dispatched, and no charge occurred. The deterministic run proves integration only and establishes no model capability, utility, leakage clearance, security/privacy, science, production, qualification, or LIVE authority.
+This optional deferred research is not passed, qualified, or completed. Empirical prior effectiveness is UNMEASURED. No live authorization was issued, no provider request was dispatched, and no charge occurred. Its utility, diversity, shadow, calibration, and ratification questions gate no delivery milestone.
 
 ## Current stage
 
-PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission. The current correction binds that issuer to the verified delegated approver fitz-lang6 / 317786409, preserves jbequ5's broader repository-owner role, and freezes request v3 without changing the campaign. No authorization was issued and no provider call or charge occurred.
+OWNER-ROADMAP-02 preserves all completed engineering and frozen evidence while setting B-E4 to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical effectiveness is UNMEASURED. No authorization, provider inference, spend, qualifying, shadow, attack, or calibration campaign occurred or is required for delivery.
 
 ## Maturity ceiling
 
@@ -40,40 +40,40 @@ B-E4 is specified, implemented, and tested only for bounded fixture semantics, n
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/WAVE_B.md)
-- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/plans/B-E4_agent_gauntlet.md)
-- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/evidence/wave_b/b-e4.md)
-- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_successor_validation_repair.py)
-- [Historical v2 preregistration proposal](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_recommended_design_v2.json)
-- [Historical v2 owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
-- [v3 STILL_BLOCKED execution-readiness proposal](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_recommended_design_v3.json)
-- [v4 STILL_BLOCKED post-calibration proposal](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_recommended_design_v4.json)
-- [Historical owner-unapproved autonomous-agent pilot-v1 proposal](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json)
-- [Historical pilot-v2 design underlying the DEVELOPMENT envelope](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json)
-- [Current corrected DEVELOPMENT execution request v3](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_development_execution_request_v3.json)
-- [Current corrected development-only owner decisions v2](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_development_owner_decisions_v2.json)
-- [Current corrected deterministic DEVELOPMENT integration artifact](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/evidence/wave_b/b-e4-development-offline-integration-v3.json)
-- [Sequential DEVELOPMENT runner and transports](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/development.py)
-- [Authenticated one-use DEVELOPMENT authority](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/development_authority.py)
-- [DEVELOPMENT campaign entry point](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/scripts/dev/run_be4_development_pilot.py)
-- [DEVELOPMENT admission and controlled HTTP regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_development_authorization.py)
-- [Execution-readiness owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md)
-- [Non-qualifying preflight calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json)
-- [Frozen full-lifecycle calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json)
-- [Full-lifecycle calibration generator](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/scripts/dev/generate_be4_full_lifecycle_calibration.py)
-- [Full-lifecycle calibration regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_full_lifecycle_calibration.py)
-- [Execution-readiness integration](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/execution.py)
-- [Complete non-qualifying lifecycle](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/lifecycle.py)
-- [Non-qualifying lifecycle integration regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_nonqualifying_lifecycle.py)
-- [Non-qualifying rehearsal evidence](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/evidence.py)
-- [Offline-only pilot interaction and task contract](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/pilot_contract.py)
-- [Rehearsal integrity regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_rehearsal_evidence.py)
-- [Pilot-v2 semantic and offline contract regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_autonomous_pilot_proposal.py)
-- [Fail-closed readiness carriers](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/readiness.py)
-- [Execution-readiness integration regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_execution_integration.py)
-- [Preregistration design helpers](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/carbon/gauntlet/design.py)
-- [Preregistration design regressions](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/tests/cpu/test_be4_preregistration_design.py)
-- [B-E4 decision series](https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/DECISIONS.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/tickets/B-E4_agent_gauntlet.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/WAVE_B.md)
+- [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/plans/B-E4_agent_gauntlet.md)
+- [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/evidence/wave_b/b-e4.md)
+- [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_successor_validation_repair.py)
+- [Historical v2 preregistration proposal](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_recommended_design_v2.json)
+- [Historical v2 owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
+- [v3 STILL_BLOCKED execution-readiness proposal](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_recommended_design_v3.json)
+- [v4 STILL_BLOCKED post-calibration proposal](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_recommended_design_v4.json)
+- [Historical owner-unapproved autonomous-agent pilot-v1 proposal](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json)
+- [Historical pilot-v2 design underlying the DEVELOPMENT envelope](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json)
+- [Current corrected DEVELOPMENT execution request v3](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_development_execution_request_v3.json)
+- [Current corrected development-only owner decisions v2](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/preregistrations/B-E4_development_owner_decisions_v2.json)
+- [Current corrected deterministic DEVELOPMENT integration artifact](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/evidence/wave_b/b-e4-development-offline-integration-v3.json)
+- [Sequential DEVELOPMENT runner and transports](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/development.py)
+- [Authenticated one-use DEVELOPMENT authority](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/development_authority.py)
+- [DEVELOPMENT campaign entry point](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/scripts/dev/run_be4_development_pilot.py)
+- [DEVELOPMENT admission and controlled HTTP regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_development_authorization.py)
+- [Execution-readiness owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md)
+- [Non-qualifying preflight calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json)
+- [Frozen full-lifecycle calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json)
+- [Full-lifecycle calibration generator](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/scripts/dev/generate_be4_full_lifecycle_calibration.py)
+- [Full-lifecycle calibration regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_full_lifecycle_calibration.py)
+- [Execution-readiness integration](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/execution.py)
+- [Complete non-qualifying lifecycle](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/lifecycle.py)
+- [Non-qualifying lifecycle integration regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_nonqualifying_lifecycle.py)
+- [Non-qualifying rehearsal evidence](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/evidence.py)
+- [Offline-only pilot interaction and task contract](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/pilot_contract.py)
+- [Rehearsal integrity regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_rehearsal_evidence.py)
+- [Pilot-v2 semantic and offline contract regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_autonomous_pilot_proposal.py)
+- [Fail-closed readiness carriers](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/readiness.py)
+- [Execution-readiness integration regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_execution_integration.py)
+- [Preregistration design helpers](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/carbon/gauntlet/design.py)
+- [Preregistration design regressions](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/tests/cpu/test_be4_preregistration_design.py)
+- [B-E4 decision series](https://github.com/carbonphysicsai/Carbon/blob/91e5502d52645135d8391d4da7a824cdb733e87e/.agent/DECISIONS.md)
 
-> The 25-block/100-run calibration remains immutable design-analysis-only history. V4 remains STILL_BLOCKED with all eight values PROPOSED. Pilot-v2 digest sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31 remains unapproved beyond this DEVELOPMENT envelope. Exact request v3 digest sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209 binds the corrected approver and unchanged $14.42 stage ceiling; the deterministic 40-slot artifact is integration evidence only. No one-use authorization, provider inference, spend, qualifying, shadow, attack, or calibration campaign exists. B-GATE remains unstarted.
+> Historical calibration, proposals, approvals, digests, requests, journals, and accounting remain immutable evidence. A future resumption needs new selection and separate budget/run authority. B-GATE proceeds independently.

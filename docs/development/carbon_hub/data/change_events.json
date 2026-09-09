@@ -1650,6 +1650,27 @@
         "SYSTEM/MATURITY"
       ],
       "supersedes": "B-E4-DEVELOPMENT-EXECUTION-ADMISSION-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-GATE",
+      "event_type": "decision",
+      "event_id": "OWNER-ROADMAP-02",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "The owner makes B-E4 OPTIONAL / DEFERRED / NON-BLOCKING, preserves its engineering and historical evidence without calling it complete, removes research-specific utility/diversity/shadow/calibration/ratification dependencies from delivery, selects revised B-GATE, and replaces separate Concierge empirical qualification with bounded engineering acceptance. The network path may ship with Concierge disabled.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5601850672",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-B/B-01H",
+        "WAVE-C",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "supersedes": "B-E4-DEVELOPMENT-APPROVER-CORRECTION-01"
     }
   ]
 }

@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 69 map-level change events
+- 70 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission and honest partial/unknown-billing reports. The current correction changes only the development-specific principal: the production issuer now requires the verified GitHub viewer fitz-lang6 / 317786409, while jbequ5 / 99085788 retains Carbon's broader repository-owner role. Owner-decision record v2 and execution request v3 prospectively rebind the exact source and artifacts without changing the frozen population, tasks, treatments, six-field egress, retention choice, evidence role, stopping rules, 40-slot schedule, or $14.42 provider-charge cap. The refreshed deterministic 40-slot Carbon path passed with zero inference and spend. No one-use authorization was issued or claimed, and no provider request was dispatched. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
+Wave **B**; current ticket: **B-GATE**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition.
 
 ## Maintain
 

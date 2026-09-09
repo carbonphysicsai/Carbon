@@ -35,6 +35,7 @@ NEWCOMER_STATUS_LABELS = {
     "planned": "Planned",
     "todo": "Planned",
     "blocked": "Blocked",
+    "deferred": "Deferred (non-blocking)",
 }
 
 

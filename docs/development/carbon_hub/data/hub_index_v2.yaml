@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-09T10:14:49Z"
+  captured_at_utc: "2026-09-09T12:43:21Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "81add1d1bbaac437cd80def1181df60ab7d687fc"
+  authority_snapshot_commit: "91e5502d52645135d8391d4da7a824cdb733e87e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -436,8 +436,8 @@ validator_exam_map:
           authority:
             -
               label: "Testnet-to-Mainnet Launch Path"
-              path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md"
-  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission and honest partial/unknown-billing reports. The current correction changes only the development-specific principal: the production issuer now requires the verified GitHub viewer fitz-lang6 / 317786409, while jbequ5 / 99085788 retains Carbon's broader repository-owner role. Owner-decision record v2 and execution request v3 prospectively rebind the exact source and artifacts without changing the frozen population, tasks, treatments, six-field egress, retention choice, evidence role, stopping rules, 40-slot schedule, or $14.42 provider-charge cap. The refreshed deterministic 40-slot Carbon path passed with zero inference and spend. No one-use authorization was issued or claimed, and no provider request was dispatched. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+              path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
+  current_maturity: "Target-state orientation only. Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "B"
   wave_title: "Science-ready authoring skeletons"
@@ -453,20 +453,15 @@ current:
       url: "https://github.com/carbonphysicsai/Carbon/pull/102"
       merge_commit: "b5608b46973869d93300d961749a860096aa6db4"
   selected_ticket:
-    id: "B-E4"
-    title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
+    id: "B-GATE"
+    title: "Wave B integration and closeout gate"
     status: "in_progress"
-    summary: "PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission. The current correction binds that issuer to the verified delegated approver fitz-lang6 / 317786409, preserves jbequ5's broader repository-owner role, and freezes request v3 without changing the campaign. No authorization was issued and no provider call or charge occurred."
-    delivery:
-      reference: "PR #115"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/115"
-      merge_commit: "6ac9e8db33f5e7da565f9617080f3bc4ed6b9745"
+    summary: "OWNER-ROADMAP-02 selects the revised engineering closeout. B-E4 is preserved as OPTIONAL / DEFERRED / NON-BLOCKING with empirical effectiveness UNMEASURED; no paid or qualifying research is required or authorized."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_B.md"
-  controlling_register_version: "4.7"
-  controlling_board_fingerprint: "cad2f7d4cfa919e707ba0a3eb33c5b1cf337ad4137556a33cac4a563bf29f54b"
-  stage: "Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission and honest partial/unknown-billing reports. The current correction changes only the development-specific principal: the production issuer now requires the verified GitHub viewer fitz-lang6 / 317786409, while jbequ5 / 99085788 retains Carbon's broader repository-owner role. Owner-decision record v2 and execution request v3 prospectively rebind the exact source and artifacts without changing the frozen population, tasks, treatments, six-field egress, retention choice, evidence role, stopping rules, 40-slot schedule, or $14.42 provider-charge cap. The refreshed deterministic 40-slot Carbon path passed with zero inference and spend. No one-use authorization was issued or claimed, and no provider request was dispatched. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted."
+  controlling_register_version: "4.8"
+  controlling_board_fingerprint: "433d498d4789814d4ce897c3a4c441f8ccc472519d2aac9fc3ae869181e85351"
+  stage: "Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition."
   most_recent_closed_wave: "A"
   completed_wave_tickets:
     - "B-01"
@@ -495,19 +490,6 @@ current:
     - "B-E2"
     - "B-E3"
   recent_dependencies:
-    - "B-07A"
-    - "B-07B"
-    - "B-07C"
-    - "B-07D1"
-    - "B-07D2"
-    - "B-07D3"
-    - "B-07E"
-    - "B-07F"
-    - "B-07G"
-    - "B-07S"
-    - "B-E1"
-    - "A12"
-  other_completed_wave_context:
     - "B-01"
     - "B-01E"
     - "B-01F"
@@ -520,10 +502,23 @@ current:
     - "B-05"
     - "B-06"
     - "B-07R"
+    - "B-07S"
+    - "B-07A"
+    - "B-07B"
+    - "B-07C"
+    - "B-07D1"
+    - "B-07D2"
+    - "B-07D3"
+    - "B-07E"
+    - "B-07F"
+    - "B-07G"
+    - "B-E1"
     - "B-E2"
     - "B-E3"
+  other_completed_wave_context:
+    []
   downstream_handoffs:
-    - "B-GATE"
+    []
   parallel_context:
     - "B-01G remains todo as a future non-blocking tooling proof."
   fail_closed:
@@ -537,7 +532,7 @@ current:
     - "B-07G is merged local in-process composition only; it supplies no listener, authenticated transport, credentials, quote, admission, observed-resource authority, official submission/result path, scientific qualification, production, or LIVE."
     - "B-E1 is a TEST_ONLY fixture harness with no real statistical values, qualified backend, ranking, frontier, scientific/security qualification, production, or LIVE authority."
     - "B-E2 is deterministic TEST_ONLY reference-service fixture evidence; archived Julia remains absent and no reference method, environment, retry/fallback policy, scientific qualification, production, or LIVE authority is supplied."
-    - "B-E4's v4 proposal remains STILL_BLOCKED. One non-qualifying DEVELOPMENT envelope is owner-approved and its authenticated, journal-bound, one-use admission now binds the verified delegated approver fitz-lang6 / 317786409. No authorization was issued or claimed and no provider request was dispatched. The completed deterministic 40-slot fixture-service run proves integration only; it establishes no model capability, utility, diversity, leakage, population scope, security/privacy, or readiness. Qualification-grade independent ratification, trusted attacks, and qualifying evidence remain unavailable."
+    - "B-E4 is optional/deferred/non-blocking and empirical prior effectiveness is UNMEASURED. Its v4 proposal remains STILL_BLOCKED for any future research use. No authorization was issued, provider request dispatched, or charge incurred. The deterministic 40-slot fixture-service run proves integration only and gates no delivery milestone."
     - "Generator Validation v2.1 and scientific-canon v4.1 dependence policy remain owner-ratification proposals; populated fields grant no scientific acceptance."
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
@@ -545,39 +540,19 @@ current:
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
   maturity_states:
     specified: "earned"
-    implemented: "earned"
-    tested: "earned"
+    implemented: "unearned"
+    tested: "unearned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-E4 is specified, implemented, and tested only for bounded fixture engineering, non-qualifying lifecycle/rehearsal/calibration evidence, execution correctness, evidence/resource integrity, strict proposal validation, the offline-tested DEVELOPMENT runner, bounded one-use development admission/reporting, and the corrected authenticated DEVELOPMENT-approver binding. The owner approved one DEVELOPMENT envelope, but no authorization was issued and zero provider calls and charges occurred; v4 remains STILL_BLOCKED. No utility, diversity, leakage, scientific, security/privacy, network, commercial, production, qualification, ranking, frontier, settlement, emission, or LIVE maturity is earned."
-  decision_series_status: "B-E4-D1/D2/D3/D4, D6/D7/D8, and D10-D21 are implemented working engineering decisions. D19 freezes one sequential 40-slot DEVELOPMENT runner and $14.42 request. D20 implements the one-campaign admission mechanics. D21 corrects only the issuer to the verified delegated account fitz-lang6 / 317786409, retains jbequ5's broader owner role, and freezes owner-decision v2/request v3 identities. No capability was issued and no provider inference, spend, or model-run evidence exists. All eight v4 values, qualification-grade independent ratification, separate qualifying authorization, and qualifying evidence remain unavailable."
+  maturity_summary: "B-GATE is selected for engineering integration and closeout only. It has not yet earned completion. Scientific, security, network, commercial, production, LIVE, launch, settlement, weight, and emission authority remain unearned."
+  decision_series_status: "OWNER-ROADMAP-02 is owner-decided and prospectively implemented. B-E4 is deferred/non-blocking rather than passed or completed; B-GATE is selected."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
-    - "B-E4-D1"
-    - "B-E4-D2"
-    - "B-E4-D3"
-    - "B-E4-D4"
-    - "B-E4-D5"
-    - "B-E4-D6"
-    - "B-E4-D7"
-    - "B-E4-D8"
-    - "B-E4-D9"
-    - "B-E4-D10"
-    - "B-E4-D11"
-    - "B-E4-D12"
-    - "B-E4-D13"
-    - "B-E4-D14"
-    - "B-E4-D15"
-    - "B-E4-D16"
-    - "B-E4-D17"
-    - "B-E4-D18"
-    - "B-E4-D19"
-    - "B-E4-D20"
-    - "B-E4-D21"
+    []
 waves:
   -
     id: "A"
@@ -1096,6 +1071,7 @@ tickets:
       - "B-01F delivery hardening and PR #75's completed B-04 predicate"
     unlocks:
       - "B-05"
+      - "B-GATE"
     unlocks_context:
       []
   -
@@ -1566,7 +1542,7 @@ tickets:
     id: "B-E4"
     wave: "B"
     title: "Agent utility, leakage, poisoning, and aligned-cheating gauntlet"
-    status: "in_progress"
+    status: "deferred"
     explainer: "explainers/tickets/b_e4.md"
     repo_path: ".agent/tickets/B-E4_agent_gauntlet.md"
     depends_on:
@@ -1585,20 +1561,21 @@ tickets:
     depends_on_context:
       []
     unlocks:
-      - "B-GATE"
+      []
     unlocks_context:
       []
   -
     id: "B-GATE"
     wave: "B"
     title: "Wave B integration and closeout gate"
-    status: "todo"
+    status: "in_progress"
     explainer: "explainers/tickets/b_gate.md"
     repo_path: ".agent/tickets/B-GATE_closeout.md"
     depends_on:
       - "B-01"
       - "B-01E"
       - "B-01F"
+      - "B-01H"
       - "B-02A"
       - "B-02B"
       - "B-02C"
@@ -1620,7 +1597,6 @@ tickets:
       - "B-E1"
       - "B-E2"
       - "B-E3"
-      - "B-E4"
     depends_on_context:
       []
     unlocks:
@@ -3255,6 +3231,25 @@ events:
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/MATURITY"
     supersedes: "B-E4-DEVELOPMENT-EXECUTION-ADMISSION-01"
+  -
+    map_ref: "WAVE-B/B-GATE"
+    event_type: "decision"
+    event_id: "OWNER-ROADMAP-02"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "The owner makes B-E4 OPTIONAL / DEFERRED / NON-BLOCKING, preserves its engineering and historical evidence without calling it complete, removes research-specific utility/diversity/shadow/calibration/ratification dependencies from delivery, selects revised B-GATE, and replaces separate Concierge empirical qualification with bounded engineering acceptance. The network path may ship with Concierge disabled."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5601850672"
+    affects:
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "WAVE-B/B-01H"
+      - "WAVE-C"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+    supersedes: "B-E4-DEVELOPMENT-APPROVER-CORRECTION-01"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
