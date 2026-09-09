@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `624fa711db26c3b7ccdbb40b2dbb63a6f6d5c775` on `main`, captured 2026-09-09T13:11:56Z.
+**Authority snapshot:** `80fb7a8433eec82c38c945a9d5be1a1d7b5f94f6` on `main`, captured 2026-09-09T13:13:34Z.
 **Current:** Wave B, ticket B-GATE. Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition.
 **Last completed:** B-E2 (`done`).
 **Next selected:** none selected.
