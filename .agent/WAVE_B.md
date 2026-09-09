@@ -794,8 +794,8 @@ No later state is inferred from an earlier one.
 
 `B-GATE` may propose this board `done` only after:
 
-- every required ticket except explicitly non-blocking B-01G has merged
-  evidence and checked acceptance criteria;
+- every required ticket except explicitly non-blocking B-01G and optional,
+  deferred B-E4 has merged evidence and checked acceptance criteria;
 - full CPU, focused, invariant, quality, and installed-wheel tests pass;
 - B-E4 is recorded as optional/deferred/non-blocking with empirical prior
   effectiveness `UNMEASURED`; its retained engineering evidence is not
@@ -817,10 +817,10 @@ No later state is inferred from an earlier one.
   activation remains unavailable and fail closed;
 - the Dossier and qualification manifest remain incomplete/fail closed for LIVE;
 - `.agent/WAVE_B_REPORT.md` records exact evidence and remaining human inputs;
-- the complete exact-head review, normal-merge, exact-main, and external-
-  receipt predicate in `.agent/DELIVERY_PROTOCOL.md` passes. Human-reserved
-  qualification and activation
-  remain separate and fail closed; no affirmative closeout-response or silence
-  gate applies to bounded engineering completion.
+- the applicable automated acceptance and `Merge gate` in
+  `.agent/DELIVERY_PROTOCOL.md` pass, followed by the normal expected-head
+  merge. OWNER-DX-03 requires no human approval, GPT receipt, repeated
+  full-suite pass, or external closeout-response. Human-reserved qualification
+  and activation remain separate and fail closed.
 
 Wave C remains unauthorized until `.agent/WAVE.md` moves prospectively.
