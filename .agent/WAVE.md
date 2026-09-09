@@ -1,12 +1,10 @@
 # Carbon Agent Wave Status
 
 > **OWNER-C0-REWARD-01 current execution authority:**
-> NET-1 remains the one active ticket. After its accepted normal merge, continue
-> NET-2 -> NET-3 -> C-REWARD -> NET-4A -> NET-4B -> NET-5 -> NET-6 without a new
-> permission checkpoint. The earlier stop-after-NET-1 scope is superseded.
-> `.agent/plans/C0_score_reward_program.md` owns the NET-0 development disposition
-> and program contract; launch v1.0.6 preserves C1/C2 and makes treasury optional.
-> No later ticket is represented as started or delivered by this amendment.
+> NET-1 merged in PR #120 as 6dad22db26e4b8babadf73c4de2527a17485a2b1.
+> NET-2 is now the one active implementation ticket. Continue NET-3 ->
+> C-REWARD -> NET-4A -> NET-4B -> NET-5 -> NET-6 after each accepted merge.
+> Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
 > `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
@@ -22,8 +20,8 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 0.1
-**Selected ticket:** NET-1 — `in_progress`
+**Controlling register:** `.agent/WAVE_C.md` version 0.2
+**Selected ticket:** NET-2 — `in_progress`
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -61,7 +59,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** Wave C/C0 is active with NET-1 selected alone.
+**Current C0 status:** Wave C/C0 is active with NET-2 selected alone; NET-1 is merged.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

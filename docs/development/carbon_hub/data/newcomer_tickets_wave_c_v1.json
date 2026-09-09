@@ -10,6 +10,14 @@
       "changes": "Carbon gains a deterministic, testable way to read and classify network identity while keeping the Bittensor SDK inside the chain adapter.",
       "not_yet": "This does not authenticate application requests, bind candidates, load keys, sign transactions, publish weights, run localnet, contact a live chain in tests, or qualify network security or production use.",
       "map_ref": "WAVE-C/NET-1"
+    },
+    "NET-2": {
+      "title": "Verify who sent each request and prevent replay",
+      "what": "Wrap SDK btauth/1 and the unchanged seven-tool MCP core with contextual messages and a bounded durable replay journal.",
+      "why": "A hotkey signature must remain bound to the exact network, challenge, snapshot and request without becoming scientific authority.",
+      "changes": "Canonical v1 ingress, SDK signatures, durable nonce/request receipts, identity and time watermarks, and precise bounded failures.",
+      "not_yet": "No evaluator, accepted flag, public listener, public deployment, weight publication, scientific/security qualification or LIVE authority.",
+      "map_ref": "WAVE-C/NET-2"
     }
   }
 }

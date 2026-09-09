@@ -98,3 +98,12 @@ OWNER-C0-VALIDATION-01 authorizes focused acceptance for this repair. The
 selector verifies the exact constraint-only migration; the locked package
 resolution is unchanged. Full regression remains for unknown paths, scientific
 code and changed resolved dependencies. No failure is suppressed.
+
+## Accepted delivery
+
+PR #120 merged 6dad22db26e4b8babadf73c4de2527a17485a2b1 on 2026-09-09.
+Exact head 528213a passed run 34405478897: 169 invariants, 352 network/tooling,
+86 package, 17 authority checks, clean image, Hub and Merge gate. Merge tree
+1bef01d3a202c6a1868f5c16be8d963aff726efe matches the tested head.
+NET-1 is done in bounded read-only engineering scope. NET-2 is next.
+No localnet or scientific/security/production qualification.

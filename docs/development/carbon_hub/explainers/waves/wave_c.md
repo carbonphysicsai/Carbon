@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C`
 
-**Purpose:** Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights.
+**Purpose:** Connect contextual participant identity and authenticated requests, then prove localnet and real scientific integration.
 
 ## Sequence
 
@@ -13,7 +13,7 @@
 
 ## What and why
 
-Wave C retains C0 network foundation, C1 real scientific vertical, and C2 temporary testnet integration. Passive planned work C-EA0, C-EA1, C-EA2 and C-EA3 adds durable evidence capture before finalization; C-DC1, C-DC2, C-DC3 and C-DC4 add a separate private Research Concierge using approved bootstrap sources. Bittensor wraps the Miner MCP and all scientific/result authority stays with existing owners.
+Wave C retains C0 network foundation, C1 real scientific vertical, and C2 direct testnet integration. Passive planned work C-EA0, C-EA1, C-EA2 and C-EA3 adds durable evidence capture before finalization; C-DC1, C-DC2, C-DC3 and C-DC4 add a separate private Research Concierge using approved bootstrap sources. Bittensor wraps the Miner MCP and all scientific/result authority stays with existing owners.
 
 Carbon must prove both the chain boundary and one real protected scientific path without letting SDK objects, raw scores, fixtures, stale winners, or incomplete evidence acquire economic authority.
 
@@ -46,12 +46,13 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Tickets
 
-- [NET-1](../tickets/net_1.md): Read-only Bittensor chain adapter and identity snapshots [in_progress]
+- [NET-1](../tickets/net_1.md): Read-only Bittensor chain adapter and identity snapshots [done]
+- [NET-2](../tickets/net_2.md): Authenticated application transport and durable receipts [in_progress]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

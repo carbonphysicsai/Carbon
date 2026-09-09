@@ -1,7 +1,7 @@
 # NET-1 — Read-only Bittensor chain adapter and identity snapshots
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** B-GATE
 **Plan:** `.agent/plans/NET-1_chain_adapter.md`
 **Evidence:** `.agent/evidence/wave_c/net-1.md`
@@ -25,29 +25,29 @@ not block the independently testable read-only subset.
 
 ## Definition of Done
 
-- [ ] Define a narrow Carbon-owned `ChainAdapter` interface whose public
+- [x] Define a narrow Carbon-owned `ChainAdapter` interface whose public
       operations are read-only and return only Carbon-owned immutable types.
-- [ ] Represent explicit network, endpoint/provider, netuid, observed chain,
+- [x] Represent explicit network, endpoint/provider, netuid, observed chain,
       and snapshot context sufficient to prevent timeless/cross-network
       interpretation of hotkey, wallet, or UID associations.
-- [ ] Map SDK metagraph responses into a bounded read-only snapshot including
+- [x] Map SDK metagraph responses into a bounded read-only snapshot including
       wallet/hotkey identity and UID associations; represent UID absence and
       reassignment by comparison of exact snapshots rather than mutation or a
       timeless registry.
-- [ ] Classify provider unavailable, timeout/transport, malformed,
+- [x] Classify provider unavailable, timeout/transport, malformed,
       incomplete, identity-mismatch, and unsupported responses without
       fabricated state, partial success, exception leakage, or silent defaults.
-- [ ] Implement the adapter against an exact compatible Bittensor SDK pin
+- [x] Implement the adapter against an exact compatible Bittensor SDK pin
       verified from official package metadata and documentation. SDK imports,
       clients, responses, and exceptions remain inside `carbon.chain`.
-- [ ] Prove import and construction perform no network call, wallet/key load,
+- [x] Prove import and construction perform no network call, wallet/key load,
       background refresh, authentication, signing, transaction, publication,
       or chain mutation.
-- [ ] Add deterministic fake-backed tests for translation, exact
+- [x] Add deterministic fake-backed tests for translation, exact
       network/snapshot/identity consistency, UID absence/reassignment,
       malformed/incomplete/unavailable responses, failure classification, SDK
       containment, and the absence of write behavior.
-- [ ] Update the managed dependency lock, CODE_AUTHORITY if needed, stable
+- [x] Update the managed dependency lock, CODE_AUTHORITY if needed, stable
       evidence, maturity ledger, Wave C board, and Development Hub; run focused
       tests and one applicable ready-revision acceptance, then normally merge
       the tested expected head under OWNER-DX-03.

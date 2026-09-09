@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9d321eeb199fd6d90e3c2f352a81e226bea90140` on `main`, captured 2026-09-09T21:10:55Z.
-**Current:** Wave C, ticket NET-1. Wave C/C0 has NET-1 selected as its one active ticket. OWNER-C0-REWARD-01 authorizes sequential implementation through NET-6, with C-REWARD after NET-3 and before intent/publication consumers. The complete default is direct winner plus burn with treasury absent. NET-0 is a development boundary disposition; actual localnet and later ticket implementations remain unverified/unstarted. C1/C2 scientific/evidence requirements remain intact. B-01G remains unfinished/non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness UNMEASURED. No later ticket is selected.
-**Last completed:** B-GATE (`done`).
+**Authority snapshot:** `134280e39db0d5dfa3d4ce5e1f07fbea1b226994` on `main`, captured 2026-09-09T21:37:08Z.
+**Current:** Wave C, ticket NET-2. Wave C/C0 has NET-2 selected as its one active ticket after NET-1 merged in PR #120. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
+**Last completed:** NET-1 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -13,7 +13,7 @@
 |---|---|---|
 | [A](explainers/waves/wave_a.md) | Prove Carbon's software authority boundaries before real scientific execution. | closed |
 | [B](explainers/waves/wave_b.md) | Make one scientific exam authorable and the miner research loop executable with fixtures. | closed |
-| [C](explainers/waves/wave_c.md) | Establish Bittensor identity and authenticated transport, run one real candidate through the protected exam, and prove temporary direct testnet weights. | active |
+| [C](explainers/waves/wave_c.md) | Connect contextual participant identity and authenticated requests, then prove localnet and real scientific integration. | active |
 | [D](explainers/waves/wave_d.md) | Qualify the first exact Challenge without inferring science from testnet weights. | planned |
 | [E](explainers/waves/wave_e.md) | Learn from authoritative experiments without letting learned memory control the judge. | planned |
 | [F](explainers/waves/wave_f.md) | Separate search success from deployable product evidence. | planned |
@@ -72,7 +72,8 @@
 | [B-E3](explainers/tickets/b_e3.md) | Map each scientific or engineering claim to supporting evidence, limitations, and the correct Dossier section. | done |
 | [B-E4](explainers/tickets/b_e4.md) | Test the autoresearch workflow for utility, hidden-exam leakage, poisoning, gaming, diversity collapse, and unsafe evidence use. | deferred |
 | [B-GATE](explainers/tickets/b_gate.md) | Run fixture integration, invariant proof, closeout reporting, and a no-placeholder-LIVE audit across the whole board. | done |
-| [NET-1](explainers/tickets/net_1.md) | Translate read-only Bittensor network identity into explicit Carbon-owned snapshots behind one narrow adapter. | in_progress |
+| [NET-1](explainers/tickets/net_1.md) | Translate read-only Bittensor network identity into explicit Carbon-owned snapshots behind one narrow adapter. | done |
+| [NET-2](explainers/tickets/net_2.md) | Authenticate canonical requests and retain original receipts across restart. | in_progress |
 
 ## Change routes
 
@@ -160,6 +161,7 @@
 - `OWNER-WAVE-C0-NET1-01` — `WAVE-C/NET-1` — Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created.
 - `NET-1-D1` — `WAVE-C/NET-1` — NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.
 - `NET-1-D2` — `WAVE-C/NET-1` — Owner authorizes focused NET acceptance. Explicit network/tooling regressions retain all invariants and package checks. Initial broad run found bootstrap environment inheritance; repair covers both dependency groups. No resolved dependency changed.
+- `NET-2-D1` — `WAVE-C/NET-2` — NET-1 merged with canonical installed-SDK evidence. NET-2 is selected and implemented as an outer authenticated MCP wrapper with durable original receipts; Linux acceptance remains pending. No admission/scientific authority or public deployment.
 
 ## Authority boundary
 

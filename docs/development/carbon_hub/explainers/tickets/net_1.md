@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-1`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ A narrow Carbon-owned interface, immutable snapshot/identity types, classified p
 ## Placement and handoff
 
 - **Depends on:** B-GATE
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-2
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -32,20 +32,20 @@ NET-1 does not authenticate requests, bind candidates, sign or publish transacti
 
 ## Current stage
 
-NET-1 implements the Bittensor 11.1.0 read-only adapter candidate, immutable finalized provider snapshots and UID registration checks. Native diagnostics pass; required installed-SDK Linux acceptance and normal merge are pending.
+NET-1 is merged and canonically tested in bounded read-only scope (PR #120).
 
 ## Maturity ceiling
 
-B-GATE retains bounded closure. NET-1 has implementation and native diagnostic evidence; canonical installed-SDK acceptance and merge remain pending. No localnet, scientific, security, production or LIVE qualification.
+Read-only SPECIFIED/IMPLEMENTED/TESTED only; no localnet or scientific/security/production qualification.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/tickets/NET-1_chain_adapter.md)
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/WAVE_C.md)
-- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/plans/NET-1_chain_adapter.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/evidence/wave_c/net-1.md)
-- [Current launch roadmap](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
-- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/.agent/plans/C0_score_reward_program.md)
-- [SDK adapter and upgrades](https://github.com/carbonphysicsai/Carbon/blob/9d321eeb199fd6d90e3c2f352a81e226bea90140/docs/development/CHAIN_ADAPTER.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE_C.md)
+- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/plans/NET-1_chain_adapter.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/evidence/wave_c/net-1.md)
+- [Current launch roadmap](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
+- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/plans/C0_score_reward_program.md)
+- [SDK adapter and upgrades](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/docs/development/CHAIN_ADAPTER.md)
 
 > Read-only local adapter work proceeds without keys or live-chain access. UID meaning is snapshot- and network-bound; missing or malformed provider state fails closed rather than fabricating identity.

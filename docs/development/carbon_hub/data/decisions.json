@@ -1954,6 +1954,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/120"
+    },
+    {
+      "decision_id": "NET-2-D1",
+      "map_ref": "WAVE-C/NET-2",
+      "wave": "C",
+      "ticket": "NET-2",
+      "title": "Authenticated ingress with durable original receipts",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should registered hotkeys reach MCP without replay or receipt-order forgery?",
+      "recommendation": "KEEP SDK btauth/1 behind carbon.chain.auth and an outer carbon.transport wrapper with atomic SQLite receipts and watermarks.",
+      "why": "Volatile nonce memory loses replay state; A9 core must retain its frozen security boundary.",
+      "if_kept": "NET-3 resolves original receipt provenance while existing owners retain admission and scientific authority.",
+      "if_changed": "Version the wire/journal migration and preserve issued receipt identity and replay state.",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609045669",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/docs/development/AUTHENTICATED_TRANSPORT.md"
     }
   ]
 }

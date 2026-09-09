@@ -49,11 +49,17 @@ _TOOLING_PATHS = frozenset(TOOLING_TESTS) | frozenset(
         "scripts/dev/select_cpu_profile.py",
         "docs/development/carbon_hub/tools/validate_hub.py",
         "docs/development/carbon_hub/tools/test_validator.py",
+        "docs/development/carbon_hub/tools/test_newcomer.py",
     }
 )
 
 
-NETWORK_TESTS = (*TOOLING_TESTS, "tests/cpu/test_net1_chain_adapter.py")
+NETWORK_TESTS = (
+    *TOOLING_TESTS,
+    "tests/cpu/test_net1_chain_adapter.py",
+    "tests/cpu/test_net2_transport.py",
+    "tests/cpu/test_mcp_skeleton.py",
+)
 _NETWORK_PATHS = frozenset(
     {
         "carbon/chain/__init__.py",
@@ -65,6 +71,14 @@ _NETWORK_PATHS = frozenset(
         "scripts/dev/localnet-runtime.json",
         "docs/development/CHAIN_ADAPTER.md",
         "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md",
+        "carbon/chain/auth.py",
+        "carbon/transport/__init__.py",
+        "carbon/transport/gateway.py",
+        "carbon/transport/models.py",
+        "carbon/transport/store.py",
+        "tests/cpu/test_net2_transport.py",
+        "tests/invariants/test_net2_auth_boundary.py",
+        "docs/development/AUTHENTICATED_TRANSPORT.md",
     }
 )
 
@@ -83,7 +97,10 @@ def chain_constraint_tightening(before_project, after_project, before_lock, afte
 
 
 def select_cpu_profile(
-    paths: tuple[str, ...] | list[str], *, unchanged_chain_resolution: bool = False
+    paths: tuple[str, ...] | list[str],
+    *,
+    unchanged_chain_resolution: bool = False,
+    transport_root_addition: bool = False,
 ) -> str:
     """Allow only known tooling plus already lighter authority/document paths.
 
@@ -96,6 +113,8 @@ def select_cpu_profile(
     allowed = _TOOLING_PATHS | (_NETWORK_PATHS if network else frozenset())
     if network and unchanged_chain_resolution:
         allowed |= {"pyproject.toml", "uv.lock"}
+    if network and transport_root_addition:
+        allowed |= {".agent/CODE_AUTHORITY.toml"}
     if any(path not in allowed for path in classification.unknown_paths):
         return "RUNTIME_FULL"
     for item in classification.paths:
@@ -120,6 +139,14 @@ def unchanged_chain_resolution(repository: Path, base: str) -> bool:
     return chain_constraint_tightening(*values)
 
 
+def only_transport_root_added(before: str, after: str) -> bool:
+    original = '    "carbon/traineval",\n'
+    return (
+        before.count(original) == 1
+        and before.replace(original, original + '    "carbon/transport",\n') == after
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -132,7 +159,27 @@ def main() -> int:
         same_resolution = False
         if "pyproject.toml" in paths or "uv.lock" in paths:
             same_resolution = unchanged_chain_resolution(args.repository, args.base)
-        profile = select_cpu_profile(paths, unchanged_chain_resolution=same_resolution)
+        root_addition = False
+        if ".agent/CODE_AUTHORITY.toml" in paths:
+            result = subprocess.run(
+                ["git", "show", f"{args.base}:.agent/CODE_AUTHORITY.toml"],
+                cwd=args.repository,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                root_addition = only_transport_root_added(
+                    result.stdout,
+                    (args.repository / ".agent/CODE_AUTHORITY.toml").read_text(
+                        encoding="utf-8"
+                    ),
+                )
+        profile = select_cpu_profile(
+            paths,
+            unchanged_chain_resolution=same_resolution,
+            transport_root_addition=root_addition,
+        )
     except (ChangeClassificationError, OSError) as error:
         print(f"CPU profile selection failed: {error}", file=sys.stderr)
         return 2
