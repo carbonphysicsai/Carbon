@@ -9,8 +9,10 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.7
-**Selected ticket:** B-E4 — `in_progress`
+**Controlling register:** `.agent/WAVE_B.md` version 4.8
+**Selected ticket:** B-GATE — `in_progress`
+**Deferred non-blocking research:** B-E4 — `deferred`,
+`OPTIONAL / DEFERRED / NON-BLOCKING`; empirical effectiveness `UNMEASURED`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
 PR #105 normally merged the bounded validation repair as
@@ -38,13 +40,11 @@ that development-only issuer to the authenticated `fitz-lang6` / `317786409`
 account, preserves `jbequ5`'s broader repository-owner role, and prospectively
 freezes request v3 without changing the campaign. No authorization was issued
 and no provider dispatch occurred.
-**Selection boundary:** the authorized DEVELOPMENT handoff waits only for the
-external provider configuration and the owner's explicit v3 issue-and-run
-invocation. B-E4
-qualifying execution and completion remain blocked on real evidence, validated
-pre-execution design, and complete qualification ratification; B-GATE remains
-unstarted.
-**Next eligible status:** no later ticket is selected
+**Selection boundary:** OWNER-ROADMAP-02 preserves the frozen DEVELOPMENT
+handoff and all B-E4 history but removes every research-specific utility,
+diversity, shadow, calibration, and ratification requirement from delivery.
+No provider execution is requested. B-GATE is the sole active ticket.
+**Next eligible status:** Wave C transition after revised B-GATE passes
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -100,7 +100,7 @@ passed run `34124228848` and normally merged
 **B-E2 status:** `done` in bounded merged fixture-engineering scope after PR
 #100. PR #102 normally merged the B-E2-R1 nested-response successor repair
 without reopening that history or changing B-E2 maturity.
-**B-E4 status:** `in_progress`; PR #108 merged the complete non-qualifying
+**B-E4 status:** `deferred`; `OPTIONAL / DEFERRED / NON-BLOCKING`. PR #108 merged the complete non-qualifying
 lifecycle, PR #109 merged factory-bound rehearsal evidence, and PR #110 merged
 the frozen fresh calibration. It records 25 complete primary four-arm blocks and 100 runs,
 with zero invalid attempts/failures/replacements but only an 11.2928% one-sided
@@ -131,7 +131,9 @@ the provider setup remains outside this delivery. Representative autonomous-agen
 stochastic and dependence evidence, diversity, shadow/leakage, trusted
 attacks, qualification-grade independent ratification, and qualifying storage
 remain unavailable. No paid, qualifying, calibration, shadow, or attack
-campaign ran. B-GATE is unstarted.
+campaign ran. B-GATE is selected `in_progress`. Empirical prior effectiveness
+remains `UNMEASURED`; no research result is called passed, qualified, or
+completed.
 **B-03 status:** `done` in bounded merged engineering scope
 **B-01E status:** `done` only under the closeout authority gate below
 **B-01 dependency:** `done`

@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-B/B-GATE`
 
-**Status:** TODO
+**Status:** IN_PROGRESS
 
 **Target phase:** WB-5
 
@@ -20,7 +20,7 @@ The bounded evidence required to close Wave B and hand the program to Wave C.
 
 ## Placement and handoff
 
-- **Depends on:** B-01, B-01E, B-01F, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4
+- **Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3
 - **Feeds:** No downstream ticket captured.
 - **Driver:** Codex
 - **Review route:** Tech lead + science + protocol + security + rights
@@ -32,15 +32,15 @@ Wave B closeout still does not create real training, LIVE science, production se
 
 ## Current stage
 
-No more specific stage is supported; use the captured status and repository evidence.
+OWNER-ROADMAP-02 selects the revised engineering closeout. B-E4 is preserved as OPTIONAL / DEFERRED / NON-BLOCKING with empirical effectiveness UNMEASURED; no paid or qualifying research is required or authorized.
 
 ## Maturity ceiling
 
-Planned on the controlling board; not current implementation permission.
+Selected bounded work is in progress. Completion, qualification, LIVE, production, frontier, and settlement authority are not implied.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/tickets/B-GATE_closeout.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9cad9caaedc0a0fcb064e04524964e3337ed34ac/.agent/tickets/B-GATE_closeout.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/9cad9caaedc0a0fcb064e04524964e3337ed34ac/.agent/WAVE_B.md)
 
-> This explainer describes placement and purpose. The linked ticket, domain contract, PR, review, and evidence record own exact implementation detail.
+> B-E4 remains preserved deferred research and is not a closeout dependency. This gate grants no scientific, security, network, production, LIVE, launch, settlement, weight, or emission authority.

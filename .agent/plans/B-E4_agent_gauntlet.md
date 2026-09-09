@@ -17,6 +17,13 @@ exact execution request, and full deterministic offline fixture integration are
 implemented. Provider execution, owner approval, ratification, calibration,
 shadow/attack work, and qualifying execution remain unavailable.
 
+**OWNER-ROADMAP-02 disposition:** `OPTIONAL / DEFERRED / NON-BLOCKING`.
+This plan and every frozen artifact remain retained research work, not a passed
+or completed ticket. No remaining item in this plan gates B-GATE, Wave C,
+network integration, testnet, mainnet, or Research Concierge. Empirical prior
+effectiveness is `UNMEASURED`; resumption requires a new selection and
+separately authorized budget/execution.
+
 ## Readiness audit — KEEP → WRAP → REPAIR → REPLACE
 
 - **KEEP:** B-07G `LocalResearchService` and its exact B-07S operation set;

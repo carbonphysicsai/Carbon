@@ -7,7 +7,12 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Status:** active in bounded development scope only when the merged `.agent/WAVE.md` names Wave B and this file as its controlling register. This file does not self-activate.
-**Version:** 4.7
+**Version:** 4.8
+**OWNER-ROADMAP-02 successor:** B-E4 is now `deferred` with the explicit
+`OPTIONAL / DEFERRED / NON-BLOCKING` disposition. Its research-specific
+utility, diversity, shadow, calibration, and ratification work is preserved but
+removed from B-GATE and all later delivery dependencies. B-GATE is selected
+`in_progress`; no paid experiment, qualification, or launch authority follows.
 **Activation gate:** Wave A is closed in bounded engineering scope; PR #54 independently reviewed, passed CI, and normally merged the version 0.4 governance tree; and `.agent/WAVE.md` names Wave B and this board as controlling. B-01's independently reviewed correction head `ea1d11f76db419775803e268b39eaa8b789eef29`, tree `9f767ea16ffb7185ab64acff2542c7a8dcc2e339`, passed exact-head CI `33308009899`, normally merged in PR #57 as `4ee58d56862d0441d5d151d79db1fe3036f1025d` with the exact reviewed tree preserved, and passed exact-main CI `33308165189`; B-01 is authoritatively `done`. Version 0.5 inserted the owner-directed B-01E infrastructure ticket. Version 0.6 recorded B-02A closeout and B-07R's delegated conditional transition. Version 0.7 recorded the satisfied B-07R predicate and selected B-02B. Version 0.8 recorded B-02B's exact reviewed normal merge and exact-main CI and selected B-02C. Version 0.9 recorded B-02C's repaired exact reviewed normal merge and exact-main CI and selected B-03. Version 1.0 recorded B-03's exact reviewed-tree-preserving normal merge and exact-main CI, selected B-04 `in_progress` for working-contract authoring only, and withheld runtime until the exact contract tree normally merged and exact-main CI succeeded; PR #72 subsequently satisfied that historical gate. No multi-role approval bundle, exact-byte activation approval, or separate activation closeout is required before bounded development. B-07S still owns exact-protocol ratification before service-facing implementation.
 **B-01E implementation evidence:** independently reviewed head `2025e235c83a994ed4f16c9a3a9d3c2766700061`, tree `4a506a1ae46cfcbf180eb5dbf68ed50caa0f1e09`, normally merged in PR #58 as `b4744a435e8bc7220c7dc03e6a993bb0a54c16a5` with the exact reviewed tree preserved; exact-main push run `33319267255` passed.
 **B-02A closeout:** PR #60 normally merged reviewed head `f285399138ecfe95352d429bc26051b0a5fecbcf`, tree `61a4463ac459f7fe96545f2746511d6940246f57`, as `58ea866de52e3853b0b45e3217ee0625302aa663` with the same tree. Exact-head CI `33341717012`, Greptile 5/5 with no blocking failure and zero unresolved threads, and exact-main CI `33342015346` passed. B-02A is `done` only in bounded engineering scope.
@@ -489,7 +494,9 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## 3. Ticket board
 
-Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
+Statuses on this board use `todo`, `in_progress`, `done`, `blocked`, and
+`deferred`. `deferred` means preserved, uncompleted work that is not a blocking
+dependency; it never means passed or qualified.
 
 | ID | Deliverable | Status | Evidence | Driver | Accountable reviewer | Depends on | Master questions | Effort | Target |
 |---|---|---|---|---|---|---|---|---|---|
@@ -519,8 +526,8 @@ Statuses on this board use only `todo`, `in_progress`, `done`, and `blocked`.
 | B-E1 | R0/R1/R2 reproducibility, dependence-aware reconstruction × whole-case interval, staged-evidence audit, and typed contested-outcome harness | done | `Design_Specs/Reproducibility_Harness_Contract.md`; `.agent/plans/B-E1_reproducibility_harness.md`; `.agent/evidence/wave_b/b-e1.md`; `carbon/reproducibility`; `tests/cpu/test_be1_reproducibility_harness.py`; `tests/invariants/test_be1_reproducibility_boundaries.py` | Codex + SciML | Statistics + SciML | B-02A, B-02B, B-02C, B-04, B-05 | MQ-007, MQ-008 | L | WB-2/3 |
 | B-E2 | Julia/reference failure contract | done | `.agent/plans/B-E2_reference_failure.md`; `.agent/evidence/wave_b/b-e2.md`; `carbon/evaluation/service_boundary.py`; `carbon/evaluation/service_fixtures.py`; `tests/cpu/test_be2_reference_failure_boundary.py`; `tests/invariants/test_be2_reference_failure_boundaries.py` | Codex + SciML | SciML | B-04 | MQ-004 | M | WB-2 |
 | B-E3 | Credibility crosswalk and evidence manifest | done | `Design_Specs/Credibility_Crosswalk_Contract.md`; `.agent/plans/B-E3_credibility_crosswalk.md`; `.agent/evidence/wave_b/b-e3.md` | Codex + SciML | Independent reviewer | B-06 | MQ-003 through MQ-008 | S | WB-3 |
-| B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | in_progress | `.agent/plans/B-E4_agent_gauntlet.md`; `.agent/evidence/wave_b/b-e4.md`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v1.json`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v2.json`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v3.json`; `.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json`; `.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json`; `.agent/preregistrations/B-E4_development_execution_request_v1.json`; `.agent/preregistrations/B-E4_development_execution_request_v2.json`; `.agent/preregistrations/B-E4_development_execution_request_v3.json`; `.agent/preregistrations/B-E4_development_owner_decisions_v1.json`; `.agent/preregistrations/B-E4_development_owner_decisions_v2.json`; `.agent/preregistrations/B-E4_full_lifecycle_calibration_v1.json`; historical `.agent/preregistrations/B-E4_recommended_design_v2.json` and `docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md`; historical `.agent/preregistrations/B-E4_recommended_design_v3.json`; `.agent/preregistrations/B-E4_recommended_design_v4.json`; historical `.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json`; `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`; `docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md`; `carbon/gauntlet`; `scripts/dev/generate_be4_full_lifecycle_calibration.py`; `scripts/dev/run_be4_development_pilot.py`; `tests/cpu/test_be4_development_authorization.py`; `tests/cpu/test_be4_development_pilot.py`; `tests/cpu/test_be4_full_lifecycle_calibration.py`; `tests/cpu/test_be4_nonqualifying_lifecycle.py`; `tests/cpu/test_be4_rehearsal_evidence.py`; `tests/cpu/test_be4_readiness_proposal.py`; `tests/cpu/test_be4_autonomous_pilot_proposal.py`; `tests/invariants/test_be4_gauntlet_boundaries.py` | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
-| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | todo | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-01F, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3, B-E4; B-01G explicitly non-blocking | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
+| B-E4 | Autoresearch workflow, utility, leakage, poisoning, and aligned-cheating gauntlet | deferred | `.agent/plans/B-E4_agent_gauntlet.md`; `.agent/evidence/wave_b/b-e4.md`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v1.json`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v2.json`; `.agent/evidence/wave_b/b-e4-development-offline-integration-v3.json`; `.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json`; `.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json`; `.agent/preregistrations/B-E4_development_execution_request_v1.json`; `.agent/preregistrations/B-E4_development_execution_request_v2.json`; `.agent/preregistrations/B-E4_development_execution_request_v3.json`; `.agent/preregistrations/B-E4_development_owner_decisions_v1.json`; `.agent/preregistrations/B-E4_development_owner_decisions_v2.json`; `.agent/preregistrations/B-E4_full_lifecycle_calibration_v1.json`; historical `.agent/preregistrations/B-E4_recommended_design_v2.json` and `docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md`; historical `.agent/preregistrations/B-E4_recommended_design_v3.json`; `.agent/preregistrations/B-E4_recommended_design_v4.json`; historical `.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json`; `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`; `docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md`; `carbon/gauntlet`; `scripts/dev/generate_be4_full_lifecycle_calibration.py`; `scripts/dev/run_be4_development_pilot.py`; `tests/cpu/test_be4_development_authorization.py`; `tests/cpu/test_be4_development_pilot.py`; `tests/cpu/test_be4_full_lifecycle_calibration.py`; `tests/cpu/test_be4_nonqualifying_lifecycle.py`; `tests/cpu/test_be4_rehearsal_evidence.py`; `tests/cpu/test_be4_readiness_proposal.py`; `tests/cpu/test_be4_autonomous_pilot_proposal.py`; `tests/invariants/test_be4_gauntlet_boundaries.py` | Codex + research + security | Research + security + science + statistics + protocol | B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-07S, B-E1, A12 | MQ-005, MQ-015, MQ-016, MQ-024, MQ-025, MQ-026 | L | WB-5 |
+| B-GATE | Fixture integration, invariant proof, closeout report, and no-placeholder-LIVE audit | in_progress | — | Codex | Tech lead + science + protocol + security + rights | B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3; B-01G and B-E4 explicitly non-blocking | MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051 | M | WB-5 |
 
 Effort uses the launch-plan scale: S is at most one primary-lane day, M is two to three, and L is four to seven. Including the owner-directed B-01E insertion, the decomposed board totals roughly **76-127 primary-lane days if executed serially**. With two qualified non-overlapping implementation lanes and timely reviews, the dependency spine is approximately **49-83 elapsed engineering days (10-17 working weeks)**. A single lane is approximately **16-26 working weeks**. These are planning estimates, not calendar commitments; scientific/security/rights decisions, review queueing, and later qualification are additional.
 
@@ -555,8 +562,8 @@ B-02B + B-07A + B-07B + B-07C + B-07D3 + B-07E + B-07S + A9 → B-07G
 B-02A + B-02B + B-02C + B-04 + B-05 → B-E1
 B-04 → B-E2
 B-02A + B-03 + B-04 + B-05 + A3 → B-06 → B-E3
-B-07A/B/C/D1/D2/D3/E/F/G/S + B-E1 + A12 → B-E4
-all required Wave B tickets except non-blocking B-01G, including B-01H → B-GATE
+B-07A/B/C/D1/D2/D3/E/F/G/S + B-E1 + A12 → B-E4 (optional deferred research)
+all required Wave B engineering tickets except non-blocking B-01G and deferred B-E4, including B-01H → B-GATE
 ```
 
 B-03, B-01F, B-04, and B-01H are closed in their bounded merged scopes. PR
@@ -612,7 +619,8 @@ repository execution rule remains one bounded ticket per implementation lane.
 | `B-03` through `B-06` | B-03 through B-06 |
 | `B-07` | B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G |
 | `B-E1` through `B-E3` | B-E1 through B-E3 |
-| Wave B integration/acceptance | B-07G, B-E4, B-GATE |
+| Wave B integration/acceptance | B-07G, B-GATE |
+| Optional deferred research | B-E4 |
 
 ---
 
@@ -786,13 +794,12 @@ No later state is inferred from an earlier one.
 
 `B-GATE` may propose this board `done` only after:
 
-- every required ticket except explicitly non-blocking B-01G has merged
-  evidence and checked acceptance criteria;
+- every required ticket except explicitly non-blocking B-01G and optional,
+  deferred B-E4 has merged evidence and checked acceptance criteria;
 - full CPU, focused, invariant, quality, and installed-wheel tests pass;
-- the fixture autoresearch gauntlet completes end to end without undocumented repository knowledge;
-- the preregistered B-E4 utility decision passes and the conditional-leakage
-  decision does not find a protected-realization shortcut; a failed or
-  indeterminate decision blocks closeout rather than being relabeled success;
+- B-E4 is recorded as optional/deferred/non-blocking with empirical prior
+  effectiveness `UNMEASURED`; its retained engineering evidence is not
+  relabelled a passed or qualifying experiment;
 - B-E1 demonstrates dependence-aware interval coverage on fixture scenarios
   with reconstruction-by-case interaction, heteroscedastic stress strata,
   exact-pair applicability checks, missing or censored cells, qualified
@@ -810,10 +817,10 @@ No later state is inferred from an earlier one.
   activation remains unavailable and fail closed;
 - the Dossier and qualification manifest remain incomplete/fail closed for LIVE;
 - `.agent/WAVE_B_REPORT.md` records exact evidence and remaining human inputs;
-- the complete exact-head review, normal-merge, exact-main, and external-
-  receipt predicate in `.agent/DELIVERY_PROTOCOL.md` passes. Human-reserved
-  qualification and activation
-  remain separate and fail closed; no affirmative closeout-response or silence
-  gate applies to bounded engineering completion.
+- the applicable automated acceptance and `Merge gate` in
+  `.agent/DELIVERY_PROTOCOL.md` pass, followed by the normal expected-head
+  merge. OWNER-DX-03 requires no human approval, GPT receipt, repeated
+  full-suite pass, or external closeout-response. Human-reserved qualification
+  and activation remain separate and fail closed.
 
 Wave C remains unauthorized until `.agent/WAVE.md` moves prospectively.

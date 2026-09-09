@@ -19,7 +19,7 @@ Carbon must prove both the chain boundary and one real protected scientific path
 
 ## Success and unlocks
 
-Existing G2/G3 evidence remains required. In addition, admitted real attempts reconcile through a declared durable archive fault model before finalization, and the exact dialogue deployment passes authentication, grounding, privacy, recovery, withdrawal, kill-switch, utility, and shared-resource isolation acceptance.
+Existing G2/G3 evidence remains required. Admitted real attempts reconcile through a declared durable archive fault model. Any enabled dialogue deployment passes deterministic and bounded authentication, grounding, source-reference, privacy, recovery, withdrawal, failure, resource, monitoring, feedback, kill-switch, and shared-resource isolation acceptance; empirical effectiveness remains UNMEASURED.
 
 Wave D can qualify the first exact Challenge without mistaking successful testnet publication for scientific qualification.
 
@@ -29,7 +29,7 @@ Planning and compatibility context only; this wave is not active implementation 
 
 ## Still unavailable
 
-Wave C does not authorize LIVE science, Wave-D qualification, dialogue launch merely because a Challenge qualifies, learned Landscape/EvidenceBrief access, paid research, FrontierAdvanceEvent creation, treasury settlement, or mainnet activation.
+Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/EvidenceBrief access, paid research, FrontierAdvanceEvent creation, treasury settlement, or mainnet activation. Concierge does not gate the network spine and may remain disabled until its own engineering checks pass.
 
 ## Key objects
 

@@ -160,6 +160,14 @@ POLICY_RESTRICTED
 
 The Concierge may reason, synthesize, compare, ask for context, and propose non-authoritative next steps. It cannot access protected cases, predict official score/rank/gate margins, alter a Challenge, commission research, spend funds, or change official treatment.
 
+`OWNER-ROADMAP-02` makes this an independently enableable product capability,
+not a prerequisite of the C0/C1/C2 network spine. Its exact candidate must pass
+the engineering, security, privacy, and operations contract in
+`Research_Concierge_Demand_and_Correction.md`; it need not prove statistically
+significant utility or pass a separate research qualification. Empirical
+effectiveness remains `UNMEASURED`. The core network may release with the
+Concierge disabled and enable it later after those checks pass.
+
 ## 7. Response lineage and corrections
 
 Every substantive response must retain internal source and policy lineage sufficient to determine:

@@ -31,7 +31,9 @@
 > winner-triggered, expiring, `TESTNET_ONLY`, `NON_LIVE`, and `NON_SETTLING`;
 > raw score magnitude never maps to weight magnitude. Mainnet economic
 > activation requires Wave-H frontier evidence and Wave-I treasury routing and
-> per-Challenge settlement. See launch path v1.0.4.
+> per-Challenge settlement. See launch path v1.0.5. B-E4 research and separate
+> Concierge empirical utility qualification are optional/non-blocking under
+> `OWNER-ROADMAP-02`.
 
 
 **Canonical companions**
@@ -50,7 +52,7 @@
 | [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
 | [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
 | [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | B-07R agent-selected working engineering architecture; merged authority only under its exact review/CI/normal-merge/exact-main-CI predicate; no qualification |
-| [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md`](./launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md) | Current post-Wave-B C0/C1/C2 → D → H → I launch crosswalk; planning only |
+| [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md`](./launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md) | Current post-Wave-B C0/C1/C2 → D → H → I launch crosswalk and optional-research correction; planning only |
 
 ---
 

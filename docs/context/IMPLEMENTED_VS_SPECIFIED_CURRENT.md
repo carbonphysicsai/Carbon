@@ -5,12 +5,15 @@ engineering, readiness, lifecycle, rehearsal, calibration, execution-
 correctness, association/resource correction, strict pilot-v2 proposal,
 runnable development pilot, and current DEVELOPMENT execution-admission
 checkpoint, and
-the
-prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
+the prospective `OWNER-ROADMAP-02` dependency correction.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
 **Relationship to `Implemented_vs_Specified`:** the older ledger remains detailed historical evidence. This file is the current concise status reference.
 
-> **Evidence/research roadmap amendment (2026-09-07).** `OWNER-EVIDENCE-RESEARCH-01` is now detailed by three companion contracts, a traceability/acceptance/handoff plan, and 21 passive `future_reserved` C/E/G tickets. They are `SPECIFIED` documentation only. None is selected, implemented, runtime-tested, scientifically/security/commercially/production qualified, deployed, LIVE, or evidence of a service. The active Wave B selection is unchanged.
+> **Evidence/research roadmap amendment (2026-09-09).** The companion
+> contracts and passive future tickets remain specified only.
+> `OWNER-ROADMAP-02` makes B-E4 optional/deferred/non-blocking, selects B-GATE,
+> replaces separate Concierge empirical qualification with bounded engineering
+> acceptance, and permits the network path to ship with Concierge disabled.
 
 > **Current development state.** `.agent/WAVE.md` records Wave B active in
 > bounded development scope. PR #94 completed B-05 and B-07C in their bounded
@@ -33,8 +36,8 @@ prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 > rehearsal evidence, and calibration, and PR #111 merged execution-
 > correctness. PR #112 merged the first owner-unapproved pilot proposal, and PR
 > #113 merged the association/resource and strict pilot-v2 correction, and PR
-> #114 merged the runnable disabled development pilot. B-E4 remains
-> `in_progress`; the current DEVELOPMENT-only successor
+> #114 merged the runnable disabled development pilot. B-E4 is now
+> `deferred` and `OPTIONAL / DEFERRED / NON-BLOCKING`; the retained DEVELOPMENT-only successor
 > proposal builds on three causal registered toy families, an
 > exploratory three-family private TEST_ONLY pack, five fixed data-only
 > drivers, preflight plans/accounting, canonical intervention identity, and
@@ -419,7 +422,7 @@ the bounded implementation.
 | R0/R1/R2 reproducibility harness | B-E1 fixture contract | Separate exact-identity, injected numerical, and injected decision results; B-02A exact population/SamplingPlan/case refs; complete incumbent/challenger × producer-independent reconstruction × case graph; stress strata and interaction/dependence retention; explicit shared dependencies and six factor classes; exact B-04 outcomes; exact B-05 policy/shortcut binding; staged reconstruction campaign audit; deterministic canonical refs and fail-closed contested outcomes | No | bounded TEST_ONLY fixture engineering only; no real tolerance, sample size, dependence model, interval/applicability procedure, coverage/power target, stopping rule, audit rate, production backend, ranking, or frontier authority |
 | Registered reference-service failure boundary | B-E2 fixture contract | Exact B-04 request/grant/resolution/run identities; one-use invocation; typed supported, uncertainty, non-applicable, unsupported, numerical/conditioning, malformed, provenance, timeout, unavailable, transport, and process outcomes; immutable retry trace; primary/witness disagreement remains B-04 comparison evidence | No | deterministic TEST_ONLY fixture evidence only; archived Julia remains absent and no reference implementation, method, environment, MMS/analytic fixture, fallback, tolerance, applicability, uncertainty, or scientific authority is qualified |
 | Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams, with exact historical sampling-only identity preserved and a prospective identity-v2 path for three-family use; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
-| B-E4 gauntlet engineering | Yes — v4's eight qualification choices remain proposed; pilot v2's choices are approved only for one DEVELOPMENT campaign | Exact five-profile/four-arm lifecycle through B-07S/B-07B/B-07C/A7/A8 with private endpoints; three causal TEST_ONLY families; immutable historical calibration; pre-bound rehearsal failure association and one-use replacement; predicted/reserved/confirmed/unreconciled resource accounting; strict pilot-v2 validation; sequential 40-slot development runner; Responses and deterministic transports; persistent intent/result journal; exact source/prompt/corpus/treatment/task manifests; full offline fixture-service integration; fresh authenticated DEVELOPMENT-approver issuer; one-use journal-bound authorization/resume; project/retention/source/limit validation; partial and unknown-billing provider reports; qualifying construction remains unavailable | No | Frozen deterministic calibration remains non-qualifying and has inadequate conditional primary headroom, non-positive v2 effects, zero within-profile repeated SD, three global lineage roots, and no shadow/attack evidence. The owner approved one non-qualifying DEVELOPMENT campaign and corrected its approver to the authenticated `fitz-lang6` / `317786409` account while preserving the broader repository owner. No authorization was issued; 0 provider calls and `$0` charges occurred. Exact shadow allocation/dependence, leakage, trusted non-rejection attacks, qualification-grade independent ratification, and qualifying evidence remain unavailable. No utility/diversity/leakage result, scientific/security/privacy qualification, production, or LIVE authority |
+| B-E4 gauntlet engineering | Yes — optional/deferred/non-blocking; v4 remains proposed | Exact five-profile/four-arm lifecycle, three causal TEST_ONLY families, immutable calibration, resource accounting, strict pilot validation, sequential DEVELOPMENT runner, transports, journal, manifests, offline integration, and one-use authorization/resume mechanics retained | No | Empirical prior effectiveness is `UNMEASURED`. No authorization was issued, provider call or charge occurred, and no shadow/attack/qualifying evidence exists. The research is neither passed nor completed and gates no delivery milestone. |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |
@@ -431,7 +434,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0 NET foundation / `ChainAdapter` / authenticated transport | roadmap specified | No | No | future Wave C0 after Wave B; no ticket selected |
+| C0 NET foundation / `ChainAdapter` / authenticated transport | roadmap specified | No | No | future Wave C0 after revised B-GATE; NET-1 is the first planned selection |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |
@@ -456,7 +459,7 @@ the bounded implementation.
 | miner MCP research loop | Yes — bounded Wave-A control plane; broader loop remains design | Yes — exact seven-tool bounded in-process control/disclosure skeleton | No | Bounded control plane implemented and tested; transport, authentication, production providers, mock/light execution, adaptive loop, and end-to-end integration remain unimplemented and unqualified |
 | Landscape evidence memory | Yes | no canonical production system | No | Wave E |
 | official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 + C-EA0..3 reserved | No | No | Future C1; durability/retention/security/deployment decisions unearned |
-| Research Concierge | Yes — C-DC1..4 reserved | No | No | Future authenticated launch product; not Challenge qualification |
+| Research Concierge | Yes — C-DC1..4 reserved with engineering acceptance | No | No | Independently enableable authenticated product; empirical effectiveness `UNMEASURED`; may be disabled while core network ships |
 | EvidenceBrief pipeline | Yes — E-EB1/E-EA6/E-EA7 reserved | No | No | Future offline approval/release/correction path |
 | D12 Research Demand Graph | Yes — C capture + E-D12 aggregation reserved | No | No | Demand planning only; never scientific evidence |
 | model-family-neutral reconstruction | Yes direction | No | No | Wave J |
@@ -517,11 +520,12 @@ No paper/deck may imply:
 > **Reconciled through merged B-E4 development-admission main `6ac9e8d` and the
 > current DEVELOPMENT approver-correction successor, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
-> `.agent/WAVE.md` records Wave B with B-E4 in progress, qualifying execution
-> blocked behind real DEVELOPMENT observations, assumption validation, and
-> qualification ratification, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
+> `.agent/WAVE.md` records Wave B with B-E4 optional/deferred/non-blocking and
+> B-GATE selected. OWNER-ROADMAP-02 preserves C0/C1/C2 → D → H → I while
+> removing prior/agent/Concierge empirical research as a delivery dependency;
+> the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
 > specified only. Archive, Concierge, EvidenceBrief, D12, paid research,
 > advanced Research Scientist, network, scientific/security/commercial/
 > production qualification, LIVE, mainnet and settlement all remain
-> unimplemented or unearned, and no future ticket is selected.**
+> unimplemented or unearned.**

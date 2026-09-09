@@ -5,6 +5,14 @@
 **Primary Hub map_ref:** `WAVE-B/B-E4`
 **Maturity ceiling:** bounded SPECIFIED / IMPLEMENTED / TESTED engineering only
 
+**OWNER-ROADMAP-02 interpretation:** the experimental program is
+`OPTIONAL / DEFERRED / NON-BLOCKING`. This record proves retained engineering
+and honest non-qualifying observations only. It proves no prior utility,
+diversity, leakage clearance, scientific/security qualification, or completion.
+Empirical effectiveness is `UNMEASURED`; the absent experiment is not a
+release defect and gates no later milestone. All journals, requests, approvals,
+reports, digests, and budget accounting remain preserved.
+
 **Current correction base:** main
 `c6d6c1dc257b00be06d24f5736f7159e68849b04`, tree
 `b211adf15751d5a54205eaa978ed2c82c79caf8a`

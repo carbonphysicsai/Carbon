@@ -5,6 +5,15 @@
 **Authority:** this document owns long-horizon sequencing and dependency interpretation. `Design_Specs/Build_Out.md` remains the detailed current implementation sequencing authority for the active P0 waves.  
 **Non-permission rule:** later waves are not authorized for implementation merely because they are described here.
 
+> **OWNER-ROADMAP-02 sequencing amendment (2026-09-09).** B-E4 experimental
+> qualification is optional, deferred, and non-blocking. Prior-utility lift,
+> experimental diversity, qualifying gauntlets, shadow campaigns, and their
+> research calibration/ratification do not gate B-GATE, Wave C, network,
+> testnet, mainnet, or Research Concierge delivery. The Concierge uses a
+> bounded engineering acceptance contract and may remain disabled while the
+> core network path ships; empirical effectiveness is `UNMEASURED` until
+> separately supported.
+
 ---
 
 # 1. Development doctrine
@@ -31,8 +40,9 @@ The canonical `.agent/WAVE.md` records the authoritative ticket evidence.
 
 At the historical constitutional reconciliation, the table below recorded the
 Wave-A state. Current selection authority is `.agent/WAVE.md`; as of the
-`OWNER-NET-01` planning base, Wave B is active with B-04 selected
-`in_progress`, and this master-plan update does not change that selection.
+`OWNER-ROADMAP-02` correction, Wave B is active with B-GATE selected
+`in_progress` and B-E4 deferred/non-blocking. Current selection authority
+remains `.agent/WAVE.md`.
 
 | Ticket | State | Constitutional interpretation |
 |---|---|---|

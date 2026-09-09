@@ -96,7 +96,7 @@ EXPECTED_MATURITY = [
     "production_qualified",
 ]
 WAVE_STATUSES = {"closed", "active", "planned"}
-TICKET_STATUSES = {"todo", "in_progress", "done", "blocked"}
+TICKET_STATUSES = {"todo", "in_progress", "done", "blocked", "deferred"}
 EVENT_TYPES = {"decision", "adjustment", "bug", "blocker", "risk", "evidence"}
 BASELINE_EVENT_IDS = {"B-03-E1", "HUB-BUG-001", "HUB-ADJ-001"}
 EVENT_STATUSES = {

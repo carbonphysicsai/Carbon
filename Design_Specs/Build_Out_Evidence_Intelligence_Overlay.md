@@ -118,6 +118,13 @@ kill switch
 shared-resource isolation from official evaluation
 ```
 
+Under `OWNER-ROADMAP-02`, this list is the Concierge feature's engineering
+enablement contract, not a dependency of the C0/C1/C2 network spine. The core
+network may ship with Concierge disabled. Concierge enablement requires its
+deterministic/bounded engineering, security, privacy, and operations checks;
+separate empirical utility qualification is optional later work and empirical
+effectiveness remains `UNMEASURED` until evidence exists.
+
 Learned official-derived EvidenceBriefs, paid hosted research, and Research Scientist capabilities are not launch prerequisites unless a later owner decision explicitly promotes them.
 
 ## 8. Cross-wave hard rules

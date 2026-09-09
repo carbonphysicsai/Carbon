@@ -1915,7 +1915,7 @@ class ValidatorContractTests(unittest.TestCase):
                 "mapped_detail",
                 "SYSTEM/PUBLICATION-AUTHORITY",
             ),
-            "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.4.md": (
+            "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md": (
                 "map_structural",
                 "SYSTEM/DEVELOPMENT-SEQUENCING",
             ),

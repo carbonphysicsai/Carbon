@@ -1545,6 +1545,30 @@
       "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_development_owner_decisions_v2.json",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "OWNER-ROADMAP-02",
+      "map_ref": "WAVE-B/B-GATE",
+      "wave": "B",
+      "ticket": "B-GATE",
+      "title": "Defer experimental qualification and unblock delivery",
+      "attention": "RESOLVED",
+      "status": "OWNER_DECIDED_IMPLEMENTED_PROSPECTIVELY",
+      "audience": "harsh",
+      "question": "Do prior-utility superiority, diversity, qualifying gauntlets, shadow campaigns, or separate Concierge utility qualification gate Carbon delivery?",
+      "recommendation": "Apply the owner's decision: keep B-E4 optional/deferred/non-blocking, select revised B-GATE, use engineering acceptance for Concierge, and allow the core network to ship with Concierge disabled.",
+      "why": "Research results govern claims about the prior, not release correctness. Concrete shipped capabilities retain reconstruction, association, resource, isolation, authentication, protected-data, provenance, failure, monitoring, and deployment requirements.",
+      "if_kept": "B-GATE and Wave C proceed without paid or qualifying research; B-E4 evidence remains preserved and empirical effectiveness remains UNMEASURED.",
+      "if_changed": "A future owner decision may separately fund and select the research, but must not rewrite frozen evidence or retroactively manufacture qualification.",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5601850672",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cdded105/.agent/DECISIONS.md"
     }
   ]
 }

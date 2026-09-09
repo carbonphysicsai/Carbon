@@ -2,7 +2,9 @@
 
 **Wave:** C authenticated launch communication
 **Status:** `future_reserved`; unselected and unstarted
-**Goal:** Qualify the exact C-DC1/2/3 candidate for dialogue security/operations readiness without qualifying a Challenge.
+**Goal:** Verify the exact C-DC1/2/3 candidate's engineering, security, privacy,
+and operations readiness without performing separate empirical utility
+qualification or qualifying a Challenge.
 
 **Prerequisites/owners:** C-DC3 and C-EA2/3 integration candidate; security, privacy/rights, SRE/Operations, capacity, disclosure, product utility, and incident owners. Human inputs: acceptance thresholds, provider policy, launch/deployment approval.
 
@@ -10,8 +12,8 @@
 
 **Interfaces/failure/limits:** Separate services are not assumed isolated. If capture guarantees cannot be preserved, non-essential service stops and official finalization follows its approved fail-closed rule. Dialogue failure never changes candidate treatment or scientific results.
 
-**Acceptance tests:** cross-tenant extraction, repeated-query/cumulative disclosure, prompt injection, protected-state independence, provider abuse, restart/restore, withdrawal, duplicate notifications, load/resource starvation, capture reservation, observability leakage, kill-switch drills, groundedness/abstention/usefulness.
+**Acceptance tests:** cross-tenant extraction, repeated-query/cumulative disclosure, prompt injection, protected-state independence, provider abuse, restart/restore, withdrawal, duplicate notifications, load/resource starvation, capture reservation, observability leakage, kill-switch drills, groundedness/abstention, source references, truthful failures, and bounded feedback collection.
 
-**Definition of Done:** [ ] Human security/operations/product owners accept the exact deployment candidate. [ ] Dialogue launch and Challenge qualification remain independent approvals. [ ] Rollback leaves official execution/capture safe.
+**Definition of Done:** [ ] Required deterministic and bounded integration checks pass. [ ] Human security/privacy/operations owners accept the exact deployment candidate. [ ] Empirical effectiveness is `UNMEASURED` and is not a release gate. [ ] Dialogue launch and Challenge qualification remain independent approvals. [ ] Rollback leaves official execution/capture safe. [ ] Core network release remains allowed with this feature disabled.
 
 **Handoff:** Wave D launch owner may activate the exact dialogue deployment; no scientific/LIVE authority follows automatically.

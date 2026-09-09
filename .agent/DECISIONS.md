@@ -1022,6 +1022,47 @@ stopping/error control, reconstruction sufficiency, and qualification remain
 human/B-06-owned and fail closed. B-02C refs remain identity facts only; A5 is
 unchanged.
 
+## 2026-09-09 — OWNER-ROADMAP-02: defer experimental qualification and unblock delivery
+
+**Tickets:** B-E4, B-GATE, C-DC3, C-DC4, NET-1
+**Status:** `OWNER_DECIDED / IMPLEMENTED_PROSPECTIVELY`
+
+**Decision.** B-E4's experimental research program is `OPTIONAL`, `DEFERRED`,
+and `NON_BLOCKING`. Prior-utility superiority, experimental-diversity floors,
+qualifying agent gauntlets, shadow campaigns, and their research-specific
+calibration or ratification no longer gate B-GATE, Wave C, network integration,
+testnet, mainnet, or Research Concierge delivery. Negative, inconclusive, or
+absent results limit claims about the prior; they do not create a delivery
+defect. The completed B-E4 runner, resource-accounting, authorization, journal,
+and evidence infrastructure remains reusable. Frozen proposals, approvals,
+digests, calibration artifacts, and execution requests remain historical and
+unchanged. No paid experiment is authorized by this decision.
+
+Research Concierge launch now uses a concrete engineering acceptance contract:
+approved public/bootstrap sources; protected-data and official-evaluator
+separation; factual source references where applicable; explicit separation of
+suggestions from official results; authentication, authorization, tenant and
+session isolation, quotas and resource controls; truthful unavailable/failure
+outcomes; feedback, monitoring, and kill switches. Focused deterministic tests
+and bounded integration checks are required. A paid benchmark, statistically
+significant utility lift, independent research qualification, or new
+certification ceremony is not. Empirical effectiveness remains `UNMEASURED`.
+The core network path may ship with Concierge disabled; later enablement needs
+its engineering/security/privacy/operations checks, not separate empirical
+utility qualification.
+
+**Sequencing.** B-E4 moves from `in_progress` to `deferred`, never to `done` or
+`qualified`. B-GATE becomes the sole selected Wave-B ticket under its revised
+engineering criteria. When those pass, Wave B may close in bounded engineering
+scope and the first dependency-ready C0 network-foundation ticket may start.
+
+**Preserved authority.** This decision does not qualify the Burgers Challenge,
+its population, truth, measurements, scoring, custody, settlement, network,
+security, or deployment. Real reconstruction correctness, authenticated
+transport, candidate binding, protected-data handling, official scoring
+integrity, testnet readback, custody, and explicit launch/deployment approvals
+remain mandatory in their owning tickets.
+
 ## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval
 
 **Problem.** Carbon's live delivery contract depended on a Greptile workspace

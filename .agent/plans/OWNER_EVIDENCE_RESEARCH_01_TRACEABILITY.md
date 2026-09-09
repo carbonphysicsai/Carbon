@@ -17,7 +17,7 @@
 | Landscape learning and Ports B/C/D | `Landscape_Agent.md`; paid/opportunity contract §§4–5 | E-EA5 | E-EA4 | scoped ports cannot mutate judge | scientific/product qualification retained |
 | launch dialogue protocol/auth | concierge contract §§1–3 | C-DC1 | C0 identity/transport | closed protocol/negative matrix | identity, limits, provider policy reserved |
 | durable private threads | concierge contract §4 | C-DC2 | C-DC1 | restart, privacy, idempotency, withdrawal | retention/privacy reserved |
-| useful launch Concierge | concierge contract §§1–3,8 | C-DC3/4 | C-DC2; approved bootstrap sources | held-out utility, grounding, abstention, recovery | thresholds/security/launch reserved |
+| useful launch Concierge | concierge contract §§1–3,8 | C-DC3/4 | C-DC2; approved bootstrap sources | deterministic/bounded grounding, source-reference, abstention, failure, isolation, resource, feedback, monitoring, and kill-switch checks | security/privacy/operations deployment acceptance reserved; empirical effectiveness UNMEASURED |
 | launch demand capture; later aggregation | concierge contract §5 | C-DC2/3; E-D12 | private thread + purpose permissions | no duplicate counts; opt-out/deletion; funnel distinctions | purposes/aggregation/funding reserved |
 | EvidenceBrief lifecycle | concierge contract §6 | E-EB1 | E-EA4/5 | counterevidence, provenance, permissions, exact approval | epistemic/release decisions reserved |
 | cumulative disclosure/release | concierge contract §6 | E-EA6 | E-EB1; existing PriorPack release | cross-surface accumulation tests | disclosure/security/rights reserved |
@@ -62,7 +62,13 @@ G-PR0 -> G-PR1 -> G-PR2 -> G-PR3 -> G-PR5
                     \----------> G-PR4 --/
 ```
 
-The first authenticated external miner launch needs the applicable C evidence-capture deployment and C-DC1..4 dialogue deployment, each with its own security/operations approval. It uses approved bootstrap/public resources. Wave E learned briefs/D12 aggregation and Wave G paid work are later and do not gate D→H→I. Capture records real attempts before qualification and retains their original status. Frozen private release candidates plus prospective evidence can qualify a later release without circularly requiring public activation.
+The first authenticated external miner product surface may include C-DC1..4,
+using approved bootstrap/public resources, after its own engineering and
+security/privacy/operations acceptance. The core C0/C1/C2 network path does not
+depend on Concierge and may ship with it disabled. Separate empirical utility
+qualification is optional later work. Wave E learned briefs/D12 aggregation
+and Wave G paid work remain later and do not gate D→H→I. Capture records real
+attempts before qualification and retains their original status.
 
 ## 3. Future acceptance matrix
 
@@ -71,7 +77,7 @@ The first authenticated external miner launch needs the applicable C evidence-ca
 | capture semantics | C-EA0 | approved contract/fault and retention decisions | no storage/runtime |
 | archive availability | C-EA1..3 | crash, restore, manifest, reconciliation, backpressure | no universal losslessness or scientific truth |
 | dialogue protocol/durability | C-DC1/2 | authz, conformance, idempotency, privacy, recovery | no reasoning/launch authority alone |
-| Concierge launch | C-DC3/4 | held-out utility, grounding, injection, withdrawal, resource isolation, ops owner | no Challenge qualification |
+| Concierge enablement | C-DC3/4 | deterministic/bounded grounding, source references, injection, truthful failure, withdrawal, access/session/resource isolation, feedback, monitoring, kill switch | empirical effectiveness UNMEASURED; no Challenge or research qualification |
 | research intelligence | E-EA4/5, E-D12 | provenance/dependence, permission, manipulation, port bounds | no score/funding/revenue inference |
 | external learned release | E-EB1/EA6/EA7/RI1 | exact artifact, cumulative disclosure, correction, prospective utility | no archive export or role transfer |
 | paid execution | G-PR0..4 | frozen scorecard, rights/auth, isolation, funds/reconciliation | no traction or official evidence |

@@ -1,7 +1,7 @@
 # Ticket B-E4 - Autoresearch utility, leakage, and aligned-cheating gauntlet
 
 **Wave:** B candidate
-**Status:** in_progress
+**Status:** deferred — `OPTIONAL / DEFERRED / NON-BLOCKING`
 **Execution boundary:** the engineering harness, validation repair, analysis-
 only preregistration design, complete non-qualifying fixture lifecycle,
 factory-bound rehearsal evidence, frozen deterministic calibration, execution-
@@ -27,6 +27,22 @@ evidence integration.
 ## Goal
 
 Demonstrate that representative autonomous research agents can use the fixture research interface productively, and test whether public information creates protected-realization shortcuts or evidence-authority bypasses.
+
+## OWNER-ROADMAP-02 successor disposition
+
+This remains a valid optional research question, but it is not a release or
+wave gate. The prior-utility rule, diversity floor, qualifying gauntlet, shadow
+campaign, and separate calibration/ratification are deferred and do not block
+B-GATE, Wave C, network integration, testnet, mainnet, or Research Concierge.
+Empirical prior effectiveness is `UNMEASURED`; existing deterministic results
+are non-qualifying engineering/design evidence only.
+
+All completed engineering, runners, resource accounting, authorization,
+journals, tests, proposals, digests, approvals, and evidence are retained.
+Nothing below is relabelled passed, qualified, or completed. A future resumption
+requires separately selected scope, then-current authority, and a separately
+authorized budget/run. The frozen DEVELOPMENT request is not executed by this
+disposition.
 
 ## Definition of Done
 
@@ -69,18 +85,17 @@ Demonstrate that representative autonomous research agents can use the fixture r
       qualification.
 - [ ] Report conditional leakage after controlling for evaluator-held shadow cases sampled from the declared public distribution and unavailable to the attacking agent.
 - [ ] Show that obvious public-loop exploitation either improves transferable physics, violates a typed protocol rule, or becomes a documented Carbon exam vulnerability.
-- [ ] Demonstrate that the v2-prior arm beats the preregistered baselines under
-      the preregistered uncertainty-aware utility rule and passes the
-      preregistered conditional-leakage limit. A failed or indeterminate
-      result blocks B-E4 and B-GATE; it is recorded as rework, an exam
-      vulnerability, or insufficient evidence rather than a utility claim.
+- [ ] If this optional research resumes, evaluate the v2-prior arm under a
+      prospectively registered utility/leakage design. A failed,
+      indeterminate, or absent result limits prior claims and is recorded
+      honestly; it does not block delivery milestones.
 
 ## Human input
 
-Research, security, science, statistics, and protocol owners approve the complete
-pre-execution gauntlet design and decision thresholds. If any required value is
-absent, B-E4 is blocked before execution rather than closed on descriptive
-metrics alone.
+If the optional research resumes, research, security, science, statistics, and
+protocol owners approve its then-current pre-execution design and thresholds.
+Absent values keep that research execution unavailable; they do not block any
+release or wave milestone.
 
 The current recommendation is recorded in
 `docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md` and
