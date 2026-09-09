@@ -1063,6 +1063,33 @@ transport, candidate binding, protected-data handling, official scoring
 integrity, testnet readback, custody, and explicit launch/deployment approvals
 remain mandatory in their owning tickets.
 
+## 2026-09-09 — B-GATE-D1: close Wave B in bounded engineering scope
+
+**Ticket:** B-GATE
+**Status:** effective only after the exact candidate passes applicable
+automated acceptance and `Merge gate` and normally merges
+
+**Decision.** Reuse the merged fixture-chain and boundary evidence identified
+in `.agent/evidence/wave_b/b-gate.md`, add deterministic assertions for the
+revised owner dependency and the required ticket-local C/D acceptance
+contracts, and close Wave B in engineering scope when the current delivery
+predicate passes. B-01G remains non-blocking tooling work. B-E4 remains
+`OPTIONAL / DEFERRED / NON-BLOCKING`, with empirical effectiveness
+`UNMEASURED`; neither it nor any renamed research campaign is part of this
+closeout.
+
+**Transition boundary.** This closeout creates the canonical unselected
+C-02/C-04/C-05/C-06/C-07/C-10 and D-02/D-03/D-04/D-05/D-06/D-08 ticket-local
+contracts required before Wave C authorization. It selects no Wave C ticket.
+After the closeout normally merges, a separate prospective transition may
+activate Wave C and select NET-1 as the first dependency-ready network ticket.
+
+**Preserved authority.** The transition does not qualify Burgers science,
+protected truth, measurements, scoring, security, custody, testnet/mainnet,
+weights, settlement, Research Concierge, LIVE, launch, or production. No paid
+experiment, remote service, chain connection, or transaction is part of the
+closeout.
+
 ## 2026-09-02 — GOV-REVIEW-01-D1: exact-head manual Codex/GPT review plus distinct human approval
 
 **Problem.** Carbon's live delivery contract depended on a Greptile workspace
