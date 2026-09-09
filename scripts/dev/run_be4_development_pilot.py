@@ -5,7 +5,7 @@ The default ``--offline`` transport traverses Carbon's real TEST_ONLY research,
 practice, construction, submission, reference, measurement, and public-result
 services. It replaces only provider inference with a deterministic structured
 response transport. ``--responses`` additionally requires a freshly
-authenticated Carbon-owner issuance, one durable authorization claim, and the
+authenticated DEVELOPMENT-approver issuance, one durable authorization claim, and the
 bound external configuration. Neither mode can start calibration or
 qualification.
 """
@@ -103,6 +103,8 @@ from carbon.gauntlet.development import (
     development_treatment_payload,
 )
 from carbon.gauntlet.development_authority import (
+    DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+    DEVELOPMENT_APPROVER_GITHUB_USER_ID,
     DEVELOPMENT_RETENTION_SELECTION,
     ControlledDevelopmentAuthorizationStore,
     DevelopmentApprovalUnavailable,
@@ -150,47 +152,47 @@ from carbon.traineval.resolved_fixture import (
     ResolvedPlanFixtureTrainEvalService,
 )
 
-DEFAULT_JOURNAL = REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-v2.sqlite"
+DEFAULT_JOURNAL = REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-v3.sqlite"
 DEFAULT_OFFLINE_JOURNAL = (
-    REPOSITORY_ROOT / ".carbon-artifacts" / "be4-development-offline-v2.sqlite"
+    REPOSITORY_ROOT / ".carbon-artifacts" / "be4-development-offline-v3.sqlite"
 )
 DEFAULT_AUTHORIZATION_STORE = (
     REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-authority-v1.sqlite"
 )
 DEFAULT_PROCESS_LOCK = (
-    REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-v2.lock"
+    REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-v3.lock"
 )
 DEFAULT_OFFLINE_REPORT = (
     REPOSITORY_ROOT
     / ".agent"
     / "evidence"
     / "wave_b"
-    / "b-e4-development-offline-integration-v2.json"
+    / "b-e4-development-offline-integration-v3.json"
 )
 DEFAULT_REAL_REPORT = (
-    REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-provider-report-v1.json"
+    REPOSITORY_ROOT / ".agent" / "runtime" / "be4-development-provider-report-v2.json"
 )
 DEFAULT_REQUEST = (
     REPOSITORY_ROOT
     / ".agent"
     / "preregistrations"
-    / "B-E4_development_execution_request_v2.json"
+    / "B-E4_development_execution_request_v3.json"
 )
 OWNER_DECISIONS_PATH = (
     REPOSITORY_ROOT
     / ".agent"
     / "preregistrations"
-    / "B-E4_development_owner_decisions_v1.json"
+    / "B-E4_development_owner_decisions_v2.json"
 )
 OWNER_DECISIONS_DIGEST = (
-    "sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a"
+    "sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba"
 )
 DESIGN_DIGEST = (
     "sha256:11a2b6b7e3817cea62631dfbdd0e5b59393d70f0cb9617776b8996ed535d1538"
 )
-_EXECUTION_REQUEST_DOMAIN = b"carbon.be4.development-execution-request.v2\x00"
+_EXECUTION_REQUEST_DOMAIN = b"carbon.be4.development-execution-request.v3\x00"
 _ARTIFACT_MANIFEST_DOMAIN = b"carbon.be4.development-artifacts.v2\x00"
-_OWNER_DECISIONS_DOMAIN = b"carbon.be4.development-owner-decisions.v1\x00"
+_OWNER_DECISIONS_DOMAIN = b"carbon.be4.development-owner-decisions.v2\x00"
 _RETENTION_CONTRACT_DOMAIN = b"carbon.be4.development-retention-contract.v1\x00"
 _REAL_REPORT_DOMAIN = b"carbon.be4.development-provider-report.v1\x00"
 TASK_ORDINALS = (4, 7)
@@ -238,15 +240,18 @@ def owner_decision_record() -> dict[str, object]:
     if (
         supplied != OWNER_DECISIONS_DIGEST
         or supplied != _domain_digest(_OWNER_DECISIONS_DOMAIN, source)
-        or value.get("schema_version") != "carbon.be4.development-owner-decisions.v1"
+        or value.get("schema_version") != "carbon.be4.development-owner-decisions.v2"
         or value.get("scope") != "ONE_40_SLOT_NONQUALIFYING_DEVELOPMENT_CAMPAIGN_ONLY"
         or value.get("status")
         != (
-            "OWNER_DECISIONS_RECORDED_RUNTIME_AUTHENTICATION_AND_ONE_USE_"
+            "OWNER_DECISIONS_CORRECTED_RUNTIME_AUTHENTICATION_AND_ONE_USE_"
             "ISSUANCE_REQUIRED"
         )
-        or value.get("owner_principal")
-        != {"github_login": "jbequ5", "github_user_id": 99_085_788}
+        or value.get("development_approver_principal")
+        != {
+            "github_login": DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+            "github_user_id": DEVELOPMENT_APPROVER_GITHUB_USER_ID,
+        }
     ):
         raise DevelopmentFixtureError("owner decision record is invalid or stale")
     return value
@@ -1121,8 +1126,8 @@ def _retention_contract() -> dict[str, object]:
 def _approval_request_value() -> dict[str, object]:
     return {
         "authenticated_issuer": {
-            "github_login": "jbequ5",
-            "github_user_id": 99_085_788,
+            "github_login": DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+            "github_user_id": DEVELOPMENT_APPROVER_GITHUB_USER_ID,
             "verification": "FRESH_AUTHENTICATED_GITHUB_REST_USER_REQUIRED",
         },
         "development_monetary_ceiling_usd": "14.42",
@@ -1151,7 +1156,7 @@ def _approval_request_value() -> dict[str, object]:
         },
         "provider_payload_egress": ("EXACT_SIX_FIELD_ALLOWLIST_IN_BOUND_MANIFEST_ONLY"),
         "requested_status": (
-            "OWNER_DECISIONS_RECORDED_AWAITING_AUTHENTICATED_ISSUANCE_AND_"
+            "OWNER_DECISIONS_CORRECTED_AWAITING_AUTHENTICATED_ISSUANCE_AND_"
             "BOUND_EXTERNAL_CONFIGURATION"
         ),
     }
@@ -1173,16 +1178,21 @@ def execution_request(
         "artifact_identities": artifact_identities,
         "change_record": {
             "historical_request_digest": (
-                "sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca"
+                "sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62"
             ),
             "historical_request_preserved": True,
+            "historical_owner_decisions_digest": (
+                "sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a"
+            ),
+            "historical_owner_decisions_preserved": True,
             "reason": (
-                "ADD_AUTHENTICATED_ONE_CAMPAIGN_ADMISSION_REAL_REPORTING_AND_"
-                "OWNER_APPROVED_STANDARD_RETENTION"
+                "CORRECT_DEVELOPMENT_APPROVER_IDENTITY_AND_REBIND_FINAL_"
+                "IMPLEMENTATION_ARTIFACTS"
             ),
         },
         "current_admission_status": (
-            "READY_REQUIRES_AUTHENTICATED_OWNER_ISSUANCE_AND_BOUND_CONFIGURATION"
+            "READY_REQUIRES_AUTHENTICATED_DEVELOPMENT_APPROVER_ISSUANCE_AND_"
+            "BOUND_CONFIGURATION"
         ),
         "historical_design_digest_non_authority": DESIGN_DIGEST,
         "manifest": manifest.to_json(),
@@ -1190,7 +1200,7 @@ def execution_request(
         "paid_execution_occurred": False,
         "qualifying_execution_ready": False,
         "retention_contract": _retention_contract(),
-        "schema_version": "carbon.be4.development-execution-request.v2",
+        "schema_version": "carbon.be4.development-execution-request.v3",
     }
     value["content_digest"] = _domain_digest(_EXECUTION_REQUEST_DOMAIN, value)
     return value
@@ -1228,10 +1238,13 @@ def validate_execution_request(value: object) -> dict[str, Any]:
         ) from error
     if (
         set(value) != required
-        or value["schema_version"] != "carbon.be4.development-execution-request.v2"
+        or value["schema_version"] != "carbon.be4.development-execution-request.v3"
         or value["historical_design_digest_non_authority"] != DESIGN_DIGEST
         or value["current_admission_status"]
-        != "READY_REQUIRES_AUTHENTICATED_OWNER_ISSUANCE_AND_BOUND_CONFIGURATION"
+        != (
+            "READY_REQUIRES_AUTHENTICATED_DEVELOPMENT_APPROVER_ISSUANCE_AND_"
+            "BOUND_CONFIGURATION"
+        )
         or value["paid_execution_occurred"] is not False
         or value["qualifying_execution_ready"] is not False
         or type(approval) is not dict
@@ -1239,12 +1252,16 @@ def validate_execution_request(value: object) -> dict[str, Any]:
         or value["change_record"]
         != {
             "historical_request_digest": (
-                "sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca"
+                "sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62"
             ),
             "historical_request_preserved": True,
+            "historical_owner_decisions_digest": (
+                "sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a"
+            ),
+            "historical_owner_decisions_preserved": True,
             "reason": (
-                "ADD_AUTHENTICATED_ONE_CAMPAIGN_ADMISSION_REAL_REPORTING_AND_"
-                "OWNER_APPROVED_STANDARD_RETENTION"
+                "CORRECT_DEVELOPMENT_APPROVER_IDENTITY_AND_REBIND_FINAL_"
+                "IMPLEMENTATION_ARTIFACTS"
             ),
         }
         or value["owner_decisions"] != owner_decision_record()
@@ -1610,8 +1627,8 @@ def _valid_live_authorization_record(
         and type(value["expires_at_utc"]) is str
         and bool(value["expires_at_utc"])
         and value["independent_multidisciplinary_ratification_claimed"] is False
-        and value["issuer_github_login"] == "jbequ5"
-        and value["issuer_github_user_id"] == 99_085_788
+        and value["issuer_github_login"] == DEVELOPMENT_APPROVER_GITHUB_LOGIN
+        and value["issuer_github_user_id"] == DEVELOPMENT_APPROVER_GITHUB_USER_ID
         and value["journal_binding"] == bindings.journal_binding
         and value["monetary_ceiling_usd"] == "14.42"
         and value["organization_id_digest"] == bindings.organization_id_digest

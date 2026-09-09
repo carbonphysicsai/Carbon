@@ -1,0 +1,176 @@
+{
+  "approval_boundary": {
+    "authenticated_runtime_approval_act_required": true,
+    "five_distinct_people_claimed": false,
+    "full_pilot_budget_approved": false,
+    "qualification_ratification_created": false,
+    "repository_record_is_execution_capability": false,
+    "one_use_development_authorization_required": true
+  },
+  "content_digest": "sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba",
+  "correction": {
+    "correct_development_approver": {
+      "github_login": "fitz-lang6",
+      "github_user_id": 317786409
+    },
+    "earlier_assignment": {
+      "github_login": "jbequ5",
+      "github_user_id": 99085788,
+      "status": "SUPERSEDED_FOR_THIS_DEVELOPMENT_CAMPAIGN_ONLY"
+    },
+    "reason": "PROJECT_PARTNER_CONNECTED_GITHUB_ACCOUNT_WAS_MISTAKEN_FOR_DELEGATED_DEVELOPMENT_APPROVER",
+    "repository_owner_role_preserved": true,
+    "qualification_requirements_preserved": true
+  },
+  "date": "2026-09-09",
+  "decisions": [
+    {
+      "decision_id": "POPULATION_AND_INTERACTION",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "api": "RESPONSES",
+        "arm_count": 4,
+        "arm_state_isolated": true,
+        "built_in_tools": [],
+        "model": "gpt-5.6-terra",
+        "profile_count": 5,
+        "reasoning_effort": "medium",
+        "service_tier": "default",
+        "adaptive_proposal_calls": 4,
+        "adaptive_selection_only_calls": 1,
+        "minimalist_proposal_attempts": 1,
+        "verbosity": "low"
+      }
+    },
+    {
+      "decision_id": "TASKS_AND_SEEDS",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "development_task_ids": [
+          "be4-pilot-v2-04",
+          "be4-pilot-v2-07"
+        ],
+        "paired_arms": true,
+        "schedule": "FROZEN_BALANCED_INTERLEAVED_40_SLOT_MANIFEST",
+        "seed_material_agent_visible": false,
+        "scientific_population_claim": false
+      }
+    },
+    {
+      "decision_id": "RESOURCES_AND_STOPPING",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "development_provider_charge_ceiling_usd": "14.42",
+        "maximum_input_tokens": 2621440,
+        "maximum_output_including_reasoning_tokens": 655360,
+        "no_free_reruns": true,
+        "no_automatic_replacements": true,
+        "no_development_reserves": true,
+        "overall_pilot_ceiling_usd": "98.304",
+        "overall_pilot_ceiling_status": "UNAPPROVED",
+        "provider_charge_exclusions": [
+          "TAXES",
+          "EXISTING_STATED_NON_API_COSTS"
+        ]
+      }
+    },
+    {
+      "decision_id": "PROVIDER_EGRESS_AND_RETENTION",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "supersedes_development_only": "B-E4_AUTONOMOUS_AGENT_PILOT_V2_EXTENDED_PROMPT_CACHING_FALSE",
+      "value": {
+        "api_data_training_or_data_sharing_opt_in": false,
+        "background": false,
+        "payload_allowlist_field_count": 6,
+        "prompt_cache": "EXPLICIT_MODE_TTL_30M_WITH_DOCUMENTED_PROVIDER_RETENTION_ACCEPTED",
+        "prompt_cache_ttl_claims_deletion": false,
+        "retention": "STANDARD_API_ABUSE_MONITORING_WITH_DOCUMENTED_LEGAL_AND_SAFETY_EXCEPTIONS",
+        "store": false,
+        "zdr_or_modified_abuse_monitoring_required": false
+      }
+    },
+    {
+      "decision_id": "PROVIDER_PROJECT",
+      "status": "APPROVED_SELECTION_RULE_PROJECT_NOT_YET_BOUND",
+      "value": {
+        "project_control": "OWNER_CONTROLLED_CARBON_API_PROJECT",
+        "runtime_source": "OPENAI_PROJECT_ID",
+        "raw_project_id_in_public_evidence": false,
+        "actual_project_digest_bound_at_authorization": true
+      }
+    },
+    {
+      "decision_id": "EVIDENCE_USE",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "calibration_or_qualification_use": false,
+        "evidence_role": "DEVELOPMENT_INTEGRATION_AND_DESIGN_DIAGNOSTICS_ONLY",
+        "retain_partial_failed_and_stopped_runs": true,
+        "ties_negative_effects_and_invalid_outputs_retained": true
+      }
+    },
+    {
+      "decision_id": "ROLE_ASSIGNMENT",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "assigned_github_login": "fitz-lang6",
+        "assigned_github_user_id": 317786409,
+        "independent_multidisciplinary_ratification_claimed": false,
+        "principal_count": 1,
+        "roles": [
+          "RESEARCH",
+          "EXACT_PROTOCOL",
+          "SCIENCE",
+          "STATISTICS",
+          "SECURITY"
+        ]
+      }
+    },
+    {
+      "decision_id": "CURRENTNESS_AND_REVOCATION",
+      "status": "APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN",
+      "value": {
+        "authorization_lifetime_seconds": 432000,
+        "expiry": "EARLIEST_OF_COMPLETION_REVOCATION_OR_LIFETIME",
+        "restart_preserves_authorization_and_budgets": true,
+        "revocation_blocks_further_dispatch": true
+      }
+    },
+    {
+      "decision_id": "EXECUTION",
+      "status": "APPROVED_SUBJECT_TO_AUTHENTICATED_ISSUANCE_AND_BOUND_CONFIGURATION",
+      "value": {
+        "authorization_count": 1,
+        "campaign_count": 1,
+        "campaign_stage": "DEVELOPMENT",
+        "run_slots": 40,
+        "paid_connectivity_probe_allowed": false
+      }
+    }
+  ],
+  "historical_bindings": {
+    "development_execution_request_v1": "sha256:0e5949209c4c9fe6199df5af43a0aab2b01fb0af486f1dc69bd47cfd911910ca",
+    "development_execution_request_v2": "sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62",
+    "development_owner_decisions_v1": "sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a",
+    "pilot_v2_proposal": "sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31",
+    "pr_115_accepted_head": "995f8a9c2e425ba25739cc9c8ce6e8400797ebd7",
+    "pr_115_merge": "6ac9e8db33f5e7da565f9617080f3bc4ed6b9745"
+  },
+  "development_approver_principal": {
+    "github_login": "fitz-lang6",
+    "github_user_id": 317786409
+  },
+  "provenance": {
+    "record_kind": "OWNER_EXPRESS_DEVELOPMENT_APPROVER_CORRECTION_RECORDED_IN_CODEX_SESSION",
+    "runtime_authentication_inferred_from_this_record": false,
+    "source_date": "2026-09-09"
+  },
+  "record_id": "B-E4-DEVELOPMENT-OWNER-DECISIONS-V2",
+  "schema_version": "carbon.be4.development-owner-decisions.v2",
+  "scope": "ONE_40_SLOT_NONQUALIFYING_DEVELOPMENT_CAMPAIGN_ONLY",
+  "status": "OWNER_DECISIONS_CORRECTED_RUNTIME_AUTHENTICATION_AND_ONE_USE_ISSUANCE_REQUIRED",
+  "supersedes": {
+    "record_id": "B-E4-DEVELOPMENT-OWNER-DECISIONS-V1",
+    "scope": "DEVELOPMENT_APPROVER_PRINCIPAL_BINDING_ONLY"
+  }
+}

@@ -240,6 +240,82 @@ def test_execution_request_is_content_bound_and_cannot_claim_execution(
         pilot.validate_execution_request(request)
 
 
+def test_development_approver_correction_is_prospective_and_content_bound(
+    tmp_path: Path,
+) -> None:
+    _tasks, factory, manifest = pilot._build(tmp_path / "fixture")
+    current = pilot.validate_execution_request(
+        pilot.execution_request(manifest, factory.artifact_manifest)
+    )
+    assert current["schema_version"] == "carbon.be4.development-execution-request.v3"
+    assert current["approval_request"]["authenticated_issuer"] == {
+        "github_login": "fitz-lang6",
+        "github_user_id": 317_786_409,
+        "verification": "FRESH_AUTHENTICATED_GITHUB_REST_USER_REQUIRED",
+    }
+    assert current["owner_decisions"]["development_approver_principal"] == {
+        "github_login": "fitz-lang6",
+        "github_user_id": 317_786_409,
+    }
+    assert current["change_record"] == {
+        "historical_owner_decisions_digest": (
+            "sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a"
+        ),
+        "historical_owner_decisions_preserved": True,
+        "historical_request_digest": (
+            "sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62"
+        ),
+        "historical_request_preserved": True,
+        "reason": (
+            "CORRECT_DEVELOPMENT_APPROVER_IDENTITY_AND_REBIND_FINAL_"
+            "IMPLEMENTATION_ARTIFACTS"
+        ),
+    }
+
+    historical_decisions = json.loads(
+        (
+            pilot.REPOSITORY_ROOT
+            / ".agent/preregistrations/B-E4_development_owner_decisions_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    historical_decision_digest = historical_decisions.pop("content_digest")
+    assert historical_decision_digest == pilot._domain_digest(
+        b"carbon.be4.development-owner-decisions.v1\x00", historical_decisions
+    )
+    assert historical_decisions["owner_principal"] == {
+        "github_login": "jbequ5",
+        "github_user_id": 99_085_788,
+    }
+
+    historical_request = json.loads(
+        (
+            pilot.REPOSITORY_ROOT
+            / ".agent/preregistrations/B-E4_development_execution_request_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    historical_request_digest = historical_request.pop("content_digest")
+    assert historical_request_digest == pilot._domain_digest(
+        b"carbon.be4.development-execution-request.v2\x00", historical_request
+    )
+    assert historical_request["approval_request"]["authenticated_issuer"] == {
+        "github_login": "jbequ5",
+        "github_user_id": 99_085_788,
+        "verification": "FRESH_AUTHENTICATED_GITHUB_REST_USER_REQUIRED",
+    }
+
+    stale_principal = json.loads(json.dumps(current))
+    stale_principal["approval_request"]["authenticated_issuer"][
+        "github_login"
+    ] = "jbequ5"
+    source = dict(stale_principal)
+    source.pop("content_digest")
+    stale_principal["content_digest"] = pilot._domain_digest(
+        pilot._EXECUTION_REQUEST_DOMAIN, source
+    )
+    with pytest.raises(pilot.DevelopmentFixtureError, match="boundary"):
+        pilot.validate_execution_request(stale_principal)
+
+
 def test_journal_replays_completion_and_retains_ambiguous_reservation(
     tmp_path: Path,
 ) -> None:

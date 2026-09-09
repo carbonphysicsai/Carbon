@@ -1063,3 +1063,56 @@ the owner's recorded policy choices do not need reapproval.
 
 No calibration readiness judgment is made without real observations. V4 stays
 `STILL_BLOCKED`; B-E4 stays `in_progress`; B-GATE stays unstarted.
+
+## DEVELOPMENT approver-correction evidence
+
+The owner corrected the development-only principal from the mistakenly
+associated partner account to `fitz-lang6` / GitHub user `317786409`, while
+preserving `jbequ5` / `99085788` as Carbon's broader repository owner. The
+historical D20 record, owner-decision v1, and execution requests v1/v2 are
+unchanged. Owner-decision v2 has content digest
+`sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba`
+and states explicitly that this is one principal covering five DEVELOPMENT
+roles, not independent qualification ratification.
+
+The production authenticator now requires the fresh GitHub REST `/user` result
+to match both `fitz-lang6` and immutable user ID `317786409`. Focused regressions
+reject an arbitrary login paired with the correct ID, the correct login paired
+with the historical ID, and the historical `jbequ5` / `99085788` campaign
+binding. The production authentication path then verified the active viewer as
+`fitz-lang6` / `317786409` with user type `User`. This authenticated identity
+check did not issue or claim a capability.
+
+The final content-bound successor is
+`.agent/preregistrations/B-E4_development_execution_request_v3.json`:
+
+- request content digest
+  `sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209`;
+- campaign manifest
+  `sha256:c3024862b9e55e246b3020ad699513ec342951b7c8df30936a7e984847967fd5`;
+- implementation
+  `sha256:9e93b0ff076d55d8d56f1a382beb0a71f10131236cd2c778951d163013ef66be`;
+- artifact manifest
+  `sha256:ffa00c2eb55c14d754147e482b7f9a3681e41fd8eb2e6daba65746d90c8a728c`;
+- unchanged retention contract
+  `sha256:d5651e336c6255d261ee8e2839397248c2b3fc03b045d20beb2959cecc272a02`.
+
+Its change record binds historical request v2 and owner-decision v1 rather than
+rewriting either. A mutation back to the historical issuer is rejected after
+recomputing the v3 outer digest. The refreshed deterministic artifact
+`.agent/evidence/wave_b/b-e4-development-offline-integration-v3.json` retained
+40/40 completed service rows, all five profiles/four arms/two tasks, 168
+simulated provider operations, 104 practice results, and 40 endpoints. It
+records 380,703 simulated input tokens, 18,258 simulated output-plus-reasoning
+tokens, and `$0.980502` modeled cost. Those figures remain offline integration
+data, not model behavior, a provider bill, or a utility result.
+
+No authorization store or real campaign journal existed at inspection, and no
+one-use authorization was issued or claimed. No provider operation was
+dispatched; confirmed and unreconciled real provider charge remain zero. All
+campaign semantics and the `$14.42` ceiling are preserved. The next action is
+the owner's stepwise external provider setup followed by the exact v3 issue-and-
+run command; this delivery intentionally stops first.
+
+No calibration-readiness judgment is made without real observations. V4 stays
+`STILL_BLOCKED`; B-E4 stays `in_progress`; B-GATE stays unstarted.

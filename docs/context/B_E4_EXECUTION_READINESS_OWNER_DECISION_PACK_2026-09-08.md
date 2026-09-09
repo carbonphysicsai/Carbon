@@ -3,7 +3,7 @@
 **Current through:** 2026-09-09
 
 **Current status:** `B-E4 in_progress / DEVELOPMENT POLICY APPROVED /
-RUNTIME AUTHORIZATION NOT ISSUED / PROVIDER NOT CONFIGURED`
+APPROVER CORRECTED / RUNTIME AUTHORIZATION NOT ISSUED / PROVIDER NOT CONFIGURED`
 
 **Current pilot contract:**
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`
@@ -33,8 +33,8 @@ run/arm transcripts, bounded retries/deadlines, and exact request/response and
 usage recording.
 
 The repository-native admission issuer verifies a fresh authenticated GitHub
-`/user` response for the registered owner and an explicit act naming the exact
-request digest. Its capability binds the owner decisions, final request,
+`/user` response for the registered DEVELOPMENT approver and an explicit act
+naming the exact request digest. Its capability binds the owner decisions, final request,
 implementation/runtime/artifacts, prompts/corpus/treatments, tasks, schedule,
 DEVELOPMENT stage, provider project, retention contract, token/resource/time/
 money limits, and expiry. Claim is durable and one-use: it is associated with
@@ -66,10 +66,12 @@ qualifying run. B-E4 remains `in_progress`; B-GATE remains unstarted.
 ### 3. Current owner-approved DEVELOPMENT envelope
 
 The Carbon owner selected the following for exactly one 40-slot non-qualifying
-DEVELOPMENT campaign. One accountable principal, `jbequ5` / GitHub user
-`99085788`, supplies five role-specific decisions for this campaign only. The
-record never calls this five independent reviews and cannot be reused for
-calibration or qualification.
+DEVELOPMENT campaign and corrected the development-only approver after a
+connected project-partner account was mistaken for the delegated principal.
+One accountable principal, `fitz-lang6` / GitHub user `317786409`, supplies
+five role-specific decisions for this campaign only. `jbequ5` / `99085788`
+retains the broader repository-owner role. The record never calls this five
+independent reviews and cannot be reused for calibration or qualification.
 
 | Decision | Frozen DEVELOPMENT choice | Status |
 |---|---|---|
@@ -85,17 +87,22 @@ calibration or qualification.
 
 | Artifact | Exact identity |
 |---|---|
-| Owner decisions | `sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a` |
+| Owner decisions v2 | `sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba` |
 | Pilot v2 proposal | `sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31` |
-| Development execution request v2 | `sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62` |
-| Development campaign manifest | `sha256:3f24e132d106ba5441dd8582d63758a4e683eac6b217d6699d248ccf48e86b3f` |
-| Implementation | `sha256:3f8b8ebaac5841ba1435be71f8bc7379f9a237109dea809112ea70c40119210f` |
-| Artifact manifest | `sha256:5591d22ed762039797909265ccfbd18cb39bd0e4f5f836cbd32af317bd2e61cc` |
+| Development execution request v3 | `sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209` |
+| Development campaign manifest | `sha256:c3024862b9e55e246b3020ad699513ec342951b7c8df30936a7e984847967fd5` |
+| Implementation | `sha256:9e93b0ff076d55d8d56f1a382beb0a71f10131236cd2c778951d163013ef66be` |
+| Artifact manifest | `sha256:ffa00c2eb55c14d754147e482b7f9a3681e41fd8eb2e6daba65746d90c8a728c` |
 | Retention contract | `sha256:d5651e336c6255d261ee8e2839397248c2b3fc03b045d20beb2959cecc272a02` |
 
-No paid campaign ran in this workspace. The authenticated GitHub principal was
-`fitz-lang6` / `317786409`, not the registered owner, and neither
-`OPENAI_API_KEY` nor `OPENAI_PROJECT_ID` was present. The result is therefore:
+Historical owner-decision v1 and execution requests v1/v2 retain their original
+identities and mistakenly associated development principal as evidence; they
+are not rewritten or eligible for new issuance.
+
+No paid campaign ran in this workspace. The production authentication path
+verified the corrected GitHub DEVELOPMENT approver as `fitz-lang6` /
+`317786409`, but issuance intentionally stopped before provider setup. The
+result is therefore:
 
 - 0 real slots attempted or completed;
 - 0 genuine provider calls;
@@ -103,15 +110,15 @@ No paid campaign ran in this workspace. The authenticated GitHub principal was
 - no real model observations and no calibration-readiness judgment.
 
 No local login, copied identity, Boolean, digest, or test-only capability was
-used to manufacture admission.
+used to manufacture admission. No live authorization was issued or claimed.
 
 ### 5. Exact remaining external handoff
 
-No policy reapproval is requested. The operator must activate the authenticated
-GitHub identity `jbequ5` / `99085788` and supply `OPENAI_API_KEY` plus the
+No policy reapproval is requested. The operator must retain the authenticated
+GitHub identity `fitz-lang6` / `317786409` and supply `OPENAI_API_KEY` plus the
 owner-controlled `OPENAI_PROJECT_ID` out of band; `OPENAI_ORGANIZATION_ID` is
-optional. Secrets must not be placed in chat, command history committed to the
-repository, logs, reports, prompts, or artifacts.
+optional. Secrets must not be placed in chat, committed command history, logs,
+reports, prompts, or artifacts.
 
 From the final merged checkout, verify the authenticated identity without
 printing provider secrets, then issue and claim the one authorization and make
@@ -122,7 +129,7 @@ gh api /user --jq '{login,id,type}'
 PYTHONPATH=. .venv/bin/python scripts/dev/run_be4_development_pilot.py \
   --responses \
   --authorize-exact-request-digest \
-  sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62
+  sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209
 ```
 
 If that exact campaign stops and later resumes, use the same checkout and

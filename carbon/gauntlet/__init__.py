@@ -84,6 +84,8 @@ from .development import (
 from .development_authority import (
     CARBON_OWNER_GITHUB_LOGIN,
     CARBON_OWNER_GITHUB_USER_ID,
+    DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+    DEVELOPMENT_APPROVER_GITHUB_USER_ID,
     DEVELOPMENT_AUTHORIZATION_LIFETIME_SECONDS,
     DEVELOPMENT_OWNER_ROLES,
     DEVELOPMENT_RETENTION_SELECTION,
@@ -94,6 +96,7 @@ from .development_authority import (
     DevelopmentAuthorizationError,
     DevelopmentAuthorizationStore,
     GitHubCliCarbonOwnerAuthenticator,
+    GitHubCliDevelopmentApproverAuthenticator,
     provider_identity_digest,
 )
 from .evidence import (
@@ -231,6 +234,8 @@ __all__ = (
     "DESIGN_STATUS",
     "DETERMINISTIC_POPULATION_SCOPE",
     "DEVELOPMENT_APPROVAL_REQUEST_USD",
+    "DEVELOPMENT_APPROVER_GITHUB_LOGIN",
+    "DEVELOPMENT_APPROVER_GITHUB_USER_ID",
     "DEVELOPMENT_AUTHORITY_CEILING",
     "DEVELOPMENT_AUTHORIZATION_LIFETIME_SECONDS",
     "DEVELOPMENT_OWNER_ROLES",
@@ -302,6 +307,7 @@ __all__ = (
     "FrozenArmArtifact",
     "GauntletPreflightError",
     "GitHubCliCarbonOwnerAuthenticator",
+    "GitHubCliDevelopmentApproverAuthenticator",
     "HeldoutToyShadowCases",
     "IntervalBound",
     "InterventionDiversityAnalysis",
