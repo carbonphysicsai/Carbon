@@ -2,7 +2,8 @@
 
 **Wave:** B candidate
 **Status:** in_progress
-**Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3; B-01G and B-E4 are explicitly non-blocking.
+**Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3
+**Non-blocking context:** B-01G and B-E4 are explicitly non-blocking.
 **Build Out:** Wave B acceptance
 **Master questions:** MQ-001 through MQ-008, MQ-015 through MQ-018, MQ-024 through MQ-026, MQ-045, MQ-051
 **Owner-approved integration:** `Design_Specs/Science_GTM_Wave_Integration_Plan.md` §4; `docs/context/SCIENCE_GTM_OWNER_DECISION_RECORD_2026-08-27.md`
