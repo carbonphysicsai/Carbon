@@ -1158,6 +1158,13 @@
         "map_ref": "SYSTEM/PR-MAINTENANCE"
       },
       {
+        "id": "wave-b-closeout-report",
+        "match_type": "exact",
+        "path": ".agent/WAVE_B_REPORT.md",
+        "impact_class": "map_structural",
+        "map_ref": "WAVE-B"
+      },
+      {
         "id": "root-spec",
         "match_type": "exact",
         "path": "SPEC.md",
@@ -1426,6 +1433,13 @@
         "map_ref": "WAVE-C"
       },
       {
+        "id": "wave-c-future-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/C-",
+        "impact_class": "map_structural",
+        "map_ref": "WAVE-C"
+      },
+      {
         "id": "dialogue-concierge-future-tickets",
         "match_type": "prefix",
         "path": ".agent/tickets/C-DC",
@@ -1445,6 +1459,13 @@
         "path": ".agent/tickets/G-PR",
         "impact_class": "mapped_detail",
         "map_ref": "WAVE-G"
+      },
+      {
+        "id": "wave-d-future-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/D-",
+        "impact_class": "map_structural",
+        "map_ref": "WAVE-D"
       },
       {
         "id": "ticket-record",
