@@ -1499,16 +1499,34 @@
       "ticket": "B-E4",
       "title": "Keep the common-model pilot proposal owner-unapproved",
       "attention": "HUMAN_REQUIRED",
-      "status": "IMPLEMENTED_WORKING_DECISION_WITH_RESERVED_PILOT_CHOICES",
+      "status": "PARTIALLY_SUPERSEDED_DEVELOPMENT_APPROVED_FULL_PILOT_UNAPPROVED",
       "audience": "harsh",
-      "question": "Should owners approve the proposed common Terra population, 12-cell adaptive task design, 300-run/$98.304 limits, and design-analysis-only evidence use before a separately authorized non-qualifying pilot?",
-      "recommendation": "KEEP the engineering proposal and its fail-closed boundary, then approve, modify, or reject the four grouped pilot choices through the owner inbox before any provider adapter or campaign can execute.",
+      "question": "After the separately approved 40-slot DEVELOPMENT envelope, should owners approve the broader 12-cell calibration/300-run/$98.304 pilot choices?",
+      "recommendation": "KEEP the broader pilot and qualification choices unapproved. Use the one DEVELOPMENT campaign only through B-E4-D20, then review retained observations before any separately frozen calibration request.",
       "why": "One common capable model avoids a model-policy confound, four attempts keep the eight-candidate surface non-exhaustive, prospective task inclusion prevents favorable-v2 selection, and the bounded pilot can estimate nuisance behavior without pretending to qualify v4.",
-      "if_kept": "The proposal remains inert until the four choices at https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5586811581 are approved and a frozen implementation receives separate one-use pilot authorization; v4's eight qualification inputs remain unresolved.",
+      "if_kept": "Only the exact 40-slot DEVELOPMENT request may receive one authorization; calibration, the overall $98.304 pilot ceiling, and v4's eight qualification inputs remain unresolved.",
       "if_changed": "Supersede B-E4-D14 and prospectively version the proposal, owner pack, ticket/plan/evidence, Wave register, and Hub event before any pilot implementation or authorization.",
       "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5586811635",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cb04fc05e1a021f47fe109421f508f6635c9f939/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E4-D20",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Authenticate and spend one development entitlement",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_AWAITING_EXTERNAL_AUTHENTICATION_AND_PROVIDER_CONFIGURATION",
+      "audience": "harsh",
+      "question": "How should Carbon turn the owner's one-campaign DEVELOPMENT choices into exactly one resumable execution entitlement without accepting copied identity fields or treating unknown billing as zero?",
+      "recommendation": "KEEP fresh GitHub owner authentication, explicit exact-request approval, one request/bindings record, one random journal-bound claim, same-journal restart, conservative unknown-billing reservation, and the fixed $14.42 cap. Run only when the external owner session and provider project/key are present.",
+      "why": "The bounded mechanism authenticates the approval act at issuance, binds the complete execution envelope, prevents another journal from minting a second right, and preserves ambiguous cost without building a general identity platform.",
+      "if_kept": "The merged package can issue and consume one DEVELOPMENT authorization from the registered owner session; this workspace's mismatched login and missing provider configuration continue to block dispatch safely.",
+      "if_changed": "A changed identity mechanism, request, project, retention contract, source tree, journal binding, or limit requires a prospective version and must not reuse this entitlement.",
+      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/preregistrations/B-E4_development_owner_decisions_v1.json",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/DECISIONS.md"
     }
   ]
 }

@@ -1603,6 +1603,34 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": "B-E4-EVIDENCE-RESOURCE-PILOT-CORRECTION-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-DEVELOPMENT-EXECUTION-ADMISSION-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "implemented",
+      "summary": "The owner approved one 40-slot non-qualifying DEVELOPMENT envelope, and the successor candidate freezes request v2 plus authenticated, journal-bound, one-use issuance/resume, project/retention/source/limit validation, real partial/stopped reporting, and conservative unknown-billing reservations. Controlled HTTP and deterministic 40-slot paths pass offline. The current workspace lacks the assigned owner authentication and provider project/key, so no capability, provider call, or charge occurred; calibration, shadow, attack, qualification, and B-GATE remain unauthorized.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "supersedes": "B-E4-DEVELOPMENT-RUNNER-01"
     }
   ]
 }

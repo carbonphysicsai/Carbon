@@ -2,8 +2,8 @@
 
 **Current through:** 2026-09-09
 
-**Current status:** `B-E4 in_progress / PILOT PROPOSED / OWNER_UNAPPROVED /
-PILOT_NOT_AUTHORIZED`
+**Current status:** `B-E4 in_progress / DEVELOPMENT POLICY APPROVED /
+RUNTIME AUTHORIZATION NOT ISSUED / PROVIDER NOT CONFIGURED`
 
 **Current pilot contract:**
 `.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json`
@@ -14,13 +14,139 @@ PILOT_NOT_AUTHORIZED`
 **Current qualification proposal:**
 `.agent/preregistrations/B-E4_recommended_design_v4.json`, `STILL_BLOCKED`
 
-**Authority ceiling:** runnable non-qualifying development integration and
-offline fixture evidence only. No provider inference, paid autonomous-agent
-run, pilot calibration, shadow campaign, attack campaign, qualifying execution,
-approval, ratification, scientific or security/privacy qualification,
-production, or LIVE authority.
+**Authority ceiling:** one owner-approved, non-qualifying 40-slot DEVELOPMENT
+campaign under the exact successor request and `$14.42` provider-charge cap.
+No calibration, shadow campaign, attack campaign, qualifying execution,
+multidisciplinary qualification ratification, scientific or security/privacy
+qualification, production, or LIVE authority.
 
-## Current owner summary
+## Current DEVELOPMENT execution handoff
+
+### 1. Current implemented engineering
+
+The repository now contains the complete sequential real-provider route through
+the existing Carbon discovery, treatment, proposal, compilation/admission,
+B-07C paired-practice, permitted-feedback, selection, A7/A8 fixture, endpoint,
+resource, and evidence owners. The strict Responses adapter uses the frozen
+model/settings, six-field synthetic payload, no built-in tools, isolated
+run/arm transcripts, bounded retries/deadlines, and exact request/response and
+usage recording.
+
+The repository-native admission issuer verifies a fresh authenticated GitHub
+`/user` response for the registered owner and an explicit act naming the exact
+request digest. Its capability binds the owner decisions, final request,
+implementation/runtime/artifacts, prompts/corpus/treatments, tasks, schedule,
+DEVELOPMENT stage, provider project, retention contract, token/resource/time/
+money limits, and expiry. Claim is durable and one-use: it is associated with
+one random journal identity before dispatch. A legitimate restart reuses the
+same journal and cumulative allowances; another or recreated journal is not a
+new entitlement.
+
+Operation intent is committed before dispatch. An ambiguous external result
+keeps execution/billing unknown and retains its worst-case reservation. The
+real report accepts successful, partial, failed, refused, truncated, stopped,
+and unresolved rows, but rejects offline evidence relabelled as provider
+evidence or a missing receipt relabelled as definitely unpaid.
+
+Controlled loopback tests exercise the real encoding, HTTP parsing, CLI,
+admission, journal, 40-slot lifecycle, partial-report, and ambiguous-billing
+paths without provider access. The deterministic successor integration artifact
+contains 40/40 Carbon service rows, 168 simulated provider operations, 104
+practice results, and 40 reconstructed endpoints. Its `$0.980430` modeled cost
+is synthetic and not an expectation or bill.
+
+### 2. Current blocked v4 qualification proposal
+
+`.agent/preregistrations/B-E4_recommended_design_v4.json` remains
+`STILL_BLOCKED`. This DEVELOPMENT authorization does not approve its eight
+qualification values, supply independent multidisciplinary ratification,
+create shadow or trusted non-rejection attack evidence, or authorize a
+qualifying run. B-E4 remains `in_progress`; B-GATE remains unstarted.
+
+### 3. Current owner-approved DEVELOPMENT envelope
+
+The Carbon owner selected the following for exactly one 40-slot non-qualifying
+DEVELOPMENT campaign. One accountable principal, `jbequ5` / GitHub user
+`99085788`, supplies five role-specific decisions for this campaign only. The
+record never calls this five independent reviews and cannot be reused for
+calibration or qualification.
+
+| Decision | Frozen DEVELOPMENT choice | Status |
+|---|---|---|
+| Population and interaction | `gpt-5.6-terra`, Responses default/standard tier, medium reasoning, low verbosity; five frozen policies; four frozen arms; isolated transcripts; four proposal calls plus one selection-only call for adaptive profiles; one minimalist attempt | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN |
+| Tasks and seeds | Exact cells `be4-pilot-v2-04` and `be4-pilot-v2-07`, paired arms, frozen schedule, hidden-seed commitments, existing fixture separation | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN |
+| Resources and stopping | 40 slots, no reserves/replacements/free reruns; frozen call/token/service/fixture/time limits; at most `$14.42` provider charges | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN |
+| Provider egress and retention | Exact six-field synthetic payload; `store=false`; disabled tools; standard abuse-monitoring retention and documented exceptions; approved prompt-cache behavior; project supplied by `OPENAI_PROJECT_ID` and bound at issuance | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN; RUNTIME PROJECT NOT YET SUPPLIED |
+| Evidence use | DEVELOPMENT integration/design diagnostics only; retain every partial, failed, stopped, tie, negative, and successful row; never pool into calibration or qualification | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN |
+| Role assignment | One principal records RESEARCH, EXACT_PROTOCOL, SCIENCE, STATISTICS, and SECURITY decisions for this campaign only | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN; NOT INDEPENDENT RATIFICATION |
+| Currentness | Expires at completion, revocation, or 120 hours from issuance; restart retains identity, deadlines, and consumed allowances | APPROVED_FOR_ONE_DEVELOPMENT_CAMPAIGN |
+
+### 4. Exact frozen package and execution result
+
+| Artifact | Exact identity |
+|---|---|
+| Owner decisions | `sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a` |
+| Pilot v2 proposal | `sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31` |
+| Development execution request v2 | `sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62` |
+| Development campaign manifest | `sha256:3f24e132d106ba5441dd8582d63758a4e683eac6b217d6699d248ccf48e86b3f` |
+| Implementation | `sha256:3f8b8ebaac5841ba1435be71f8bc7379f9a237109dea809112ea70c40119210f` |
+| Artifact manifest | `sha256:5591d22ed762039797909265ccfbd18cb39bd0e4f5f836cbd32af317bd2e61cc` |
+| Retention contract | `sha256:d5651e336c6255d261ee8e2839397248c2b3fc03b045d20beb2959cecc272a02` |
+
+No paid campaign ran in this workspace. The authenticated GitHub principal was
+`fitz-lang6` / `317786409`, not the registered owner, and neither
+`OPENAI_API_KEY` nor `OPENAI_PROJECT_ID` was present. The result is therefore:
+
+- 0 real slots attempted or completed;
+- 0 genuine provider calls;
+- `$0` confirmed and `$0` unreconciled provider charge;
+- no real model observations and no calibration-readiness judgment.
+
+No local login, copied identity, Boolean, digest, or test-only capability was
+used to manufacture admission.
+
+### 5. Exact remaining external handoff
+
+No policy reapproval is requested. The operator must activate the authenticated
+GitHub identity `jbequ5` / `99085788` and supply `OPENAI_API_KEY` plus the
+owner-controlled `OPENAI_PROJECT_ID` out of band; `OPENAI_ORGANIZATION_ID` is
+optional. Secrets must not be placed in chat, command history committed to the
+repository, logs, reports, prompts, or artifacts.
+
+From the final merged checkout, verify the authenticated identity without
+printing provider secrets, then issue and claim the one authorization and make
+the first provider request as the first registered campaign operation:
+
+```bash
+gh api /user --jq '{login,id,type}'
+PYTHONPATH=. .venv/bin/python scripts/dev/run_be4_development_pilot.py \
+  --responses \
+  --authorize-exact-request-digest \
+  sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62
+```
+
+If that exact campaign stops and later resumes, use the same checkout and
+durable runtime files, and omit the issuance flag:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/dev/run_be4_development_pilot.py \
+  --responses
+```
+
+Owner revocation before further dispatch uses:
+
+```bash
+PYTHONPATH=. .venv/bin/python scripts/dev/run_be4_development_pilot.py \
+  --revoke-responses-authorization
+```
+
+The runtime paths are fixed under ignored `.agent/runtime/`; changing the
+request, executable source, provider project, retention contract, limits, or
+journal identity fails closed. A material design change needs new owner
+authority. Calibration remains separately frozen and unauthorized even if all
+40 DEVELOPMENT slots finish.
+
+## Historical PR #114 owner summary
 
 ### 1. Current implemented engineering
 

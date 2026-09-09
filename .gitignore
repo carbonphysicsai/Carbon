@@ -12,6 +12,7 @@ dist/
 
 # Repository-controlled reports are committed explicitly; local output is not.
 .carbon-artifacts/
+.agent/runtime/
 
 # Editor and OS noise
 .DS_Store

@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 67 map-level change events
+- 68 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #113 merged the strict pilot-v2 correction. The current candidate implements one sequential 5-profile x 4-arm x 2-task DEVELOPMENT runner over Carbon's B-07S/B-07C and A7/A8 TEST_ONLY fixture services, a strict real-but-disabled Responses adapter, and a durable intent/result journal. The frozen proposed request binds exact source, prompt, corpus, treatment, task/seed-commitment, payload, provider-control, and resource identities; its all-input-cache-write maximum is $14.41792 and its owner request is $14.42 under the unchanged proposed $98.304 pilot ceiling. The deterministic transport completed all 40 slots with zero provider inference and zero paid execution. Population/task/resource/egress/evidence approvals, authenticated role assignments, security-approved provider-project retention controls, and a separately verified one-use DEVELOPMENT authorization remain absent, so real transport fails before dispatch. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #114 merged the disabled real transport, sequential 5-profile x 4-arm x 2-task DEVELOPMENT runner, durable journal, exact request, and 40-slot deterministic Carbon fixture-service integration. The Carbon owner has since approved exactly one non-qualifying DEVELOPMENT campaign under the frozen population, tasks, six-field egress, standard-retention alternative, evidence role, stopping rules, and $14.42 provider-charge cap, using one accountable principal for five role-specific decisions rather than five independent qualification ratifiers. The current successor implements a fresh authenticated-owner issuer, exact successor request, one journal-bound entitlement, safe restart, expiry/revocation/project/source/limit checks, real partial/stopped reports, and conservative unknown-billing reservations. The active workspace authenticated a different GitHub principal and had no provider key or project, so it issued no capability, dispatched no provider request, and incurred no charge. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
 
 ## Maintain
 

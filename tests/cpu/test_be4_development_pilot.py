@@ -31,6 +31,7 @@ from carbon.gauntlet import (
     UnresolvedOperationError,
     build_offline_provider_payload,
 )
+from carbon.gauntlet.development import RESPONSES_ENDPOINT
 from scripts.dev import run_be4_development_pilot as pilot
 
 
@@ -154,7 +155,9 @@ def test_responses_request_is_strict_history_accounted_and_tool_free() -> None:
         _call(history=(crossed,))
 
 
-def test_real_transport_fails_before_network_or_credentials_are_needed() -> None:
+def test_real_transport_fails_before_network_or_credentials_are_needed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     called = False
 
     def opener(*args: object, **kwargs: object) -> object:
@@ -163,16 +166,18 @@ def test_real_transport_fails_before_network_or_credentials_are_needed() -> None
         called = True
         raise AssertionError("network must remain unreachable")
 
+    monkeypatch.setattr("urllib.request.urlopen", opener)
     transport = OpenAIResponsesTransport(
         api_key="fixture-key-that-must-stay-redacted",
         project_id="fixture-project-that-must-stay-redacted",
         organization_id="fixture-organization-that-must-stay-redacted",
-        opener=opener,
     )
     assert "credential-redacted" in repr(transport)
     assert "fixture" not in repr(transport)
-    with pytest.raises(DevelopmentApprovalUnavailable, match="BLOCKED"):
+    with pytest.raises(DevelopmentApprovalUnavailable, match="READY"):
         transport.dispatch(_call())
+    with pytest.raises(DevelopmentApprovalUnavailable, match="live admission"):
+        transport._dispatch(_call(), endpoint=RESPONSES_ENDPOINT)
     assert called is False
 
 
@@ -530,6 +535,7 @@ def test_execution_request_is_content_bound_but_not_authority(tmp_path: Path) ->
     assert request["manifest"]["approval_boundary"] == {
         "actual_execution_evidence": False,
         "authenticated_five_owner_approval": False,
+        "owner_decisions_recorded": True,
         "one_use_execution_authorization": False,
         "paid_provider_execution": False,
     }
@@ -552,7 +558,7 @@ def test_execution_request_is_content_bound_but_not_authority(tmp_path: Path) ->
     manifest_source = dict(artifact_mutation["manifest"])
     manifest_source.pop("content_digest")
     artifact_mutation["manifest"]["content_digest"] = pilot._domain_digest(
-        b"carbon.be4.development-manifest.v1\x00", manifest_source
+        b"carbon.be4.development-manifest.v2\x00", manifest_source
     )
     outer = dict(artifact_mutation)
     outer.pop("content_digest")
