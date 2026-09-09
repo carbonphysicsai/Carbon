@@ -40,7 +40,7 @@ Selected bounded work is in progress. Completion, qualification, LIVE, productio
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/80fb7a8433eec82c38c945a9d5be1a1d7b5f94f6/.agent/tickets/B-GATE_closeout.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/80fb7a8433eec82c38c945a9d5be1a1d7b5f94f6/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/71603b028d12f7e21d5fe3b3c2dac3d8d8b2941b/.agent/tickets/B-GATE_closeout.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/71603b028d12f7e21d5fe3b3c2dac3d8d8b2941b/.agent/WAVE_B.md)
 
 > B-E4 remains preserved deferred research and is not a closeout dependency. This gate grants no scientific, security, network, production, LIVE, launch, settlement, weight, or emission authority.
