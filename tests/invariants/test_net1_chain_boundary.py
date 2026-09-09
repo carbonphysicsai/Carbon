@@ -3,7 +3,11 @@
 import ast
 from pathlib import Path
 
+import pytest
+
 from carbon.chain import BittensorReader, ReadOnlyChainAdapter
+
+pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
 
