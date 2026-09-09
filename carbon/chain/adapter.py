@@ -59,9 +59,8 @@ class ReadOnlyChainAdapter:
             failure = FailureCode.TRANSPORT
         except (NotImplementedError, ImportError):
             failure = FailureCode.UNSUPPORTED
-        except (
-            Exception
-        ):  # noqa: BLE001 - provider boundary must redact unknown failures
+        # Unknown provider failures must not expose private response material.
+        except Exception:  # noqa: BLE001
             failure = FailureCode.MALFORMED
         # Outside the handler: no sensitive __context__, even for local diagnostics.
         raise ChainFailure(failure)

@@ -570,7 +570,12 @@
       "why": "Independent identity preserves measurement history and prevents authoring, truth, resource, and scoring authority from collapsing into one runtime.",
       "if_kept": "B-06 and B-07F can consume exact measurement refs while A5 continues to execute only its closed fixture scalar contract.",
       "if_changed": "The namespace, canonical profile, code-authority entry, public refs, persisted fixture pins, tests, and downstream imports require a versioned migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-07A", "WAVE-B/B-07F", "SYSTEM/DEVELOPMENT-HUB"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07F",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -588,7 +593,11 @@
       "why": "Free text and solver agreement cannot stop implementation evidence from acquiring authority it does not possess.",
       "if_kept": "Only separately identified experimental or industrial evidence can be eligible to support physical validity, target-workload applicability, or engineering context of use; B-06 still decides qualification.",
       "if_changed": "The evidence enums, compatibility matrix, canonical bytes, fixtures, B-06 consumer, and role-confusion tests require a schema migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -606,7 +615,12 @@
       "why": "A finite scalar shape alone proves neither scientific origin nor admissibility, and soft score cannot compensate for a mandatory gap.",
       "if_kept": "B-07F receives a closed scalar projection but remains the owner of official ScoreInput construction and A5 invocation.",
       "if_changed": "Score-use records, pack coverage, projection precedence, B-07F integration, forbidden-input tests, and possibly A5 authority require coordinated review.",
-      "affects": ["WAVE-B/B-07A", "WAVE-B/B-07C", "WAVE-B/B-07F", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -624,7 +638,11 @@
       "why": "Separate seeds, processes, solvers, or machines do not establish independence and can materially change comparison conclusions.",
       "if_kept": "B-06 owns the positive Dossier applicability decision and B-E1 can test dependence-aware coverage without B-05 guessing covariance.",
       "if_changed": "The uncertainty policy, Dossier binding, comparison consumer, canonical schema, and statistical tests require a prospective version.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -642,7 +660,12 @@
       "why": "Resource completion or exhaustion does not prove scientific coverage, and nomination is not promotion.",
       "if_kept": "B-E1 tests coverage and false elimination against B-05-authored policy while B-02C remains a clean resource prerequisite.",
       "if_changed": "Reconstruction stage records, B-02C adapters, B-E1 harness assumptions, stopping outcomes, canonical bytes, and tests require migration.",
-      "affects": ["WAVE-B/B-02C", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1"],
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -660,7 +683,12 @@
       "why": "Nulls, sentinel floats, zero filling, or generic invalid states can turn infrastructure or evidence gaps into rank-changing scientific values.",
       "if_kept": "B-07F can exhaustively accept only admissible complete projections without interpreting missing data.",
       "if_changed": "The material union, canonical registry, projection, B-07F/B-E1 exhaustiveness, disclosure, and tests require a new schema version.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5548824971",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0aceb92fb05469d5654a9e2447a063eb3d68c38c/.agent/DECISIONS.md"
     },
@@ -678,7 +706,13 @@
       "why": "Reverse content-digest edges are unconstructable, Challenge-only matching permits evidence borrowing, and caller-labeled complete material cannot supply missing scientific authority.",
       "if_kept": "B-05 retains exact content identity and fail-closed scalar projection without inventing floors, independence, covariance, minima, stopping rules, or qualification.",
       "if_changed": "The candidate canonical payload, fixed vectors, reconstruction fact graph, measurement selection, Score Pack binding, projection precedence, and downstream consumers require coordinated migration.",
-      "affects": ["WAVE-B/B-02C", "WAVE-B/B-06", "WAVE-B/B-07F", "WAVE-B/B-E1", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-06",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E1",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5552228379",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/commit/5dd55978b0ab4281873231b66cf6e5073c1c9553"
     },
@@ -696,7 +730,12 @@
       "why": "This follows explicit owner sequencing without inventing reviews, approval, CI, receipts, or broader qualification authority.",
       "if_kept": "B-06 bounded development proceeds from exact main 2500e510 and tree 89763523; no active B-05 work is required.",
       "if_changed": "The Wave selection, dependency status, Hub event, and B-06 opening evidence require a prospective owner correction; historical PR facts remain unchanged.",
-      "affects": ["WAVE-B/B-05", "WAVE-B/B-06", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -714,7 +753,11 @@
       "why": "A validation evidence record needs independent deterministic history without becoming an activation record or changing completed upstream schemas.",
       "if_kept": "Later B-06 slices can compare an exact Dossier ref against A3 through an explicit adapter without creating a parallel registry.",
       "if_changed": "The package, schema/profile, canonical bytes, refs, tests, authority map, and future comparator require versioned migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -732,7 +775,12 @@
       "why": "A populated template or successful verification campaign does not establish physical, population, reference, measurement, statistical, customer-context, or LIVE adequacy.",
       "if_kept": "B-E1 can later supply campaign evidence while humans retain adequacy and coverage judgments for each exact section.",
       "if_changed": "The closed slot/evidence map, canonical profile, evidence manifests, cross-section rules, and focused tests require coordinated migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -750,7 +798,12 @@
       "why": "A signer name, signature byte string, populated slot, or authorization-evidence link does not prove identity, key custody, role authority, or valid approval.",
       "if_kept": "A later manifest comparator must consume externally verified authorization and the exact active A3 record; no fixture or structural path can qualify a real Challenge.",
       "if_changed": "Signer-role identity, artifact kinds, canonical bytes, authorization integration, and negative tests require a prospective schema update.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5554513577",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -768,7 +821,14 @@
       "why": "Challenge-only joins admit stale or wrong-object evidence, while direct B-03/B-04 imports reverse completed package boundaries and generic evidence claims permit unsafe substitution.",
       "if_kept": "Population, SamplingPlan, generator, reference, representation, measurement, and claim scope remain exact and separately reviewable; compatibility does not imply adequacy.",
       "if_changed": "The evidence-manifest profile, upstream seam, closed matrix, canonical bytes, and negative tests require coordinated prospective migration.",
-      "affects": ["WAVE-B/B-03", "WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-03",
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -786,7 +846,13 @@
       "why": "Generator_Validation v2.1 and scientific canon v4.1 explicitly preserve v2.0/v4 as ratified authority pending named-owner acceptance.",
       "if_kept": "Unrelated structural work proceeds, while positive dependence-policy and scientific qualification behavior remains unavailable.",
       "if_changed": "A durable owner ratification must prospectively define the accepted policy/result state and its review evidence before B-06 can implement it.",
-      "affects": ["WAVE-B/B-05", "WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -804,7 +870,12 @@
       "why": "Collapsed failure labels distort scientific evidence, embedded protected material creates disclosure risk, and a limitation record has no authority to rewrite the task.",
       "if_kept": "Reviewers see exact intended/realized provenance and affected scope while security, censoring adequacy, and residual-risk acceptance stay human-owned.",
       "if_changed": "Accounting enums, protected-field boundaries, limitation semantics, canonical bytes, and disclosure tests require prospective review.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/7d9794e332ec4e8a044e796596118dc0e1753d33/.agent/DECISIONS.md"
     },
@@ -822,7 +893,11 @@
       "why": "B-06 needs exact integration evidence without gaining registry lookup, artifact-byte verification, mutation, or activation authority.",
       "if_kept": "The comparator stays deterministic and side-effect free; A3 remains the sole lifecycle owner.",
       "if_changed": "Any store/gate integration requires a prospective owner-approved adapter and renewed authority, disclosure, and lifecycle review.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/84775b459cd2cf33d115e9edfa808d8ca26bf465/.agent/DECISIONS.md"
     },
@@ -840,7 +915,12 @@
       "why": "A separate fingerprint detects field drift without falsely naming a B-06 digest as A3's qualification hash or an approval token.",
       "if_kept": "Exact snapshot, slot, artifact, authoring-graph, dossier, and measurement comparisons remain independently visible and non-authorizing.",
       "if_changed": "The candidate schema/profile and historical bytes require prospective migration, and any A3-owned digest must come from A3 authority.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/84775b459cd2cf33d115e9edfa808d8ca26bf465/.agent/DECISIONS.md"
     },
@@ -858,7 +938,12 @@
       "why": "A signer name or populated signature slot cannot establish authorization, valid cryptography, or scientific acceptance.",
       "if_kept": "A trusted external layer can later supply exact per-role results while B-06 remains a structural consumer and never a signer or approver.",
       "if_changed": "Trust roots, role policy, cryptography, quorum, and scientific signoff require explicit human/security authority before any new state is added.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/84775b459cd2cf33d115e9edfa808d8ca26bf465/.agent/DECISIONS.md"
     },
@@ -876,7 +961,12 @@
       "why": "The active ticket needs the structural evidence seam, but Generator Validation v2.1 and scientific-canon v4.1 explicitly remain owner-ratification proposals and B-E1 owns execution.",
       "if_kept": "B-06 can preserve future evidence exactly while dependence policy, statistical adequacy, and promotion remain unavailable until separately authorized.",
       "if_changed": "A durable owner ratification and B-E1 implementation authority are required before any accepted dependence policy or computed decision behavior can be added.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/.agent/DECISIONS.md"
     },
@@ -894,7 +984,12 @@
       "why": "Free text, passed booleans, or implicit failure conversion would transfer scientific authority and collapse reference or generator failures into candidate failures.",
       "if_kept": "Reviewers receive exact observations and failure classes while scientific sufficiency and qualification remain human-owned.",
       "if_changed": "Outcome enums, canonical bytes, evidence projection, failure accounting, and non-substitution tests require prospective migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/.agent/DECISIONS.md"
     },
@@ -912,7 +1007,13 @@
       "why": "Separate one-off schemas duplicate identity logic, while an opaque bag erases scientific distinctions; either design would weaken fail-closed review.",
       "if_kept": "All ticket-named campaign evidence can be represented and tested without adding thresholds, engines, scientific verdicts, registry mutation, or LIVE authority.",
       "if_changed": "The campaign profile, family matrices, result identity, canonical bytes, Dossier evidence refs, and downstream consumers require versioned migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E1", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cbb1590cb68856f46d93b7690f79623920b36b41/.agent/DECISIONS.md"
     },
@@ -930,7 +1031,12 @@
       "why": "A parallel store would split authority, while free-form mapping could silently accept stale identities or role substitution.",
       "if_kept": "B-E3 can validate exact caller-supplied B-06 manifests and remain incapable of scientific adjudication, registry mutation, campaign execution, or LIVE activation.",
       "if_changed": "The v1 crosswalk profile, package surface, canonical bytes, reports, tests, and downstream B-GATE consumers require a prospective migration.",
-      "affects": ["WAVE-B/B-06", "WAVE-B/B-E3", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-06",
+        "WAVE-B/B-E3",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560320481",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/DECISIONS.md"
     },
@@ -948,7 +1054,13 @@
       "why": "Deny-list redaction, caller approval flags, or generic evidence categories would permit leakage, self-certification, or maturity escalation.",
       "if_kept": "Pending and absent evidence remains explicit but non-satisfying, while protected source and reconstruction-sensitive identities stay out of lower-audience reports and errors.",
       "if_changed": "The schema/profile, source matrix, disclosure projections, tests, and downstream report consumers require a prospective migration plus the relevant human authority.",
-      "affects": ["WAVE-B/B-E3", "WAVE-B/B-E1", "WAVE-B/B-E2", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E3",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560320481",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c533156b0f33c9747cafed168e4f8e4a44bd512c/.agent/DECISIONS.md"
     },
@@ -966,7 +1078,20 @@
       "why": "B-07R delegated these mechanics to B-07S; leaving them to downstream tickets would permit incompatible identities, caller-selected authority, ambiguous races, or duplicate semantic ownership.",
       "if_kept": "B-07A-G can implement against one exact fail-closed protocol while existing A2/A7/B-02A/B/C identities and the official v1 lifecycle remain authoritative.",
       "if_changed": "The affected normative protocol section, conformance manifest/test, decision record, and downstream implementation contracts require a new version and owner-specific migration.",
-      "affects": ["WAVE-B/B-07A", "WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07A",
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5560978680",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c96b5ad5b454872c0f18cdb23577552b9a59135c/.agent/DECISIONS.md"
     },
@@ -984,7 +1109,16 @@
       "why": "Duplicate types, latest-version aliases, successful stubs, caller-selected capabilities, or a broad dispatcher would break nominal history or transfer authority from later tickets.",
       "if_kept": "Downstream tickets import one exact core while B-07A remains a bounded public discovery layer that changes neither official v1 nor qualification state.",
       "if_changed": "Wire names, package ownership, historical canonical bytes, ref digests, provider boundaries, runtime tests, and downstream imports require a prospective protocol version and migration.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5561518965",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/99d9b5de06c37e6420225f15cc93c82a91f1a059/.agent/DECISIONS.md"
     },
@@ -1002,7 +1136,17 @@
       "why": "Mutable/latest bindings, poll-driven execution, raw executor findings, implicit evidence promotion, or private wire aliases would break B-07S identity and race semantics or transfer scientific, security, and rights authority.",
       "if_kept": "Later B-07 tickets can compose practice, prior, resource, and dispatch owners around stable task/receipt identities while official v1 and qualification remain unchanged.",
       "if_changed": "Task/receipt identity, state, cancellation, polling, private record schemas, disclosure, tests, and downstream consumers require the relevant versioned migration and human authority.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5562405976",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/debf3653df6e9370f0b0614971bd32ca9d43df60/.agent/DECISIONS.md"
     },
@@ -1020,7 +1164,13 @@
       "why": "The owner selected this order and packaging; current code and tests establish the substantive dependency, while inventing missing historical review or receipt facts would be false.",
       "if_kept": "One accepted normal merge closes B-05 only in verified engineering scope and B-07C only in fixture scope, preserving every scientific and security ceiling.",
       "if_changed": "The two Wave registers, both tickets/evidence records, Hub current state, and combined PR packaging must be superseded prospectively.",
-      "affects": ["WAVE-B/B-05", "WAVE-B/B-07C", "WAVE-B/B-07D1", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D1",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/DECISIONS.md"
     },
@@ -1038,7 +1188,15 @@
       "why": "A second dispatcher or record system would split ownership, while official entropy, A5, new wire aliases, or canned outcomes would violate the ticket boundary.",
       "if_kept": "All four task kinds execute coherently in-process with private case material, bounded registered findings, typed failures, and no official promotion path.",
       "if_changed": "The practice contract/profile, package modules, narrow B-07B private adapters, tests, and later B-07E/B-07G consumers require a prospective migration.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563096716",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/b87238858e03aa74d0ad23be8724f6b6e5c7abc7/.agent/DECISIONS.md"
     },
@@ -1056,7 +1214,14 @@
       "why": "The dependencies are sequential but do not require three merge ceremonies, and grouping grants no additional scientific, security, publication, rights, or production authority.",
       "if_kept": "One accepted candidate can close all three bounded scopes while leaving B-07E todo and unstarted.",
       "if_changed": "The Wave register, three ticket/evidence records, candidate packaging, and Hub state require prospective reconciliation.",
-      "affects": ["WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07E", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/DECISIONS.md"
     },
@@ -1074,7 +1239,13 @@
       "why": "A second wire schema, serializer, or v2-backed v1 provider would split identity and widen service authority.",
       "if_kept": "D1 supplies immutable auditable history and explicit authorization seams without public publication or production signing authority.",
       "if_changed": "Prior identities, canonical bytes, storage, compatibility receipts, and downstream D2/D3 consumers require a prospective migration.",
-      "affects": ["WAVE-B/B-07D1", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-E4", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07D1",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-E4",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/DECISIONS.md"
     },
@@ -1092,7 +1263,13 @@
       "why": "In-memory accounting or split commits permit differencing loss, authorization mismatch, and partial publication under races.",
       "if_kept": "Fixture releases remain persistent, auditable, TEST_ONLY, NOT_UTILITY_QUALIFIED, and incapable of public activation.",
       "if_changed": "Publisher policy, ledger schema, receipt identity, atomicity tests, and future public-branch specifications require review and migration.",
-      "affects": ["WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/DECISIONS.md"
     },
@@ -1110,7 +1287,14 @@
       "why": "Caller booleans, mode strings, personalization, or mutable latest aliases would permit authority crossing or task reinterpretation.",
       "if_kept": "Every authorized requester receives identical exact bytes, fixtures remain private exact-ref only, and alignment predicts no official outcome.",
       "if_changed": "Provider constructors, authorization validation, task pinning, alignment, and B-07E/B-07G integrations require prospective migration.",
-      "affects": ["WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5563870193",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6c6e9301499e8a9fd4bb21cf56b8448198779ddc/.agent/DECISIONS.md"
     },
@@ -1128,7 +1312,14 @@
       "why": "Invented calibration or new wire fields would exceed authority, while a general provider that accepts fixtures could launder TEST_ONLY material into a production-shaped path.",
       "if_kept": "B-07E supplies deterministic exact inspection and a complete fail-closed forecast seam while quote, receipt, scoring, production calibration, and qualification ownership remain separate.",
       "if_changed": "Forecast wire versioning, provider constructors, provenance bindings, tests, and later B-07G composition require a prospective migration and the relevant owner authority.",
-      "affects": ["WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5565028014",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/f7a58e1952d6e2ee729530aea7fde881fae6b9e7/.agent/DECISIONS.md"
     },
@@ -1146,7 +1337,13 @@
       "why": "A separate nominal consumer proves plan responsiveness and parity while preventing caller labels, raw Strategy branching, mock or provider-origin entropy, and fixture outputs from laundering authority.",
       "if_kept": "B-07F supplies deterministic fixed-toy integration evidence for B-E4 and B-GATE without granting real reconstruction, scientific, security, rights, production, or LIVE authority.",
       "if_changed": "The adapter contract, registered lever semantics, receipt identity, A7/A8 compatibility tests, and downstream parity evidence require prospective review and migration.",
-      "affects": ["WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5566242789",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/f7a58e1952d6e2ee729530aea7fde881fae6b9e7/.agent/DECISIONS.md"
     },
@@ -1164,7 +1361,14 @@
       "why": "A downstream wrapper preserves each established owner while giving B-E1 one bounded fixture API and authority root.",
       "if_kept": "B-E4 and B-GATE can consume deterministic fixture evidence without changing upstream schemas or public services.",
       "if_changed": "Package ownership, code-authority rules, canonical identity, imports, tests, and downstream consumers require a prospective migration.",
-      "affects": ["WAVE-B/B-02A", "WAVE-B/B-02B", "WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-02A",
+        "WAVE-B/B-02B",
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1182,7 +1386,11 @@
       "why": "Exact bits do not establish numerical tolerance compliance, population adequacy, or decision stability.",
       "if_kept": "Manufactured and exact anchors remain verification evidence while unresolved population or model-form evidence stays unresolved.",
       "if_changed": "Result schemas, canonical bytes, procedure boundaries, and false-elimination tests require a versioned redesign.",
-      "affects": ["WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1200,7 +1408,13 @@
       "why": "Dropping coordinates or flattening labels would erase interactions, heteroscedasticity, missingness, and dependence needed to prevent false elimination.",
       "if_kept": "Every registered case, stratum, reference realization, pairing role, representation, execution, and provenance identity remains auditable.",
       "if_changed": "Graph identity, dependency validation, canonical ordering, and statistical fixture coverage require a schema migration.",
-      "affects": ["WAVE-B/B-02A", "WAVE-B/B-02C", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-02A",
+        "WAVE-B/B-02C",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1218,7 +1432,12 @@
       "why": "Different labels do not prove independence, and diagnostic components cannot authorize an aggregation rule.",
       "if_kept": "Reference, witness, floor, generator, reconstruction, and finite-case contributions stay inspectable without implied covariance.",
       "if_changed": "Factor schema, decision protocol, uncertainty tests, and B-GATE coverage evidence require prospective revision.",
-      "affects": ["WAVE-B/B-04", "WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-04",
+        "WAVE-B/B-05",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1236,7 +1455,12 @@
       "why": "Default quadrature, independence, or zero covariance would manufacture scientific authority and can understate uncertainty.",
       "if_kept": "Missing or mismatched qualification fails closed to indeterminate rather than forcing a winner.",
       "if_changed": "Procedure qualification, applicability identity, B-05 shortcut binding, and decision-order tests require a versioned change.",
-      "affects": ["WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1254,7 +1478,12 @@
       "why": "Resource or quality screens cannot become candidate physics failure or deny the registered scientific base evidence.",
       "if_kept": "Scientific sequential actions require exact injected stopping and error-control authority; heuristic futility stays non-scientific.",
       "if_changed": "Campaign result identity, stage audit, B-05 integration, and false-elimination tests require prospective migration.",
-      "affects": ["WAVE-B/B-02C", "WAVE-B/B-05", "WAVE-B/B-E1", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-02C",
+        "WAVE-B/B-05",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1272,7 +1501,12 @@
       "why": "The ticket authorizes engineering mechanics but reserves every real scientific and production value to human owners.",
       "if_kept": "B-E1 can earn bounded SPECIFIED, IMPLEMENTED, and TESTED without laundering fixture evidence into qualification or ranking.",
       "if_changed": "Maturity records, constructor boundaries, tests, and downstream permitted-use rules require human authority and a prospective schema change.",
-      "affects": ["WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5570303953",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8547930e2f9dda05a37ccc23cc39aaf355fde5ac/.agent/DECISIONS.md"
     },
@@ -1290,7 +1524,13 @@
       "why": "A generic result or parallel status ontology could drift from exact registered authority and create an illicit truth path.",
       "if_kept": "B-E4 and B-GATE receive exact deterministic failure evidence while B-04 and candidate-scoring semantics remain unchanged.",
       "if_changed": "The adapter, exact-binding matrix, B-04 seam invariant, fixtures, and downstream failure evidence require prospective migration.",
-      "affects": ["WAVE-B/B-04", "WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-04",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     },
@@ -1308,7 +1548,12 @@
       "why": "Grant reuse or latest-only projection would erase evidence, while forbidding every future retry would invent operations policy.",
       "if_kept": "Fixtures can prove failure then a separately authorized attempt without authorizing timing, limits, backoff, or fallback.",
       "if_changed": "Attempt-history identity, retry fixtures, reconciliation semantics, and downstream evidence require a versioned change.",
-      "affects": ["WAVE-B/B-04", "WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-04",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     },
@@ -1326,7 +1571,12 @@
       "why": "Callable, path, cache, weaker-solver, candidate, or relabeled MMS material could launder convenience into scientific authority.",
       "if_kept": "Every malformed, stale, unavailable, timeout, numerical, uncertainty, applicability, and disagreement case remains typed non-candidate evidence.",
       "if_changed": "Provider schema, arbitrary-code and fallback invariants, MMS role tests, and scientific qualification boundaries require human authority and prospective redesign.",
-      "affects": ["WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5572204359",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/2ee4501bc20659436e3302424e65a07c426b1539/.agent/DECISIONS.md"
     },
@@ -1344,7 +1594,11 @@
       "why": "The harness can be built and tested now, but no descriptive fixture output may synthesize the reserved utility, diversity, leakage, or security decision.",
       "if_kept": "Every unblocked B-E4 engineering seam can ship while qualifying execution and completion remain explicitly blocked.",
       "if_changed": "The session capabilities, run identities, measurement records, preregistration guard, and B-E4 tests require a prospective repair.",
-      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5574774201",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/103"
     },
@@ -1362,7 +1616,12 @@
       "why": "Hash-derived plan bias tests plumbing but not causal strategy behavior; direct practice-to-B-07F reuse would collapse seed, lifecycle, and evidence authority.",
       "if_kept": "The registered toy lever measurably changes public practice behavior and held-out fixture results without creating scientific evidence.",
       "if_changed": "B-07C practice behavior, B-07F construction compatibility, semantic fixture tests, and ownership invariants require repair.",
-      "affects": ["WAVE-B/B-07C", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE"],
+      "affects": [
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5574774201",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/103"
     },
@@ -1380,7 +1639,12 @@
       "why": "Repeated labels, caller Booleans, structurally inconsistent refs, and arbitrary enums do not prove approval, execution, authorization, or an attack result.",
       "if_kept": "Synthetic engineering records remain usable while qualification authority, B-07D3 authorization, and executed-attack evidence stay with their existing or future owners.",
       "if_changed": "The preregistration digest, RunIdentity preflight, integrity observation schema, regression tests, and B-E4 maturity boundaries require a prospective repair.",
-      "affects": ["WAVE-B/B-07D3", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5575367766",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/25453bd74b8f44deb72c651216d44a4529639cb7/.agent/DECISIONS.md"
     },
@@ -1398,7 +1662,12 @@
       "why": "Binding only eight caller-supplied labels would allow the actual treatment or execution graph to drift while appearing to retain the same approval target.",
       "if_kept": "Owners can review one immutable complete design while synthetic sensitivity work remains usable and incapable of creating ratification or qualifying status.",
       "if_changed": "Any changed treatment, execution artifact, value, or analysis rule requires a new proposal digest, corresponding tests, owner pack, and later five-owner ratification.",
-      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5576755428",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/00a53a0b16652a1f5058206a1be59d75d0972101/.agent/DECISIONS.md"
     },
@@ -1416,7 +1685,18 @@
       "why": "The current fixture cannot satisfy the proposed diversity rule or identify broad causal prior utility, so ratifying it would spend owner approval on an experiment that cannot answer its registered question.",
       "if_kept": "B-E4 remains in progress and qualifying execution stays blocked; the exact owner decision pack is routed at https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5576762645 without treating that routing as approval.",
       "if_changed": "Lowering diversity to one, treating first-hit speed as broad utility, or approving unresolved artifacts changes the evidentiary claim and requires explicit research, protocol, science, statistics, and security direction.",
-      "affects": ["WAVE-B/B-02B", "WAVE-B/B-07C", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-02B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5580238270",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/.agent/DECISIONS.md"
     },
@@ -1434,7 +1714,16 @@
       "why": "Sampling count, curriculum ordering and weights, and feature exponent create three interpretable causal construction choices; renamed labels or tiny parameter variants would manufacture diversity, while arbitrary graphs or callbacks would widen authority.",
       "if_kept": "The proposed diversity rule becomes structurally testable, B-07F's historical sampling-only identities remain unchanged, and the private exploratory pack stays TEST_ONLY and NOT_UTILITY_QUALIFIED.",
       "if_changed": "The prospective fixture catalog, three-family asset identity, shared toy semantics, prior contents, resource declarations, proposal digest, and causal tests require a versioned replacement.",
-      "affects": ["WAVE-B/B-02B", "WAVE-B/B-07C", "WAVE-B/B-07D2", "WAVE-B/B-07D3", "WAVE-B/B-07F", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-02B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D2",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5580238270",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/.agent/DECISIONS.md"
     },
@@ -1452,7 +1741,17 @@
       "why": "Deterministic semantic work is comparable and replayable across fixture profiles, while host CPU time is not; fixed data-only policies exercise the wire without network, shell, filesystem, subprocess, generated-code execution, or evaluator access.",
       "if_kept": "NO_PRIOR, GENERIC, v1, and v2 can run matched preflight calibration through exact B-07S owners under a no-qualification ceiling, with invalid attempts and returned carriers preserved in the transcript.",
       "if_changed": "Driver/runtime identities, arm artifacts, operation weights, plans, calibration evidence, resource caps, and the v3 digest require a prospective update and fresh non-qualifying calibration.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5580238270",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/.agent/DECISIONS.md"
     },
@@ -1470,7 +1769,15 @@
       "why": "Digests, enums, labels, PR authorship, Git metadata, and caller Booleans can prove structure but cannot prove that an attack ran, an evaluator assessed it, five current role holders approved it, or a qualifying matrix executed.",
       "if_kept": "Synthetic wiring and hostile-carrier tests remain useful while non-rejection attacks, simultaneous leakage intervals, verified ratification, retained-set manifests, and qualifying evidence fail closed.",
       "if_changed": "Trusted endpoint, attack-assessment, role-authentication, evidence-store, and qualifying-constructor owners must be specified and tested before any positive status becomes constructible.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-E1", "WAVE-B/B-E2", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5580238270",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/.agent/DECISIONS.md"
     },
@@ -1488,7 +1795,13 @@
       "why": "The new fixture and preflight plumbing make the experiment more testable, but the incomplete lifecycle, surrogate treatments, unidentifiable profile contrasts, missing trusted endpoints and evidence, and unresolved leakage dependence and allocation prevent a defensible frozen execution design.",
       "if_kept": "The current design and full-proposal digests remain review targets only; the reserved-decision pack is routed at https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5580241589 without treating that routing as approval, and B-GATE remains unstarted.",
       "if_changed": "Research, exact-protocol, science, statistics, and security owners must explicitly modify the affected proposed values or assumptions; engineering convenience cannot remove a blocker or create qualification.",
-      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/DEVELOPMENT-SEQUENCING", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5580238270",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8060d1332face086053a5f6454fdf7d4104a4b9c/.agent/DECISIONS.md"
     },
@@ -1506,7 +1819,20 @@
       "why": "One common capable model avoids a model-policy confound, four attempts keep the eight-candidate surface non-exhaustive, prospective task inclusion prevents favorable-v2 selection, and the bounded pilot can estimate nuisance behavior without pretending to qualify v4.",
       "if_kept": "Only the exact 40-slot DEVELOPMENT request may receive one authorization; calibration, the overall $98.304 pilot ceiling, and v4's eight qualification inputs remain unresolved.",
       "if_changed": "Supersede B-E4-D14 and prospectively version the proposal, owner pack, ticket/plan/evidence, Wave register, and Hub event before any pilot implementation or authorization.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E1", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5586811635",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/DECISIONS.md"
     },
@@ -1524,7 +1850,19 @@
       "why": "The bounded mechanism authenticates the approval act at issuance, binds the complete execution envelope, prevents another journal from minting a second right, and preserves ambiguous cost without building a general identity platform.",
       "if_kept": "D21 retains the admission, accounting, and one-use mechanics while prospectively superseding only D20's mistaken DEVELOPMENT-principal binding. Historical v1 records remain evidence, not current issuance authority.",
       "if_changed": "A changed identity mechanism, request, project, retention contract, source tree, journal binding, or limit requires a prospective version and must not reuse this entitlement.",
-      "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-07B",
+        "WAVE-B/B-07C",
+        "WAVE-B/B-07D3",
+        "WAVE-B/B-07E",
+        "WAVE-B/B-07F",
+        "WAVE-B/B-07G",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/preregistrations/B-E4_development_owner_decisions_v1.json",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/DECISIONS.md"
     },
@@ -1542,7 +1880,13 @@
       "why": "The owner expressly corrected the development-only assignment. Binding both the login and immutable user ID authenticates the intended principal without treating a copied field, local Git author, or repository record as authority.",
       "if_kept": "Only owner-decision v2 and execution request v3 can receive the one DEVELOPMENT authorization. Every model, task, treatment, payload, retention, schedule, resource limit, and the $14.42 cap remains unchanged.",
       "if_changed": "Another principal correction requires a prospective owner-decision record, new exact request/source/artifact identities, authenticated verification, and no reuse of an earlier entitlement.",
-      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_development_owner_decisions_v2.json",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/DECISIONS.md"
     },
@@ -1569,6 +1913,26 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5601850672",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cdded105/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "NET-1-D1",
+      "map_ref": "WAVE-C/NET-1",
+      "wave": "C",
+      "ticket": "NET-1",
+      "title": "Pinned finalized-provider identity boundary",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "How should Carbon consume current Bittensor identity without importing network or signing authority into science?",
+      "recommendation": "KEEP exact Bittensor 11.1.0 public read APIs behind carbon.chain, explicit endpoints and immutable finalized registration snapshots.",
+      "why": "SDK upgrades, provider errors and recycled UIDs must not silently change identity or gain authority.",
+      "if_kept": "NET-2 and NET-4B receive contextual identity and a tested upgrade boundary.",
+      "if_changed": "Prospectively update carbon.chain, its contract tests, dependency lock and downstream identity bindings.",
+      "affects": [
+        "WAVE-C"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/34b0607565f67d43685831fb2941b74ef7afa420/docs/development/CHAIN_ADAPTER.md"
     }
   ]
 }

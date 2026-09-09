@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `29d6a6d35918ebf796c76c12e930c99d45f80d91` on `main`, captured 2026-09-09T16:07:30Z.
-**Current:** Wave C, ticket NET-1. Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED.
+**Authority snapshot:** `34b0607565f67d43685831fb2941b74ef7afa420` on `main`, captured 2026-09-09T20:30:38Z.
+**Current:** Wave C, ticket NET-1. Wave C/C0 has NET-1 selected as its one active ticket. OWNER-C0-REWARD-01 authorizes sequential implementation through NET-6, with C-REWARD after NET-3 and before intent/publication consumers. The complete default is direct winner plus burn with treasury absent. NET-0 is a development boundary disposition; actual localnet and later ticket implementations remain unverified/unstarted. C1/C2 scientific/evidence requirements remain intact. B-01G remains unfinished/non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness UNMEASURED. No later ticket is selected.
 **Last completed:** B-GATE (`done`).
 **Next selected:** none selected.
 
@@ -158,6 +158,7 @@
 - `OWNER-ROADMAP-02` — `WAVE-B/B-GATE` — The owner makes B-E4 OPTIONAL / DEFERRED / NON-BLOCKING, preserves its engineering and historical evidence without calling it complete, removes research-specific utility/diversity/shadow/calibration/ratification dependencies from delivery, selects revised B-GATE, and replaces separate Concierge empirical qualification with bounded engineering acceptance. The network path may ship with Concierge disabled.
 - `B-GATE-CLOSEOUT-CANDIDATE-01` — `WAVE-B/B-GATE` — The B-GATE candidate consolidates the merged fixture-chain and fail-closed correctness evidence, adds focused closeout assertions and the required ticket-local C/D contracts, and produces the Wave B report. Wave B remains active until exact-head acceptance, normal merge, and merge-identity reconciliation; B-E4 remains optional/deferred/non-blocking and UNMEASURED.
 - `OWNER-WAVE-C0-NET1-01` — `WAVE-C/NET-1` — Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created.
+- `NET-1-D1` — `WAVE-C/NET-1` — NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.
 
 ## Authority boundary
 

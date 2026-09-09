@@ -1713,6 +1713,20 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": "B-GATE-CLOSEOUT-CANDIDATE-01"
+    },
+    {
+      "map_ref": "WAVE-C/NET-1",
+      "event_type": "adjustment",
+      "event_id": "NET-1-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/DEVELOPMENT-SEQUENCING"
+      ],
+      "supersedes": null
     }
   ]
 }

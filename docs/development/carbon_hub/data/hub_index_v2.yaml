@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-09T16:07:30Z"
+  captured_at_utc: "2026-09-09T20:30:38Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "29d6a6d35918ebf796c76c12e930c99d45f80d91"
+  authority_snapshot_commit: "34b0607565f67d43685831fb2941b74ef7afa420"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave C/C0 has NET-1 selected as its one active ticket. OWNER-C0-REWARD-01 authorizes sequential implementation through NET-6, with C-REWARD after NET-3 and before intent/publication consumers. The complete default is direct winner plus burn with treasury absent. NET-0 is a development boundary disposition; actual localnet and later ticket implementations remain unverified/unstarted. C1/C2 scientific/evidence requirements remain intact. B-01G remains unfinished/non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness UNMEASURED. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -457,12 +457,12 @@ current:
     id: "NET-1"
     title: "Read-only Bittensor chain adapter and identity snapshots"
     status: "in_progress"
-    summary: "NET-1 is the sole selected C0 ticket. It will add a pinned, SDK-contained, read-only ChainAdapter with explicit network/snapshot identity, metagraph hotkey/UID associations, and classified provider failures. No live-chain, key, signing, publication, or deployment action is authorized."
+    summary: "NET-1 implements the Bittensor 11.1.0 read-only adapter candidate, immutable finalized provider snapshots and UID registration checks. Native diagnostics pass; required installed-SDK Linux acceptance and normal merge are pending."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "0.1"
   controlling_board_fingerprint: "33fbfdd98b5da68baed86147974bc91db60e7a300089a0f52d50ca9efb1a0532"
-  stage: "Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED."
+  stage: "Wave C/C0 has NET-1 selected as its one active ticket. OWNER-C0-REWARD-01 authorizes sequential implementation through NET-6, with C-REWARD after NET-3 and before intent/publication consumers. The complete default is direct winner plus burn with treasury absent. NET-0 is a development boundary disposition; actual localnet and later ticket implementations remain unverified/unstarted. C1/C2 scientific/evidence requirements remain intact. B-01G remains unfinished/non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness UNMEASURED. No later ticket is selected."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     []
@@ -490,8 +490,8 @@ current:
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
-    - "NET-1 is selected but not implemented by this transition. Live-chain access, wallets/keys, authenticated transport, commitments, transactions, weights, readback, localnet, deployment, and security acceptance remain unavailable."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
+    - "NET-1 is an implementation candidate pending installed-SDK Linux acceptance and merge. Docker/WSL is unavailable locally; no chain, burn, reward, scientific or security qualification is claimed."
   maturity_states:
     specified: "earned"
     implemented: "unearned"
@@ -501,8 +501,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "B-GATE earned bounded implemented/tested closure. NET-1 is selected but has not yet earned implementation or test maturity. Scientific, security, network, commercial, production, LIVE, launch, settlement, weight, and emission authority remain unearned."
-  decision_series_status: "OWNER-WAVE-C0-NET1-01 closes Wave B in bounded engineering scope and activates C0 with NET-1 alone. OWNER-ROADMAP-02 continues to keep B-E4 deferred/non-blocking and UNMEASURED."
+  maturity_summary: "B-GATE retains bounded closure. NET-1 has implementation and native diagnostic evidence; canonical installed-SDK acceptance and merge remain pending. No localnet, scientific, security, production or LIVE qualification."
+  decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -3257,6 +3257,18 @@ events:
       - "SYSTEM/MATURITY"
       - "SYSTEM/PROTOCOL-AUTHORITY"
     supersedes: "B-GATE-CLOSEOUT-CANDIDATE-01"
+  -
+    map_ref: "WAVE-C/NET-1"
+    event_type: "adjustment"
+    event_id: "NET-1-D1"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620"
+    affects:
+      - "WAVE-C"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
