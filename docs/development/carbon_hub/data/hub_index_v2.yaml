@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-09T22:06:39Z"
+  captured_at_utc: "2026-09-09T22:17:08Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "210946eb6fcce788ac6122ab4bf14f1e89148685"
+  authority_snapshot_commit: "2fa1c925fc3093027659518e3b9c0359f786ee67"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
