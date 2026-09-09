@@ -1,5 +1,14 @@
 # Carbon Agentic Development Master Plan
 
+> **OWNER-C0-REWARD-01 prospective amendment (2026-09-09):**
+> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md` and
+> `.agent/plans/C0_score_reward_program.md` record the owner's sequential C0
+> implementation mandate and persistent DIRECT_WINNER_PLUS_BURN route.
+> Mandatory-treasury and temporary-direct-only clauses below are superseded
+> on payment routing only. Scientific admission/comparison, frontier/finality,
+> security, qualification and deployment requirements remain domain-owned.
+> Treasury is optional and non-blocking; no public-network operation is authorized.
+
 **Status:** OWNER-CANONICAL long-horizon development plan.  
 **Purpose:** connect the bounded implemented foundation, active Wave B, post-Wave-B C0/C1/C2 network and real-vertical work, post-D parallel E/F/G lanes, the H/I launch-critical branch, and Carbon's longer-term generalized construction, qualification, commercial, and Physics Intelligence architecture.
 **Authority:** this document owns long-horizon sequencing and dependency interpretation. `Design_Specs/Build_Out.md` remains the detailed current implementation sequencing authority for the active P0 waves.  

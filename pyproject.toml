@@ -12,7 +12,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 chain = [
-    "bittensor>=9.0.0",
+    "bittensor==11.1.0",
 ]
 neuraloperator = [
     "neuraloperator>=2.0,<3",
@@ -45,7 +45,7 @@ science-torch = [
     "torchvision>=0.25.0",
 ]
 chain = [
-    "bittensor>=9.0.0",
+    "bittensor==11.1.0",
 ]
 
 [tool.uv]

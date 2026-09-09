@@ -5,6 +5,59 @@
 from current `main` before code changes
 **Primary Hub map_ref:** `WAVE-C/NET-1`
 
+## Implementation candidate (OWNER-C0-REWARD-01)
+
+Starting main was fetched and verified as
+`9578a5042f85c4a2cbeab8259eba94c0ec462dcc`, PR #119. The original checkout
+and unrelated worktrees were preserved; implementation uses
+`agent/net-1-sdk-boundary`. KEEP the canonical chain package and all science;
+WRAP the installed SDK's public read interfaces. No archive code reused.
+
+Candidate: Carbon-owned frozen contexts/participants/snapshots, provider failure
+codes, bounded observation capture, strict raw metagraph translation and lazy
+Bittensor 11.1 reader. Context includes expected/observed genesis, endpoint,
+provider, network, netuid, finalized block/hash/time and registration identity.
+Snapshot comparison rejects stale or reassigned identities. Finality is reported
+by the provider, not independently proven by this adapter. No write interface.
+
+The official PyPI stable-release check found 11.1.0, with wheel SHA-256
+`d84e33169249c56c41b4b43f6b2f4ed80bc2fd98afcb69a3d5844720a4d72b58`.
+Source inspection verifies public Client/at/Snapshot/read registry and backend
+injection contracts. Both SDK declarations are now exact; uv 0.12.7 resolved
+144 packages for Carbon Python 3.11.16. Existing resolved SDK/core versions
+were already 11.1.0/0.1.3; only root requirements needed lock reconciliation.
+Runtime v445 is independently source-pinned at
+`d3f40e44bda9019c606aeb0c907bb52ba7fe386c`; no built image, observed genesis,
+burn semantics or localnet maturity is claimed. See CHAIN_ADAPTER.md.
+
+Native diagnostic commands (Python 3.12.14, Windows; NOT canonical evidence):
+
+```text
+python -m pytest -q tests/cpu/test_net1_chain_adapter.py tests/invariants/test_net1_chain_boundary.py
+35 passed, 2 skipped
+python -m ruff check carbon/chain tests/cpu/test_net1_chain_adapter.py tests/invariants/test_net1_chain_boundary.py
+python -m black --workers 1 --check carbon/chain tests/cpu/test_net1_chain_adapter.py tests/invariants/test_net1_chain_boundary.py
+```
+
+The two skipped tests require the actual installed SDK. Linux CI explicitly
+installs the locked chain group and requires these contracts to execute. No
+native skip substitutes for that acceptance. Ready-revision acceptance and
+merge are still pending in this candidate; dynamic results belong in the PR.
+
+Local environment diagnostic: Docker 25.0.3 client is present, but
+`docker version` cannot open `//./pipe/docker_engine`. Starting Docker Desktop
+did not leave a running backend. WSL reports default version 2 but no installed
+distro. Git Bash's canonical wrapper additionally rejects the Windows-path
+repository-root comparison before invoking Docker. These are infrastructure
+failures, not test passes. Do not repeat an unchanged environment attempt.
+Use a working Docker/WSL Linux checkout and
+`CARBON_UV_GROUPS=chain CARBON_REQUIRE_CHAIN_SDK=1 ./scripts/dev/canonical.sh --focused tests/cpu/test_net1_chain_adapter.py`
+for local canonical execution; repository CI supplies acceptance meanwhile.
+
+The supplied Carbon_Wave_C_Reward_Prototype_v1.zip was inspected as synthetic
+analytical reference. Its Q12 floor/remainder and immutable decay-anchor
+contract are retained for the later C-REWARD ticket, not counted as NET-1 tests.
+
 ## Authority and prerequisite disposition
 
 `.agent/WAVE_C.md` §2 records the exact NET-0 boundary disposition. Carbon/

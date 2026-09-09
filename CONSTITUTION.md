@@ -1,5 +1,14 @@
 # Carbon Constitutional Authority Map
 
+> **OWNER-C0-REWARD-01 prospective amendment (2026-09-09):**
+> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md` and
+> `.agent/plans/C0_score_reward_program.md` record the owner's sequential C0
+> implementation mandate and persistent DIRECT_WINNER_PLUS_BURN route.
+> Mandatory-treasury and temporary-direct-only clauses below are superseded
+> on payment routing only. Scientific admission/comparison, frontier/finality,
+> security, qualification and deployment requirements remain domain-owned.
+> Treasury is optional and non-blocking; no public-network operation is authorized.
+
 **Status:** OWNER-CANONICAL repository constitution on `main`.  
 **Purpose:** provide one unambiguous authority and maturity map across Carbon's scientific design, implemented protocol, agentic development plan, business architecture, network economics, and publications.  
 **Rule:** this document resolves *which layer owns which decision*. It does not silently promote unimplemented architecture to implemented status.

@@ -1,5 +1,13 @@
 # Carbon Wave C Board
 
+> **OWNER-C0-REWARD-01 current execution authority:**
+> NET-1 remains the one active ticket. After its accepted normal merge, continue
+> NET-2 -> NET-3 -> C-REWARD -> NET-4A -> NET-4B -> NET-5 -> NET-6 without a new
+> permission checkpoint. The earlier stop-after-NET-1 scope is superseded.
+> `.agent/plans/C0_score_reward_program.md` owns the NET-0 development disposition
+> and program contract; launch v1.0.6 preserves C1/C2 and makes treasury optional.
+> No later ticket is represented as started or delivered by this amendment.
+
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
 > Engineering tickets require one applicable automated acceptance and normal
 > expected-head merge, without mandatory GPT receipts or extra human delivery
