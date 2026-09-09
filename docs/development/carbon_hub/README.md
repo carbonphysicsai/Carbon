@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 42 captured tickets across Wave A and Wave B
+- 43 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 71 map-level change events
+- 72 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-GATE**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active with B-GATE selected. Its exact closeout candidate has not yet passed the delivery predicate, so B-GATE remains in progress. The candidate consolidates the existing engineering evidence and adds ticket-local C/D contracts. No later ticket is selected. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED; no paid, calibration, shadow, attack, or qualifying campaign is required or authorized.
+Wave **C**; current ticket: **NET-1**. Last completed: **B-GATE** (`done`). Next selected: **none selected**. Wave B is closed in bounded engineering scope after accepted PR #118. Wave C/C0 is active with NET-1 selected alone for a bounded local read-only adapter. No later ticket is selected. NET-0 is not marked complete; its unresolved security, custody, publication, economic, and deployment inputs remain attached to later operations. NET-2 through NET-6 and C1/C2 are unstarted. B-01G remains unfinished and non-blocking. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED.
 
 ## Maintain
 

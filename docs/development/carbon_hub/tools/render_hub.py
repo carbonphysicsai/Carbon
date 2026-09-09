@@ -21,9 +21,8 @@ DATA_PATH = ROOT / "data" / "hub_data_v2.json"
 EVENTS_PATH = ROOT / "data" / "change_events.json"
 TEMPLATE_PATH = ROOT / "tools" / "templates" / "interactive_template.html"
 NEWCOMER_WAVE_PATH = ROOT / "data" / "newcomer_projection_v1.json"
-NEWCOMER_TICKET_PATHS = (
-    ROOT / "data" / "newcomer_tickets_wave_a_v1.json",
-    ROOT / "data" / "newcomer_tickets_wave_b_v1.json",
+NEWCOMER_TICKET_PATHS = tuple(
+    sorted((ROOT / "data").glob("newcomer_tickets_wave_*_v1.json"))
 )
 VALIDATOR_EXAM_MAP_PATH = ROOT / "data" / "validator_exam_map_v1.json"
 

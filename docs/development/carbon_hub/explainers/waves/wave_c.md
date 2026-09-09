@@ -1,6 +1,6 @@
 # Wave C: Network foundation and real testnet vertical
 
-**Status:** PLANNED
+**Status:** ACTIVE
 
 **Map ref:** `WAVE-C`
 
@@ -25,7 +25,7 @@ Wave D can qualify the first exact Challenge without mistaking successful testne
 
 ## Authority ceiling
 
-Planning and compatibility context only; this wave is not active implementation authority.
+Active only for work selected by the controlling board and ticket. Unselected work and later-wave behavior remain unavailable.
 
 ## Still unavailable
 
@@ -46,10 +46,12 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Tickets
 
-No controlling ticket board is captured for this planned wave.
+- [NET-1](../tickets/net_1.md): Read-only Bittensor chain adapter and identity snapshots [in_progress]
 
 ## Repository detail
 
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/62974047a165f05c1b77c9e5e95387cdffd2d7f4/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

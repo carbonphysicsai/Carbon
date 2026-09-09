@@ -1913,9 +1913,8 @@ class Validator:
                     "merged current-position delivery is described as awaiting merge"
                 )
 
-        newcomer_paths = (
-            self.hub_root / "data/newcomer_tickets_wave_a_v1.json",
-            self.hub_root / "data/newcomer_tickets_wave_b_v1.json",
+        newcomer_paths = tuple(
+            sorted((self.hub_root / "data").glob("newcomer_tickets_wave_*_v1.json"))
         )
         for path in newcomer_paths:
             projection = self.load_json_object(path, path.name)
@@ -2466,9 +2465,11 @@ class Validator:
             self.fail(f"{source_label} is missing the controlling ticket table")
             return version, {}
         rows: dict[str, dict[str, Any]] = {}
+        ticket_id_expression = (
+            r"(?:[A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*)|" r"NET-\d+[A-Z]?)"
+        )
         ticket_pattern = re.compile(
-            r"(?<![A-Z0-9-])([A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*))"
-            r"(?![A-Z0-9-])"
+            rf"(?<![A-Z0-9-])({ticket_id_expression})(?![A-Z0-9-])"
         )
         for line in lines[start:]:
             if not line.strip().startswith("|"):
@@ -2483,9 +2484,7 @@ class Validator:
                 continue
             raw_record = dict(zip(headers, cells))
             ticket_id = _clean_markdown(raw_record["ID"])
-            if not re.fullmatch(
-                r"[A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*)", ticket_id
-            ):
+            if not re.fullmatch(ticket_id_expression, ticket_id):
                 self.fail(f"{source_label} has invalid ticket ID {ticket_id!r}")
                 continue
             if ticket_id in rows:
@@ -2780,7 +2779,10 @@ class Validator:
             ticket = data_rows.get(ticket_id)
             if ticket is None:
                 continue
-            if not ticket_id.startswith(authoritative_wave):
+            belongs_to_wave = ticket_id.startswith(authoritative_wave) or (
+                authoritative_wave == "C" and ticket_id.startswith("NET-")
+            )
+            if not belongs_to_wave:
                 self.fail(
                     f"{source_label}: active board row {ticket_id} does not belong to Wave {authoritative_wave}"
                 )

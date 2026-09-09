@@ -1,8 +1,10 @@
 # Codex handoff: Wave B miner research buildout
 
-**Status:** active session entry point for bounded Wave B development while `.agent/WAVE.md` names Wave B
-**Governance version:** 3.3
-**Board:** [`WAVE_B.md`](./WAVE_B.md) version 3.3
+**Status:** historical Wave B session entry point. Wave B is closed in bounded
+engineering scope; current work starts from `.agent/WAVE.md` and
+`.agent/WAVE_C.md`.
+**Governance version:** 3.4 closeout redirect
+**Board:** [`WAVE_B.md`](./WAVE_B.md) version 4.9 (closed)
 **Working engineering architecture:** [`../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) version 0.4, effective as the normally merged B-07R bounded engineering architecture
 **Exact service protocol:** [`../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md`](../Design_Specs/Miner_MCP_Wave_B_Service_Protocol.md) version 2.0.0, effective after the B-07S OWNER-DX-03 shipping predicate
 **Current ticket:** derive the selected ticket and status from the exact fetched
@@ -14,9 +16,10 @@ and normal expected-head merge required by `.agent/DELIVERY_PROTOCOL.md`
 passes. This handoff does not cache or
 independently select ticket state.
 
-This handoff gives a fresh Codex session enough repository context to execute
-Wave B one ticket at a time. It does not activate Wave B or ratify a scientific,
-security, rights, economic, network, or launch decision.
+This handoff remains historical orientation for Wave B. It does not select
+current work. `OWNER-WAVE-C0-NET1-01` moved current authority to Wave C/C0 and
+selected NET-1 alone without ratifying scientific, security, rights, economic,
+network-qualification, or launch decisions.
 
 OWNER-DX-03 controls delivery: one ticket PR, one applicable acceptance on the
 ready revision, no mandatory reviewer/receipt/approval ceremony, and normal

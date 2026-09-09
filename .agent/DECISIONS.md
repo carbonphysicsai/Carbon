@@ -1,5 +1,58 @@
 # Agent decisions log
 
+## 2026-09-09 — OWNER-WAVE-C0-NET1-01: close Wave B and activate NET-1
+
+**Tickets:** B-GATE, NET-1
+**Status:** `OWNER_AUTHORIZED / IMPLEMENTED_PROSPECTIVELY`
+
+**Owner authorization.** The repository owner authorizes reconciliation of the
+accepted B-GATE delivery, bounded engineering closure of Wave B, activation of
+Wave C/C0, and selection of NET-1 as the sole active engineering ticket. The
+owner also authorizes continuing in the same session after this transition
+normally merges to implement, test, deliver, and normally merge NET-1 in a
+separate PR without a second approval.
+
+**Verified closeout evidence.** Current `origin/main` is exactly B-GATE merge
+`ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
+`46b38440f13a8048db18bc480ddb6907396c9017`. PR #118 accepted exact head
+`c510095b5501587cf93c04632a26b7c303d7d48b`; run `34365282759` passed its
+applicable Canonical environment, Development Hub validation, and aggregate
+`Merge gate`. The transition reuses those completed records and does not rerun
+B-GATE acceptance.
+
+**Preserved state.** B-01G remains unfinished `todo` and non-blocking. B-E4
+remains `OPTIONAL / DEFERRED / NON-BLOCKING`, never completed or qualified;
+empirical prior effectiveness is `UNMEASURED`. Every proposal, approval,
+journal, digest, execution request, calibration artifact, historical result,
+and completed engineering component remains unchanged. No research execution
+or restart is authorized.
+
+**NET-0/NET-1 disposition.** `OWNER-NET-01` already settles the Carbon/
+Bittensor ownership direction, typed boundary, SDK containment, and read-only
+identity/discovery responsibility needed by NET-1. The executor may make
+routine reversible interface, snapshot, failure, dependency, and test choices
+under delegated engineering authority. Unresolved authentication, replay,
+privileged-action controls, production topology, security acceptance,
+reward-window, sink identity/custody, quorum/stake, treasury, deployment, and
+economic values prevent their later operations but do not prevent a local
+read-only adapter with no keys or live-chain access. NET-0 is not marked
+complete; `.agent/WAVE_C.md` records each prerequisite and the exact operation
+it still prevents.
+
+**Sequence and boundaries.** Preserve C0 -> C1 -> C2, the passive evidence-
+archive dependencies, and every existing ticket-local C/D Definition of Done.
+NET-2 and later tickets remain unselected. The Research Concierge retains its
+bounded engineering acceptance contract, stays independent of the network
+spine, and may remain disabled. Neither delivery grants scientific, security,
+network, production, LIVE, launch, testnet, mainnet, transaction, weight,
+custody, emission, frontier, treasury, or settlement authority.
+
+**External-action ceiling.** Local engineering, exact dependency pinning,
+deterministic tests, applicable CI, PR creation, and normal expected-head merge
+are authorized. Paid infrastructure, external model inference, live chain
+connections, credentials, private keys, transactions, weight publication,
+deployment, and mainnet activation are not.
+
 ## 2026-09-07 — B-E2-D1: Wrap B-04 with one exact hostile-response service boundary
 
 **Notification:** issue #42 comment `5572204359`, for awareness under the

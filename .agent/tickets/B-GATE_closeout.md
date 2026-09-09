@@ -1,9 +1,11 @@
 # Ticket B-GATE - Wave B fixture integration and closeout
 
 **Wave:** B candidate
-**Status:** in_progress
-**Closeout state:** evidence candidate assembled; exact-head automated acceptance,
-`Merge gate`, normal merge, and subsequent merge-identity reconciliation remain.
+**Status:** done in bounded engineering scope
+**Closeout state:** accepted head `c510095b5501587cf93c04632a26b7c303d7d48b`
+passed run `34365282759`, including `Merge gate`, and normally merged in PR
+#118 as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
+`46b38440f13a8048db18bc480ddb6907396c9017`.
 **Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3
 **Non-blocking context:** B-01G and B-E4 are explicitly non-blocking.
 **Build Out:** Wave B acceptance
@@ -76,7 +78,7 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       operation set, delegates each operation to its named domain owner,
       contains no shadow semantics or stores, and neither exposes nor delegates
       v1 official operations.
-- [ ] Pass focused, subsystem, full CPU, invariant, quality, packaging, installed-wheel, and applicable PoC/Julia contract checks.
+- [x] Pass focused, subsystem, full CPU, invariant, quality, packaging, installed-wheel, and applicable PoC/Julia contract checks.
 - [x] Record B-E4 honestly as `OPTIONAL / DEFERRED / NON-BLOCKING`, retain its
       engineering and historical evidence, and confirm that no utility,
       diversity, shadow, calibration, or ratification requirement remains a
@@ -90,7 +92,7 @@ Integrate all Wave B fixture contracts, prove the authority boundaries, inventor
       crosswalk, launch-register row, or external document reference without
       ticket-local Definition-of-Done criteria is insufficient.
 - [x] Produce `.agent/WAVE_B_REPORT.md` with exact commits, tests, reviews, maturity states, evidence artifacts, human inputs, risks, and Wave C blockers.
-- [ ] Record material closeout decisions and applicable domain notifications;
+- [x] Record material closeout decisions and applicable domain notifications;
       pass the applicable automated acceptance and `Merge gate`; and normally
       merge the exact tested head with the expected-head guard before the
       conditional bounded-engineering board status change becomes effective.

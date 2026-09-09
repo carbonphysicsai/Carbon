@@ -1,6 +1,6 @@
 # Wave B: Science-ready authoring skeletons
 
-**Status:** ACTIVE
+**Status:** CLOSED
 
 **Map ref:** `WAVE-B`
 
@@ -25,7 +25,7 @@ Wave C can connect one real candidate to one real, qualified single-Challenge ex
 
 ## Authority ceiling
 
-Active only for work selected by the controlling board and ticket. Unselected work and later-wave behavior remain unavailable.
+Closed only in the wave's recorded bounded engineering scope. No later qualification or production authority follows.
 
 ## Still unavailable
 
@@ -76,12 +76,12 @@ Wave B does not include real miner training, production reconstruction, authenti
 - [B-E2](../tickets/b_e2.md): Julia and reference failure contract [done]
 - [B-E3](../tickets/b_e3.md): Credibility crosswalk and evidence manifest [done]
 - [B-E4](../tickets/b_e4.md): Agent utility, leakage, poisoning, and aligned-cheating gauntlet [deferred]
-- [B-GATE](../tickets/b_gate.md): Wave B integration and closeout gate [in_progress]
+- [B-GATE](../tickets/b_gate.md): Wave B integration and closeout gate [done]
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/55d2e411dbf85c5d36bc3de5d8c5fd7a19d8774e/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/55d2e411dbf85c5d36bc3de5d8c5fd7a19d8774e/.agent/WAVE.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/55d2e411dbf85c5d36bc3de5d8c5fd7a19d8774e/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/.agent/WAVE.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/29d6a6d35918ebf796c76c12e930c99d45f80d91/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.
