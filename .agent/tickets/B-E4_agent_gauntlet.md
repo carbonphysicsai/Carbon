@@ -324,3 +324,56 @@ All five grouped pilot decisions remain `PROPOSED / OWNER_UNAPPROVED /
 PILOT_NOT_AUTHORIZED`. V4 remains `STILL_BLOCKED` and all eight qualification
 inputs remain human-reserved. No inference or campaign ran. B-E4 remains
 `in_progress`; B-GATE remains unstarted.
+
+## Development execution-admission successor
+
+The Carbon owner's 2026-09-09 delegated decisions are recorded in
+`.agent/preregistrations/B-E4_development_owner_decisions_v1.json`. They approve
+one non-qualifying 40-slot DEVELOPMENT campaign only, with one accountable
+principal (`jbequ5`, GitHub user `99085788`) recording the five role-specific
+decisions. This is deliberately not represented as five independent reviewers
+and does not approve calibration, qualification, or the blocked v4 design.
+
+The successor candidate implements a repository-native, one-use DEVELOPMENT
+authorization over the exact final execution request, owner-decision record,
+implementation, runtime/artifact manifest, prompts/corpus/treatments, two
+tasks, 40-slot schedule, provider project, six-field egress contract, retention
+choice, deadlines, token/resource limits, and `$14.42` provider-charge cap.
+Issuance requires a fresh authenticated GitHub `/user` response matching the
+registered owner identity and an explicit approval act naming the exact request
+digest. Claim is durably tied to one journal identity before dispatch; restart
+reuses that identity, while a second or recreated journal cannot mint another
+entitlement. Expiry, revocation, project drift, source drift, and changed
+bindings fail closed.
+
+The real Responses path is wired through that admission, the sequential Carbon
+lifecycle, durable operation intent/result journal, conservative unknown-
+billing reservation, and a provider report that truthfully admits partial,
+failed, stopped, and unresolved rows. It cannot relabel deterministic evidence
+as provider evidence or require 40 successes to describe a real campaign. The
+approved DEVELOPMENT-only standard-retention choice is versioned
+prospectively; historical pilot v2 and execution request v1 remain unchanged.
+
+The final successor request is
+`.agent/preregistrations/B-E4_development_execution_request_v2.json`, request
+digest `sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62`,
+campaign-manifest digest
+`sha256:3f24e132d106ba5441dd8582d63758a4e683eac6b217d6699d248ccf48e86b3f`,
+implementation digest
+`sha256:3f8b8ebaac5841ba1435be71f8bc7379f9a237109dea809112ea70c40119210f`,
+and artifact-manifest digest
+`sha256:5591d22ed762039797909265ccfbd18cb39bd0e4f5f836cbd32af317bd2e61cc`.
+The deterministic successor evidence completed all 40 Carbon fixture-service
+slots with 168 simulated provider operations and 40 endpoints; it remains
+explicitly non-inference, unpaid, and non-qualifying.
+
+This workspace could not issue or consume the real authorization: its current
+authenticated GitHub identity was `fitz-lang6` / `317786409`, not the registered
+owner, and `OPENAI_API_KEY` plus `OPENAI_PROJECT_ID` were absent. Consequently
+there were zero real provider attempts, zero paid calls, and zero confirmed or
+unreconciled provider charges. The package is ready for the exact external
+authentication/configuration handoff; no policy reapproval is requested.
+
+B-E4 remains `in_progress`; v4 remains `STILL_BLOCKED`; B-GATE remains `todo`
+and unstarted. Calibration, shadow, attack, and qualifying execution remain
+outside this authorization.

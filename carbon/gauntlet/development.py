@@ -2,17 +2,20 @@
 
 The module contains the bounded provider wire adapter, deterministic offline
 transport, cost admission, durable journal, and sequential campaign runner.
-It cannot approve a proposal, mint a one-use execution authorization, start
-calibration, or create qualifying B-E4 evidence.
+An authenticated, separately persisted development-only authorization may open
+the real transport. Nothing here can start calibration or create qualifying
+B-E4 evidence.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import secrets
 import sqlite3
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -28,6 +31,12 @@ from carbon.gauntlet.agents import (
     FIXTURE_METHOD_CORPUS,
     REGISTERED_EFFECTFUL_SURFACES,
     bind_data_only_selection,
+)
+from carbon.gauntlet.development_authority import (
+    ControlledExecutionAdmission,
+    DevelopmentApprovalUnavailable,
+    _RealExecutionAdmission,
+    provider_identity_digest,
 )
 from carbon.gauntlet.execution import (
     GENERIC_WORKFLOW_STEPS,
@@ -61,7 +70,7 @@ from carbon.traineval.resolved_fixture import ResolvedFixtureCompletedRun
 DEVELOPMENT_AUTHORITY_CEILING = (
     "NONQUALIFYING_DEVELOPMENT_INTEGRATION_ONLY_NO_PILOT_OR_QUALIFICATION_AUTHORITY"
 )
-DEVELOPMENT_SCHEMA_VERSION = "carbon.be4.development-pilot.v1"
+DEVELOPMENT_SCHEMA_VERSION = "carbon.be4.development-pilot.v2"
 RESPONSES_ENDPOINT = "https://api.openai.com/v1/responses"
 REQUESTED_MODEL = "gpt-5.6-terra"
 REQUESTED_SERVICE_TIER = "default"
@@ -76,18 +85,15 @@ DEVELOPMENT_WORST_CASE_COST_USD = Decimal("14.41792")
 DEVELOPMENT_APPROVAL_REQUEST_USD = Decimal("14.42")
 OVERALL_PROPOSED_PILOT_CEILING_USD = Decimal("98.304")
 
-_DIGEST_DOMAIN = b"carbon.be4.development-pilot.v1\x00"
-_MANIFEST_DOMAIN = b"carbon.be4.development-manifest.v1\x00"
+_DIGEST_DOMAIN = b"carbon.be4.development-pilot.v2\x00"
+_MANIFEST_DOMAIN = b"carbon.be4.development-manifest.v2\x00"
 _PROVIDER_CALL_DOMAIN = b"carbon.be4.provider-call.v1\x00"
 _PROVIDER_RESULT_DOMAIN = b"carbon.be4.provider-result.v1\x00"
+_JOURNAL_BINDING_DOMAIN = b"carbon.be4.development-journal-binding.v1\x00"
 
 
 class DevelopmentPilotError(RuntimeError):
     pass
-
-
-class DevelopmentApprovalUnavailable(DevelopmentPilotError):
-    """Authenticated owner approval / one-use admission is not integrated."""
 
 
 class ProviderVerifiedFailure(DevelopmentPilotError):
@@ -129,6 +135,15 @@ def _canonical_bytes(value: object) -> bytes:
 
 def _digest(domain: bytes, value: object) -> str:
     return "sha256:" + hashlib.sha256(domain + _canonical_bytes(value)).hexdigest()
+
+
+def _is_digest(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 71
+        and value.startswith("sha256:")
+        and all(character in "0123456789abcdef" for character in value[7:])
+    )
 
 
 def _utc_now() -> str:
@@ -755,37 +770,22 @@ class DeterministicOfflineTransport:
         }
 
 
-@dataclass(frozen=True, slots=True)
-class _RealExecutionAdmission:
-    stage: str
-    proposal_digest: str
-    implementation_digest: str
-    artifact_manifest_digest: str
-    monetary_ceiling_usd: Decimal
-    authorization_ref: str
-
-    def __post_init__(self) -> None:
-        del self
-        raise DevelopmentApprovalUnavailable(
-            "real provider execution admission has no verifier contract"
-        )
-
-
 def development_execution_admission_status() -> str:
-    """Return the deliberate current boundary without minting a capability."""
+    """Describe the external inputs still required to issue live authority."""
 
-    return "BLOCKED_NO_REPOSITORY_NATIVE_AUTHENTICATED_FIVE_OWNER_AND_ONE_USE_VERIFIER"
+    return "READY_REQUIRES_AUTHENTICATED_OWNER_ISSUANCE_AND_BOUND_CONFIGURATION"
 
 
 class OpenAIResponsesTransport:
-    """Responses API adapter; network dispatch requires an unavailable capability."""
+    """Official Responses adapter guarded by one exact live admission."""
 
     __slots__ = (
         "_admission",
         "_api_key",
-        "_opener",
         "_organization_id",
+        "_organization_id_digest",
         "_project_id",
+        "_project_id_digest",
     )
 
     def __init__(
@@ -795,7 +795,6 @@ class OpenAIResponsesTransport:
         project_id: str | None = None,
         organization_id: str | None = None,
         admission: _RealExecutionAdmission | None = None,
-        opener: object = urllib.request.urlopen,
     ) -> None:
         if api_key is not None and (type(api_key) is not str or not api_key):
             raise TypeError("provider credential must be non-empty text")
@@ -809,10 +808,28 @@ class OpenAIResponsesTransport:
         self._project_id = project_id
         self._organization_id = organization_id
         self._admission = admission
-        self._opener = opener
+        self._project_id_digest = (
+            None
+            if project_id is None
+            else provider_identity_digest(project_id, kind="OPENAI_PROJECT_ID")
+        )
+        self._organization_id_digest = (
+            None
+            if organization_id is None
+            else provider_identity_digest(
+                organization_id, kind="OPENAI_ORGANIZATION_ID"
+            )
+        )
+        if admission is not None and type(admission) is not _RealExecutionAdmission:
+            raise DevelopmentApprovalUnavailable(
+                "official Responses transport requires an exact live admission"
+            )
 
     def __repr__(self) -> str:
-        return "OpenAIResponsesTransport(<credential-redacted>, admission=blocked)"
+        state = (
+            "present" if type(self._admission) is _RealExecutionAdmission else "blocked"
+        )
+        return f"OpenAIResponsesTransport(<credential-redacted>, admission={state})"
 
     @staticmethod
     def preview_request(call: ProviderCall) -> dict[str, object]:
@@ -833,6 +850,57 @@ class OpenAIResponsesTransport:
             raise DevelopmentApprovalUnavailable(
                 "approved provider project identity is unavailable"
             )
+        return self._dispatch(call, endpoint=RESPONSES_ENDPOINT)
+
+    def _dispatch(
+        self,
+        call: ProviderCall,
+        *,
+        endpoint: str,
+        controlled_admission: ControlledExecutionAdmission | None = None,
+    ) -> ProviderResult:
+        """Dispatch only after rechecking an exact live or loopback admission.
+
+        The check deliberately lives in the lowest method that can reach the
+        network.  Calling this nominally private helper directly therefore
+        cannot turn a transport without live authority into a provider client.
+        """
+
+        if type(call) is not ProviderCall:
+            raise TypeError("Responses transport requires an exact provider call")
+        parsed = urllib.parse.urlsplit(endpoint)
+        if endpoint == RESPONSES_ENDPOINT:
+            if (
+                controlled_admission is not None
+                or type(self._admission) is not _RealExecutionAdmission
+            ):
+                raise DevelopmentApprovalUnavailable(
+                    "official Responses dispatch requires an exact live admission"
+                )
+            admission: _RealExecutionAdmission | ControlledExecutionAdmission = (
+                self._admission
+            )
+        elif (
+            parsed.scheme == "http"
+            and parsed.hostname in {"127.0.0.1", "localhost", "::1"}
+            and parsed.path == "/v1/responses"
+            and type(controlled_admission) is ControlledExecutionAdmission
+            and self._admission is None
+        ):
+            admission = controlled_admission
+        else:
+            raise DevelopmentApprovalUnavailable(
+                "Responses endpoint and admission environment do not match"
+            )
+        if not self._api_key or not self._project_id:
+            raise DevelopmentApprovalUnavailable(
+                "provider credential and project identity are unavailable"
+            )
+        assert self._project_id_digest is not None
+        admission.assert_current(
+            project_id_digest=self._project_id_digest,
+            organization_id_digest=self._organization_id_digest,
+        )
         started = _utc_now()
         headers = {
             "Authorization": f"Bearer {self._api_key}",
@@ -842,14 +910,16 @@ class OpenAIResponsesTransport:
         if self._organization_id is not None:
             headers["OpenAI-Organization"] = self._organization_id
         request = urllib.request.Request(
-            RESPONSES_ENDPOINT,
+            endpoint,
             data=_canonical_bytes(call.responses_body()),
             headers=headers,
             method="POST",
         )
         try:
-            response = self._opener(request, timeout=call.deadline_seconds)
-            raw = response.read()
+            with urllib.request.urlopen(
+                request, timeout=call.deadline_seconds
+            ) as response:
+                raw = response.read()
         except urllib.error.HTTPError as error:
             # Without a trusted provider usage receipt, even an HTTP error is
             # conservatively ambiguous for billing and is never auto-retried.
@@ -958,6 +1028,56 @@ class OpenAIResponsesTransport:
         )
 
 
+class ControlledOpenAIResponsesTransport:
+    """Loopback-only HTTP adapter with a structurally non-live admission."""
+
+    __slots__ = ("_admission", "_core", "_endpoint")
+
+    def __init__(
+        self,
+        *,
+        endpoint: str,
+        api_key: str,
+        project_id: str,
+        organization_id: str | None,
+        admission: ControlledExecutionAdmission,
+    ) -> None:
+        parsed = urllib.parse.urlsplit(endpoint)
+        if (
+            type(endpoint) is not str
+            or parsed.scheme != "http"
+            or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
+            or parsed.path != "/v1/responses"
+            or type(admission) is not ControlledExecutionAdmission
+        ):
+            raise DevelopmentApprovalUnavailable(
+                "controlled Responses transport requires an exact loopback fixture"
+            )
+        self._endpoint = endpoint
+        self._admission = admission
+        # The official adapter continues to own body/header/parse behavior.
+        # Its live admission remains absent; this wrapper calls only its shared
+        # HTTP implementation after enforcing the distinct fixture authority.
+        self._core = OpenAIResponsesTransport(
+            api_key=api_key,
+            project_id=project_id,
+            organization_id=organization_id,
+        )
+
+    def __repr__(self) -> str:
+        return "ControlledOpenAIResponsesTransport(loopback-fixture-only)"
+
+    def dispatch(self, call: ProviderCall) -> ProviderResult:
+        if type(call) is not ProviderCall:
+            raise TypeError("controlled Responses transport requires an exact call")
+        assert self._core._project_id_digest is not None
+        return self._core._dispatch(
+            call,
+            endpoint=self._endpoint,
+            controlled_admission=self._admission,
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class CostSnapshot:
     confirmed_input_tokens: int
@@ -975,13 +1095,14 @@ class CostSnapshot:
 class DevelopmentJournal:
     """Small durable operation journal, scoped to one development campaign."""
 
-    __slots__ = ("_connection", "_manifest_digest", "path")
+    __slots__ = ("_connection", "_journal_identity", "_manifest_digest", "path")
 
     def __init__(self, path: Path, *, manifest_digest: str) -> None:
         if not isinstance(path, Path) or type(manifest_digest) is not str:
             raise TypeError("journal requires an exact path and manifest digest")
         path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(path)
+        path.chmod(0o600)
         connection.execute("PRAGMA journal_mode = WAL")
         connection.execute("PRAGMA synchronous = FULL")
         connection.execute("PRAGMA foreign_keys = ON")
@@ -989,7 +1110,12 @@ class DevelopmentJournal:
             CREATE TABLE IF NOT EXISTS campaign (
                 singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
                 manifest_digest TEXT NOT NULL,
-                started_at_unix REAL NOT NULL
+                started_at_unix REAL NOT NULL,
+                journal_identity TEXT,
+                authorization_id TEXT,
+                execution_request_digest TEXT,
+                provider_project_digest TEXT,
+                authorization_journal_binding TEXT
             );
             CREATE TABLE IF NOT EXISTS operation (
                 operation_id TEXT PRIMARY KEY,
@@ -1019,25 +1145,122 @@ class DevelopmentJournal:
                 updated_at_utc TEXT NOT NULL
             );
             """)
+        campaign_columns = {
+            str(row[1]) for row in connection.execute("PRAGMA table_info(campaign)")
+        }
+        for column in (
+            "journal_identity",
+            "authorization_id",
+            "execution_request_digest",
+            "provider_project_digest",
+            "authorization_journal_binding",
+        ):
+            if column not in campaign_columns:
+                connection.execute(f"ALTER TABLE campaign ADD COLUMN {column} TEXT")
         existing = connection.execute(
-            "SELECT manifest_digest, started_at_unix FROM campaign "
-            "WHERE singleton = 1"
+            "SELECT manifest_digest, started_at_unix, journal_identity "
+            "FROM campaign WHERE singleton = 1"
         ).fetchone()
+        journal_identity = "sha256:" + secrets.token_hex(32)
         if existing is None:
             connection.execute(
-                "INSERT INTO campaign(singleton, manifest_digest, started_at_unix) "
-                "VALUES (1, ?, ?)",
-                (manifest_digest, time.time()),
+                "INSERT INTO campaign(singleton, manifest_digest, started_at_unix, "
+                "journal_identity) VALUES (1, ?, ?, ?)",
+                (manifest_digest, time.time(), journal_identity),
             )
         elif existing[0] != manifest_digest:
             connection.close()
             raise DevelopmentPilotError(
                 "journal is bound to a different immutable campaign manifest"
             )
+        elif existing[2] is None:
+            connection.execute(
+                "UPDATE campaign SET journal_identity = ? WHERE singleton = 1 "
+                "AND journal_identity IS NULL",
+                (journal_identity,),
+            )
+        elif not _is_digest(existing[2]):
+            connection.close()
+            raise DevelopmentPilotError("journal identity is invalid")
+        else:
+            journal_identity = existing[2]
         connection.commit()
         self.path = path
         self._manifest_digest = manifest_digest
+        self._journal_identity = journal_identity
         self._connection = connection
+
+    def authorization_binding(self, execution_request_digest: str) -> str:
+        """Bind authority to this durable journal instance, not just its path."""
+
+        if not _is_digest(execution_request_digest):
+            raise TypeError("journal binding requires an execution request digest")
+        return _digest(
+            _JOURNAL_BINDING_DOMAIN,
+            {
+                "campaign_manifest_digest": self._manifest_digest,
+                "execution_request_digest": execution_request_digest,
+                "journal_identity": self._journal_identity,
+            },
+        )
+
+    def bind_execution_authorization(
+        self,
+        *,
+        authorization_id: str,
+        execution_request_digest: str,
+        provider_project_digest: str,
+        journal_binding: str,
+    ) -> None:
+        """Bind one live entitlement before the journal's first dispatch."""
+
+        if (
+            type(authorization_id) is not str
+            or not authorization_id.startswith(
+                ("be4-development-", "fixture-be4-development-")
+            )
+            or type(execution_request_digest) is not str
+            or not _is_digest(execution_request_digest)
+            or type(provider_project_digest) is not str
+            or not _is_digest(provider_project_digest)
+            or journal_binding != self.authorization_binding(execution_request_digest)
+        ):
+            raise TypeError("journal execution authorization binding is invalid")
+        row = self._connection.execute(
+            "SELECT authorization_id, execution_request_digest, "
+            "provider_project_digest, authorization_journal_binding "
+            "FROM campaign WHERE singleton = 1"
+        ).fetchone()
+        expected = (
+            authorization_id,
+            execution_request_digest,
+            provider_project_digest,
+            journal_binding,
+        )
+        if row == expected:
+            return
+        if row != (None, None, None, None):
+            raise UnresolvedOperationError(
+                "journal is already bound to a different execution authorization"
+            )
+        if self._connection.execute("SELECT 1 FROM operation LIMIT 1").fetchone():
+            raise UnresolvedOperationError(
+                "authorization cannot be bound after provider intent exists"
+            )
+        with self._connection:
+            changed = self._connection.execute(
+                "UPDATE campaign SET authorization_id = ?, "
+                "execution_request_digest = ?, provider_project_digest = ?, "
+                "authorization_journal_binding = ? "
+                "WHERE singleton = 1 AND authorization_id IS NULL AND "
+                "execution_request_digest IS NULL AND provider_project_digest IS NULL "
+                "AND authorization_journal_binding IS NULL",
+                expected,
+            ).rowcount
+        if changed != 1:
+            raise UnresolvedOperationError(
+                "journal authorization binding lost its race"
+            )
 
     def close(self) -> None:
         self._connection.close()
@@ -1248,6 +1471,34 @@ class DevelopmentJournal:
         ).fetchone()
         assert row is not None
         return int(row[0])
+
+    def provider_operation_summary(self) -> dict[str, object]:
+        """Return non-secret durable dispatch and billing state."""
+
+        rows = self._connection.execute(
+            "SELECT state, COUNT(*) FROM operation GROUP BY state"
+        ).fetchall()
+        states = {str(state): int(count) for state, count in rows}
+        snapshot = self.cost_snapshot()
+        return {
+            "confirmed_cost_usd": str(snapshot.confirmed_cost_usd),
+            "confirmed_input_tokens": snapshot.confirmed_input_tokens,
+            "confirmed_output_tokens": snapshot.confirmed_output_tokens,
+            "conservative_cost_usd": str(snapshot.conservative_cost_usd),
+            "dispatched_operation_count": sum(states.values()),
+            "operation_states": {
+                state: states.get(state, 0)
+                for state in (
+                    "COMPLETED",
+                    "INTENT",
+                    "UNKNOWN",
+                    "VERIFIED_NOT_EXECUTED",
+                )
+            },
+            "reserved_cost_usd": str(snapshot.reserved_cost_usd),
+            "reserved_input_tokens": snapshot.reserved_input_tokens,
+            "reserved_output_tokens": snapshot.reserved_output_tokens,
+        }
 
     def record_run_result(self, run_id: str, value: dict[str, object]) -> str:
         if type(run_id) is not str or not run_id or type(value) is not dict:
@@ -1552,6 +1803,7 @@ class DevelopmentCampaignManifest:
     proposal_digest: str
     implementation_digest: str
     artifact_manifest_digest: str
+    owner_decisions_digest: str
     tasks: tuple[DevelopmentTask, DevelopmentTask]
     schedule: tuple[DevelopmentRunSlot, ...]
     content_digest: str
@@ -1559,7 +1811,7 @@ class DevelopmentCampaignManifest:
     def __post_init__(self) -> None:
         if (
             type(self) is not DevelopmentCampaignManifest
-            or self.campaign_id != "be4-autonomous-development-v1"
+            or self.campaign_id != "be4-autonomous-development-v2"
             or self.proposal_digest
             != "sha256:86979a14c38239fdad84c1f9fa190fc6a49e70fc31a996ae6ee61e844dfaff31"
             or any(
@@ -1569,6 +1821,7 @@ class DevelopmentCampaignManifest:
                 for value in (
                     self.implementation_digest,
                     self.artifact_manifest_digest,
+                    self.owner_decisions_digest,
                     self.content_digest,
                 )
             )
@@ -1594,6 +1847,7 @@ def _development_manifest_value(
         "approval_boundary": {
             "actual_execution_evidence": False,
             "authenticated_five_owner_approval": False,
+            "owner_decisions_recorded": True,
             "one_use_execution_authorization": False,
             "paid_provider_execution": False,
         },
@@ -1626,6 +1880,7 @@ def _development_manifest_value(
         },
         "campaign_id": value.campaign_id,
         "implementation_digest": value.implementation_digest,
+        "owner_decisions_digest": value.owner_decisions_digest,
         "model": {
             "api": "RESPONSES",
             "built_in_tools": [],
@@ -1641,17 +1896,21 @@ def _development_manifest_value(
                 "abuse_monitoring_default_retention_days": 30,
                 "background_mode": False,
                 "credential_values_must_not_be_recorded": True,
-                "project_retention_selection": "SECURITY_OWNER_APPROVAL_REQUIRED",
-                "prompt_cache": "EXPLICIT_MODE_NO_BREAKPOINTS_TTL_30M",
+                "project_retention_selection": (
+                    "STANDARD_API_ABUSE_MONITORING_APPROVED_FOR_SYNTHETIC_DEVELOPMENT"
+                ),
+                "prompt_cache": (
+                    "EXPLICIT_MODE_TTL_30M_DOCUMENTED_PROVIDER_RETENTION_ACCEPTED"
+                ),
+                "prompt_cache_ttl_claims_deletion": False,
                 "required_runtime_configuration_names": [
                     "OPENAI_API_KEY",
                     "OPENAI_PROJECT_ID",
                     "OPENAI_ORGANIZATION_ID_OPTIONAL",
                 ],
                 "store_false_is_not_zero_data_retention": True,
-                "zero_data_retention_or_modified_abuse_monitoring": (
-                    "SECURITY_OWNER_SELECTION_REQUIRED_IF_ACCOUNT_ELIGIBLE"
-                ),
+                "training_or_data_sharing_opt_in": False,
+                "zero_data_retention_or_modified_abuse_monitoring_required": False,
             },
             "payload_allowlist": [
                 "frozen_system_and_profile_policy",
@@ -1731,12 +1990,13 @@ def build_development_manifest(
     *,
     implementation_digest: str,
     artifact_manifest_digest: str,
+    owner_decisions_digest: str,
     tasks: tuple[DevelopmentTask, DevelopmentTask],
 ) -> DevelopmentCampaignManifest:
     schedule = proposed_development_schedule(tasks)
     placeholder = "sha256:" + "0" * 64
     value = DevelopmentCampaignManifest.__new__(DevelopmentCampaignManifest)
-    object.__setattr__(value, "campaign_id", "be4-autonomous-development-v1")
+    object.__setattr__(value, "campaign_id", "be4-autonomous-development-v2")
     object.__setattr__(
         value,
         "proposal_digest",
@@ -1744,6 +2004,7 @@ def build_development_manifest(
     )
     object.__setattr__(value, "implementation_digest", implementation_digest)
     object.__setattr__(value, "artifact_manifest_digest", artifact_manifest_digest)
+    object.__setattr__(value, "owner_decisions_digest", owner_decisions_digest)
     object.__setattr__(value, "tasks", tasks)
     object.__setattr__(value, "schedule", schedule)
     object.__setattr__(value, "content_digest", placeholder)
@@ -1753,6 +2014,7 @@ def build_development_manifest(
         value.proposal_digest,
         implementation_digest,
         artifact_manifest_digest,
+        owner_decisions_digest,
         tasks,
         schedule,
         digest,
@@ -2046,10 +2308,32 @@ class DevelopmentPilotRunner:
             self._journal.record_run_result(slot.run_id, value)
         rows = self._journal.all_run_results()
         completed = sum(item["status"] == "COMPLETED" for item in rows)
-        offline = isinstance(self._transport._transport, DeterministicOfflineTransport)
-        model_inference = (
-            not offline and self._journal.completed_provider_operation_count() > 0
+        offline = isinstance(
+            self._transport._transport,
+            (DeterministicOfflineTransport, ControlledOpenAIResponsesTransport),
         )
+        operation_summary = self._journal.provider_operation_summary()
+        operation_states = operation_summary["operation_states"]
+        assert type(operation_states) is dict
+        confirmed_calls = int(operation_states["COMPLETED"])
+        unresolved_calls = int(operation_states["INTENT"]) + int(
+            operation_states["UNKNOWN"]
+        )
+        if offline:
+            provider_execution_status = "SIMULATED_OFFLINE_ONLY"
+            model_inference: bool | None = False
+        elif confirmed_calls and unresolved_calls:
+            provider_execution_status = "CONFIRMED_WITH_UNRECONCILED_DISPATCH"
+            model_inference = True
+        elif confirmed_calls:
+            provider_execution_status = "CONFIRMED"
+            model_inference = True
+        elif unresolved_calls:
+            provider_execution_status = "POSSIBLE_UNRECONCILED"
+            model_inference = None
+        else:
+            provider_execution_status = "NO_PROVIDER_INFERENCE"
+            model_inference = False
         return {
             "authority_ceiling": DEVELOPMENT_AUTHORITY_CEILING,
             "campaign_manifest_digest": self._manifest.content_digest,
@@ -2057,6 +2341,8 @@ class DevelopmentPilotRunner:
             "model_inference_executed": model_inference,
             "offline_integration_only": offline,
             "paid_execution_occurred": model_inference,
+            "provider_execution_status": provider_execution_status,
+            "provider_operation_summary": operation_summary,
             "qualifying_execution_ready": False,
             "recorded_run_count": len(rows),
             "remaining_run_count": 40 - len(rows),
@@ -2656,6 +2942,7 @@ __all__ = (
     "RUN_INPUT_TOKEN_CEILING",
     "RUN_OUTPUT_TOKEN_CEILING",
     "SELECTION_MAX_OUTPUT_TOKENS",
+    "ControlledOpenAIResponsesTransport",
     "CostSnapshot",
     "DeterministicOfflineTransport",
     "DevelopmentApprovalUnavailable",

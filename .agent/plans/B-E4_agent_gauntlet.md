@@ -533,3 +533,35 @@ runner does not approve population, tasks/seeds, budget, provider egress/
 retention, evidence use, v4's eight qualification inputs, or execution.
 Calibration, shadow, attack, and qualifying campaigns remain disabled. B-E4
 stays `in_progress`; B-GATE stays unstarted.
+
+### Stage-8 DEVELOPMENT execution admission and handoff
+
+1. Preserve pilot v2 and execution request v1 as history. Record the owner's
+   delegated one-campaign decisions, including the exact one-principal/five-role
+   scope and the standard-retention alternative, without describing them as
+   independent multidisciplinary ratification.
+2. Freeze execution request v2 over the final tested implementation, complete
+   artifacts, exact DEVELOPMENT stage/project/retention/limits, 40-slot
+   no-reserve schedule, and `$14.42` cap. A changed executable source or binding
+   requires a new request identity.
+3. Issue only after a fresh authenticated GitHub identity check matches
+   `jbequ5` / `99085788` and the owner explicitly names the exact request
+   digest. Claim the one-use record against the durable journal identity before
+   first dispatch; allow only same-journal resume, with cumulative deadlines
+   and allowances intact.
+4. Wire the real Responses transport through that admission and the existing
+   full Carbon lifecycle. Persist intent before dispatch, preserve ambiguous
+   usage/reservation, and retain partial, failed, refused, truncated, stopped,
+   and completed evidence in a provider-shaped report.
+5. Exercise the entire route with controlled loopback HTTP responses and the
+   full deterministic 40-slot matrix. Test changed bindings, expiry, revocation,
+   duplicate claim, legitimate resume, partial evidence, unknown billing,
+   spend/deadline admission, and offline/provider evidence separation.
+6. If the owner identity, project, or credentials are externally unavailable,
+   finish and deliver the implementation, keep real dispatch at zero, and hand
+   off one exact issue-and-run command. Do not request policy reapproval or ask
+   for secrets in chat.
+
+Stage 8 authorizes no calibration, shadow, attack, or qualifying campaign. A
+completed DEVELOPMENT run, including negative or stopped evidence, would still
+leave B-E4 `in_progress`, v4 `STILL_BLOCKED`, and B-GATE unstarted.

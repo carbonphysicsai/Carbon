@@ -1007,3 +1007,59 @@ utility result. V4 remains `STILL_BLOCKED`; all eight qualification inputs and
 the qualifying shadow/attack/ratification/evidence integrations remain
 unresolved. No calibration, shadow, attack, or qualifying campaign ran. B-E4
 remains `in_progress`; B-GATE remains unstarted.
+
+## Development execution-admission successor evidence
+
+The current candidate records the owner's development-only decisions in
+`.agent/preregistrations/B-E4_development_owner_decisions_v1.json` (content
+digest `sha256:6c3bd8cbd13eb7c667b62836dd350c3cc6891223c396e80da708c52409e18a5a`).
+One authenticated Carbon owner is accountable for five role-specific acts for
+this campaign; this is not evidence of five independent reviewers or any
+qualification ratification.
+
+The frozen successor request is
+`.agent/preregistrations/B-E4_development_execution_request_v2.json`:
+
+- request content digest
+  `sha256:900997cbbc5ab9cbe4ea6d9f1355cfc4cbca4e11de660cd02c7bee6461f2cd62`;
+- campaign manifest
+  `sha256:3f24e132d106ba5441dd8582d63758a4e683eac6b217d6699d248ccf48e86b3f`;
+- implementation
+  `sha256:3f8b8ebaac5841ba1435be71f8bc7379f9a237109dea809112ea70c40119210f`;
+- artifact manifest
+  `sha256:5591d22ed762039797909265ccfbd18cb39bd0e4f5f836cbd32af317bd2e61cc`;
+- retention contract
+  `sha256:d5651e336c6255d261ee8e2839397248c2b3fc03b045d20beb2959cecc272a02`.
+
+The bounded issuer verifies a fresh GitHub owner response, exact approval act,
+current frozen source/runtime/artifacts, DEVELOPMENT scope, provider-project
+binding, retention contract, complete limits, expiry, and revocation. Its
+SQLite state admits one request/bindings pair and binds it to one random durable
+journal identity. Same-journal restart is idempotent; a second or recreated
+journal, changed project/manifest, duplicate issuance, expired/revoked record,
+or changed source fails closed. Real transport construction and dispatch both
+check that capability; controlled loopback authorization is separate and
+loopback-only.
+
+The provider report accepts honest partial/stopped execution and tri-state
+billing evidence. It rejects deterministic evidence relabelled as provider
+evidence, false `unpaid` claims for ambiguous operations, malformed schedule
+rows, and cross-run row rebinding. Unknown dispatched usage retains its
+worst-case reservation and is never treated as a free retry.
+
+`.agent/evidence/wave_b/b-e4-development-offline-integration-v2.json` retained
+40/40 completed Carbon service rows, all five profiles/four arms/two tasks, 168
+simulated provider operations, 104 practice results, and 40 endpoints. Its
+modeled cost is `$0.980430`; `model_inference_executed=false` and
+`paid_execution_occurred=false` make this integration evidence only.
+
+The paid path was not exercised. The observed authenticated GitHub principal
+was `fitz-lang6` / `317786409`, rather than `jbequ5` / `99085788`, and this
+workspace had neither `OPENAI_API_KEY` nor `OPENAI_PROJECT_ID`. No issuer record
+was manufactured, no request was dispatched, and confirmed/unreconciled real
+provider charge is zero. The only remaining DEVELOPMENT inputs are the correct
+external owner authentication and out-of-band provider project credentials;
+the owner's recorded policy choices do not need reapproval.
+
+No calibration readiness judgment is made without real observations. V4 stays
+`STILL_BLOCKED`; B-E4 stays `in_progress`; B-GATE stays unstarted.

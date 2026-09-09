@@ -2,8 +2,9 @@
 
 **Status:** OWNER-CANONICAL maturity ledger, reconciled through merged B-E4
 engineering, readiness, lifecycle, rehearsal, calibration, execution-
-correctness, association/resource correction, strict owner-unapproved pilot-v2
-proposal, and current runnable-development-pilot checkpoints, and
+correctness, association/resource correction, strict pilot-v2 proposal,
+runnable development pilot, and current DEVELOPMENT execution-admission
+checkpoint, and
 the
 prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 **Purpose:** provide a concise current-state map that separates architecture, implementation, testing, qualification, and commercial maturity.
@@ -31,8 +32,9 @@ prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 > analysis-only preregistration design, PRs #107–#110 merged lifecycle,
 > rehearsal evidence, and calibration, and PR #111 merged execution-
 > correctness. PR #112 merged the first owner-unapproved pilot proposal, and PR
-> #113 merged the association/resource and strict pilot-v2 correction. B-E4
-> remains `in_progress`; the current runnable owner-unapproved pilot-v2
+> #113 merged the association/resource and strict pilot-v2 correction, and PR
+> #114 merged the runnable disabled development pilot. B-E4 remains
+> `in_progress`; the current DEVELOPMENT-only successor
 > proposal builds on three causal registered toy families, an
 > exploratory three-family private TEST_ONLY pack, five fixed data-only
 > drivers, preflight plans/accounting, canonical intervention identity, and
@@ -56,11 +58,17 @@ prospective `OWNER-NET-01` roadmap candidate only where explicitly labeled.
 > full paired practice, and retains unknown in-flight reservations. Pilot v2
 > strictly validates one common Terra model, five policies, exact interaction
 > transitions, 12 task cells, payload isolation, staged evidence, and a maximum
-> 300-run/$98.304 proposal. All five grouped pilot choices are `PROPOSED`. The
-> current candidate implements a sequential 40-slot DEVELOPMENT runner, strict
-> real-but-unadmitted Responses adapter, deterministic transport, durable
-> journal, exact source/artifact manifest, `$14.42` request, and full offline
-> Carbon fixture-service run. No provider inference or paid campaign ran. Exact
+> 300-run/$98.304 proposal. Its broader calibration/qualification choices stay
+> `PROPOSED`; the five grouped choices are approved only for the exact one-use
+> 40-slot DEVELOPMENT envelope. The
+> merged runner implements a sequential 40-slot DEVELOPMENT path, strict
+> Responses and deterministic transports, durable journal, exact source/
+> artifact manifest, `$14.42` request, and full offline Carbon fixture-service
+> run. The owner has approved one development campaign; the current successor
+> adds fresh authenticated-owner issuance, one-use journal-bound claim/resume,
+> project/retention/limit validation, and honest partial/unknown-billing report
+> handling. This workspace lacked the registered owner authentication and
+> provider key/project, so no provider inference or paid campaign ran. Exact
 > shadow-case count/profile allocation is
 > unpinned, and the 636-block recommendation assumes unvalidated cross-profile
 > ICC `rho=0`. No qualifying execution ran.
@@ -407,7 +415,7 @@ the bounded implementation.
 | R0/R1/R2 reproducibility harness | B-E1 fixture contract | Separate exact-identity, injected numerical, and injected decision results; B-02A exact population/SamplingPlan/case refs; complete incumbent/challenger × producer-independent reconstruction × case graph; stress strata and interaction/dependence retention; explicit shared dependencies and six factor classes; exact B-04 outcomes; exact B-05 policy/shortcut binding; staged reconstruction campaign audit; deterministic canonical refs and fail-closed contested outcomes | No | bounded TEST_ONLY fixture engineering only; no real tolerance, sample size, dependence model, interval/applicability procedure, coverage/power target, stopping rule, audit rate, production backend, ranking, or frontier authority |
 | Registered reference-service failure boundary | B-E2 fixture contract | Exact B-04 request/grant/resolution/run identities; one-use invocation; typed supported, uncertainty, non-applicable, unsupported, numerical/conditioning, malformed, provenance, timeout, unavailable, transport, and process outcomes; immutable retry trace; primary/witness disagreement remains B-04 comparison evidence | No | deterministic TEST_ONLY fixture evidence only; archived Julia remains absent and no reference implementation, method, environment, MMS/analytic fixture, fallback, tolerance, applicability, uncertainty, or scientific authority is qualified |
 | Wave B local research-service protocol | Yes — B-07S exact v2 contract ratified | B-07A shared nominal core/discovery; B-07B constructor-bound task lifecycle, private ExperimentRecords, and bounded terminal receipts; B-07C in-process synthetic mock-only practice; B-07D1/D2/D3 immutable prior storage, synthetic TEST_ONLY publication ledger, authorized static retrieval, and deterministic alignment; B-07E exact static resource inspection and fail-closed forecast seam; B-07F separate fixture-only resolved-plan construction through unchanged A7/A8-shaped lifecycle and A5 scoring seams, with exact historical sampling-only identity preserved and a prospective identity-v2 path for three-family use; B-07G exact local twelve-operation composition, canonical boundary, disclosure enforcement, and conformance matrix | No | `carbon_protocol_v1`, the frozen A8 stub, A9 `estimate`, and B-07F remain outside v2; ordinary B-07E forecasting is `UNRESOLVED` without authorized calibration; B-07G is local in-process fixture-contract plumbing only; remote identity/transport, quotes/admission, arbitrary-code isolation, real reconstruction, every real science/security/rights qualification, production, and LIVE remain absent |
-| B-E4 gauntlet engineering | Yes — v4's eight qualification choices and pilot v2's five grouped direction choices are proposed; none is approved or execution-ready | Exact five-profile/four-arm lifecycle through B-07S/B-07B/B-07C/A7/A8 with private endpoints; three causal TEST_ONLY families; immutable historical calibration; pre-bound rehearsal failure association and one-use replacement; predicted/reserved/confirmed/unreconciled resource accounting; strict pilot-v2 validation; sequential 40-slot development runner; strict real-but-disabled Responses adapter and deterministic transport; persistent intent/result journal; exact source/prompt/corpus/treatment/task manifest and approval request; full offline fixture-service integration; qualifying construction remains unavailable | No | Frozen deterministic calibration remains non-qualifying and has inadequate conditional primary headroom, non-positive v2 effects, zero within-profile repeated SD, three global lineage roots, and no shadow/attack evidence. The model runner completed 40 offline integration slots with no inference or spend; it has no approved population/task/corpus/seed package, authenticated approval act, one-use authorization verifier, provider-project retention approval, or model-run evidence. Exact shadow allocation/dependence, leakage, trusted non-rejection attacks, authenticated five-owner ratification, and qualifying evidence remain unavailable. No utility/diversity/leakage result, scientific/security/privacy qualification, production, or LIVE authority |
+| B-E4 gauntlet engineering | Yes — v4's eight qualification choices remain proposed; pilot v2's choices are approved only for one DEVELOPMENT campaign | Exact five-profile/four-arm lifecycle through B-07S/B-07B/B-07C/A7/A8 with private endpoints; three causal TEST_ONLY families; immutable historical calibration; pre-bound rehearsal failure association and one-use replacement; predicted/reserved/confirmed/unreconciled resource accounting; strict pilot-v2 validation; sequential 40-slot development runner; Responses and deterministic transports; persistent intent/result journal; exact source/prompt/corpus/treatment/task manifests; full offline fixture-service integration; fresh authenticated-owner issuer; one-use journal-bound authorization/resume; project/retention/source/limit validation; partial and unknown-billing provider reports; qualifying construction remains unavailable | No | Frozen deterministic calibration remains non-qualifying and has inadequate conditional primary headroom, non-positive v2 effects, zero within-profile repeated SD, three global lineage roots, and no shadow/attack evidence. The owner approved one non-qualifying DEVELOPMENT campaign, but this workspace had the wrong authenticated GitHub principal and no provider key/project; 0 provider calls and `$0` charges occurred. Exact shadow allocation/dependence, leakage, trusted non-rejection attacks, qualification-grade independent ratification, and qualifying evidence remain unavailable. No utility/diversity/leakage result, scientific/security/privacy qualification, production, or LIVE authority |
 | producer-independent reconstruction | Yes | partial/legacy fresh retraining | No | real Wave C qualification pending |
 | one qualified LIVE Challenge | Yes target | No | No | not yet earned |
 | Burgers repaired authoritative Challenge | Yes direction | No production path | No | fixed-ν/Cole–Hopf direction only |
@@ -502,12 +510,12 @@ No paper/deck may imply:
 
 # 8. Current one-line status
 
-> **Reconciled through merged B-E4 pilot-v2 correction main `f5f6a82` and the
-> current runnable development-pilot candidate, Carbon has an
+> **Reconciled through merged B-E4 runnable-development main `5b37880` and the
+> current DEVELOPMENT execution-admission successor, Carbon has an
 > integrated constitutional architecture and tested bounded foundation.
 > `.agent/WAVE.md` records Wave B with B-E4 in progress, qualifying execution
-> blocked behind remaining execution integration, assumption validation, and
-> human ratification, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
+> blocked behind real DEVELOPMENT observations, assumption validation, and
+> qualification ratification, and B-GATE unstarted. OWNER-NET-01 preserves C0/C1/C2 → D → H → I; the detailed
 > OWNER-EVIDENCE-RESEARCH-01 contracts and 21 passive C/E/G reservations are
 > specified only. Archive, Concierge, EvidenceBrief, D12, paid research,
 > advanced Research Scientist, network, scientific/security/commercial/

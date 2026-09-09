@@ -12698,3 +12698,75 @@ decision D19 implements the exact sequential development runner and freezes a
 five-owner approval, security-approved project controls, and a one-use
 authorization verifier. No inference, spending, pilot, calibration, shadow,
 attack, qualification, or B-GATE work occurred.”
+
+## 2026-09-09 — B-E4-D20: authenticate and spend one development entitlement
+
+**Ticket:** B-E4
+**Status:** owner decisions recorded; admission implemented and tested; external
+owner authentication and provider configuration unavailable in this workspace
+
+**Problem.** D19 correctly left paid execution unavailable. The Carbon owner
+subsequently approved one exact 40-slot, non-qualifying DEVELOPMENT envelope
+and delegated all five required development roles to the same accountable
+principal, `jbequ5` / GitHub user `99085788`, without claiming five independent
+reviewers or qualification ratification. Carbon needed to turn that narrow act
+into one durable entitlement without accepting caller-written identity fields,
+reusing the historical request after executable changes, treating unknown
+billing as zero, or allowing restart to mint a new campaign.
+
+**Decision.** Preserve pilot v2 as history and record the delegated selections
+in `B-E4_development_owner_decisions_v1.json`. Issue a development-only
+authorization only when a fresh GitHub REST `/user` response authenticates the
+exact assigned login and immutable user ID and the operator explicitly names
+the exact successor execution-request digest. Bind that act to DEVELOPMENT,
+the final request, proposal, implementation, canonical Python/lock runtime,
+artifact and campaign manifests, owner-decision and retention records, a
+digest-only provider project/optional organization identity, the `$14.42`
+ceiling, a random durable journal identity, and the existing 120-hour maximum.
+
+Claim the authorization once before dispatch. Reopening the same journal
+retains the claim, time origin, operations, reservations, and results. A
+second or recreated journal has a different identity and cannot reuse the
+request. Completion, unreconciled stop, authenticated revocation, or expiry
+prevents further dispatch; a missing usage receipt stays reserved and is
+reported as possible paid execution rather than false. The public report may
+contain completed, stopped, and failed rows, but cannot relabel controlled or
+deterministic evidence as provider evidence. Raw requests and responses remain
+only in the ignored, mode-`0600` runtime journal.
+
+Use the official Responses endpoint only with the private live admission.
+Exercise the identical encoder/parser over HTTP only through a separate
+loopback fixture admission. Keep the six-field synthetic payload, disabled
+built-in tools, and all Carbon service owners unchanged. For this development
+campaign only, supersede pilot v2's prohibition on extended prompt caching
+with the owner's explicit acceptance of documented provider cache retention,
+while retaining `store=false`, foreground requests, standard abuse-monitoring
+retention, and no training/data-sharing opt-in. This does not amend the blocked
+qualification proposal.
+
+**Rationale, alternatives, and reversibility.** A general identity/signature
+platform was rejected as outside the checkpoint. A copied GitHub login, Git
+author, Boolean, or local digest was rejected because none authenticates the
+issuer. A fixed journal path was insufficient because deletion could recreate
+it; the per-journal identity closes that legitimate restart gap. A billable
+connectivity probe was rejected: the first accepted response, if authorized,
+is the first registered operation. The bounded mechanism can be retired after
+this campaign without changing B-07, A7/A8, calibration, or qualification
+owners.
+
+**Observed stop boundary.** The active GitHub CLI session authenticated
+`fitz-lang6` / `317786409`, not the assigned Carbon owner, and
+`OPENAI_API_KEY`, `OPENAI_PROJECT_ID`, and optional organization configuration
+were absent. No live authorization was issued, no provider request was sent,
+and no charge occurred. The final package therefore awaits only an active
+`jbequ5` GitHub session plus out-of-band provider configuration. B-E4 remains
+`in_progress`; v4 remains `STILL_BLOCKED`; calibration, shadow, attack, and
+qualifying execution remain unauthorized; B-GATE remains unstarted.
+
+**Prepared notification text; not sent in this session.** “B-E4-D20 records
+the owner-approved one-campaign DEVELOPMENT envelope and implements its
+authenticated, journal-bound, one-use admission. The current executor is not
+authenticated as `jbequ5` and has no provider configuration, so no paid call
+occurred. Run the frozen successor command only from the assigned owner session
+with the selected Carbon project; this grants no calibration, qualification,
+or B-GATE authority.”
