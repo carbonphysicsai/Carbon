@@ -1,5 +1,21 @@
 # Agent decisions log
 
+## 2026-09-09 — NET-2-D1: authenticated ingress and durable original receipts
+
+After verified PR #120 merge 6dad22db26e4b8babadf73c4de2527a17485a2b1,
+NET-2 is the sole active implementation ticket under OWNER-C0-REWARD-01.
+KEEP A9's frozen four-file core and existing seven-tool dispatch. WRAP SDK
+btauth/1 in carbon.chain.auth; place application transport in carbon.transport.
+SQLite transactionally binds nonce, request identity, receipt order, contextual
+hotkey registration and restart watermarks. Details, alternatives, development
+limits, reversibility and remaining production seams are in the ticket and
+`docs/development/AUTHENTICATED_TRANSPORT.md`. No authentication receipt grants
+admission/acceptance/reward. New namespace addition is exact and checked by
+CODE_AUTHORITY; all other roots remain identical. Full science regression is
+unnecessary for this outer wrapper; focused acceptance includes existing MCP,
+NET-1/NET-2, all invariant and package checks under OWNER-C0-VALIDATION-01.
+Lead notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609045669.
+
 ## 2026-09-09 — OWNER-C0-VALIDATION-01 / NET-1-D2
 
 The owner explicitly authorizes skipping full 30+ minute CPU acceptance on

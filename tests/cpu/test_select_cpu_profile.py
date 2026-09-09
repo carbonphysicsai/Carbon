@@ -17,6 +17,7 @@ from select_cpu_profile import (
     TOOLING_TESTS,
     chain_constraint_tightening,
     main,
+    only_transport_root_added,
     select_cpu_profile,
 )
 
@@ -27,6 +28,24 @@ def test_known_network_scope_keeps_network_and_tooling_regressions() -> None:
     assert set(TOOLING_TESTS).issubset(NETWORK_TESTS)
     for path in ("carbon/scoring/engine.py", "carbon/chain/new.py", "uv.lock"):
         assert select_cpu_profile(["carbon/chain/sdk.py", path]) == "RUNTIME_FULL"
+
+
+def test_transport_root_addition_preserves_every_other_authority_byte() -> None:
+    before = 'implementation_roots = [\n    "carbon/traineval",\n]\n'
+    after = before.replace(
+        '    "carbon/traineval",\n',
+        '    "carbon/traineval",\n    "carbon/transport",\n',
+    )
+    assert only_transport_root_added(before, after)
+    assert not only_transport_root_added(before, after.replace("traineval", "other"))
+    assert not only_transport_root_added(before, after + "# unrelated change\n")
+    assert (
+        select_cpu_profile(
+            ["carbon/transport/gateway.py", ".agent/CODE_AUTHORITY.toml"],
+            transport_root_addition=True,
+        )
+        == "NETWORK_FOUNDATION"
+    )
 
 
 def test_pin_only_exception_cannot_change_a_resolved_package_or_manifest() -> None:

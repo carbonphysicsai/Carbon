@@ -36,6 +36,7 @@ implementation_roots = [
     "carbon/scoring",
     "carbon/seeding",
     "carbon/traineval",
+    "carbon/transport",
 ]
 test_roots = [
     "tests/cpu",
