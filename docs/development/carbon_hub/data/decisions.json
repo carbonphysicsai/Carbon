@@ -1516,17 +1516,35 @@
       "wave": "B",
       "ticket": "B-E4",
       "title": "Authenticate and spend one development entitlement",
-      "attention": "FOR_AWARENESS",
-      "status": "IMPLEMENTED_AWAITING_EXTERNAL_AUTHENTICATION_AND_PROVIDER_CONFIGURATION",
+      "attention": "RESOLVED",
+      "status": "PARTIALLY_SUPERSEDED_DEVELOPMENT_PRINCIPAL_CORRECTED",
       "audience": "harsh",
       "question": "How should Carbon turn the owner's one-campaign DEVELOPMENT choices into exactly one resumable execution entitlement without accepting copied identity fields or treating unknown billing as zero?",
       "recommendation": "KEEP fresh GitHub owner authentication, explicit exact-request approval, one request/bindings record, one random journal-bound claim, same-journal restart, conservative unknown-billing reservation, and the fixed $14.42 cap. Run only when the external owner session and provider project/key are present.",
       "why": "The bounded mechanism authenticates the approval act at issuance, binds the complete execution envelope, prevents another journal from minting a second right, and preserves ambiguous cost without building a general identity platform.",
-      "if_kept": "The merged package can issue and consume one DEVELOPMENT authorization from the registered owner session; this workspace's mismatched login and missing provider configuration continue to block dispatch safely.",
+      "if_kept": "D21 retains the admission, accounting, and one-use mechanics while prospectively superseding only D20's mistaken DEVELOPMENT-principal binding. Historical v1 records remain evidence, not current issuance authority.",
       "if_changed": "A changed identity mechanism, request, project, retention contract, source tree, journal binding, or limit requires a prospective version and must not reuse this entitlement.",
       "affects": ["WAVE-B/B-07B", "WAVE-B/B-07C", "WAVE-B/B-07D3", "WAVE-B/B-07E", "WAVE-B/B-07F", "WAVE-B/B-07G", "WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
       "response_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/preregistrations/B-E4_development_owner_decisions_v1.json",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/60f36a16701196798dfb4f365e2824fdce96f1cd/.agent/DECISIONS.md"
+    },
+    {
+      "decision_id": "B-E4-D21",
+      "map_ref": "WAVE-B/B-E4",
+      "wave": "B",
+      "ticket": "B-E4",
+      "title": "Correct the one-campaign DEVELOPMENT approver",
+      "attention": "RESOLVED",
+      "status": "IMPLEMENTED_OWNER_CORRECTION_PROVIDER_EXECUTION_NOT_STARTED",
+      "audience": "harsh",
+      "question": "Which authenticated GitHub principal may issue Carbon's existing one-campaign DEVELOPMENT authorization after the connected partner account was mistaken for the delegated approver?",
+      "recommendation": "KEEP the exact D20 admission mechanics and campaign, but require the fresh GitHub REST viewer to be fitz-lang6 / 317786409. Preserve jbequ5 / 99085788 as the broader repository owner and keep qualification authority separate.",
+      "why": "The owner expressly corrected the development-only assignment. Binding both the login and immutable user ID authenticates the intended principal without treating a copied field, local Git author, or repository record as authority.",
+      "if_kept": "Only owner-decision v2 and execution request v3 can receive the one DEVELOPMENT authorization. Every model, task, treatment, payload, retention, schedule, resource limit, and the $14.42 cap remains unchanged.",
+      "if_changed": "Another principal correction requires a prospective owner-decision record, new exact request/source/artifact identities, authenticated verification, and no reuse of an earlier entitlement.",
+      "affects": ["WAVE-B/B-E4", "WAVE-B/B-GATE", "SYSTEM/AGENT-EXECUTION", "SYSTEM/GOVERNANCE", "SYSTEM/MATURITY"],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/preregistrations/B-E4_development_owner_decisions_v2.json",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/DECISIONS.md"
     }
   ]
 }
