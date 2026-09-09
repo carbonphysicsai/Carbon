@@ -1713,6 +1713,43 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": "B-GATE-CLOSEOUT-CANDIDATE-01"
+    },
+    {
+      "map_ref": "WAVE-C/NET-1",
+      "event_type": "adjustment",
+      "event_id": "NET-1-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-1",
+      "event_type": "adjustment",
+      "event_id": "NET-1-D2",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "Owner authorizes focused NET acceptance. Explicit network/tooling regressions retain all invariants and package checks. Initial broad run found bootstrap environment inheritance; repair covers both dependency groups. No resolved dependency changed.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864",
+      "affects": [
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION"
+      ],
+      "supersedes": null
     }
   ]
 }

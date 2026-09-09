@@ -1,5 +1,14 @@
 # Carbon Build-Out Protocol Extension
 
+> **OWNER-C0-REWARD-01 prospective amendment (2026-09-09):**
+> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md` and
+> `.agent/plans/C0_score_reward_program.md` record the owner's sequential C0
+> implementation mandate and persistent DIRECT_WINNER_PLUS_BURN route.
+> Mandatory-treasury and temporary-direct-only clauses below are superseded
+> on payment routing only. Scientific admission/comparison, frontier/finality,
+> security, qualification and deployment requirements remain domain-owned.
+> Treasury is optional and non-blocking; no public-network operation is authorized.
+
 **Status:** Ratified sequencing extension incorporated into `Build_Out.md` v1.5
 **Purpose:** Preserve the detailed `Evaluation_Evidence_and_Validator_Audit.md` integration contract without reordering or invalidating the current Wave B board.
 **Rule:** `Build_Out.md` remains the sequencing authority. Version 1.5 incorporates this extension's post-Wave-B sequencing; this file remains additive design detail. If this file conflicts with a current domain owner, the domain owner governs semantics.

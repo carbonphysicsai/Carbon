@@ -39,6 +39,14 @@ echo "==> invariant lane"
 echo "==> default CPU lane"
 cpu_profile="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}")"
 case "${cpu_profile}" in
+  NETWORK_FOUNDATION)
+    echo "==> bounded network and tooling regression; full invariant and package lanes retained"
+    "${python_bin}" -m pytest --collect-only -q >/dev/null
+    network_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --network-tests)"
+    mapfile -t network_tests <<< "${network_manifest}"
+    [[ "${#network_tests[@]}" -gt 0 ]]
+    "${python_bin}" -m pytest "${network_tests[@]}" -q
+    ;;
   TOOLING_ONLY)
     echo "==> bounded tooling regression suite; all CPU tests must still collect"
     "${python_bin}" -m pytest --collect-only -q >/dev/null

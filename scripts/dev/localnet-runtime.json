@@ -1,0 +1,12 @@
+{
+  "schema": "carbon.localnet.runtime.v1",
+  "repository": "https://github.com/RaoFoundation/subtensor",
+  "release": "v445",
+  "commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
+  "build_definition": "Dockerfile-localnet",
+  "platform": "linux/amd64",
+  "image_digest": null,
+  "observed_genesis": null,
+  "runtime_capabilities_verified": false,
+  "scope": "DISPOSABLE_LOCALNET_ONLY"
+}

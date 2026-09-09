@@ -1,5 +1,55 @@
 # Agent decisions log
 
+## 2026-09-09 — OWNER-C0-VALIDATION-01 / NET-1-D2
+
+The owner explicitly authorizes skipping full 30+ minute CPU acceptance on
+NET steps when unnecessary. The prospective bounded network profile and
+NET-1 bootstrap repair rationale are in `.agent/DELIVERY_PROTOCOL.md` §2.
+KEEP all invariant, package, quality and Hub checks; explicit network and
+tooling regressions remain required. Unknown/scientific/resolved-dependency
+changes still select full regression. The only manifest exception verifies
+the exact existing SDK constraint tightening with no resolved artifact change.
+Alternatives rejected: blanket skip and repeated unaffected scientific CPU
+runs after an environment-isolation repair. The profile manifest is reversible;
+no reserved science/security/economic input is selected. Lead notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864.
+
+## 2026-09-09 — OWNER-C0-REWARD-01 / NET-1-D1
+
+**Authority:** prospective owner execution mandate in this session, based on
+fetched main 9578a5042f85c4a2cbeab8259eba94c0ec462dcc. This records current
+direction, not a fabricated prior ratification. Scope and threat model are
+`.agent/plans/C0_score_reward_program.md`; payment-route successor is launch
+v1.0.6. Owner authorizes NET-1 through NET-6 and integrated C-REWARD, sequential
+normal delivery, disposable localnet operation, no valuable/public network.
+
+**Conflict classification:** MIGRATION_REQUIRED for the earlier mandatory
+treasury/temporary-direct-only roadmap and stop-after-NET-1 instructions.
+The owner selects persistent direct winner plus explicit burn, optional absent
+treasury, and continuation after each accepted ticket. Science is unchanged;
+this grants no qualification, production parameters or public deployment.
+
+**NET-1-D1 working decision:** KEEP the empty carbon.chain boundary and existing
+scientific interfaces; implement immutable finalized provider observations with
+network/endpoint/provider/genesis/netuid/block/time/registration identity. WRAP
+Bittensor 11.1.0 public Client, Snapshot, RpcSubstrate and registry APIs, with
+empty fallback/archive pools and explicit construction. Reject the padded
+typed-metagraph convenience path; validate exact raw identity column lengths.
+No archived executable code is reused. No SDK/signing object escapes the boundary.
+
+**Alternatives:** floating >=9 rejected for non-reproducibility; legacy v9
+methods rejected against official v11 source; a private transport shim rejected
+because public backend injection supplies the required reads. Provider-reported
+finality is not a quorum/consensus proof. Runtime v445 source is pinned separately;
+image, genesis and burn capabilities remain unobserved until local integration.
+
+**Reversibility:** supersede this record and update carbon/chain, its NET-1 tests,
+pyproject/uv.lock, CHAIN_ADAPTER.md, runtime source pin, Wave C and launch successor.
+Affected downstream interfaces are NET-2 identity/auth, NET-3 receipts and NET-4B
+recipient mapping. A different SDK needs the documented compatibility workflow.
+No human-reserved value is needed for offline tests. Production custody/quorum,
+scientific values, security acceptance and public-network authority remain absent.
+
 ## 2026-09-09 — OWNER-WAVE-C0-NET1-01: close Wave B and activate NET-1
 
 **Tickets:** B-GATE, NET-1

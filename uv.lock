@@ -249,7 +249,7 @@ science-torch = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bittensor", marker = "extra == 'chain'", specifier = ">=9.0.0" },
+    { name = "bittensor", marker = "extra == 'chain'", specifier = "==11.1.0" },
     { name = "neuraloperator", marker = "extra == 'neuraloperator'", specifier = ">=2.0,<3" },
     { name = "nvidia-physicsnemo", marker = "extra == 'physicsnemo'", specifier = ">=2.0,<3" },
     { name = "torch", marker = "extra == 'neuraloperator'", specifier = ">=2.4.0", index = "https://download.pytorch.org/whl/cpu" },
@@ -258,7 +258,7 @@ requires-dist = [
 provides-extras = ["chain", "neuraloperator", "physicsnemo"]
 
 [package.metadata.requires-dev]
-chain = [{ name = "bittensor", specifier = ">=9.0.0" }]
+chain = [{ name = "bittensor", specifier = "==11.1.0" }]
 dev = [
     { name = "black", specifier = "==26.5.1" },
     { name = "build", specifier = "==1.6.0" },

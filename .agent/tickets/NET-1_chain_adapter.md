@@ -65,5 +65,5 @@ qualification.
 
 If every criterion passes and the exact tested head merges normally, mark
 NET-1 `done` in bounded local read-only engineering scope and identify NET-2 as
-the next dependency-ready ticket without beginning it. Live integration stays
+the next dependency-ready ticket and continue under OWNER-C0-REWARD-01. Live integration stays
 explicitly unverified.

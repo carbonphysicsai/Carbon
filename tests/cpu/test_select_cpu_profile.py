@@ -12,7 +12,48 @@ SCRIPT_ROOT = Path(__file__).resolve().parents[2] / "scripts/dev"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
 from classify_changes import ChangeClassificationError
-from select_cpu_profile import TOOLING_TESTS, main, select_cpu_profile
+from select_cpu_profile import (
+    NETWORK_TESTS,
+    TOOLING_TESTS,
+    chain_constraint_tightening,
+    main,
+    select_cpu_profile,
+)
+
+
+def test_known_network_scope_keeps_network_and_tooling_regressions() -> None:
+    assert select_cpu_profile(["carbon/chain/sdk.py"]) == "NETWORK_FOUNDATION"
+    assert "tests/cpu/test_net1_chain_adapter.py" in NETWORK_TESTS
+    assert set(TOOLING_TESTS).issubset(NETWORK_TESTS)
+    for path in ("carbon/scoring/engine.py", "carbon/chain/new.py", "uv.lock"):
+        assert select_cpu_profile(["carbon/chain/sdk.py", path]) == "RUNTIME_FULL"
+
+
+def test_pin_only_exception_cannot_change_a_resolved_package_or_manifest() -> None:
+    before_project = 'chain = ["bittensor>=9.0.0"]\n' * 2
+    after_project = before_project.replace(">=9.0.0", "==11.1.0")
+    before_lock = (
+        'name = "bittensor"\nversion = "11.1.0"\n' + 'specifier = ">=9.0.0"\n' * 2
+    )
+    after_lock = before_lock.replace(">=9.0.0", "==11.1.0")
+    assert chain_constraint_tightening(
+        before_project, after_project, before_lock, after_lock
+    )
+    for project, lock in (
+        (after_project + "other = 1\n", after_lock),
+        (after_project, after_lock.replace('version = "11.1.0"', 'version = "11.2.0"')),
+        (after_project, after_lock + 'hash = "different"\n'),
+    ):
+        assert not chain_constraint_tightening(
+            before_project, project, before_lock, lock
+        )
+    assert (
+        select_cpu_profile(
+            ["carbon/chain/sdk.py", "pyproject.toml", "uv.lock"],
+            unchanged_chain_resolution=True,
+        )
+        == "NETWORK_FOUNDATION"
+    )
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,14 @@
 # Carbon — Current Implemented vs Specified Ledger
 
+> **NET-1 implementation candidate:** `carbon.chain` now contains the bounded
+> read-only SDK adapter and immutable provider/registration snapshots. Native
+> diagnostic tests pass; installed-SDK Linux acceptance and normal merge remain
+> pending. `.agent/evidence/wave_c/net-1.md` owns the exact evidence. Later C0
+> tickets remain unstarted. OWNER-C0-REWARD-01 authorizes sequential continuation
+> and persistent direct winner plus burn; optional treasury is not a launch
+> predecessor. No localnet, scientific, security, production or LIVE qualification
+> is earned by this candidate.
+
 **Status:** OWNER-CANONICAL maturity ledger, reconciled through merged B-GATE
 and the Wave C0 / NET-1 activation transition, following merged B-E4
 engineering, readiness, lifecycle, rehearsal, calibration, execution-

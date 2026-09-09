@@ -95,9 +95,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
+        env:
+          CARBON_UV_GROUPS: chain
         run: ./scripts/dev/bootstrap.sh
       - name: Run canonical local/CI command
         env:
+          CARBON_UV_GROUPS: chain
+          CARBON_REQUIRE_CHAIN_SDK: "1"
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
           # Ubuntu runners provide Docker; make wrapper integration fail instead

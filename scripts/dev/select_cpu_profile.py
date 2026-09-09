@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,7 +53,38 @@ _TOOLING_PATHS = frozenset(TOOLING_TESTS) | frozenset(
 )
 
 
-def select_cpu_profile(paths: tuple[str, ...] | list[str]) -> str:
+NETWORK_TESTS = (*TOOLING_TESTS, "tests/cpu/test_net1_chain_adapter.py")
+_NETWORK_PATHS = frozenset(
+    {
+        "carbon/chain/__init__.py",
+        "carbon/chain/models.py",
+        "carbon/chain/adapter.py",
+        "carbon/chain/sdk.py",
+        "tests/cpu/test_net1_chain_adapter.py",
+        "tests/invariants/test_net1_chain_boundary.py",
+        "scripts/dev/localnet-runtime.json",
+        "docs/development/CHAIN_ADAPTER.md",
+        "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md",
+    }
+)
+
+
+def chain_constraint_tightening(before_project, after_project, before_lock, after_lock):
+    """Exact NET-1 constraint migration; no resolved package/artifact may change."""
+    return (
+        before_project.count("bittensor>=9.0.0") == 2
+        and before_project.replace("bittensor>=9.0.0", "bittensor==11.1.0")
+        == after_project
+        and before_lock.count('specifier = ">=9.0.0"') == 2
+        and before_lock.replace('specifier = ">=9.0.0"', 'specifier = "==11.1.0"')
+        == after_lock
+        and 'name = "bittensor"\nversion = "11.1.0"' in before_lock
+    )
+
+
+def select_cpu_profile(
+    paths: tuple[str, ...] | list[str], *, unchanged_chain_resolution: bool = False
+) -> str:
     """Allow only known tooling plus already lighter authority/document paths.
 
     Runtime code, scientific tests, dependency manifests, shared test fixtures,
@@ -60,12 +92,32 @@ def select_cpu_profile(paths: tuple[str, ...] | list[str]) -> str:
     No caller-supplied flag can label one of those paths as tooling-only.
     """
     classification = classify_paths(paths)
-    if classification.unknown_paths:
+    network = any(path in _NETWORK_PATHS for path in paths)
+    allowed = _TOOLING_PATHS | (_NETWORK_PATHS if network else frozenset())
+    if network and unchanged_chain_resolution:
+        allowed |= {"pyproject.toml", "uv.lock"}
+    if any(path not in allowed for path in classification.unknown_paths):
         return "RUNTIME_FULL"
     for item in classification.paths:
-        if item.scope is ChangeScope.RUNTIME_FULL and item.path not in _TOOLING_PATHS:
+        if item.scope is ChangeScope.RUNTIME_FULL and item.path not in allowed:
             return "RUNTIME_FULL"
-    return "TOOLING_ONLY"
+    return "NETWORK_FOUNDATION" if network else "TOOLING_ONLY"
+
+
+def unchanged_chain_resolution(repository: Path, base: str) -> bool:
+    values = []
+    for path in ("pyproject.toml", "uv.lock"):
+        result = subprocess.run(
+            ["git", "show", f"{base}:{path}"],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode:
+            return False
+        values.extend((result.stdout, (repository / path).read_text(encoding="utf-8")))
+    return chain_constraint_tightening(*values)
 
 
 def main() -> int:
@@ -73,21 +125,28 @@ def main() -> int:
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--base", required=True)
     parser.add_argument("--tooling-tests", action="store_true")
+    parser.add_argument("--network-tests", action="store_true")
     args = parser.parse_args()
     try:
-        profile = select_cpu_profile(changed_paths(args.repository, args.base))
+        paths = changed_paths(args.repository, args.base)
+        same_resolution = False
+        if "pyproject.toml" in paths or "uv.lock" in paths:
+            same_resolution = unchanged_chain_resolution(args.repository, args.base)
+        profile = select_cpu_profile(paths, unchanged_chain_resolution=same_resolution)
     except (ChangeClassificationError, OSError) as error:
         print(f"CPU profile selection failed: {error}", file=sys.stderr)
         return 2
-    if args.tooling_tests:
-        if profile != "TOOLING_ONLY":
+    if args.tooling_tests or args.network_tests:
+        expected = "NETWORK_FOUNDATION" if args.network_tests else "TOOLING_ONLY"
+        if profile != expected:
             print("Full runtime acceptance is required.", file=sys.stderr)
             return 2
-        for path in TOOLING_TESTS:
+        tests = NETWORK_TESTS if args.network_tests else TOOLING_TESTS
+        for path in tests:
             if not (args.repository / path).is_file():
                 print(f"Required tooling test is missing: {path}", file=sys.stderr)
                 return 2
-        print("\n".join(TOOLING_TESTS))
+        print("\n".join(tests))
     else:
         print(profile)
     return 0
