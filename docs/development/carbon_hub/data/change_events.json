@@ -1750,6 +1750,30 @@
         "SYSTEM/AGENT-EXECUTION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-2",
+      "event_type": "adjustment",
+      "event_id": "NET-2-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-1 merged with canonical installed-SDK evidence. NET-2 is selected and implemented as an outer authenticated MCP wrapper with durable original receipts; Linux acceptance remains pending. No admission/scientific authority or public deployment.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609045669",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

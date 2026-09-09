@@ -24,9 +24,9 @@
     },
     "C": {
       "title": "Connect Carbon to Bittensor and run one real test path",
-      "what": "Connect participant identity and authenticated requests to Bittensor, then run one real candidate through Carbon's protected evaluation path and prove temporary testnet weight publication.",
+      "what": "Connect participant identity and authenticated requests to Bittensor, then run one real candidate through the protected evaluation path and prove direct testnet weight publication.",
       "why": "Carbon needs to prove that Bittensor can carry identity and incentives without letting chain mechanics decide scientific truth.",
-      "done_when": "A real candidate can move from an authenticated Bittensor identity through protected evaluation to a temporary testnet result that can be read back and expired safely.",
+      "done_when": "A real candidate can move from authenticated identity through protected evaluation to direct testnet weights with verified readback and recovery. C0 first proves the disposable localnet path with explicit fixtures.",
       "not_yet": "Testnet publication does not make the science live, qualify the Challenge, create a frontier advance, settle rewards, or authorize mainnet.",
       "map_ref": "WAVE-C"
     },
