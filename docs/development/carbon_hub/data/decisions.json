@@ -2017,6 +2017,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609628725",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/docs/development/SCORE_REWARDS.md"
+    },
+    {
+      "title": "Journal-issued nominal localnet intents",
+      "question": "How can local fixture publication retain exact provenance without acquiring public authority?",
+      "recommendation": "Resolve immutable reward projections through an explicit localnet issuer, retaining journal identity, stage, validity and supersession.",
+      "why": "A caller-selected stage or copied dataclass must not create authority.",
+      "if_kept": "NET-4B consumes resolved localnet intents and independently checks final runtime vectors before signing.",
+      "if_changed": "Version the intent contract and preserve provenance, funding boundaries and unavailable public issuers.",
+      "decision_id": "NET-4A-D1",
+      "map_ref": "WAVE-C/NET-4A",
+      "wave": "C",
+      "ticket": "NET-4A",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610127520",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/docs/development/WEIGHT_INTENTS.md"
     }
   ]
 }

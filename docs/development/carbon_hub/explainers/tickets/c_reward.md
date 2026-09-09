@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/C-REWARD`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ Q12 floor/remainder reward ledger, shared-holder aggregation, burn-only targets,
 ## Placement and handoff
 
 - **Depends on:** NET-3
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-4A
 - **Driver:** Codex + reward/protocol engineering
 - **Review route:** Scientific integration + network/security
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No real scientific qualification, signing, runtime burn proof, treasury deployme
 
 ## Current stage
 
-C-REWARD implementation and native diagnostics are prepared; canonical acceptance and merge remain pending.
+C-REWARD merged with canonical accepted-record rewards, burn accounting and A6 scorecard tests (PR #123).
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ DEVELOPMENT fixture reward policy only; no science, security, network or economi
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/tickets/C-REWARD_score_reward_core.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/evidence/wave_c/c-reward.md)
-- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/docs/development/SCORE_REWARDS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/435765c538e5baaf538e6283ec703848164c2fd0/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/tickets/C-REWARD_score_reward_core.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/evidence/wave_c/c-reward.md)
+- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/docs/development/SCORE_REWARDS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/WAVE_C.md)
 
 > Zero opening credit and a finite score range bound lifetime targets; delayed and drip-fed improvements retain strategic incentives.

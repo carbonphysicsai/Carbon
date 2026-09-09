@@ -34,6 +34,14 @@
       "changes": "Q12 floor/remainder reward ledger, shared-holder aggregation, burn-only targets, weekly review and A6 aliased scorecard.",
       "not_yet": "No real scientific qualification, signing, runtime burn proof, treasury deployment, public transaction, economic optimality or LIVE claim.",
       "map_ref": "WAVE-C/C-REWARD"
+    },
+    "NET-4A": {
+      "title": "Nominal publication intents",
+      "what": "Issue nominal localnet references backed by immutable reward projections and the existing journal.",
+      "why": "Fixture results and caller flags must never acquire public-testnet or treasury authority.",
+      "changes": "Context-bound validity, supersession, changed-state/quarantine checks and explicit no-winner burn intents.",
+      "not_yet": "No SDK signing, runtime burn proof, public transaction, treasury deployment, science/security qualification or LIVE authority.",
+      "map_ref": "WAVE-C/NET-4A"
     }
   }
 }
