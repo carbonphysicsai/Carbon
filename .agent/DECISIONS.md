@@ -1,5 +1,19 @@
 # Agent decisions log
 
+## 2026-09-09 — OWNER-C0-VALIDATION-01 / NET-1-D2
+
+The owner explicitly authorizes skipping full 30+ minute CPU acceptance on
+NET steps when unnecessary. The prospective bounded network profile and
+NET-1 bootstrap repair rationale are in `.agent/DELIVERY_PROTOCOL.md` §2.
+KEEP all invariant, package, quality and Hub checks; explicit network and
+tooling regressions remain required. Unknown/scientific/resolved-dependency
+changes still select full regression. The only manifest exception verifies
+the exact existing SDK constraint tightening with no resolved artifact change.
+Alternatives rejected: blanket skip and repeated unaffected scientific CPU
+runs after an environment-isolation repair. The profile manifest is reversible;
+no reserved science/security/economic input is selected. Lead notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864.
+
 ## 2026-09-09 — OWNER-C0-REWARD-01 / NET-1-D1
 
 **Authority:** prospective owner execution mandate in this session, based on

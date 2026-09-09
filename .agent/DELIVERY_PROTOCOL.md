@@ -43,6 +43,24 @@ Never suppress a failing test, invent a pass, or relabel qualification.
 
 ## 2. Validation budget
 
+**OWNER-C0-VALIDATION-01 (2026-09-09, prospective):** The owner authorizes
+skipping the full 30+ minute CPU regression on each NET delivery when the
+executor judges it unnecessary. Known network paths use an explicit tested
+network/subsystem manifest; all invariants, collection, quality, package,
+Hub and required Merge gate assertions remain. Unknown paths, shared
+scientific changes and resolved dependency changes retain full regression.
+This supersedes the blanket runtime-PR CPU sentence below for that bounded
+profile; it does not turn failures into passes or weaken test semantics.
+
+NET-1's first broad run on `253403f` passed 4,865 CPU tests (including the
+installed SDK) and all 169 invariants; two bootstrap tests failed because
+their environment inherited the chain group. Their repair explicitly tests
+both dev-only and dev-plus-chain environments. Focused repair acceptance is
+appropriate: no resolved dependency changed from main (only two existing
+11.1.0 constraints were tightened). The classifier verifies that exact
+manifest-only migration byte-for-byte; other dependency changes stay full.
+The initial broad run remains failed historical evidence, not a green receipt.
+
 During development, run focused ticket and affected-subsystem tests. Use the
 canonical wrapper when available. A missing local Docker installation is
 infrastructure unavailability, not a reason to repeat the same failed command

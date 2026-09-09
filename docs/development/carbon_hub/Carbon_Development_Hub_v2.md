@@ -159,6 +159,7 @@
 - `B-GATE-CLOSEOUT-CANDIDATE-01` — `WAVE-B/B-GATE` — The B-GATE candidate consolidates the merged fixture-chain and fail-closed correctness evidence, adds focused closeout assertions and the required ticket-local C/D contracts, and produces the Wave B report. Wave B remains active until exact-head acceptance, normal merge, and merge-identity reconciliation; B-E4 remains optional/deferred/non-blocking and UNMEASURED.
 - `OWNER-WAVE-C0-NET1-01` — `WAVE-C/NET-1` — Accepted PR #118 closes Wave B in bounded engineering scope; the owner activates Wave C/C0 and selects NET-1 alone for a separate read-only adapter delivery. B-01G remains unfinished/non-blocking, B-E4 remains optional/deferred/non-blocking and UNMEASURED, later network tickets remain unselected, and no live chain, key, transaction, weight, deployment, qualification, or production authority is created.
 - `NET-1-D1` — `WAVE-C/NET-1` — NET-1 adds the pinned read-only adapter candidate; OWNER-C0-REWARD-01 authorizes sequential C0 delivery and persistent direct winner plus burn with treasury absent. Linux installed-SDK acceptance and localnet evidence remain pending.
+- `NET-1-D2` — `WAVE-C/NET-1` — Owner authorizes focused NET acceptance. Explicit network/tooling regressions retain all invariants and package checks. Initial broad run found bootstrap environment inheritance; repair covers both dependency groups. No resolved dependency changed.
 
 ## Authority boundary
 

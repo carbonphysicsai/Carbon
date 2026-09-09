@@ -205,8 +205,9 @@ def test_image_keeps_direct_identity_marker_and_runtime_root_owned() -> None:
 
 
 @pytest.mark.parametrize("interpreter_present", (True, False))
+@pytest.mark.parametrize("groups", ("", "chain"))
 def test_bootstrap_installs_only_when_exact_interpreter_is_absent(
-    tmp_path: Path, interpreter_present: bool
+    tmp_path: Path, interpreter_present: bool, groups: str
 ) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
@@ -268,6 +269,7 @@ esac
     uv.chmod(0o755)
 
     environment = os.environ.copy()
+    environment["CARBON_UV_GROUPS"] = groups
     environment["PATH"] = f"{fake_bin}:{environment['PATH']}"
     environment.pop("CARBON_CANONICAL_DEV_ENV", None)
     environment.pop("OS", None)
@@ -292,7 +294,10 @@ esac
         1 if interpreter_present else 2
     )
     assert calls.count("python install 3.11.16") == (0 if interpreter_present else 1)
-    assert calls[-1] == (f"sync --python {interpreter} --locked --group dev")
+    expected_groups = " --group chain" if groups else ""
+    assert calls[-1] == (
+        f"sync --python {interpreter} --locked --group dev{expected_groups}"
+    )
 
 
 def test_noncanonical_execution_fails_closed_without_docker(tmp_path: Path) -> None:

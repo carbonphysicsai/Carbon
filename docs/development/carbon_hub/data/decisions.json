@@ -1933,6 +1933,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608268620",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/34b0607565f67d43685831fb2941b74ef7afa420/docs/development/CHAIN_ADAPTER.md"
+    },
+    {
+      "decision_id": "NET-1-D2",
+      "map_ref": "WAVE-C/NET-1",
+      "wave": "C",
+      "ticket": "NET-1",
+      "title": "Focused network acceptance with full fallback",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "question": "Which regression scope is sufficient for bounded network steps and the bootstrap isolation repair?",
+      "recommendation": "KEEP the explicit network/tooling manifest, all invariants and package checks, and full fallback for unknown/scientific/resolved dependency changes.",
+      "why": "The owner authorizes skipping unnecessary full CPU runs; the broad NET-1 run already exercised the unchanged runtime.",
+      "if_kept": "NET steps retain meaningful canonical acceptance without repeating unrelated science.",
+      "if_changed": "Prospectively adjust the tested manifest and delivery policy; retain actual failure evidence.",
+      "affects": [
+        "SYSTEM/CI",
+        "WAVE-C"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/120"
     }
   ]
 }

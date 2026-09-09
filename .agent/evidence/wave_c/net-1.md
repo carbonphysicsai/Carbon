@@ -82,3 +82,19 @@ The transition earns no NET-1 implementation or test maturity. The implementatio
 may earn bounded `SPECIFIED`, `IMPLEMENTED`, and `TESTED` only. Every scientific,
 security, network, commercial, production, LIVE, launch, testnet, mainnet,
 transaction, weight, custody, emission, and settlement state remains unearned.
+
+## Broad regression and focused repair
+
+Run 34402066830 on 253403f: canonical CPU 4,865 passed / 2 failed
+(bootstrap tests inherited CARBON_UV_GROUPS=chain); all 169 invariants passed.
+Installed Bittensor contract tests passed. Clean image: 4,862 CPU passed /
+5 expected skips; 169 invariants, 86 package checks, 17 code-authority tests
+passed. The canonical job remains failed evidence. The repair parameterizes
+both dev-only and dev-plus-chain environments. No SDK/application source
+changed. Native selector/network/invariant diagnostics: 87 passed, 2 optional
+SDK skips. Final repaired Linux acceptance and merge remain pending.
+
+OWNER-C0-VALIDATION-01 authorizes focused acceptance for this repair. The
+selector verifies the exact constraint-only migration; the locked package
+resolution is unchanged. Full regression remains for unknown paths, scientific
+code and changed resolved dependencies. No failure is suppressed.

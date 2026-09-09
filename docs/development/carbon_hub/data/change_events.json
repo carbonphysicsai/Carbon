@@ -1735,6 +1735,21 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-1",
+      "event_type": "adjustment",
+      "event_id": "NET-1-D2",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "Owner authorizes focused NET acceptance. Explicit network/tooling regressions retain all invariants and package checks. Initial broad run found bootstrap environment inheritance; repair covers both dependency groups. No resolved dependency changed.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5608754864",
+      "affects": [
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION"
+      ],
+      "supersedes": null
     }
   ]
 }
