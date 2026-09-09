@@ -377,3 +377,48 @@ authentication/configuration handoff; no policy reapproval is requested.
 B-E4 remains `in_progress`; v4 remains `STILL_BLOCKED`; B-GATE remains `todo`
 and unstarted. Calibration, shadow, attack, and qualifying execution remain
 outside this authorization.
+
+## DEVELOPMENT approver-correction successor
+
+The owner corrected only the one-campaign DEVELOPMENT approver identity:
+`fitz-lang6` / GitHub user `317786409` replaces the mistakenly associated
+project-partner account for this issuer. `jbequ5` / `99085788` remains Carbon's
+broader repository owner, and owner-decision v1 plus execution requests v1/v2
+remain immutable history. This correction does not change or satisfy any
+qualification owner requirement.
+
+`.agent/preregistrations/B-E4_development_owner_decisions_v2.json` records the
+development-only correction and preserves all nine substantive decisions.
+Production issuance now requires the fresh authenticated GitHub REST viewer to
+match both the corrected login and immutable user ID; arbitrary values, either
+partial match, and the historical campaign principal fail closed. The one-use
+authorization, journal claim/resume, revocation, expiry, project, retention,
+source, artifact, limit, and report behavior are unchanged.
+
+The prospectively rebound request is
+`.agent/preregistrations/B-E4_development_execution_request_v3.json`, with:
+
+- request digest
+  `sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209`;
+- campaign-manifest digest
+  `sha256:c3024862b9e55e246b3020ad699513ec342951b7c8df30936a7e984847967fd5`;
+- implementation digest
+  `sha256:9e93b0ff076d55d8d56f1a382beb0a71f10131236cd2c778951d163013ef66be`;
+- artifact-manifest digest
+  `sha256:ffa00c2eb55c14d754147e482b7f9a3681e41fd8eb2e6daba65746d90c8a728c`;
+- owner-decision digest
+  `sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba`;
+- unchanged retention-contract digest
+  `sha256:d5651e336c6255d261ee8e2839397248c2b3fc03b045d20beb2959cecc272a02`.
+
+The corresponding deterministic v3 artifact completed all 40 registered
+Carbon fixture-service slots with 168 simulated provider operations and 40
+endpoints. It remains explicitly non-inference, unpaid, and non-qualifying.
+The active GitHub viewer was authentically verified as the corrected principal,
+but no live authorization was issued or claimed and no provider request ran.
+The model, tasks, policies, treatments, schedule, retention, resource ceilings,
+and `$14.42` provider-charge cap are unchanged.
+
+Delivery stops before provider execution. B-E4 remains `in_progress`; v4
+remains `STILL_BLOCKED`; B-GATE remains `todo` and unstarted. Calibration,
+shadow, attack, and qualifying execution remain outside this authorization.

@@ -565,3 +565,33 @@ stays `in_progress`; B-GATE stays unstarted.
 Stage 8 authorizes no calibration, shadow, attack, or qualifying campaign. A
 completed DEVELOPMENT run, including negative or stopped evidence, would still
 leave B-E4 `in_progress`, v4 `STILL_BLOCKED`, and B-GATE unstarted.
+
+### Stage-9 DEVELOPMENT approver correction and execution handoff
+
+1. Preserve D20, owner-decision v1, and execution requests v1/v2 as immutable
+   history. Record the owner's correction of only the DEVELOPMENT approver from
+   the mistakenly associated project-partner account to `fitz-lang6` / GitHub
+   user `317786409`; retain `jbequ5` / `99085788` as the broader repository
+   owner and make no qualification-role claim.
+2. Change the bounded production authenticator and issuer to require a fresh
+   GitHub REST `/user` response matching the corrected login and immutable user
+   ID. Reject either field independently, reject the historical campaign
+   principal, and retain the one-use, journal-bound, expiry/revocation/project/
+   source/limit checks unchanged.
+3. Freeze owner-decision record v2 and execution request v3. Rebind the exact
+   implementation and artifacts while preserving the model, five profiles,
+   four arms, two tasks, 40-slot schedule, treatments, six-field payload,
+   retention choice, no-reserve rule, all resource limits, and `$14.42` cap.
+4. Rerun the deterministic 40-slot Carbon service integration under the new
+   manifest. This remains non-inference, unpaid, and non-qualifying evidence.
+5. Reconcile the current owner pack, ticket/evidence/decision/Wave records,
+   maturity ledger, and Development Hub. Deliver under OWNER-DX-03, then stop
+   before authorization issuance or provider execution for the owner's
+   stepwise terminal setup.
+
+Stage 9 changes no experiment policy. The only remaining external DEVELOPMENT
+inputs are the configured provider project/key (and optional organization) and
+the owner's explicit invocation naming request v3's exact digest. The campaign
+still does not authorize calibration, shadow, attack, or qualifying work;
+B-E4 remains `in_progress`, v4 remains `STILL_BLOCKED`, and B-GATE remains
+unstarted.

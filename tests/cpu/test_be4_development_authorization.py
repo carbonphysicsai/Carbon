@@ -14,6 +14,10 @@ from typing import ClassVar
 import pytest
 
 from carbon.gauntlet import (
+    CARBON_OWNER_GITHUB_LOGIN,
+    CARBON_OWNER_GITHUB_USER_ID,
+    DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+    DEVELOPMENT_APPROVER_GITHUB_USER_ID,
     AgentProfile,
     ControlledDevelopmentAuthorizationStore,
     ControlledOpenAIResponsesTransport,
@@ -24,6 +28,7 @@ from carbon.gauntlet import (
     DevelopmentJournal,
     ExperimentalArm,
     GitHubCliCarbonOwnerAuthenticator,
+    GitHubCliDevelopmentApproverAuthenticator,
     OpenAIResponsesTransport,
     ProviderAmbiguousTimeout,
     ProviderCall,
@@ -110,7 +115,7 @@ def _controlled_admission(
     return request, bindings, store, admission
 
 
-def test_authenticated_github_viewer_requires_exact_owner_identity(
+def test_authenticated_github_viewer_requires_exact_development_approver_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def result(login: str, user_id: int) -> subprocess.CompletedProcess[str]:
@@ -123,18 +128,47 @@ def test_authenticated_github_viewer_requires_exact_owner_identity(
 
     monkeypatch.setattr(
         "carbon.gauntlet.development_authority.subprocess.run",
-        lambda *args, **kwargs: result("arbitrary-login", 99_085_788),
+        lambda *args, **kwargs: result(
+            "arbitrary-login", DEVELOPMENT_APPROVER_GITHUB_USER_ID
+        ),
     )
-    with pytest.raises(DevelopmentAuthenticationError, match="not jbequ5"):
-        GitHubCliCarbonOwnerAuthenticator().authenticate()
+    with pytest.raises(DevelopmentAuthenticationError, match="not fitz-lang6"):
+        GitHubCliDevelopmentApproverAuthenticator().authenticate()
 
     monkeypatch.setattr(
         "carbon.gauntlet.development_authority.subprocess.run",
-        lambda *args, **kwargs: result("jbequ5", 99_085_788),
+        lambda *args, **kwargs: result(
+            DEVELOPMENT_APPROVER_GITHUB_LOGIN, CARBON_OWNER_GITHUB_USER_ID
+        ),
     )
-    principal = GitHubCliCarbonOwnerAuthenticator().authenticate()
-    assert principal.login == "jbequ5"
-    assert principal.user_id == 99_085_788
+    with pytest.raises(DevelopmentAuthenticationError, match="not fitz-lang6"):
+        GitHubCliDevelopmentApproverAuthenticator().authenticate()
+
+    monkeypatch.setattr(
+        "carbon.gauntlet.development_authority.subprocess.run",
+        lambda *args, **kwargs: result(
+            CARBON_OWNER_GITHUB_LOGIN, CARBON_OWNER_GITHUB_USER_ID
+        ),
+    )
+    with pytest.raises(DevelopmentAuthenticationError, match="not fitz-lang6"):
+        GitHubCliDevelopmentApproverAuthenticator().authenticate()
+
+    monkeypatch.setattr(
+        "carbon.gauntlet.development_authority.subprocess.run",
+        lambda *args, **kwargs: result(
+            DEVELOPMENT_APPROVER_GITHUB_LOGIN, DEVELOPMENT_APPROVER_GITHUB_USER_ID
+        ),
+    )
+    principal = GitHubCliDevelopmentApproverAuthenticator().authenticate()
+    assert principal.login == DEVELOPMENT_APPROVER_GITHUB_LOGIN
+    assert principal.user_id == DEVELOPMENT_APPROVER_GITHUB_USER_ID
+    assert (
+        GitHubCliCarbonOwnerAuthenticator is GitHubCliDevelopmentApproverAuthenticator
+    )
+    assert (CARBON_OWNER_GITHUB_LOGIN, CARBON_OWNER_GITHUB_USER_ID) == (
+        "jbequ5",
+        99_085_788,
+    )
 
 
 def test_live_issuer_rejects_nonmatching_explicit_approval_before_authentication(
@@ -155,7 +189,9 @@ def test_live_issuer_rejects_nonmatching_explicit_approval_before_authentication
         called = True
         raise AssertionError("authentication must follow exact-digest validation")
 
-    monkeypatch.setattr(GitHubCliCarbonOwnerAuthenticator, "authenticate", authenticate)
+    monkeypatch.setattr(
+        GitHubCliDevelopmentApproverAuthenticator, "authenticate", authenticate
+    )
     with (
         DevelopmentAuthorizationStore(tmp_path / "live.sqlite") as store,
         pytest.raises(DevelopmentAuthorizationError, match="does not match"),
@@ -637,8 +673,8 @@ def test_real_report_accepts_unknown_billing_and_partial_stage_without_false_unp
         "expires_at_utc": "2026-09-14T00:00:00Z",
         "independent_multidisciplinary_ratification_claimed": False,
         "issued_at_utc": "2026-09-09T00:00:00Z",
-        "issuer_github_login": "jbequ5",
-        "issuer_github_user_id": 99_085_788,
+        "issuer_github_login": DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+        "issuer_github_user_id": DEVELOPMENT_APPROVER_GITHUB_USER_ID,
         "journal_binding": journal_binding,
         "monetary_ceiling_usd": "14.42",
         "organization_id_digest": None,

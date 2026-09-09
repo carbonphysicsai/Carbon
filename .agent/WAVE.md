@@ -9,7 +9,7 @@
 **Current wave:** B
 **State:** **active in bounded development scope**
 **Wave A:** closed in bounded engineering scope
-**Controlling register:** `.agent/WAVE_B.md` version 4.6
+**Controlling register:** `.agent/WAVE_B.md` version 4.7
 **Selected ticket:** B-E4 — `in_progress`
 **Selected-ticket delivery:** PR #103 normally merged the first B-E4
 engineering checkpoint as `ad1bd923beea8dcf469992e0e4f1bf4b2a32c0a8`.
@@ -31,13 +31,16 @@ association/resource-accounting repair and strict pilot v2 as
 `f5f6a82a1dfd8193c4eafa73ad5370076e8ee10b`. PR #114 merged the disabled real
 transport, sequential development runner, durable journal, exact approval
 request, and deterministic offline integration as
-`5b378805472155a40374c71b961f07e2e3c8a823`. The current successor candidate
-records the owner's one-campaign DEVELOPMENT decisions and implements the
-authenticated, one-use admission, report, and resume path. No paid dispatch
-occurred because the registered owner identity and provider configuration were
-not available in this workspace.
+`5b378805472155a40374c71b961f07e2e3c8a823`. PR #115 merged the one-campaign
+DEVELOPMENT decisions plus authenticated, one-use admission, report, and resume
+path as `6ac9e8db33f5e7da565f9617080f3bc4ed6b9745`. The current correction binds
+that development-only issuer to the authenticated `fitz-lang6` / `317786409`
+account, preserves `jbequ5`'s broader repository-owner role, and prospectively
+freezes request v3 without changing the campaign. No authorization was issued
+and no provider dispatch occurred.
 **Selection boundary:** the authorized DEVELOPMENT handoff waits only for the
-registered external owner authentication and provider configuration. B-E4
+external provider configuration and the owner's explicit v3 issue-and-run
+invocation. B-E4
 qualifying execution and completion remain blocked on real evidence, validated
 pre-execution design, and complete qualification ratification; B-GATE remains
 unstarted.
@@ -117,12 +120,14 @@ recommends one Terra model with five arm-neutral policies, an exact bounded
 only call, and a maximum 300-run/$98.304 ceiling. The owner has now approved
 those choices only for one 40-slot non-qualifying DEVELOPMENT campaign, using
 one named principal for five role-specific decisions rather than five
-independent ratifiers. The current successor implements an authenticated,
-one-use issuer and verifier bound to execution request v2, the provider project,
+independent ratifiers. The merged successor implements an authenticated,
+one-use issuer and verifier, the provider project,
 retention contract, `$14.42` cap, and one durable journal. Controlled HTTP and
-deterministic 40-slot tests exercise the full Carbon path. The paid campaign did
-not run: the observed GitHub principal did not match the registered owner and
-the provider key/project were absent. Representative autonomous-agent scope, seed design,
+deterministic 40-slot tests exercise the full Carbon path. The current correction
+binds request v3 to the verified delegated DEVELOPMENT approver `fitz-lang6` /
+`317786409` while preserving the broader `jbequ5` owner identity and all
+campaign limits. The paid campaign did not run: no authorization was issued and
+the provider setup remains outside this delivery. Representative autonomous-agent scope, seed design,
 stochastic and dependence evidence, diversity, shadow/leakage, trusted
 attacks, qualification-grade independent ratification, and qualifying storage
 remain unavailable. No paid, qualifying, calibration, shadow, or attack

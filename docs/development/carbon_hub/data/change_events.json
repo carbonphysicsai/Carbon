@@ -1631,6 +1631,25 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": "B-E4-DEVELOPMENT-RUNNER-01"
+    },
+    {
+      "map_ref": "WAVE-B/B-E4",
+      "event_type": "adjustment",
+      "event_id": "B-E4-DEVELOPMENT-APPROVER-CORRECTION-01",
+      "owner_lane": "research_science_statistics_security_protocol",
+      "status": "implemented",
+      "summary": "The owner corrected only the one-campaign DEVELOPMENT approver to the authenticated fitz-lang6 / 317786409 account while preserving jbequ5's broader repository-owner role and all experiment choices. Owner-decision v2 and request v3 rebind the prospective source/artifacts; the deterministic 40-slot path passes, no authorization was issued, and no provider call or charge occurred. Qualification and B-GATE remain blocked and unstarted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/81add1d1bbaac437cd80def1181df60ab7d687fc/.agent/evidence/wave_b/b-e4.md",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "B-E4-DEVELOPMENT-EXECUTION-ADMISSION-01"
     }
   ]
 }

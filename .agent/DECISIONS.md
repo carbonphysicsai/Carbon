@@ -12770,3 +12770,57 @@ authenticated as `jbequ5` and has no provider configuration, so no paid call
 occurred. Run the frozen successor command only from the assigned owner session
 with the selected Carbon project; this grants no calibration, qualification,
 or B-GATE authority.”
+
+## 2026-09-09 — B-E4-D21: correct the development approver without changing the campaign
+
+**Ticket:** B-E4
+**Status:** owner correction recorded; implementation and offline integration
+tested; provider execution not started
+
+**Problem.** D20 bound the one-campaign DEVELOPMENT issuer to `jbequ5` /
+GitHub user `99085788` after the connected project-partner account was mistaken
+for the principal to whom the Carbon owner had delegated this development
+approval. The owner corrected that campaign-specific assignment to the
+authenticated account `fitz-lang6` / GitHub user `317786409`, retained every
+substantive DEVELOPMENT decision, and expressly preserved `jbequ5`'s broader
+repository-owner role and the separate qualification requirements.
+
+**Decision.** Preserve D20, owner-decision record v1, and execution requests v1
+and v2 as historical evidence. Add owner-decision record v2, whose only policy
+change is the DEVELOPMENT approver principal, and require the production issuer
+to verify a fresh GitHub REST `/user` response for exactly `fitz-lang6` /
+`317786409`. Retain the separate `jbequ5` / `99085788` Carbon-owner constants so
+the bounded issuer correction cannot silently redefine repository ownership.
+Freeze execution request v3 against the corrected owner-decision digest and the
+changed source/artifact identities. A request carrying the historical principal
+is rejected even if its outer digest is recomputed.
+
+The resulting exact identities are owner decisions
+`sha256:8a4ff68bed32cdd5e757b853a40682760a0f36c5e1b97d7e2898b125e89523ba`,
+execution request
+`sha256:e64543c682cdf5c859e6edad54dc621b952eb5b204c2051e136240a1503fe209`,
+campaign manifest
+`sha256:c3024862b9e55e246b3020ad699513ec342951b7c8df30936a7e984847967fd5`,
+implementation
+`sha256:9e93b0ff076d55d8d56f1a382beb0a71f10131236cd2c778951d163013ef66be`,
+and artifact manifest
+`sha256:ffa00c2eb55c14d754147e482b7f9a3681e41fd8eb2e6daba65746d90c8a728c`.
+The model, profiles, arms, tasks, schedule, treatments, payload, retention,
+evidence role, time/token/service/fixture limits, no-reserve rule, and `$14.42`
+provider-charge ceiling are unchanged.
+
+**Authentication and stop boundary.** The same production authentication path
+successfully verified the active GitHub REST viewer as `fitz-lang6` /
+`317786409`; wrong login, wrong ID, and the historical `jbequ5` campaign binding
+all fail closed in focused tests. This verification did not issue or claim the
+one-use authorization. No authorization store, provider journal, provider
+request, or provider charge exists. Provider configuration remains an external
+operator input, and this delivery stops before issuance and execution as the
+owner requested.
+
+**Authority and reversibility.** This corrects one DEVELOPMENT issuer only. It
+does not create five independent reviewers, amend the blocked v4 qualification
+design, approve calibration/shadow/attack/qualifying work, complete B-E4, or
+start B-GATE. Reverting the prospective binding would require another explicit
+owner correction and new content-bound request; historical evidence remains
+unchanged.

@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 68 map-level change events
+- 69 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #114 merged the disabled real transport, sequential 5-profile x 4-arm x 2-task DEVELOPMENT runner, durable journal, exact request, and 40-slot deterministic Carbon fixture-service integration. The Carbon owner has since approved exactly one non-qualifying DEVELOPMENT campaign under the frozen population, tasks, six-field egress, standard-retention alternative, evidence role, stopping rules, and $14.42 provider-charge cap, using one accountable principal for five role-specific decisions rather than five independent qualification ratifiers. The current successor implements a fresh authenticated-owner issuer, exact successor request, one journal-bound entitlement, safe restart, expiry/revocation/project/source/limit checks, real partial/stopped reports, and conservative unknown-billing reservations. The active workspace authenticated a different GitHub principal and had no provider key or project, so it issued no capability, dispatched no provider request, and incurred no charge. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
+Wave **B**; current ticket: **B-E4**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope. B-E4 remains selected and in progress. PR #115 merged the authenticated, journal-bound, one-use DEVELOPMENT admission and honest partial/unknown-billing reports. The current correction changes only the development-specific principal: the production issuer now requires the verified GitHub viewer fitz-lang6 / 317786409, while jbequ5 / 99085788 retains Carbon's broader repository-owner role. Owner-decision record v2 and execution request v3 prospectively rebind the exact source and artifacts without changing the frozen population, tasks, treatments, six-field egress, retention choice, evidence role, stopping rules, 40-slot schedule, or $14.42 provider-charge cap. The refreshed deterministic 40-slot Carbon path passed with zero inference and spend. No one-use authorization was issued or claimed, and no provider request was dispatched. No calibration, shadow, attack, or qualifying campaign ran; v4 remains STILL_BLOCKED, no later ticket is selected, and B-GATE remains unstarted.
 
 ## Maintain
 

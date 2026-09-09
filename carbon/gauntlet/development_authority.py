@@ -1,9 +1,10 @@
 """One-campaign authority for the non-qualifying B-E4 development pilot.
 
 This is deliberately not a general approval or authentication framework.  It
-binds one authenticated Carbon-owner act to one immutable DEVELOPMENT request,
-one provider project identity, one durable journal, and one terminal campaign
-result.  Qualification and every later campaign remain outside its authority.
+binds one authenticated delegated DEVELOPMENT-approver act to one immutable
+request, one provider project identity, one durable journal, and one terminal
+campaign result.  Qualification and every later campaign remain outside its
+authority.
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from typing import Self
 
 CARBON_OWNER_GITHUB_LOGIN = "jbequ5"
 CARBON_OWNER_GITHUB_USER_ID = 99_085_788
+DEVELOPMENT_APPROVER_GITHUB_LOGIN = "fitz-lang6"
+DEVELOPMENT_APPROVER_GITHUB_USER_ID = 317_786_409
 DEVELOPMENT_OWNER_ROLES = (
     "RESEARCH",
     "EXACT_PROTOCOL",
@@ -48,7 +51,7 @@ class DevelopmentAuthorizationError(RuntimeError):
 
 
 class DevelopmentAuthenticationError(DevelopmentAuthorizationError):
-    """The current external identity is not the assigned Carbon owner."""
+    """The current external identity is not the assigned DEVELOPMENT approver."""
 
 
 class DevelopmentApprovalUnavailable(DevelopmentAuthorizationError):
@@ -196,7 +199,7 @@ class DevelopmentAuthorizationBindings:
 
 
 @dataclass(frozen=True, slots=True)
-class _AuthenticatedCarbonOwner:
+class _AuthenticatedDevelopmentApprover:
     login: str
     user_id: int
     authenticated_at_utc: str
@@ -205,28 +208,28 @@ class _AuthenticatedCarbonOwner:
 
     def __post_init__(self) -> None:
         if (
-            type(self) is not _AuthenticatedCarbonOwner
+            type(self) is not _AuthenticatedDevelopmentApprover
             or self._token is not _LIVE_PRINCIPAL_TOKEN
-            or self.login != CARBON_OWNER_GITHUB_LOGIN
-            or self.user_id != CARBON_OWNER_GITHUB_USER_ID
+            or self.login != DEVELOPMENT_APPROVER_GITHUB_LOGIN
+            or self.user_id != DEVELOPMENT_APPROVER_GITHUB_USER_ID
             or type(self.authenticated_at_utc) is not str
             or not self.authenticated_at_utc
             or self.authentication_method != "AUTHENTICATED_GITHUB_REST_VIEWER"
         ):
             raise DevelopmentAuthenticationError(
-                "authenticated principal is not the assigned Carbon owner"
+                "authenticated principal is not the assigned DEVELOPMENT approver"
             )
 
 
-class GitHubCliCarbonOwnerAuthenticator:
-    """Authenticate the current principal through GitHub's `/user` endpoint."""
+class GitHubCliDevelopmentApproverAuthenticator:
+    """Authenticate the DEVELOPMENT approver through GitHub's `/user` endpoint."""
 
     __slots__ = ()
 
-    def authenticate(self) -> _AuthenticatedCarbonOwner:
-        if type(self) is not GitHubCliCarbonOwnerAuthenticator:
+    def authenticate(self) -> _AuthenticatedDevelopmentApprover:
+        if type(self) is not GitHubCliDevelopmentApproverAuthenticator:
             raise DevelopmentAuthenticationError(
-                "production owner authentication cannot be substituted"
+                "production DEVELOPMENT-approver authentication cannot be substituted"
             )
         try:
             process = subprocess.run(
@@ -246,30 +249,30 @@ class GitHubCliCarbonOwnerAuthenticator:
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             raise DevelopmentAuthenticationError(
-                "GitHub owner authentication is unavailable"
+                "GitHub DEVELOPMENT-approver authentication is unavailable"
             ) from error
         if process.returncode != 0:
             raise DevelopmentAuthenticationError(
-                "GitHub owner authentication did not succeed"
+                "GitHub DEVELOPMENT-approver authentication did not succeed"
             )
         try:
             payload = json.loads(process.stdout)
         except json.JSONDecodeError as error:
             raise DevelopmentAuthenticationError(
-                "GitHub owner authentication returned invalid JSON"
+                "GitHub DEVELOPMENT-approver authentication returned invalid JSON"
             ) from error
         if (
             type(payload) is not dict
-            or payload.get("login") != CARBON_OWNER_GITHUB_LOGIN
-            or payload.get("id") != CARBON_OWNER_GITHUB_USER_ID
+            or payload.get("login") != DEVELOPMENT_APPROVER_GITHUB_LOGIN
+            or payload.get("id") != DEVELOPMENT_APPROVER_GITHUB_USER_ID
             or payload.get("type") != "User"
         ):
             raise DevelopmentAuthenticationError(
-                "current GitHub principal is not jbequ5 / 99085788"
+                "current GitHub principal is not fitz-lang6 / 317786409"
             )
-        return _AuthenticatedCarbonOwner(
-            CARBON_OWNER_GITHUB_LOGIN,
-            CARBON_OWNER_GITHUB_USER_ID,
+        return _AuthenticatedDevelopmentApprover(
+            DEVELOPMENT_APPROVER_GITHUB_LOGIN,
+            DEVELOPMENT_APPROVER_GITHUB_USER_ID,
             _utc_from_timestamp(time.time()),
             "AUTHENTICATED_GITHUB_REST_VIEWER",
             _LIVE_PRINCIPAL_TOKEN,
@@ -629,7 +632,7 @@ class _AuthorizationStore:
 
 
 class DevelopmentAuthorizationStore(_AuthorizationStore):
-    """Live store; only a freshly authenticated assigned owner may issue."""
+    """Live store; only the freshly authenticated DEVELOPMENT approver may issue."""
 
     environment = "LIVE_OPENAI_RESPONSES"
     authorization_prefix = "be4-development-"
@@ -644,7 +647,7 @@ class DevelopmentAuthorizationStore(_AuthorizationStore):
             raise DevelopmentAuthorizationError(
                 "explicit approval act does not match the execution request"
             )
-        owner = GitHubCliCarbonOwnerAuthenticator().authenticate()
+        owner = GitHubCliDevelopmentApproverAuthenticator().authenticate()
         return self._issue(
             bindings,
             issuer_login=owner.login,
@@ -715,7 +718,7 @@ class DevelopmentAuthorizationStore(_AuthorizationStore):
         )
 
     def revoke(self, bindings: DevelopmentAuthorizationBindings) -> None:
-        GitHubCliCarbonOwnerAuthenticator().authenticate()
+        GitHubCliDevelopmentApproverAuthenticator().authenticate()
         now = _utc_from_timestamp(time.time())
         with self._connection:
             changed = self._connection.execute(
@@ -734,7 +737,7 @@ class DevelopmentAuthorizationStore(_AuthorizationStore):
 
         if not _is_digest(request_digest):
             raise TypeError("revocation requires an exact execution request digest")
-        GitHubCliCarbonOwnerAuthenticator().authenticate()
+        GitHubCliDevelopmentApproverAuthenticator().authenticate()
         now = _utc_from_timestamp(time.time())
         with self._connection:
             changed = self._connection.execute(
@@ -845,9 +848,17 @@ class ControlledDevelopmentAuthorizationStore(_AuthorizationStore):
             )
 
 
+# Compatibility for the PR #115 engineering surface.  The alias now performs
+# DEVELOPMENT-approver authentication; the separate Carbon-owner constants
+# retain the repository's broader owner identity and are not issuance policy.
+GitHubCliCarbonOwnerAuthenticator = GitHubCliDevelopmentApproverAuthenticator
+
+
 __all__ = (
     "CARBON_OWNER_GITHUB_LOGIN",
     "CARBON_OWNER_GITHUB_USER_ID",
+    "DEVELOPMENT_APPROVER_GITHUB_LOGIN",
+    "DEVELOPMENT_APPROVER_GITHUB_USER_ID",
     "DEVELOPMENT_AUTHORIZATION_LIFETIME_SECONDS",
     "DEVELOPMENT_OWNER_ROLES",
     "DEVELOPMENT_RETENTION_SELECTION",
@@ -859,5 +870,6 @@ __all__ = (
     "DevelopmentAuthorizationError",
     "DevelopmentAuthorizationStore",
     "GitHubCliCarbonOwnerAuthenticator",
+    "GitHubCliDevelopmentApproverAuthenticator",
     "provider_identity_digest",
 )
