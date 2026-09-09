@@ -619,7 +619,8 @@ repository execution rule remains one bounded ticket per implementation lane.
 | `B-03` through `B-06` | B-03 through B-06 |
 | `B-07` | B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G |
 | `B-E1` through `B-E3` | B-E1 through B-E3 |
-| Wave B integration/acceptance | B-07G, B-E4, B-GATE |
+| Wave B integration/acceptance | B-07G, B-GATE |
+| Optional deferred research | B-E4 |
 
 ---
 
