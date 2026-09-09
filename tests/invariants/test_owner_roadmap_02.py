@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = json.loads(
     (ROOT / ".agent/policies/owner_roadmap_02.json").read_text(encoding="utf-8")
@@ -30,7 +29,9 @@ def test_deferred_research_is_explicitly_non_blocking() -> None:
 
 def test_b_gate_has_no_be4_dependency_or_utility_pass_gate() -> None:
     ticket = (ROOT / ".agent/tickets/B-GATE_closeout.md").read_text(encoding="utf-8")
-    depends_line = next(line for line in ticket.splitlines() if line.startswith("**Depends on:**"))
+    depends_line = next(
+        line for line in ticket.splitlines() if line.startswith("**Depends on:**")
+    )
     assert "B-E4" not in depends_line
     assert "preregistered utility rule passes" not in ticket
     assert "gauntlet evidence blocks closeout" not in ticket
