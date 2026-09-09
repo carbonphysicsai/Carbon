@@ -1,7 +1,7 @@
 # NET-3 — Candidate commitment, availability and accepted fixture bridge
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** NET-2
 **Primary Hub map_ref:** `WAVE-C/NET-3`
 **Evidence:** `.agent/evidence/wave_c/net-3.md`
@@ -27,21 +27,21 @@ context explicitly; no miner-selected evaluator, ScorePack or acceptance flag.
 
 ## Definition of Done
 
-- [ ] Commitments resolve NET-2 receipts, bind signed bytes and registered context,
+- [x] Commitments resolve NET-2 receipts, bind signed bytes and registered context,
       retain original receipt order/hotkey/registration and canonical A7 identity.
-- [ ] Artifact bytes are available in the same durable bounded journal and checked
+- [x] Artifact bytes are available in the same durable bounded journal and checked
       on use. Copies or wallet changes share one artifact evaluation identity;
       commitment alone never earns improvement credit.
-- [ ] Submission, admission, execution, acceptance and disclosure are distinct.
+- [x] Submission, admission, execution, acceptance and disclosure are distinct.
       Existing A7/A8/A6 own each applicable transition; no second evaluator or
       caller-controlled accepted Boolean and no arbitrary execution path.
-- [ ] Accepted fixture records retain binary64 score bytes, ScorePack identity,
+- [x] Accepted fixture records retain binary64 score bytes, ScorePack identity,
       original receipt provenance and aggregate component scores. They cannot
       construct real scientific/frontier/LIVE authority.
-- [ ] Exact replay is idempotent; conflicts fail. Restart preserves committed and
+- [x] Exact replay is idempotent; conflicts fail. Restart preserves committed and
       completed records. Interrupted process-local A7 attempts stay indeterminate
       and cannot be blindly dispatched again. Capacity/errors are bounded.
-- [ ] Focused chain/transport/candidate/A7/A8 tests, invariants, package/quality,
+- [x] Focused chain/transport/candidate/A7/A8 tests, invariants, package/quality,
       Hub and required Merge gate pass. No localnet or real science is claimed.
 
 ## Decision NET-3-D1
@@ -60,3 +60,11 @@ candidate artifacts, 64 KiB each, immutable per-version evaluation context.
 Hub impact is map_structural; affects WAVE-C, NET-2, SYSTEM/CI and maturity.
 
 After accepted merge C-REWARD is next under standing owner authorization.
+
+## Accepted delivery
+
+PR #122 head f5fef50e02de88cb4e6e0733de4341dfd973ef15 passed run 34411892285
+and normally merged as d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6, preserving
+tree 918390925c23651195526355dab31ecc0aa39abc. Completion:
+https://github.com/carbonphysicsai/Carbon/pull/122#issuecomment-5609589672.
+Bounded fixture commitments are SPECIFIED/IMPLEMENTED/TESTED only.

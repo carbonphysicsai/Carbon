@@ -1979,10 +1979,10 @@ ScoreResult
 
 This target may not be implemented piecemeal inside A8–A12 without an authorized frontier/treasury wave.
 
-## 10.1 Temporary C2 testnet integration is not an economic exception
+## 10.1 C2 direct/burn testnet integration preserves qualification boundaries
 
 After Wave B, an authorized Wave C2 may prove real testnet weight publication
-without changing the target constitution. The only permitted temporary path
+under the prospective OWNER-C0-REWARD-01 direct-payment option. The real C2 path
 is:
 
 ```text
@@ -1996,8 +1996,9 @@ exact real-path scientific result
 That path is `TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`,
 `NOT_FRONTIER_QUALIFIED`, and `NOT_MAINNET_ELIGIBLE`. It uses an explicit
 non-paying no-winner sink; exact reward duration and sink identity/custody are
-human/security/economic inputs. Raw score magnitude never maps to weight
-magnitude. Fixture, mock, practice, estimate, PriorPack, scaffold, partial,
+human/security/economic inputs for public networks. C-REWARD may compute
+registered bounded-linear improvement credit for DEVELOPMENT fixtures; raw
+score normalization is forbidden. Fixture, mock, practice, estimate, PriorPack, scaffold, partial,
 failed, cancelled, deferred, indeterminate, contested, identity-unbound, or
 stale evidence is ineligible.
 
@@ -2012,8 +2013,10 @@ TreasuryRoutingWeightIntent
 A publisher may not accept arbitrary score dictionaries, raw scientific
 results, or a caller-selected authority Boolean. C2 cannot create a
 `FrontierAdvanceEvent` or settlement entitlement. Mainnet economic activation
-requires authorized Wave-H frontier/finality and Wave-I treasury routing and
-per-Challenge settlement. Waves E/F/G may proceed after D but do not block the
+requires authorized Wave-H frontier/finality and Wave-I scientific-economic
+ledger and settlement. Treasury custody/routing is optional and outside the
+direct-payment critical path; selecting burn does not satisfy science, security
+or launch requirements. Waves E/F/G may proceed after D but do not block the
 D→H→I launch-critical branch.
 
 ---

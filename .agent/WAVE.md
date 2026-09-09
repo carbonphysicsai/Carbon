@@ -3,8 +3,8 @@
 > **OWNER-C0-REWARD-01 current execution authority:**
 > NET-1 merged in PR #120 as 6dad22db26e4b8babadf73c4de2527a17485a2b1.
 > NET-2 merged in PR #121 as 97725a1f4c6c8c65234e96770c847622273fc55e.
-> NET-3 is now the one active implementation ticket. Continue
-> C-REWARD -> NET-4A -> NET-4B -> NET-5 -> NET-6 after each accepted merge.
+> NET-3 merged in PR #122 as d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6.
+> C-REWARD is now the one active implementation ticket. Continue NET-4A -> NET-4B -> NET-5 -> NET-6 after each accepted merge.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -21,8 +21,8 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 0.3
-**Selected ticket:** NET-3 — `in_progress`
+**Controlling register:** `.agent/WAVE_C.md` version 0.4
+**Selected ticket:** C-REWARD — `in_progress`
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -60,7 +60,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** Wave C/C0 is active with NET-3 selected alone; NET-1 and NET-2 are merged.
+**Current C0 status:** Wave C/C0 is active with C-REWARD selected alone; NET-1 through NET-3 are merged.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

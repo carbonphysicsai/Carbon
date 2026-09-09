@@ -52,6 +52,12 @@ class CandidateJournal:
             db.execute(
                 "CREATE INDEX IF NOT EXISTS candidate_context_order ON candidate_v1(context, receipt)"
             )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS candidate_reward_context_v1 (context TEXT PRIMARY KEY, initial_cutoff INTEGER NOT NULL, sealed_cutoff INTEGER NOT NULL)"
+            )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS candidate_reward_batch_v1 (candidate TEXT PRIMARY KEY, batch TEXT NOT NULL, activation_ms INTEGER NOT NULL)"
+            )
             key = canonical(asdict(context.pack.challenge_key)).decode()
             db.execute(
                 "INSERT OR IGNORE INTO candidate_context_v1 VALUES (?,?)",
@@ -104,13 +110,25 @@ class CandidateJournal:
                 if receipt.ref.sequence < row[1]:
                     # Earlier authenticated delivery may be processed later. Once
                     # admitted, never rewrite winner provenance behind consumers.
-                    if row[2] != "COMMITTED":
+                    if (
+                        row[2] != "COMMITTED"
+                        or db.execute(
+                            "SELECT 1 FROM candidate_reward_batch_v1 WHERE candidate=?",
+                            (ref.identity,),
+                        ).fetchone()
+                    ):
                         raise CandidateFailure(CandidateCode.CONFLICT)
                     db.execute(
                         "UPDATE candidate_v1 SET receipt=?,receipt_digest=? WHERE identity=?",
                         (receipt.ref.sequence, receipt.ref.digest, ref.identity),
                     )
                 return ref
+            sealed = db.execute(
+                "SELECT sealed_cutoff FROM candidate_reward_context_v1 WHERE context=?",
+                (self.context.identity,),
+            ).fetchone()
+            if sealed and receipt.ref.sequence <= sealed[0]:
+                raise CandidateFailure(CandidateCode.CONFLICT)
             if (
                 db.execute("SELECT count(*) FROM candidate_v1").fetchone()[0]
                 >= self.capacity
@@ -156,6 +174,19 @@ class CandidateJournal:
             row = self._row(db, ref)
             if row["state"] != "COMMITTED":
                 raise CandidateFailure(CandidateCode.INDETERMINATE)
+            enrolled = db.execute(
+                "SELECT initial_cutoff FROM candidate_reward_context_v1 WHERE context=?",
+                (self.context.identity,),
+            ).fetchone()
+            if (
+                enrolled
+                and db.execute(
+                    "SELECT 1 FROM candidate_reward_batch_v1 WHERE candidate=?",
+                    (ref.identity,),
+                ).fetchone()
+                is None
+            ):
+                raise CandidateFailure(CandidateCode.INDETERMINATE)
             db.execute(
                 "UPDATE candidate_v1 SET state='DISPATCHING' WHERE identity=?",
                 (ref.identity,),
@@ -163,6 +194,49 @@ class CandidateJournal:
             return json.loads(row["artifact"]), ReceiptRef(
                 row["receipt"], row["receipt_digest"]
             )
+
+    def _enroll_reward(self, db, cutoff):
+        """Register a receipt barrier: old artifacts never earn opening credit."""
+        db.execute(
+            "INSERT INTO candidate_reward_context_v1 VALUES (?,?,?)",
+            (self.context.identity, cutoff, cutoff),
+        )
+
+    def _seal_reward_batch(self, db, batch, activation_ms, cutoff):
+        """Freeze all new committed candidates before their A7 admission."""
+        prior = db.execute(
+            "SELECT sealed_cutoff FROM candidate_reward_context_v1 WHERE context=?",
+            (self.context.identity,),
+        ).fetchone()
+        if prior is None or cutoff < prior[0]:
+            raise CandidateFailure(CandidateCode.CONFLICT)
+        rows = db.execute(
+            "SELECT identity,state FROM candidate_v1 WHERE context=? AND receipt>? AND receipt<=? ORDER BY receipt",
+            (self.context.identity, prior[0], cutoff),
+        ).fetchall()
+        if len(rows) > 256:
+            raise CandidateFailure(CandidateCode.CAPACITY)
+        if any(row[1] != "COMMITTED" for row in rows):
+            raise CandidateFailure(CandidateCode.CONFLICT)
+        for identity, _ in rows:
+            db.execute(
+                "INSERT INTO candidate_reward_batch_v1 VALUES (?,?,?)",
+                (identity, batch, activation_ms),
+            )
+        db.execute(
+            "UPDATE candidate_reward_context_v1 SET sealed_cutoff=? WHERE context=?",
+            (cutoff, self.context.identity),
+        )
+        return tuple(CandidateRef(row[0]) for row in rows)
+
+    def _reward_batch_members(self, db, batch):
+        return tuple(
+            (CandidateRef(row[0]), row[1])
+            for row in db.execute(
+                "SELECT c.identity,c.state FROM candidate_v1 c JOIN candidate_reward_batch_v1 b ON c.identity=b.candidate WHERE c.context=? AND b.batch=? ORDER BY c.receipt",
+                (self.context.identity, batch),
+            ).fetchall()
+        )
 
     def _transition(self, ref, expected, state):
         with self.receipts.transaction() as db:
@@ -198,13 +272,17 @@ class CandidateJournal:
 
     def resolve_accepted_fixture(self, ref):
         with self.receipts.transaction() as db:
-            row = self._row(db, ref)
-            if row["state"] != "ACCEPTED_FIXTURE":
-                raise CandidateFailure(CandidateCode.NOT_ACCEPTED)
-            encoded = row["accepted"]
-            if digest(encoded.encode()) != row["accepted_digest"]:
-                raise CandidateFailure(CandidateCode.CONFLICT)
-            value = json.loads(encoded)
-            value["candidate"] = CandidateRef(value["candidate"])
-            value["component_hex"] = tuple(value["component_hex"])
-            return AcceptedFixtureRecord(**value)
+            return self._resolve_accepted_fixture(db, ref)
+
+    def _resolve_accepted_fixture(self, db, ref):
+        """Same owner validation inside an already owned journal transaction."""
+        row = self._row(db, ref)
+        if row["state"] != "ACCEPTED_FIXTURE":
+            raise CandidateFailure(CandidateCode.NOT_ACCEPTED)
+        encoded = row["accepted"]
+        if digest(encoded.encode()) != row["accepted_digest"]:
+            raise CandidateFailure(CandidateCode.CONFLICT)
+        value = json.loads(encoded)
+        value["candidate"] = CandidateRef(value["candidate"])
+        value["component_hex"] = tuple(value["component_hex"])
+        return AcceptedFixtureRecord(**value)

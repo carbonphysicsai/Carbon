@@ -62,9 +62,24 @@ NETWORK_TESTS = (
     "tests/cpu/test_net3_candidates.py",
     "tests/cpu/test_submission_fsm.py",
     "tests/cpu/test_traineval_stub.py",
+    "tests/cpu/test_reward_core.py",
+    "tests/cpu/test_reward_ledger.py",
+    "tests/cpu/test_card_store.py",
+    "tests/cpu/test_scoring_engine.py",
+    "tests/cpu/test_leaderboard.py",
 )
 _NETWORK_PATHS = frozenset(
     {
+        "carbon/rewards/__init__.py",
+        "carbon/rewards/core.py",
+        "carbon/rewards/ledger.py",
+        "carbon/rewards/review.py",
+        "carbon/rewards/treasury.py",
+        "carbon/cards/development_scorecard.py",
+        "tests/cpu/test_reward_core.py",
+        "tests/cpu/test_reward_ledger.py",
+        "tests/invariants/test_reward_boundary.py",
+        "docs/development/SCORE_REWARDS.md",
         "carbon/candidates/__init__.py",
         "carbon/candidates/model.py",
         "carbon/candidates/store.py",
@@ -165,6 +180,14 @@ def only_candidate_root_added(before: str, after: str) -> bool:
     )
 
 
+def only_reward_root_added(before: str, after: str) -> bool:
+    original = '    "carbon/resource_policy",\n'
+    return (
+        before.count(original) == 1
+        and before.replace(original, original + '    "carbon/rewards",\n') == after
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -194,7 +217,11 @@ def main() -> int:
                             encoding="utf-8"
                         ),
                     )
-                    for proof in (only_transport_root_added, only_candidate_root_added)
+                    for proof in (
+                        only_transport_root_added,
+                        only_candidate_root_added,
+                        only_reward_root_added,
+                    )
                 )
         profile = select_cpu_profile(
             paths,

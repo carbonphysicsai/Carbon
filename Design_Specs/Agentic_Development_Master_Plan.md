@@ -219,7 +219,7 @@ remote research transport remain Wave C.
 Goal:
 
 > prove localnet/network foundations, execute one real candidate through one
-> protected scientific path, then prove temporary direct testnet weights
+> protected scientific path, then prove direct-winner-plus-burn testnet weights
 > without claiming scientific qualification, frontier, settlement, or
 > mainnet authority.
 
@@ -228,7 +228,7 @@ Real Bittensor integration begins only after Wave B.
 ## C0 — network foundation → G2 `LOCALNET_READY`
 
 ```text
-NET-0  topology / threat model / chain boundary / temporary test policy
+NET-0  topology / threat model / chain boundary / development test policy
 NET-1  pinned ChainAdapter / metagraph / wallet / UID / chain errors
 NET-2  hotkey-authenticated application transport / replay protection
 NET-3  candidate commitment / availability / hotkey binding
@@ -272,7 +272,7 @@ Required implementation work:
 - Carbon policy-event/typed-intent integration without final frontier
   economics.
 
-## C2 — temporary direct-weight testnet → G3
+## C2 — direct-winner-plus-burn testnet → G3
 `TESTNET_ALPHA_DIRECT_WEIGHTS`
 
 ```text
@@ -282,8 +282,11 @@ C-W3 publication / validator agreement / readback / recovery
 C-W4 complete Testnet Alpha Report
 ```
 
-A Challenge-local result decides only whether a new eligible leader exists;
-raw score magnitude never sets weight magnitude. Only exact real C2
+A Challenge-local accepted result determines improvement under its owning
+scientific comparator. OWNER-C0-REWARD-01 registers bounded-linear score-gain
+credit, decay and allocation separately from the score formula. Raw scores are
+never normalized into miner weights. C-REWARD implements this policy for C0
+fixtures; real parameters and eligibility remain owned by C1/C2. Only exact real C2
 provenance may create an expiring `TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`
 event and `TestnetWinnerWeightIntent`. With no active eligible winner, the
 approved non-paying sink is active and participant miners are zero. Exact
@@ -751,7 +754,7 @@ WAVE B unchanged
 → C1 → C2 → G3
 → D → G4
 → H → I → G6
-→ G7 treasury-routed mainnet mechanism
+→ G7 qualified mainnet mechanism (direct/burn or separately authorized treasury)
 ```
 
 Waves E/F/G may proceed after D in parallel and do not gate H/I. G5 may be
