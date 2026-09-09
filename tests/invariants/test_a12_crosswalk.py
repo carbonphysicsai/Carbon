@@ -175,6 +175,9 @@ EXPECTED_INFRASTRUCTURE_TESTS = (
     "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_expected_xfail",
     "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_non_strict_xpass",
     "tests/invariants/test_a12_entrypoint.py::test_invariant_entrypoint_real_guard_fails_collection_time_module_skip",
+    "tests/invariants/test_owner_roadmap_02.py::test_deferred_research_is_explicitly_non_blocking",
+    "tests/invariants/test_owner_roadmap_02.py::test_b_gate_has_no_be4_dependency_or_utility_pass_gate",
+    "tests/invariants/test_owner_roadmap_02.py::test_concierge_release_contract_is_not_research_qualification",
 )
 ROW_KEYS = {
     "id",

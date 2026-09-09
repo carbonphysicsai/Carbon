@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.invariant
+
 ROOT = Path(__file__).resolve().parents[2]
 POLICY = json.loads(
     (ROOT / ".agent/policies/owner_roadmap_02.json").read_text(encoding="utf-8")
