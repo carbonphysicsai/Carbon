@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 42 captured tickets across Wave A and Wave B
 - 7 protocol-change routes
-- 70 map-level change events
+- 71 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **B**; current ticket: **B-GATE**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active in bounded development scope with B-GATE selected. No later ticket is selected. OWNER-ROADMAP-02 preserves B-E4's runner, accounting, authorizations, journals, frozen artifacts, and evidence while moving the research to OPTIONAL / DEFERRED / NON-BLOCKING. Empirical prior effectiveness is UNMEASURED. No authorization was issued, no provider request ran, and no paid, calibration, shadow, attack, or qualifying campaign is required or authorized. Revised B-GATE engineering acceptance is the only active work before the prospective Wave C transition.
+Wave **B**; current ticket: **B-GATE**. Last completed: **B-E2** (`done`). Next selected: **none selected**. Wave B remains active with B-GATE selected. Its exact closeout candidate has not yet passed the delivery predicate, so B-GATE remains in progress. The candidate consolidates the existing engineering evidence and adds ticket-local C/D contracts. No later ticket is selected. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and empirical prior effectiveness remains UNMEASURED; no paid, calibration, shadow, attack, or qualifying campaign is required or authorized.
 
 ## Maintain
 
