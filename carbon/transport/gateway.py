@@ -128,20 +128,7 @@ class AuthenticatedGateway:
                 nonce_store=nonces,
             ),
         )
-        requester = RequesterIdentity(
-            digest(
-                canonical(
-                    [
-                        "carbon.authenticated.requester.v1",
-                        self.context.genesis_hash,
-                        self.context.netuid,
-                        receipt.hotkey,
-                        receipt.coldkey,
-                        receipt.registered_at,
-                    ]
-                )
-            )
-        )
+        requester = requester_for_receipt(self.context, receipt)
         call = McpCall(
             "1.0",
             envelope["tool"],
@@ -154,3 +141,21 @@ class AuthenticatedGateway:
         # Existing MCP owns output bounds, A7 admission and A6 disclosure. Do not
         # generically serialize the result or expose it to another requester.
         return received.receipt.ref, service.call(received.call, received.requester)
+
+
+def requester_for_receipt(context, receipt):
+    """A7 requester projection of a journal-resolved authenticated identity."""
+    return RequesterIdentity(
+        digest(
+            canonical(
+                [
+                    "carbon.authenticated.requester.v1",
+                    context.genesis_hash,
+                    context.netuid,
+                    receipt.hotkey,
+                    receipt.coldkey,
+                    receipt.registered_at,
+                ]
+            )
+        )
+    )

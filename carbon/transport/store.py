@@ -95,6 +95,18 @@ class ReceiptJournal:
                 "SELECT block FROM transport_meta WHERE id=1"
             ).fetchone()[0]
 
+    @contextmanager
+    def transaction(self):
+        """Trusted Carbon journal extensions share the receipt database/lock.
+
+        Not a wire API. Extensions own their versioned tables and must not
+        mutate transport tables. Closing rolls back an interrupted transaction.
+        """
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            yield connection
+            connection.commit()
+
     def admit(
         self, body, envelope, snapshot: MetagraphSnapshot, now_ns: int, authenticate
     ):

@@ -13011,3 +13011,9 @@ design, approve calibration/shadow/attack/qualifying work, complete B-E4, or
 start B-GATE. Reverting the prospective binding would require another explicit
 owner correction and new content-bound request; historical evidence remains
 unchanged.
+
+## NET-3-D1 — Durable commitments around existing scientific owners
+
+Prospective delegated working decision under OWNER-C0-REWARD-01. The complete
+decision, alternatives, migration path and limits are in
+`.agent/tickets/NET-3_candidate_commitments.md`, Decision NET-3-D1.

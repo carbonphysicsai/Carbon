@@ -1,7 +1,7 @@
 # NET-2 — Authenticated application transport and durable receipts
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** NET-1
 **Primary Hub map_ref:** `WAVE-C/NET-2`
 **Evidence:** `.agent/evidence/wave_c/net-2.md`
@@ -25,22 +25,22 @@ caller assertion of receipt order or scientific acceptance.
 
 ## Definition of Done
 
-- [ ] Exact `btauth/1` signatures bind method, path, receiver, body and freshness;
+- [x] Exact `btauth/1` signatures bind method, path, receiver, body and freshness;
       installed-SDK contract tests use disposable in-memory keys.
-- [ ] Canonical UTF-8 JSON rejects duplicate keys, alternate encodings, floats
+- [x] Canonical UTF-8 JSON rejects duplicate keys, alternate encodings, floats
       outside finite bounds, unknown envelope fields, oversized/deep inputs.
       Envelope binds protocol, network/genesis/netuid, challenge/version,
       exact snapshot, session and request ID; tool fields cannot contradict it.
-- [ ] Verify current registered hotkey and exact snapshot identity before
+- [x] Verify current registered hotkey and exact snapshot identity before
       dispatch; reject stale/provider/context/UID-recycling evidence.
-- [ ] Durable SQLite journal atomically records nonce, request identity,
+- [x] Durable SQLite journal atomically records nonce, request identity,
       original authenticated receipt order, provenance and time/block watermark.
       Exact duplicate and conflicting replay fail distinctly after restart;
       clock rollback, capacity and burst limits fail closed with bounded errors.
-- [ ] Reuse seven-tool MCP dispatch and A7 requester identity; authentication
+- [x] Reuse seven-tool MCP dispatch and A7 requester identity; authentication
       never creates admission, accepted score, frontier or settlement authority.
       No generic result serialization or evaluator data in transport messages.
-- [ ] Focused meaningful network, MCP, replay, installed-SDK and invariant tests
+- [x] Focused meaningful network, MCP, replay, installed-SDK and invariant tests
       pass in canonical acceptance; source/Hub accurately distinguish local
       tested transport from public service/scientific/security qualification.
 
@@ -59,3 +59,9 @@ TLS/deployment, secrets/custody and real scientific authority are later owners.
 No public endpoint or public-network transaction. No new evaluator, accepted
 Boolean, hidden data projection, frontier state, reward or weight publication.
 After accepted merge, NET-3 is next under standing owner authorization.
+
+## Accepted delivery
+
+PR #121, head d47268a849265c95dd657532d095e016b165d275, passed canonical run
+34408587763 and merged normally as 97725a1f4c6c8c65234e96770c847622273fc55e.
+Bounded authenticated transport is SPECIFIED/IMPLEMENTED/TESTED only.

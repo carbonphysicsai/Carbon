@@ -16,6 +16,7 @@ implementation_roots = [
     "carbon/authoring",
     "carbon/backbones",
     "carbon/cards",
+    "carbon/candidates",
     "carbon/chain",
     "carbon/construction",
     "carbon/evaluation",
