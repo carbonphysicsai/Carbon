@@ -47,12 +47,13 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 ## Tickets
 
 - [NET-1](../tickets/net_1.md): Read-only Bittensor chain adapter and identity snapshots [done]
-- [NET-2](../tickets/net_2.md): Authenticated application transport and durable receipts [in_progress]
+- [NET-2](../tickets/net_2.md): Authenticated application transport and durable receipts [done]
+- [NET-3](../tickets/net_3.md): Candidate commitment and accepted fixture bridge [in_progress]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/134280e39db0d5dfa3d4ce5e1f07fbea1b226994/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/210946eb6fcce788ac6122ab4bf14f1e89148685/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/210946eb6fcce788ac6122ab4bf14f1e89148685/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/210946eb6fcce788ac6122ab4bf14f1e89148685/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

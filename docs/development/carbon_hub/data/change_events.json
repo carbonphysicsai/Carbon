@@ -1774,6 +1774,30 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-3",
+      "event_type": "adjustment",
+      "event_id": "NET-3-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-2 merged with canonical transport evidence. NET-3 composes authenticated artifact commitments and existing A7/A8/A6 fixture acceptance, with durable exact scores and explicit indeterminate interrupted work. Canonical acceptance remains pending; no real science or localnet claim.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5609284142",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-2",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

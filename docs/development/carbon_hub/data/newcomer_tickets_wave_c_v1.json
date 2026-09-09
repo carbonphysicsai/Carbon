@@ -18,6 +18,14 @@
       "changes": "Canonical v1 ingress, SDK signatures, durable nonce/request receipts, identity and time watermarks, and precise bounded failures.",
       "not_yet": "No evaluator, accepted flag, public listener, public deployment, weight publication, scientific/security qualification or LIVE authority.",
       "map_ref": "WAVE-C/NET-2"
+    },
+    "NET-3": {
+      "title": "Bind each candidate to its artifact and original author",
+      "what": "Retain canonical Strategy artifacts and original authenticated receipts, then compose A7 admission, A8 fixture evaluation and A6 publication.",
+      "why": "Commitment must not create scientific merit; copies and wallet changes must not create fresh evaluation or improvement identity.",
+      "changes": "Bounded durable commitments and fixture accepted records with exact scientific score bytes, immutable context and explicit interrupted-dispatch state.",
+      "not_yet": "No real scientific acceptance, second evaluator, arbitrary execution, hidden disclosure, weight publication, localnet success or LIVE authority.",
+      "map_ref": "WAVE-C/NET-3"
     }
   }
 }
