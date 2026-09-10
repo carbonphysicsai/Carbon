@@ -21,6 +21,11 @@ _FIXTURE_VERSION = "fixture-1.0"
 _FIXTURE_SCORING_DIGEST = (
     "sha256:255923831905a84f55a88d8575e8ebcab42f3351676d6cf5ac9038dcc495fb57"
 )
+# NET-5: finite, pinned synthetic identities; no arbitrary profile/pack selector.
+_LOCALNET_FIXTURE_PACKS = {
+    "a5_fixture_net5_b": "sha256:11c7dec2ea770ded856897f0dd778d0ff39f51375bd9f023cfe0e3abb3b68bc2",
+    "a5_fixture_net5_c": "sha256:960820dab74f8113f725e8b8ddb36152529b0e12c4b12b55ed4769b49b69c7f0",
+}
 _FIXTURE_GENERATOR_DIGEST = "sha256:" + "1" * 64
 _FIXTURE_SCHEMA_VERSION = "1.0"
 _FIXTURE_NUMERICAL_PROFILE = "python_binary64_v1"
@@ -236,16 +241,23 @@ class FixtureStubProfile(_NonSerializableValue):
         init=False,
     )
 
-    def __init__(self) -> None:
+    def __init__(self, *, localnet_fixture: str | None = None) -> None:
         _require_exact_uninitialized(self, FixtureStubProfile, "profile_id")
+        if localnet_fixture is not None and (
+            type(localnet_fixture) is not str
+            or localnet_fixture not in _LOCALNET_FIXTURE_PACKS
+        ):
+            raise FixtureRunRequestError()
+        challenge = localnet_fixture or _FIXTURE_CHALLENGE_ID
+        scoring_digest = _LOCALNET_FIXTURE_PACKS.get(challenge, _FIXTURE_SCORING_DIGEST)
         object.__setattr__(self, "profile_id", _FIXTURE_PROFILE_ID)
         object.__setattr__(
             self,
             "challenge_key",
-            ChallengeKey(_FIXTURE_CHALLENGE_ID, _FIXTURE_VERSION),
+            ChallengeKey(challenge, _FIXTURE_VERSION),
         )
         object.__setattr__(self, "scoring_version", _FIXTURE_VERSION)
-        object.__setattr__(self, "scoring_digest", _FIXTURE_SCORING_DIGEST)
+        object.__setattr__(self, "scoring_digest", scoring_digest)
         object.__setattr__(self, "generator_version_required", _FIXTURE_VERSION)
         object.__setattr__(
             self,
@@ -288,11 +300,16 @@ def _is_supported_profile(value: object) -> bool:
         return (
             type(value.profile_id) is str
             and value.profile_id == _FIXTURE_PROFILE_ID
-            and challenge_key == ChallengeKey(_FIXTURE_CHALLENGE_ID, _FIXTURE_VERSION)
+            and challenge_key.version == _FIXTURE_VERSION
+            and challenge_key.challenge_id
+            in {_FIXTURE_CHALLENGE_ID, *_LOCALNET_FIXTURE_PACKS}
             and type(value.scoring_version) is str
             and value.scoring_version == _FIXTURE_VERSION
             and type(value.scoring_digest) is str
-            and value.scoring_digest == _FIXTURE_SCORING_DIGEST
+            and value.scoring_digest
+            == _LOCALNET_FIXTURE_PACKS.get(
+                challenge_key.challenge_id, _FIXTURE_SCORING_DIGEST
+            )
             and type(value.generator_version_required) is str
             and value.generator_version_required == _FIXTURE_VERSION
             and type(value.generator_digest_required) is str

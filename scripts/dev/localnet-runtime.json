@@ -5,8 +5,20 @@
   "commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
   "build_definition": "Dockerfile-localnet",
   "platform": "linux/amd64",
-  "image_digest": null,
+  "image_digest": "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
   "observed_genesis": null,
   "runtime_capabilities_verified": false,
-  "scope": "DISPOSABLE_LOCALNET_ONLY"
+  "scope": "DISPOSABLE_LOCALNET_ONLY",
+  "image": "ghcr.io/raofoundation/subtensor-localnet",
+  "development": {
+    "topology": "three authorities in one isolated disposable container",
+    "fast_blocks_seconds": "0.25",
+    "netuid": 2,
+    "mechanism": 0,
+    "tempo_blocks": 20,
+    "min_allowed_weights": 1,
+    "max_weights_limit_required": 65535,
+    "commit_reveal_weights": false,
+    "treasury": null
+  }
 }
