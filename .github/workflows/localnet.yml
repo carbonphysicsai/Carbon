@@ -11,8 +11,8 @@ on:
       profile:
         description: 'Exact runtime profile registered in the pinned image manifest'
         type: choice
-        options: [standard, fast]
-        default: standard
+        options: [fast, standard]
+        default: fast
 
 permissions:
   contents: read

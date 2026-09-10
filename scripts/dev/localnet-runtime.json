@@ -23,8 +23,8 @@
       "cargo_features": ["pow-faucet", "metadata-hash", "fast-runtime"],
       "nominal_block_seconds": "0.25",
       "expected_genesis": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
-      "binary_sha256": null,
-      "wasm_sha256": null
+      "binary_sha256": "5b77576e166b3bd07b19052596be08757acfb161040637febaa262b26951b5ac",
+      "wasm_sha256": "0f88389c595f0e6ded19ba6e9e5edf95bdd125256711f2260105b2985734d716"
     },
     "standard": {
       "selector": "False",
@@ -33,9 +33,9 @@
       "build_profile": "release",
       "cargo_features": ["pow-faucet", "metadata-hash"],
       "nominal_block_seconds": "12",
-      "expected_genesis": null,
-      "binary_sha256": null,
-      "wasm_sha256": null
+      "expected_genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "binary_sha256": "0f76a6aee5dafb2a96ace3930ebef8acd360bf2861de08832145fe1aef885c83",
+      "wasm_sha256": "3609276931c1c2b0e8439c57de709d555f8fa630d1de9182e535070e70bebfcf"
     }
   },
   "budgets": {
