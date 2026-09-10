@@ -1,7 +1,7 @@
 # NET-5R — Shielded registration compatibility repair
 
 **Wave:** C0/G2 evidence follow-up
-**Status:** `in_progress`; selected under the existing C0 authorization
+**Status:** `in_progress`
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
 **Decision:** `NET-5R-D1`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
