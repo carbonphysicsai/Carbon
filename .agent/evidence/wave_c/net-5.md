@@ -131,3 +131,11 @@ Alternatives: another full suite adds unrelated coverage; globally exempting A8
 would lose the science fallback and is rejected. To supersede, change the exact
 migration predicate in scripts/dev/select_cpu_profile.py and its regression tests.
 No reserved scientific/security decision is selected. G2 remains NOT_READY.
+
+Run 34428706438 passed all 183 invariants and 1,882 focused tests, with two
+failures: the new offline clock exceeded the existing 32 requests/second limit,
+and the original scoring inventory expected one fixture. Pace only the explicit
+chain double; retain the rate assertion. Update inventory to exactly the three
+registered synthetic packs and assert each remains fixture_origin, with no extra
+file/YAML twin admitted. The narrow migration predicate also pins this exact
+inventory-test change. No scoring or authentication requirement is weakened.

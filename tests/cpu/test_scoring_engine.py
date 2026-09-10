@@ -344,11 +344,15 @@ def test_any_source_byte_perturbation_changes_pack_identity(mutator: Any) -> Non
     assert _digest(changed) != FIXTURE_DIGEST
 
 
-def test_fixture_is_the_only_runtime_score_pack_and_has_no_yaml_twin() -> None:
+def test_only_exact_registered_synthetic_score_packs_exist_without_yaml_twins() -> None:
     score_pack_directory = FIXTURE_PATH.parent
     assert tuple(path.name for path in sorted(score_pack_directory.iterdir())) == (
+        "a5_fixture_net5_b_v1.json",
+        "a5_fixture_net5_c_v1.json",
         "a5_fixture_v1.json",
     )
+    for path in score_pack_directory.iterdir():
+        assert json.loads(path.read_text(encoding="utf-8"))["fixture_origin"] is True
 
 
 def test_fixture_uses_the_exact_closed_schema_1_0_shape() -> None:

@@ -136,12 +136,14 @@ _NETWORK_PATHS = frozenset(
 
 # Exact NET-5 finite synthetic identity migration, never a general A8 exemption.
 _NET5_AFTER = {
+    "tests/cpu/test_scoring_engine.py": "f64c3457ab8aa78b967af316a974109348b69e34e7670f2cf21529cc07d31090",
     "carbon/traineval/model.py": "30dccbcf63aef8d7e9cab9557f8217fdccb747690902e041e2c5a23d658b5705",
     "carbon/traineval/service.py": "d0bbbcb93ab7e88c7efa77aecb9149db36846956712b55b7957a4fe5249649c6",
     "tests/fixtures/score_packs/a5_fixture_net5_b_v1.json": "11c7dec2ea770ded856897f0dd778d0ff39f51375bd9f023cfe0e3abb3b68bc2",
     "tests/fixtures/score_packs/a5_fixture_net5_c_v1.json": "960820dab74f8113f725e8b8ddb36152529b0e12c4b12b55ed4769b49b69c7f0",
 }
 _NET5_BEFORE = {
+    "tests/cpu/test_scoring_engine.py": "e3f0d79c1e23abffeef103b261b6b3e1c2121b559ed3a2d587231ac4d67368d8",
     "carbon/traineval/model.py": "693c921c832723d6e5af403efd4de7a1494a7521246d2fc128d9949afe818cac",
     "carbon/traineval/service.py": "ddbd7bbfc9532d849e7a4ad8889c2a8ee3bd45b3942f606f1891c370bb18b239",
 }

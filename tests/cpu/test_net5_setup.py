@@ -429,10 +429,22 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
         ]
         ledger = FixtureRewardLedger(receipts, adapter, tuple(e.journal for e in exams))
         signer = lambda body, now, hotkey: headers(body, now, hotkey)
+
+        async def paced_commit(exam, variant, hotkey):
+            # Advance the explicit chain double, preserving the real 32/s ingress limit.
+            block = adapter.state.finalized_block + 1
+            adapter.state = replace(
+                adapter.state,
+                finalized_block=block,
+                block_hash=f"0x{block:064x}",
+                timestamp_ms=adapter.state.timestamp_ms + 100,
+            )
+            return await exam.commit(variant, signer, hotkey=hotkey)
+
         baselines = []
         for exam in exams:
             for variant in range(20):
-                ref = await exam.commit(variant, signer, hotkey="validator")
+                ref = await paced_commit(exam, variant, "validator")
                 accepted = exam.evaluate(
                     ref
                 )  # Existing A7/A8/A5 acceptance; never injected flags.
@@ -464,7 +476,7 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
         winners = []
         for exam, baseline in zip(exams[:2], baselines[:2]):
             for variant in range(20, 60):
-                ref = await exam.commit(variant, signer, hotkey="miner")
+                ref = await paced_commit(exam, variant, "miner")
                 batch = await ledger.open_batch(
                     exam.journal.context.identity,
                     f"{exam.profile.challenge_key.challenge_id}-{variant}",
@@ -494,14 +506,12 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
         validate_integers(
             plan, [u for u, _ in plan.integers], [v for _, v in plan.integers], caps
         )
-        assert (
-            await exams[0].commit(winners[0][1], signer, hotkey="validator")
-            == winners[0][0]
-        )
+        assert await paced_commit(exams[0], winners[0][1], "validator") == winners[0][0]
         assert (
             ledger.resolve_projection(await ledger.project())["states"]
             == target["states"]
         )
+        after_copy = ledger.resolve_projection(await ledger.project())
         restarted = FixtureRewardLedger(
             receipts,
             adapter,
@@ -512,15 +522,17 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
         )
         assert (
             restarted.resolve_projection(await restarted.project())["targets"]
-            == target["targets"]
+            == after_copy["targets"]
         )
         adapter.state = replace(
             adapter.state,
-            finalized_block=11,
+            finalized_block=adapter.state.finalized_block + 1,
             block_hash="0x" + "3" * 64,
             participants=(
                 adapter.state.participants[0],
-                Participant(1, "replacement", "other-cold", 11),
+                Participant(
+                    1, "replacement", "other-cold", adapter.state.finalized_block + 1
+                ),
             ),
         )
         assert (
