@@ -466,7 +466,8 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
             for variant in range(20, 60):
                 ref = await exam.commit(variant, signer, hotkey="miner")
                 batch = await ledger.open_batch(
-                    exam.journal.context.identity, f"batch-{variant}"
+                    exam.journal.context.identity,
+                    f"{exam.profile.challenge_key.challenge_id}-{variant}",
                 )
                 accepted = exam.evaluate(ref)
                 state = await ledger.close_batch(batch)

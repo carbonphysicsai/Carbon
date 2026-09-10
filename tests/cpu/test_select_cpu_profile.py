@@ -249,3 +249,60 @@ def test_reward_profile_keeps_a6_and_scientific_regressions_and_full_fallback():
         "tests/cpu/test_scoring_engine.py",
         "tests/cpu/test_leaderboard.py",
     }.issubset(NETWORK_TESTS)
+
+
+def test_exact_net5_fixture_extension_is_bounded_to_registered_bytes(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    import select_cpu_profile as selector
+
+    root = SCRIPT_ROOT.parent.parent
+    for path in selector._NET5_AFTER:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text((root / path).read_text(encoding="utf-8"), encoding="utf-8")
+    before = {
+        path: subprocess.check_output(
+            ["git", "show", "0e6b5e001302b349135785756c633530853684c2:" + path],
+            cwd=root,
+        )
+        for path in selector._NET5_BEFORE
+    }
+
+    def old(command, **kwargs):
+        path = command[-1].split(":", 1)[1]
+        return SimpleNamespace(
+            returncode=0 if path in before else 128, stdout=before.get(path, b"")
+        )
+
+    monkeypatch.setattr(selector.subprocess, "run", old)
+    assert selector.exact_net5_fixture_extension(tmp_path, "base")
+    paths = ["carbon/chain/localnet.py", *selector._NET5_AFTER]
+    assert selector.select_cpu_profile(paths) == "RUNTIME_FULL"
+    assert (
+        selector.select_cpu_profile(paths, net5_fixture_extension=True)
+        == "NETWORK_FOUNDATION"
+    )
+    assert (
+        selector.select_cpu_profile(
+            [*paths, "carbon/scoring/engine.py"], net5_fixture_extension=True
+        )
+        == "RUNTIME_FULL"
+    )
+    for path in selector._NET5_AFTER:
+        target = tmp_path / path
+        original = target.read_text()
+        target.write_text(original + "\n# any different evaluator or fixture input\n")
+        assert not selector.exact_net5_fixture_extension(tmp_path, "base")
+        target.write_text(original)
+    before["carbon/traineval/model.py"] += b"changed prior contract"
+    assert not selector.exact_net5_fixture_extension(tmp_path, "base")
+    for test in (
+        "test_net5_setup.py",
+        "test_traineval_stub.py",
+        "test_scoring_engine.py",
+        "test_submission_fsm.py",
+    ):
+        assert "tests/cpu/" + test in selector.NETWORK_TESTS

@@ -80,3 +80,24 @@ retaining unresolved runtime assertions. That closure does not mark the full
 shared-winner localnet path or G2 complete. Actual observations and the precise
 shielded-registration failure are archived in `.agent/evidence/wave_c/net-5-runtime/`.
 NET-6 must preserve this distinction and the remaining executable command.
+
+## NET-5-D2 — Exact fixture migration acceptance scope
+
+Under OWNER-C0-VALIDATION-01, use the complete focused network suite (including
+all existing A7/A8, scoring and new NET-5 setup/three-exam tests), all invariants,
+quality, package, Hub and required image/Merge checks. The selector recognizes
+only the exact before/after bytes of the two A8 fixture-owner files and two new
+fixed fixture packs. Any other evaluator, pack, threshold, dependency or unknown
+path change retains full regression. This is a finite synthetic identity
+extension with unchanged scoring contracts, not a general science exemption.
+
+Broader run 34427443255 was stopped after review found a test-only batch-ID
+collision across challenges. It is not a successful full-regression receipt.
+The repaired test uses challenge-specific IDs just like the actual runtime
+harness; conflicting replay remains rejected. A prior invariant-marker omission
+also remains recorded as a failed run. No assertion is removed or weakened.
+This scope avoids repeating unrelated long CPU tests for that test repair.
+Alternatives: another full suite adds unrelated coverage; globally exempting A8
+would lose the science fallback and is rejected. To supersede, change the exact
+migration predicate in scripts/dev/select_cpu_profile.py and its regression tests.
+No reserved scientific/security decision is selected. G2 remains NOT_READY.

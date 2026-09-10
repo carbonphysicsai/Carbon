@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import subprocess
 import sys
 from pathlib import Path
@@ -67,12 +68,22 @@ NETWORK_TESTS = (
     "tests/cpu/test_net4a_intents.py",
     "tests/cpu/test_net4b_publication.py",
     "tests/cpu/test_net4b_sdk.py",
+    "tests/cpu/test_net5_setup.py",
+    "tests/cpu/test_net5_integration.py",
     "tests/cpu/test_card_store.py",
     "tests/cpu/test_scoring_engine.py",
     "tests/cpu/test_leaderboard.py",
 )
 _NETWORK_PATHS = frozenset(
     {
+        "carbon/chain/localnet.py",
+        "scripts/dev/localnet.sh",
+        ".github/workflows/localnet.yml",
+        "tests/cpu/net5_fixture_support.py",
+        "tests/cpu/test_net5_setup.py",
+        "tests/cpu/test_net5_integration.py",
+        "tests/invariants/test_net5_localnet_boundary.py",
+        "docs/development/LOCALNET_INTEGRATION.md",
         "carbon/rewards/__init__.py",
         "carbon/rewards/core.py",
         "carbon/rewards/ledger.py",
@@ -123,6 +134,44 @@ _NETWORK_PATHS = frozenset(
 )
 
 
+# Exact NET-5 finite synthetic identity migration, never a general A8 exemption.
+_NET5_AFTER = {
+    "carbon/traineval/model.py": "30dccbcf63aef8d7e9cab9557f8217fdccb747690902e041e2c5a23d658b5705",
+    "carbon/traineval/service.py": "d0bbbcb93ab7e88c7efa77aecb9149db36846956712b55b7957a4fe5249649c6",
+    "tests/fixtures/score_packs/a5_fixture_net5_b_v1.json": "11c7dec2ea770ded856897f0dd778d0ff39f51375bd9f023cfe0e3abb3b68bc2",
+    "tests/fixtures/score_packs/a5_fixture_net5_c_v1.json": "960820dab74f8113f725e8b8ddb36152529b0e12c4b12b55ed4769b49b69c7f0",
+}
+_NET5_BEFORE = {
+    "carbon/traineval/model.py": "693c921c832723d6e5af403efd4de7a1494a7521246d2fc128d9949afe818cac",
+    "carbon/traineval/service.py": "ddbd7bbfc9532d849e7a4ad8889c2a8ee3bd45b3942f606f1891c370bb18b239",
+}
+
+
+def exact_net5_fixture_extension(repository: Path, base: str) -> bool:
+    for path, expected in _NET5_AFTER.items():
+        try:
+            value = (repository / path).read_text(encoding="utf-8").encode()
+        except OSError:
+            return False
+        if hashlib.sha256(value).hexdigest() != expected:
+            return False
+        prior = subprocess.run(
+            ["git", "show", f"{base}:{path}"],
+            cwd=repository,
+            capture_output=True,
+            check=False,
+        )
+        if path in _NET5_BEFORE:
+            if (
+                prior.returncode
+                or hashlib.sha256(prior.stdout).hexdigest() != _NET5_BEFORE[path]
+            ):
+                return False
+        elif prior.returncode == 0:
+            return False
+    return True
+
+
 def chain_constraint_tightening(before_project, after_project, before_lock, after_lock):
     """Exact NET-1 constraint migration; no resolved package/artifact may change."""
     return (
@@ -141,6 +190,7 @@ def select_cpu_profile(
     *,
     unchanged_chain_resolution: bool = False,
     transport_root_addition: bool = False,
+    net5_fixture_extension: bool = False,
 ) -> str:
     """Allow only known tooling plus already lighter authority/document paths.
 
@@ -151,6 +201,8 @@ def select_cpu_profile(
     classification = classify_paths(paths)
     network = any(path in _NETWORK_PATHS for path in paths)
     allowed = _TOOLING_PATHS | (_NETWORK_PATHS if network else frozenset())
+    if network and net5_fixture_extension:
+        allowed |= set(_NET5_AFTER)
     if network and unchanged_chain_resolution:
         allowed |= {"pyproject.toml", "uv.lock"}
     if network and transport_root_addition:
@@ -242,6 +294,8 @@ def main() -> int:
             paths,
             unchanged_chain_resolution=same_resolution,
             transport_root_addition=root_addition,
+            net5_fixture_extension=bool(set(paths) & set(_NET5_AFTER))
+            and exact_net5_fixture_extension(args.repository, args.base),
         )
     except (ChangeClassificationError, OSError) as error:
         print(f"CPU profile selection failed: {error}", file=sys.stderr)
