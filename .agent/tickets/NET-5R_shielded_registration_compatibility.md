@@ -1,7 +1,9 @@
 # NET-5R — Shielded registration compatibility repair
 
 **Wave:** C0/G2 evidence follow-up
-**Status:** `done` in the bounded standard-profile disposable-localnet scope
+**Status:** `done`
+
+Bounded disposition: standard-profile disposable-localnet scope only.
 
 PR #132 merged the eight-block shield-era repair as
 `675427ec8852579aa9d336bbec94e28be7b62810`; PR #133 merged the standard-profile
