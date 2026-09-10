@@ -39,7 +39,9 @@ the deterministic genesis is equal. Configuration binds the exact container ID.
 ## Start one publisher with an external disposable key
 
 The retained private directory contains `operator.json` and the existing SQLite
-journal. It contains no generated key file. Supply the matching throwaway key
+journal. The operator rehearsal retains its known throwaway `publisher.key` only in this
+private directory; the public evidence archive excludes it. For operator startup,
+supply the matching throwaway key
 through `publisher.key`, owner-only mode 0600, in that private directory. For this
 specific disposable fixture publisher only, its known development URI is
 `//Alice_hk`. Never use a real account or put key files in artifacts/version control.
@@ -154,3 +156,7 @@ scientific qualification, C-EA evidence custody, C2 public integration and live
 security/economic approvals remain with their existing owners. Treasury is absent
 from this persistent direct-winner-plus-burn path; optional treasury work has its
 own future admission/custody contract. B-E4 and unfinished B-01G remain non-blocking.
+
+Final program status and exact C1/C2/archive dependencies:
+`.agent/plans/C0_G2_C1_C2_HANDOFF.md`. C0 engineering is delivered in bounded
+scope; G2 is NOT_READY and no later implementation ticket is selected.

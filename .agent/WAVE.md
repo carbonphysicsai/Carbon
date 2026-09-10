@@ -8,7 +8,9 @@
 > NET-4A merged in PR #124 as ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f.
 > NET-4B merged in PR #125 as 0e6b5e001302b349135785756c633530853684c2.
 > NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
-> NET-6 is now the one active implementation ticket; G2 remains NOT_READY.
+> NET-6 merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
+> C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
+> No implementation ticket is currently active. C1/C2 handoff is unselected.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -25,8 +27,9 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 0.8
-**Selected ticket:** NET-6 — `in_progress`
+**Controlling register:** `.agent/WAVE_C.md` version 0.9
+**Selected ticket:** NET-6 — `done`
+**Next selected ticket:** none
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -64,7 +67,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** NET-1 through NET-5 and C-REWARD are merged in bounded scope; NET-6 is selected alone. G2 is NOT_READY.
+**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
@@ -520,7 +523,7 @@ planning and sequencing authority until a prospective, reviewed, green, and
 normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
 does not authorize implementation by itself.
 
-Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.8 the initial
+Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.9 the initial
 controlling Wave B dependency board. Version 0.5 recorded the owner-directed
 B-01E insertion. Version 0.6 recorded proven B-02A closeout and B-07R's
 delegated engineering ratification and conditional completion mechanism.
@@ -539,7 +542,7 @@ completed normalized external receipt is posted. Version 1.2 records that PR
 B-04 bounded runtime. Version 1.3 prepares B-04's conditional bounded `done`
 and B-05 `in_progress` selection; those states remain inert until B-04's full
 Delivery Protocol predicate and receipt pass. The architecture
-contract is version 0.8 at
+contract is version 0.9 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
 [`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). PR #59 normally merged

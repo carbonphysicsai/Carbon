@@ -447,7 +447,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0 NET foundation | NET-1 through NET-5 and C-REWARD merged in bounded scope; NET-6 selected alone | All-burn localnet and recovery observed; shielded miner registration unresolved; shared-winner runtime and G2 NOT_READY; no public deployment |
+| C0 NET foundation | NET-1 through NET-6 and C-REWARD merged in bounded scope; no active implementation ticket | All-burn localnet, node/publisher recovery and complete logical backup/restore observed; shielded miner registration unresolved; shared-winner runtime and G2 NOT_READY; C1/C2 handoff unselected; no public deployment |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |
