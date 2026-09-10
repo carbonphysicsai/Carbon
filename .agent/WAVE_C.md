@@ -13,8 +13,9 @@
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
 > OWNER-C1-C2-BURGERS-01 authorizes dependency-ready offline C1/C2
 > engineering without changing G2. C-AUTH1 merged in PR #130 and C-EA0 merged
-> in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R is the active
-> compatibility repair.
+> in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R remains the
+> active compatibility ticket; its bounded repair is ready while G2 remains
+> NOT_READY on the retained upstream blocker.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -46,9 +47,11 @@ offline C1/C2 engineering may proceed while G2 is NOT_READY. G2 continues to gat
 the readiness claim and every chain-dependent execution. The active offline order
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
 C-EA1 is the next contract consumer but its real archive implementation remains
-fail closed on the reserved human inputs. NET-5R is now selected with a
-source-confirmed mortality hypothesis; only the changed, contract-checked
-eight-block configuration may enter a new runtime attempt.
+fail closed on the reserved human inputs. NET-5R completed the smallest
+source-confirmed mortality repair and two changed canonical runs. The second run
+isolated intermittent authenticated unshield failure in the pinned v445
+fast-localnet proposer/keystore path; NET-5R remains selected and no later ticket
+is selected.
 
 ## 2. NET-0 development disposition
 
@@ -93,8 +96,12 @@ C-01 passed canonical RUNTIME_FULL acceptance and normally merged in PR #129 as
 RUNTIME_FULL, Hub and merge-gate acceptance in run 34449303309 and normally
 merged in PR #130 as 5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4.
 C-EA0 accepted head 62fbaad81081d87e70c8f438642b6529b6f93aff passed canonical run 34455987632 and normally
-merged in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R is
-selected. C-AUTH1 and C-EA0 remain bounded offline engineering only; the public
+merged in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R's
+bounded repair is the PR #132 delivery candidate: focused contracts pass and
+canonical run 34465977413 isolates authenticated unshield failure after a
+finalized carrier. NET-5R remains in progress, G2 remains NOT_READY and no later
+ticket is selected. C-AUTH1
+and C-EA0 remain bounded offline engineering only; the public
 workbench evidence is not scientifically qualified and C-EA0 creates no archive
 runtime. C-EA1 is unstarted and input-blocked.
 
@@ -108,5 +115,7 @@ frontier, settlement or G2 readiness follows from these unit contracts.
 The current G2 disposition and concrete C1/C2/archive handoff are in
 `.agent/plans/C0_G2_C1_C2_HANDOFF.md`. NET-5R owns only the compatibility repair;
 C-W1 still follows real C1, C-EA2 and its G2 dependency and is not selected.
-The remaining C0 operation is tested shielded-registration compatibility followed
-by the existing full localnet scenario. B-E4 and unfinished B-01G remain non-blocking.
+The remaining G2 operation requires a supported upstream v445 fast-localnet
+proposer/keystore repair or an explicitly authorized compatible SDK/runtime pin,
+then the existing full localnet scenario. B-E4 and unfinished B-01G remain
+non-blocking.

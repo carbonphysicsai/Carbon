@@ -2,8 +2,11 @@
 
 **Wave:** C0/G2 evidence follow-up
 **Status:** `in_progress`
+
+The smallest supported Carbon repair is a bounded delivery candidate, but the
+canonical full scenario did not pass and G2 remains `NOT_READY`.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
-**Decision:** `NET-5R-D1`
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
@@ -16,13 +19,13 @@ localnet scenario.
 
 ## Definition of Done
 
-- [ ] Reproduce only under a stated new hypothesis and capture enough public-safe
+- [x] Reproduce only under a stated new hypothesis and capture enough public-safe
       evidence to distinguish timing, key rotation, nonce, era and runtime causes.
-- [ ] Make the smallest compatible repair without unchecked extrinsics, public
+- [x] Make the smallest compatible repair without unchecked extrinsics, public
       endpoints, persistent value, or production keys.
 - [ ] Pass focused compatibility tests and the existing disposable full scenario
       on canonical Linux amd64 Docker.
-- [ ] Observe the required shared-winner and recycled-UID effects, or retain G2
+- [x] Observe the required shared-winner and recycled-UID effects, or retain G2
       NOT_READY with the exact remaining blocker.
 
 ## Boundaries
@@ -60,3 +63,37 @@ remaining branch to decapsulation-key availability, ML-KEM/XChaCha unshielding,
 or inner-extrinsic push validity; drand is not part of this shield decryptor.
 Enable only the pinned proposer/shield debug targets for one changed diagnostic
 run. Do not alter the intent, nonce, era, runtime, extrinsic or isolation path.
+
+## NET-5R-D2 — Retain the authenticated unshield blocker
+
+Canonical Linux run 34465977413 at exact head
+`b2ff8e607dfd0bf2b116944bd89a130c2b8eb944` ran the full disposable scenario
+with the refined debug configuration. The miner carrier
+`0x4bbc97f657865be6a9bb74957ae7b88e0aa52b5e0f888410d3cca02cb41cc25b`
+and inner
+`0xdc0a70d67441a3665e001a27fdea0ae15971f6ba0029b0af82ea8fb6d5a6670b`
+both finalized at block 255. The challenger carrier
+`0x4c9b0b0721b75c057cf9437a4cc019a561f9b4157de2c8b8770e0691b5268082`
+finalized at block 263, but proposer and runtime debug targets both reported
+`Failed to unshield transaction`; the exact challenger inner hash
+`0x559cabb65387597d99ce7e07f070f8f39ebe37dfdbf98a9bb84e5d1b91c0f87b`
+was absent through finalized block 266.
+
+This changed run distinguishes the retained failure from mortality, nonce,
+carrier policy, drand and inner-dispatch rejection. The remaining failure is an
+intermittent authenticated unshield mismatch in the pinned v445 fast-localnet
+proposer/keystore path. Carbon has no supported retry, unchecked-extrinsic,
+legacy-registration or runtime-bypass repair. The next interface input must be a
+supported upstream repair for that v445 path, or an explicitly authorized new
+compatible SDK/runtime pin. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068.
+
+## Bounded delivery disposition
+
+The source-backed mortality repair and its focused contracts pass, and both
+changed canonical hypotheses were executed once. The full scenario did not pass,
+so its Definition-of-Done checkbox remains intentionally open and neither
+shared-winner nor recycled-UID evidence is claimed. The smallest supported Carbon
+repair is ready to ship, but NET-5R remains `in_progress` on the exact upstream
+interface blocker above. G2 remains `NOT_READY`. No later ticket is selected,
+and C-EA1's unresolved operating decisions remain scoped to C-EA1.

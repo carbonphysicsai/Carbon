@@ -13064,6 +13064,19 @@ finalized reconciliation and disposable/public-network boundary. Only the
 changed configuration may be exercised on a fresh canonical localnet.
 Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
 
+## NET-5R-D2 — Retain the authenticated unshield blocker without a bypass
+
+Canonical Linux run 34465977413 proves that the repaired eight-block carrier and
+inner path can succeed for the miner, then fails the challenger after its carrier
+is finalized: the pinned proposer and runtime both report `Failed to unshield
+transaction`, and the exact inner is absent. Retain G2 `NOT_READY`; do not add a
+retry, unchecked extrinsic, legacy registration, runtime bypass or public-network
+operation. The exact remaining interface dependency is a supported upstream v445
+fast-localnet proposer/keystore repair that keeps the authenticated decapsulation
+key consistent, or an explicitly authorized compatible SDK/runtime pin. C-EA1's
+operating inputs remain scoped to C-EA1. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

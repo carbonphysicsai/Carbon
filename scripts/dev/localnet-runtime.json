@@ -28,5 +28,5 @@
     "preserve_container_chain_on_restart": true,
     "startup_revision": "NET-6 no-purge; original NET-5 evidence retains its original startup digest"
   },
-  "observed_evidence": ".agent/evidence/wave_c/net-5-runtime/34425292251/manifest.json"
+  "observed_evidence": ".agent/evidence/wave_c/net-5r-runtime/34465977413/manifest.json"
 }

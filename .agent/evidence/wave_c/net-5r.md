@@ -1,7 +1,7 @@
 # NET-5R shielded registration compatibility evidence
 
-**Status:** selected candidate; source-confirmed hypothesis and smallest repair
-implemented; canonical full disposable-localnet execution pending.
+**Status:** bounded NET-5R engineering complete; smallest supported repair and
+two changed canonical full-scenario executions retained; G2 `NOT_READY`.
 
 **Starting main:** `a3ca8cd111689329832131eac1460d579c7828b3`
 (PR #131).
@@ -10,7 +10,7 @@ implemented; canonical full disposable-localnet execution pending.
 
 **Primary Hub map_ref:** `WAVE-C/NET-5R`.
 
-**Decision:** `NET-5R-D1`.
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`.
 
 **Lead notification:**
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
@@ -69,3 +69,34 @@ The retained info-level log cannot distinguish them. The next changed run
 therefore enables only pinned proposer/shield debug targets; it changes the
 diagnostic configuration and tests this exact three-way hypothesis without
 changing, bypassing or retrying the registration operation.
+
+## Refined changed run 34465977413
+
+The refined canonical Ubuntu 24.04 amd64 run executed at exact head
+`b2ff8e607dfd0bf2b116944bd89a130c2b8eb944`. Setup and the installed
+Bittensor 11.1.0 contracts passed. The miner carrier
+`0x4bbc97f657865be6a9bb74957ae7b88e0aa52b5e0f888410d3cca02cb41cc25b`
+and exact inner
+`0xdc0a70d67441a3665e001a27fdea0ae15971f6ba0029b0af82ea8fb6d5a6670b`
+both finalized at block 255. Debug evidence records `Unshielded inner
+transaction` and `Pushed unshielded transaction to the block` for that carrier.
+
+The challenger used a distinct 1184-byte public key digest, inner nonce 1,
+carrier nonce 0 and era 8. Its carrier
+`0x4c9b0b0721b75c057cf9437a4cc019a561f9b4157de2c8b8770e0691b5268082`
+finalized successfully at block 263, while both `mev-shield` and
+`basic-authorship` reported `Failed to unshield transaction`. The exact inner
+`0x559cabb65387597d99ce7e07f070f8f39ebe37dfdbf98a9bb84e5d1b91c0f87b`
+was absent through finalized block 266. This excludes a continued mortality or
+pool rejection, nonce mismatch, drand dependency and post-decrypt inner push
+failure for the unsuccessful operation.
+
+The exact retained artifact set and hashes are in
+`.agent/evidence/wave_c/net-5r-runtime/34465977413/manifest.json`; the workflow
+is https://github.com/carbonphysicsai/Carbon/actions/runs/34465977413. The full
+scenario failed at `register-challenger`, so shared-winner and recycled-UID
+effects remain unobserved. G2 remains `NOT_READY` on an intermittent
+authenticated unshield mismatch in the pinned v445 fast-localnet
+proposer/keystore path. A supported upstream repair for that path, or an
+explicitly authorized compatible SDK/runtime pin, is required; Carbon adds no
+blind retry, unchecked extrinsic, legacy registration or public-network action.

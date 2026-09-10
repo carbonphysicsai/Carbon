@@ -57,6 +57,17 @@ not drand. The harness enables the pinned proposer/shield debug targets so a
 changed diagnostic run can distinguish key availability, unshielding and inner
 push validity without changing the registration operation or isolation.
 
+Refined run 34465977413 observed the miner carrier and decrypted inner both
+finalize at block 255, then observed the challenger carrier finalize at block
+263 while pinned `mev-shield` and `basic-authorship` debug targets both reported
+`Failed to unshield transaction`; its exact inner remained absent. This
+distinguishes the remaining blocker from mortality, nonce, drand, carrier policy
+and post-decrypt inner push rejection. The exact blocker is intermittent
+authenticated unshielding in the pinned v445 fast-localnet proposer/keystore
+path. A supported upstream fix or an explicitly authorized compatible pin is
+required before another changed run; no blind retry or unchecked fallback is
+supported.
+
 ## Fixture ownership and evidence
 
 A8's existing evaluator gets only two additional finite synthetic profiles:
@@ -112,8 +123,10 @@ unresolved: the SDK reports Stale/expired and no exact inner/carrier receipt was
 found through the then-finalized block. No winner or replacement is manufactured.
 The workflow is manual (`workflow_dispatch`); normal CI still runs all setup and
 offline fixture contracts. Do not repeatedly rerun the unchanged registration
-configuration. Exact SDK/runtime source inspection now identifies the 64-block
+configuration. Exact SDK/runtime source inspection identifies the 64-block
 override as incompatible: v445 returns `Stale` above its eight-block shield
-mortality ceiling. The changed eight-block candidate must pass the two-line
-bootstrap/localnet command above on canonical Linux. G2 cannot become
-LOCALNET_READY until the shared-winner/identity scenarios pass.
+mortality ceiling. The eight-block repair was executed twice with changed
+hypotheses on canonical Linux; the refined run failed at the second shielded
+registration as recorded above. G2 cannot become LOCALNET_READY until a
+supported upstream or pin change permits the shared-winner/identity scenarios to
+pass.
