@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 91 map-level change events
+- 92 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. PR #132's eight-block repair is reconciled as merged. NET-5R remains selected: the exact standard-runtime profile and one-shot registration diagnostic passed, and full run 34474220953 proved both shielded registrations plus the shared-winner epoch before a later plain SDK SwapHotkey was rejected Stale without inclusion. The source-backed public-transport refresh candidate is focused-tested but has not had a second full run, so recycled-UID evidence is absent, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created.
+Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. PR #133's NET-5R standard-profile/D4 specification checkpoint is reconciled as merged. Explicit full/standard D4 run 34489505489 at exact post-PR-133 main passed both shielded registrations, shared-winner, finalized SwapHotkey, takeover, recycled-UID isolation and the replacement all-burn epoch. The D5 successor is focused-tested and retains clarified exclusive transport-handover, closure and passive SDK-nonce evidence; G2 remains NOT_READY pending its single changed full run and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created.
 
 ## Maintain
 
