@@ -1,16 +1,14 @@
 # Carbon — Current Implemented vs Specified Ledger
 
-> **Current C0 implementation:** NET-1 is merged in PR #120 at
-> 6dad22db26e4b8babadf73c4de2527a17485a2b1, with canonical installed-SDK
-> and read-only contract evidence. NET-2 merged in PR #121 at 97725a1f4c6c8c65234e96770c847622273fc55e.
-> NET-3 is the sole active implementation
-> candidate, adding authenticated ingress and durable receipts around the
-> unchanged MCP core. Its canonical integration/merge remains pending.
-> Later C0 tickets remain unstarted; G2/localnet, scientific, security,
-> production and LIVE qualification remain unearned. Treasury is optional.
+> **Current C0 implementation:** NET-1 through NET-6, C-REWARD and NET-5R are
+> done in bounded engineering scope. D6 canonical run 34518806217 passed the
+> complete auditable full/standard predicate at exact candidate
+> 97a2405776a3f520076e03a89ea8b7b4086d9ad2. G2 is LOCALNET_READY only for
+> the exact standard-profile disposable v445 localnet; fast/public profiles,
+> scientific, security, production and LIVE qualification remain unearned.
 
-**Status:** OWNER-CANONICAL maturity ledger, reconciled through merged B-GATE
-and the Wave C0 / NET-1 activation transition, following merged B-E4
+**Status:** OWNER-CANONICAL maturity ledger, reconciled through the NET-5R D6
+standard-profile runtime demonstration, following merged B-E4
 engineering, readiness, lifecycle, rehearsal, calibration, execution-
 correctness, association/resource correction, strict pilot-v2 proposal,
 runnable development pilot, and current DEVELOPMENT execution-admission
@@ -28,8 +26,8 @@ the prospective `OWNER-ROADMAP-02` dependency correction.
 > **Current development state.** `.agent/WAVE.md` records Wave B closed in
 > bounded engineering scope after PR #118 accepted head `c510095b...` passed
 > run `34365282759` and normally merged as `ac050fd5...`, tree `46b3844...`.
-> Wave C/C0 is active with NET-3 as the sole selected ticket. NET-1 and NET-2 are merged;
-> NET-3 remains a candidate pending canonical acceptance. PR #94 completed B-05 and B-07C in their bounded
+> Wave C/C0 is closed in bounded scope with no successor selected; C-EA1 remains
+> unstarted and input-blocked. PR #94 completed B-05 and B-07C in their bounded
 > engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as
 > separate bounded immutable-store, TEST_ONLY publisher/ledger, and authorized
 > static-provider/alignment scopes. PR #96 completed B-07E exact static
@@ -447,7 +445,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0/C1 Wave C handoff | NET-1 through NET-6 and C-REWARD merged in bounded scope; C-01/C-AUTH1/C-EA0 delivered offline under OWNER-C1-C2-BURGERS-01; PR #133 standard-profile/D4 checkpoint merged; NET-5R remains selected | D4 run 34489505489 observed both standard-runtime registrations, shared-winner row/epoch, finalized SwapHotkey, takeover, recycled-UID isolation and replacement all-burn epoch; D5 run 34497456242 failed because its next-index evidence read advanced the signing cache; focused D6 removes the observer effect but lacks an authorized runtime run, so G2 remains NOT_READY; offline C1/C2 sequencing creates no public deployment, scientific qualification or eligibility authority |
+| C0/C1 Wave C handoff | NET-1 through NET-6, C-REWARD and NET-5R done in bounded scope; C-01/C-AUTH1/C-EA0 delivered offline; no successor selected | D6 run 34518806217 passed the complete auditable standard-profile predicate, so G2 is LOCALNET_READY only for that exact disposable v445 profile; fast/public capability, scientific qualification and eligibility authority remain unearned; C-EA1 is input-blocked and C-02 lacks its authorized JAX revision/interface |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |

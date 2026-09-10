@@ -13154,6 +13154,43 @@ in this delivery. D4 behavior remains valid evidence, but G2 stays `NOT_READY`
 because D6 lacks a canonical runtime demonstration. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
 
+## 2026-09-11 — OWNER-NET-5R-D6-RUN-01: bounded D6 runtime verification and closeout
+
+The owner authorizes one fresh canonical Linux amd64 Docker NET-5R D6 execution
+with explicit `mode=full` and `profile=standard` against the merged candidate.
+At most one additional full/standard execution is available only if the first
+exposes a concrete correctness defect and a changed source-backed candidate
+addresses it. It is not available for an unchanged retry, optional logging, a
+success streak or reassurance; transaction retries remain zero. If the first run
+passes the existing complete predicate, proceed to evidence-backed delivery and
+merge without another runtime ceremony. If it fails without a supported changed
+correction, stop full execution and retain G2 `NOT_READY` with the exact blocker.
+The allowance neither reopens the exhausted D4/D5 budget nor authorizes JAX,
+C-EA1 implementation, public-network operation, production keys, paid inference,
+treasury funding, scientific/security qualification or selection of a later
+ticket. The retained D5 bytes and historically misleading selected-nonce
+observation remain unchanged; successor evidence must explain that observation's
+invalid interpretation.
+
+## 2026-09-11 — NET-5R-D7: accept D6 full/standard evidence and close G2 narrowly
+
+Canonical workflow run 34518806217 executed exact candidate
+`97a2405776a3f520076e03a89ea8b7b4086d9ad2` with explicit `mode=full` and
+`profile=standard`. Focused contracts and the full scenario passed. Retained
+evidence binds both registrations, finalized nonce transitions, three exclusive
+verified transport handovers, complete shared-winner publication/epoch,
+copy/no-credit, replay/recovery, checked-SDK `SwapHotkey`, takeover, recycled-UID
+non-inheritance and the final replacement all-burn row/epoch to exact operations.
+Carbon never called `account_next_index` on the signing transport; the ordinary
+selected nonce is inferred from exclusivity and finalized account increment.
+
+Accept NET-5R as done in bounded engineering scope. Retained NET-1 through NET-6
+evidence now permits G2 `LOCALNET_READY` for the exact standard-profile
+disposable v445 localnet only. Preserve fast-profile failures and keep the global
+capability flag false. No public-network, production, settlement, wallet-payment,
+scientific, security or LIVE claim follows. The first run passed, so the
+conditionally available second full scenario is unavailable.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

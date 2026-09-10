@@ -12,8 +12,9 @@ CARBON_UV_GROUPS=chain ./scripts/dev/localnet.sh .carbon-artifacts/localnet
 The existing `Disposable localnet evidence` workflow executes these commands on
 an ephemeral Ubuntu runner. Its runtime result is separate from CPU acceptance.
 No mock, skipped integration test, image download or source inspection is a
-successful runtime proof. A failed runtime command retains diagnostics and leaves
-G2 not ready; independent engineering acceptance can still be completed.
+successful runtime proof. A failed runtime command retains diagnostics. G2 is
+now `LOCALNET_READY` only for the exact standard-profile evidence below;
+independent engineering acceptance remains separate.
 
 ## Pins and topology
 
@@ -90,8 +91,7 @@ Carbon candidate verifies the finalized account next nonce and reopens the
 public SDK transport under the same endpoint/genesis/runtime/policy checks. It
 does not touch the private cache, supply a nonce, retry or bypass SDK policy.
 This source-backed transition does not establish timing, standard-versus-fast
-or keystore causation. The full scenario has not been rerun, so G2 stays
-`NOT_READY` pending recycled-UID evidence.
+or keystore causation. D6 later demonstrated it in the complete scenario below.
 
 ## Fixture ownership and evidence
 
@@ -153,5 +153,17 @@ override as incompatible: v445 returns `Stale` above its eight-block shield
 mortality ceiling. The eight-block repair and standard comparison were executed
 only under their recorded changed hypotheses on canonical Linux. The standard
 full run passed registration and shared-winner stages but failed before recycled-
-UID evidence as recorded above. G2 cannot become LOCALNET_READY until the
-complete identity scenario passes.
+UID evidence as recorded above. D5 then retained its observer-effect failure:
+reading public next-index on the signing transport advanced the cache.
+
+D6 removed that stateful observation and canonical Linux amd64 workflow run
+34518806217 explicitly executed `mode=full`, `profile=standard` at exact
+candidate `97a2405776a3f520076e03a89ea8b7b4086d9ad2`. It passed registrations,
+finalized account transitions, exclusive verified transport handover, complete
+shared-winner row/epoch, copy/no-credit, restart/replay, provider recovery,
+checked-SDK `SwapHotkey`, takeover, recycled-UID non-inheritance and replacement
+all-burn row/epoch with zero retries. Public-safe evidence is retained under
+`.agent/evidence/wave_c/net-5r-runtime/34518806217/`. G2 is `LOCALNET_READY`
+only for this exact standard-profile disposable v445 localnet. Fast failures
+remain; the global capability flag stays false, and no public-network,
+settlement, scientific, security, production or LIVE claim follows.

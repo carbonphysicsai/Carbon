@@ -1,9 +1,9 @@
 # NET-5R shielded registration compatibility evidence
 
-**Status:** NET-5R `in_progress`; PR #132's eight-block repair and PR #133's
-standard-profile/D4 checkpoint are merged. D4 passed the full behavioral
-predicate; the retained D5 run exposed a signing-cache observer effect, and D6
-is focused-tested without remaining runtime authority. G2 `NOT_READY`.
+**Status:** NET-5R `done` in bounded standard-profile disposable-localnet scope.
+PR #132's repair and PR #133's standard-profile/D4 checkpoint are merged. D6
+run 34518806217 passed the complete auditable predicate. G2 is
+`LOCALNET_READY` for this exact standard profile only.
 
 **Starting main:** `675427ec8852579aa9d336bbec94e28be7b62810`
 (PR #132). PR #131's merged specification checkpoint remains
@@ -14,7 +14,7 @@ is focused-tested without remaining runtime authority. G2 `NOT_READY`.
 **Primary Hub map_ref:** `WAVE-C/NET-5R`.
 
 **Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`,
-`NET-5R-D5`, `NET-5R-D6`.
+`NET-5R-D5`, `NET-5R-D6`, `NET-5R-D7`.
 
 **Lead notification:**
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
@@ -277,3 +277,52 @@ remains `NOT_READY` on the missing D6 runtime demonstration and no further run
 was dispatched. Workflow:
 https://github.com/carbonphysicsai/Carbon/actions/runs/34497456242. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
+
+## D6 canonical full/standard success — run 34518806217
+
+The owner-authorized first D6 execution ran on canonical Linux amd64 Docker at
+exact candidate `97a2405776a3f520076e03a89ea8b7b4086d9ad2`, explicitly with
+`mode=full` and `profile=standard`. Its head and inputs matched. Setup passed 86
+focused contracts and the full scenario passed in 1,828.88 seconds. Runtime
+identity was v445 at source `d3f40e44bda9019c606aeb0c907bb52ba7fe386c`,
+image digest
+`sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86`,
+standard selector `False`, genesis
+`0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e`,
+SDK `bittensor==11.1.0`, eight-block shield era, nominal 12-second blocks and
+zero transaction retries.
+
+| Predicate | Finalized observation |
+|---|---|
+| Miner registration | Bob; generation 1; carrier `0x47138cdcc7d97f7b54562de20f681edbcd69c39fcc2313acf74c5eeb6cc29f1e`, inner `0x68d0e04ca2d007106af2a017c00f90bec407141f8e61d307438ec9d4139e8101`; block 78 / `0x8429e8a6112f241a4090252f50b8b3ad616920c5b75f5a569fe77d9af17a8a2c`; account 1→2 |
+| Challenger registration | Charlie; generation 2; carrier `0xf99c5ea2286f349764801452e0679e92057070fb211498831073262f0143dd8c`, inner `0x84de64bb4d6cdb2decdfc3a83fb7d9198a6c00814581b7fa173b2c39573209d8`; block 82 / `0x62f4f3e2ef9565d7d14d0796286ca8662db793c41690632d21d30af1bea50bcb`; account 2→3 |
+| Shared winner | Complete vector and stored row; epoch block 111 / `0xfa0bda0ba0ba44e7ff60c7ff288733d2536de847262d8cc6b62404740056beaa`; `MinerBurned=3974620244` |
+| Copy/recovery | Copy without new credit, restart/exact replay and provider recovery passed |
+| `SwapHotkey` | Checked SDK; Bob generation 3; tx `0xc5ab188768de19550da2fe5e23775b7fa51ae7b522ca66d80d1a9cf686253e18`; block 117 / `0x995592e836990fb3ff77b5febc7c385212050316d6207f75b6a459ce488eddb8`; account 2→3, inferred selected nonce 2 |
+| Takeover/recycled UID | UID 1 changed from Bob hotkey to Dave with Bob coldkey; takeover matched and the prior winner target was not inherited |
+| Replacement all-burn | Stored row contained only UID 0 at 65535; epoch block 151 / `0x31b39a93e0b72cf984c58362126c7698a38dd8724b6ed4baf085f03755540525`; burn Q32 `4294967296` |
+
+The ordinary selected nonce is an inference from the exclusive sequence and
+exact finalized `System.Account` increment; it was not decoded from captured
+signed-extrinsic bytes. Generations 1, 2 and 3 each verified replacement
+endpoint, genesis, runtime and profile identity, closed the prior transport, and
+only then made the replacement active. No ambiguous dispatch remained. Account,
+transaction, finalized-block and generation associations stayed exact.
+
+Target weights, stored rows and epochs remain distinct from wallet receipts. No
+settlement or wallet payment was observed, and `MinerBurned` does not prove that
+owner cuts or validator dividends burned. No secret, decrypted private payload,
+public-network credential or persistent value is retained.
+
+The manifest and exact public-safe bytes are under
+`.agent/evidence/wave_c/net-5r-runtime/34518806217/`; workflow:
+https://github.com/carbonphysicsai/Carbon/actions/runs/34518806217. One authorized
+full scenario was consumed. Because the first passed, the conditional second
+run is unavailable. D5 remains byte-for-byte unchanged and its selected-nonce
+interpretation remains invalid for the source-backed cache-mutation reason.
+
+NET-5R is done in bounded engineering scope. Together with retained NET-1
+through NET-6 evidence, G2 is `LOCALNET_READY` for this exact standard-profile
+disposable v445 localnet. The global capability flag remains false: fast-profile
+failures, public networks, production, settlement, science, security and LIVE
+qualification remain outside the claim.

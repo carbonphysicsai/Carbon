@@ -10,18 +10,19 @@
 > NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
 > NET-6 merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
 > C-01 merged in PR #129 as 4c9e8040df3c81ecb167534424df770eb4d77d61.
-> C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
+> C0 engineering delivery is closed in bounded scope; G2 is LOCALNET_READY only
+> for the exact standard-profile disposable v445 localnet.
 > OWNER-C1-C2-BURGERS-01 authorizes dependency-ready offline C1/C2
 > engineering without changing G2. C-AUTH1 merged in PR #130 and C-EA0 merged
 > in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. PR #132 merged
 > NET-5R's eight-block repair as 675427ec8852579aa9d336bbec94e28be7b62810.
 > PR #133 merged the standard-profile and D4 specification checkpoint as
 > 2a71a392380cb4df0e0597a92674882de7801c70.
-> NET-5R remains active after D4 standard-runtime run 34489505489 passed the
-> complete behavioral predicate at exact post-PR-133 main. D5 run 34497456242
-> failed because its public nonce observation advanced the signing cache; D6
-> removes that observer effect but has no remaining authorized full run. G2
-> remains NOT_READY.
+> D5 run 34497456242 failed because its public nonce observation advanced the
+> signing cache. D6 removed that observer effect, and full/standard run
+> 34518806217 passed the complete auditable predicate at candidate
+> 97a2405776a3f520076e03a89ea8b7b4086d9ad2. NET-5R is done; fast/public
+> capability remains unearned.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -34,7 +35,7 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** NET-5R — `in_progress`
+**Selected ticket:** NET-5R — `done`
 **Next selected ticket:** none. C-EA1 remains `todo`, unstarted and input-blocked
 until its reserved human operating inputs are approved.
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
@@ -49,23 +50,22 @@ block the network spine. B-E4 remains deferred/non-blocking, effectiveness
 UNMEASURED; B-01G remains unfinished/non-blocking.
 
 `OWNER-C1-C2-BURGERS-01` prospectively amends sequencing only: dependency-ready
-offline C1/C2 engineering may proceed while G2 is NOT_READY. G2 continues to gate
-the readiness claim and every chain-dependent execution. The active offline order
+offline C1/C2 engineering may proceed independently of G2. G2's narrow standard-
+profile result does not authorize public or chain-dependent C2 execution. The active offline order
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
 C-EA1 is the next contract consumer but its real archive implementation remains
 fail closed on the reserved human inputs. NET-5R's first repair merged in PR
 #132, and PR #133 merged its standard-profile/D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard profile then
 passed a one-shot registration diagnostic.
-D4 run 34489505489, explicitly dispatched as full/standard at exact revision
-`faf99d20356a42ca53e9c1c9a5884d3de4620459`, passed the complete shared-winner,
-takeover and recycled-UID behavioral predicate. D5 run 34497456242 then failed
-at its first configuration call because its next-index evidence read advanced
-the signing transport's cache. D6 replaces that stateful observation with exact
-finalized `System.Account` before/after evidence and is focused-tested. The
-authorized full-run budget is exhausted; NET-5R remains selected, G2 remains
-NOT_READY on the missing D6 runtime demonstration, and no later ticket is
-selected.
+D4 run 34489505489 passed the complete behavioral predicate. D5 run 34497456242
+then failed because its next-index evidence read advanced the signing transport
+cache. D6 replaced that stateful read with exact finalized `System.Account`
+evidence. Canonical full/standard run 34518806217 passed at exact candidate
+`97a2405776a3f520076e03a89ea8b7b4086d9ad2`, including auditable exclusive
+handover. NET-5R is done and G2 is `LOCALNET_READY` only for that exact standard-
+profile disposable v445 localnet. Fast-profile and public-network capability
+remain unearned; no later ticket is selected.
 
 ## 2. NET-0 development disposition
 
@@ -88,7 +88,7 @@ production custody, quorum, science or economics blocks only that operation.
 | NET-4B | Verified complete-vector publication and recovery | done | `.agent/evidence/wave_c/net-4b.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4A | MQ-054, MQ-056 | L | C0 |
 | NET-5 | Reproducible disposable localnet integration | done | `.agent/evidence/wave_c/net-5.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4B | MQ-054, MQ-056 | L | C0 |
 | NET-6 | Disposable operator lifecycle and recovery | done | `.agent/evidence/wave_c/net-6.md` | Codex + network/protocol engineering | Operations + security | NET-5 | MQ-054, MQ-056 | L | C0 |
-| NET-5R | Shielded registration compatibility repair | in_progress | `.agent/evidence/wave_c/net-5r.md` | Codex + network/protocol engineering | Network/protocol + security | NET-5, SDK 11.1.0, runtime v445 | MQ-054, MQ-056 | M | C0/G2 |
+| NET-5R | Shielded registration compatibility repair | done | `.agent/evidence/wave_c/net-5r.md` | Codex + network/protocol engineering | Network/protocol + security | NET-5, SDK 11.1.0, runtime v445 | MQ-054, MQ-056 | M | C0/G2 |
 | C-01 | Durable execution state and queue | done | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
@@ -115,8 +115,9 @@ first repair merged in PR #132 as 675427ec8852579aa9d336bbec94e28be7b62810.
 Standard runs 34473145103/34473508494 bound the profile and passed one
 registration; full run 34474220953 passed both registrations and shared-winner
 evidence but failed before recycled-UID evidence on a plain SDK nonce transition.
-NET-5R remains in progress, G2 remains NOT_READY and no later
-ticket is selected. C-AUTH1
+NET-5R D6 run 34518806217 passed the complete auditable full/standard predicate;
+G2 is LOCALNET_READY for the exact standard profile only, and no later ticket is
+selected. C-AUTH1
 and C-EA0 remain bounded offline engineering only; the public
 workbench evidence is not scientifically qualified and C-EA0 creates no archive
 runtime. C-EA1 is unstarted and input-blocked.
@@ -131,6 +132,6 @@ frontier, settlement or G2 readiness follows from these unit contracts.
 The current G2 disposition and concrete C1/C2/archive handoff are in
 `.agent/plans/C0_G2_C1_C2_HANDOFF.md`. NET-5R owns only the compatibility repair;
 C-W1 still follows real C1, C-EA2 and its G2 dependency and is not selected.
-The remaining G2 operation requires the changed source-backed SDK transport-
-refresh candidate or an upstream equivalent to pass the existing full localnet
-identity scenario. B-E4 and unfinished B-01G remain non-blocking.
+The G2 predicate is satisfied only by the retained standard-profile run and does
+not generalize to the failed fast profile or public networks. B-E4 and unfinished
+B-01G remain non-blocking.

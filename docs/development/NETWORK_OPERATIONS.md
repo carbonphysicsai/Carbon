@@ -1,10 +1,9 @@
 # NET-6 — Disposable node and publisher operations
 
 This is a DEVELOPMENT runbook for the pinned C0 synthetic localnet. G2 is
-NOT_READY: NET-5 measured all-burn rows, finality, epochs and outage recovery,
-but required shielded miner registration failed with SDK Stale/expired. Actual
-shared-winner and recycled-UID chain effects remain unobserved. The operator-only
-rehearsal deliberately does not attempt that unresolved operation.
+`LOCALNET_READY` only for the exact standard-profile disposable v445 evidence in
+run 34518806217. Retained fast-profile failures and the operator-only rehearsal
+do not establish broader capability.
 
 ## Reproduce and retain a disposable session
 
@@ -137,17 +136,19 @@ scenario, and retain capability differences. SDK version alone does not establis
 runtime compatibility. No floating image, automatic production upgrade or policy
 bypass is supported.
 
-The remaining full integration command is:
+The full integration command remains:
 
 ```sh
-CARBON_LOCALNET_MODE=full ./scripts/dev/localnet.sh .carbon-artifacts/localnet
+CARBON_LOCALNET_MODE=full CARBON_LOCALNET_PROFILE=standard \
+  ./scripts/dev/localnet.sh .carbon-artifacts/localnet
 ```
 
-Its prerequisite is a tested resolution of required shielded miner registration
-for the pinned SDK/runtime path. Preserve both inner and carrier transaction IDs,
-finalized-block/era observations and exact errors; do not use an unchecked raw
-extrinsic, downgrade shielding policy, or retry unchanged inputs. The current
-operator mode is not a substitute for this full scenario or G2 readiness.
+D6 run 34518806217 completed this exact standard-profile scenario with preserved
+inner/carrier identities, finalized observations, exclusive verified handover,
+checked-SDK `SwapHotkey` and replacement effects. Do not generalize that result
+to fast or public profiles, use unchecked extrinsics, downgrade policy or retry
+unchanged failures. Operator mode is not a substitute for the demonstrated
+full scenario.
 
 `scripts/dev/public-network-config.schema.json` is an inert handoff schema:
 enabled=false, all privileged identities/policies null. The executable operator
@@ -159,4 +160,5 @@ own future admission/custody contract. B-E4 and unfinished B-01G remain non-bloc
 
 Final program status and exact C1/C2/archive dependencies:
 `.agent/plans/C0_G2_C1_C2_HANDOFF.md`. C0 engineering is delivered in bounded
-scope; G2 is NOT_READY and no later implementation ticket is selected.
+scope; G2 is LOCALNET_READY only for the exact standard profile and no later
+implementation ticket is selected.

@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 93 map-level change events
+- 94 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. PR #133's NET-5R standard-profile/D4 specification checkpoint is reconciled as merged. Explicit full/standard D4 run 34489505489 passed both shielded registrations, shared-winner, finalized SwapHotkey, takeover and recycled-UID effects. D5 run 34497456242 failed at its first configuration call because its public next-index evidence read advanced the signing transport cache. D6 uses exact finalized System.Account evidence without that observer effect and is focused-tested, but the authorized full-run budget is exhausted. NET-5R remains selected, G2 remains NOT_READY on the missing D6 runtime demonstration, and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created.
+Wave **C**; current ticket: **none active**. Last completed: **NET-5R** (`done`). Next selected: **none selected**. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 
