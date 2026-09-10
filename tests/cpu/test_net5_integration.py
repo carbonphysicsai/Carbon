@@ -28,10 +28,22 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
     from carbon.rewards.ledger import FixtureRewardLedger
     from carbon.transport.store import ReceiptJournal
 
+    mode = os.environ.get("CARBON_LOCALNET_MODE", "full")
+    assert mode in ("full", "operator")
+    private = os.environ.get("CARBON_LOCALNET_STATE")
+    if private:
+        tmp_path = Path(private).absolute()
+        assert (
+            not tmp_path.exists()
+        ), "Never overwrite or blindly replay an existing localnet session"
+        tmp_path.mkdir(parents=True, mode=0o700)
     directory = Path(os.environ["CARBON_LOCALNET_EVIDENCE"])
     report = {
         "schema": "carbon.net5.runtime.evidence.v1",
         "maturity": "SYNTHETIC_ONLY",
+        "execution_scope": (
+            "NET6_ALL_BURN_OPERATIONS" if mode == "operator" else "NET5_FULL"
+        ),
         "g2": "NOT_READY",
         "treasury": None,
         "stages": [],
@@ -117,6 +129,23 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 await ledger.register(
                     terms, exam.pack, exam.profile.challenge_key.challenge_id
                 )
+            from carbon.chain.localnet import inspect_isolation
+            from carbon.chain.operations import config_document
+            from carbon.chain.operator_store import exclusive_json
+
+            proof = inspect_isolation(session.container)
+            os.chmod(receipts.path, 0o600)
+            exclusive_json(
+                tmp_path / "operator.json",
+                config_document(
+                    receipts,
+                    session.container,
+                    roles["publisher"].ss58_address,
+                    tuple(e.journal.context for e in exams),
+                    proof["endpoints"],
+                    proof["container"],
+                ),
+            )
             record("three-pinned-fixture-baselines-and-public-coefficients-registered")
             for _ in range(45):
                 if (
@@ -257,6 +286,98 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             record("actual-all-burn-inclusion-finality-row-and-epochs")
 
             await recover(initial_ref, initial, "all-burn-publication-recovery")
+            if mode == "operator":
+                from carbon.chain.operations import (
+                    load_config,
+                    restored_publisher,
+                    supervise,
+                    verified_key,
+                )
+                from carbon.chain.operator_store import backup, journal_view, restore
+
+                before_restart, _before_caps = await backend.observe()
+                before_row = await backend.weight_row(
+                    before_restart,
+                    before_restart.resolve(roles["publisher"].ss58_address).uid,
+                )
+                await backend.close()
+                await asyncio.to_thread(
+                    subprocess.run,
+                    ["docker", "restart", "--time", "35", session.container],
+                    check=True,
+                    capture_output=True,
+                    timeout=55,
+                )
+                for attempt in range(30):
+                    try:
+                        after_restart, after_caps = await asyncio.wait_for(
+                            backend.observe(), 3
+                        )
+                        after_caps.validate(
+                            after_restart, roles["publisher"].ss58_address
+                        )
+                        break
+                    except (TimeoutError, ChainFailure, PublicationFailure):
+                        await backend.close()
+                        if attempt == 29:
+                            raise
+                        await asyncio.sleep(1)
+                assert after_restart.finalized_block >= before_restart.finalized_block
+                assert (
+                    await backend.weight_row(
+                        after_restart,
+                        after_restart.resolve(roles["publisher"].ss58_address).uid,
+                    )
+                    == before_row
+                )
+                report["node_restart"] = {
+                    "before_finalized_block": before_restart.finalized_block,
+                    "after_finalized_block": after_restart.finalized_block,
+                    "stored_row_preserved": True,
+                    "same_container": inspect_isolation(session.container)["container"],
+                }
+                record("actual-node-restart-retains-finalized-chain-and-weight-row")
+
+                async def verify_operator():
+                    assert (
+                        inspect_isolation(session.container)["container"]
+                        == proof["container"]
+                    )
+
+                # Exercise external throwaway key loading and restored consumers against the real chain.
+                config = load_config(tmp_path / "operator.json")
+                config.key_file.write_text("//Alice_hk")
+                config.key_file.chmod(0o600)
+                backend.wallet = None
+                backend.wallet = await verified_key(config, backend, verify_operator)
+                publisher = restored_publisher(config, backend, reader)
+                status = await supervise(
+                    publisher,
+                    asyncio.Event(),
+                    verify_operator,
+                    interval_seconds=1,
+                    max_ticks=2,
+                )
+                assert status["last_dispatch_state"] == "ROW_VERIFIED"
+                assert (
+                    status["stored_weights_may_remain_effective"]
+                    and not status["shutdown_clears_weights"]
+                )
+                bundle = tmp_path / "operator-backup"
+                backup(receipts.path, bundle)
+                restored = tmp_path / "restored.sqlite"
+                restore(bundle, restored, context)
+                with journal_view(receipts.path) as a, journal_view(restored) as b:
+                    assert tuple(a.iterdump()) == tuple(b.iterdump())
+                report["operator_health"] = status
+                report["operator_backup_restore"] = "ALL_LOGICAL_TABLES_EQUAL"
+                report["unobserved"] = [
+                    "shielded miner registration",
+                    "shared winner chain effects",
+                    "recycled UID chain effects",
+                ]
+                record("actual-all-burn-operator-heartbeat-shutdown-and-backup-restore")
+                return  # Explicit operator-only scope; G2 remains NOT_READY.
             await session.register_miners()
             record("shielded-miner-registration-finalized")
             winners = []

@@ -70,12 +70,19 @@ NETWORK_TESTS = (
     "tests/cpu/test_net4b_sdk.py",
     "tests/cpu/test_net5_setup.py",
     "tests/cpu/test_net5_integration.py",
+    "tests/cpu/test_net6_operations.py",
     "tests/cpu/test_card_store.py",
     "tests/cpu/test_scoring_engine.py",
     "tests/cpu/test_leaderboard.py",
 )
 _NETWORK_PATHS = frozenset(
     {
+        "carbon/chain/operations.py",
+        "carbon/chain/operator_store.py",
+        "tests/cpu/test_net6_operations.py",
+        "tests/invariants/test_net6_operator_boundary.py",
+        "scripts/dev/public-network-config.schema.json",
+        "docs/development/NETWORK_OPERATIONS.md",
         "carbon/chain/localnet.py",
         "scripts/dev/localnet.sh",
         ".github/workflows/localnet.yml",
