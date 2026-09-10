@@ -1,0 +1,156 @@
+{
+  "schema": "carbon.disposable.setup.v1",
+  "context": {
+    "network": "localnet",
+    "endpoint": "ws://127.0.0.1:38149",
+    "provider": "disposable-primary",
+    "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+    "netuid": 2
+  },
+  "runtime_profile": "standard",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "roles": {
+    "owner": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+    "miner": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "challenger": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+  },
+  "operations": [
+    {
+      "label": "start_delay",
+      "state": "FINALIZED",
+      "start_finalized_block": 0,
+      "operation_wall_seconds": 144,
+      "transaction": "0x7ba1430c27804165bd67ace9c3e10cec60123509c32a5115b4cbe65990bcf4ce",
+      "block_hash": "0x4eca5ecd26d55feb36cd0776e448668d204122d4d3b0455eaff700399cb1f776",
+      "extrinsic_id": "1-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "owner_rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 1,
+      "operation_wall_seconds": 144,
+      "transaction": "0xd8850ca1eb93d2175a9b053c54b3482248fa1d29a97cf5317b229ed199de7cad",
+      "block_hash": "0xadee5ff3b9f0aeac6180bb93b7635fbe8c83ad8bcda808b34073a1c866143785",
+      "extrinsic_id": "4-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "admin_window",
+      "state": "FINALIZED",
+      "start_finalized_block": 4,
+      "operation_wall_seconds": 144,
+      "transaction": "0xa51882b4248353d37b8bb61ebc811e931d51156367713fd4d9d7486f925fbf61",
+      "block_hash": "0xb790e5c79342edbf14a11fb4d5b16fa3f0ce8a5a141876a4ec9917ea8c60b505",
+      "extrinsic_id": "7-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "create-subnet",
+      "state": "FINALIZED",
+      "start_finalized_block": 7,
+      "operation_wall_seconds": 144,
+      "transaction": "0x50e6c298b41d26cfe20fe0195f48577b8f7f99890a8e8a8b56efdb2b093f946e",
+      "block_hash": "0xdc6fc192cd25f759d509ea552b71f999a00326f3f263dbc38ac713d7bf42fbb0",
+      "extrinsic_id": "10-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "registration",
+      "state": "FINALIZED",
+      "start_finalized_block": 10,
+      "operation_wall_seconds": 144,
+      "transaction": "0x32a36cd5ec408e5c446405e6e6997c5a9fd5161eadb17ec7969e2e8b71254baf",
+      "block_hash": "0x3633175defaad2b01f9c6e404fe7b73ac009ea2628541d88bfe661e04382b691",
+      "extrinsic_id": "13-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "diagnostic-register-miner",
+      "state": "FINALIZED",
+      "start_finalized_block": 13,
+      "shield_era_blocks": 8,
+      "block_aware_deadline": {
+        "mortality_period_blocks": 8,
+        "sdk_inner_scan_blocks_after_carrier": 8,
+        "maximum_scan_block": 29
+      },
+      "operation_wall_seconds": 144,
+      "shield_key_queries": [
+        {
+          "digest": "sha256:b2be6c535a2bcde3b70e9f7c22849363ef674f0268eb963febcbaf281ac2bd88",
+          "length": 1184,
+          "queried_at_block": 15,
+          "queried_at_hash": "0x1f24a53ee38444b8ce2e2e721ebd61f35abd89abcadd843e572e9f6b927ce4c5",
+          "expires_at_exclusive": 18,
+          "associated_authors": [
+            "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+          ]
+        }
+      ],
+      "shield_key": {
+        "digest": "sha256:b2be6c535a2bcde3b70e9f7c22849363ef674f0268eb963febcbaf281ac2bd88",
+        "length": 1184,
+        "queried_at_block": 15,
+        "queried_at_hash": "0x1f24a53ee38444b8ce2e2e721ebd61f35abd89abcadd843e572e9f6b927ce4c5",
+        "expires_at_exclusive": 18,
+        "associated_authors": [
+          "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+        ]
+      },
+      "signed_extrinsics": {
+        "inner": {
+          "nonce": 1,
+          "era_blocks": 8
+        },
+        "carrier": {
+          "nonce": 0,
+          "era_blocks": 8
+        }
+      },
+      "inner_transaction": "0x59edd5f12d3c732311aee3569343a590b94d5540edc03e12a4ff8dcc2cd2867b",
+      "transaction": "0xa20e0826b48837ca9c980665fd593679da875bdb0557c15d8887f54429d486ff",
+      "shielded": true,
+      "block_hash": "0x07cf150eb57e0d941c25fc3fc6139f9a490a041604700b02bd907f7dd50eb4d4",
+      "extrinsic_id": "17-0003",
+      "error_name": null,
+      "error_code": null,
+      "diagnostic_scan": {
+        "from_finalized_block": 13,
+        "through_block": 19,
+        "receipts": {
+          "transaction": {
+            "block": 17,
+            "block_hash": "0x07cf150eb57e0d941c25fc3fc6139f9a490a041604700b02bd907f7dd50eb4d4",
+            "success": true,
+            "extrinsic_id": "17-0002"
+          },
+          "inner_transaction": {
+            "block": 17,
+            "block_hash": "0x07cf150eb57e0d941c25fc3fc6139f9a490a041604700b02bd907f7dd50eb4d4",
+            "success": true,
+            "extrinsic_id": "17-0003"
+          }
+        }
+      },
+      "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+      "key_rotation_context": {
+        "carrier_block": 17,
+        "carrier_block_hash": "0x07cf150eb57e0d941c25fc3fc6139f9a490a041604700b02bd907f7dd50eb4d4",
+        "queried_key_positions": [
+          "CurrentKey"
+        ],
+        "associated_authors_at_carrier": [],
+        "query_expiry_exclusive": 18
+      }
+    }
+  ],
+  "treasury": null
+}
