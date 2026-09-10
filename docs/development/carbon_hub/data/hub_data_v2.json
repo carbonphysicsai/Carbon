@@ -6038,7 +6038,7 @@
         "NET-5"
       ],
       "owner": "Codex + network/protocol engineering",
-      "reviewer": "Network/protocol + security",
+      "reviewer": "Operations + security",
       "master_questions": [
         "MQ-054",
         "MQ-056"

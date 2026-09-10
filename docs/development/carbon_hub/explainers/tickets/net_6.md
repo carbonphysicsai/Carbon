@@ -23,7 +23,7 @@ Guarded operator CLI, retained private configuration, restart-safe node startup,
 - **Depends on:** NET-5
 - **Feeds:** No downstream ticket captured.
 - **Driver:** Codex + network/protocol engineering
-- **Review route:** Network/protocol + security
+- **Review route:** Operations + security
 - **Master questions:** MQ-054, MQ-056
 
 ## Explicit non-goals
