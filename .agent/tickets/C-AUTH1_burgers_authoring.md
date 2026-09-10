@@ -1,9 +1,9 @@
-# C-AUTH-1 — Goal-driven authoring and Burgers Dynamics V1 import
+# C-AUTH1 — Goal-driven authoring and Burgers Dynamics V1 import
 
 **Wave:** C1 real scientific execution foundations
 **Status:** `future_reserved`; next after C-01 acceptance and merge
 **Depends on:** C-01 delivery; verified owner-supplied workbench
-**Primary Hub map_ref:** `WAVE-C/C-AUTH-1`
+**Primary Hub map_ref:** `WAVE-C/C-AUTH1`
 
 ## Goal
 
@@ -36,4 +36,3 @@ on it. C-02 may consume only a typed adapter until the authorized actual JAX
 training source, revision and API are available. D-03/D-04 still own canonical
 reference qualification. This ticket earns no scientific, security, network,
 archive, production or LIVE maturity.
-

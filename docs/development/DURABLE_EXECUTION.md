@@ -35,4 +35,3 @@ does not score, publish a card, sign an EvaluationReceipt, archive evidence, set
 weights, or perform network I/O. Every recorded result remains explicitly marked
 `C_EA2_ACKNOWLEDGEMENT_REQUIRED`; C-EA2 must provide verified archive durability
 before any required real result can be finalized or published.
-

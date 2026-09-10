@@ -29,4 +29,3 @@ The previous all-burn and operator evidence remains valid. Do not rerun the
 unchanged failing command, infer a cause from `Stale/expired`, relabel unit tests
 as runtime evidence, or perform a public-network transaction. Treasury remains
 optional and irrelevant to this repair.
-

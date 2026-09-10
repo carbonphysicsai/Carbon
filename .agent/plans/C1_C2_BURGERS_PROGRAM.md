@@ -30,7 +30,7 @@ pass G2, authorize public-network activity, or permit real eligibility without
 its required evidence.
 
 1. C-01 durable execution state and queue.
-2. C-AUTH-1 goal-driven authoring and the public Burgers V1 package import.
+2. C-AUTH1 goal-driven authoring and the public Burgers V1 package import.
 3. C-EA0 before any consumer relies on capture, custody, retention or
    acknowledgement semantics.
 4. Remaining C1 tickets in their actual dependency order; materialize C-03,
@@ -55,4 +55,3 @@ semantics and evidence-role labels must remain intact. Launch-owned D-03/D-04
 reference roles, actual JAX source integration, custody/retention/fault policy,
 independent reexecution, public-network identity and human scientific/security
 qualification remain separate unresolved owners.
-

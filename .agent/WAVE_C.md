@@ -25,7 +25,7 @@ Wave C/C0 and this file as its controlling register.
 **Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
 **Selected ticket:** C-01 — `in_progress`
-**Next selected ticket:** C-AUTH-1 after C-01 acceptance and merge
+**Next selected ticket:** C-AUTH1 after C-01 acceptance and merge
 **Primary Hub map_ref:** `WAVE-C/C-01`
 
 ## 1. Scope and sequence
@@ -40,7 +40,7 @@ UNMEASURED; B-01G remains unfinished/non-blocking.
 `OWNER-C1-C2-BURGERS-01` prospectively amends sequencing only: dependency-ready
 offline C1/C2 engineering may proceed while G2 is NOT_READY. G2 continues to gate
 the readiness claim and every chain-dependent execution. The active offline order
-starts C-01 -> C-AUTH-1, with C-EA0 placed before consumers rely on archive
+starts C-01 -> C-AUTH1, with C-EA0 placed before consumers rely on archive
 semantics. NET-5R is a separate unselected compatibility repair; the unchanged
 failing registration command must not be rerun without a new hypothesis.
 
@@ -65,6 +65,8 @@ production custody, quorum, science or economics blocks only that operation.
 | NET-4B | Verified complete-vector publication and recovery | done | `.agent/evidence/wave_c/net-4b.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4A | MQ-054, MQ-056 | L | C0 |
 | NET-5 | Reproducible disposable localnet integration | done | `.agent/evidence/wave_c/net-5.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4B | MQ-054, MQ-056 | L | C0 |
 | NET-6 | Disposable operator lifecycle and recovery | done | `.agent/evidence/wave_c/net-6.md` | Codex + network/protocol engineering | Operations + security | NET-5 | MQ-054, MQ-056 | L | C0 |
+| C-01 | Durable execution state and queue | in_progress | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
+| C-AUTH1 | Goal-driven authoring and Burgers V1 import | todo | none | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -77,15 +79,11 @@ d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6. C-REWARD passed run 34416168621 and me
 ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f. NET-4B passed run 34421219713 and merged in PR #125 as
 0e6b5e001302b349135785756c633530853684c2. NET-5 passed run 34429639429 and merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db. NET-6 passed run 34432281140 and normally merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
 Completion receipt: https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862.
-Later C0 tickets are unstarted. NET-5R is materialized but unselected.
-
-## 3A. Selected C1 ticket board
-
-| ID | Deliverable | Status | Evidence | Depends on | Authority ceiling |
-|---|---|---|---|---|---|
-| C-01 | Durable execution state and queue | in_progress | `.agent/evidence/wave_c/c-01.md` | A7, B-GATE | Offline engineering only; no finalization, qualification, or network authority |
-| C-AUTH-1 | Goal-driven authoring and Burgers V1 import | future_reserved | none | C-01 delivery | Public workbench evidence only; scientifically unqualified |
-| C-EA0 | Concrete execution-evidence capture contract | future_reserved | none | current C1 design | Human-owned custody/retention/fault decisions stay unresolved |
+Later C0 tickets are unstarted. NET-5R is materialized but unselected. C-01 is
+bounded offline engineering only, with no finalization, qualification or network
+authority. C-AUTH1 remains unstarted; its public workbench evidence is not
+scientifically qualified. C-EA0 stays future-reserved until selected after the
+current C1 design is concrete.
 
 ## 4. Acceptance and maturity
 
