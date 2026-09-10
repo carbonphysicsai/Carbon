@@ -1,7 +1,7 @@
 # NET-6 — Disposable network operations and recovery
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** NET-5
 **Primary Hub map_ref:** `WAVE-C/NET-6`
 **Evidence:** `.agent/evidence/wave_c/net-6.md`
@@ -45,7 +45,7 @@ SDK default network, arbitrary import factory, treasury or public service.
       state across crash/restart; tamper/context/schema/path failures are tested.
 - [x] Operator runbook and reproducible pinned node/runtime/image/SDK upgrade commands;
       public-network configuration remains inert with unresolved inputs explicit.
-- [ ] Meaningful focused tests, all applicable canonical acceptance and Hub checks;
+- [x] Meaningful focused tests, all applicable canonical acceptance and Hub checks;
       actual operator-runtime observations or exact environmental failure retained.
 - [x] Evidence-backed G2 disposition and exact C1/C2/archive handoff, without claiming
       unavailable shared-winner runtime or real scientific evidence.
@@ -75,6 +75,6 @@ and G2 readiness remain unearned. Production custody/quorum/science/security and
 public deployment inputs block their operations only. B-E4 stays optional/deferred/
 non-blocking and UNMEASURED; B-01G remains unfinished/non-blocking.
 
-Actual operator run 34431662096 passed on the pinned isolated runtime. The final
-canonical engineering acceptance and merge remain pending; the remaining DoD
-checkbox is not satisfied by native diagnostics or that separate runtime lane.
+Actual operator run 34431662096 passed on the pinned isolated runtime. Canonical acceptance passed run 34432281140; PR #127 normally merged as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
+Completion receipt: https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862. Bounded operator engineering is delivered; the
+full shared-winner runtime path and G2 readiness are not earned.

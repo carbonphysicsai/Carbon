@@ -1968,6 +1968,29 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-6",
+      "event_type": "adjustment",
+      "event_id": "NET-6-CLOSEOUT",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected. The route regression now handles an explicitly null active/next selection by checking the completed ticket, preserving all route assertions. Its known tooling path uses focused acceptance; unrelated unknown paths retain full fallback.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/GOVERNANCE",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/CI"
+      ],
+      "supersedes": null
     }
   ]
 }

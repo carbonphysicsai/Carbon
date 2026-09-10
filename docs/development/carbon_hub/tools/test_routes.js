@@ -9,7 +9,7 @@ const primary = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const data = JSON.parse(fs.readFileSync(path.join(root, 'data', 'hub_data_v2.json'), 'utf8'));
 const eventBundle = JSON.parse(fs.readFileSync(path.join(root, 'data', 'change_events.json'), 'utf8'));
 const currentWave = data.waves.find(wave => wave.id === data.current.wave);
-const currentPosition = data.current.selected_ticket || data.current.next_selected_ticket;
+const currentPosition = data.current.selected_ticket || data.current.next_selected_ticket || data.current.last_completed_ticket;
 const currentTicket = data.tickets.find(ticket => ticket.id === currentPosition.id);
 const ticketWaveIds = [...new Set(data.tickets.map(ticket => ticket.wave))];
 function humanJoin(values) {

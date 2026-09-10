@@ -1,6 +1,6 @@
 # NET-6 stable operator evidence
 
-Status: selected; canonical acceptance and merge pending.
+Status: done in bounded engineering scope; G2 NOT_READY.
 Starting main: 95fa1e42dbf8d5fdcfde80d440eb38229b2764db (PR #126).
 Ticket: `.agent/tickets/NET-6_network_operations.md`.
 Primary map_ref: WAVE-C/NET-6. Decision: NET-6-D1.
@@ -49,3 +49,6 @@ unobserved shielded registration/shared-winner/recycled-UID chain path still
 keeps G2 NOT_READY. Public deployment, scientific/security qualification, treasury
 and production custody remain unearned. The C1/C2/archive handoff is in
 `.agent/plans/C0_G2_C1_C2_HANDOFF.md`.
+
+Canonical acceptance and actual expected-head merge are recorded in PR #127 and
+its completion receipt: https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862. No post-merge full suite was required.

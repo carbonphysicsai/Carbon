@@ -55,7 +55,7 @@ Link those records instead.
 11. Inspect desktop and narrow/mobile layouts and record the explicit authority
     snapshot and capture time in source.
 
-Current authority snapshot: `9079c14a9398355408de0543ee558bbbf705884a`, reconciled 2026-09-10T03:08:41Z.
+Current authority snapshot: `c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852`, reconciled 2026-09-10T03:21:30Z.
 
 The current long-horizon dependency graph is intentionally not fully linear:
 Wave D feeds the launch-critical D → H → I branch, while E, F, and G are

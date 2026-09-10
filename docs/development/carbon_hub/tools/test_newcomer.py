@@ -84,9 +84,9 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["selected_ticket"]["id"], "NET-6")
-        self.assertEqual(current["selected_ticket"]["status"], "in_progress")
-        self.assertNotIn("delivery", current["selected_ticket"])
+        self.assertEqual(current["last_completed_ticket"]["id"], "NET-6")
+        self.assertEqual(current["last_completed_ticket"]["status"], "done")
+        self.assertIsNone(current["selected_ticket"])
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
             any(
@@ -98,7 +98,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("NET-6 selected", self.output)
+        self.assertIn("No implementation ticket is currently active", self.output)
         self.assertIn("OPTIONAL / DEFERRED / NON-BLOCKING", self.output)
         self.assertIn("No later ticket is selected", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
@@ -157,7 +157,7 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "NET-6 selected",
+            "No implementation ticket is currently active",
             "No later ticket is selected",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",

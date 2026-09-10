@@ -1,8 +1,8 @@
 # C0 evidence-backed G2 disposition and C1/C2 handoff
 
 **Disposition:** G2 NOT_READY. This is an engineering evidence assessment, not
-human launch approval. NET-1 through NET-5 and C-REWARD are merged; NET-6 delivery
-is pending its exact acceptance and merge. Its operator rehearsal cannot fill the
+human launch approval. NET-1 through NET-6 and C-REWARD are merged in bounded scope. PR #127
+passed canonical acceptance and the distinct operator rehearsal. These cannot fill the
 missing shared-winner runtime evidence. No public deployment occurred.
 
 | G2 requirement | Evidence and remaining boundary |
@@ -14,7 +14,7 @@ missing shared-winner runtime evidence. No public deployment occurred.
 | Actual local runtime | NET-5, PR #126; immutable v445 image, isolated observed genesis, actual all-burn inclusion/finality/row and epoch MinerBurned under verified Burn mode |
 | Restart/outage | NET-5 run 34425822745 observed exact replay, restarted journals, actual provider pause and recovery; NET-6 adds operator lifecycle and backup/restore |
 | Shared-winner / replacement UID chain effects | NOT OBSERVED. Required shielded miner registration failed with SDK Stale/expired; exact inner/carrier identities and finalized read-only reconciliation retained |
-| Operator readiness | NET-6 supplies bounded development controls; exact runtime rehearsal and canonical acceptance are recorded in its evidence/PR, not inferred here |
+| Operator readiness | NET-6 PR #127; runtime run 34431662096 observed node restart, external-key restored publisher, heartbeat/shutdown and complete logical backup/restore; canonical acceptance run 34432281140 passed |
 
 Application multi-challenge winner targets work in deterministic tests with
 preserved per-challenge burn and aggregated shared winners. The actual runtime

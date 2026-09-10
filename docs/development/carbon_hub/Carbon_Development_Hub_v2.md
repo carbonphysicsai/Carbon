@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9079c14a9398355408de0543ee558bbbf705884a` on `main`, captured 2026-09-10T03:08:41Z.
-**Current:** Wave C, ticket NET-6. Wave C/C0 has NET-6 selected as its one active ticket after NET-5 merged in PR #126. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
-**Last completed:** NET-5 (`done`).
+**Authority snapshot:** `c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852` on `main`, captured 2026-09-10T03:21:30Z.
+**Current:** Wave C, ticket none active. NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
+**Last completed:** NET-6 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -79,7 +79,7 @@
 | [NET-4A](explainers/tickets/net_4a.md) | Bind local publication to exact accepted reward provenance and short validity. | done |
 | [NET-4B](explainers/tickets/net_4b.md) | Check final winner/burn integers before signing and reconcile chain effects before retry. | done |
 | [NET-5](explainers/tickets/net_5.md) | Run authentic synthetic submissions through reward targets and the pinned isolated chain. | done |
-| [NET-6](explainers/tickets/net_6.md) | Operate and recover the isolated publisher without losing reward age or pending dispatch. | in_progress |
+| [NET-6](explainers/tickets/net_6.md) | Operate and recover the isolated publisher without losing reward age or pending dispatch. | done |
 
 ## Change routes
 
@@ -175,6 +175,7 @@
 - `NET-5-D1` — `WAVE-C/NET-5` — NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.
 - `NET-5-D2` — `WAVE-C/NET-5` — Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved.
 - `NET-6-D1` — `WAVE-C/NET-6` — NET-5 merged with actual all-burn/recovery evidence and an unresolved required shielded-registration failure. NET-6 adds guarded operator lifecycle, external throwaway keys, private backup/restore and a separately labeled operator rehearsal; G2 remains NOT_READY and C1/C2 archive dependencies are preserved. Actual operator run 34431662096 passed: same-container restart preserves finalized state/row; external key and restored consumers publish; shutdown retains exposure; all logical backup/restore tables match. Full winner integration remains unobserved.
+- `NET-6-CLOSEOUT` — `WAVE-C/NET-6` — NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected. The route regression now handles an explicitly null active/next selection by checking the completed ticket, preserving all route assertions. Its known tooling path uses focused acceptance; unrelated unknown paths retain full fallback.
 
 ## Authority boundary
 
