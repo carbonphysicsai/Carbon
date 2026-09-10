@@ -67,6 +67,14 @@
       "not_yet": "No public operation, treasury, real scientific archive, production custody or G2 readiness claim.",
       "map_ref": "WAVE-C/NET-6"
     },
+    "NET-5R": {
+      "title": "Repair the shielded-registration mortality mismatch",
+      "what": "Use the pinned SDK and runtime's exact eight-block shield era and record enough public-safe key, nonce, era and hash evidence to diagnose the changed attempt.",
+      "why": "The old Carbon override exceeded v445's submit_encrypted limit and was rejected before either signed extrinsic reached a block.",
+      "changes": "A fail-closed compatibility check, richer shield diagnostics and one changed full disposable-localnet run.",
+      "not_yet": "Until canonical execution succeeds, G2 remains NOT_READY. No public network, unchecked call, production key, real science, archive policy or LIVE authority is added.",
+      "map_ref": "WAVE-C/NET-5R"
+    },
     "C-01": {
       "title": "Keep scientific attempts durable without duplicate execution",
       "what": "Persist the exact A7 attempt, scientific and environment bindings before dispatch, then retain partial work and opaque result associations across restart.",

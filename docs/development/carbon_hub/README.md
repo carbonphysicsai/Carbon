@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 54 captured tickets across Wave A, Wave B, and Wave C
+- 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 86 map-level change events
+- 87 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-EA0**. Last completed: **C-AUTH1** (`done`). Next selected: **C-EA1** (`todo` / `unstarted`). C-01 and C-AUTH1 are merged in bounded offline engineering scope. C-EA0 is selected with an exact specified/tested documentation-contract candidate; applicable automated acceptance and normal merge remain pending. C-EA1 is next, unstarted and input-blocked. G2 remains NOT_READY. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
+Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. C-EA0 merged in PR #131. NET-5R is selected with a source-confirmed mortality hypothesis and smallest supported repair; canonical full disposable-localnet execution remains pending, so G2 remains NOT_READY. No later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
 
 ## Maintain
 

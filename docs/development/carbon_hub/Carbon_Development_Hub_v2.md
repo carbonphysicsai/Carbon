@@ -2,10 +2,10 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `70c98d3489c2a30eb38712b4283e3ddf603c5777` on `main`, captured 2026-09-10T08:29:30Z.
-**Current:** Wave C, ticket C-EA0. C-01 and C-AUTH1 are merged in bounded offline engineering scope. C-EA0 is selected with an exact specified/tested documentation-contract candidate; applicable automated acceptance and normal merge remain pending. C-EA1 is next, unstarted and input-blocked. G2 remains NOT_READY. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
-**Last completed:** C-AUTH1 (`done`).
-**Next selected:** C-EA1.
+**Authority snapshot:** `46846def752586b1188cbdfc442300c4e0fac3ec` on `main`, captured 2026-09-10T09:58:26Z.
+**Current:** Wave C, ticket NET-5R. C-EA0 merged in PR #131. NET-5R is selected with a source-confirmed mortality hypothesis and smallest supported repair; canonical full disposable-localnet execution remains pending, so G2 remains NOT_READY. No later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
+**Last completed:** C-EA0 (`done`).
+**Next selected:** none selected.
 
 ## Wave spine
 
@@ -80,9 +80,10 @@
 | [NET-4B](explainers/tickets/net_4b.md) | Check final winner/burn integers before signing and reconcile chain effects before retry. | done |
 | [NET-5](explainers/tickets/net_5.md) | Run authentic synthetic submissions through reward targets and the pinned isolated chain. | done |
 | [NET-6](explainers/tickets/net_6.md) | Operate and recover the isolated publisher without losing reward age or pending dispatch. | done |
+| [NET-5R](explainers/tickets/net_5r.md) | Match shielded registration mortality to the exact pinned SDK and runtime contract. | in_progress |
 | [C-01](explainers/tickets/c_01.md) | Persist exact scientific attempts before dispatch and reconcile ambiguity without duplicate work or resampling. | done |
 | [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | done |
-| [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | in_progress |
+| [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | done |
 | [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | todo |
 
 ## Change routes
@@ -183,6 +184,7 @@
 - `OWNER-C1-C2-BURGERS-01` — `WAVE-C/C-01` — The owner selects C-01 first and permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-01 adds a bounded durable execution candidate; C-AUTH1 is next and unstarted. No public-network operation, archive acknowledgement, scientific qualification, testnet eligibility or LIVE authority follows.
 - `C-AUTH1-D1` — `WAVE-C/C-AUTH1` — C-01 passed canonical acceptance and merged in PR #129. C-AUTH1 adds a closed content-addressed goal compiler and exact public-development Burgers law with one Dynamics competition, three inactive specialist reports, separate TRAIN/EVAL/STRESS mock derivation, development-only references and fail-closed JAX/archive handoffs. C-EA0 is next; G2 and every scientific, protected-evaluation, archive, network and LIVE boundary remain unchanged.
 - `C-EA0-D1` — `WAVE-C/C-EA0` — C-AUTH1 passed exact-head canonical, Hub and merge-gate acceptance and merged in PR #130. C-EA0 specifies and contract-tests immutable attempt accounting, five independent status axes, explicit missingness/dependence/unknowns, closed named uses and positive durability-acknowledgement conditions. C-EA1 is next but unstarted and input-blocked; no archive runtime, durability, human policy, qualification, G2, network or LIVE authority exists.
+- `NET-5R-D1` — `WAVE-C/NET-5R` — C-EA0 passed canonical acceptance and merged in PR #131; its reserved C-EA1 operating decisions remain scoped there. NET-5R is selected with an exact SDK/runtime source hypothesis: Carbon's 64-block shield era exceeded v445's eight-block submit_encrypted limit and predicts the retained Stale pool rejection. The candidate uses the pinned SDK value, fails closed on drift, adds public-safe key/nonce/era diagnostics and awaits one changed canonical full-localnet run. G2 remains NOT_READY and no public-network authority is added.
 
 ## Authority boundary
 
