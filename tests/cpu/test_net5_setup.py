@@ -329,3 +329,50 @@ def test_installed_sdk_transaction_reconciliation_uses_public_lookup(present):
         assert observation.success and observation.block == 100
     else:
         assert observation is None
+
+
+@pytest.mark.parametrize("inner_success", [None, False, True])
+def test_setup_reconciliation_requires_exact_finalized_inner_receipt(
+    tmp_path, inner_success
+):
+    from carbon.chain.localnet import LocalnetSession
+
+    inner_hash, outer_hash, block_hash = ("0x" + c * 64 for c in "abc")
+    expected = SimpleNamespace(
+        success=inner_success, block_hash=block_hash, extrinsic_id="10-0003"
+    )
+
+    class Client:
+        async def blocks(self, *, finalized):
+            assert finalized
+            yield SimpleNamespace(number=10)
+
+    class Sub:
+        async def block_hash(self, block):
+            assert block == 10
+            return block_hash
+
+        async def find_extrinsic(self, identity, observed_block):
+            assert observed_block == block_hash
+            if identity == inner_hash and inner_success is not None:
+                return expected
+            return None
+
+    session = LocalnetSession("carbon-localnet-fixture", tmp_path)
+    session.client, session.sub = Client(), Sub()
+
+    async def verify():
+        pass
+
+    session.verify, session.save = verify, lambda: None
+    reported = SimpleNamespace(success=False)
+    record = {
+        "state": "REJECTED",
+        "start_finalized_block": 10,
+        "transaction": outer_hash,
+        "inner_transaction": inner_hash,
+    }
+    result = asyncio.run(session.reconcile_inner(record, reported))
+    assert result is (reported if inner_success is None else expected)
+    assert (record["state"] == "FINALIZED_RECONCILED") is (inner_success is True)
+    assert record["reconciled_at_finalized_block"] == 10

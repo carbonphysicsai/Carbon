@@ -81,3 +81,14 @@ reconciliation exposed a NET-4B integration defect: resolve_extrinsic belongs to
 the SDK's raw transport, while RpcSubstrate publicly exposes find_extrinsic.
 Use that public method and add installed-SDK found/missing transaction contract
 tests. Preserve the failed run; dispatch alone is not finalized row/burn proof.
+
+Run 34425292251 proved the three-challenge no-winner complete vector: transaction
+0x79eb701466c7b2f17deeb21f07bdf660f1f41bc338c0e2063f95d6bbe702cbda
+was included/finalized with row [(0,65535)] at block 191. Finalized block 234,
+epoch 12, reported MinerBurned bits=4294967296 (1.0) under Burn mode and the
+verified owner sink. Owner cut/dividends remain distinct. Shielded registration
+then reported Stale/expired; do not infer a recipient exists or blindly resend.
+Journal the exact inner hash before encryption and reconcile inner/carrier
+hashes over a bounded finalized range. Exercise all-burn restart/replay/outage
+recovery before that dependent miner operation so its failure cannot hide
+independent operational evidence.

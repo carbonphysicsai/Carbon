@@ -76,7 +76,9 @@ def guarded_weights(netuid, plan, check_integers, checked_call):
     )
 
 
-def journaled_substrate(context, before_sign, before_dispatch):
+def journaled_substrate(
+    context, before_sign, before_dispatch, *, after_inner_sign=None
+):
     """SDK transport subclass: record hash before wire submission, without key logs."""
     require_sdk()
     if (
@@ -91,7 +93,10 @@ def journaled_substrate(context, before_sign, before_dispatch):
         async def sign_extrinsic(self, call, keypair, **kwargs):
             # MEV inner signing is a public SDK path separate from submit().
             await before_sign(call, keypair.ss58_address)
-            return await super().sign_extrinsic(call, keypair, **kwargs)
+            signed, identity = await super().sign_extrinsic(call, keypair, **kwargs)
+            if after_inner_sign is not None:
+                await after_inner_sign(hash256(identity))
+            return signed, identity
 
         async def submit(self, call, keypair, **kwargs):
             await before_sign(call, keypair.ss58_address)

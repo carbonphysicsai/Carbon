@@ -53,7 +53,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             await session.start()
             record("isolated-genesis-verified-before-keys")
             await session.configure()
-            record("disposable-subnet-and-roles-configured")
+            record("disposable-subnet-and-publisher-configured")
             context, roles = session.context, session.roles
             backend = BittensorPublicationBackend(
                 context, roles["publisher"].ss58_address, roles["publisher"]
@@ -206,13 +206,57 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 write_evidence(directory / "integration.json", report)
                 return sample
 
-            _, initial = await publish("three-challenges-no-winner")
+            async def recover(ref, paid, label):
+                nonlocal ledger, issuer, publisher
+                # Restart every application journal/projection owner, keeping actual chain state.
+                restarted_receipts = ReceiptJournal(receipts.path, context)
+                from carbon.candidates.store import CandidateJournal
+
+                journals = tuple(
+                    CandidateJournal(
+                        restarted_receipts, e.journal.context, e.journal.limits
+                    )
+                    for e in exams
+                )
+                ledger = FixtureRewardLedger(restarted_receipts, reader, journals)
+                issuer = LocalnetIntentIssuer(ledger)
+                publisher = LocalnetPublisher(issuer, backend)
+                assert await publisher.publish(ref) == paid
+                record("restart-and-exact-dispatch-replay-no-resend")
+
+                # Actual provider outage: pause only this harness-owned pinned container.
+                await asyncio.to_thread(
+                    subprocess.run,
+                    ["docker", "pause", session.container],
+                    check=True,
+                    capture_output=True,
+                    timeout=15,
+                )
+                try:
+                    with pytest.raises((TimeoutError, PublicationFailure)):
+                        await asyncio.wait_for(backend.observe(), 2)
+                    assert publisher.exposure()["stored_weights_may_remain_effective"]
+                finally:
+                    await asyncio.to_thread(
+                        subprocess.run,
+                        ["docker", "unpause", session.container],
+                        check=True,
+                        capture_output=True,
+                        timeout=15,
+                    )
+                await backend.close()
+                await backend.start()
+                _, _recovered = await publish(label)
+                record("actual-provider-outage-and-publication-recovery")
+
+            initial_ref, initial = await publish("three-challenges-no-winner")
             assert initial["document"]["plan"]["q12"] == [
                 [initial["document"]["plan"]["burn_uid"], Q12]
             ]
             await epoch("no-winner-all-burn")
             record("actual-all-burn-inclusion-finality-row-and-epochs")
 
+            await recover(initial_ref, initial, "all-burn-publication-recovery")
             await session.register_miners()
             record("shielded-miner-registration-finalized")
             winners = []
@@ -249,45 +293,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             assert ledger.resolve_projection(await ledger.project())["states"] == before
             record("copied-artifact-wallet-change-has-no-new-credit")
 
-            # Restart every application journal/projection owner, keeping actual chain state.
-            restarted_receipts = ReceiptJournal(receipts.path, context)
-            from carbon.candidates.store import CandidateJournal
-
-            journals = tuple(
-                CandidateJournal(
-                    restarted_receipts, e.journal.context, e.journal.limits
-                )
-                for e in exams
-            )
-            ledger = FixtureRewardLedger(restarted_receipts, reader, journals)
-            issuer = LocalnetIntentIssuer(ledger)
-            publisher = LocalnetPublisher(issuer, backend)
-            assert await publisher.publish(ref) == paid
-            record("restart-and-exact-dispatch-replay-no-resend")
-
-            # Actual provider outage: pause only this harness-owned pinned container.
-            await asyncio.to_thread(
-                subprocess.run,
-                ["docker", "pause", session.container],
-                check=True,
-                capture_output=True,
-            )
-            try:
-                with pytest.raises((TimeoutError, PublicationFailure)):
-                    await asyncio.wait_for(backend.observe(), 2)
-                assert publisher.exposure()["stored_weights_may_remain_effective"]
-            finally:
-                await asyncio.to_thread(
-                    subprocess.run,
-                    ["docker", "unpause", session.container],
-                    check=True,
-                    capture_output=True,
-                )
-            await backend.close()
-            await backend.start()
-            _, _recovered = await publish("publication-recovery")
-            record("actual-provider-outage-and-publication-recovery")
-
+            await recover(ref, paid, "winner-publication-recovery")
             old = await reader.observe(minimum_finalized_block=0)
             await session.execute(
                 "replace-miner-hotkey",

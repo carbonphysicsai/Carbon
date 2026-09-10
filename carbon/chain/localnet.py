@@ -320,7 +320,16 @@ class LocalnetSession:
             self.operations[-1]["transaction"] = tx_hash
             self.save()
 
-        self.sub = journaled_substrate(self.context, before_sign, before_dispatch)
+        async def after_inner_sign(tx_hash):
+            self.operations[-1]["inner_transaction"] = tx_hash
+            self.save()
+
+        self.sub = journaled_substrate(
+            self.context,
+            before_sign,
+            before_dispatch,
+            after_inner_sign=after_inner_sign,
+        )
         await self.sub.connect()
         await self.verify()
         self.client = bt.Client(
@@ -365,7 +374,9 @@ class LocalnetSession:
             raise PublicationFailure("SETUP_REPLAY_REQUIRES_RECONCILIATION")
         await self.verify()
         self.signer = self.roles[role].ss58_address
-        record = {"label": label, "state": "PREPARED"}
+        async with aclosing(self.client.blocks(finalized=True)) as headers:
+            start = (await anext(headers)).number
+        record = {"label": label, "state": "PREPARED", "start_finalized_block": start}
         self.operations.append(record)
         self.save()
         print("Localnet setup: " + label, flush=True)
@@ -404,8 +415,9 @@ class LocalnetSession:
                 error_code=None if result.error is None else result.error.code.value,
             )
             self.save()
+            if not result.success and "inner_transaction" in record:
+                result = await self.reconcile_inner(record, result)
             if not result.success:
-                # Chain module/code is diagnostic; never serialize raw SDK result.
                 raise PublicationFailure("LOCAL_SETUP_REJECTED:" + label)
             return result
         except Exception:
@@ -413,6 +425,42 @@ class LocalnetSession:
                 record["state"] = "AMBIGUOUS_OR_UNAVAILABLE"
             self.save()
             raise
+
+    async def reconcile_inner(self, record, reported):
+        """Read finalized exact hashes after an ambiguous shield receipt; never resend."""
+        await self.verify()
+        async with aclosing(self.client.blocks(finalized=True)) as headers:
+            end = (await anext(headers)).number
+        start = record["start_finalized_block"]
+        if not 0 <= end - start <= 256:
+            raise PublicationFailure("SETUP_RECONCILIATION_RANGE_EXCEEDED")
+        observed = {}
+        inner = None
+        for block in range(start, end + 1):
+            block_hash = await self.sub.block_hash(block)
+            for kind in ("transaction", "inner_transaction"):
+                identity = record.get(kind)
+                if identity is None or kind in observed:
+                    continue
+                found = await self.sub.find_extrinsic(identity, block_hash)
+                if found is not None:
+                    if found.block_hash != block_hash:
+                        raise PublicationFailure("CONFLICTING_SETUP_RECEIPT")
+                    observed[kind] = {
+                        "block": block,
+                        "hash": block_hash,
+                        "success": found.success,
+                    }
+                    if kind == "inner_transaction":
+                        inner = found
+        record["reconciled_at_finalized_block"] = end
+        record["observed_transactions"] = observed
+        if inner is not None and inner.success:
+            record["state"] = "FINALIZED_RECONCILED"
+            record["block_hash"] = inner.block_hash
+            record["extrinsic_id"] = inner.extrinsic_id
+        self.save()
+        return inner if inner is not None else reported
 
     async def configure(self):
         import bittensor as bt
