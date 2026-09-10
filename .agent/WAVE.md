@@ -5,7 +5,8 @@
 > NET-2 merged in PR #121 as 97725a1f4c6c8c65234e96770c847622273fc55e.
 > NET-3 merged in PR #122 as d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6.
 > C-REWARD merged in PR #123 as 505f08cde173eab197aa397a09536bb6bf576065.
-> NET-4A is now the one active implementation ticket. Continue NET-4B -> NET-5 -> NET-6 after each accepted merge.
+> NET-4A merged in PR #124 as ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f.
+> NET-4B is now the one active implementation ticket. Continue NET-5 -> NET-6 after each accepted merge.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -22,8 +23,8 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 0.5
-**Selected ticket:** NET-4A — `in_progress`
+**Controlling register:** `.agent/WAVE_C.md` version 0.6
+**Selected ticket:** NET-4B — `in_progress`
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -517,7 +518,7 @@ planning and sequencing authority until a prospective, reviewed, green, and
 normally merged `.agent/WAVE.md` transition selects them. A future-wave plan
 does not authorize implementation by itself.
 
-Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.5 the initial
+Merged PR #54 made [`WAVE_B.md`](./WAVE_B.md) version 0.6 the initial
 controlling Wave B dependency board. Version 0.5 recorded the owner-directed
 B-01E insertion. Version 0.6 recorded proven B-02A closeout and B-07R's
 delegated engineering ratification and conditional completion mechanism.
@@ -536,7 +537,7 @@ completed normalized external receipt is posted. Version 1.2 records that PR
 B-04 bounded runtime. Version 1.3 prepares B-04's conditional bounded `done`
 and B-05 `in_progress` selection; those states remain inert until B-04's full
 Delivery Protocol predicate and receipt pass. The architecture
-contract is version 0.5 at
+contract is version 0.6 at
 [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](../Design_Specs/Miner_MCP_Wave_B_Research_Contract.md),
 and sessions enter through
 [`WAVE_B_CODEX_HANDOFF.md`](./WAVE_B_CODEX_HANDOFF.md). PR #59 normally merged
