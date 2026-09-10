@@ -40,10 +40,10 @@ Disposable C0/G2 compatibility engineering only; actual runtime effects are requ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/.agent/evidence/wave_c/net-5r.md)
-- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/evidence/wave_c/net-5r.md)
+- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/docs/development/LOCALNET_INTEGRATION.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/WAVE_C.md)
 
 > The retained Stale receipt alone was not treated as a cause; exact SDK and runtime source establish the changed mortality hypothesis.

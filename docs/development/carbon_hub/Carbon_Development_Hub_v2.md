@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `46846def752586b1188cbdfc442300c4e0fac3ec` on `main`, captured 2026-09-10T09:58:26Z.
+**Authority snapshot:** `a8e874f45a18db7ac0d26a75a39101da58ea0ffb` on `main`, captured 2026-09-10T10:23:14Z.
 **Current:** Wave C, ticket NET-5R. C-EA0 merged in PR #131. NET-5R is selected with a source-confirmed mortality hypothesis and smallest supported repair; canonical full disposable-localnet execution remains pending, so G2 remains NOT_READY. No later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
 **Last completed:** C-EA0 (`done`).
 **Next selected:** none selected.
@@ -185,6 +185,7 @@
 - `C-AUTH1-D1` — `WAVE-C/C-AUTH1` — C-01 passed canonical acceptance and merged in PR #129. C-AUTH1 adds a closed content-addressed goal compiler and exact public-development Burgers law with one Dynamics competition, three inactive specialist reports, separate TRAIN/EVAL/STRESS mock derivation, development-only references and fail-closed JAX/archive handoffs. C-EA0 is next; G2 and every scientific, protected-evaluation, archive, network and LIVE boundary remain unchanged.
 - `C-EA0-D1` — `WAVE-C/C-EA0` — C-AUTH1 passed exact-head canonical, Hub and merge-gate acceptance and merged in PR #130. C-EA0 specifies and contract-tests immutable attempt accounting, five independent status axes, explicit missingness/dependence/unknowns, closed named uses and positive durability-acknowledgement conditions. C-EA1 is next but unstarted and input-blocked; no archive runtime, durability, human policy, qualification, G2, network or LIVE authority exists.
 - `NET-5R-D1` — `WAVE-C/NET-5R` — C-EA0 passed canonical acceptance and merged in PR #131; its reserved C-EA1 operating decisions remain scoped there. NET-5R is selected with an exact SDK/runtime source hypothesis: Carbon's 64-block shield era exceeded v445's eight-block submit_encrypted limit and predicts the retained Stale pool rejection. The candidate uses the pinned SDK value, fails closed on drift, adds public-safe key/nonce/era diagnostics and awaits one changed canonical full-localnet run. G2 remains NOT_READY and no public-network authority is added.
+- `NET-5R-RUN-34464255826` — `WAVE-C/NET-5R` — The first changed eight-block run passed the exact SDK setup and finalized the shield carrier at block 258, falsifying the previous pool-level Stale failure. Its inner was not observed before expiry. Pinned source narrows the remaining branch to local decapsulation-key availability, ML-KEM/XChaCha unshielding or inner push validity and excludes concurrent drand HTTP errors from this path. A changed diagnostic configuration enables only proposer/shield debug targets; G2 remains NOT_READY.
 
 ## Authority boundary
 

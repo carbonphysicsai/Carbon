@@ -40,8 +40,8 @@ Future archive implementation only; no archive, durability, security, production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/46846def752586b1188cbdfc442300c4e0fac3ec/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/WAVE_C.md)
 
 > C-EA1 cannot use test-vector policy references or infrastructure convenience as approval for real custody or durability.
