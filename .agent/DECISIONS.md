@@ -13154,6 +13154,24 @@ in this delivery. D4 behavior remains valid evidence, but G2 stays `NOT_READY`
 because D6 lacks a canonical runtime demonstration. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
 
+## 2026-09-11 — OWNER-NET-5R-D6-RUN-01: bounded D6 runtime verification and closeout
+
+The owner authorizes one fresh canonical Linux amd64 Docker NET-5R D6 execution
+with explicit `mode=full` and `profile=standard` against the merged candidate.
+At most one additional full/standard execution is available only if the first
+exposes a concrete correctness defect and a changed source-backed candidate
+addresses it. It is not available for an unchanged retry, optional logging, a
+success streak or reassurance; transaction retries remain zero. If the first run
+passes the existing complete predicate, proceed to evidence-backed delivery and
+merge without another runtime ceremony. If it fails without a supported changed
+correction, stop full execution and retain G2 `NOT_READY` with the exact blocker.
+The allowance neither reopens the exhausted D4/D5 budget nor authorizes JAX,
+C-EA1 implementation, public-network operation, production keys, paid inference,
+treasury funding, scientific/security qualification or selection of a later
+ticket. The retained D5 bytes and historically misleading selected-nonce
+observation remain unchanged; successor evidence must explain that observation's
+invalid interpretation.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

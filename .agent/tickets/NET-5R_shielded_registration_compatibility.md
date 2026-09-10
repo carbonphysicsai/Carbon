@@ -9,8 +9,11 @@ and D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard-runtime
 comparison has since passed the complete behavioral scenario at the exact
 post-PR-133 main checkpoint. The sole D5 successor run then exposed a stateful
-nonce-observer defect before registration. D6 is focused-tested, but the run
-budget is exhausted; G2 remains `NOT_READY` on its missing runtime demonstration.
+nonce-observer defect before registration. D6 is focused-tested. Owner direction
+`OWNER-NET-5R-D6-RUN-01` now authorizes one canonical full/standard D6 run and,
+only if that run exposes a concrete correctness defect addressed by a changed
+source-backed candidate, at most one second full/standard run. G2 remains
+`NOT_READY` until the D6 runtime predicate is demonstrated.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
 **Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`, `NET-5R-D6`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
@@ -195,6 +198,21 @@ any signing-transport next-index observation. No additional full run remains
 authorized, so G2 stays `NOT_READY` on the missing D6 runtime demonstration.
 Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
+
+## OWNER-NET-5R-D6-RUN-01 — Bounded D6 runtime verification allowance
+
+The owner prospectively authorizes one fresh isolated canonical Linux amd64
+Docker execution with explicit `mode=full` and `profile=standard` against the
+merged D6 candidate. At most one additional full/standard execution is available,
+and only when the first run exposes a concrete correctness defect and a changed,
+source-backed candidate addresses it. The second run is unavailable for an
+unchanged retry, optional telemetry, a success streak or reassurance. Transaction
+retries remain zero. A first-run pass consumes one run and proceeds directly to
+delivery; a first-run failure without a supported changed correction stops full
+execution and retains G2 `NOT_READY` with the exact blocker. This allowance does
+not authorize JAX, C-EA1 implementation, public-network execution, production
+keys, paid inference, treasury funding, security/scientific qualification or a
+later ticket.
 
 ## Bounded delivery disposition
 
