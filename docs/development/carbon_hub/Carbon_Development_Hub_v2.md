@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `fbf25f7802da1e975349e3f54ea65a852816ff01` on `main`, captured 2026-09-10T20:00:42Z.
+**Authority snapshot:** `e590bdecebdf4dc4efb801528029a34ccbf1fa4c` on `main`, captured 2026-09-10T20:05:25Z.
 **Current:** Wave C, ticket none active. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created.
 **Last completed:** NET-5R (`done`).
 **Next selected:** none selected.
