@@ -44,6 +44,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
         "execution_scope": (
             "NET6_ALL_BURN_OPERATIONS" if mode == "operator" else "NET5_FULL"
         ),
+        "runtime_profile": os.environ.get("CARBON_LOCALNET_PROFILE", "fast"),
         "g2": "NOT_READY",
         "treasury": None,
         "stages": [],
@@ -63,6 +64,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
         backend = None
         try:
             await session.start()
+            block_time = float(session.profile["nominal_block_seconds"])
             record("isolated-genesis-verified-before-keys")
             await session.configure()
             record("disposable-subnet-and-publisher-configured")
@@ -161,7 +163,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             async def publish(label):
                 ref = await issuer.issue(label)
                 row = await publisher.publish(ref)
-                for _ in range(24):
+                for _ in range(4 * 12 + 1):
                     if row["state"] in (
                         "ROW_VERIFIED",
                         "CHAIN_REJECTED",
@@ -169,7 +171,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                         "EXPOSURE_CHANGED",
                     ):
                         break
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(max(0.25, block_time / 4))
                     row = await publisher.reconcile(ref.digest)
                 report["dispatches"].append(row)
                 write_evidence(directory / "integration.json", report)
@@ -182,7 +184,9 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 start = await session.sub.query(
                     "SubtensorModule", "SubnetEpochIndex", [2]
                 )
-                for _ in range(80):
+                # Two 20-block epochs plus a 12-block finality/read slack. Poll at
+                # quarter-block cadence, with a finite four-polls-per-block ceiling.
+                for _ in range(4 * (2 * 20 + 12) + 1):
                     snap, caps = await backend.observe()
                     block_hash = snap.block_hash
                     value = await session.sub.query(
@@ -193,7 +197,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                     )
                     if value >= start + 2:
                         break
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(max(0.25, block_time / 4))
                 else:
                     pytest.fail("No complete finalized epochs observed")
                 fields = (
@@ -308,7 +312,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                     capture_output=True,
                     timeout=55,
                 )
-                for attempt in range(30):
+                for attempt in range(4 * 12 + 1):
                     try:
                         after_restart, after_caps = await asyncio.wait_for(
                             backend.observe(), 3
@@ -321,7 +325,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                         await backend.close()
                         if attempt == 29:
                             raise
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(max(0.25, block_time / 4))
                 assert after_restart.finalized_block >= before_restart.finalized_block
                 assert (
                     await backend.weight_row(
@@ -441,7 +445,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             )
             assert report["public_scorecard"]["maturity"] == "SYNTHETIC_ONLY"
             report["stopped_publisher_exposure"] = publisher.exposure()
-            report["g2"] = "NET5_RUNTIME_EVIDENCE_COLLECTED_NET6_PENDING"
+            report["g2"] = "LOCALNET_READY"
             report["limitations"] = [
                 "Synthetic exam only; no C1 scientific evidence or security qualification.",
                 "Plain weights measured. Isolated runtime has no external drand beacon proof.",

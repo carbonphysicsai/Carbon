@@ -13077,6 +13077,34 @@ key consistent, or an explicitly authorized compatible SDK/runtime pin. C-EA1's
 operating inputs remain scoped to C-EA1. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068.
 
+## NET-5R-D3 — Bind the pinned standard runtime as a separate compatibility profile
+
+The exact upstream image contains distinct fast and non-fast release binaries
+and WASM artifacts. Register the non-fast `False` selector with its own hashes,
+features, nominal 12-second block time and genesis, while preserving the fast
+profile and refusing either profile on identity drift. Image inspection occurs
+without a network before key creation; runtime v445 and genesis are then
+verified through the isolated chain. A one-shot registration diagnostic with
+zero retries must pass before the full scenario. This is a compatibility
+comparison and does not claim that timing or keystore behavior caused the prior
+fast-runtime failure.
+
+## NET-5R-D4 — Reopen the supported SDK transport after a finalized shield pair
+
+Standard full run 34474220953 finalized both authenticated registrations and
+observed the shared-winner row/epoch, then rejected the later plain
+`SwapHotkey` as `Stale/expired` without inclusion. Exact Bittensor 11.1.0 source
+signs the shield inner at `nonce+1` and then explicitly pins carrier `nonce` into
+the same transport cache; the next plain submission can reuse the consumed
+inner nonce. After proving finalized public account nonce equals
+`inner_nonce+1`, retire and reopen the public SDK `Client`/`RpcSubstrate` under
+the unchanged endpoint, genesis, runtime and policy checks. Do not access the
+private nonce cache, inject a nonce, retry, submit raw/unchecked calls or change
+network. This changed candidate has focused tests but no second full run; G2
+remains `NOT_READY` pending recycled-UID evidence. The upstream issue draft is
+local only and no maintainer was contacted. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

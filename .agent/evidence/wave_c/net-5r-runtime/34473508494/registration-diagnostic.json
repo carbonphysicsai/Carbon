@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.net5r.registration-diagnostic.v1",
+  "hypothesis": "The pinned standard runtime may preserve authenticated shield key association where the fast runtime exhibited an intermittent mismatch.",
+  "comparison_only": true,
+  "runtime_profile": "standard",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "runtime_features": [
+    "pow-faucet",
+    "metadata-hash"
+  ],
+  "expected_genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+  "retry_budget": 0,
+  "public_network_actions": 0,
+  "g2": "NOT_READY",
+  "outcome": "AUTHENTICATED_REGISTRATION_FINALIZED",
+  "setup": "MINIMAL_SUBNET_AND_REGISTRATION_GATE_ONLY",
+  "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+  "operation_label": "diagnostic-register-miner",
+  "registration_association": {
+    "observed_at_block": 19,
+    "observed_at_hash": "0x8a4337aa2a8b7d795c4508430b2c5d13afcb548ee973a6a2674a194496c0aab3",
+    "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "uid": 1
+  },
+  "elapsed_wall_seconds": 225.532
+}

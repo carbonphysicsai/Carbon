@@ -2132,6 +2132,48 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5R",
+      "event_type": "adjustment",
+      "event_id": "NET-5R-D3",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "PR #132's eight-block shield-era repair and evidence remain intact. Exact upstream source and image inspection verified distinct fast and standard artifacts before network or key creation; run 34473145103 bound the standard v445 profile, 12-second nominal timing, executable/WASM hashes and isolated genesis, and one-shot zero-retry run 34473508494 finalized carrier and inner registration. Standard versus fast is a compatibility comparison only; G2 remains NOT_READY and no public-network action is authorized.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5R",
+      "event_type": "blocker",
+      "event_id": "NET-5R-D4",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "Standard full run 34474220953 finalized both authenticated registrations and observed the complete shared-winner row/epoch, superseding the prior fast-runtime authenticated-unshield blocker. Its later plain SwapHotkey was rejected Stale without inclusion, so takeover and recycled-UID effects remain absent. Exact Bittensor 11.1.0 source supports a nonce-cache transition hypothesis; the smallest Carbon candidate verifies finalized public nonce progression and reopens only the supported SDK transport. It has focused tests but no second full run. No retry, unchecked extrinsic, timing/keystore claim or public-network action is permitted, and G2 remains NOT_READY.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "WAVE-C/C-AUTH1",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "NET-5R-D2"
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.net5r.standard-registration-diagnostic.v1",
+  "run": 34473508494,
+  "head": "cca0bf174505b2650bbf3303470feafd86d02238",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "diagnostic",
+  "profile": "standard",
+  "attempts": 1,
+  "retries": 0,
+  "outcome": "AUTHENTICATED_REGISTRATION_FINALIZED",
+  "g2": "NOT_READY_PENDING_FULL_SCENARIO",
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34473508494",
+  "hashes_sha256": {
+    "container-id.txt": "74dec6bd80847ef24555022f2b69d34785c697251309a74f0cfc08a1ba5c9490",
+    "docker-host-config.json": "4469814ecea30cd45b8ad894eb6f0479ef7058bd959835406ad40b98da0c572a",
+    "docker-network.json": "5de1011d749e33fba1aad4ea47659aa68eaa4073aeca5d3c4de3f4ef1a3b95f9",
+    "docker-requested-ports.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "docker-resource-usage.json": "1ebca89590ac1b9b5f1ee2b7e87a22d86609b203fe69324c85274321bc32aa8a",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "image-profile.json": "d9283e93b8a1ddaa036ae6859ef44a0f258dc212fa4102876a02b61614e7030a",
+    "isolation.json": "5ea447a98d39e5a507673e4f0c0c7eb2f6793b40e0d9a5d8d278ef16b79dd9f9",
+    "node.log.gz": "c114fbe78753c9a3b6c462f6c838c6991ebf7a99e46b65830646a240bad9482b",
+    "registration-diagnostic.json": "f4ec975561b443f0e8ff42afeb7c980c9a6740828ae7e0143474fbec514d5da8",
+    "setup.json": "719bd8f7b34079012069e82962079e05454889a96d8d5f4c6e2126532d47851f"
+  }
+}

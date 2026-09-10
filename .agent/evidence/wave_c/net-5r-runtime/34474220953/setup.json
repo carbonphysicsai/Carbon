@@ -1,0 +1,334 @@
+{
+  "schema": "carbon.disposable.setup.v1",
+  "context": {
+    "network": "localnet",
+    "endpoint": "ws://127.0.0.1:40411",
+    "provider": "disposable-primary",
+    "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+    "netuid": 2
+  },
+  "runtime_profile": "standard",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "roles": {
+    "owner": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+    "miner": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "challenger": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+  },
+  "operations": [
+    {
+      "label": "start_delay",
+      "state": "FINALIZED",
+      "start_finalized_block": 0,
+      "operation_wall_seconds": 144,
+      "transaction": "0xfbbd202cf067995302f03fd41474f408605926226715fc7a00c2d0a423739435",
+      "block_hash": "0xe85691fcfe0a2d3456a09ebe4d93efa11e18a4738acce904c144da527351fdbb",
+      "extrinsic_id": "2-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "owner_rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 2,
+      "operation_wall_seconds": 144,
+      "transaction": "0xc48817e853e4cd984eecdbf27824d1c59425593152992b60cbf4e4af5e483b31",
+      "block_hash": "0xd44dd4727122427b13517d1a1e9fa49a86eca3f248d754d53d20e37029b8a515",
+      "extrinsic_id": "5-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "admin_window",
+      "state": "FINALIZED",
+      "start_finalized_block": 5,
+      "operation_wall_seconds": 144,
+      "transaction": "0xdf0d959debba0e7277202a9b8c06a868838430b492f5631a5abee409d462bec1",
+      "block_hash": "0xc0bffafcfc576f9c8baddc4d737eada7803bd6dacfe974645431d0e0c1fe4544",
+      "extrinsic_id": "8-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "create-subnet",
+      "state": "FINALIZED",
+      "start_finalized_block": 8,
+      "operation_wall_seconds": 144,
+      "transaction": "0x17ed4402018f1bc05969127b354ceda8d4375f819bc5eb0513be04df32326634",
+      "block_hash": "0x8bf3480cd5860012db8df686e51df5c6cc90cb38c20bed348e92f7c708411d99",
+      "extrinsic_id": "11-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "plain",
+      "state": "FINALIZED",
+      "start_finalized_block": 11,
+      "operation_wall_seconds": 144,
+      "transaction": "0x8fac00d3044d66aefebf5246b7a1e86c2845132def003b00585231e74bcd393d",
+      "block_hash": "0x620651ee79d31d7adb33a773ec403b18bb3acd4e162705790755bf4431ac1cd9",
+      "extrinsic_id": "14-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "burn",
+      "state": "FINALIZED",
+      "start_finalized_block": 14,
+      "operation_wall_seconds": 144,
+      "transaction": "0x48babf18339a623aa9557e22b4ccff43854947d496a17019dc400f09786244d3",
+      "block_hash": "0xd06254494846f8d1c00d5743c7c7849e71fddf9918edbe4b95e51d36c81e3593",
+      "extrinsic_id": "17-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "minimum",
+      "state": "FINALIZED",
+      "start_finalized_block": 17,
+      "operation_wall_seconds": 144,
+      "transaction": "0xa803af809c2cbbe1e3e253b19534615c6218db090bc7cbe9cf3c25a28f7f492d",
+      "block_hash": "0x954a2b7a11da9554b52df3d2bad8b4661f35a67368e87bd3413dd46379721bad",
+      "extrinsic_id": "20-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 20,
+      "operation_wall_seconds": 144,
+      "transaction": "0x33de95b458a752ea672d538f62a6e906d12ce2e81b636fb2c42af86d259c5ad8",
+      "block_hash": "0x85b161c8e258cc75b6b80f362aac26818c0d8cbaf89885212de4d55665269492",
+      "extrinsic_id": "23-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "tempo",
+      "state": "FINALIZED",
+      "start_finalized_block": 23,
+      "operation_wall_seconds": 144,
+      "transaction": "0xc53eb99550ed78fead4f5fadc7575b2ab764479d9c78091ed24fd2f3171c5a1e",
+      "block_hash": "0xe189f9dd70bb2b8e3736cd58c2b6c12b07b5f1879585cba6dcab3458ef094c92",
+      "extrinsic_id": "26-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "registration",
+      "state": "FINALIZED",
+      "start_finalized_block": 26,
+      "operation_wall_seconds": 144,
+      "transaction": "0x447d53056c1b17f089b58a5dca077c36e9af6a27897433f2d66a4bee43cb6370",
+      "block_hash": "0xd47baa7af162905e1835f8192bd1a0023ad0fce83da04ad7e7082bbc68c79345",
+      "extrinsic_id": "29-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "emissions",
+      "state": "FINALIZED",
+      "start_finalized_block": 29,
+      "operation_wall_seconds": 144,
+      "transaction": "0x15ca56134bff746c6bf9b16cdd5ee262171c1b731772b62f81847ac95f27cacd",
+      "block_hash": "0xe06ff3527809ab5a9b26dcbfaaf3eed7b343d4b7bf2bd70d86f4dac060a99170",
+      "extrinsic_id": "32-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "activate",
+      "state": "FINALIZED",
+      "start_finalized_block": 32,
+      "operation_wall_seconds": 144,
+      "transaction": "0xcef8a75fbb08f472c8c7f717db21fafd4039f19f39301eb9d06f5e55e780f07b",
+      "block_hash": "0x6b0a6b8d9b16f611a9f09a8077452672c314beaec0757bbc5584b7c99ad38f9a",
+      "extrinsic_id": "35-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "validator-stake",
+      "state": "FINALIZED",
+      "start_finalized_block": 35,
+      "operation_wall_seconds": 144,
+      "transaction": "0xcbcc58ea7e5f3ec794cdc2fbee3a6fc3bb63b05f7268aab2a7485c00b8f2c7cf",
+      "block_hash": "0xc04c3e3c90d6150d60801eea43b6e89a7588f42cde4116406bc2b67efdcf3002",
+      "extrinsic_id": "38-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "register-miner",
+      "state": "FINALIZED",
+      "start_finalized_block": 75,
+      "shield_era_blocks": 8,
+      "block_aware_deadline": {
+        "mortality_period_blocks": 8,
+        "sdk_inner_scan_blocks_after_carrier": 8,
+        "maximum_scan_block": 91
+      },
+      "operation_wall_seconds": 144,
+      "shield_key_queries": [
+        {
+          "digest": "sha256:8c8bc012f9aeba775865cbaa555c2842ddbfbf0f06ffb4a9481979e77873c710",
+          "length": 1184,
+          "queried_at_block": 77,
+          "queried_at_hash": "0x00548bc666faf674e237fc85b7306e1c7d38e296389e811e027fa84d6a31365c",
+          "expires_at_exclusive": 80,
+          "associated_authors": [
+            "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+          ]
+        }
+      ],
+      "shield_key": {
+        "digest": "sha256:8c8bc012f9aeba775865cbaa555c2842ddbfbf0f06ffb4a9481979e77873c710",
+        "length": 1184,
+        "queried_at_block": 77,
+        "queried_at_hash": "0x00548bc666faf674e237fc85b7306e1c7d38e296389e811e027fa84d6a31365c",
+        "expires_at_exclusive": 80,
+        "associated_authors": [
+          "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+        ]
+      },
+      "signed_extrinsics": {
+        "inner": {
+          "nonce": 1,
+          "era_blocks": 8
+        },
+        "carrier": {
+          "nonce": 0,
+          "era_blocks": 8
+        }
+      },
+      "inner_transaction": "0x7180b60d4d2619237dcd316a1b9874eb7ddd98d9420d226ca427d870a8f7c170",
+      "transaction": "0x8550b3e0d889362cbd2149a7975d6ea2144398d23a077d90fb6fdcb3eab08229",
+      "shielded": true,
+      "block_hash": "0xa5a9b9d90aa36608e1d4f7deca8cbaa11628426a885ded93aa203efaab8e9412",
+      "extrinsic_id": "79-0003",
+      "error_name": null,
+      "error_code": null,
+      "diagnostic_scan": {
+        "from_finalized_block": 75,
+        "through_block": 81,
+        "receipts": {
+          "transaction": {
+            "block": 79,
+            "block_hash": "0xa5a9b9d90aa36608e1d4f7deca8cbaa11628426a885ded93aa203efaab8e9412",
+            "success": true,
+            "extrinsic_id": "79-0002"
+          },
+          "inner_transaction": {
+            "block": 79,
+            "block_hash": "0xa5a9b9d90aa36608e1d4f7deca8cbaa11628426a885ded93aa203efaab8e9412",
+            "success": true,
+            "extrinsic_id": "79-0003"
+          }
+        }
+      },
+      "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+      "key_rotation_context": {
+        "carrier_block": 79,
+        "carrier_block_hash": "0xa5a9b9d90aa36608e1d4f7deca8cbaa11628426a885ded93aa203efaab8e9412",
+        "queried_key_positions": [
+          "CurrentKey"
+        ],
+        "associated_authors_at_carrier": [],
+        "query_expiry_exclusive": 80
+      }
+    },
+    {
+      "label": "register-challenger",
+      "state": "FINALIZED",
+      "start_finalized_block": 79,
+      "shield_era_blocks": 8,
+      "block_aware_deadline": {
+        "mortality_period_blocks": 8,
+        "sdk_inner_scan_blocks_after_carrier": 8,
+        "maximum_scan_block": 95
+      },
+      "operation_wall_seconds": 144,
+      "shield_key_queries": [
+        {
+          "digest": "sha256:23b6c4e99ac2e3ec972f7216229afbfc3c588163bfff8fcf4874c8e544033041",
+          "length": 1184,
+          "queried_at_block": 81,
+          "queried_at_hash": "0x0f8e789ccd2bbf137ffb0f71f0c22cbd94887b7488ec054bd39df0c8f69e4cff",
+          "expires_at_exclusive": 84,
+          "associated_authors": [
+            "0xac859f8a216eeb1b320b4c76d118da3d7407fa523484d0a980126d3b4d0d220a"
+          ]
+        }
+      ],
+      "shield_key": {
+        "digest": "sha256:23b6c4e99ac2e3ec972f7216229afbfc3c588163bfff8fcf4874c8e544033041",
+        "length": 1184,
+        "queried_at_block": 81,
+        "queried_at_hash": "0x0f8e789ccd2bbf137ffb0f71f0c22cbd94887b7488ec054bd39df0c8f69e4cff",
+        "expires_at_exclusive": 84,
+        "associated_authors": [
+          "0xac859f8a216eeb1b320b4c76d118da3d7407fa523484d0a980126d3b4d0d220a"
+        ]
+      },
+      "signed_extrinsics": {
+        "inner": {
+          "nonce": 1,
+          "era_blocks": 8
+        },
+        "carrier": {
+          "nonce": 0,
+          "era_blocks": 8
+        }
+      },
+      "inner_transaction": "0xcb2bec65243db7d8071ddf8001ad4ac87dca77ff406ebf7203b337dcc0c18949",
+      "transaction": "0x3b64a215158671426d651c7b9c4bd87ce76b7e18c424dc9b43a6abb5ea306c99",
+      "shielded": true,
+      "block_hash": "0x991d1d6393d72402e409c42e62757c160eb2dc203ee1b3bd59177f3aa418b60f",
+      "extrinsic_id": "83-0003",
+      "error_name": null,
+      "error_code": null,
+      "diagnostic_scan": {
+        "from_finalized_block": 79,
+        "through_block": 85,
+        "receipts": {
+          "transaction": {
+            "block": 83,
+            "block_hash": "0x991d1d6393d72402e409c42e62757c160eb2dc203ee1b3bd59177f3aa418b60f",
+            "success": true,
+            "extrinsic_id": "83-0002"
+          },
+          "inner_transaction": {
+            "block": 83,
+            "block_hash": "0x991d1d6393d72402e409c42e62757c160eb2dc203ee1b3bd59177f3aa418b60f",
+            "success": true,
+            "extrinsic_id": "83-0003"
+          }
+        }
+      },
+      "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+      "key_rotation_context": {
+        "carrier_block": 83,
+        "carrier_block_hash": "0x991d1d6393d72402e409c42e62757c160eb2dc203ee1b3bd59177f3aa418b60f",
+        "queried_key_positions": [
+          "CurrentKey"
+        ],
+        "associated_authors_at_carrier": [],
+        "query_expiry_exclusive": 84
+      }
+    },
+    {
+      "label": "replace-miner-hotkey",
+      "state": "REJECTED",
+      "start_finalized_block": 115,
+      "operation_wall_seconds": 144,
+      "transaction": "0x391e2b0c99adf161abc20aaa1133a1cef797df624a9e76b9a9defe35141a7429",
+      "block_hash": null,
+      "extrinsic_id": null,
+      "error_name": "Stale",
+      "error_code": "expired"
+    }
+  ],
+  "treasury": null
+}

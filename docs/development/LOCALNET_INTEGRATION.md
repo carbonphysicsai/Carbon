@@ -19,8 +19,11 @@ G2 not ready; independent engineering acceptance can still be completed.
 
 Bittensor 11.1.0 and core 0.1.3 remain locked by uv.lock. Runtime v445 / source
 d3f40e44bda9019c606aeb0c907bb52ba7fe386c is independently pinned to the amd64
-image digest in `scripts/dev/localnet-runtime.json`. The upstream localnet image
-runs three development authorities at nominal 0.25-second slots. An internal
+image digest in `scripts/dev/localnet-runtime.json`. That manifest binds both
+installed release profiles without weakening either identity: fast selects
+`True`, includes `fast-runtime` and has nominal 0.25-second slots; standard
+selects `False`, omits `fast-runtime` and has nominal 12-second blocks. Their
+binary, WASM and genesis hashes are distinct. An internal
 Docker network contains only this container with no published ports or gateway.
 The harness process owns two dynamically chosen 127.0.0.1 TCP listeners, relaying
 only to the inspected container address and fixed RPC ports 9944/9945. The relay
@@ -67,6 +70,28 @@ authenticated unshielding in the pinned v445 fast-localnet proposer/keystore
 path. A supported upstream fix or an explicitly authorized compatible pin is
 required before another changed run; no blind retry or unchecked fallback is
 supported.
+
+The owner-authorized standard-runtime comparison preserved that fast evidence.
+Run 34472892985 failed before network/key creation because the initial opaque
+probe treated the installed CLI's unsupported `--version` exit 2 as fatal; it is
+retained as an instrumentation failure, not a compatibility result. Changed run
+34473145103 verified the distinct installed binary/WASM artifacts without a
+network and then verified v445, the bound standard genesis and 12-second blocks
+through isolated RPC. Run 34473508494 made one shielded registration attempt,
+with no retry, and observed its exact carrier and inner finalize.
+
+Full standard run 34474220953 also observed both shielded registrations,
+complete shared-winner publication/readback and its epoch. The remaining
+recycled-UID stage stopped when the later plain SDK `SwapHotkey` was rejected
+`Stale/expired` before inclusion. Exact Bittensor 11.1.0 source shows the
+shielded flow explicitly pins inner nonce `n+1` and then carrier nonce `n` into
+one transport cache; the later plain path can reuse consumed `n+1`. The changed
+Carbon candidate verifies the finalized account next nonce and reopens the
+public SDK transport under the same endpoint/genesis/runtime/policy checks. It
+does not touch the private cache, supply a nonce, retry or bypass SDK policy.
+This source-backed transition does not establish timing, standard-versus-fast
+or keystore causation. The full scenario has not been rerun, so G2 stays
+`NOT_READY` pending recycled-UID evidence.
 
 ## Fixture ownership and evidence
 
@@ -125,8 +150,8 @@ The workflow is manual (`workflow_dispatch`); normal CI still runs all setup and
 offline fixture contracts. Do not repeatedly rerun the unchanged registration
 configuration. Exact SDK/runtime source inspection identifies the 64-block
 override as incompatible: v445 returns `Stale` above its eight-block shield
-mortality ceiling. The eight-block repair was executed twice with changed
-hypotheses on canonical Linux; the refined run failed at the second shielded
-registration as recorded above. G2 cannot become LOCALNET_READY until a
-supported upstream or pin change permits the shared-winner/identity scenarios to
-pass.
+mortality ceiling. The eight-block repair and standard comparison were executed
+only under their recorded changed hypotheses on canonical Linux. The standard
+full run passed registration and shared-winner stages but failed before recycled-
+UID evidence as recorded above. G2 cannot become LOCALNET_READY until the
+complete identity scenario passes.

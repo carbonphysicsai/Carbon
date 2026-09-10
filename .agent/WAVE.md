@@ -13,8 +13,11 @@
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
 > OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering
 > without changing G2. C-AUTH1 merged in PR #130. C-EA0 merged in PR #131 as
-> a3ca8cd111689329832131eac1460d579c7828b3. NET-5R remains selected; its
-> bounded repair is ready while G2 and C2 eligibility remain unavailable.
+> a3ca8cd111689329832131eac1460d579c7828b3. PR #132 merged NET-5R's
+> eight-block repair as 675427ec8852579aa9d336bbec94e28be7b62810. NET-5R
+> remains selected after the standard-runtime full attempt passed registration
+> and shared-winner stages but stopped before recycled-UID evidence. G2 and C2
+> eligibility remain unavailable.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -74,7 +77,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. NET-5R repaired Carbon's unsupported 64-block shield era, then canonical run 34465977413 proved one complete shielded registration and isolated the next failure to authenticated unshielding in the pinned v445 fast-localnet proposer/keystore path. Its full scenario did not pass; NET-5R remains selected, shared-winner/recycled-UID effects remain unobserved and G2 is NOT_READY. No later ticket is selected.
+**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. PR #132 merged NET-5R's unsupported 64-to-8 shield-era repair. Standard run 34474220953 then finalized both registrations and observed the shared-winner row/epoch, but the later plain `SwapHotkey` was rejected `Stale/expired` before inclusion. NET-5R remains selected on a source-backed public-SDK transport-refresh candidate, recycled-UID evidence remains unobserved and G2 is NOT_READY. No later ticket is selected.
 **Current C1 status:** C-01 and C-AUTH1 are merged in bounded engineering scope.
 C-EA0 passed canonical acceptance and merged in PR #131 as
 `a3ca8cd111689329832131eac1460d579c7828b3`. C-EA1 remains unstarted and

@@ -1,7 +1,9 @@
 # C0 evidence-backed G2 disposition and C1/C2 handoff
 
-**Disposition:** G2 NOT_READY after bounded NET-5R runtime execution. This is an engineering evidence assessment, not
-human launch approval. NET-1 through NET-6 and C-REWARD are merged in bounded scope. PR #127
+**Disposition:** G2 NOT_READY after bounded NET-5R standard-runtime execution. This is an engineering evidence assessment, not
+human launch approval. NET-1 through NET-6 and C-REWARD are merged in bounded scope. PR #132
+merged the first eight-block repair; the later standard full attempt passed
+registration/shared-winner stages but not recycled-UID identity. PR #127
 passed canonical acceptance and the distinct operator rehearsal. These cannot fill the
 missing shared-winner runtime evidence. No public deployment occurred.
 
@@ -13,7 +15,7 @@ missing shared-winner runtime evidence. No public deployment occurred.
 | Complete vectors/signing/recovery | NET-4A/4B, PR #124/125; snapshot-bound final integer check, durable ambiguous dispatch and heartbeat; no public intent authority |
 | Actual local runtime | NET-5, PR #126; immutable v445 image, isolated observed genesis, actual all-burn inclusion/finality/row and epoch MinerBurned under verified Burn mode |
 | Restart/outage | NET-5 run 34425822745 observed exact replay, restarted journals, actual provider pause and recovery; NET-6 adds operator lifecycle and backup/restore |
-| Shared-winner / replacement UID chain effects | NOT OBSERVED. NET-5R repaired the 64-to-8 mortality mismatch. One miner carrier and inner finalized; the next carrier finalized but authenticated unshield failed in the pinned v445 fast-localnet proposer/keystore path. Exact identities and diagnostics are retained. |
+| Shared-winner / replacement UID chain effects | PARTIAL. Standard run 34474220953 finalized both shielded registrations and observed the complete shared-winner row/epoch. The later plain `SwapHotkey` was rejected `Stale/expired` before inclusion, so replacement/recycled-UID effects remain unobserved. |
 | Operator readiness | NET-6 PR #127; runtime run 34431662096 observed node restart, external-key restored publisher, heartbeat/shutdown and complete logical backup/restore; canonical acceptance run 34432281140 passed |
 
 Application multi-challenge winner targets work in deterministic tests with
@@ -31,24 +33,29 @@ overrode the pinned SDK's eight-block shield era with 64, while v445 rejects a
 `submit_encrypted` period above eight as `InvalidTransaction::Stale`. Canonical
 run 34465977413 then observed one carrier and decrypted inner finalize, followed
 by a second finalized carrier whose authenticated unshield failed in both pinned
-runtime and proposer diagnostics. The full scenario therefore did not reach
-shared-winner or recycled-UID effects.
+runtime and proposer diagnostics. The exact standard profile subsequently
+passed both registrations and the shared-winner stage. It stopped before the
+recycled-UID effect because the later plain `SwapHotkey` was rejected
+`Stale/expired` without inclusion.
 
-The exact remaining source/interface input is a supported upstream repair for
-the pinned v445 fast-localnet proposer/keystore decapsulation-key consistency
-path, or an explicitly authorized new compatible SDK/runtime pin. Carbon has no
-supported local bypass. After that input changes, execute the existing full
-scenario once on the changed inputs:
+Exact Bittensor 11.1.0 source supplies the next testable hypothesis: its
+shielded flow pins inner nonce `n+1`, then explicitly repins outer nonce `n` in
+one transport cache. A later plain intent can reuse consumed `n+1`. Carbon's
+next supported candidate verifies finalized account nonce `n+2` and reopens the
+public SDK client under unchanged identity and policy checks. It neither touches
+the private cache nor supplies an unchecked nonce. After a changed candidate is
+eligible for execution, run the existing full scenario once:
 
 ```sh
 CARBON_UV_GROUPS=chain ./scripts/dev/bootstrap.sh
-CARBON_LOCALNET_MODE=full ./scripts/dev/localnet.sh .carbon-artifacts/localnet
+CARBON_LOCALNET_MODE=full CARBON_LOCALNET_PROFILE=standard \
+  ./scripts/dev/localnet.sh .carbon-artifacts/localnet
 ```
 
 Its execution platform is canonical Linux amd64 Docker, not treasury funding,
 production credentials, paid inference or new human approvals. Do not retry the
-unchanged failing registration, use unchecked extrinsics or relabel partial
-registration/operator success as G2.
+unchanged failing command, use unchecked extrinsics or relabel partial
+registration/shared-winner/operator success as G2.
 
 ## Concrete next C1 and C2 contracts
 
@@ -58,7 +65,11 @@ implementation dependencies are delivered. `OWNER-C1-C2-BURGERS-01`
 prospectively selects C-01 and permits dependency-ready offline C1/C2 engineering
 while G2 remains unresolved; this sequencing amendment does not pass G2 or permit
 its dependent chain execution. C-02 then reuses its existing real declarative JAX
-reconstruction DoD and B-02B/B-03/B-E1 dependencies. C-06/C-07 retain signed
+reconstruction DoD and B-02B/B-03/B-E1 dependencies. Its exact missing input is
+an authorized JAX repository, immutable revision and reproducible build identity,
+plus that revision's actual training/inference entry points, signatures,
+shapes/dtypes, state/artifact format and failure behavior. Carbon must adapt that
+interface and cannot require upstream to adopt Carbon function names. C-06/C-07 retain signed
 receipts, protected execution and orchestration requirements. No synthetic C0
 receipt is real scientific evidence.
 

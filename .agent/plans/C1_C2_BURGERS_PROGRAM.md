@@ -3,7 +3,8 @@
 **Decision:** `OWNER-C1-C2-BURGERS-01`
 **Recorded:** 2026-09-10
 **Status:** active prospective sequencing authority; C-EA0 merged, NET-5R
-selected with its bounded repair ready and upstream blocker retained
+selected with its standard-runtime partial evidence and next supported
+nonce-transition repair candidate retained
 **Primary Hub map_ref:** `WAVE-C/C-01`
 
 ## Owner source and verified import
@@ -40,15 +41,24 @@ its required evidence.
    actual eligibility still requires the real signed C1 result, C-EA2 verified
    archive acknowledgement, exact bindings and the applicable G2 disposition.
 
-NET-5R completed the bounded Carbon portion of its narrow G2 compatibility investigation. Exact pinned SDK
+NET-5R continues its narrow G2 compatibility investigation. Exact pinned SDK
 and runtime source inspection confirms that Carbon's prior 64-block shield era
 exceeded v445's eight-block maximum and predicts immediate `Stale` rejection.
 The repair preserves SDK policy, signed inner/carrier identity, era/nonce,
 inclusion and finalized readback. A refined canonical run observed one complete
 carrier/inner registration, then an authenticated unshield failure for the next
-finalized carrier in the pinned v445 fast-localnet proposer/keystore path. G2
-remains `NOT_READY`; unchanged reruns and unchecked extrinsics remain prohibited.
+finalized carrier in the pinned v445 fast-localnet proposer/keystore path. The
+authorized standard profile subsequently finalized both registrations and the
+shared-winner row/epoch. Its later plain `SwapHotkey` was rejected
+`Stale/expired` before inclusion; source ties that result to a testable SDK
+outer/inner nonce-cache transition, without establishing timing or keystore
+causation. G2 remains `NOT_READY` pending recycled-UID evidence; unchanged
+reruns and unchecked extrinsics remain prohibited.
 C-EA1 remains unstarted and its operating decisions remain scoped to that ticket.
+Separately, C-02 remains unselected and fail-closed until an authorized JAX
+repository, immutable revision, reproducible build identity and its actual
+training/inference interface are supplied. Carbon will implement the adapter;
+the SciML lead is not required to adopt Carbon-authored function names.
 
 ## Scientific and execution ceiling
 

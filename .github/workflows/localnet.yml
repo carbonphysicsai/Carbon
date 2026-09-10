@@ -4,10 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Full NET-5 integration or separately labeled NET-6 all-burn operations'
+        description: 'Image discovery, one registration diagnostic, full NET-5, or NET-6 operator lane'
         type: choice
-        options: [full, operator]
+        options: [inspect, diagnostic, full, operator]
         default: full
+      profile:
+        description: 'Exact runtime profile registered in the pinned image manifest'
+        type: choice
+        options: [fast, standard]
+        default: fast
 
 permissions:
   contents: read
@@ -19,7 +24,7 @@ concurrency:
 jobs:
   localnet:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 100
     steps:
       - name: Check out exact requested revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -44,12 +49,13 @@ jobs:
         env:
           CARBON_UV_GROUPS: chain
           CARBON_LOCALNET_MODE: ${{ inputs.mode }}
+          CARBON_LOCALNET_PROFILE: ${{ inputs.profile }}
         run: ./scripts/dev/localnet.sh .carbon-artifacts/localnet
       - name: Preserve runtime diagnostics, including failures
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: disposable-localnet-${{ github.sha }}
+          name: disposable-localnet-${{ inputs.profile }}-${{ inputs.mode }}-${{ github.sha }}
           path: .carbon-artifacts/localnet
           if-no-files-found: warn
           retention-days: 14

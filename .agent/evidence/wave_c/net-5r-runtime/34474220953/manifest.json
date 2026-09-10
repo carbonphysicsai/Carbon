@@ -1,0 +1,48 @@
+{
+  "schema": "carbon.net5r.standard-full-partial-evidence.v1",
+  "run": 34474220953,
+  "head": "7701a1d11f0d80ae90ab942a0fd726482a054699",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "full",
+  "profile": "standard",
+  "attempts": 1,
+  "retries": 0,
+  "budget_wall_seconds": 5400,
+  "elapsed_runtime_seconds": 1395.44,
+  "outcome": "PARTIAL_REQUIRED_EFFECTS_THEN_PLAIN_NONCE_STALE",
+  "observed": [
+    "BOTH_SHIELDED_REGISTRATIONS_FINALIZED",
+    "THREE_CHALLENGE_SHARED_WINNER_COMPLETE_VECTOR_OBSERVED",
+    "SHARED_WINNER_EPOCH_OBSERVED",
+    "COPY_HAS_NO_NEW_CREDIT",
+    "RESTART_REPLAY_AND_PROVIDER_RECOVERY_OBSERVED"
+  ],
+  "remaining": "RECYCLED_UID_EFFECT_NOT_OBSERVED",
+  "failure": {
+    "operation": "replace-miner-hotkey",
+    "intent": "Bittensor 11.1.0 SwapHotkey through Client.execute with retries=0",
+    "transaction": "0x391e2b0c99adf161abc20aaa1133a1cef797df624a9e76b9a9defe35141a7429",
+    "error_name": "Stale",
+    "error_code": "expired",
+    "included": false
+  },
+  "source_backed_hypothesis": "Bittensor 11.1.0 signs a shielded inner at nonce+1 and then explicitly pins the outer nonce into its per-transport cache. After both finalized extrinsics advance the account by two, a later plain execute on that transport increments the regressed cached outer nonce by one and submits the already-consumed inner nonce.",
+  "next_supported_repair": "After verifying the finalized shielded account nonce equals inner_nonce+1, retire and reopen the public identity-checked SDK Client/RpcSubstrate before a later plain intent. Do not call the private nonce cache, supply an unchecked nonce, retry, or bypass Client.execute.",
+  "node_log_redaction": "The retained gzip replaces decrypted inner-extrinsic bytes with REDACTED_DECRYPTED_BYTES while preserving carrier hashes and success/failure diagnostics.",
+  "g2": "NOT_READY_PENDING_RECYCLED_UID_EFFECT",
+  "public_network_actions": 0,
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34474220953",
+  "hashes_sha256": {
+    "container-id.txt": "1a7475aebe766bcf7166c36863819a59794babdf4dfd59a8c3f99a84693bc7f0",
+    "docker-host-config.json": "0f732002bc01d1774ea8a732e5b2a66ecbeeb74be214c2943ef3c30760f3e469",
+    "docker-network.json": "386d549e6a9d2ff1dd49e0087c59e43d6806e1cf05208d206165151d3a7c2d13",
+    "docker-requested-ports.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "docker-resource-usage.json": "60e46efdd94fa070e840d10b439d668b9fcfe200f445bde6b31d2101b67edb6f",
+    "docker-version.json": "0b1b4f366d98cff013692f609c9d9929b24825cb0487a8d617e5543828256363",
+    "image-profile.json": "d9283e93b8a1ddaa036ae6859ef44a0f258dc212fa4102876a02b61614e7030a",
+    "integration.json": "3cd1c3e1c6967f0d97a89c3c9c2e643613afcf525e89ca4bcb6014be5f5535fc",
+    "isolation.json": "21500a3b5fe368047de46bfaf2290854a6f33732d60de8dd2fe6057b048d3c70",
+    "node.log.gz": "ea08a1e631a0863e993c19919929a0352f71869c9fc4f3b67ebd91b94fe0c1fb",
+    "setup.json": "0da0b12929b07789f9e9048e0e323895ea20b2ad275363a4e820984301e24b79"
+  }
+}

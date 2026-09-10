@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.disposable.isolation.v1",
+  "container": "5e819a8ed58d066fd39fed1b2e664c4073bb8865232291950cb9b2019de25175",
+  "image": "ghcr.io/raofoundation/subtensor-localnet@sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
+  "source_commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
+  "runtime_profile": "standard",
+  "runtime_selector": "False",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "runtime_build_profile": "release",
+  "runtime_features": [
+    "pow-faucet",
+    "metadata-hash"
+  ],
+  "expected_genesis": null,
+  "execution_mode": "inspect",
+  "execution_budget": {
+    "wall_seconds": 480,
+    "memory": "5g",
+    "cpus": "3",
+    "pids_limit": 1024
+  },
+  "startup_sha256": "e7b0f434800345cb3a8bb66a16b9ba5c4fe44a1bccdf431d71a73a9c83145d7d",
+  "network_backend": "libp2p",
+  "internal_network": "440dcb8ffba46ac4dd68dd7f97cefa1a7c15cb71fa23afe59d3931c4fc765f87",
+  "container_address": "172.18.0.2",
+  "scope": "DISPOSABLE_LOCALNET_ONLY",
+  "endpoints": [
+    "ws://127.0.0.1:41655",
+    "ws://127.0.0.1:43041"
+  ],
+  "transport": "PROCESS_LOOPBACK_RELAY",
+  "genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+  "spec_version": 445,
+  "block_time_seconds": 12.0,
+  "finalized_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+  "genesis_binding": "DISCOVERY_ONLY_NO_SIGNING"
+}

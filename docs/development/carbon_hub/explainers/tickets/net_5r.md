@@ -10,13 +10,13 @@
 
 ## What and why
 
-Replace Carbon's unsupported 64-block shield era with the pinned eight-block setting and retain key, nonce, era, inner/carrier hash and finalized-readback diagnostics.
+Preserve PR #132's eight-block repair, bind the distinct upstream standard runtime without weakening the fast identity, retain public-safe key/author/expiry/hash outcomes, and verify/reopen the public SDK transport after finalized shield pairs.
 
-The v445 runtime rejects submit_encrypted mortality above eight as Stale, so the old override prevented the required registration from reaching a block.
+The standard profile removes the prior authenticated-unshield blocker, while exact SDK source explains why the same transport can later reuse the consumed inner nonce and receive Stale on the first plain submission.
 
 ## What it adds
 
-A fail-closed SDK/runtime compatibility check, public-safe shield diagnostics and one changed full disposable-localnet hypothesis test.
+An isolated standard-runtime identity, bounded one-shot registration diagnostic, retained partial full-scenario evidence, minimal reproducer and focused-tested public-transport refresh candidate.
 
 ## Placement and handoff
 
@@ -28,11 +28,11 @@ A fail-closed SDK/runtime compatibility check, public-safe shield diagnostics an
 
 ## Explicit non-goals
 
-No unchecked extrinsic, blind retry, public endpoint, production key, persistent value, archive decision, scientific qualification or LIVE authority.
+No second full run without the changed hypothesis, unchecked extrinsic, private nonce-cache access, timing/keystore cause claim, public endpoint, production key, persistent value, archive decision, scientific qualification or LIVE authority.
 
 ## Current stage
 
-NET-5R repairs Carbon's unsupported 64-block shield override, fails closed on SDK/runtime drift, and retains public-safe key/nonce/era diagnostics. Canonical run 34465977413 proved one complete registration and isolated the next failure to authenticated unshielding in the pinned v445 fast-localnet proposer/keystore path.
+NET-5R preserves the merged eight-block repair and adds an exact, isolated standard-runtime profile. Canonical runs 34473145103 and 34473508494 bound that profile and proved one registration; full run 34474220953 proved both registrations and the shared-winner epoch, then failed before recycled-UID evidence on a source-backed SDK nonce-cache transition.
 
 ## Maturity ceiling
 
@@ -40,10 +40,10 @@ Disposable C0/G2 compatibility engineering only; actual runtime effects are requ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/evidence/wave_c/net-5r.md)
-- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md)
+- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/docs/development/LOCALNET_INTEGRATION.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/WAVE_C.md)
 
-> The retained Stale receipt alone was not treated as a cause; exact SDK/runtime source established mortality, and changed debug evidence isolated the remaining pinned-runtime unshield branch.
+> Standard versus fast is retained only as a compatibility comparison. Exact SDK source supports a nonce-cache transition hypothesis after the shield pair; no timing or keystore root cause is claimed, and no retry, unchecked extrinsic or public-network action is permitted.

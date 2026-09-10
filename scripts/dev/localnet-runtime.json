@@ -1,18 +1,51 @@
 {
-  "schema": "carbon.localnet.runtime.v1",
+  "schema": "carbon.localnet.runtime.v2",
   "repository": "https://github.com/RaoFoundation/subtensor",
   "release": "v445",
   "commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
   "build_definition": "Dockerfile-localnet",
+  "build_definition_sha256": "14fe6da5fe165ea1b63bf90796160fecb477e2e65aa1d816ec1e35402161451c",
+  "startup_script": "scripts/localnet.sh",
+  "startup_script_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae",
   "platform": "linux/amd64",
+  "image": "ghcr.io/raofoundation/subtensor-localnet",
   "image_digest": "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
-  "observed_genesis": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+  "image_entrypoint": ["/scripts/localnet.sh"],
+  "image_default_command": ["True"],
   "runtime_capabilities_verified": false,
   "scope": "DISPOSABLE_LOCALNET_ONLY",
-  "image": "ghcr.io/raofoundation/subtensor-localnet",
+  "profiles": {
+    "fast": {
+      "selector": "True",
+      "binary_path": "/target/fast-runtime/release/node-subtensor",
+      "wasm_path": "/target/fast-runtime/release/node_subtensor_runtime.compact.compressed.wasm",
+      "build_profile": "release",
+      "cargo_features": ["pow-faucet", "metadata-hash", "fast-runtime"],
+      "nominal_block_seconds": "0.25",
+      "expected_genesis": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+      "binary_sha256": "5b77576e166b3bd07b19052596be08757acfb161040637febaa262b26951b5ac",
+      "wasm_sha256": "0f88389c595f0e6ded19ba6e9e5edf95bdd125256711f2260105b2985734d716"
+    },
+    "standard": {
+      "selector": "False",
+      "binary_path": "/target/non-fast-runtime/release/node-subtensor",
+      "wasm_path": "/target/non-fast-runtime/release/node_subtensor_runtime.compact.compressed.wasm",
+      "build_profile": "release",
+      "cargo_features": ["pow-faucet", "metadata-hash"],
+      "nominal_block_seconds": "12",
+      "expected_genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "binary_sha256": "0f76a6aee5dafb2a96ace3930ebef8acd360bf2861de08832145fe1aef885c83",
+      "wasm_sha256": "3609276931c1c2b0e8439c57de709d555f8fa630d1de9182e535070e70bebfcf"
+    }
+  },
+  "budgets": {
+    "inspect": {"wall_seconds": 480, "memory": "5g", "cpus": "3", "pids_limit": 1024},
+    "diagnostic": {"wall_seconds": 1200, "memory": "5g", "cpus": "3", "pids_limit": 1024},
+    "full": {"wall_seconds": 5400, "memory": "5g", "cpus": "3", "pids_limit": 1024},
+    "operator": {"wall_seconds": 1800, "memory": "5g", "cpus": "3", "pids_limit": 1024}
+  },
   "development": {
     "topology": "three authorities in one isolated disposable container",
-    "fast_blocks_seconds": "0.25",
     "netuid": 2,
     "mechanism": 0,
     "tempo_blocks": 20,
@@ -21,9 +54,9 @@
     "commit_reveal_weights": false,
     "treasury": null,
     "network_backend": "libp2p",
-    "upstream_startup_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae",
     "admin_freeze_window_blocks": 0,
     "shield_era_blocks": 8,
+    "shield_key_expiry_source": "pallets/shield/src/lib.rs at the pinned source commit; NextKeyExpiresAt is an exclusive upper bound",
     "shield_mortality_source": "runtime/src/check_mortality.rs at the pinned source commit; MAX_SHIELD_ERA_PERIOD=8",
     "preserve_container_chain_on_restart": true,
     "startup_revision": "NET-6 no-purge; original NET-5 evidence retains its original startup digest"
