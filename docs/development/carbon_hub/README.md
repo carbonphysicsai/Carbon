@@ -11,7 +11,7 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 49 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 80 map-level change events
+- 81 map-level change events
 - 8 independent maturity states
 
 ## Captured current position

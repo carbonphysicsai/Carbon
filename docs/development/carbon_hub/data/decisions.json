@@ -2080,6 +2080,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/83895b45cd46ff394eb6a73507fd644191a273d2/docs/development/LOCALNET_INTEGRATION.md"
+    },
+    {
+      "title": "Exact finite fixture migration regression",
+      "question": "Which regression scope is meaningful for the fixed synthetic identities and test-only repair?",
+      "recommendation": "Run all network, A7/A8, scoring and NET-5 contracts plus invariant/quality/package/Hub/image/Merge checks; exact before/after hashes keep other science changes full.",
+      "why": "The finite identities preserve every scientific input; a blanket A8 exemption would be unsafe and another unrelated full run is unnecessary.",
+      "if_kept": "NET-6 completes operator lifecycle and an evidence-backed G2 disposition, preserving C1/C2 and archive handoffs.",
+      "if_changed": "Keep genuine runtime failures and immutable evidence; require compatible pin, identity, fixture and recovery contracts before replacement.",
+      "decision_id": "NET-5-D2",
+      "map_ref": "WAVE-C/NET-5",
+      "wave": "C",
+      "ticket": "NET-5",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611638865",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/83895b45cd46ff394eb6a73507fd644191a273d2/docs/development/LOCALNET_INTEGRATION.md"
     }
   ]
 }

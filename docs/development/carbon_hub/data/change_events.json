@@ -1909,6 +1909,35 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5",
+      "event_type": "adjustment",
+      "event_id": "NET-5-D2",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611638865",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

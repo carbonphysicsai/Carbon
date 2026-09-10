@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9b92cb856e30d43b3464879547a01d486749178c` on `main`, captured 2026-09-10T01:55:46Z.
+**Authority snapshot:** `a7afa7b69960841d16256db822212f3e519fc77c` on `main`, captured 2026-09-10T02:15:01Z.
 **Current:** Wave C, ticket NET-5. Wave C/C0 has NET-5 selected as its one active ticket after NET-4B merged in PR #125. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
 **Last completed:** NET-4B (`done`).
 **Next selected:** none selected.
@@ -172,6 +172,7 @@
 - `NET-4A-D1` — `WAVE-C/NET-4A` — C-REWARD merged with canonical reward evidence. NET-4A adds journal-issued localnet intent provenance, short validity, supersession and quarantine checks. Public-testnet and optional treasury families remain separately unavailable; no signing or G2 claim.
 - `NET-4B-D1` — `WAVE-C/NET-4B` — NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven.
 - `NET-5-D1` — `WAVE-C/NET-5` — NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.
+- `NET-5-D2` — `WAVE-C/NET-5` — Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved.
 
 ## Authority boundary
 
