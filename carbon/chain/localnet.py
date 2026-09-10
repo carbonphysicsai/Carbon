@@ -27,6 +27,7 @@ STARTUP = r"""set -euo pipefail
 printf '%s  %s\n' 690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae /scripts/localnet.sh | sha256sum -c -
 sed '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh > /scripts/carbon-localnet.sh
 chmod 700 /scripts/carbon-localnet.sh
+export RUST_LOG='info,basic-authorship=debug,mev-shield=debug,pallet-shield=debug'
 exec /scripts/carbon-localnet.sh True --no-purge"""
 
 

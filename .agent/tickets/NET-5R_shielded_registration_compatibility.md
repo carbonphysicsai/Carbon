@@ -49,3 +49,14 @@ intent, encryption, policy, identity guards, exact hashes and finalized lookup.
 This changes no runtime, key, nonce algorithm, retry policy or public endpoint.
 Only a fresh disposable chain with this changed configuration may test the
 hypothesis.
+
+## First changed-run result and refined hypothesis
+
+Canonical run 34464255826 accepted and finalized the eight-block carrier at
+block 258, with the expected key length and inner/carrier nonce and era values,
+but did not observe the decrypted inner hash. This falsifies continued
+pool-level mortality rejection. Pinned proposer/runtime source narrows the
+remaining branch to decapsulation-key availability, ML-KEM/XChaCha unshielding,
+or inner-extrinsic push validity; drand is not part of this shield decryptor.
+Enable only the pinned proposer/shield debug targets for one changed diagnostic
+run. Do not alter the intent, nonce, era, runtime, extrinsic or isolation path.

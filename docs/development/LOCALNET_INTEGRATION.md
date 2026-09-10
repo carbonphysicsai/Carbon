@@ -50,6 +50,13 @@ legacy register/raw calls. Weight timelock encryption has installed-SDK contract
 tests; actual isolated runtime operation uses plain weights. A future timelock
 configuration needs actual beacon, reveal and stale-exposure evidence.
 
+Run 34464255826 proved the eight-block carrier is accepted and finalized rather
+than rejected `Stale`, but its inner hash was not observed before expiry. Pinned
+source shows ML-KEM shield decryption uses the selected author's in-memory key,
+not drand. The harness enables the pinned proposer/shield debug targets so a
+changed diagnostic run can distinguish key availability, unshielding and inner
+push validity without changing the registration operation or isolation.
+
 ## Fixture ownership and evidence
 
 A8's existing evaluator gets only two additional finite synthetic profiles:

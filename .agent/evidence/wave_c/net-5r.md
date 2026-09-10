@@ -44,3 +44,28 @@ Focused installed-SDK contracts and the canonical Linux full scenario remain
 required. Until successful registration, shared-winner publication and recycled
 UID isolation have all been observed on that disposable runtime, G2 remains
 NOT_READY.
+
+## Changed canonical run 34464255826
+
+The first eight-block candidate ran at exact head
+`dcd8dc773c825400b2cf6636c22bb704758b5218` on Ubuntu 24.04 amd64. Setup and
+installed Bittensor 11.1.0 contracts passed. The `register-miner` carrier
+`0x1f1c63e85547a917f93a260a569e1d4b4261bc44c5bee977c432662cc6995b1d`
+was accepted and finalized at block 258, proving that the 64-to-8 repair moved
+the operation past the retained pool-level `Stale` rejection. Its public-safe
+diagnostics recorded a 1184-byte key, inner nonce 1, carrier nonce 0 and era 8.
+The inner hash
+`0xde3bb6ce5f1e9fef831e0dd956a1ade13cbacc957192e7302ecd8f8344ddb55c`
+did not appear before its era, so the shared-winner and recycled-UID stages did
+not run and G2 remains `NOT_READY`.
+
+Pinned source excludes the concurrent drand HTTP errors as the cause of this
+ML-KEM path: the shield proposer decrypts with its in-memory per-author
+decapsulation key and the runtime performs ML-KEM/XChaCha unshielding. Because
+the wrapper was included, the proposer had already accepted its key hash. The
+remaining bounded alternatives are unavailable local decapsulation key,
+failed unshielding, or rejection while pushing the decrypted inner extrinsic.
+The retained info-level log cannot distinguish them. The next changed run
+therefore enables only pinned proposer/shield debug targets; it changes the
+diagnostic configuration and tests this exact three-way hypothesis without
+changing, bypassing or retrying the registration operation.

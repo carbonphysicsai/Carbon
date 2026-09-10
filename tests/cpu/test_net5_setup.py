@@ -49,6 +49,12 @@ def docker_state():
     return item, network
 
 
+def test_runtime_diagnostic_log_distinguishes_shield_decryption_failures():
+    assert "basic-authorship=debug" in STARTUP
+    assert "mev-shield=debug" in STARTUP
+    assert "pallet-shield=debug" in STARTUP
+
+
 @pytest.mark.parametrize(
     "defect",
     [None, "public-port", "bridge", "other-container", "image", "mount", "privileged"],
