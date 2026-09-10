@@ -40,7 +40,7 @@ def test_installed_sdk_hook_source_contracts_are_exact():
         ),
         (
             bt.RpcSubstrate.submit,
-            "ad30fecd52c35969e2f2e39251c82067f4de661efbc889759acd88faefd26582",
+            "bf5c7ea2dc559422acca7ff3bb385627807e7895b3be6b26abff5afb80cafec1",
         ),
         (
             bt.RpcSubstrate._submit_and_report,

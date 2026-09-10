@@ -67,3 +67,12 @@ reviewed function hashes to the 3.11 shape; meaningful SDK statements and
 nonempty generic parameters remain checked. Actual encryption, execution
 rebuilding, policy and hash-before-wire SDK tests passed in the failed run.
 This repair requires a new applicable acceptance, not a claimed prior pass.
+
+Run 34420869013 exposed a second fingerprint-generation detail: parsing an
+entire class retains indentation inside RpcSubstrate.submit's multiline
+docstring, while inspect.getsource followed by dedent removes it. Recomputed
+all three references from exact method line slices using the same dedent and
+AST normalization as the installed-source test. The observed submit hash is
+reproduced from the pinned wheel; no SDK statement or semantic assertion was
+removed. All other focused tests and 180 invariants again passed; the clean
+image job passed. Both failed runs remain historical failed evidence.
