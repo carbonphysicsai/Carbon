@@ -71,8 +71,8 @@
       "title": "Repair the shielded-registration mortality mismatch",
       "what": "Use the pinned SDK and runtime's exact eight-block shield era and record enough public-safe key, nonce, era and hash evidence to diagnose the changed attempt.",
       "why": "The old Carbon override exceeded v445's submit_encrypted limit and was rejected before either signed extrinsic reached a block.",
-      "changes": "A fail-closed compatibility check, richer shield diagnostics and one changed full disposable-localnet run.",
-      "not_yet": "Until canonical execution succeeds, G2 remains NOT_READY. No public network, unchecked call, production key, real science, archive policy or LIVE authority is added.",
+      "changes": "A fail-closed compatibility check, richer shield diagnostics and two hypothesis-changed full disposable-localnet runs; one complete registration and one authenticated unshield failure are retained.",
+      "not_yet": "The full scenario did not pass, so G2 remains NOT_READY on the pinned v445 fast-localnet proposer/keystore unshield blocker. No public network, unchecked call, retry, production key, real science, archive policy or LIVE authority is added.",
       "map_ref": "WAVE-C/NET-5R"
     },
     "C-01": {

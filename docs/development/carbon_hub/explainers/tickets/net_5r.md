@@ -32,7 +32,7 @@ No unchecked extrinsic, blind retry, public endpoint, production key, persistent
 
 ## Current stage
 
-NET-5R replaces Carbon's unsupported 64-block shield override with the pinned SDK/runtime eight-block period, fails closed on drift, and adds public-safe key/nonce/era diagnostics. Canonical full-localnet execution remains pending.
+NET-5R repairs Carbon's unsupported 64-block shield override, fails closed on SDK/runtime drift, and retains public-safe key/nonce/era diagnostics. Canonical run 34465977413 proved one complete registration and isolated the next failure to authenticated unshielding in the pinned v445 fast-localnet proposer/keystore path.
 
 ## Maturity ceiling
 
@@ -40,10 +40,10 @@ Disposable C0/G2 compatibility engineering only; actual runtime effects are requ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/evidence/wave_c/net-5r.md)
-- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/evidence/wave_c/net-5r.md)
+- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/docs/development/LOCALNET_INTEGRATION.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/WAVE_C.md)
 
-> The retained Stale receipt alone was not treated as a cause; exact SDK and runtime source establish the changed mortality hypothesis.
+> The retained Stale receipt alone was not treated as a cause; exact SDK/runtime source established mortality, and changed debug evidence isolated the remaining pinned-runtime unshield branch.

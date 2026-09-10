@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T10:23:14Z"
+  captured_at_utc: "2026-09-10T10:50:20Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a8e874f45a18db7ac0d26a75a39101da58ea0ffb"
+  authority_snapshot_commit: "e45be8ae28e20c471983b7f96165eb45dcc03b9e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-EA0 merged in PR #131. NET-5R is selected with a source-confirmed mortality hypothesis and smallest supported repair; canonical full disposable-localnet execution remains pending, so G2 remains NOT_READY. No later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EA0 merged in PR #131. NET-5R remains selected with its smallest supported Carbon repair ready: canonical run 34465977413 proved one complete shielded registration, then isolated authenticated unshield failure in the pinned v445 fast-localnet proposer/keystore path. The full scenario did not pass, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -457,12 +457,12 @@ current:
     id: "NET-5R"
     title: "Shielded registration compatibility repair"
     status: "in_progress"
-    summary: "NET-5R replaces Carbon's unsupported 64-block shield override with the pinned SDK/runtime eight-block period, fails closed on drift, and adds public-safe key/nonce/era diagnostics. Canonical full-localnet execution remains pending."
+    summary: "NET-5R repairs Carbon's unsupported 64-block shield override, fails closed on SDK/runtime drift, and retains public-safe key/nonce/era diagnostics. Canonical run 34465977413 proved one complete registration and isolated the next failure to authenticated unshielding in the pinned v445 fast-localnet proposer/keystore path."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "1.0"
   controlling_board_fingerprint: "3a35f6ddb2c986124b01fde90778d72f51a267806e79cb93223a2c63123f3607"
-  stage: "C-EA0 merged in PR #131. NET-5R is selected with a source-confirmed mortality hypothesis and smallest supported repair; canonical full disposable-localnet execution remains pending, so G2 remains NOT_READY. No later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created."
+  stage: "C-EA0 merged in PR #131. NET-5R remains selected with its smallest supported Carbon repair ready: canonical run 34465977413 proved one complete shielded registration, then isolated authenticated unshield failure in the pinned v445 fast-localnet proposer/keystore path. The full scenario did not pass, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -510,19 +510,19 @@ current:
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
-    - "G2 stays NOT_READY while NET-5R's changed eight-block registration and full shared-winner/recycled-UID scenario await canonical runtime evidence. Source inspection and unit contracts cannot substitute for that run."
+    - "G2 stays NOT_READY after NET-5R's refined canonical run: one shielded registration completed, but the next finalized carrier failed authenticated unshielding in the pinned v445 fast-localnet proposer/keystore path, so shared-winner and recycled-UID effects remain unobserved."
     - "C-EA0 is a merged specified/tested documentation contract only. Every real durability, required-artifact, retention, rights, custody/key, deployment, capacity, recovery and security value remains HUMAN_INPUT; C-EA1 is unstarted and no archive acknowledgement exists."
   maturity_states:
     specified: "earned"
     implemented: "earned"
-    tested: "unearned"
+    tested: "earned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EA0 is merged in bounded specified/tested documentation scope. NET-5R has an implemented source-backed compatibility candidate but canonical full-localnet evidence is pending. G2, archive runtime/durability, protected or real scientific evidence, reference qualification, testnet eligibility, security/network qualification, production and LIVE remain unearned."
-  decision_series_status: "NET-5R-D1 selects the pinned SDK/runtime eight-block shield mortality and preserves policy, encryption, nonce and finalized-readback controls. C-EA1's reserved operating decisions remain scoped there. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-EA0 is merged in bounded specified/tested documentation scope. NET-5R has an implemented and focused-tested source-backed compatibility repair plus partial canonical runtime evidence; its full scenario failed at authenticated unshielding. G2, archive runtime/durability, protected or real scientific evidence, reference qualification, testnet eligibility, security/network qualification, production and LIVE remain unearned."
+  decision_series_status: "NET-5R-D1 selects the pinned SDK/runtime eight-block shield mortality; NET-5R-D2 retains the exact authenticated unshield blocker without retry or bypass. C-EA1's reserved operating decisions remain scoped there. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -3834,6 +3834,26 @@ events:
     summary: "The first changed eight-block run passed the exact SDK setup and finalized the shield carrier at block 258, falsifying the previous pool-level Stale failure. Its inner was not observed before expiry. Pinned source narrows the remaining branch to local decapsulation-key availability, ML-KEM/XChaCha unshielding or inner push validity and excludes concurrent drand HTTP errors from this path. A changed diagnostic configuration enables only proposer/shield debug targets; G2 remains NOT_READY."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/a8e874f45a18db7ac0d26a75a39101da58ea0ffb/.agent/evidence/wave_c/net-5r.md"
     affects:
+      - "WAVE-C"
+      - "WAVE-C/NET-5"
+      - "WAVE-C/NET-6"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/NET-5R"
+    event_type: "blocker"
+    event_id: "NET-5R-D2"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "The refined canonical run proved one complete shielded registration, then finalized the challenger carrier while both pinned proposer and runtime debug targets reported authenticated unshield failure and the exact inner remained absent. The smallest Carbon mortality repair is retained; NET-5R and G2 remain open on a supported upstream v445 fast-localnet proposer/keystore repair or an explicitly authorized compatible pin, with no retry, unchecked extrinsic, bypass or public-network operation."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/evidence/wave_c/net-5r.md"
+    affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/NET-5"
       - "WAVE-C/NET-6"

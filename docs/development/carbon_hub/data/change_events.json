@@ -2110,6 +2110,28 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5R",
+      "event_type": "blocker",
+      "event_id": "NET-5R-D2",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "The refined canonical run proved one complete shielded registration, then finalized the challenger carrier while both pinned proposer and runtime debug targets reported authenticated unshield failure and the exact inner remained absent. The smallest Carbon mortality repair is retained; NET-5R and G2 remain open on a supported upstream v445 fast-localnet proposer/keystore repair or an explicitly authorized compatible pin, with no retry, unchecked extrinsic, bypass or public-network operation.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/evidence/wave_c/net-5r.md",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }
