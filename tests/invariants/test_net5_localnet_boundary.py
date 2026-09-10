@@ -4,6 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.invariant
+
 
 def test_localnet_import_has_no_sdk_key_or_network_construction():
     result = subprocess.run(
