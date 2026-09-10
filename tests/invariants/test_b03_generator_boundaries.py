@@ -15,6 +15,7 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _CARBON_ROOT = _REPOSITORY_ROOT / "carbon"
 _GENERATORS_ROOT = _CARBON_ROOT / "generators"
 _B07F_ADAPTER = _CARBON_ROOT / "traineval" / "resolved_fixture.py"
+_BURGERS_DEVELOPMENT_MODULE = _GENERATORS_ROOT / "burgers_dynamics.py"
 
 _EXPECTED_MODULE_PATHS = frozenset(
     {
@@ -22,6 +23,7 @@ _EXPECTED_MODULE_PATHS = frozenset(
         "accounting.py",
         "authorities.py",
         "burgers.py",
+        "burgers_dynamics.py",
         "canonical.py",
         "conformance.py",
         "disclosure.py",
@@ -70,6 +72,11 @@ _FORBIDDEN_SEEDING_SYMBOLS = frozenset(
         "derive_qualification_seed",
     }
 )
+
+_BURGERS_DEVELOPMENT_SEEDING_SYMBOLS = {
+    "carbon.seeding.derive": frozenset({"derive_mock_seed"}),
+    "carbon.seeding.model": frozenset({"DerivedSeed", "MockContext", "RoleKey"}),
+}
 
 _FORBIDDEN_RUNTIME_MODULE_ROOTS = frozenset(
     {
@@ -338,7 +345,7 @@ def test_generators_uses_only_registry_identity_and_digest_primitives() -> None:
     assert violations == []
 
 
-def test_generators_uses_only_fixture_seeding_apis() -> None:
+def test_generators_uses_only_ratified_seeding_apis() -> None:
     violations: list[str] = []
     for path in _python_files(_GENERATORS_ROOT):
         for node in ast.walk(_parse(path)):
@@ -352,14 +359,25 @@ def test_generators_uses_only_fixture_seeding_apis() -> None:
             elif isinstance(node, ast.ImportFrom):
                 base = _from_module(path, node)
                 if base == "carbon.seeding" or base.startswith("carbon.seeding."):
-                    forbidden = sorted(
-                        alias.name
-                        for alias in node.names
-                        if alias.name in _FORBIDDEN_SEEDING_SYMBOLS
-                    )
-                    if forbidden:
+                    if path == _BURGERS_DEVELOPMENT_MODULE:
+                        allowed = _BURGERS_DEVELOPMENT_SEEDING_SYMBOLS.get(
+                            base, frozenset()
+                        )
+                        unexpected = sorted(
+                            alias.name
+                            for alias in node.names
+                            if alias.name not in allowed
+                        )
+                    else:
+                        unexpected = sorted(
+                            alias.name
+                            for alias in node.names
+                            if alias.name in _FORBIDDEN_SEEDING_SYMBOLS
+                        )
+                    if unexpected:
                         violations.append(
-                            f"{_relative(path)}:{node.lineno}:" f"{','.join(forbidden)}"
+                            f"{_relative(path)}:{node.lineno}:"
+                            f"{','.join(unexpected)}"
                         )
 
     assert violations == []

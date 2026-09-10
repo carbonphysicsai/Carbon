@@ -13066,3 +13066,16 @@ atomically, resumes or requeues only after explicit reconciliation, retains part
 work, and records result/card/transcript references without claiming C-EA2 archive
 acknowledgement. This decision creates no scientific, archive, network or LIVE
 authority.
+
+## C-AUTH1-D1 — Compile a closed proposal and derive public cases only from A4 mock context
+
+See `.agent/tickets/C-AUTH1_burgers_authoring.md` and
+`Design_Specs/Goal_Driven_Authoring_and_Burgers_Dynamics_V1.md`. The verified
+workbench is integrated as one closed Burgers template, not as a generic code
+runner or duplicate lifecycle. Canonical proposal bytes record one primary
+Dynamics competition, three inactive specialist reports, exact rational weights,
+the 12-cell law, measurements, gates, development reference candidates and
+unresolved owner inputs. Generation is admitted only from exact A4 `MockContext`
+values with separate TRAIN/EVAL/STRESS role keys. Public development evidence
+cannot become protected evaluation, accepted baseline, qualification, payment,
+archive acknowledgement, network or LIVE evidence through this decision.
