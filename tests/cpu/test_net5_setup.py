@@ -15,6 +15,7 @@ from carbon.chain.localnet import (
     DIGEST,
     IMAGE,
     ROOT_SETTINGS,
+    STARTUP,
     inspect_isolation,
     root_setting,
 )
@@ -28,6 +29,8 @@ def docker_state():
         "Id": "disposable-id",
         "Config": {
             "Image": IMAGE + "@" + DIGEST,
+            "Entrypoint": ["/bin/bash"],
+            "Cmd": ["-c", STARTUP],
             "Labels": {"carbon.scope": "disposable-localnet"},
         },
         "State": {"Running": True},

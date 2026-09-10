@@ -27,9 +27,10 @@ cleanup() {
 trap cleanup EXIT INT TERM
 docker pull --platform linux/amd64 "$image"
 docker network create --internal --label carbon.scope=disposable-localnet "$network" >/dev/null
-docker run --detach --name "$name" --platform linux/amd64 --network "$network" \
+startup="$(.venv/bin/python -c 'from carbon.chain.localnet import STARTUP; print(STARTUP, end="")')"
+docker run --detach --entrypoint /bin/bash --name "$name" --platform linux/amd64 --network "$network" \
   --label carbon.scope=disposable-localnet --memory 5g --cpus 3 \
-  "$image" True >"$evidence/container-id.txt"
+  "$image" -c "$startup" >"$evidence/container-id.txt"
 export CARBON_LOCALNET_CONTAINER="$name" CARBON_LOCALNET_EVIDENCE="$evidence"
 # Process-owned loopback relays reach only the inspected internal container RPC.
 # Probe validates isolation and genesis before constructing any key.

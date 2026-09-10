@@ -45,3 +45,13 @@ publication. This is not a startup timing race. Preserve that isolation; the
 harness now owns two loopback TCP relays to the verified container address and
 fixed RPC ports, with no caller endpoint file or external container route.
 Container identity/network must still match the in-process relay capability.
+
+Run 34423854559 reached pinned node genesis initialization, then all three
+litep2p authorities exited with `SelectNextSome polled after terminated` in
+sc_network_sync. No RPC identity/signing or burn success was claimed. The pinned
+node service.rs and pinned polkadot-sdk cacb431 network CLI explicitly support
+libp2p. A fixed startup shim verifies the upstream script SHA-256 and adds only
+that public backend option to the three authorities. The immutable image and
+runtime binary remain unchanged; Docker inspection binds the exact startup
+command. If this configuration also fails, preserve the concrete failure rather
+than repeatedly retrying unchanged nodes.

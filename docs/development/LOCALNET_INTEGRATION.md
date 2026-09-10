@@ -25,7 +25,10 @@ Docker network contains only this container with no published ports or gateway.
 The harness process owns two dynamically chosen 127.0.0.1 TCP listeners, relaying
 only to the inspected container address and fixed RPC ports 9944/9945. The relay
 capability stays in memory and rejects a replaced container or changed network. No volume, privileged container, external peer or valuable
-network is admitted. The probe inspects actual Docker state, observes genesis,
+network is admitted. A fixed, hash-checked upstream startup script selects the supported libp2p
+backend after the default litep2p backend panicked in the recorded runner. The
+runtime binary is unchanged and inspection binds the exact startup command.
+The probe inspects actual Docker state, observes genesis,
 and verifies runtime version before setup constructs any key.
 
 The familiar Substrate development accounts are disposable, publicly known and

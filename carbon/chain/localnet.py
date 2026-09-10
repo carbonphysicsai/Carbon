@@ -1,6 +1,7 @@
 """Explicit disposable Docker localnet setup; never a public-network operator."""
 
 import asyncio
+import hashlib
 import ipaddress
 import json
 import os
@@ -16,6 +17,12 @@ from .sdk_weights import journaled_substrate, require_sdk
 IMAGE = "ghcr.io/raofoundation/subtensor-localnet"
 DIGEST = "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86"
 SOURCE = "d3f40e44bda9019c606aeb0c907bb52ba7fe386c"
+
+# Pinned upstream public CLI compatibility option; runtime binary is unchanged.
+STARTUP = r"""set -euo pipefail
+printf '%s  %s\n' 690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae /scripts/localnet.sh | sha256sum -c -
+sed -i '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh
+exec /scripts/localnet.sh True"""
 
 
 def write_evidence(path, value):
@@ -43,6 +50,8 @@ def _inspect_container(container):
     nets = item["NetworkSettings"]["Networks"]
     if (
         item["Config"]["Image"] != IMAGE + "@" + DIGEST
+        or item["Config"].get("Entrypoint") != ["/bin/bash"]
+        or item["Config"].get("Cmd") != ["-c", STARTUP]
         or not item["State"]["Running"]
         or item["Config"].get("Labels", {}).get("carbon.scope") != "disposable-localnet"
         or len(nets) != 1
@@ -61,6 +70,8 @@ def _inspect_container(container):
         "container": item["Id"],
         "image": IMAGE + "@" + DIGEST,
         "source_commit": SOURCE,
+        "startup_sha256": hashlib.sha256(STARTUP.encode()).hexdigest(),
+        "network_backend": "libp2p",
         "internal_network": network["Id"],
         "container_address": str(address),
         "ports": item["NetworkSettings"]["Ports"],
@@ -197,6 +208,7 @@ async def probe(container, directory):
                     finalized = await sub.block_hash(header.number)
                 break
             except (bt.RpcConnectionError, OSError, TimeoutError):
+                inspect_isolation(container)  # Stop promptly if an authority exits.
                 if attempt == 59:
                     raise PublicationFailure("LOCALNET_STARTUP_UNAVAILABLE") from None
                 await asyncio.sleep(1)
