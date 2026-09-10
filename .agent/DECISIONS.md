@@ -13105,6 +13105,32 @@ remains `NOT_READY` pending recycled-UID evidence. The upstream issue draft is
 local only and no maintainer was contacted. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
 
+## NET-5R-D5 — Serialize supported transport handover and retain public nonce evidence
+
+Canonical standard-profile D4 run 34489505489 at exact unchanged main
+`faf99d20356a42ca53e9c1c9a5884d3de4620459` passed the complete G2 behavioral
+scenario, including both shielded registrations, the shared-winner epoch,
+finalized `SwapHotkey`, takeover readback, recycled-UID isolation and the final
+all-burn replacement epoch. The run did not, however, retain the clarified
+transport-generation/closure facts or the ordinary SDK-selected nonce.
+
+Exact Bittensor 11.1.0 source exposes public, pool-aware
+`RpcSubstrate.account_next_index(address)` and uses it when
+`create_signed_extrinsic` receives no nonce. Carbon will therefore keep each
+account's submission sequence exclusive across finalized nonce verification and
+transport handover; connect and identity-check the replacement before closing
+the old transport; await old-transport closure before activating the replacement
+or allowing later signing/dispatch; and fail closed on an ambiguous outstanding
+submission. For the next ordinary submission it will record the public next
+index as the SDK-selected nonce, continue to omit the nonce argument, and verify
+the finalized account increment. It will retain account identity, exact
+finalized block hash, transport generations, closure and `SwapHotkey` outcome.
+This adds no private-cache access, nonce injection, retry, raw/unchecked
+extrinsic, new runtime, persistent key or public-network operation. One final
+changed full standard run is permitted; G2 remains `NOT_READY` until it passes.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

@@ -15,9 +15,12 @@
 > engineering without changing G2. C-AUTH1 merged in PR #130 and C-EA0 merged
 > in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. PR #132 merged
 > NET-5R's eight-block repair as 675427ec8852579aa9d336bbec94e28be7b62810.
-> NET-5R remains active after the standard-runtime full attempt passed both
-> registrations and shared-winner evidence but stopped before recycled-UID
-> evidence. G2 remains NOT_READY.
+> PR #133 merged the standard-profile and D4 specification checkpoint as
+> 2a71a392380cb4df0e0597a92674882de7801c70.
+> NET-5R remains active after D4 standard-runtime run 34489505489 passed the
+> complete behavioral predicate at exact post-PR-133 main. The clarified D5
+> transport-handover and passive nonce evidence remains pending, so G2 remains
+> NOT_READY.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -50,11 +53,15 @@ the readiness claim and every chain-dependent execution. The active offline orde
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
 C-EA1 is the next contract consumer but its real archive implementation remains
 fail closed on the reserved human inputs. NET-5R's first repair merged in PR
-#132. The exact standard profile then passed a one-shot registration diagnostic
-and a full attempt reached shared-winner readback/epoch before a plain SDK nonce
-transition rejected `SwapHotkey` as Stale. The changed public-transport-refresh
-candidate is focused-tested; NET-5R remains selected and no later ticket is
-selected.
+#132, and PR #133 merged its standard-profile/D4 specification checkpoint as
+`2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard profile then
+passed a one-shot registration diagnostic.
+D4 run 34489505489, explicitly dispatched as full/standard at exact revision
+`faf99d20356a42ca53e9c1c9a5884d3de4620459`, passed the complete shared-winner,
+takeover and recycled-UID behavioral predicate. The D5 successor retains the
+newly clarified exclusive transport-handover and passive SDK-nonce evidence and
+is focused-tested; NET-5R remains selected, G2 remains NOT_READY pending its one
+changed run, and no later ticket is selected.
 
 ## 2. NET-0 development disposition
 
