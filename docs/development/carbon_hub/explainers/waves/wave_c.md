@@ -54,11 +54,13 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [NET-4B](../tickets/net_4b.md): Verified complete-vector publication and recovery [done]
 - [NET-5](../tickets/net_5.md): Reproducible disposable localnet integration [done]
 - [NET-6](../tickets/net_6.md): Disposable operator lifecycle and recovery [done]
+- [C-01](../tickets/c_01.md): Durable execution state and queue [in_progress]
+- [C-AUTH1](../tickets/c_auth1.md): Goal-driven authoring and Burgers Dynamics V1 import [todo]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

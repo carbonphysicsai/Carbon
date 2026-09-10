@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 50 captured tickets across Wave A, Wave B, and Wave C
+- 52 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 83 map-level change events
+- 84 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **none active**. Last completed: **NET-6** (`done`). Next selected: **none selected**. NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
+Wave **C**; current ticket: **C-01**. Last completed: **NET-6** (`done`). Next selected: **C-AUTH1** (`todo` / `unstarted`). C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
 
 ## Maintain
 

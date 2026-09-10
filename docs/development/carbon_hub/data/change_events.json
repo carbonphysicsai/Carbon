@@ -1991,6 +1991,31 @@
         "SYSTEM/CI"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-01",
+      "event_type": "decision",
+      "event_id": "OWNER-C1-C2-BURGERS-01",
+      "owner_lane": "carbon_owner",
+      "status": "active",
+      "summary": "The owner selects C-01 first and permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-01 adds a bounded durable execution candidate; C-AUTH1 is next and unstarted. No public-network operation, archive acknowledgement, scientific qualification, testnet eligibility or LIVE authority follows.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/plans/C1_C2_BURGERS_PROGRAM.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/NET-5",
+        "WAVE-A/A7",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY"
+      ],
+      "supersedes": "NET-6-CLOSEOUT"
     }
   ]
 }

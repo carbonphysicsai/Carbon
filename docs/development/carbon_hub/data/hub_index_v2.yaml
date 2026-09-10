@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T03:21:30Z"
+  captured_at_utc: "2026-09-10T05:31:37Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852"
+  authority_snapshot_commit: "9609ce1294fb2d8c4f8e6892da1797e27d3bacd2"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -453,12 +453,21 @@ current:
       status: "merged"
       url: "https://github.com/carbonphysicsai/Carbon/pull/127"
       merge_commit: "6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade"
-  selected_ticket: null
-  next_selected_ticket: null
+  selected_ticket:
+    id: "C-01"
+    title: "Durable execution state and queue"
+    status: "in_progress"
+    summary: "C-01 is selected for bounded offline durable queue, restart, concurrency and idempotency engineering. Applicable acceptance and normal merge remain pending."
+  next_selected_ticket:
+    id: "C-AUTH1"
+    title: "Goal-driven authoring and Burgers Dynamics V1 import"
+    status: "todo"
+    implementation_state: "unstarted"
+    summary: "After C-01 delivery, import the verified public workbench contracts and Burgers V1 package without its scheduler or large duplicated field datasets."
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "0.9"
-  controlling_board_fingerprint: "998ba72842d9e2d5fa39895349eecfb3074862b7208e8eed70a87e2ac481bbf8"
-  stage: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking."
+  controlling_register_version: "1.0"
+  controlling_board_fingerprint: "53058c2d12753f667ba2905179340889213d074f149f728ee64ad61b3adae7c6"
+  stage: "C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -470,7 +479,8 @@ current:
     - "NET-5"
     - "NET-6"
   recent_dependencies:
-    - "NET-5"
+    - "A7"
+    - "B-GATE"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
@@ -478,9 +488,10 @@ current:
     - "C-REWARD"
     - "NET-4A"
     - "NET-4B"
+    - "NET-5"
     - "NET-6"
   downstream_handoffs:
-    []
+    - "C-AUTH1"
   parallel_context:
     []
   fail_closed:
@@ -500,7 +511,7 @@ current:
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
-    - "G2 stays NOT_READY: required shielded registration/shared-winner runtime evidence is missing. No implementation ticket is currently active. C1/C2/public deployment and scientific/security qualifications remain unearned."
+    - "G2 stays NOT_READY: required shielded registration/shared-winner runtime evidence is missing. C-01 offline engineering does not change G2; C2/public deployment and scientific/security qualifications remain unearned."
   maturity_states:
     specified: "earned"
     implemented: "earned"
@@ -510,8 +521,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY."
-  decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-01 adds a bounded implemented and focused-tested offline durable queue candidate. G2, real scientific evidence, archive acknowledgement, testnet eligibility, security/network qualification, production and LIVE remain unearned."
+  decision_series_status: "OWNER-C1-C2-BURGERS-01 selects C-01 and permits dependency-ready offline C1/C2 engineering without changing G2 or authorizing public-network activity. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -585,6 +596,8 @@ waves:
       - "NET-4B"
       - "NET-5"
       - "NET-6"
+      - "C-01"
+      - "C-AUTH1"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -845,6 +858,7 @@ tickets:
       - "A11"
       - "A12"
       - "B-07F"
+      - "C-01"
     unlocks_context:
       []
   -
@@ -1571,6 +1585,7 @@ tickets:
       []
     unlocks:
       - "NET-1"
+      - "C-01"
     unlocks_context:
       []
   -
@@ -1687,6 +1702,37 @@ tickets:
     repo_path: ".agent/tickets/NET-6_network_operations.md"
     depends_on:
       - "NET-5"
+    depends_on_context:
+      []
+    unlocks:
+      []
+    unlocks_context:
+      []
+  -
+    id: "C-01"
+    wave: "C"
+    title: "Durable execution state and queue"
+    status: "in_progress"
+    explainer: "explainers/tickets/c_01.md"
+    repo_path: ".agent/tickets/C-01_durable_execution_state.md"
+    depends_on:
+      - "A7"
+      - "B-GATE"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-AUTH1"
+    unlocks_context:
+      []
+  -
+    id: "C-AUTH1"
+    wave: "C"
+    title: "Goal-driven authoring and Burgers Dynamics V1 import"
+    status: "todo"
+    explainer: "explainers/tickets/c_auth1.md"
+    repo_path: ".agent/tickets/C-AUTH1_burgers_authoring.md"
+    depends_on:
+      - "C-01"
     depends_on_context:
       []
     unlocks:
@@ -3634,6 +3680,29 @@ events:
       - "WAVE-B/B-GATE"
       - "SYSTEM/CI"
     supersedes: null
+  -
+    map_ref: "WAVE-C/C-01"
+    event_type: "decision"
+    event_id: "OWNER-C1-C2-BURGERS-01"
+    owner_lane: "carbon_owner"
+    status: "active"
+    summary: "The owner selects C-01 first and permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-01 adds a bounded durable execution candidate; C-AUTH1 is next and unstarted. No public-network operation, archive acknowledgement, scientific qualification, testnet eligibility or LIVE authority follows."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/plans/C1_C2_BURGERS_PROGRAM.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-AUTH1"
+      - "WAVE-C/NET-5"
+      - "WAVE-A/A7"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+    supersedes: "NET-6-CLOSEOUT"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

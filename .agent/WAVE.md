@@ -10,7 +10,8 @@
 > NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
 > NET-6 merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
-> No implementation ticket is currently active. C1/C2 handoff is unselected.
+> OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering
+> without changing G2. C-01 is selected; C2 eligibility remains unavailable.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -20,16 +21,17 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C0 network foundation
+**Current phase:** C1 real scientific execution foundations
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 0.9
-**Selected ticket:** NET-6 — `done`
-**Next selected ticket:** none
+**Controlling register:** `.agent/WAVE_C.md` version 1.0
+**Selected ticket:** C-01 — `in_progress`
+**Next selected ticket:** C-AUTH1
+Selection follows C-01 acceptance and normal merge.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -68,6 +70,9 @@ handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
 **Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY.
+**Current C1 status:** C-01 is selected for offline durable execution engineering
+under `OWNER-C1-C2-BURGERS-01`. This prospective sequencing change does not pass
+G2, authorize the public network, or earn real-science/archive qualification.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

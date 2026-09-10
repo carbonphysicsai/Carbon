@@ -21,7 +21,7 @@ The bounded evidence required to close Wave B and hand the program to Wave C.
 ## Placement and handoff
 
 - **Depends on:** B-01, B-01E, B-01F, B-01H, B-02A, B-02B, B-02C, B-03, B-04, B-05, B-06, B-07R, B-07S, B-07A, B-07B, B-07C, B-07D1, B-07D2, B-07D3, B-07E, B-07F, B-07G, B-E1, B-E2, B-E3
-- **Feeds:** NET-1
+- **Feeds:** NET-1, C-01
 - **Driver:** Codex
 - **Review route:** Tech lead + science + protocol + security + rights; OWNER-DX-03 makes these notification/qualification lanes, not mandatory delivery reviewers
 - **Master questions:** MQ-001, MQ-002, MQ-003, MQ-004, MQ-005, MQ-006, MQ-007, MQ-008, MQ-015, MQ-016, MQ-017, MQ-018, MQ-024, MQ-025, MQ-026, MQ-045, MQ-051
@@ -40,7 +40,7 @@ Done only in the ticket's recorded bounded implementation and test scope; later 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852/.agent/tickets/B-GATE_closeout.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/tickets/B-GATE_closeout.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/WAVE_B.md)
 
 > B-E4 remains preserved deferred research and is not a closeout dependency. This gate grants no scientific, security, network, production, LIVE, launch, settlement, weight, or emission authority.

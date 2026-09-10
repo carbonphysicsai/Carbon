@@ -86,8 +86,10 @@ class NewcomerProjectionTests(unittest.TestCase):
         current = self.data["current"]
         self.assertEqual(current["last_completed_ticket"]["id"], "NET-6")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertIsNone(current["selected_ticket"])
-        self.assertIsNone(current["next_selected_ticket"])
+        self.assertEqual(current["selected_ticket"]["id"], "C-01")
+        self.assertEqual(current["selected_ticket"]["status"], "in_progress")
+        self.assertEqual(current["next_selected_ticket"]["id"], "C-AUTH1")
+        self.assertEqual(current["next_selected_ticket"]["status"], "todo")
         self.assertFalse(
             any(
                 "current_stage_plain" in item
@@ -98,9 +100,9 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("No implementation ticket is currently active", self.output)
+        self.assertIn("C-01 is selected and implemented", self.output)
         self.assertIn("OPTIONAL / DEFERRED / NON-BLOCKING", self.output)
-        self.assertIn("No later ticket is selected", self.output)
+        self.assertIn("C-AUTH1 is next and unstarted", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -157,8 +159,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "No implementation ticket is currently active",
-            "No later ticket is selected",
+            "C-01 is selected and implemented",
+            "C-AUTH1 is next and unstarted",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",
