@@ -21,8 +21,10 @@ Bittensor 11.1.0 and core 0.1.3 remain locked by uv.lock. Runtime v445 / source
 d3f40e44bda9019c606aeb0c907bb52ba7fe386c is independently pinned to the amd64
 image digest in `scripts/dev/localnet-runtime.json`. The upstream localnet image
 runs three development authorities at nominal 0.25-second slots. An internal
-Docker network contains only this container; RPC ports map to dynamically chosen
-127.0.0.1 ports. No volume, privileged container, external peer or valuable
+Docker network contains only this container with no published ports or gateway.
+The harness process owns two dynamically chosen 127.0.0.1 TCP listeners, relaying
+only to the inspected container address and fixed RPC ports 9944/9945. The relay
+capability stays in memory and rejects a replaced container or changed network. No volume, privileged container, external peer or valuable
 network is admitted. The probe inspects actual Docker state, observes genesis,
 and verifies runtime version before setup constructs any key.
 

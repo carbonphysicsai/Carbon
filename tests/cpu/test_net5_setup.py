@@ -224,3 +224,20 @@ def test_process_relay_cannot_be_supplied_as_an_unverified_endpoint(monkeypatch)
     network["Containers"] = {item["Id"]: {}}
     with pytest.raises(PublicationFailure, match="RELAY_CONTAINER_CHANGED"):
         inspect_isolation("carbon-localnet-test")
+
+
+@pytest.mark.parametrize("value", [0, 2**32, {"bits": 2**31}])
+def test_miner_burned_pinned_fixed_point_decoding(value):
+    from carbon.chain.localnet import miner_burned_q32
+
+    assert miner_burned_q32(value) == (value["bits"] if type(value) is dict else value)
+
+
+@pytest.mark.parametrize(
+    "value", [True, 0.5, -1, 2**32 + 1, {"fraction": 1}, {"bits": 1, "extra": 0}]
+)
+def test_unknown_burn_measurement_never_becomes_success(value):
+    from carbon.chain.localnet import miner_burned_q32
+
+    with pytest.raises(PublicationFailure, match="UNSUPPORTED_MINER_BURNED_ENCODING"):
+        miner_burned_q32(value)

@@ -228,6 +228,15 @@ ROOT_SETTINGS = {
 }
 
 
+def miner_burned_q32(value):
+    """Decode pinned runtime U96F32 storage without float rounding or aliasing recycle."""
+    if type(value) is dict and set(value) == {"bits"}:
+        value = value["bits"]
+    if type(value) is not int or not 0 <= value <= 2**32:
+        raise PublicationFailure("UNSUPPORTED_MINER_BURNED_ENCODING")
+    return value
+
+
 def root_setting(action, verify):
     """Closed, value-pinned DEV settings through the SDK public Intent extension."""
     require_sdk()

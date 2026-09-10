@@ -18,7 +18,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
 
     from carbon.chain import ChainFailure, ReadOnlyChainAdapter
     from carbon.chain.auth import BittensorHotkeyVerifier, BittensorMessageSigner
-    from carbon.chain.localnet import LocalnetSession, write_evidence
+    from carbon.chain.localnet import LocalnetSession, miner_burned_q32, write_evidence
     from carbon.chain.publication import PublicationFailure
     from carbon.chain.publisher import LocalnetPublisher
     from carbon.chain.sdk import BittensorReader
@@ -199,6 +199,11 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 report["epochs"].append(sample)
                 write_evidence(directory / "integration.json", report)
                 assert caps.burn_mode == "Burn"
+                sample["miner_burned_q32"] = miner_burned_q32(values[0])
+                assert (
+                    sample["miner_burned_q32"] > 0
+                ), "No miner burn observed in finalized epoch"
+                write_evidence(directory / "integration.json", report)
                 return sample
 
             _, initial = await publish("three-challenges-no-winner")
