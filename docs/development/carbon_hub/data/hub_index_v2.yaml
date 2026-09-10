@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T03:15:56Z"
+  captured_at_utc: "2026-09-10T03:21:30Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5"
+  authority_snapshot_commit: "c4c0157b83ec5c53ec202ea2cd6f4e78f1ffa852"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -3619,7 +3619,7 @@ events:
     event_id: "NET-6-CLOSEOUT"
     owner_lane: "network_protocol_engineering"
     status: "implemented"
-    summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected."
+    summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected. The route regression now handles an explicitly null active/next selection by checking the completed ticket, preserving all route assertions. Its known tooling path uses focused acceptance; unrelated unknown paths retain full fallback."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862"
     affects:
       - "WAVE-C"
@@ -3632,6 +3632,7 @@ events:
       - "WAVE-B"
       - "WAVE-B/B-E4"
       - "WAVE-B/B-GATE"
+      - "SYSTEM/CI"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
