@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-6`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -32,7 +32,7 @@ No public operation, treasury, real scientific archive, production custody or G2
 
 ## Current stage
 
-NET-6 actual all-burn operator rehearsal passed with node restart, external key startup, heartbeat, shutdown and complete logical backup/restore. Canonical delivery acceptance remains pending. Shared-winner runtime evidence is missing; G2 stays NOT_READY.
+NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY.
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ Disposable synthetic operations only. Missing shared-winner runtime evidence kee
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/tickets/NET-6_network_operations.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/evidence/wave_c/net-6.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/docs/development/NETWORK_OPERATIONS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5/.agent/tickets/NET-6_network_operations.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5/.agent/evidence/wave_c/net-6.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5/docs/development/NETWORK_OPERATIONS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5/.agent/WAVE_C.md)
 
 > Stopped publishers do not clear stored chain weights; backups preserve pending liabilities and credit age.

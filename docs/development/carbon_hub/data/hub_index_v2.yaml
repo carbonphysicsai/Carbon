@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T03:08:41Z"
+  captured_at_utc: "2026-09-10T03:15:56Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "9079c14a9398355408de0543ee558bbbf705884a"
+  authority_snapshot_commit: "8c1baee4b7b9cd33c196c292fa5ef0b6ea74c9c5"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,27 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. Wave C/C0 has NET-6 selected as its one active ticket after NET-5 merged in PR #126. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "NET-5"
-    title: "Reproducible disposable localnet integration"
-    status: "done"
-    summary: "NET-5 merged in PR #126 with canonical tests and actual all-burn finality, rows, epochs and restart/outage recovery. Shielded miner registration and shared-winner runtime evidence remain unresolved; G2 is NOT_READY."
-    delivery:
-      reference: "PR #126"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/126"
-      merge_commit: "95fa1e42dbf8d5fdcfde80d440eb38229b2764db"
-  selected_ticket:
     id: "NET-6"
     title: "Disposable operator lifecycle and recovery"
-    status: "in_progress"
-    summary: "NET-6 actual all-burn operator rehearsal passed with node restart, external key startup, heartbeat, shutdown and complete logical backup/restore. Canonical delivery acceptance remains pending. Shared-winner runtime evidence is missing; G2 stays NOT_READY."
+    status: "done"
+    summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY."
+    delivery:
+      reference: "PR #127"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/127"
+      merge_commit: "6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade"
+  selected_ticket: null
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "0.8"
-  controlling_board_fingerprint: "ec320354cd5a3fef58393ccb172b91594a10733daa3bee8f6fa8beb926062a98"
-  stage: "Wave C/C0 has NET-6 selected as its one active ticket after NET-5 merged in PR #126. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected."
+  controlling_register_version: "0.9"
+  controlling_board_fingerprint: "998ba72842d9e2d5fa39895349eecfb3074862b7208e8eed70a87e2ac481bbf8"
+  stage: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. NET-6 is the last completed ticket (PR #127). No implementation ticket is currently active. No later ticket is selected. C-01 and C-W1 preserve the concrete C1/C2/archive handoff. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -472,6 +468,7 @@ current:
     - "NET-4A"
     - "NET-4B"
     - "NET-5"
+    - "NET-6"
   recent_dependencies:
     - "NET-5"
   other_completed_wave_context:
@@ -481,6 +478,7 @@ current:
     - "C-REWARD"
     - "NET-4A"
     - "NET-4B"
+    - "NET-6"
   downstream_handoffs:
     []
   parallel_context:
@@ -501,18 +499,18 @@ current:
     - "Every real physical, envelope, population, SamplingPlan, generator, reference, representation, measurement, statistical, uncertainty, coverage, secrecy, censoring, limitation, signer-authorization, and qualification judgment remains human-owned."
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
-    - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
-    - "NET-6 is selected alone. G2 remains NOT_READY while required shielded registration/shared-winner runtime evidence is missing; C1/C2 and production qualifications remain unearned."
+    - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
+    - "G2 stays NOT_READY: required shielded registration/shared-winner runtime evidence is missing. No implementation ticket is currently active. C1/C2/public deployment and scientific/security qualifications remain unearned."
   maturity_states:
     specified: "earned"
-    implemented: "unearned"
-    tested: "unearned"
+    implemented: "earned"
+    tested: "earned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-6 actual all-burn operator rehearsal passed with node restart, external key startup, heartbeat, shutdown and complete logical backup/restore. Canonical delivery acceptance remains pending. Shared-winner runtime evidence is missing; G2 stays NOT_READY."
+  maturity_summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY."
   decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -1684,7 +1682,7 @@ tickets:
     id: "NET-6"
     wave: "C"
     title: "Disposable operator lifecycle and recovery"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/net_6.md"
     repo_path: ".agent/tickets/NET-6_network_operations.md"
     depends_on:
@@ -3614,6 +3612,23 @@ events:
       - "WAVE-B"
       - "WAVE-B/B-E4"
       - "WAVE-B/B-GATE"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/NET-6"
+    event_type: "adjustment"
+    event_id: "NET-6-CLOSEOUT"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862"
+    affects:
+      - "WAVE-C"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
