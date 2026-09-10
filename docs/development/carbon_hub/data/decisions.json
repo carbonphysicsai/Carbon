@@ -2059,6 +2059,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610295276",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1928c9a0804d8df7166646acf82019c514f96bf6/docs/development/WEIGHT_PUBLICATION.md"
+    },
+    {
+      "title": "Isolated pinned runtime with authentic fixture integration",
+      "question": "How can C0 demonstrate real chain effects without scientific or public-network authority?",
+      "recommendation": "Run the immutable localnet image on an internal network; reuse A7/A8/A6 with a closed set of pinned synthetic identities and check every privileged boundary.",
+      "why": "Mocks, arbitrary recipients, SDK policy bypasses and unobserved epoch behavior cannot establish burn-only integration.",
+      "if_kept": "NET-6 completes operator lifecycle and an evidence-backed G2 disposition, preserving C1/C2 and archive handoffs.",
+      "if_changed": "Keep genuine runtime failures and immutable evidence; require compatible pin, identity, fixture and recovery contracts before replacement.",
+      "decision_id": "NET-5-D1",
+      "map_ref": "WAVE-C/NET-5",
+      "wave": "C",
+      "ticket": "NET-5",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/83895b45cd46ff394eb6a73507fd644191a273d2/docs/development/LOCALNET_INTEGRATION.md"
     }
   ]
 }
