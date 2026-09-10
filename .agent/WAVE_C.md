@@ -7,7 +7,8 @@
 > C-REWARD merged in PR #123 as 505f08cde173eab197aa397a09536bb6bf576065.
 > NET-4A merged in PR #124 as ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f.
 > NET-4B merged in PR #125 as 0e6b5e001302b349135785756c633530853684c2.
-> NET-5 is now the one active implementation ticket. Continue NET-6 after its accepted merge.
+> NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
+> NET-6 is now the one active implementation ticket; G2 remains NOT_READY.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -18,10 +19,10 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 0.7
+**Version:** 0.8
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** NET-5 — `in_progress`
-**Primary Hub map_ref:** `WAVE-C/NET-5`
+**Selected ticket:** NET-6 — `in_progress`
+**Primary Hub map_ref:** `WAVE-C/NET-6`
 
 ## 1. Scope and sequence
 
@@ -51,7 +52,9 @@ production custody, quorum, science or economics blocks only that operation.
 | C-REWARD | Bounded-linear reward core and development scorecard | done | `.agent/evidence/wave_c/c-reward.md` | Codex + reward/protocol engineering | Scientific integration + network/security | NET-3 | MQ-054, MQ-056 | L | C0 |
 | NET-4A | Nominal publication intents | done | `.agent/evidence/wave_c/net-4a.md` | Codex + network/protocol engineering | Network/protocol + security | C-REWARD | MQ-054, MQ-056 | M | C0 |
 | NET-4B | Verified complete-vector publication and recovery | done | `.agent/evidence/wave_c/net-4b.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4A | MQ-054, MQ-056 | L | C0 |
-| NET-5 | Reproducible disposable localnet integration | in_progress | `.agent/evidence/wave_c/net-5.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4B | MQ-054, MQ-056 | L | C0 |
+| NET-5 | Reproducible disposable localnet integration | done | `.agent/evidence/wave_c/net-5.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4B | MQ-054, MQ-056 | L | C0 |
+
+| NET-6 | Disposable operator lifecycle and recovery | in_progress | `.agent/evidence/wave_c/net-6.md` | Codex + network/protocol engineering | Operations + security | NET-5 | MQ-054, MQ-056 | L | C0 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -62,15 +65,15 @@ NET-2 passed run 34408587763 and normally merged in PR #121 as
 d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6. C-REWARD passed run 34416168621 and merged in PR #123 as
 505f08cde173eab197aa397a09536bb6bf576065. NET-4A passed run 34417436723 and merged in PR #124 as
 ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f. NET-4B passed run 34421219713 and merged in PR #125 as
-0e6b5e001302b349135785756c633530853684c2. NET-5 is selected, not delivered.
+0e6b5e001302b349135785756c633530853684c2. NET-5 passed run 34429639429 and merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db. NET-6 is selected, not delivered.
 Later tickets are unstarted; materialize them
 before implementation. No later ticket is selected.
 
 ## 4. Acceptance and maturity
 
-NET-5 follows `.agent/tickets/NET-5_disposable_localnet.md`, OWNER-DX-03
+NET-6 follows `.agent/tickets/NET-6_network_operations.md`, OWNER-DX-03
 and OWNER-C0-VALIDATION-01. Focused network/MCP tests plus all invariants,
 quality/package/Hub checks and Merge gate; unknown/shared science retains full
 fallback. No public deployment, scientific/security qualification, LIVE,
 frontier, settlement or G2 readiness follows from these unit contracts.
-After accepted NET-5 merge, NET-6 is the next dependency-ready ticket.
+After accepted NET-6 merge, reconcile the final G2 disposition and concrete C1/C2 handoff.

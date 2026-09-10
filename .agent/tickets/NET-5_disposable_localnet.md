@@ -1,7 +1,7 @@
 # NET-5 — Reproducible disposable localnet integration
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** NET-4B
 **Primary Hub map_ref:** `WAVE-C/NET-5`
 **Evidence:** `.agent/evidence/wave_c/net-5.md`
@@ -101,3 +101,5 @@ Alternatives: another full suite adds unrelated coverage; globally exempting A8
 would lose the science fallback and is rejected. To supersede, change the exact
 migration predicate in scripts/dev/select_cpu_profile.py and its regression tests.
 No reserved scientific/security decision is selected. G2 remains NOT_READY.
+
+Bounded delivery merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db. Acceptance run 34429639429 passed. Full shared-winner runtime and G2 remain unearned.

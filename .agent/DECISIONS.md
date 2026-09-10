@@ -13042,3 +13042,9 @@ See `.agent/tickets/NET-5_disposable_localnet.md`: immutable amd64 image,
 internal Docker network, observed genesis before disposable signing, closed
 fixture identity extension, complete burn path and honest epoch/recovery evidence.
 Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569.
+
+## NET-6-D1 — Explicit disposable operator lifecycle
+
+See `.agent/tickets/NET-6_network_operations.md`: OS-owned exclusive journal lease,
+consistent backup/restore, external key input after isolation/identity checks,
+truthful stale exposure and precise G2/C1/C2 handoff.
