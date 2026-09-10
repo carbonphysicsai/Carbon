@@ -84,11 +84,11 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["last_completed_ticket"]["id"], "C-01")
+        self.assertEqual(current["last_completed_ticket"]["id"], "C-AUTH1")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-AUTH1")
+        self.assertEqual(current["selected_ticket"]["id"], "C-EA0")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
-        self.assertEqual(current["next_selected_ticket"]["id"], "C-EA0")
+        self.assertEqual(current["next_selected_ticket"]["id"], "C-EA1")
         self.assertEqual(current["next_selected_ticket"]["status"], "todo")
         self.assertFalse(
             any(
@@ -100,9 +100,11 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("C-AUTH1 is selected and implemented", self.output)
+        self.assertIn(
+            "C-AUTH1 is merged in bounded offline engineering scope", self.output
+        )
         self.assertIn("G2 remains NOT_READY", self.output)
-        self.assertIn("C-EA0 is next and unstarted", self.output)
+        self.assertIn("C-EA1 is next, unstarted and input-blocked", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -159,8 +161,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "C-AUTH1 is selected and implemented",
-            "C-EA0 is next and unstarted",
+            "C-AUTH1 is merged in bounded offline engineering scope",
+            "C-EA1 is next, unstarted and input-blocked",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

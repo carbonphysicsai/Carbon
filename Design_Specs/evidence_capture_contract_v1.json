@@ -1,0 +1,343 @@
+{
+  "schema_version": "carbon.evidence-capture-contract.v1",
+  "decision_id": "C-EA0-D1",
+  "maturity": "SPECIFIED_ONLY",
+  "runtime_wire_schema": false,
+  "attempt_relations": [
+    "INITIAL",
+    "RETRY_OF",
+    "REEXECUTION_OF"
+  ],
+  "status_axes": {
+    "execution_disposition": [
+      "NOT_DISPATCHED",
+      "RUNNING",
+      "INTERRUPTED",
+      "CANCELLED",
+      "EARLY_STOPPED",
+      "COMPLETED"
+    ],
+    "scientific_result": [
+      "NOT_AVAILABLE",
+      "SOURCE_RESULT_REF"
+    ],
+    "evidence_completeness": [
+      "UNASSESSED",
+      "COMPLETE",
+      "PARTIAL_EXPLICIT_MISSINGNESS",
+      "UNAVAILABLE"
+    ],
+    "qualification_origin": [
+      "FIXTURE",
+      "PRACTICE",
+      "NON_OFFICIAL",
+      "OFFICIAL_UNQUALIFIED",
+      "QUALIFIED_CONTRACT_REF"
+    ],
+    "named_use_eligibility": [
+      "UNASSESSED",
+      "ELIGIBLE",
+      "INELIGIBLE",
+      "BLOCKED_UNKNOWN"
+    ]
+  },
+  "source_failure_classes": [
+    "NONE",
+    "STRATEGY",
+    "GENERATOR",
+    "REFERENCE",
+    "MEASUREMENT",
+    "VALIDATOR",
+    "INFRASTRUCTURE",
+    "UNKNOWN"
+  ],
+  "artifact_requirement_classes": [
+    "REQUIRED",
+    "OPTIONAL_DEBUG",
+    "REBUILDABLE_DERIVATIVE"
+  ],
+  "artifact_states": [
+    "EXPECTED",
+    "WRITTEN",
+    "VERIFIED",
+    "MISSING",
+    "INTENTIONALLY_ABSENT",
+    "WITHDRAWN",
+    "UNAVAILABLE_KEY"
+  ],
+  "epistemic_values": [
+    "OBSERVED",
+    "ABSENT",
+    "UNKNOWN"
+  ],
+  "dependence_kinds": [
+    "SHARED_CASE",
+    "SHARED_REFERENCE",
+    "ANCESTRY",
+    "CHECKPOINT",
+    "RECONSTRUCTION_REPEAT",
+    "OTHER_DECLARED",
+    "UNKNOWN"
+  ],
+  "custody_zones": [
+    "PROTECTED_VAULT",
+    "CONTROLLED_INTERNAL_SCIENTIFIC_VIEW",
+    "OPERATIONAL_VIEW",
+    "TENANT_ISOLATED_RESEARCH_STORE",
+    "APPROVED_RELEASE_STORE"
+  ],
+  "retention_classes": [
+    "REQUIRED_SCIENTIFIC_RECORD",
+    "REQUIRED_ORIGINAL_ARTIFACT",
+    "OPTIONAL_DEBUG",
+    "REBUILDABLE_DERIVATIVE"
+  ],
+  "named_uses": [
+    "INTERNAL_AUDIT",
+    "LANDSCAPE_RESEARCH",
+    "RELEASE_CANDIDATE",
+    "EXTERNAL_RELEASE",
+    "COMMERCIAL_USE"
+  ],
+  "acknowledgement": {
+    "states": [
+      "NOT_ACKNOWLEDGED",
+      "PENDING",
+      "VERIFIED_DURABLE",
+      "REJECTED"
+    ],
+    "verified_requires": [
+      "APPROVED_DURABILITY_PROFILE_REF",
+      "APPROVED_CAPTURE_PROFILE_REF",
+      "IMMUTABLE_SOURCE_AND_ATTEMPT_BINDING",
+      "CONDITIONALLY_REQUIRED_ARTIFACTS_VERIFIED",
+      "MANIFEST_CONTENT_ID_VERIFIED",
+      "CATALOGUE_COMMIT_VERIFIED",
+      "CURRENT_OBJECT_AVAILABILITY_VERIFIED",
+      "CUSTODY_POLICY_REF_VERIFIED"
+    ],
+    "blocks_finalization": [
+      "NOT_ACKNOWLEDGED",
+      "PENDING",
+      "REJECTED"
+    ],
+    "scope": "DECLARED_APPROVED_PROFILE_ONLY"
+  },
+  "reserved_decisions": {
+    "durability_fault_profile": "HUMAN_INPUT",
+    "required_artifact_profile": "HUMAN_INPUT",
+    "retention_duration_policy": "HUMAN_INPUT",
+    "legal_ip_and_use_policy": "HUMAN_INPUT",
+    "deployment_topology": "HUMAN_INPUT",
+    "custody_and_key_policy": "HUMAN_INPUT",
+    "capacity_and_backpressure_policy": "HUMAN_INPUT",
+    "recovery_objectives_and_exclusions": "HUMAN_INPUT",
+    "security_qualification": "HUMAN_INPUT"
+  },
+  "losslessness_boundary": {
+    "universal_losslessness_claimed": false,
+    "pre_acknowledgement_destroyed_values": "UNRECOVERABLE_IF_NO_ACKNOWLEDGED_COPY_EXISTS",
+    "correlated_failure_coverage": "HUMAN_INPUT",
+    "restore_acceptance": "HUMAN_INPUT"
+  },
+  "contract_cases": [
+    {
+      "id": "ADMITTED_NOT_DISPATCHED",
+      "execution_disposition": "NOT_DISPATCHED",
+      "source_failure_class": "NONE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "PARTIAL_EXPLICIT_MISSINGNESS",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "FINALIZATION_BLOCKED_NO_PHYSICS_FAILURE"
+    },
+    {
+      "id": "RUNNING_CAPTURE_PENDING",
+      "execution_disposition": "RUNNING",
+      "source_failure_class": "NONE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "UNASSESSED",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "UNASSESSED",
+      "expected_acknowledgement": "PENDING",
+      "expected_effect": "FINALIZATION_BLOCKED_NO_PHYSICS_FAILURE"
+    },
+    {
+      "id": "INTERRUPTED_RETRY_LINKED",
+      "execution_disposition": "INTERRUPTED",
+      "source_failure_class": "INFRASTRUCTURE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "PARTIAL_EXPLICIT_MISSINGNESS",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "RETRY_IS_NEW_ATTEMPT_NO_PHYSICS_FAILURE"
+    },
+    {
+      "id": "CANCELLED_AFTER_DISPATCH",
+      "execution_disposition": "CANCELLED",
+      "source_failure_class": "NONE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "ATTEMPT_ACCOUNTED_NO_PHYSICS_FAILURE"
+    },
+    {
+      "id": "AUTHORIZED_EARLY_STOP",
+      "execution_disposition": "EARLY_STOPPED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "SOURCE_RESULT_UNCHANGED"
+    },
+    {
+      "id": "COMPLETED_ALL_REQUIRED_VERIFIED",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "UNASSESSED",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "FINALIZATION_MAY_PROCEED_THROUGH_SOURCE_OWNER"
+    },
+    {
+      "id": "REFERENCE_FAILURE_SEPARATE",
+      "execution_disposition": "INTERRUPTED",
+      "source_failure_class": "REFERENCE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "REFERENCE_FAILURE_NOT_CANDIDATE_FAILURE"
+    },
+    {
+      "id": "MISSING_REQUIRED_ARTIFACT",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "PARTIAL_EXPLICIT_MISSINGNESS",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "FINALIZATION_BLOCKED_NO_PHYSICS_FAILURE"
+    },
+    {
+      "id": "WITHDRAWN_ARTIFACT",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "UNAVAILABLE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "USE_AND_FINALIZATION_REASSESSED_NO_RESCORE"
+    },
+    {
+      "id": "KEY_UNAVAILABLE",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "INFRASTRUCTURE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "UNAVAILABLE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "AVAILABILITY_FAILURE_NOT_PHYSICS_FAILURE"
+    },
+    {
+      "id": "UNKNOWN_SELECTION_AND_EXPOSURE",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "UNKNOWN",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "NON_OFFICIAL",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "UNKNOWN_VALUES_PRESERVED_NOT_INFERRED"
+    },
+    {
+      "id": "SHARED_CASE_AND_ANCESTRY",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "NON_OFFICIAL",
+      "named_use_eligibility": "BLOCKED_UNKNOWN",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "DEPENDENCE_LINKS_PRESERVED_NO_INDEPENDENCE_CLAIM"
+    },
+    {
+      "id": "MISSING_APPROVED_DURABILITY_PROFILE",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "UNASSESSED",
+      "expected_acknowledgement": "REJECTED",
+      "expected_effect": "FINALIZATION_BLOCKED_HUMAN_INPUT_REQUIRED"
+    },
+    {
+      "id": "LOCAL_UNSUBMITTED_EXPERIMENT",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "NONE",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "UNASSESSED",
+      "qualification_origin": "PRACTICE",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "NOT_ACKNOWLEDGED",
+      "expected_effect": "OUTSIDE_MANDATORY_CAPTURE"
+    },
+    {
+      "id": "STRATEGY_FAILURE_SOURCE_OWNED",
+      "execution_disposition": "COMPLETED",
+      "source_failure_class": "STRATEGY",
+      "scientific_result": "SOURCE_RESULT_REF",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "UNASSESSED",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "SOURCE_RESULT_UNCHANGED"
+    },
+    {
+      "id": "GENERATOR_FAILURE_SEPARATE",
+      "execution_disposition": "INTERRUPTED",
+      "source_failure_class": "GENERATOR",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "GENERATOR_FAILURE_NOT_CANDIDATE_FAILURE"
+    },
+    {
+      "id": "MEASUREMENT_FAILURE_SEPARATE",
+      "execution_disposition": "INTERRUPTED",
+      "source_failure_class": "MEASUREMENT",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "MEASUREMENT_FAILURE_NOT_CANDIDATE_FAILURE"
+    },
+    {
+      "id": "VALIDATOR_FAILURE_SEPARATE",
+      "execution_disposition": "INTERRUPTED",
+      "source_failure_class": "VALIDATOR",
+      "scientific_result": "NOT_AVAILABLE",
+      "evidence_completeness": "COMPLETE",
+      "qualification_origin": "OFFICIAL_UNQUALIFIED",
+      "named_use_eligibility": "INELIGIBLE",
+      "expected_acknowledgement": "VERIFIED_DURABLE",
+      "expected_effect": "VALIDATOR_FAILURE_NOT_CANDIDATE_FAILURE"
+    }
+  ]
+}

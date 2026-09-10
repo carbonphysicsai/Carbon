@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/C-EA0`
 
-**Status:** TODO
+**Status:** IN_PROGRESS
 
 **Target phase:** C1
 
@@ -16,12 +16,12 @@ A recorded result reference is not durable evidence; finalization must fail clos
 
 ## What it adds
 
-A selected-next contract ticket with explicit missing human-owned durability, retention, legal/IP, deployment and custody inputs.
+An exact versioned documentation contract and machine-checkable case matrix for immutable attempt accounting, five independent axes, explicit missingness/dependence/unknowns and positive acknowledgement conditions.
 
 ## Placement and handoff
 
 - **Depends on:** C-AUTH1, C-01, B-GATE
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** C-EA1
 - **Driver:** Codex + evidence architecture
 - **Review route:** Execution + Operations + data/security + scientific integration
 - **Master questions:** MQ-048, MQ-051
@@ -32,16 +32,19 @@ No archive implementation, invented retention period, custody deployment, scient
 
 ## Current stage
 
-After C-AUTH1 delivery, ratify capture, custody, retention-class, completeness and durability-acknowledgement semantics before archive implementation.
+C-EA0 specifies and tests an exact evidence-capture documentation contract with immutable attempt accounting, five independent status axes, explicit missingness and fail-closed durability acknowledgement. Automated acceptance and normal merge remain pending.
 
 ## Maturity ceiling
 
-Specified future evidence-capture contract only; archive durability, retention, custody, qualification and production remain unearned.
+Specified and contract-tested evidence-capture semantics only; archive implementation, durability acknowledgement, retention, custody, qualification and production remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f46e76743913e3af36ed30275afc400d70aaf42e/.agent/tickets/C-EA0_evidence_capture_contract.md)
-- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/f46e76743913e3af36ed30275afc400d70aaf42e/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f46e76743913e3af36ed30275afc400d70aaf42e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/tickets/C-EA0_evidence_capture_contract.md)
+- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Machine-checkable contract cases](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/Design_Specs/evidence_capture_contract_v1.json)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/evidence/wave_c/c-ea0.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/WAVE_C.md)
 
-> C-EA0 must reserve unsupported retention, legal/IP, custody and durability decisions rather than invent defaults.
+> C-EA0 reserves unsupported durability, required-artifact, retention, legal/IP, custody/key, deployment, capacity, recovery and security decisions as HUMAN_INPUT rather than inventing defaults.

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T07:09:27Z"
+  captured_at_utc: "2026-09-10T08:29:30Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "f46e76743913e3af36ed30275afc400d70aaf42e"
+  authority_snapshot_commit: "70c98d3489c2a30eb38712b4283e3ddf603c5777"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,36 +438,36 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-01 is merged in bounded offline engineering scope. C-AUTH1 is selected and implemented as a public-development authoring/Burgers candidate; applicable canonical acceptance and normal merge remain pending. C-EA0 is next and unstarted. G2 remains NOT_READY. No public-network operation, scientific qualification, accepted baseline, archive acknowledgement, testnet eligibility or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-01 and C-AUTH1 are merged in bounded offline engineering scope. C-EA0 is selected with an exact specified/tested documentation-contract candidate; applicable automated acceptance and normal merge remain pending. C-EA1 is next, unstarted and input-blocked. G2 remains NOT_READY. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-01"
-    title: "Durable execution state and queue"
-    status: "done"
-    summary: "C-01 is merged in bounded offline engineering scope with durable attempt admission, restart reconciliation, exact retry continuity and requester-safe status. It creates no archive acknowledgement, scientific result or network authority."
-    delivery:
-      reference: "PR #129"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/129"
-      merge_commit: "4c9e8040df3c81ecb167534424df770eb4d77d61"
-  selected_ticket:
     id: "C-AUTH1"
     title: "Goal-driven authoring and Burgers Dynamics V1 import"
-    status: "in_progress"
-    summary: "C-AUTH1 integrates a closed content-addressed goal compiler and exact public-development Burgers law. Focused diagnostics pass; canonical acceptance and normal merge remain pending."
-  next_selected_ticket:
+    status: "done"
+    summary: "C-AUTH1 is merged in bounded offline engineering scope with a closed content-addressed goal compiler and exact public-development Burgers law. It creates no protected exam, accepted baseline, archive acknowledgement, scientific qualification or network authority."
+    delivery:
+      reference: "PR #130"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/130"
+      merge_commit: "5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4"
+  selected_ticket:
     id: "C-EA0"
     title: "Evidence capture contract"
+    status: "in_progress"
+    summary: "C-EA0 specifies and tests an exact evidence-capture documentation contract with immutable attempt accounting, five independent status axes, explicit missingness and fail-closed durability acknowledgement. Automated acceptance and normal merge remain pending."
+  next_selected_ticket:
+    id: "C-EA1"
+    title: "Durable evidence archive"
     status: "todo"
     implementation_state: "unstarted"
-    summary: "After C-AUTH1 delivery, ratify capture, custody, retention-class, completeness and durability-acknowledgement semantics before archive implementation."
+    summary: "C-EA1 is the next prospective contract consumer but remains unstarted and input-blocked until C-EA0 merges and the required durability, artifact, retention, custody/key, deployment, capacity and security inputs are approved."
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "1.0"
-  controlling_board_fingerprint: "6b92988962e839b87e0a55d2332202ec57658775c783624753670baaca0bf132"
-  stage: "C-01 is merged in bounded offline engineering scope. C-AUTH1 is selected and implemented as a public-development authoring/Burgers candidate; applicable canonical acceptance and normal merge remain pending. C-EA0 is next and unstarted. G2 remains NOT_READY. No public-network operation, scientific qualification, accepted baseline, archive acknowledgement, testnet eligibility or LIVE authority is created."
+  controlling_board_fingerprint: "1b03a7b2178c0a48136f83e6c0057867a4ed52e5ca0b0280c76cbff9a01dfb00"
+  stage: "C-01 and C-AUTH1 are merged in bounded offline engineering scope. C-EA0 is selected with an exact specified/tested documentation-contract candidate; applicable automated acceptance and normal merge remain pending. C-EA1 is next, unstarted and input-blocked. G2 remains NOT_READY. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -479,8 +479,11 @@ current:
     - "NET-5"
     - "NET-6"
     - "C-01"
+    - "C-AUTH1"
   recent_dependencies:
+    - "C-AUTH1"
     - "C-01"
+    - "B-GATE"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
@@ -491,7 +494,7 @@ current:
     - "NET-5"
     - "NET-6"
   downstream_handoffs:
-    - "C-EA0"
+    - "C-EA1"
   parallel_context:
     []
   fail_closed:
@@ -512,17 +515,18 @@ current:
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
     - "G2 stays NOT_READY: required shielded registration/shared-winner runtime evidence is missing. C-AUTH1 public-development engineering does not change G2; protected evaluation, accepted-baseline, archive, C2/public deployment and scientific/security qualifications remain unearned."
+    - "C-EA0 is a specified/tested documentation contract only. Every real durability, required-artifact, retention, rights, custody/key, deployment, capacity, recovery and security value remains HUMAN_INPUT; C-EA1 is unstarted and no archive acknowledgement exists."
   maturity_states:
     specified: "earned"
-    implemented: "earned"
+    implemented: "unearned"
     tested: "earned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-01 is merged and C-AUTH1 adds a bounded implemented and focused-tested public-development authoring candidate. G2, protected/real scientific evidence, reference qualification, archive acknowledgement, testnet eligibility, security/network qualification, production and LIVE remain unearned."
-  decision_series_status: "OWNER-C1-C2-BURGERS-01 selects C-AUTH1 after C-01 merge and permits dependency-ready offline C1/C2 engineering without changing G2 or authorizing public-network activity. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-01 and C-AUTH1 are merged. C-EA0 adds a specified and contract-tested evidence-capture candidate only. G2, archive runtime/durability, protected or real scientific evidence, reference qualification, testnet eligibility, security/network qualification, production and LIVE remain unearned."
+  decision_series_status: "OWNER-C1-C2-BURGERS-01 selects C-EA0 after C-AUTH1 merge and permits dependency-ready offline C1/C2 engineering without changing G2 or authorizing public-network activity. C-EA0-D1 keeps every human-reserved archive input fail closed. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -599,6 +603,7 @@ waves:
       - "C-01"
       - "C-AUTH1"
       - "C-EA0"
+      - "C-EA1"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -1731,7 +1736,7 @@ tickets:
     id: "C-AUTH1"
     wave: "C"
     title: "Goal-driven authoring and Burgers Dynamics V1 import"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/c_auth1.md"
     repo_path: ".agent/tickets/C-AUTH1_burgers_authoring.md"
     depends_on:
@@ -1746,13 +1751,28 @@ tickets:
     id: "C-EA0"
     wave: "C"
     title: "Evidence capture contract"
-    status: "todo"
+    status: "in_progress"
     explainer: "explainers/tickets/c_ea0.md"
     repo_path: ".agent/tickets/C-EA0_evidence_capture_contract.md"
     depends_on:
       - "C-AUTH1"
       - "C-01"
       - "B-GATE"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-EA1"
+    unlocks_context:
+      []
+  -
+    id: "C-EA1"
+    wave: "C"
+    title: "Durable evidence archive"
+    status: "todo"
+    explainer: "explainers/tickets/c_ea1.md"
+    repo_path: ".agent/tickets/C-EA1_durable_evidence_archive.md"
+    depends_on:
+      - "C-EA0"
     depends_on_context:
       []
     unlocks:
@@ -3744,6 +3764,32 @@ events:
       - "WAVE-B/B-GATE"
       - "SYSTEM/MATURITY"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/C-EA0"
+    event_type: "adjustment"
+    event_id: "C-EA0-D1"
+    owner_lane: "evidence_architecture"
+    status: "implemented"
+    summary: "C-AUTH1 passed exact-head canonical, Hub and merge-gate acceptance and merged in PR #130. C-EA0 specifies and contract-tests immutable attempt accounting, five independent status axes, explicit missingness/dependence/unknowns, closed named uses and positive durability-acknowledgement conditions. C-EA1 is next but unstarted and input-blocked; no archive runtime, durability, human policy, qualification, G2, network or LIVE authority exists."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/Design_Specs/Evidence_Archive_and_Custody.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-AUTH1"
+      - "WAVE-C/C-EA1"
+      - "WAVE-A/A7"
+      - "WAVE-B/B-05"
+      - "WAVE-B/B-E1"
+      - "WAVE-B/B-E2"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null

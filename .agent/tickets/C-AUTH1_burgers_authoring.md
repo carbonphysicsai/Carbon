@@ -1,9 +1,9 @@
 # C-AUTH1 — Goal-driven authoring and Burgers Dynamics V1 import
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
-Implementation candidate and focused diagnostics pass; applicable canonical
-acceptance and normal merge pending.
+**Status:** `done` in bounded merged engineering scope; PR #130 normally merged
+as `5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4` after exact head
+`5797cae76f44bcbe746df1e8ac832f2c8bf57012` passed run `34449303309`.
 **Depends on:** C-01 delivery; verified owner-supplied workbench
 **Primary Hub map_ref:** `WAVE-C/C-AUTH1`
 

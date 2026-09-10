@@ -4,7 +4,7 @@
 **Status:** OWNER-APPROVED FUTURE SEQUENCING OVERLAY  
 **Applies with:** `Build_Out.md` v1.5, `Evidence_Intelligence_and_Agent_Research.md`, and `.agent/plans/OWNER_EVIDENCE_RESEARCH_01.md`
 
-**Detailed reservations:** the 21 `C-EA*`, `C-DC*`, `E-EA*`, `E-EB1`, `E-D12`, `E-RI1`, and `G-PR*` files under `.agent/tickets/`, all `future_reserved`, unselected, and unstarted.
+**Detailed reservations:** the 21 `C-EA*`, `C-DC*`, `E-EA*`, `E-EB1`, `E-D12`, `E-RI1`, and `G-PR*` files under `.agent/tickets/`. `C-EA0` is now selected as a SPECIFIED/tested documentation-contract candidate under `OWNER-C1-C2-BURGERS-01`; every other ticket remains unstarted and no runtime/archive maturity is implied.
 
 **Traceability:** `.agent/plans/OWNER_EVIDENCE_RESEARCH_01_TRACEABILITY.md`.
 
@@ -145,6 +145,13 @@ Learned official-derived EvidenceBriefs, paid hosted research, and Research Scie
 ## 9. Future board activation
 
 When Wave C is activated, its controlling board may select the already materialized C-EA0..3 and C-DC1..4 ticket contracts, or prospectively approve an equivalent decomposition while preserving identity mapping and semantics.
+
+`OWNER-C1-C2-BURGERS-01` subsequently selected C-EA0 after C-AUTH1's accepted
+merge. `C-EA0-D1` ratifies only the versioned documentation contract and
+contract cases. C-EA1 is the next prospective consumer but remains unstarted
+and input-blocked until the durability, required-artifact, retention, legal/IP,
+custody/key, deployment, capacity and security owners provide its required
+values. C-EA2 and C-EA3 remain downstream and unselected.
 
 When Wave E is activated, its board may select E-EA4..7, E-EB1, E-D12, and E-RI1.
 
