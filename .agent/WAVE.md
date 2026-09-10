@@ -40,7 +40,7 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.0
-**Selected ticket:** none; NET-5R is `done` in bounded standard-profile scope
+**Selected ticket:** NET-5R — `done`
 **Next selected ticket:** none
 C-EA1 remains `todo`, unstarted, and input-blocked on its reserved operating
 decisions. Those inputs did not block the independently authorized NET-5R work

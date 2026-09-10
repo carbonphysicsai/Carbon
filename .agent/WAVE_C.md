@@ -35,7 +35,7 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** none; NET-5R is `done` in bounded standard-profile scope
+**Selected ticket:** NET-5R — `done`
 **Next selected ticket:** none. C-EA1 remains `todo`, unstarted and input-blocked
 until its reserved human operating inputs are approved.
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
