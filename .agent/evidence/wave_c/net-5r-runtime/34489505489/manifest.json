@@ -1,0 +1,88 @@
+{
+  "schema": "carbon.net5r.d4-standard-full-success-evidence.v1",
+  "run": 34489505489,
+  "head": "faf99d20356a42ca53e9c1c9a5884d3de4620459",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "full",
+  "profile": "standard",
+  "attempts": 1,
+  "retries": 0,
+  "budget_wall_seconds": 5400,
+  "elapsed_runtime_seconds": 1834.56,
+  "outcome": "FULL_REQUIRED_RUNTIME_EFFECTS_OBSERVED",
+  "observed": [
+    "BOTH_SHIELDED_REGISTRATIONS_FINALIZED",
+    "THREE_CHALLENGE_SHARED_WINNER_COMPLETE_VECTOR_OBSERVED",
+    "SHARED_WINNER_EPOCH_OBSERVED",
+    "COPY_HAS_NO_NEW_CREDIT",
+    "RESTART_REPLAY_AND_PROVIDER_RECOVERY_OBSERVED",
+    "PLAIN_SWAP_HOTKEY_FINALIZED",
+    "TAKEOVER_READBACK_OBSERVED",
+    "RECYCLED_UID_DID_NOT_INHERIT_WINNER_TARGET",
+    "IDENTITY_REPLACEMENT_ALL_BURN_EPOCH_OBSERVED"
+  ],
+  "registrations": {
+    "miner": {
+      "account": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "carrier_nonce": 0,
+      "inner_nonce": 1,
+      "finalized_account_next_nonce": 2,
+      "carrier": "0x8ec82790ea087f54b6aeac7ac36b40ea254b1a022c9bb41cfb99a3e37de990b6",
+      "inner": "0x974c5a271252ed7eaf885a02dd63d5439895a515d30bfa5f8806ff1db7d52a50",
+      "block": 78,
+      "block_hash": "0x5839bbf50dd9cfecc0a293d03a39fb68888d6e004540fbce8da9af32f94b696e"
+    },
+    "challenger": {
+      "account": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+      "carrier_nonce": 0,
+      "inner_nonce": 1,
+      "finalized_account_next_nonce": 2,
+      "carrier": "0xdedd884abfe19940d546cd1c081969164d9ac49c1db45e1c866f410416b83931",
+      "inner": "0x8905be1ad21b102e38b85d618117ffc000a4c8e00be4f8878cdd61d353a5e958",
+      "block": 82,
+      "block_hash": "0x56d0c817afc655e59b4482f574ff12186e0ea0ed298ad0d7f28af6063036a85b"
+    }
+  },
+  "swap_hotkey": {
+    "account": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+    "transaction": "0xad3e92a05b8590fa51b8b5ef3f95db10f92d7c118d704727186ef16164840837",
+    "block": 117,
+    "block_hash": "0xab98a7889a58c32dbf014f30af395510baa69ac868841a2e3fc76c4422d28033",
+    "finalized": true,
+    "takeover_readback": true,
+    "recycled_uid_effect": true
+  },
+  "epochs": {
+    "shared_winner": {
+      "block": 111,
+      "block_hash": "0x68c5a82b740f1058749098bc60849c481288bd0a1e34dd4bb8105a3a2ba64a5c",
+      "epoch": 5,
+      "miner_burned_q32": 3974620244
+    },
+    "identity_replacement_all_burn": {
+      "block": 151,
+      "block_hash": "0x74c5f85f49b16d01cbeb54cad74d285c2285d4ec8a6b2986944c28c83979fd5f",
+      "epoch": 7,
+      "miner_burned_q32": 4294967296
+    }
+  },
+  "remaining_evidence_boundary": "D4 did not retain account identity at the finalized nonce read, transport generation/closure facts, or the ordinary SDK-selected nonce. NET-5R-D5 adds those public-safe observations and requires one final changed full run before closeout.",
+  "node_log_redaction": "The configured retained targets emit hashes and outcomes but no decrypted inner-extrinsic bytes; the gzip is an exact deterministic compression of the uploaded log.",
+  "g2": "NOT_READY_PENDING_D5_AUDITABLE_HANDOVER_EVIDENCE",
+  "public_network_actions": 0,
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34489505489",
+  "hashes_sha256": {
+    "container-id.txt": "23e699e710cd091ee5e2fcac1427e03d87db0749deadf8414709ffcc772ad5b2",
+    "docker-host-config.json": "49c5a5205260ec2eb9cc0dc48014d28a13e7c87f513409f5e9f56b4af41bd15b",
+    "docker-network.json": "38acf66714299bdffea2c12845289bf0e1c1edf163ab0671c158b1e5f5addd20",
+    "docker-requested-ports.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "docker-resource-usage.json": "fbd7ff347dcdd37b67b1fa25a92bd81f91e4db4a57269391ce85ebedb30db976",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "image-profile.json": "d9283e93b8a1ddaa036ae6859ef44a0f258dc212fa4102876a02b61614e7030a",
+    "integration.json": "b6ed30cc09999e010a9154c0b5ec2815c4e19e8f7187522bf2727e86a8139add",
+    "isolation.json": "bd3353cc2bce166949f1f45e4727359edf54b14f607eace15a8f494dc8f27162",
+    "node.log.gz": "22798bb5adaba2845cf70054425c814b447381b8c91a039d525bde152292b757",
+    "setup.json": "89089720b374b5bb6bf5d65acd975779135b92405b475ce4ae91cee01dbb0fb0"
+  }
+}

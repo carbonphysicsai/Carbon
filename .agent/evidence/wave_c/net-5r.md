@@ -1,8 +1,9 @@
 # NET-5R shielded registration compatibility evidence
 
-**Status:** NET-5R `in_progress`; PR #132's eight-block repair is merged, exact
-standard-runtime discovery/diagnostic/full attempts are retained, and a second
-source-backed Carbon compatibility candidate is focused-tested. G2 `NOT_READY`.
+**Status:** NET-5R `in_progress`; PR #132's eight-block repair and PR #133's
+standard-profile/D4 checkpoint are merged. D4 passed the full behavioral
+predicate; the retained D5 run exposed a signing-cache observer effect, and D6
+is focused-tested without remaining runtime authority. G2 `NOT_READY`.
 
 **Starting main:** `675427ec8852579aa9d336bbec94e28be7b62810`
 (PR #132). PR #131's merged specification checkpoint remains
@@ -12,7 +13,8 @@ source-backed Carbon compatibility candidate is focused-tested. G2 `NOT_READY`.
 
 **Primary Hub map_ref:** `WAVE-C/NET-5R`.
 
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`.
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`,
+`NET-5R-D5`, `NET-5R-D6`.
 
 **Lead notification:**
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
@@ -182,3 +184,96 @@ https://github.com/carbonphysicsai/Carbon/actions/runs/34474220953. A local-only
 upstream issue draft is in
 `.agent/evidence/wave_c/net-5r-upstream-issue-draft.md`; no maintainer contact
 occurred.
+
+## Exact D4 candidate full run 34489505489
+
+The canonical workflow was explicitly dispatched with `mode=full` and
+`profile=standard` at exact unchanged post-PR-133 main
+`faf99d20356a42ca53e9c1c9a5884d3de4620459`; it did not rely on the workflow's
+fast default. Ubuntu 24.04 amd64 setup and pinned SDK contracts passed, then the
+full scenario passed in 1,834.56 seconds within the existing 5,400-second,
+5-GiB, 3-CPU and 1,024-PID limits with zero retries.
+
+The miner account
+`5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty` finalized carrier
+`0x8ec82790ea087f54b6aeac7ac36b40ea254b1a022c9bb41cfb99a3e37de990b6`
+and inner
+`0x974c5a271252ed7eaf885a02dd63d5439895a515d30bfa5f8806ff1db7d52a50`
+at block 78 / hash
+`0x5839bbf50dd9cfecc0a293d03a39fb68888d6e004540fbce8da9af32f94b696e`;
+the finalized next nonce was 2. The challenger account
+`5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y` finalized carrier
+`0xdedd884abfe19940d546cd1c081969164d9ac49c1db45e1c866f410416b83931`
+and inner
+`0x8905be1ad21b102e38b85d618117ffc000a4c8e00be4f8878cdd61d353a5e958`
+at block 82 / hash
+`0x56d0c817afc655e59b4482f574ff12186e0ea0ed298ad0d7f28af6063036a85b`;
+its finalized next nonce was also 2.
+
+The complete shared-winner vector and epoch were observed. `SwapHotkey`
+transaction
+`0xad3e92a05b8590fa51b8b5ef3f95db10f92d7c118d704727186ef16164840837`
+then finalized at block 117 / hash
+`0xab98a7889a58c32dbf014f30af395510baa69ac868841a2e3fc76c4422d28033`,
+with takeover readback and recycled-UID non-inheritance verified. The final
+identity-replacement all-burn epoch was observed at block 151 / hash
+`0x74c5f85f49b16d01cbeb54cad74d285c2285d4ec8a6b2986944c28c83979fd5f`.
+
+This proves D4's complete behavioral predicate. The retained v1 setup artifact
+does not expose the clarified transport generations/closure or ordinary
+SDK-selected nonce, so G2 remains `NOT_READY` pending one D5 evidence run. Exact
+public-safe artifacts and hashes are in
+`.agent/evidence/wave_c/net-5r-runtime/34489505489/manifest.json`; no decrypted
+private payload or secret key is retained. Workflow:
+https://github.com/carbonphysicsai/Carbon/actions/runs/34489505489.
+
+## D5 source-backed evidence candidate
+
+Pinned Bittensor 11.1.0 source exposes public, pool-aware
+`RpcSubstrate.account_next_index(address)` and uses it when ordinary signed
+extrinsic creation receives no nonce. Carbon's candidate records that value as
+the SDK-selected nonce without supplying or changing it, then verifies the
+finalized account increment. The session serializes each account's submission
+sequence across finalized nonce verification and handover. A replacement may
+connect and pass endpoint, genesis, runtime and standard-profile checks first,
+but the prior transport must close before the replacement becomes active or any
+subsequent signing/dispatch. Outstanding ambiguity requires reconciliation and
+cannot trigger reset. Focused installed-SDK and invariant tests pass; one changed
+full standard run remains before closeout.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
+
+## D5 changed full run 34497456242 and D6 diagnosis
+
+The sole changed full/standard successor ran at exact head
+`9b7b70f745062a100ff2d6c85d9f647ddad4e588`. Canonical Ubuntu 24.04 amd64
+setup and the pinned SDK contracts passed. The run then stopped at the first
+`start_delay` configuration submission after its 144-second operation ceiling.
+Setup retained disposable Alice account
+`5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`, transport generation one,
+public next index zero, omitted Carbon nonce argument and transaction
+`0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f`.
+The transaction was not observed before timeout, state is
+`AMBIGUOUS_OR_UNAVAILABLE`, and the transport closed at session end. No shield
+registration or `SwapHotkey` occurred.
+
+Exact Bittensor 11.1.0 source makes the cause deterministic:
+`RpcSubstrate.account_next_index` delegates to the transport's
+`get_account_next_index(address)`, whose `use_cache=True` default advances its
+nonce cache. D5's evidence read returned zero and advanced that signing cache;
+the following omitted-nonce SDK execution advanced it again and selected future
+nonce one. Concurrent drand HTTP warnings cannot cause this pre-shield nonce
+path. No standard/fast timing, key rotation, ciphertext, unshielding or keystore
+claim follows.
+
+D6 instead reads finalized `System.Account` at the exact pre-sign block, never
+calls stateful next-index on the signing transport, keeps nonce omitted and
+retains the SDK-selected nonce only after an exclusive successful submission's
+finalized account increment proves it. Focused installed-SDK and invariant tests
+pass. Exact public-safe artifacts and hashes are in
+`.agent/evidence/wave_c/net-5r-runtime/34497456242/manifest.json`; no secret key
+or private payload is retained. The authorized run budget is exhausted, so G2
+remains `NOT_READY` on the missing D6 runtime demonstration and no further run
+was dispatched. Workflow:
+https://github.com/carbonphysicsai/Carbon/actions/runs/34497456242. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.

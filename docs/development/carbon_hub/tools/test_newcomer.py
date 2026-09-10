@@ -99,9 +99,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn(
-            "PR #132&#x27;s eight-block repair is reconciled as merged", self.output
-        )
+        self.assertIn("PR #133&#x27;s NET-5R standard-profile/D4", self.output)
         self.assertIn("G2 remains NOT_READY", self.output)
         self.assertIn(
             "C-EA1 stays scoped to its unresolved operating inputs", self.output
@@ -162,7 +160,7 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "eight-block repair is reconciled as merged",
+            "PR #133&#x27;s NET-5R standard-profile/D4",
             "C-EA1 stays scoped to its unresolved operating inputs",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",

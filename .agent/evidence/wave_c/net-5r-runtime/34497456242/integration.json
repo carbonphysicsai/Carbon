@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.net5.runtime.evidence.v1",
+  "maturity": "SYNTHETIC_ONLY",
+  "execution_scope": "NET5_FULL",
+  "runtime_profile": "standard",
+  "g2": "NOT_READY",
+  "treasury": null,
+  "stages": [
+    "isolated-genesis-verified-before-keys"
+  ],
+  "epochs": [],
+  "dispatches": [],
+  "failure_type": "TimeoutError",
+  "failure_code": "SEE_PRIVATE_OPERATOR_DIAGNOSTIC"
+}

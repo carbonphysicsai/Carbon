@@ -32,7 +32,7 @@ No second full run without the changed hypothesis, unchecked extrinsic, private 
 
 ## Current stage
 
-NET-5R preserves the merged eight-block repair and adds an exact, isolated standard-runtime profile. Canonical runs 34473145103 and 34473508494 bound that profile and proved one registration; full run 34474220953 proved both registrations and the shared-winner epoch, then failed before recycled-UID evidence on a source-backed SDK nonce-cache transition.
+PR #133 preserves NET-5R's eight-block repair and exact standard profile. D4 run 34489505489 passed the complete behavior; D5 run 34497456242 failed because its evidence read advanced the signing cache. D6 removes that observer effect in focused tests, but no authorized full run remains and G2 is NOT_READY.
 
 ## Maturity ceiling
 
@@ -40,10 +40,10 @@ Disposable C0/G2 compatibility engineering only; actual runtime effects are requ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md)
-- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/evidence/wave_c/net-5r.md)
+- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/docs/development/LOCALNET_INTEGRATION.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/WAVE_C.md)
 
-> Standard versus fast is retained only as a compatibility comparison. Exact SDK source supports a nonce-cache transition hypothesis after the shield pair; no timing or keystore root cause is claimed, and no retry, unchecked extrinsic or public-network action is permitted.
+> Standard versus fast remains only a compatibility comparison. D5 permits replacement verification before old closure but requires closure before activation/signing and reconciliation for ambiguity. Exact SDK source proves account_next_index is stateful on its transport; D6 avoids it and infers the omitted SDK nonce only from exclusive finalized System.Account increments. No timing/keystore claim, retry, nonce injection, unchecked extrinsic or public-network action is permitted.

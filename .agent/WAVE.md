@@ -14,9 +14,13 @@
 > OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering
 > without changing G2. C-AUTH1 merged in PR #130. C-EA0 merged in PR #131 as
 > a3ca8cd111689329832131eac1460d579c7828b3. PR #132 merged NET-5R's
-> eight-block repair as 675427ec8852579aa9d336bbec94e28be7b62810. NET-5R
-> remains selected after the standard-runtime full attempt passed registration
-> and shared-winner stages but stopped before recycled-UID evidence. G2 and C2
+> eight-block repair as 675427ec8852579aa9d336bbec94e28be7b62810. PR #133
+> merged its standard-profile/D4 specification checkpoint as
+> 2a71a392380cb4df0e0597a92674882de7801c70. NET-5R
+> remains selected after D4 standard-runtime run 34489505489 passed the complete
+> behavioral predicate at the exact post-PR-133 main revision. D5 run
+> 34497456242 exposed and retained a signing-cache observer effect; focused D6
+> removes it, but the authorized full-run budget is exhausted. G2 and C2
 > eligibility remain unavailable.
 > Treasury remains optional; no public-network operation is authorized.
 
@@ -77,7 +81,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. PR #132 merged NET-5R's unsupported 64-to-8 shield-era repair. Standard run 34474220953 then finalized both registrations and observed the shared-winner row/epoch, but the later plain `SwapHotkey` was rejected `Stale/expired` before inclusion. NET-5R remains selected on a source-backed public-SDK transport-refresh candidate, recycled-UID evidence remains unobserved and G2 is NOT_READY. No later ticket is selected.
+**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. PR #132 merged NET-5R's unsupported 64-to-8 shield-era repair; PR #133 merged the standard-profile/D4 specification checkpoint. Explicit full/standard D4 run 34489505489 at exact post-PR-133 main passed both registrations, shared-winner, finalized `SwapHotkey`, takeover and recycled-UID effects. D5 run 34497456242 failed at its first configuration call because its public next-index evidence read advanced the signing transport cache; focused D6 uses finalized System.Account evidence without that observer effect. The full-run budget is exhausted, NET-5R remains selected and G2 remains NOT_READY on the missing D6 runtime demonstration. No later ticket is selected.
 **Current C1 status:** C-01 and C-AUTH1 are merged in bounded engineering scope.
 C-EA0 passed canonical acceptance and merged in PR #131 as
 `a3ca8cd111689329832131eac1460d579c7828b3`. C-EA1 remains unstarted and

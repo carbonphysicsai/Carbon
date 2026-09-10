@@ -4,12 +4,15 @@
 **Status:** `in_progress`
 
 PR #132 merged the eight-block shield-era repair as
-`675427ec8852579aa9d336bbec94e28be7b62810`. The exact standard-runtime
-comparison has since passed both shielded registrations and the shared-winner
-stage, but the canonical full scenario stopped at a source-backed plain-nonce
-transition defect before the recycled-UID effect. G2 remains `NOT_READY`.
+`675427ec8852579aa9d336bbec94e28be7b62810`; PR #133 merged the standard-profile
+and D4 specification checkpoint as
+`2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard-runtime
+comparison has since passed the complete behavioral scenario at the exact
+post-PR-133 main checkpoint. The sole D5 successor run then exposed a stateful
+nonce-observer defect before registration. D6 is focused-tested, but the run
+budget is exhausted; G2 remains `NOT_READY` on its missing runtime demonstration.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`, `NET-5R-D6`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
@@ -134,12 +137,72 @@ no maintainer was contacted. The changed full scenario has not been rerun.
 Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
 
+## D4 full-run result
+
+Canonical workflow run 34489505489 explicitly selected `mode=full` and
+`profile=standard` at exact revision
+`faf99d20356a42ca53e9c1c9a5884d3de4620459`. It passed in 1,834.56 seconds
+within the unchanged 5,400-second, 5-GiB, 3-CPU and 1,024-PID ceiling with zero
+retries. It finalized both authenticated shielded registrations, observed the
+three-challenge shared-winner row and epoch, finalized `SwapHotkey`, verified
+takeover, proved the recycled UID did not inherit the old winner target, and
+observed the final identity-replacement all-burn epoch. This satisfies the
+behavioral predicate without changing the eight-block repair.
+
+The D4 artifact did not retain account identity at the finalized nonce check,
+transport generations and old-transport closure, or the ordinary SDK-selected
+nonce. It therefore remains retained as a successful but insufficiently
+auditable attempt under the owner's clarified acceptance; G2 is not promoted
+from this run alone.
+
+## NET-5R-D5 — Auditable exclusive transport handover
+
+Pinned Bittensor 11.1.0 source documents that an omitted nonce is selected from
+the public, pool-aware `RpcSubstrate.account_next_index(address)` path. The
+smallest successor keeps Carbon from supplying or modifying the nonce while
+recording that public next index, the account identity, transport generation,
+finalized block hash, finalized next nonce and outcome.
+
+The same account's sequence is exclusive from nonce verification through
+handover and subsequent dispatch. The replacement may connect and pass endpoint,
+genesis, runtime and standard-profile checks before the previous transport is
+closed, but it cannot become active and no later signing or dispatch can occur
+until the previous close has completed. An ambiguous outstanding submission
+fails with reconciliation required and cannot trigger a reset. At this decision
+point exactly one changed full standard run remained authorized. No public endpoint, unchecked
+extrinsic, explicit nonce, retry or production key is introduced.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
+
+## D5 full-run failure and NET-5R-D6
+
+The sole changed full/standard run 34497456242 executed exact head
+`9b7b70f745062a100ff2d6c85d9f647ddad4e588`. It timed out at the first
+`start_delay` configuration submission after 144 seconds. Public-safe setup
+retains disposable Alice identity, transport generation one, observed next index
+zero, an omitted Carbon nonce argument, transaction
+`0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f`,
+ambiguous state and closure at session end. No shielded registration or
+`SwapHotkey` was attempted.
+
+Pinned source proves that D5's `account_next_index` observation itself advanced
+the signing transport's nonce cache because `use_cache=True` is the default. The
+following SDK signing operation advanced it again and selected future nonce one.
+D6 removes the observer effect: read finalized `System.Account` at an exact
+block, leave nonce omitted, preserve exclusivity, and identify the selected
+nonce only from a successful finalized increment. Focused tests pass and reject
+any signing-transport next-index observation. No additional full run remains
+authorized, so G2 stays `NOT_READY` on the missing D6 runtime demonstration.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
+
 ## Bounded delivery disposition
 
-The source-backed mortality repair, exact standard profile, one-shot diagnostic
-and focused contracts pass. The full standard run observed both registrations
-and the shared-winner effect, but not the recycled-UID effect, so the full-
-scenario Definition-of-Done checkbox remains intentionally open. NET-5R stays
-`in_progress` on the changed public-transport-refresh candidate above; G2 stays
-`NOT_READY`. No later ticket is selected, and C-EA1's unresolved operating
-decisions remain scoped to C-EA1.
+The source-backed mortality repair, exact standard profile, one-shot diagnostic,
+D4 full behavioral evidence and focused D6 contracts pass. D5's sole changed
+full run failed because its nonce observation advanced the signing cache; that
+failure is retained, and the execution budget is exhausted. The full-scenario
+Definition-of-Done checkbox remains open because D6 has no canonical runtime
+demonstration. NET-5R stays `in_progress`; G2 stays `NOT_READY`. No later ticket
+is selected. JAX, C-02 and C-EA1 are outside this delivery, and C-EA1's
+unresolved operating decisions remain scoped to C-EA1.

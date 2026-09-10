@@ -575,14 +575,48 @@ class LocalnetSession:
         self.signer = None
         self.shield_era_period = None
         self._transport_hooks = None
+        self._submission_lock = asyncio.Lock()
+        self._transport_generation = 0
+        self._transport_ready = False
+        self.transport_events = []
         self.profile_name, self.profile = runtime_profile()
 
-    async def _replace_sdk_transport(self):
+    def _require_no_ambiguous_submission(self):
+        if any(
+            operation.get("state") == "AMBIGUOUS_OR_UNAVAILABLE"
+            for operation in self.operations
+        ):
+            raise PublicationFailure("OUTSTANDING_SUBMISSION_REQUIRES_RECONCILIATION")
+
+    def _require_exclusive_transport_ready(self):
+        if not self._submission_lock.locked():
+            raise PublicationFailure("ACCOUNT_SUBMISSION_SEQUENCE_NOT_EXCLUSIVE")
+        if not self._transport_ready or self._transport_generation < 1:
+            raise PublicationFailure("SDK_TRANSPORT_HANDOVER_INCOMPLETE")
+
+    async def _replace_sdk_transport(self, record=None):
         """Open a verified public SDK transport before retiring the old one."""
         import bittensor as bt
 
         if self.context is None or self._transport_hooks is None:
             raise PublicationFailure("LOCALNET_TRANSPORT_CONTEXT_REQUIRED")
+        previous = self.sub
+        if previous is not None:
+            self._require_exclusive_transport_ready()
+            self._require_no_ambiguous_submission()
+        previous_generation = self._transport_generation or None
+        replacement_generation = self._transport_generation + 1
+        event = {
+            "previous_generation": previous_generation,
+            "replacement_generation": replacement_generation,
+            "account_submission_sequence": "EXCLUSIVE",
+            "state": "CONNECTING_REPLACEMENT",
+        }
+        self.transport_events.append(event)
+        if record is not None:
+            record["transport_handover"] = event
+        self._transport_ready = False
+        self.save()
         sub = journaled_substrate(
             self.context,
             self._transport_hooks["before_sign"],
@@ -591,27 +625,71 @@ class LocalnetSession:
             after_shield_key=self._transport_hooks["after_shield_key"],
             before_signed_extrinsic=self._transport_hooks["before_signed_extrinsic"],
         )
-        await sub.connect()
+        try:
+            await sub.connect()
+            observed_endpoint = sub.endpoint
+            observed_genesis = hash256(await sub.block_hash(0))
+            observed_spec = await sub.spec_version()
+            observed_block_time = await sub.block_time()
+        except Exception:
+            await sub.close()
+            event["state"] = "REPLACEMENT_CONNECTION_REQUIRES_RECONCILIATION"
+            self.save()
+            raise
+        event["replacement_identity"] = {
+            "endpoint": observed_endpoint,
+            "genesis_hash": observed_genesis,
+            "spec_version": observed_spec,
+            "runtime_profile": self.profile_name,
+            "runtime_binary": self.profile["binary_path"],
+            "block_time_seconds": observed_block_time,
+        }
         if (
-            hash256(await sub.block_hash(0)) != self.context.genesis_hash
-            or await sub.spec_version() != 445
+            observed_endpoint != self.context.endpoint
+            or observed_genesis != self.context.genesis_hash
+            or observed_spec != 445
+            or observed_block_time != float(self.profile["nominal_block_seconds"])
         ):
             await sub.close()
+            event["state"] = "REPLACEMENT_IDENTITY_REJECTED"
+            self.save()
             raise PublicationFailure("REPLACEMENT_TRANSPORT_IDENTITY_MISMATCH")
+        event["replacement_verified_before_previous_close"] = previous is not None
+        event["previous_transport_closed"] = previous is None
+        self.save()
         client = bt.Client(
             self.context.endpoint,
             substrate=sub,
             policy=bt.Policy(allowed_netuids=[2]),
         )
-        previous = self.sub
-        self.sub, self.client = sub, client
         if previous is not None:
-            await previous.close()
+            try:
+                await previous.close()
+            except Exception:  # noqa: BLE001 - ambiguous close must fail closed
+                await sub.close()
+                event["state"] = "PREVIOUS_CLOSE_REQUIRES_RECONCILIATION"
+                self.save()
+                raise PublicationFailure(
+                    "PREVIOUS_TRANSPORT_CLOSE_REQUIRES_RECONCILIATION"
+                ) from None
+            event["previous_transport_closed"] = True
+            self.save()
+        self.sub, self.client = sub, client
+        self._transport_generation = replacement_generation
+        self._transport_ready = True
+        event["state"] = "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE"
+        self.save()
 
     async def _refresh_after_shielded_inner(self, record):
         """Reopen the supported SDK after its outer/inner nonce transition."""
+        self._require_exclusive_transport_ready()
+        self._require_no_ambiguous_submission()
+        if record.get("state") not in ("FINALIZED", "FINALIZED_RECONCILED"):
+            raise PublicationFailure("SHIELDED_SUBMISSION_REQUIRES_RECONCILIATION")
+        finalized_block_hash = hash256(record["block_hash"])
+        account_identity = self.signer
         account = await self.sub.query(
-            "System", "Account", [self.signer], block_hash=record["block_hash"]
+            "System", "Account", [account_identity], block_hash=finalized_block_hash
         )
         observed = account.get("nonce") if type(account) is dict else None
         signed = record.get("signed_extrinsics", {})
@@ -629,13 +707,19 @@ class LocalnetSession:
             "carrier_nonce": carrier,
             "inner_nonce": inner,
             "finalized_account_next_nonce": observed,
+            "account_identity": account_identity,
+            "finalized_block_hash": finalized_block_hash,
+            "checked_transport_generation": self._transport_generation,
             "sdk_transport": "REOPEN_REQUIRED_AFTER_EXPLICIT_OUTER_NONCE_PIN",
         }
         self.save()
-        await self._replace_sdk_transport()
+        await self._replace_sdk_transport(record)
         record["nonce_transition"][
             "sdk_transport"
         ] = "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT"
+        record["nonce_transition"][
+            "replacement_transport_generation"
+        ] = self._transport_generation
         self.save()
 
     async def start(self):
@@ -659,11 +743,13 @@ class LocalnetSession:
         )
 
         async def before_sign(call, signer):
+            self._require_exclusive_transport_ready()
             await self.verify()
             if call.spec_version != 445 or signer != self.signer:
                 raise PublicationFailure("SETUP_SIGNING_CONTEXT_CHANGED")
 
         async def before_dispatch(tx_hash):
+            self._require_exclusive_transport_ready()
             self.operations[-1]["transaction"] = tx_hash
             self.save()
 
@@ -699,6 +785,12 @@ class LocalnetSession:
 
         async def before_signed_extrinsic(kind, kwargs):
             if "shield_era_blocks" not in self.operations[-1]:
+                if kind != "carrier" or kwargs.get("nonce") is not None:
+                    raise PublicationFailure("EXPLICIT_ORDINARY_NONCE_PROHIBITED")
+                self.operations[-1]["sdk_nonce_observation"][
+                    "nonce_argument"
+                ] = "OMITTED_OR_NONE"
+                self.save()
                 return
             nonce, period = kwargs.get("nonce"), kwargs.get("period")
             if type(nonce) is not int or nonce < 0:
@@ -743,24 +835,38 @@ class LocalnetSession:
         write_evidence(
             self.directory / "setup.json",
             {
-                "schema": "carbon.disposable.setup.v1",
+                "schema": "carbon.disposable.setup.v2",
                 "context": asdict(self.context),
                 "runtime_profile": self.profile_name,
                 "runtime_binary": self.profile["binary_path"],
                 "roles": {name: pair.ss58_address for name, pair in self.roles.items()},
                 "operations": self.operations,
+                "transport_events": self.transport_events,
                 "treasury": None,
             },
         )
 
     async def execute(self, label, intent, role="owner"):
+        async with self._submission_lock:
+            self._require_no_ambiguous_submission()
+            return await self._execute_locked(label, intent, role)
+
+    async def _execute_locked(self, label, intent, role="owner"):
         if any(op["label"] == label for op in self.operations):
             raise PublicationFailure("SETUP_REPLAY_REQUIRES_RECONCILIATION")
         await self.verify()
         self.signer = self.roles[role].ss58_address
         async with aclosing(self.client.blocks(finalized=True)) as headers:
             start = (await anext(headers)).number
-        record = {"label": label, "state": "PREPARED", "start_finalized_block": start}
+        start_hash = hash256(await self.sub.block_hash(start))
+        record = {
+            "label": label,
+            "state": "PREPARED",
+            "start_finalized_block": start,
+            "start_finalized_block_hash": start_hash,
+            "account_identity": self.signer,
+            "transport_generation": self._transport_generation,
+        }
         if intent.mev_shield_required:
             record["shield_era_blocks"] = self.shield_era_period
             record["block_aware_deadline"] = {
@@ -781,6 +887,24 @@ class LocalnetSession:
                     wait_for_finalization=True,
                 )
             else:
+                account = await self.sub.query(
+                    "System", "Account", [self.signer], block_hash=start_hash
+                )
+                observed_nonce = account.get("nonce") if type(account) is dict else None
+                if type(observed_nonce) is not int or observed_nonce < 0:
+                    raise PublicationFailure("SDK_NONCE_READBACK_INVALID")
+                record["sdk_nonce_observation"] = {
+                    "account_identity": self.signer,
+                    "transport_generation": self._transport_generation,
+                    "finalized_block_before_signing": start,
+                    "finalized_block_hash_before_signing": start_hash,
+                    "finalized_account_nonce_before_signing": observed_nonce,
+                    "selection_source": (
+                        "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK"
+                    ),
+                    "nonce_supplied_by_carbon": False,
+                }
+                self.save()
                 operation = self.client.execute(
                     intent,
                     self.roles[role],
@@ -811,6 +935,34 @@ class LocalnetSession:
                 error_name=None if result.error is None else result.error.name,
                 error_code=None if result.error is None else result.error.code.value,
             )
+            if result.success and "sdk_nonce_observation" in record:
+                finalized_hash = hash256(result.block_hash)
+                account = await self.sub.query(
+                    "System", "Account", [self.signer], block_hash=finalized_hash
+                )
+                finalized_nonce = (
+                    account.get("nonce") if type(account) is dict else None
+                )
+                expected_nonce = (
+                    record["sdk_nonce_observation"][
+                        "finalized_account_nonce_before_signing"
+                    ]
+                    + 1
+                )
+                if (
+                    type(finalized_nonce) is not int
+                    or finalized_nonce != expected_nonce
+                ):
+                    raise PublicationFailure("SDK_NONCE_FINALIZED_READBACK_MISMATCH")
+                record["sdk_nonce_observation"].update(
+                    sdk_selected_nonce=finalized_nonce - 1,
+                    sdk_selected_nonce_evidence=(
+                        "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT"
+                    ),
+                    finalized_block_hash=finalized_hash,
+                    finalized_account_next_nonce=finalized_nonce,
+                    outcome="FINALIZED_INCREMENT_CONFIRMED",
+                )
             self.save()
             if not result.success and "inner_transaction" in record:
                 result = await self.reconcile_inner(record, result)
@@ -999,6 +1151,10 @@ class LocalnetSession:
     async def close(self):
         if self.sub is not None:
             await self.sub.close()
+            self._transport_ready = False
+            if self.transport_events:
+                self.transport_events[-1]["closed_at_session_end"] = True
+                self.save()
 
 
 async def registration_diagnostic(container, directory):

@@ -492,7 +492,10 @@ def test_successful_shielded_nonce_transition_reopens_supported_sdk_transport(
     session = LocalnetSession("carbon-localnet-test", tmp_path)
     session.sub = Substrate()
     session.signer = "disposable-signer"
+    session._transport_generation = 1
+    session._transport_ready = True
     record = {
+        "state": "FINALIZED",
         "block_hash": "0x" + "b" * 64,
         "signed_extrinsics": {
             "carrier": {"nonce": 0, "era_blocks": 8},
@@ -502,17 +505,28 @@ def test_successful_shielded_nonce_transition_reopens_supported_sdk_transport(
     session.operations = [record]
     monkeypatch.setattr(session, "save", lambda: None)
 
-    async def replace():
+    async def replace(bound_record):
+        assert bound_record is record
         refreshed.append(True)
+        session._transport_generation = 2
 
     monkeypatch.setattr(session, "_replace_sdk_transport", replace)
-    asyncio.run(session._refresh_after_shielded_inner(record))
+
+    async def refresh():
+        async with session._submission_lock:
+            await session._refresh_after_shielded_inner(record)
+
+    asyncio.run(refresh())
     assert refreshed == [True]
     assert record["nonce_transition"] == {
         "carrier_nonce": 0,
         "inner_nonce": 1,
         "finalized_account_next_nonce": 2,
+        "account_identity": "disposable-signer",
+        "finalized_block_hash": "0x" + "b" * 64,
+        "checked_transport_generation": 1,
         "sdk_transport": "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT",
+        "replacement_transport_generation": 2,
     }
     assert "data" not in record["nonce_transition"]
 
@@ -530,7 +544,10 @@ def test_shielded_nonce_transition_fails_closed_on_chain_disagreement(
     session = LocalnetSession("carbon-localnet-test", tmp_path)
     session.sub = Substrate()
     session.signer = "disposable-signer"
+    session._transport_generation = 1
+    session._transport_ready = True
     record = {
+        "state": "FINALIZED",
         "block_hash": "0x" + "b" * 64,
         "signed_extrinsics": {
             "carrier": {"nonce": 0, "era_blocks": 8},
@@ -539,8 +556,225 @@ def test_shielded_nonce_transition_fails_closed_on_chain_disagreement(
     }
     session.operations = [record]
     monkeypatch.setattr(session, "save", lambda: None)
+
+    async def refresh():
+        async with session._submission_lock:
+            await session._refresh_after_shielded_inner(record)
+
     with pytest.raises(PublicationFailure, match="SHIELDED_NONCE_TRANSITION_MISMATCH"):
-        asyncio.run(session._refresh_after_shielded_inner(record))
+        asyncio.run(refresh())
+
+
+def test_transport_handover_verifies_replacement_then_closes_previous(
+    monkeypatch, tmp_path
+):
+    from test_net1_chain_adapter import context, installed_sdk
+
+    bt = installed_sdk()
+    import carbon.chain.localnet as module
+
+    events = []
+
+    class Previous:
+        async def close(self):
+            events.append("previous-closed")
+
+    class Replacement:
+        endpoint = context().endpoint
+
+        async def connect(self):
+            events.append("replacement-connected")
+
+        async def block_hash(self, block):
+            assert block == 0
+            events.append("replacement-genesis-verified")
+            return context().genesis_hash
+
+        async def spec_version(self):
+            events.append("replacement-spec-verified")
+            return 445
+
+        async def block_time(self):
+            events.append("replacement-profile-verified")
+            return 0.25
+
+        async def close(self):
+            events.append("replacement-closed")
+
+    replacement = Replacement()
+    monkeypatch.setattr(
+        module, "journaled_substrate", lambda *args, **kwargs: replacement
+    )
+    monkeypatch.setattr(bt, "Client", lambda *args, **kwargs: SimpleNamespace())
+    session = module.LocalnetSession("carbon-localnet-test", tmp_path)
+    session.context = context()
+    session._transport_hooks = {
+        name: None
+        for name in (
+            "before_sign",
+            "before_dispatch",
+            "after_inner_sign",
+            "after_shield_key",
+            "before_signed_extrinsic",
+        )
+    }
+    session.sub = Previous()
+    session._transport_generation = 1
+    session._transport_ready = True
+    monkeypatch.setattr(session, "save", lambda: None)
+    record = {"label": "register-miner", "state": "FINALIZED"}
+
+    async def replace():
+        async with session._submission_lock:
+            await session._replace_sdk_transport(record)
+
+    asyncio.run(replace())
+    assert events == [
+        "replacement-connected",
+        "replacement-genesis-verified",
+        "replacement-spec-verified",
+        "replacement-profile-verified",
+        "previous-closed",
+    ]
+    assert session.sub is replacement and session._transport_generation == 2
+    assert session._transport_ready is True
+    assert record["transport_handover"] == {
+        "previous_generation": 1,
+        "replacement_generation": 2,
+        "account_submission_sequence": "EXCLUSIVE",
+        "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+        "replacement_identity": {
+            "endpoint": context().endpoint,
+            "genesis_hash": context().genesis_hash,
+            "spec_version": 445,
+            "runtime_profile": "fast",
+            "runtime_binary": "/target/fast-runtime/release/node-subtensor",
+            "block_time_seconds": 0.25,
+        },
+        "replacement_verified_before_previous_close": True,
+        "previous_transport_closed": True,
+    }
+
+
+def test_ambiguous_submission_blocks_handover_and_later_execution(
+    monkeypatch, tmp_path
+):
+    from carbon.chain.localnet import LocalnetSession
+
+    session = LocalnetSession("carbon-localnet-test", tmp_path)
+    session.operations = [{"label": "prior", "state": "AMBIGUOUS_OR_UNAVAILABLE"}]
+
+    async def should_not_execute(*args):
+        pytest.fail("Ambiguous submission must be reconciled before later execution")
+
+    monkeypatch.setattr(session, "_execute_locked", should_not_execute)
+    with pytest.raises(
+        PublicationFailure, match="OUTSTANDING_SUBMISSION_REQUIRES_RECONCILIATION"
+    ):
+        asyncio.run(session.execute("later", object()))
+
+
+def test_account_submission_sequence_is_exclusive(monkeypatch, tmp_path):
+    from carbon.chain.localnet import LocalnetSession
+
+    session = LocalnetSession("carbon-localnet-test", tmp_path)
+    active = 0
+    maximum = 0
+
+    async def execute(label, intent, role):
+        nonlocal active, maximum
+        active += 1
+        maximum = max(maximum, active)
+        await asyncio.sleep(0)
+        active -= 1
+        return label
+
+    monkeypatch.setattr(session, "_execute_locked", execute)
+
+    async def exercise():
+        return await asyncio.gather(
+            session.execute("first", object()), session.execute("second", object())
+        )
+
+    assert asyncio.run(exercise()) == ["first", "second"]
+    assert maximum == 1
+
+
+def test_ordinary_nonce_is_observed_without_being_supplied(monkeypatch, tmp_path):
+    from test_net1_chain_adapter import context
+
+    from carbon.chain.localnet import LocalnetSession
+
+    block_hash = "0x" + "b" * 64
+    signer = "disposable-signer"
+
+    class Substrate:
+        async def block_hash(self, block):
+            if block == 0:
+                return context().genesis_hash
+            assert block == 10
+            return "0x" + "a" * 64
+
+        async def spec_version(self):
+            return 445
+
+        async def account_next_index(self, address):
+            pytest.fail("The signing transport's stateful nonce cache must not be read")
+
+        async def query(self, module, item, params, block_hash=None):
+            assert (module, item, params) == ("System", "Account", [signer])
+            if block_hash == "0x" + "a" * 64:
+                return {"nonce": 2}
+            assert block_hash == "0x" + "b" * 64
+            return {"nonce": 3}
+
+    class Client:
+        async def blocks(self, *, finalized):
+            assert finalized
+            yield SimpleNamespace(number=10)
+
+        async def execute(self, intent, wallet, **kwargs):
+            assert "nonce" not in kwargs
+            return SimpleNamespace(
+                data={},
+                success=True,
+                error=None,
+                block_hash=block_hash,
+                extrinsic_id="11-0002",
+            )
+
+    session = LocalnetSession("carbon-localnet-test", tmp_path)
+    session.context = context()
+    session.sub = Substrate()
+    session.client = Client()
+    session.roles = {"miner": SimpleNamespace(ss58_address=signer)}
+    session._transport_generation = 2
+    session._transport_ready = True
+    monkeypatch.setattr(session, "save", lambda: None)
+    result = asyncio.run(
+        session.execute(
+            "replace-miner-hotkey",
+            SimpleNamespace(mev_shield_required=False),
+            "miner",
+        )
+    )
+    assert result.success
+    assert session.operations[-1]["sdk_nonce_observation"] == {
+        "account_identity": signer,
+        "transport_generation": 2,
+        "finalized_block_before_signing": 10,
+        "finalized_block_hash_before_signing": "0x" + "a" * 64,
+        "finalized_account_nonce_before_signing": 2,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": False,
+        "finalized_block_hash": block_hash,
+        "finalized_account_next_nonce": 3,
+        "sdk_selected_nonce": 2,
+        "sdk_selected_nonce_evidence": (
+            "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT"
+        ),
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED",
+    }
 
 
 def test_pinned_sdk_source_exposes_the_shielded_nonce_cache_transition():
@@ -557,6 +791,22 @@ def test_pinned_sdk_source_exposes_the_shielded_nonce_cache_transition():
     assert "nonce + 1" in shielded
     assert "nonce=nonce" in shielded
     assert "self._nonces.pin(keypair.ss58_address, nonce)" in transport
+
+
+def test_pinned_sdk_public_next_index_is_stateful_on_the_signing_transport():
+    from test_net1_chain_adapter import installed_sdk
+
+    installed_sdk()
+    import inspect
+
+    from bittensor._substrate import RpcSubstrate
+    from bittensor._transport.interface import SubstrateConnection
+
+    public = inspect.getsource(RpcSubstrate.account_next_index)
+    transport = inspect.getsource(SubstrateConnection.get_account_next_index)
+    assert "raw.get_account_next_index(address)" in public
+    assert "use_cache: bool = True" in transport
+    assert "self._nonces.next_for(address, use_cache=use_cache)" in transport
 
 
 @pytest.mark.parametrize("present", [True, False])
@@ -669,7 +919,13 @@ def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
     assert failed["signing_performed"] is False
     assert failed["network_created"] is False
     assert failed["outcome"] == "DIAGNOSTIC_INSTRUMENTATION_FAILED"
-    for run in ("34473145103", "34473508494", "34474220953"):
+    for run in (
+        "34473145103",
+        "34473508494",
+        "34474220953",
+        "34489505489",
+        "34497456242",
+    ):
         manifest_path = root / run / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
         assert manifest["profile"] == "standard" and manifest["g2"].startswith(
@@ -678,6 +934,12 @@ def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
         for name, expected in manifest["hashes_sha256"].items():
             data = (manifest_path.parent / name).read_bytes()
             assert hashlib.sha256(data).hexdigest() == expected
+    d5 = json.loads((root / "34497456242" / "manifest.json").read_text())
+    assert d5["failure"]["operation_state"] == "AMBIGUOUS_OR_UNAVAILABLE"
+    assert d5["failure"]["carbon_supplied_nonce"] is False
+    assert d5["shield_registration_performed"] is False
+    assert d5["swap_hotkey_performed"] is False
+    assert d5["additional_full_run_authorized"] is False
     retained_log = gzip.decompress((root / "34474220953" / "node.log.gz").read_bytes())
     assert b"Unshielded inner transaction: [REDACTED_DECRYPTED_BYTES]" in retained_log
     assert not re.search(rb"Unshielded inner transaction: [0-9a-f]{16}", retained_log)
