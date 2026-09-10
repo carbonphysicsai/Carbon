@@ -1,7 +1,7 @@
 # NET-5R — Shielded registration compatibility repair
 
 **Wave:** C0/G2 evidence follow-up
-**Status:** `in_progress`
+**Status:** `done` in the bounded standard-profile disposable-localnet scope
 
 PR #132 merged the eight-block shield-era repair as
 `675427ec8852579aa9d336bbec94e28be7b62810`; PR #133 merged the standard-profile
@@ -9,13 +9,13 @@ and D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard-runtime
 comparison has since passed the complete behavioral scenario at the exact
 post-PR-133 main checkpoint. The sole D5 successor run then exposed a stateful
-nonce-observer defect before registration. D6 is focused-tested. Owner direction
-`OWNER-NET-5R-D6-RUN-01` now authorizes one canonical full/standard D6 run and,
-only if that run exposes a concrete correctness defect addressed by a changed
-source-backed candidate, at most one second full/standard run. G2 remains
-`NOT_READY` until the D6 runtime predicate is demonstrated.
+nonce-observer defect before registration. D6 removed that observer effect, and
+canonical run 34518806217 passed its complete full/standard predicate at exact
+candidate `97a2405776a3f520076e03a89ea8b7b4086d9ad2`. One bounded run was
+consumed; because it passed, the conditional second run is unavailable. G2 is
+`LOCALNET_READY` only for this exact standard-profile disposable-localnet scope.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`, `NET-5R-D6`
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`, `NET-5R-D6`, `NET-5R-D7`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
@@ -32,7 +32,7 @@ localnet scenario.
       evidence to distinguish timing, key rotation, nonce, era and runtime causes.
 - [x] Make the smallest compatible repair without unchecked extrinsics, public
       endpoints, persistent value, or production keys.
-- [ ] Pass focused compatibility tests and the existing disposable full scenario
+- [x] Pass focused compatibility tests and the existing disposable full scenario
       on canonical Linux amd64 Docker.
 - [x] Observe the required shared-winner and recycled-UID effects, or retain G2
       NOT_READY with the exact remaining blocker.
@@ -214,13 +214,34 @@ not authorize JAX, C-EA1 implementation, public-network execution, production
 keys, paid inference, treasury funding, security/scientific qualification or a
 later ticket.
 
+## NET-5R-D7 — D6 full/standard runtime demonstration and closeout
+
+Canonical Linux amd64 workflow run
+[34518806217](https://github.com/carbonphysicsai/Carbon/actions/runs/34518806217)
+explicitly selected `mode=full` and `profile=standard` at exact candidate
+`97a2405776a3f520076e03a89ea8b7b4086d9ad2`. Focused installed-SDK/setup
+contracts passed 86/86 and the full scenario passed in 1,828.88 seconds with the
+unchanged 5,400-second, 5-GiB, three-CPU and 1,024-PID ceilings and zero retries.
+
+Both authenticated registrations retained account, transport generation,
+carrier/inner identities and exact finalized inclusion. Nonce observations came
+from `System.Account` at exact finalized blocks; Carbon never called
+`account_next_index` on the signing transport and left ordinary nonce selection
+to the SDK. Three verified handovers closed the old transport before activating
+its replacement. `SwapHotkey` finalized, takeover matched, the recycled UID did
+not inherit the prior winner target, and the final all-burn row/epoch passed.
+No ambiguous dispatch remained. Exact public-safe bytes are retained under
+`.agent/evidence/wave_c/net-5r-runtime/34518806217/`. D5 remains unchanged; its
+next-index value is not valid selected-nonce evidence because that observation
+itself advanced the signing transport cache.
+
 ## Bounded delivery disposition
 
-The source-backed mortality repair, exact standard profile, one-shot diagnostic,
-D4 full behavioral evidence and focused D6 contracts pass. D5's sole changed
-full run failed because its nonce observation advanced the signing cache; that
-failure is retained, and the execution budget is exhausted. The full-scenario
-Definition-of-Done checkbox remains open because D6 has no canonical runtime
-demonstration. NET-5R stays `in_progress`; G2 stays `NOT_READY`. No later ticket
-is selected. JAX, C-02 and C-EA1 are outside this delivery, and C-EA1's
-unresolved operating decisions remain scoped to C-EA1.
+The source-backed mortality repair, exact standard profile, D4 behavioral
+evidence, D6 focused contracts and D6 runtime predicate all pass. NET-5R is done
+in its bounded engineering scope. The complete retained NET-1 through NET-6
+evidence permits G2 `LOCALNET_READY` for the exact standard-profile disposable
+v445 localnet only. Fast-profile history remains failed; public networks,
+settlement, wallet payments, science, security, production and LIVE
+qualification remain unearned. No later ticket is selected. C-EA1 remains
+unstarted and input-blocked; JAX and C-02 implementation are outside this work.

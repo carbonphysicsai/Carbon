@@ -1,0 +1,696 @@
+{
+  "schema": "carbon.disposable.setup.v2",
+  "context": {
+    "network": "localnet",
+    "endpoint": "ws://127.0.0.1:37005",
+    "provider": "disposable-primary",
+    "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+    "netuid": 2
+  },
+  "runtime_profile": "standard",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "roles": {
+    "owner": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+    "miner": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "challenger": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+  },
+  "operations": [
+    {
+      "label": "start_delay",
+      "state": "FINALIZED",
+      "start_finalized_block": 0,
+      "start_finalized_block_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 0,
+        "finalized_block_hash_before_signing": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+        "finalized_account_nonce_before_signing": 0,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 0,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0xe09d4749163d38945dfc1efdda5188efb38f2cf93a4ec210d4452cb20d8528aa",
+        "finalized_account_next_nonce": 1,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x90597494d3cdf2a2dc3540c04600b8ace7a1ffe34a1d2338b54989bec103ad64",
+      "block_hash": "0xe09d4749163d38945dfc1efdda5188efb38f2cf93a4ec210d4452cb20d8528aa",
+      "extrinsic_id": "1-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "owner_rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 1,
+      "start_finalized_block_hash": "0xe09d4749163d38945dfc1efdda5188efb38f2cf93a4ec210d4452cb20d8528aa",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 1,
+        "finalized_block_hash_before_signing": "0xe09d4749163d38945dfc1efdda5188efb38f2cf93a4ec210d4452cb20d8528aa",
+        "finalized_account_nonce_before_signing": 1,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 1,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x1d6a904c51a49ac2ab30bc438ceb08e9cfb928ca6cab5dfd3f96ee1e003ee7af",
+        "finalized_account_next_nonce": 2,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xf39130ce273b505164504889cf9229d54bba67020d2148072b0e8e9ed7dcfe8a",
+      "block_hash": "0x1d6a904c51a49ac2ab30bc438ceb08e9cfb928ca6cab5dfd3f96ee1e003ee7af",
+      "extrinsic_id": "4-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "admin_window",
+      "state": "FINALIZED",
+      "start_finalized_block": 4,
+      "start_finalized_block_hash": "0x1d6a904c51a49ac2ab30bc438ceb08e9cfb928ca6cab5dfd3f96ee1e003ee7af",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 4,
+        "finalized_block_hash_before_signing": "0x1d6a904c51a49ac2ab30bc438ceb08e9cfb928ca6cab5dfd3f96ee1e003ee7af",
+        "finalized_account_nonce_before_signing": 2,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 2,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x621129823730db2ea012e31c02a42c6490a305d961ad6ed9dff124c3cd90c6f1",
+        "finalized_account_next_nonce": 3,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x33d9781ad920186d2e33939c7c593304e5a4e163c53fa54843b5dd05d4926c73",
+      "block_hash": "0x621129823730db2ea012e31c02a42c6490a305d961ad6ed9dff124c3cd90c6f1",
+      "extrinsic_id": "7-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "create-subnet",
+      "state": "FINALIZED",
+      "start_finalized_block": 7,
+      "start_finalized_block_hash": "0x621129823730db2ea012e31c02a42c6490a305d961ad6ed9dff124c3cd90c6f1",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 7,
+        "finalized_block_hash_before_signing": "0x621129823730db2ea012e31c02a42c6490a305d961ad6ed9dff124c3cd90c6f1",
+        "finalized_account_nonce_before_signing": 3,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 3,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x908f8f14dde60582f1119c3947418b1b194ad83277f078dd10d715fda8899596",
+        "finalized_account_next_nonce": 4,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x6921778951bbd6eb2aac170d8fadd0078e8c9beae18b69f3c70f2f6403d7a35d",
+      "block_hash": "0x908f8f14dde60582f1119c3947418b1b194ad83277f078dd10d715fda8899596",
+      "extrinsic_id": "10-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "plain",
+      "state": "FINALIZED",
+      "start_finalized_block": 10,
+      "start_finalized_block_hash": "0x908f8f14dde60582f1119c3947418b1b194ad83277f078dd10d715fda8899596",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 10,
+        "finalized_block_hash_before_signing": "0x908f8f14dde60582f1119c3947418b1b194ad83277f078dd10d715fda8899596",
+        "finalized_account_nonce_before_signing": 4,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 4,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0xdca6f013221989ff6d7d99602a747d7d7644ba9d00322e2133a6cbbb5a54792b",
+        "finalized_account_next_nonce": 5,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xb1983f5edf17761c275d175808fd611ef1ce3416327e80d7185060b07a5f953a",
+      "block_hash": "0xdca6f013221989ff6d7d99602a747d7d7644ba9d00322e2133a6cbbb5a54792b",
+      "extrinsic_id": "13-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "burn",
+      "state": "FINALIZED",
+      "start_finalized_block": 13,
+      "start_finalized_block_hash": "0xdca6f013221989ff6d7d99602a747d7d7644ba9d00322e2133a6cbbb5a54792b",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 13,
+        "finalized_block_hash_before_signing": "0xdca6f013221989ff6d7d99602a747d7d7644ba9d00322e2133a6cbbb5a54792b",
+        "finalized_account_nonce_before_signing": 5,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 5,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x322a20cf62abe0a656025ee0d982fa8ad4ede329959db5cabfc17af56110f7c4",
+        "finalized_account_next_nonce": 6,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x8baf8c166e314e3b858d09f7c4f8ebe9102d207ae7e27a9e71fb07223caaa7b5",
+      "block_hash": "0x322a20cf62abe0a656025ee0d982fa8ad4ede329959db5cabfc17af56110f7c4",
+      "extrinsic_id": "16-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "minimum",
+      "state": "FINALIZED",
+      "start_finalized_block": 16,
+      "start_finalized_block_hash": "0x322a20cf62abe0a656025ee0d982fa8ad4ede329959db5cabfc17af56110f7c4",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 16,
+        "finalized_block_hash_before_signing": "0x322a20cf62abe0a656025ee0d982fa8ad4ede329959db5cabfc17af56110f7c4",
+        "finalized_account_nonce_before_signing": 6,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 6,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x2f19e4fdbcc491a2e8b1b4f587b509655b695741db686f4a4041bba2aa963f66",
+        "finalized_account_next_nonce": 7,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x6771e922bbe2bd42099c01ace49e3df7b50313332143b7ce8ac252edf7088d1e",
+      "block_hash": "0x2f19e4fdbcc491a2e8b1b4f587b509655b695741db686f4a4041bba2aa963f66",
+      "extrinsic_id": "19-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 19,
+      "start_finalized_block_hash": "0x2f19e4fdbcc491a2e8b1b4f587b509655b695741db686f4a4041bba2aa963f66",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 19,
+        "finalized_block_hash_before_signing": "0x2f19e4fdbcc491a2e8b1b4f587b509655b695741db686f4a4041bba2aa963f66",
+        "finalized_account_nonce_before_signing": 7,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 7,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x9aa56aea0026a154d86904081ce78e9946286db460f9abf18a7206dc06f9f743",
+        "finalized_account_next_nonce": 8,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xfe0c616ed82d93af4d6bf63d76120764cb15ee76dcacc089be7f90be71043553",
+      "block_hash": "0x9aa56aea0026a154d86904081ce78e9946286db460f9abf18a7206dc06f9f743",
+      "extrinsic_id": "22-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "tempo",
+      "state": "FINALIZED",
+      "start_finalized_block": 22,
+      "start_finalized_block_hash": "0x9aa56aea0026a154d86904081ce78e9946286db460f9abf18a7206dc06f9f743",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 22,
+        "finalized_block_hash_before_signing": "0x9aa56aea0026a154d86904081ce78e9946286db460f9abf18a7206dc06f9f743",
+        "finalized_account_nonce_before_signing": 8,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 8,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0xf5f508aa2074665fcf4737d6fc1c1a796c88dd8d083bf8c7cccf4f212383c9eb",
+        "finalized_account_next_nonce": 9,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x535f4a355a24bdd197dc3b1af2f59b4efe5184ccdb311e7ae56d448b7095f192",
+      "block_hash": "0xf5f508aa2074665fcf4737d6fc1c1a796c88dd8d083bf8c7cccf4f212383c9eb",
+      "extrinsic_id": "25-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "registration",
+      "state": "FINALIZED",
+      "start_finalized_block": 25,
+      "start_finalized_block_hash": "0xf5f508aa2074665fcf4737d6fc1c1a796c88dd8d083bf8c7cccf4f212383c9eb",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 25,
+        "finalized_block_hash_before_signing": "0xf5f508aa2074665fcf4737d6fc1c1a796c88dd8d083bf8c7cccf4f212383c9eb",
+        "finalized_account_nonce_before_signing": 9,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 9,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x4e316ecc2760130011351fbae87e287c86708b06129519c3d95d86b3f0e440fb",
+        "finalized_account_next_nonce": 10,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xddbacd4349b6fac5a689f30627d2382a881f95b9bc5119ec535c193143157c4b",
+      "block_hash": "0x4e316ecc2760130011351fbae87e287c86708b06129519c3d95d86b3f0e440fb",
+      "extrinsic_id": "28-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "emissions",
+      "state": "FINALIZED",
+      "start_finalized_block": 28,
+      "start_finalized_block_hash": "0x4e316ecc2760130011351fbae87e287c86708b06129519c3d95d86b3f0e440fb",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 28,
+        "finalized_block_hash_before_signing": "0x4e316ecc2760130011351fbae87e287c86708b06129519c3d95d86b3f0e440fb",
+        "finalized_account_nonce_before_signing": 10,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 10,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x5f3ad1ce3c32cbe66126048eb758e4b728eed17f0ed153d63acc42b1ee5e24c7",
+        "finalized_account_next_nonce": 11,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xabb98bca60e784f8e8c3d86f3a977856ef38e8428faf2f140b366d0d06a82bf0",
+      "block_hash": "0x5f3ad1ce3c32cbe66126048eb758e4b728eed17f0ed153d63acc42b1ee5e24c7",
+      "extrinsic_id": "31-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "activate",
+      "state": "FINALIZED",
+      "start_finalized_block": 31,
+      "start_finalized_block_hash": "0x5f3ad1ce3c32cbe66126048eb758e4b728eed17f0ed153d63acc42b1ee5e24c7",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 31,
+        "finalized_block_hash_before_signing": "0x5f3ad1ce3c32cbe66126048eb758e4b728eed17f0ed153d63acc42b1ee5e24c7",
+        "finalized_account_nonce_before_signing": 11,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 11,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x5a9541cae47fbe2a74c4e57fd663b8a7f0ab4236e5051780ca09749e466fc684",
+        "finalized_account_next_nonce": 12,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x918062b409cfd885812459fb2f987b3e6072ace86beea64f5e0b38cec5a196a5",
+      "block_hash": "0x5a9541cae47fbe2a74c4e57fd663b8a7f0ab4236e5051780ca09749e466fc684",
+      "extrinsic_id": "34-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "validator-stake",
+      "state": "FINALIZED",
+      "start_finalized_block": 34,
+      "start_finalized_block_hash": "0x5a9541cae47fbe2a74c4e57fd663b8a7f0ab4236e5051780ca09749e466fc684",
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "finalized_block_before_signing": 34,
+        "finalized_block_hash_before_signing": "0x5a9541cae47fbe2a74c4e57fd663b8a7f0ab4236e5051780ca09749e466fc684",
+        "finalized_account_nonce_before_signing": 12,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 12,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x26e610d7aa5baf9933b7a2e14c9a53880d4a6621487e1f6fd6efdf46c4a4fda2",
+        "finalized_account_next_nonce": 13,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x0e30caf42f33143b42b95fd860e85571b9d94ee72784caf24fc4691828f350fc",
+      "block_hash": "0x26e610d7aa5baf9933b7a2e14c9a53880d4a6621487e1f6fd6efdf46c4a4fda2",
+      "extrinsic_id": "37-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "register-miner",
+      "state": "FINALIZED",
+      "start_finalized_block": 74,
+      "start_finalized_block_hash": "0xa3575c2363b39a763483f4e641ee327a535ad1f92f21e258c457ccaa94c16633",
+      "account_identity": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "transport_generation": 1,
+      "shield_era_blocks": 8,
+      "block_aware_deadline": {
+        "mortality_period_blocks": 8,
+        "sdk_inner_scan_blocks_after_carrier": 8,
+        "maximum_scan_block": 90
+      },
+      "operation_wall_seconds": 144,
+      "shield_key_queries": [
+        {
+          "digest": "sha256:13c187cd9c05a2769a6a61e7ed00e7dc7a3cb5c7c5805cc333e4d557c812ceff",
+          "length": 1184,
+          "queried_at_block": 76,
+          "queried_at_hash": "0x69a2d2197b1ffa2c636c26df27f9c3f59229b5f653b20049f77a31997a81f672",
+          "expires_at_exclusive": 79,
+          "associated_authors": [
+            "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+          ]
+        }
+      ],
+      "shield_key": {
+        "digest": "sha256:13c187cd9c05a2769a6a61e7ed00e7dc7a3cb5c7c5805cc333e4d557c812ceff",
+        "length": 1184,
+        "queried_at_block": 76,
+        "queried_at_hash": "0x69a2d2197b1ffa2c636c26df27f9c3f59229b5f653b20049f77a31997a81f672",
+        "expires_at_exclusive": 79,
+        "associated_authors": [
+          "0x9026941b7aa2328a8c5ea4e25bb747a2bf92a066fae0cc3722faf58cf44d3502"
+        ]
+      },
+      "signed_extrinsics": {
+        "inner": {
+          "nonce": 1,
+          "era_blocks": 8
+        },
+        "carrier": {
+          "nonce": 0,
+          "era_blocks": 8
+        }
+      },
+      "inner_transaction": "0x68d0e0ef291d18b8197b09d630b6851ca13f87bef52f668415ef0c5c2e79b0ef",
+      "transaction": "0x47138c2818ca54f3467282a2259db030fc2b7524e25d2a8c0d6b7009815f53b4",
+      "shielded": true,
+      "block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+      "extrinsic_id": "78-0003",
+      "error_name": null,
+      "error_code": null,
+      "diagnostic_scan": {
+        "from_finalized_block": 74,
+        "through_block": 80,
+        "receipts": {
+          "transaction": {
+            "block": 78,
+            "block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+            "success": true,
+            "extrinsic_id": "78-0002"
+          },
+          "inner_transaction": {
+            "block": 78,
+            "block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+            "success": true,
+            "extrinsic_id": "78-0003"
+          }
+        }
+      },
+      "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+      "key_rotation_context": {
+        "carrier_block": 78,
+        "carrier_block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+        "queried_key_positions": [
+          "CurrentKey"
+        ],
+        "associated_authors_at_carrier": [],
+        "query_expiry_exclusive": 79
+      },
+      "nonce_transition": {
+        "carrier_nonce": 0,
+        "inner_nonce": 1,
+        "finalized_account_next_nonce": 2,
+        "account_identity": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "finalized_block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+        "checked_transport_generation": 1,
+        "sdk_transport": "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT",
+        "replacement_transport_generation": 2
+      },
+      "transport_handover": {
+        "previous_generation": 1,
+        "replacement_generation": 2,
+        "account_submission_sequence": "EXCLUSIVE",
+        "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+        "replacement_identity": {
+          "endpoint": "ws://127.0.0.1:37005",
+          "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+          "spec_version": 445,
+          "runtime_profile": "standard",
+          "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+          "block_time_seconds": 12.0
+        },
+        "replacement_verified_before_previous_close": true,
+        "previous_transport_closed": true
+      }
+    },
+    {
+      "label": "register-challenger",
+      "state": "FINALIZED",
+      "start_finalized_block": 78,
+      "start_finalized_block_hash": "0x8429e8d775e278ad22f1762931dd797f2c763dfc133549872e2924fff1d3acd4",
+      "account_identity": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+      "transport_generation": 2,
+      "shield_era_blocks": 8,
+      "block_aware_deadline": {
+        "mortality_period_blocks": 8,
+        "sdk_inner_scan_blocks_after_carrier": 8,
+        "maximum_scan_block": 94
+      },
+      "operation_wall_seconds": 144,
+      "shield_key_queries": [
+        {
+          "digest": "sha256:63581c845c8b2cd5e34c35949de55dd96d46d96528a667ddf04c5136fb72ebf2",
+          "length": 1184,
+          "queried_at_block": 80,
+          "queried_at_hash": "0xea89c37383524f48cb61477081680648777ad5bda344200c0e1fd7727e656248",
+          "expires_at_exclusive": 83,
+          "associated_authors": [
+            "0xac859f8a216eeb1b320b4c76d118da3d7407fa523484d0a980126d3b4d0d220a"
+          ]
+        }
+      ],
+      "shield_key": {
+        "digest": "sha256:63581c845c8b2cd5e34c35949de55dd96d46d96528a667ddf04c5136fb72ebf2",
+        "length": 1184,
+        "queried_at_block": 80,
+        "queried_at_hash": "0xea89c37383524f48cb61477081680648777ad5bda344200c0e1fd7727e656248",
+        "expires_at_exclusive": 83,
+        "associated_authors": [
+          "0xac859f8a216eeb1b320b4c76d118da3d7407fa523484d0a980126d3b4d0d220a"
+        ]
+      },
+      "signed_extrinsics": {
+        "inner": {
+          "nonce": 1,
+          "era_blocks": 8
+        },
+        "carrier": {
+          "nonce": 0,
+          "era_blocks": 8
+        }
+      },
+      "inner_transaction": "0x84de6407bffcf799a0254f97dfc37cee38e9b62447248c8df8287e70cffa98c5",
+      "transaction": "0xf99c5ec09904d3e790cb8d516a5783af9affecfc7af9da2ca8807ad4f32fa066",
+      "shielded": true,
+      "block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+      "extrinsic_id": "82-0003",
+      "error_name": null,
+      "error_code": null,
+      "diagnostic_scan": {
+        "from_finalized_block": 78,
+        "through_block": 84,
+        "receipts": {
+          "transaction": {
+            "block": 82,
+            "block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+            "success": true,
+            "extrinsic_id": "82-0002"
+          },
+          "inner_transaction": {
+            "block": 82,
+            "block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+            "success": true,
+            "extrinsic_id": "82-0003"
+          }
+        }
+      },
+      "shield_outcome": "CARRIER_ACCEPTED_UNSHIELDED_INNER_FINALIZED",
+      "key_rotation_context": {
+        "carrier_block": 82,
+        "carrier_block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+        "queried_key_positions": [
+          "CurrentKey"
+        ],
+        "associated_authors_at_carrier": [],
+        "query_expiry_exclusive": 83
+      },
+      "nonce_transition": {
+        "carrier_nonce": 0,
+        "inner_nonce": 1,
+        "finalized_account_next_nonce": 2,
+        "account_identity": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+        "finalized_block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+        "checked_transport_generation": 2,
+        "sdk_transport": "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT",
+        "replacement_transport_generation": 3
+      },
+      "transport_handover": {
+        "previous_generation": 2,
+        "replacement_generation": 3,
+        "account_submission_sequence": "EXCLUSIVE",
+        "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+        "replacement_identity": {
+          "endpoint": "ws://127.0.0.1:37005",
+          "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+          "spec_version": 445,
+          "runtime_profile": "standard",
+          "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+          "block_time_seconds": 12.0
+        },
+        "replacement_verified_before_previous_close": true,
+        "previous_transport_closed": true,
+        "closed_at_session_end": true
+      }
+    },
+    {
+      "label": "replace-miner-hotkey",
+      "state": "FINALIZED",
+      "start_finalized_block": 114,
+      "start_finalized_block_hash": "0x53361fa7f9775edd23402ce44c914f3802b0754c5cff20a572da68c602a0c645",
+      "account_identity": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+      "transport_generation": 3,
+      "sdk_nonce_observation": {
+        "account_identity": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "transport_generation": 3,
+        "finalized_block_before_signing": 114,
+        "finalized_block_hash_before_signing": "0x53361fa7f9775edd23402ce44c914f3802b0754c5cff20a572da68c602a0c645",
+        "finalized_account_nonce_before_signing": 2,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE",
+        "sdk_selected_nonce": 2,
+        "sdk_selected_nonce_evidence": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "finalized_block_hash": "0x9955921af349891535fd7983d741204f4d726b0c80389de3aca043bc1abe311e",
+        "finalized_account_next_nonce": 3,
+        "outcome": "FINALIZED_INCREMENT_CONFIRMED"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0xc5ab18838d25024921082a47135a913af7f74c33723ad340094f0d92159e68d3",
+      "block_hash": "0x9955921af349891535fd7983d741204f4d726b0c80389de3aca043bc1abe311e",
+      "extrinsic_id": "117-0002",
+      "error_name": null,
+      "error_code": null
+    }
+  ],
+  "transport_events": [
+    {
+      "previous_generation": null,
+      "replacement_generation": 1,
+      "account_submission_sequence": "EXCLUSIVE",
+      "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+      "replacement_identity": {
+        "endpoint": "ws://127.0.0.1:37005",
+        "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+        "spec_version": 445,
+        "runtime_profile": "standard",
+        "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+        "block_time_seconds": 12.0
+      },
+      "replacement_verified_before_previous_close": false,
+      "previous_transport_closed": true
+    },
+    {
+      "previous_generation": 1,
+      "replacement_generation": 2,
+      "account_submission_sequence": "EXCLUSIVE",
+      "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+      "replacement_identity": {
+        "endpoint": "ws://127.0.0.1:37005",
+        "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+        "spec_version": 445,
+        "runtime_profile": "standard",
+        "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+        "block_time_seconds": 12.0
+      },
+      "replacement_verified_before_previous_close": true,
+      "previous_transport_closed": true
+    },
+    {
+      "previous_generation": 2,
+      "replacement_generation": 3,
+      "account_submission_sequence": "EXCLUSIVE",
+      "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+      "replacement_identity": {
+        "endpoint": "ws://127.0.0.1:37005",
+        "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+        "spec_version": 445,
+        "runtime_profile": "standard",
+        "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+        "block_time_seconds": 12.0
+      },
+      "replacement_verified_before_previous_close": true,
+      "previous_transport_closed": true,
+      "closed_at_session_end": true
+    }
+  ],
+  "treasury": null
+}

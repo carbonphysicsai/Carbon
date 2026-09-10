@@ -1,0 +1,844 @@
+{
+  "schema": "carbon.net5.runtime.evidence.v1",
+  "maturity": "SYNTHETIC_ONLY",
+  "execution_scope": "NET5_FULL",
+  "runtime_profile": "standard",
+  "g2": "LOCALNET_READY",
+  "treasury": null,
+  "stages": [
+    "isolated-genesis-verified-before-keys",
+    "disposable-subnet-and-publisher-configured",
+    "genesis-mismatch-rejected",
+    "three-pinned-fixture-baselines-and-public-coefficients-registered",
+    "actual-all-burn-inclusion-finality-row-and-epochs",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery",
+    "shielded-miner-registration-finalized",
+    "three-challenge-shared-winner-complete-vector-observed",
+    "copied-artifact-wallet-change-has-no-new-credit",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery",
+    "actual-recycled-uid-does-not-inherit-winner-target",
+    "bounded-runtime-evidence-collected"
+  ],
+  "epochs": [
+    {
+      "label": "no-winner-all-burn",
+      "block": 71,
+      "hash": "0xc667e4b6063091de7542aecc0cee619596c511662346546d7167990cfd0c27bc",
+      "epoch": 3,
+      "capabilities": {
+        "snapshot_id": "sha256:a25b7d301cf667ffbc2471a8f396fa976a1c2650a653ba05a4fa0a56cd5e1f08",
+        "spec_version": 445,
+        "mechanism_count": 1,
+        "maximum_mechanisms": 2,
+        "burn_mode": "Burn",
+        "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+        "owner_hotkeys": [
+          "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+        ],
+        "min_weights": 1,
+        "max_weight": 65535,
+        "version_key": 0,
+        "rate_limit": 0,
+        "last_update": 43,
+        "commit_reveal": false,
+        "validator_permit": true,
+        "sufficient_stake": true,
+        "pending_commits": 0
+      },
+      "observations": {
+        "MinerBurned": {
+          "bits": 4294967296
+        },
+        "SubnetAlphaIn": 978474063327,
+        "SubnetAlphaOut": 58525936673,
+        "SubnetAlphaInEmission": 0,
+        "SubnetAlphaOutEmission": 1000000000,
+        "Incentive": [
+          65535
+        ],
+        "Dividends": [
+          65535
+        ],
+        "Emission": [
+          16400091520
+        ],
+        "PendingServerEmission": 0,
+        "PendingValidatorEmission": 0,
+        "PendingOwnerCut": 0
+      },
+      "miner_burned_q32": 4294967296
+    },
+    {
+      "label": "shared-winner-plus-burn",
+      "block": 111,
+      "hash": "0xfa0b094d72e4cd85634f101534a728b5b8518f2574b5817a8a0931823eb02af4",
+      "epoch": 5,
+      "capabilities": {
+        "snapshot_id": "sha256:2e465155c1f630ef0431c75c8e4a56bf7423c804fce654348c561c5b13fe54ef",
+        "spec_version": 445,
+        "mechanism_count": 1,
+        "maximum_mechanisms": 2,
+        "burn_mode": "Burn",
+        "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+        "owner_hotkeys": [
+          "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+        ],
+        "min_weights": 1,
+        "max_weight": 65535,
+        "version_key": 0,
+        "rate_limit": 0,
+        "last_update": 85,
+        "commit_reveal": false,
+        "validator_permit": true,
+        "sufficient_stake": true,
+        "pending_commits": 0
+      },
+      "observations": {
+        "MinerBurned": {
+          "bits": 3974620244
+        },
+        "SubnetAlphaIn": 939873759495,
+        "SubnetAlphaOut": 135274246649,
+        "SubnetAlphaInEmission": 0,
+        "SubnetAlphaOutEmission": 1000000000,
+        "Incentive": [
+          60646,
+          4888,
+          0
+        ],
+        "Dividends": [
+          65535,
+          0,
+          0
+        ],
+        "Emission": [
+          15788477898,
+          611613617,
+          0
+        ],
+        "PendingServerEmission": 0,
+        "PendingValidatorEmission": 0,
+        "PendingOwnerCut": 0
+      },
+      "miner_burned_q32": 3974620244
+    },
+    {
+      "label": "identity-replacement-all-burn",
+      "block": 151,
+      "hash": "0x31b374acd168e3e9f3a6c735f65420a60734532cbe94f1afa411fd1c4a4ec92f",
+      "epoch": 7,
+      "capabilities": {
+        "snapshot_id": "sha256:35fb711066e9582977b5e7653279b55f25822cea5378a36b7b36ca98f7c68001",
+        "spec_version": 445,
+        "mechanism_count": 1,
+        "maximum_mechanisms": 2,
+        "burn_mode": "Burn",
+        "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+        "owner_hotkeys": [
+          "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+        ],
+        "min_weights": 1,
+        "max_weight": 65535,
+        "version_key": 0,
+        "rate_limit": 0,
+        "last_update": 120,
+        "commit_reveal": false,
+        "validator_permit": true,
+        "sufficient_stake": true,
+        "pending_commits": 0
+      },
+      "observations": {
+        "MinerBurned": {
+          "bits": 4294967296
+        },
+        "SubnetAlphaIn": 905819519621,
+        "SubnetAlphaOut": 209328486523,
+        "SubnetAlphaInEmission": 0,
+        "SubnetAlphaOutEmission": 1000000000,
+        "Incentive": [
+          65535,
+          0,
+          0
+        ],
+        "Dividends": [
+          65535,
+          0,
+          0
+        ],
+        "Emission": [
+          16400091520,
+          0,
+          0
+        ],
+        "PendingServerEmission": 0,
+        "PendingValidatorEmission": 0,
+        "PendingOwnerCut": 0
+      },
+      "miner_burned_q32": 4294967296
+    }
+  ],
+  "dispatches": [
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 10,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:8d8586085f2e7732d4832e6047a6ca6620b170d96b9a5125cebfd10b96fb24c6",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "8c038387e1e716801e7f440574004458ee21485a96251ec77d3842499fc40c96",
+          "identity": "three-challenges-no-winner"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "6a7a7b8d4024c37d67127028cfa9236d47fa66429ecc5ba67d6318cc812472de",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "8c038387e1e716801e7f440574004458ee21485a96251ec77d3842499fc40c96",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:8d8586085f2e7732d4832e6047a6ca6620b170d96b9a5125cebfd10b96fb24c6",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x39c4695b266a9a4e3ab89df16961586a7db464aa210ef05b792a9c2294233e83",
+          "context": {
+            "endpoint": "ws://127.0.0.1:37005",
+            "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 40,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 10,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789067952000
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 43,
+        "included_block": 43,
+        "included_hash": "0x1c23de08a70cd2c51f5aead8ed750964dcb6629d564dd8d69f22163da4d11636",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 43,
+        "scan_block": 44,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0xd7bf97402c7e72952d28cd315655fb83000769aec125b8f5db5eb72530f64021"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 43,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:a25b7d301cf667ffbc2471a8f396fa976a1c2650a653ba05a4fa0a56cd5e1f08",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "be6bf75cde3efde7e2d39b3b7dadd04689b92f5314799389c0acd6f51aa26a6e",
+          "identity": "all-burn-publication-recovery"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "ecac2655ebd709d6a6035fec6523a418b34aa9ef35e50fa74b40a7a9889343de",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "be6bf75cde3efde7e2d39b3b7dadd04689b92f5314799389c0acd6f51aa26a6e",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:a25b7d301cf667ffbc2471a8f396fa976a1c2650a653ba05a4fa0a56cd5e1f08",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0xc667e4b6063091de7542aecc0cee619596c511662346546d7167990cfd0c27bc",
+          "context": {
+            "endpoint": "ws://127.0.0.1:37005",
+            "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 71,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 10,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789068324000
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 74,
+        "included_block": 74,
+        "included_hash": "0xa3575c2363b39a763483f4e641ee327a535ad1f92f21e258c457ccaa94c16633",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 74,
+        "scan_block": 75,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0xf965d1e98f7866454ad500da16f8944484f7571a931a6e9992e5f47d206af041"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 74,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:d68adb2ebc5ebe1f73e2743262b864365988f97070957697cb8063495f71d5e3",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "c512055979f79247ee5b30fd10ee19e557e24541a89614e18ae6073149fe50e0",
+          "identity": "shared-winner-plus-burn"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "f5a554a77c855b79fc145b45d4042ef4f5e0950959c998ab4c8e6a5b4681f87a",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ],
+            [
+              1,
+              5282
+            ]
+          ],
+          "intent_digest": "c512055979f79247ee5b30fd10ee19e557e24541a89614e18ae6073149fe50e0",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              925409842389
+            ],
+            [
+              1,
+              74590157611
+            ]
+          ],
+          "snapshot_id": "sha256:d68adb2ebc5ebe1f73e2743262b864365988f97070957697cb8063495f71d5e3",
+          "tolerance_q12": 30518044,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x62f4f3422278aa8ec6905d4b6aaec8a572500f43742f21ec04e7efab6ba7350b",
+          "context": {
+            "endpoint": "ws://127.0.0.1:37005",
+            "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 82,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 10,
+              "uid": 0
+            },
+            {
+              "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              "registered_at": 78,
+              "uid": 1
+            },
+            {
+              "coldkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "hotkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "registered_at": 82,
+              "uid": 2
+            }
+          ],
+          "timestamp_ms": 1789068456000
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "c693eeb75419328d37d20508e7456bbacf0e518a13387b9285f6a3897eb3008c",
+        "finalized_block": 85,
+        "included_block": 85,
+        "included_hash": "0x020d5c8295e2392bd63f819ecf62485256c9a9c68114cfb1dc2dc6859f3a01cb",
+        "integers": [
+          [
+            0,
+            65535
+          ],
+          [
+            1,
+            5282
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 85,
+        "scan_block": 86,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ],
+          [
+            1,
+            5282
+          ]
+        ],
+        "tx_hash": "0x5f523a1c981955a4edc7ea89acf1301b680821547b21a060c8604d74632efd50"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 85,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:2e465155c1f630ef0431c75c8e4a56bf7423c804fce654348c561c5b13fe54ef",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "94f5bdb6f892dd4a00510dae9ce2330588ef0968e84c5b08c8946089d798d943",
+          "identity": "winner-publication-recovery"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "ab06635fb2077bd372b494c021b813ff2bc725798175abd369622dc2a3511445",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ],
+            [
+              1,
+              5266
+            ]
+          ],
+          "intent_digest": "94f5bdb6f892dd4a00510dae9ce2330588ef0968e84c5b08c8946089d798d943",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              925617796559
+            ],
+            [
+              1,
+              74382203441
+            ]
+          ],
+          "snapshot_id": "sha256:2e465155c1f630ef0431c75c8e4a56bf7423c804fce654348c561c5b13fe54ef",
+          "tolerance_q12": 30518044,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0xfa0b094d72e4cd85634f101534a728b5b8518f2574b5817a8a0931823eb02af4",
+          "context": {
+            "endpoint": "ws://127.0.0.1:37005",
+            "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 111,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 10,
+              "uid": 0
+            },
+            {
+              "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              "registered_at": 78,
+              "uid": 1
+            },
+            {
+              "coldkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "hotkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "registered_at": 82,
+              "uid": 2
+            }
+          ],
+          "timestamp_ms": 1789068804001
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "540480c2263dc526f49694ffb44868fc845e103c9dda1a0e88df1175f502bb1b",
+        "finalized_block": 114,
+        "included_block": 114,
+        "included_hash": "0x53361fa7f9775edd23402ce44c914f3802b0754c5cff20a572da68c602a0c645",
+        "integers": [
+          [
+            0,
+            65535
+          ],
+          [
+            1,
+            5266
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 114,
+        "scan_block": 115,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ],
+          [
+            1,
+            5266
+          ]
+        ],
+        "tx_hash": "0xba24c94303101ad37e16929120de946c25cae4e984f26e3dbab9514dd1b8778e"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 114,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:443fadfd07fd683cc432e74e046fe794f665fd567dcb1c2b65373b8ebd40d9b2",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "a220d706fa95b5f4c48b0158bd06b31c2b75a08215c2aeaaccd4dc5ba14aee16",
+          "identity": "identity-replacement-burn"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "91c227880aa4002af778ca2aee832c25ec3a452537a06a616143f52746a50010",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "a220d706fa95b5f4c48b0158bd06b31c2b75a08215c2aeaaccd4dc5ba14aee16",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:443fadfd07fd683cc432e74e046fe794f665fd567dcb1c2b65373b8ebd40d9b2",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x9955921af349891535fd7983d741204f4d726b0c80389de3aca043bc1abe311e",
+          "context": {
+            "endpoint": "ws://127.0.0.1:37005",
+            "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 117,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 10,
+              "uid": 0
+            },
+            {
+              "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+              "hotkey": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy",
+              "registered_at": 78,
+              "uid": 1
+            },
+            {
+              "coldkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "hotkey": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+              "registered_at": 82,
+              "uid": 2
+            }
+          ],
+          "timestamp_ms": 1789068876000
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 120,
+        "included_block": 120,
+        "included_hash": "0xa4879ff4284451ad3ba869ed108d726e48c46d8e7100948f4caf5f2c1356b5dc",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 120,
+        "scan_block": 121,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0x10d276ae1d7d674db86b486cfb0c4c34362ba1600e6b694f02f45ba0410ab91f"
+      }
+    }
+  ],
+  "shared_winner_target": {
+    "block": 82,
+    "context": {
+      "endpoint": "ws://127.0.0.1:37005",
+      "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+      "netuid": 2,
+      "network": "localnet",
+      "provider": "disposable-primary"
+    },
+    "maturity": "SYNTHETIC_ONLY",
+    "route": "DIRECT_WINNER_PLUS_BURN",
+    "schema": "carbon.fixture.reward.projection.v1",
+    "snapshot": "sha256:d68adb2ebc5ebe1f73e2743262b864365988f97070957697cb8063495f71d5e3",
+    "states": [
+      "bd184c706dd4f3d81c812518325c23e40d666baed889d35e3dc6bb798c890cbe",
+      "0c5847416c5b190e859e395ae8ff2d1a28b5fef297c4d9d4e48daed68e225215",
+      "877a468687130ec8c73ef33c2f3e574ac0d0c3cf590e204436e0ec6ef8bb3e98"
+    ],
+    "targets": {
+      "burn": 925409842389,
+      "challenges": [
+        {
+          "allocated": 333333333333,
+          "context_id": "7c7186a073520695c618ccad86157d85940dd33f240f3103982f825103b59a78",
+          "earned": 33864567969,
+          "holder": {
+            "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "registered_at": 78
+          },
+          "unearned": 299468765364
+        },
+        {
+          "allocated": 333333333333,
+          "context_id": "c855cc2ea99ec436d8076e01e34b579095e15f49c4618aeae07768a27e87039c",
+          "earned": 40725589642,
+          "holder": {
+            "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "registered_at": 78
+          },
+          "unearned": 292607743691
+        },
+        {
+          "allocated": 333333333333,
+          "context_id": "fc45416bd4d00f981048a149874d3143318264b4406d45733a82a327665cf194",
+          "earned": 0,
+          "holder": null,
+          "unearned": 333333333333
+        }
+      ],
+      "winners": [
+        [
+          {
+            "coldkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "hotkey": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+            "registered_at": 78
+          },
+          74590157611
+        ]
+      ]
+    },
+    "time_ms": 1789068456000
+  },
+  "public_scorecard": {
+    "schema": "carbon.development.scorecard.accepted.v1",
+    "maturity": "SYNTHETIC_ONLY",
+    "challenge": "a5_fixture",
+    "miner": "miner-878765daba824204b45fa72c8a98559b",
+    "accepted_result": "result-fe2ed2d3a47f4b7595f7a7f58b040d51",
+    "release_ms": 1789069284000,
+    "scores": {
+      "combined": "0.890",
+      "physics": "0.968",
+      "robustness": "0.866",
+      "accuracy": "0.751"
+    },
+    "comparison_source": "private accepted scientific bytes"
+  },
+  "stopped_publisher_exposure": {
+    "publisher_status": "NOT_STARTED_STORED_EXPOSURE_UNKNOWN",
+    "pending_dispatch": null,
+    "stored_weights_may_remain_effective": true,
+    "settlement": "OBSERVE_CHAIN_SEPARATELY",
+    "operator_action": "KEEP_HEARTBEAT_AND_READBACK_RUNNING"
+  },
+  "limitations": [
+    "Synthetic exam only; no C1 scientific evidence or security qualification.",
+    "Plain weights measured. Isolated runtime has no external drand beacon proof.",
+    "Owner cuts and validator dividends remain separate from burned miner incentives.",
+    "Yuma/stake/emission feedback can differ from application targets; inspect epoch samples.",
+    "Withholding/drip-feeding/coordinated timing are not proven strategy-proof.",
+    "Expiry/shutdown leaves stored chain weights effective until updated."
+  ]
+}

@@ -1,13 +1,12 @@
 # C0 evidence-backed G2 disposition and C1/C2 handoff
 
-**Disposition:** G2 NOT_READY after the clarified D5 evidence run failed and its bounded run budget was exhausted. D4 passed the full behavioral predicate; D6 is focused-tested but lacks runtime evidence. This is an engineering evidence assessment, not
-human launch approval. NET-1 through NET-6 and C-REWARD are merged in bounded
-scope. PR #132 merged the first eight-block repair and PR #133 merged the
-standard-profile/D4 specification checkpoint. D4 standard run 34489505489 later passed
-registration, shared-winner, takeover and recycled-UID behavior. PR #127 passed
-canonical acceptance and the distinct operator rehearsal. D5 failed because its
-public nonce observation advanced the signing cache; D6 removes that observer
-effect, but no authorized full run remains. No public deployment occurred.
+**Disposition:** G2 `LOCALNET_READY` only for the exact standard-profile
+disposable v445 localnet demonstrated by D6 run 34518806217. This is an
+engineering evidence assessment, not human launch approval. NET-1 through NET-6,
+C-REWARD and NET-5R are done in bounded scope. D5 remains a retained failed
+observer-effect record; D6 removed that effect and passed the full auditable
+predicate. Fast-profile, public-network, production, scientific, security and
+LIVE capability remain unearned. No public deployment occurred.
 
 | G2 requirement | Evidence and remaining boundary |
 |---|---|
@@ -17,7 +16,7 @@ effect, but no authorized full run remains. No public deployment occurred.
 | Complete vectors/signing/recovery | NET-4A/4B, PR #124/125; snapshot-bound final integer check, durable ambiguous dispatch and heartbeat; no public intent authority |
 | Actual local runtime | NET-5, PR #126; immutable v445 image, isolated observed genesis, actual all-burn inclusion/finality/row and epoch MinerBurned under verified Burn mode |
 | Restart/outage | NET-5 run 34425822745 observed exact replay, restarted journals, actual provider pause and recovery; NET-6 adds operator lifecycle and backup/restore |
-| Shared-winner / replacement UID chain effects | OBSERVED in D4 standard run 34489505489: both registrations, complete shared-winner row/epoch, finalized `SwapHotkey`, takeover readback, recycled-UID non-inheritance and replacement all-burn epoch. D5 run 34497456242 stopped at its first configuration call because the evidence read advanced the signing cache. Focused D6 removes that observer effect, but no authorized full run remains; G2 is NOT_READY. |
+| Shared-winner / replacement UID chain effects | OBSERVED in D6 standard run 34518806217: both registrations, account-bound nonce transitions, verified exclusive handovers, complete shared-winner row/epoch, finalized `SwapHotkey`, takeover, recycled-UID non-inheritance and replacement all-burn epoch. |
 | Operator readiness | NET-6 PR #127; runtime run 34431662096 observed node restart, external-key restored publisher, heartbeat/shutdown and complete logical backup/restore; canonical acceptance run 34432281140 passed |
 
 Application multi-challenge winner targets work in deterministic tests with
@@ -29,7 +28,7 @@ and wallet receipts are separate observations. MinerBurned=1 under Burn denotes
 the measured miner fraction, not proof that owner cuts/dividends or all network
 emissions burned. Treasury is absent and remains optional.
 
-## Exact remaining operation
+## Completed D6 operation and boundary
 
 NET-5R source inspection established and repaired the first cause: Carbon
 overrode the pinned SDK's eight-block shield era with 64, while v445 rejects a
@@ -41,45 +40,47 @@ passed both registrations and the shared-winner stage. D4 run 34489505489 then
 refreshed the supported public transport and passed the complete behavioral
 scenario, including finalized `SwapHotkey`, takeover and recycled-UID isolation.
 
-Exact Bittensor 11.1.0 source supplies the next testable hypothesis: its
+Exact Bittensor 11.1.0 source supplied the D5/D6 hypothesis: its
 shielded flow pins inner nonce `n+1`, then explicitly repins outer nonce `n` in
 one transport cache. A later plain intent can reuse consumed `n+1`. Carbon's D5
-successor kept the account submission sequence exclusive and preserved verified
-handover, but run 34497456242 proved its public next-index evidence read itself
-advanced the signing transport cache. D6 reads finalized `System.Account`
-without that side effect, leaves nonce omitted, and derives the selected nonce
-only from an exclusive successful finalized increment. An ambiguous submission
-still requires reconciliation. It neither touches the private cache nor supplies
-an unchecked nonce. No additional full run remains authorized in this delivery;
-the command below is the exact missing future demonstration, not current
-execution authority:
-
-```sh
-CARBON_UV_GROUPS=chain ./scripts/dev/bootstrap.sh
-CARBON_LOCALNET_MODE=full CARBON_LOCALNET_PROFILE=standard \
-  ./scripts/dev/localnet.sh .carbon-artifacts/localnet
-```
-
-Its execution platform is canonical Linux amd64 Docker, not treasury funding,
-production credentials, paid inference or new human approvals. Do not retry the
-unchanged failing command, use unchecked extrinsics or relabel partial
-registration/shared-winner/operator success as G2.
+successor kept the account sequence exclusive, but run 34497456242 proved its
+public next-index read itself advanced the signing cache. D6 reads finalized
+`System.Account`, leaves nonce omitted, and derives selected nonce only from an
+exclusive successful finalized increment. Run 34518806217 passed that exact
+candidate on canonical Linux amd64 Docker with zero retries. One authorized run
+was consumed; because it passed, the conditional second run is unavailable.
+This establishes no treasury, production credential, paid-inference, public-
+network, wallet-payment or settlement fact.
 
 ## Concrete next C1 and C2 contracts
 
-The exact first C1 ticket is `.agent/tickets/C-01_durable_execution_state.md`,
-materialized from the existing durable-state/queue/recovery scope. Its A7/B-GATE
-implementation dependencies are delivered. `OWNER-C1-C2-BURGERS-01`
-prospectively selects C-01 and permits dependency-ready offline C1/C2 engineering
-while G2 remains unresolved; this sequencing amendment does not pass G2 or permit
-its dependent chain execution. C-02 then reuses its existing real declarative JAX
-reconstruction DoD and B-02B/B-03/B-E1 dependencies. Its exact missing input is
-an authorized JAX repository, immutable revision and reproducible build identity,
-plus that revision's actual training/inference entry points, signatures,
-shapes/dtypes, state/artifact format and failure behavior. Carbon must adapt that
-interface and cannot require upstream to adopt Carbon function names. C-06/C-07 retain signed
-receipts, protected execution and orchestration requirements. No synthetic C0
-receipt is real scientific evidence.
+No successor implementation ticket is selected. C-01, C-AUTH1 and C-EA0 are
+already done; they must not be restarted. C-EA1 is the next contract consumer
+but is not dependency-ready until its reserved operating inputs are approved.
+The following development defaults would enable a narrow synthetic local/CI
+design without pretending to settle production policy:
+
+| Reserved C-EA1 input | Current authority | Recommended development-only value | Owner decision still required |
+|---|---|---|---|
+| Durability/fault profile | `HUMAN_INPUT_REQUIRED` | One-host synthetic process/service crash, exact replay, catalogue/object disagreement, corrupt/conflicting write and backpressure cases | Real correlated host/site/provider-loss coverage |
+| Required artifacts | `HUMAN_INPUT_REQUIRED` | Closed synthetic fixture set with exact source refs, manifest, outputs, logs, checkpoints and explicit missingness | Real per-class capture requirements |
+| Retention/deletion/legal hold | `HUMAN_INPUT_REQUIRED` | Ephemeral test-owned lifecycle; no legal hold | Production durations, deletion and hold policy |
+| Named uses | `HUMAN_INPUT_REQUIRED` | Synthetic `INTERNAL_AUDIT` only; other uses ineligible | Rights for real evidence uses |
+| Custody/access/encryption/keys | `HUMAN_INPUT_REQUIRED` | Owner-only local temp namespace, nonsecret fixtures and ephemeral test keys | Principals, protected zones, KMS and encryption policy |
+| Provider/regions/replication | `HUMAN_INPUT_REQUIRED` | Single-host ephemeral PostgreSQL plus local/S3-compatible test object store, no replicas | Production topology and providers |
+| Capacity/backpressure | `HUMAN_INPUT_REQUIRED` | Small configurable test quotas; fail/backpressure admission, never thin completed evidence | Production capacity numbers and policy |
+| Recovery objectives | `HUMAN_INPUT_REQUIRED` | Exact byte/manifest restore under process/service restart; no RTO/RPO claim | Production RTO/RPO and host-loss objectives |
+| Security qualification | `HUMAN_INPUT_REQUIRED` | Deterministic auth, abuse, path and unavailable-key tests only | Security acceptance and qualification authority |
+
+Those values exclude host/site/provider-correlated durability, real retention,
+legal hold, production custody, production encryption/key management, RTO/RPO,
+availability and security qualification. They are proposals, not approvals.
+
+C-02 is also not dependency-ready. It still needs an authorized JAX repository,
+an immutable revision and reproducible build identity, plus that revision's
+actual training and inference entry points: signatures, shapes/dtypes, state,
+artifact/checkpoint format and failure behavior. Carbon adapts the real interface;
+it does not require the upstream project to adopt Carbon function names.
 
 C-EA0 depends on B-GATE plus the current C1 execution design and its original
 capture/attempt/custody/retention/acknowledgement owner decisions. C-EA1 still owns
@@ -88,9 +89,10 @@ custody model. C-EA2 still gates real finalization on verified archive durabilit
 C-EA3 still owns recovery/availability qualification. NET-6 SQLite backup neither
 replaces these tickets nor satisfies their DoDs.
 
-The exact first C2 ticket is `.agent/tickets/C-W1_testnet_eligibility.md`;
-it is not dependency-ready until the real C1 receipt and required C-EA2 archive
-acknowledgement exist. C-W2, C-W3 and C-W4 retain their existing expiry/sink,
+The first C2 ticket remains `.agent/tickets/C-W1_testnet_eligibility.md`; it is
+not dependency-ready until a real C1 receipt, required C-EA2 archive
+acknowledgement and its other explicit prerequisites exist. G2 completion alone
+does not grant eligibility. C-W2, C-W3 and C-W4 retain their expiry/sink,
 agreement/publication/recovery and Alpha Report responsibilities. Current owner
 authorization does not activate a public network or infer missing testnet policy.
 

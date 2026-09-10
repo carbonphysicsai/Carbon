@@ -1,0 +1,85 @@
+{
+  "schema": "carbon.net5r.d6-standard-full-success-evidence.v1",
+  "run": 34518806217,
+  "head": "97a2405776a3f520076e03a89ea8b7b4086d9ad2",
+  "executable_base": "d4cfda17df79facf65e4d2828254c30febb67275",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "full",
+  "profile": "standard",
+  "attempts": 1,
+  "retries": 0,
+  "budget_wall_seconds": 5400,
+  "elapsed_runtime_seconds": 1828.88,
+  "focused_setup_tests": "86 passed in 3.63s",
+  "outcome": "COMPLETE_D6_RUNTIME_PREDICATE_PASSED",
+  "observed": [
+    "BOTH_AUTHENTICATED_SHIELDED_REGISTRATIONS_FINALIZED",
+    "D6_FINALIZED_ACCOUNT_NONCE_ASSOCIATIONS_VERIFIED",
+    "EXCLUSIVE_VERIFIED_TRANSPORT_HANDOVERS_COMPLETED",
+    "THREE_CHALLENGE_SHARED_WINNER_COMPLETE_VECTOR_AND_EPOCH_OBSERVED",
+    "COPY_NO_NEW_CREDIT_AND_RECOVERY_OBSERVED",
+    "SUPPORTED_CHECKED_SDK_SWAP_HOTKEY_FINALIZED",
+    "TAKEOVER_IDENTITY_READBACK_VERIFIED",
+    "RECYCLED_UID_NON_INHERITANCE_VERIFIED",
+    "IDENTITY_REPLACEMENT_ALL_BURN_ROW_AND_EPOCH_OBSERVED"
+  ],
+  "d6_evidence": {
+    "nonce_argument": "OMITTED_OR_NONE",
+    "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+    "selected_nonce_provenance": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+    "direct_signed_extrinsic_nonce_capture": false,
+    "signing_transport_account_next_index_observation": false,
+    "ambiguous_outstanding_dispatch": false,
+    "transport_generations": [1, 2, 3],
+    "all_replacements_identity_verified": true,
+    "all_previous_transports_closed_before_activation": true,
+    "final_transport_closed_at_session_end": true
+  },
+  "runtime_identity": {
+    "sdk": "bittensor==11.1.0",
+    "runtime_release": "v445",
+    "runtime_source": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
+    "image_digest": "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
+    "selector": "False",
+    "genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+    "nominal_block_seconds": 12
+  },
+  "capability_disposition": {
+    "standard_profile_runtime_capabilities_verified": true,
+    "fast_profile_runtime_capabilities_verified": false,
+    "global_runtime_capabilities_verified": false,
+    "scope": "DISPOSABLE_LOCALNET_ONLY"
+  },
+  "g2": "LOCALNET_READY_STANDARD_PROFILE_ONLY",
+  "full_run_allowance": {
+    "new_runs_consumed": 1,
+    "maximum_new_runs": 2,
+    "conditional_second_run_triggered": false,
+    "additional_run_available_after_first_pass": false
+  },
+  "node_log_redaction": "The configured retained targets emitted hashes and outcomes but no decrypted inner-extrinsic bytes; the gzip is an exact deterministic compression of the uploaded public-safe log.",
+  "limitations": [
+    "Synthetic disposable-localnet evidence only; no C1 scientific evidence, public-network authority or security/production qualification.",
+    "Standard-profile success does not supersede or generalize over the retained fast-profile failures.",
+    "Published targets, stored rows and epoch observations are distinct from wallet receipts or settlement.",
+    "MinerBurned observations do not prove owner-cut or validator-dividend burn."
+  ],
+  "public_network_actions": 0,
+  "paid_model_inference_actions": 0,
+  "production_key_actions": 0,
+  "treasury_funding_actions": 0,
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34518806217",
+  "hashes_sha256": {
+    "container-id.txt": "5b88d3f609aa3fc3ee23774d0c71128def6dc0a4d7c19ae3337842fb5820a30f",
+    "docker-host-config.json": "664dafcd80512507c53e4023c23e2e5109343b4d4e7b590e974b1aed028effd8",
+    "docker-network.json": "4a6610f6457a7c9750e21ec28682b6e56bfd5e53bbf29f9fa9684626c8817d95",
+    "docker-requested-ports.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "docker-resource-usage.json": "75209baee26fe7732484cd2fc55a851d56bcddcd73a2a4692722f95fd74b207e",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "image-profile.json": "d9283e93b8a1ddaa036ae6859ef44a0f258dc212fa4102876a02b61614e7030a",
+    "integration.json": "fd061309da0eeb5d44f46d580bff7392d1dc4ccac9837e196703b54577f7d712",
+    "isolation.json": "b5773f2be78470ea07481f12fc374c65b5f425a8f092fbce2f4190c523c6e688",
+    "node.log.gz": "eed07da0966c7e81b8ba75cd2e858346809a342aeee0bec64f53c450f6728376",
+    "setup.json": "4ba197e587240a6318bf82f527c51969cd9db79d6b426dbe0aaefc8bba1ab452"
+  }
+}

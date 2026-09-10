@@ -940,9 +940,38 @@ def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
     assert d5["shield_registration_performed"] is False
     assert d5["swap_hotkey_performed"] is False
     assert d5["additional_full_run_authorized"] is False
+    d6_path = root / "34518806217" / "manifest.json"
+    d6 = json.loads(d6_path.read_text())
+    assert d6["head"] == "97a2405776a3f520076e03a89ea8b7b4086d9ad2"
+    assert d6["profile"] == "standard"
+    assert d6["outcome"] == "COMPLETE_D6_RUNTIME_PREDICATE_PASSED"
+    assert d6["g2"] == "LOCALNET_READY_STANDARD_PROFILE_ONLY"
+    assert d6["d6_evidence"] == {
+        "nonce_argument": "OMITTED_OR_NONE",
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
+        "selected_nonce_provenance": "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT",
+        "direct_signed_extrinsic_nonce_capture": False,
+        "signing_transport_account_next_index_observation": False,
+        "ambiguous_outstanding_dispatch": False,
+        "transport_generations": [1, 2, 3],
+        "all_replacements_identity_verified": True,
+        "all_previous_transports_closed_before_activation": True,
+        "final_transport_closed_at_session_end": True,
+    }
+    assert d6["capability_disposition"] == {
+        "standard_profile_runtime_capabilities_verified": True,
+        "fast_profile_runtime_capabilities_verified": False,
+        "global_runtime_capabilities_verified": False,
+        "scope": "DISPOSABLE_LOCALNET_ONLY",
+    }
+    for name, expected in d6["hashes_sha256"].items():
+        data = (d6_path.parent / name).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == expected
     retained_log = gzip.decompress((root / "34474220953" / "node.log.gz").read_bytes())
     assert b"Unshielded inner transaction: [REDACTED_DECRYPTED_BYTES]" in retained_log
     assert not re.search(rb"Unshielded inner transaction: [0-9a-f]{16}", retained_log)
+    d6_log = gzip.decompress((d6_path.parent / "node.log.gz").read_bytes())
+    assert not re.search(rb"Unshielded inner transaction: [0-9a-f]{16}", d6_log)
 
 
 @pytest.mark.skipif(
