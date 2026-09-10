@@ -1,0 +1,302 @@
+{
+  "schema": "carbon.net5.runtime.evidence.v1",
+  "maturity": "SYNTHETIC_ONLY",
+  "execution_scope": "NET6_ALL_BURN_OPERATIONS",
+  "g2": "NOT_READY",
+  "treasury": null,
+  "stages": [
+    "isolated-genesis-verified-before-keys",
+    "disposable-subnet-and-publisher-configured",
+    "genesis-mismatch-rejected",
+    "three-pinned-fixture-baselines-and-public-coefficients-registered",
+    "actual-all-burn-inclusion-finality-row-and-epochs",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery",
+    "actual-node-restart-retains-finalized-chain-and-weight-row",
+    "actual-all-burn-operator-heartbeat-shutdown-and-backup-restore"
+  ],
+  "epochs": [
+    {
+      "label": "no-winner-all-burn",
+      "block": 240,
+      "hash": "0x716feaddbd8ea0b670a382115ea2bb217a21a0c3b5f3f3594110359195728512",
+      "epoch": 12,
+      "capabilities": {
+        "snapshot_id": "sha256:ed5c9e4d3936b44bb21172326c2ea8eed0582c15ecaa42382130315772b9b9f1",
+        "spec_version": 445,
+        "mechanism_count": 1,
+        "maximum_mechanisms": 2,
+        "burn_mode": "Burn",
+        "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+        "owner_hotkeys": [
+          "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+        ],
+        "min_weights": 1,
+        "max_weight": 65535,
+        "version_key": 0,
+        "rate_limit": 0,
+        "last_update": 202,
+        "commit_reveal": false,
+        "validator_permit": true,
+        "sufficient_stake": true,
+        "pending_commits": 0
+      },
+      "observations": {
+        "MinerBurned": {
+          "bits": 4294967296
+        },
+        "SubnetAlphaIn": 876424576155,
+        "SubnetAlphaOut": 279575423845,
+        "SubnetAlphaInEmission": 0,
+        "SubnetAlphaOutEmission": 1000000000,
+        "Incentive": [
+          65535
+        ],
+        "Dividends": [
+          65535
+        ],
+        "Emission": [
+          16400091520
+        ],
+        "PendingServerEmission": 1230006864,
+        "PendingValidatorEmission": 1230006864,
+        "PendingOwnerCut": 539986266
+      },
+      "miner_burned_q32": 4294967296
+    }
+  ],
+  "dispatches": [
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 28,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:5e17a1e08056faa2e1eca20c01b54c542daa5d7b781b1d7ffab12681f57ff6c1",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "bf0db6a46273f75129249691704fd4891ae0dfb047f8fb7b4d7314e63246329c",
+          "identity": "three-challenges-no-winner"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "cc5f086d57a8a5099c8c7f7928117779889071f8e914c2bf25c3d0abc6bf61fa",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "bf0db6a46273f75129249691704fd4891ae0dfb047f8fb7b4d7314e63246329c",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:5e17a1e08056faa2e1eca20c01b54c542daa5d7b781b1d7ffab12681f57ff6c1",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x850d87d9f82668ecb220e16a93abf5a9e8a678490ba476c41d1eff34fa577ea5",
+          "context": {
+            "endpoint": "ws://127.0.0.1:39213",
+            "genesis_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 192,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 28,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789009353000
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 202,
+        "included_block": 202,
+        "included_hash": "0x1fb669ad5259dd582cb053b0b8a325107a472b00bb15327d29a51ffcb056ce67",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 205,
+        "scan_block": 206,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0xad66d850c4acd85708b4ed1284c7f7a7163110549a2dd02d7a13a4c1ab4cc9c3"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 202,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:fe4bc43fcaba9ca1b8a57d4693b464e3de2baa2706f63cde0987be27593297c1",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "0d146bd7f49b0575cd608a4b803ad343f0a6f78228784689f47afdfc787be2b3",
+          "identity": "all-burn-publication-recovery"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "09a9c1977af1ce3310d5c03c7f777220fe25eaad4cf4e65d60ee2a65a5163095",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "0d146bd7f49b0575cd608a4b803ad343f0a6f78228784689f47afdfc787be2b3",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:fe4bc43fcaba9ca1b8a57d4693b464e3de2baa2706f63cde0987be27593297c1",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x58f0a05d2ebce419266eec0292dc8fd37bfd17e19e545a0ff515d247a2ca2fc8",
+          "context": {
+            "endpoint": "ws://127.0.0.1:39213",
+            "genesis_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 244,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 28,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789009368750
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 250,
+        "included_block": 250,
+        "included_hash": "0x6c2459d84f67904ad8fda19a759a7117a102f43b9420afa924d6da1dda020abb",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 252,
+        "scan_block": 253,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0xd70358197b7fd8f8a960998d9a9f89af0d5962d02c9420eaff89fa197d1bab82"
+      }
+    }
+  ],
+  "node_restart": {
+    "before_finalized_block": 252,
+    "after_finalized_block": 257,
+    "stored_row_preserved": true,
+    "same_container": "614576a476d0d0a19667d93e56837eeae9e679330c89a3eba372a6d17d315898"
+  },
+  "operator_health": {
+    "schema": "carbon.localnet.operator.health.v1",
+    "maturity": "SYNTHETIC_ONLY",
+    "network": "localnet",
+    "finalized_block_last_observed": 272,
+    "chain_observation_age_ms": 4503,
+    "observation_health": "RECENT",
+    "pending_dispatch": null,
+    "dispatch_count": 4,
+    "capacity": "AVAILABLE",
+    "last_dispatch_state": "ROW_VERIFIED",
+    "last_stored_row_block": 281,
+    "settlement": "OBSERVE_CHAIN_SEPARATELY",
+    "stored_weights_may_remain_effective": true,
+    "treasury": null,
+    "publisher_status": "ROW_VERIFIED",
+    "ticks": 2,
+    "last_success_wall_ms": 1789009407503,
+    "process": "STOPPED",
+    "shutdown_clears_weights": false
+  },
+  "operator_backup_restore": "ALL_LOGICAL_TABLES_EQUAL",
+  "unobserved": [
+    "shielded miner registration",
+    "shared winner chain effects",
+    "recycled UID chain effects"
+  ]
+}

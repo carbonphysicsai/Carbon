@@ -27,3 +27,25 @@ then the external-key contract exposed an obsolete wallet module import. The
 11.1 installed SDK owns Keypair at bittensor.keyfiles; the operator now uses that
 same installed interface as NET-5. This is a repaired API defect, not a skipped
 requirement or localnet success. Native Windows diagnostics are not canonical.
+
+
+## Actual operator runtime evidence
+
+Run 34431662096 at bb72dfd7da069e2dd2976055aabcf03da9f6f37b succeeded:
+68 installed-SDK/setup/operator tests in 3.38 seconds; actual isolated operator
+scenario 1 passed in 113.73 seconds. Original JSON and compressed node log with
+uncompressed digest are retained under net-6-runtime/34431662096. No private
+journal, backup, operator config or key is in the public artifact archive.
+
+The pinned chain produced all-burn finalized rows and positive epoch burn;
+replay/restart and actual provider pause/recovery passed. Restarting the exact
+container retained its weight row and advanced finalized block 252 to 257.
+External throwaway-key loading and reconstructed registered journal consumers
+then ran two operator ticks to ROW_VERIFIED. Shutdown retained explicit stored
+weight exposure. Backup and restored database had every logical table equal.
+
+This is NET6_ALL_BURN_OPERATIONS, not successful full NET-5 integration. The
+unobserved shielded registration/shared-winner/recycled-UID chain path still
+keeps G2 NOT_READY. Public deployment, scientific/security qualification, treasury
+and production custody remain unearned. The C1/C2/archive handoff is in
+`.agent/plans/C0_G2_C1_C2_HANDOFF.md`.

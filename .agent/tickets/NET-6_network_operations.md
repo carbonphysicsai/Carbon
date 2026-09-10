@@ -37,17 +37,17 @@ SDK default network, arbitrary import factory, treasury or public service.
 
 ## Definition of Done
 
-- [ ] Executable explicit operator config, one publisher lease, startup/shutdown,
+- [x] Executable explicit operator config, one publisher lease, startup/shutdown,
       external secret input and endpoint/genesis/runtime mismatch rejection.
-- [ ] Read-only allow-listed health, pending dispatch/stale exposure/capacity status,
+- [x] Read-only allow-listed health, pending dispatch/stale exposure/capacity status,
       reconnect and bounded reconciliation before new issuance.
-- [ ] Consistent backup and atomic no-overwrite restore preserve all logical journal
+- [x] Consistent backup and atomic no-overwrite restore preserve all logical journal
       state across crash/restart; tamper/context/schema/path failures are tested.
-- [ ] Operator runbook and reproducible pinned node/runtime/image/SDK upgrade commands;
+- [x] Operator runbook and reproducible pinned node/runtime/image/SDK upgrade commands;
       public-network configuration remains inert with unresolved inputs explicit.
 - [ ] Meaningful focused tests, all applicable canonical acceptance and Hub checks;
       actual operator-runtime observations or exact environmental failure retained.
-- [ ] Evidence-backed G2 disposition and exact C1/C2/archive handoff, without claiming
+- [x] Evidence-backed G2 disposition and exact C1/C2/archive handoff, without claiming
       unavailable shared-winner runtime or real scientific evidence.
 
 ## NET-6-D1
@@ -74,3 +74,7 @@ is incompatible in the observed setup. Shared-winner/recycled-UID runtime proof
 and G2 readiness remain unearned. Production custody/quorum/science/security and
 public deployment inputs block their operations only. B-E4 stays optional/deferred/
 non-blocking and UNMEASURED; B-01G remains unfinished/non-blocking.
+
+Actual operator run 34431662096 passed on the pinned isolated runtime. The final
+canonical engineering acceptance and merge remain pending; the remaining DoD
+checkbox is not satisfied by native diagnostics or that separate runtime lane.
