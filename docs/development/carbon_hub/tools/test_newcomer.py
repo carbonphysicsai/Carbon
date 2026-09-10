@@ -100,9 +100,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         )
         self.assertIn("D6 canonical full/standard run 34518806217", self.output)
         self.assertIn("G2 is LOCALNET_READY only", self.output)
-        self.assertIn(
-            "C-EA1 remains unstarted and input-blocked", self.output
-        )
+        self.assertIn("C-EA1 remains unstarted and input-blocked", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
