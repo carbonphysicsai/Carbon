@@ -253,7 +253,13 @@ class FixtureTrainEvalService:
             raise FixtureRunRequestError()
 
         try:
-            owned_profile = FixtureStubProfile()
+            owned_profile = FixtureStubProfile(
+                localnet_fixture=(
+                    None
+                    if profile.challenge_key == FixtureStubProfile().challenge_key
+                    else profile.challenge_key.challenge_id
+                )
+            )
             loaded_pin = _owned_score_pack_pin(score_pack.pack_pin)
             if loaded_pin != owned_profile.score_pack_pin():
                 raise FixtureRunIdentityError()

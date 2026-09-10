@@ -12,6 +12,7 @@ def test_localnet_import_has_no_sdk_key_or_network_construction():
             "-c",
             "import sys; import carbon.chain.localnet; assert 'bittensor' not in sys.modules",
         ],
+        check=False,
         capture_output=True,
         text=True,
     )

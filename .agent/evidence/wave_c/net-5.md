@@ -25,3 +25,10 @@ NET-3 already uniquely binds an immutable challenge/version to one evaluation
 context in candidate_context_v1. The attempted second-context regression is
 rejected there before reward registration. KEEP that owner guard; no duplicate
 reward guard or alternative acceptance system is needed.
+
+Development run 34422914580 passed 16 setup contracts and failed the new
+three-exam integration before starting Docker: A8's defensive owned-profile
+copy still reconstructed the default profile. Preserve defensive copying while
+selecting the already validated finite fixture identity. No threshold, score,
+qualification or acceptance flag changed. Native A3-dependent tests remain
+unavailable on Windows; secure descriptor-relative access is not weakened.
