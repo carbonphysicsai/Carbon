@@ -10,7 +10,8 @@
 > NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
 > NET-6 merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
-> No implementation ticket is currently active. C1/C2 handoff is unselected.
+> OWNER-C1-C2-BURGERS-01 authorizes dependency-ready offline C1/C2
+> engineering without changing G2. C-01 is the active implementation ticket.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -21,11 +22,11 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 0.9
+**Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** NET-6 — `done`
-**Next selected ticket:** none
-**Primary Hub map_ref:** `WAVE-C/NET-6`
+**Selected ticket:** C-01 — `in_progress`
+**Next selected ticket:** C-AUTH-1 after C-01 acceptance and merge
+**Primary Hub map_ref:** `WAVE-C/C-01`
 
 ## 1. Scope and sequence
 
@@ -35,6 +36,13 @@ integration retain their existing contracts and archive dependencies. Persistent
 direct winner plus burn is supported; treasury and Research Concierge do not
 block the network spine. B-E4 remains deferred/non-blocking, effectiveness
 UNMEASURED; B-01G remains unfinished/non-blocking.
+
+`OWNER-C1-C2-BURGERS-01` prospectively amends sequencing only: dependency-ready
+offline C1/C2 engineering may proceed while G2 is NOT_READY. G2 continues to gate
+the readiness claim and every chain-dependent execution. The active offline order
+starts C-01 -> C-AUTH-1, with C-EA0 placed before consumers rely on archive
+semantics. NET-5R is a separate unselected compatibility repair; the unchanged
+failing registration command must not be rerun without a new hypothesis.
 
 ## 2. NET-0 development disposition
 
@@ -69,8 +77,15 @@ d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6. C-REWARD passed run 34416168621 and me
 ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f. NET-4B passed run 34421219713 and merged in PR #125 as
 0e6b5e001302b349135785756c633530853684c2. NET-5 passed run 34429639429 and merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db. NET-6 passed run 34432281140 and normally merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
 Completion receipt: https://github.com/carbonphysicsai/Carbon/pull/127#issuecomment-5612097862.
-Later tickets are unstarted; materialize them
-before implementation. No later ticket is selected.
+Later C0 tickets are unstarted. NET-5R is materialized but unselected.
+
+## 3A. Selected C1 ticket board
+
+| ID | Deliverable | Status | Evidence | Depends on | Authority ceiling |
+|---|---|---|---|---|---|
+| C-01 | Durable execution state and queue | in_progress | `.agent/evidence/wave_c/c-01.md` | A7, B-GATE | Offline engineering only; no finalization, qualification, or network authority |
+| C-AUTH-1 | Goal-driven authoring and Burgers V1 import | future_reserved | none | C-01 delivery | Public workbench evidence only; scientifically unqualified |
+| C-EA0 | Concrete execution-evidence capture contract | future_reserved | none | current C1 design | Human-owned custody/retention/fault decisions stay unresolved |
 
 ## 4. Acceptance and maturity
 
@@ -80,7 +95,8 @@ quality/package/Hub checks and Merge gate; unknown/shared science retains full
 fallback. No public deployment, scientific/security qualification, LIVE,
 frontier, settlement or G2 readiness follows from these unit contracts.
 The final G2 disposition and concrete C1/C2/archive handoff are in
-`.agent/plans/C0_G2_C1_C2_HANDOFF.md`. No implementation ticket is currently active.
-C-01 is the first C1 handoff; C-W1 follows real C1 and C-EA2. Neither is selected.
+`.agent/plans/C0_G2_C1_C2_HANDOFF.md`. C-01 is selected under the prospective
+sequencing amendment; C-W1 still follows real C1, C-EA2 and its G2 dependency and
+is not selected.
 The remaining C0 operation is tested shielded-registration compatibility followed
 by the existing full localnet scenario. B-E4 and unfinished B-01G remain non-blocking.

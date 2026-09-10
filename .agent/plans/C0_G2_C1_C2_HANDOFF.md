@@ -47,8 +47,10 @@ retry the unchanged failing registration or relabel operator-only success as G2.
 
 The exact first C1 ticket is `.agent/tickets/C-01_durable_execution_state.md`,
 materialized from the existing durable-state/queue/recovery scope. Its A7/B-GATE
-implementation dependencies are delivered; C1 execution is not selected while
-G2 remains unresolved. C-02 then reuses its existing real declarative JAX
+implementation dependencies are delivered. `OWNER-C1-C2-BURGERS-01`
+prospectively selects C-01 and permits dependency-ready offline C1/C2 engineering
+while G2 remains unresolved; this sequencing amendment does not pass G2 or permit
+its dependent chain execution. C-02 then reuses its existing real declarative JAX
 reconstruction DoD and B-02B/B-03/B-E1 dependencies. C-06/C-07 retain signed
 receipts, protected execution and orchestration requirements. No synthetic C0
 receipt is real scientific evidence.

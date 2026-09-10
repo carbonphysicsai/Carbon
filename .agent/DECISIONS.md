@@ -13048,3 +13048,21 @@ Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5
 See `.agent/tickets/NET-6_network_operations.md`: OS-owned exclusive journal lease,
 consistent backup/restore, external key input after isolation/identity checks,
 truthful stale exposure and precise G2/C1/C2 handoff.
+
+## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
+
+The owner prospectively authorizes dependency-ready offline C1/C2 engineering,
+selects C-01 first, and requires the verified authoring/Burgers package to follow
+as one narrow ticket. G2 remains NOT_READY and still gates its readiness claim and
+dependent chain execution. Public-network actions remain unauthorized. The exact
+source hashes, sequence, scientific evidence ceiling and missing external inputs
+are recorded in `.agent/plans/C1_C2_BURGERS_PROGRAM.md`.
+
+## C-01-D1 — Durable intent precedes dispatch and ambiguous restart requires reconciliation
+
+See `.agent/tickets/C-01_durable_execution_state.md`: the private C1 queue binds
+source-owned A7 attempt/science/environment identities, journals dispatch intent
+atomically, resumes or requeues only after explicit reconciliation, retains partial
+work, and records result/card/transcript references without claiming C-EA2 archive
+acknowledgement. This decision creates no scientific, archive, network or LIVE
+authority.
