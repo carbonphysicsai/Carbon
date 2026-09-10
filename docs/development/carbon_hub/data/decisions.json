@@ -2168,6 +2168,52 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/132"
+    },
+    {
+      "title": "Bind an exact standard-runtime compatibility profile",
+      "question": "How should NET-5R test the upstream-documented non-fast runtime without weakening or overwriting the retained fast-runtime identity and evidence?",
+      "recommendation": "Verify both installed artifacts before network or key creation, bind the standard binary, WASM, features, v445 runtime, nominal 12-second timing and isolated genesis as a separate fail-closed profile, then run one authenticated zero-retry registration diagnostic before any full scenario.",
+      "why": "Pinned upstream Dockerfile-localnet builds both profiles and scripts/localnet.sh selects the non-fast binary with False; runs 34473145103 and 34473508494 verified the distinct standard profile and finalized one carrier/inner registration under the existing SDK path.",
+      "if_kept": "The fast records remain immutable, standard-versus-fast remains a bounded compatibility comparison, identity drift fails closed, and no public-network authority is added.",
+      "if_changed": "Prospectively update the exact source/image, both profile identities and boundary tests before another changed diagnostic; never admit the new profile by weakening existing checks.",
+      "decision_id": "NET-5R-D3",
+      "map_ref": "WAVE-C/NET-5R",
+      "wave": "C",
+      "ticket": "NET-5R",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md"
+    },
+    {
+      "title": "Reopen the supported SDK transport after a finalized shield pair",
+      "question": "What smallest supported repair addresses the standard full run's later plain Stale rejection without private nonce-cache access, explicit nonce injection or retry?",
+      "recommendation": "After proving finalized public account nonce is exactly inner nonce plus one, retire and recreate the public SDK Client and RpcSubstrate under unchanged endpoint, genesis, runtime and policy checks before the next plain call.",
+      "why": "Run 34474220953 proved both shielded registrations and the shared-winner epoch before SwapHotkey was rejected Stale. Exact Bittensor 11.1.0 source signs inner nonce+1, then explicitly pins carrier nonce in the same transport cache, providing a testable transition hypothesis without attributing failure to runtime timing or keystore behavior.",
+      "if_kept": "The candidate remains focused-tested, prior attempts remain immutable, a future changed full run can test takeover and recycled-UID effects once, and G2 stays NOT_READY until it passes.",
+      "if_changed": "Use a source-backed upstream equivalent or explicitly authorized compatible pin, preserve the minimal reproducer, and update the bound transport/profile checks before one changed run.",
+      "decision_id": "NET-5R-D4",
+      "map_ref": "WAVE-C/NET-5R",
+      "wave": "C",
+      "ticket": "NET-5R",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6af2d20809efe5ba3c613004ad04f5b49df82013/.agent/evidence/wave_c/net-5r.md"
     }
   ]
 }

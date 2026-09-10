@@ -99,9 +99,9 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("C-EA0 merged in PR #131", self.output)
+        self.assertIn("PR #132&#x27;s eight-block repair is reconciled as merged", self.output)
         self.assertIn("G2 remains NOT_READY", self.output)
-        self.assertIn("C-EA1 stays unstarted and input-blocked", self.output)
+        self.assertIn("C-EA1 stays scoped to its unresolved operating inputs", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -158,8 +158,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "NET-5R remains selected with its smallest supported Carbon repair ready",
-            "C-EA1 stays unstarted and input-blocked",
+            "eight-block repair is reconciled as merged",
+            "C-EA1 stays scoped to its unresolved operating inputs",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

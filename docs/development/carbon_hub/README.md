@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 89 map-level change events
+- 91 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. C-EA0 merged in PR #131. NET-5R remains selected with its smallest supported Carbon repair ready: canonical run 34465977413 proved one complete shielded registration, then isolated authenticated unshield failure in the pinned v445 fast-localnet proposer/keystore path. The full scenario did not pass, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
+Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. PR #132's eight-block repair is reconciled as merged. NET-5R remains selected: the exact standard-runtime profile and one-shot registration diagnostic passed, and full run 34474220953 proved both shielded registrations plus the shared-winner epoch before a later plain SDK SwapHotkey was rejected Stale without inclusion. The source-backed public-transport refresh candidate is focused-tested but has not had a second full run, so recycled-UID evidence is absent, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created.
 
 ## Maintain
 
