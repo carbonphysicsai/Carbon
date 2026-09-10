@@ -15,7 +15,7 @@ source-backed Carbon compatibility candidate is focused-tested. G2 `NOT_READY`.
 **Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`.
 
 **Lead notification:**
-https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
 
 ## Retained failure and testable hypothesis
 

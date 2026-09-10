@@ -13102,7 +13102,8 @@ the unchanged endpoint, genesis, runtime and policy checks. Do not access the
 private nonce cache, inject a nonce, retry, submit raw/unchecked calls or change
 network. This changed candidate has focused tests but no second full run; G2
 remains `NOT_READY` pending recycled-UID evidence. The upstream issue draft is
-local only and no maintainer was contacted.
+local only and no maintainer was contacted. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
 
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 

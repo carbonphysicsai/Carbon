@@ -131,6 +131,8 @@ next nonce is exactly `inner_nonce+1`, then retires and recreates the public SDK
 checks. It never accesses the private cache, injects a nonce, retries, submits a
 raw/unchecked call or changes network. A local upstream issue draft is retained;
 no maintainer was contacted. The changed full scenario has not been rerun.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
 
 ## Bounded delivery disposition
 
