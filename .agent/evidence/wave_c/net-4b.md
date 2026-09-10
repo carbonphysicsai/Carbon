@@ -55,3 +55,15 @@ claim. Exclusive publisher credentials, trustworthy local provider/runtime and
 unexplained interrupted dispatch remain operator/security boundaries. Intent
 expiry never erases stored chain weights. NET-5 is next and must supply actual
 runtime inclusion/finality, applicable reveal, burn/epoch and recovery evidence.
+
+## Canonical fingerprint repair
+
+Run 34420527086 on 700ae35 passed 180 invariants and 1,847 focused tests;
+one installed-SDK source fingerprint failed because native Python 3.12 adds
+an empty `type_params` AST field absent from canonical Python 3.11. The pinned
+wheel source is unchanged. Recomputing its canonical shape reproduces the
+observed hash exactly. Normalize only that empty field and pin all three
+reviewed function hashes to the 3.11 shape; meaningful SDK statements and
+nonempty generic parameters remain checked. Actual encryption, execution
+rebuilding, policy and hash-before-wire SDK tests passed in the failed run.
+This repair requires a new applicable acceptance, not a claimed prior pass.

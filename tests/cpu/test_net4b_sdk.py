@@ -36,18 +36,24 @@ def test_installed_sdk_hook_source_contracts_are_exact():
     for function, expected in (
         (
             SetWeights.build,
-            "bea5b5014bdbfe2b9884fe3ef7784b100279560cbc1da8ac5c82c539bbb5717e",
+            "c43a6b4f47ed879efd0c685c874291e77d39abf3cbfe2964f2cc236d0f02f34f",
         ),
         (
             bt.RpcSubstrate.submit,
-            "dad54a796e48b4a0be575f9f4732395611b9d7190d852f7eabc4b1cb1f7bc704",
+            "ad30fecd52c35969e2f2e39251c82067f4de661efbc889759acd88faefd26582",
         ),
         (
             bt.RpcSubstrate._submit_and_report,
-            "00b3a0de166ac561e297415aa1775660a2dc4f05f4dac18f09406938ca6b0060",
+            "a03bbf7f19742b01471dea6e9a3df06f3791889947a9c1aa8f16c75dbf356c12",
         ),
     ):
         node = ast.parse(textwrap.dedent(inspect.getsource(function))).body[0]
+        # Python 3.12 adds an empty type_params field to function ASTs.
+        # Normalize only that empty field to the canonical Python 3.11 shape;
+        # actual generic parameters and every SDK statement still affect the hash.
+        for child in ast.walk(node):
+            if getattr(child, "type_params", None) == []:
+                child._fields = tuple(f for f in child._fields if f != "type_params")
         assert (
             hashlib.sha256(
                 ast.dump(node, include_attributes=False).encode()
