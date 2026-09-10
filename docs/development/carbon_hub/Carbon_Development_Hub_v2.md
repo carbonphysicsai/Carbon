@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `1928c9a0804d8df7166646acf82019c514f96bf6` on `main`, captured 2026-09-10T00:08:25Z.
+**Authority snapshot:** `9c0e9dc0f8eb3144a6d86ff7e1e879aba8c50476` on `main`, captured 2026-09-10T00:20:16Z.
 **Current:** Wave C, ticket NET-4B. Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
 **Last completed:** NET-4A (`done`).
 **Next selected:** none selected.
