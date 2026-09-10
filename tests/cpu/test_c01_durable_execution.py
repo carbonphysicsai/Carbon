@@ -299,6 +299,31 @@ def test_failure_classes_remain_distinct(tmp_path, method, expected) -> None:
     assert queue.status(binding.ref, RequesterIdentity("requester-1")).state is expected
 
 
+@pytest.mark.parametrize(
+    "method", ("retryable_infrastructure", "fail_infrastructure", "fail_strategy")
+)
+def test_ambiguous_dispatch_cannot_be_turned_into_a_terminal_outcome(
+    tmp_path, method
+) -> None:
+    path = tmp_path / f"{method}.sqlite3"
+    queue = DurableExecutionQueue(path)
+    queue.admit(_binding())
+    claimed = queue.claim_next("worker-1", claim_id="claim-1")
+    assert claimed is not None
+    with pytest.raises(ExecutionFailure) as captured:
+        getattr(queue, method)(claimed.claim)
+    assert captured.value.code is ExecutionCode.STATE
+
+    restarted = DurableExecutionQueue(path)
+    with pytest.raises(ExecutionFailure) as captured:
+        getattr(restarted, method)(claimed.claim)
+    assert captured.value.code is ExecutionCode.STATE
+    assert (
+        restarted.status(claimed.claim.ref, RequesterIdentity("requester-1")).state
+        is ExecutionState.RECONCILIATION_REQUIRED
+    )
+
+
 def test_cancel_is_requester_bound_and_only_pre_dispatch(tmp_path) -> None:
     queue = DurableExecutionQueue(tmp_path / "execution.sqlite3")
     binding = _binding()
@@ -362,6 +387,28 @@ def test_corrupt_partial_work_fails_closed_on_resume(tmp_path) -> None:
         db.execute("UPDATE execution_partial_v1 SET artifact_digest='bad'")
     with pytest.raises(ExecutionFailure) as captured:
         queue.partials(claimed.claim)
+    assert captured.value.code is ExecutionCode.STORE
+    with pytest.raises(ExecutionFailure) as captured:
+        queue.status(claimed.claim.ref, RequesterIdentity("requester-1"))
+    assert captured.value.code is ExecutionCode.STORE
+
+
+def test_corrupt_result_state_and_event_log_fail_closed(tmp_path) -> None:
+    path = tmp_path / "execution.sqlite3"
+    queue = DurableExecutionQueue(path)
+    binding = _binding()
+    queue.admit(binding)
+    with sqlite3.connect(path) as db:
+        db.execute("UPDATE execution_attempt_v1 SET state='RESULT_RECORDED'")
+    with pytest.raises(ExecutionFailure) as captured:
+        queue.status(binding.ref, RequesterIdentity("requester-1"))
+    assert captured.value.code is ExecutionCode.STORE
+
+    with sqlite3.connect(path) as db:
+        db.execute("UPDATE execution_attempt_v1 SET state='QUEUED'")
+        db.execute("UPDATE execution_event_v1 SET body_digest='bad'")
+    with pytest.raises(ExecutionFailure) as captured:
+        DurableExecutionQueue(path)
     assert captured.value.code is ExecutionCode.STORE
 
 

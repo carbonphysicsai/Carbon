@@ -236,6 +236,11 @@ class DurableExecutionQueue:
                 "SELECT schema_version FROM execution_meta_v1 WHERE id=1"
             ).fetchone() != (_SCHEMA,):
                 raise ExecutionFailure(ExecutionCode.STORE)
+            for body, body_digest in db.execute(
+                "SELECT body,body_digest FROM execution_event_v1"
+            ):
+                if _digest(body) != body_digest:
+                    raise ExecutionFailure(ExecutionCode.STORE)
             interrupted = db.execute(
                 "SELECT submission_id,attempt_number,state FROM execution_attempt_v1 "
                 "WHERE state IN ('DISPATCHING','RUNNING')"
@@ -322,15 +327,50 @@ class DurableExecutionQueue:
         ).fetchone()
         if row is None:
             raise ExecutionFailure(ExecutionCode.NOT_FOUND)
-        if _digest(row[1]) != row[2] or (
-            row[6] is not None and _digest(row[6]) != row[7]
-        ):
+        if _digest(row[1]) != row[2]:
             raise ExecutionFailure(ExecutionCode.STORE)
         try:
-            ExecutionState(row[3])
+            state = ExecutionState(row[3])
         except ValueError:
             raise ExecutionFailure(ExecutionCode.STORE) from None
+        claimed = row[4] is not None and row[5] is not None
+        result_recorded = row[6] is not None and row[7] is not None
+        if (
+            (row[4] is None) != (row[5] is None)
+            or (row[6] is None) != (row[7] is None)
+            or claimed
+            != (
+                state
+                in {
+                    ExecutionState.DISPATCHING,
+                    ExecutionState.RUNNING,
+                    ExecutionState.RECONCILIATION_REQUIRED,
+                    ExecutionState.RETRYABLE_INFRA,
+                    ExecutionState.RESULT_RECORDED,
+                    ExecutionState.FAILED_INFRA,
+                    ExecutionState.FAILED_STRATEGY,
+                }
+            )
+            or result_recorded != (state is ExecutionState.RESULT_RECORDED)
+            or (result_recorded and _digest(row[6]) != row[7])
+        ):
+            raise ExecutionFailure(ExecutionCode.STORE)
         return row
+
+    @staticmethod
+    def _partial_rows(db, ref: ExecutionAttemptRef) -> tuple[PartialWorkRef, ...]:
+        rows = db.execute(
+            "SELECT stage,artifact_ref,artifact_digest FROM execution_partial_v1 "
+            "WHERE submission_id=? AND attempt_number=? ORDER BY rowid",
+            (ref.submission_id.value, ref.attempt_number),
+        ).fetchall()
+        try:
+            return tuple(
+                PartialWorkRef(ExecutionStage(stage), artifact_ref, artifact_digest)
+                for stage, artifact_ref, artifact_digest in rows
+            )
+        except (ValueError, ExecutionFailure):
+            raise ExecutionFailure(ExecutionCode.STORE) from None
 
     def admit(self, binding: DurableExecutionBinding) -> WriteDisposition:
         if type(binding) is not DurableExecutionBinding:
@@ -598,18 +638,7 @@ class DurableExecutionQueue:
                 ExecutionState.RECONCILIATION_REQUIRED,
             }:
                 raise ExecutionFailure(ExecutionCode.STATE)
-            rows = db.execute(
-                "SELECT stage,artifact_ref,artifact_digest FROM execution_partial_v1 "
-                "WHERE submission_id=? AND attempt_number=? ORDER BY rowid",
-                (claim.ref.submission_id.value, claim.ref.attempt_number),
-            ).fetchall()
-            try:
-                return tuple(
-                    PartialWorkRef(ExecutionStage(stage), artifact_ref, artifact_digest)
-                    for stage, artifact_ref, artifact_digest in rows
-                )
-            except (ValueError, ExecutionFailure):
-                raise ExecutionFailure(ExecutionCode.STORE) from None
+            return self._partial_rows(db, claim.ref)
 
     def record_result(
         self, claim: QueueClaim, result: ExecutionResultRefs
@@ -674,11 +703,7 @@ class DurableExecutionQueue:
             state = ExecutionState(row[3])
             if state is target:
                 return WriteDisposition.ALREADY_PRESENT
-            if state not in {
-                ExecutionState.DISPATCHING,
-                ExecutionState.RUNNING,
-                ExecutionState.RECONCILIATION_REQUIRED,
-            }:
+            if state is not ExecutionState.RUNNING:
                 raise ExecutionFailure(ExecutionCode.STATE)
             db.execute(
                 "UPDATE execution_attempt_v1 SET state=? WHERE submission_id=? AND attempt_number=?",
@@ -744,10 +769,7 @@ class DurableExecutionQueue:
             row = self._row(db, ref)
             if row[0] != requester.value:
                 raise ExecutionFailure(ExecutionCode.DENIED)
-            count = db.execute(
-                "SELECT count(*) FROM execution_partial_v1 WHERE submission_id=? AND attempt_number=?",
-                (ref.submission_id.value, ref.attempt_number),
-            ).fetchone()[0]
+            count = len(self._partial_rows(db, ref))
             state = ExecutionState(row[3])
         return ExecutionStatusView(
             schema_version="c1-execution-status/1",
