@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-5R`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0/G2
 
@@ -16,7 +16,7 @@ The standard profile removes the prior authenticated-unshield blocker, while exa
 
 ## What it adds
 
-An isolated standard-runtime identity, bounded one-shot registration diagnostic, retained partial full-scenario evidence, minimal reproducer and focused-tested public-transport refresh candidate.
+An exact standard-runtime identity, successful auditable D6 full-scenario evidence, exclusive verified transport handover, and finalized registration, publication, recovery, SwapHotkey and replacement effects.
 
 ## Placement and handoff
 
@@ -28,22 +28,22 @@ An isolated standard-runtime identity, bounded one-shot registration diagnostic,
 
 ## Explicit non-goals
 
-No second full run without the changed hypothesis, unchecked extrinsic, private nonce-cache access, timing/keystore cause claim, public endpoint, production key, persistent value, archive decision, scientific qualification or LIVE authority.
+No fast/public-profile capability, unchecked extrinsic, private nonce-cache access, timing/keystore cause claim, production key, persistent value, settlement, archive decision, scientific/security qualification or LIVE authority.
 
 ## Current stage
 
-PR #133 preserves NET-5R's eight-block repair and exact standard profile. D4 run 34489505489 passed the complete behavior; D5 run 34497456242 failed because its evidence read advanced the signing cache. D6 removes that observer effect in focused tests, but no authorized full run remains and G2 is NOT_READY.
+D6 canonical run 34518806217 passed the complete auditable full/standard predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. NET-5R is done and G2 is LOCALNET_READY only for that exact disposable v445 standard profile.
 
 ## Maturity ceiling
 
-Disposable C0/G2 compatibility engineering only; actual runtime effects are required before LOCALNET_READY.
+Disposable standard-profile C0/G2 engineering only; no public, settlement, scientific, security, production or LIVE qualification.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/evidence/wave_c/net-5r.md)
-- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/fbf25f7802da1e975349e3f54ea65a852816ff01/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/fbf25f7802da1e975349e3f54ea65a852816ff01/.agent/evidence/wave_c/net-5r.md)
+- [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/fbf25f7802da1e975349e3f54ea65a852816ff01/docs/development/LOCALNET_INTEGRATION.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/fbf25f7802da1e975349e3f54ea65a852816ff01/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/fbf25f7802da1e975349e3f54ea65a852816ff01/.agent/WAVE_C.md)
 
-> Standard versus fast remains only a compatibility comparison. D5 permits replacement verification before old closure but requires closure before activation/signing and reconciliation for ambiguity. Exact SDK source proves account_next_index is stateful on its transport; D6 avoids it and infers the omitted SDK nonce only from exclusive finalized System.Account increments. No timing/keystore claim, retry, nonce injection, unchecked extrinsic or public-network action is permitted.
+> D5 remains a failed observer-effect record. D6 avoids stateful account_next_index on the signing transport and infers omitted SDK nonce only from exclusive finalized System.Account increments. Run 34518806217 verified handover and behavior. No timing/keystore claim, retry, nonce injection, unchecked extrinsic or public action occurred.

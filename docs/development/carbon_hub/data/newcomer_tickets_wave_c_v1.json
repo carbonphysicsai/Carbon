@@ -68,11 +68,11 @@
       "map_ref": "WAVE-C/NET-6"
     },
     "NET-5R": {
-      "title": "Make shielded-registration transport handover auditable",
+      "title": "Verify and close the shielded-registration runtime path",
       "what": "Preserve the exact eight-block standard-runtime repair while serializing nonce verification, transport replacement and later submission for one disposable account.",
       "why": "D4 passed the complete chain behavior, but D5 proved that reading public next-index on the signing transport changes its nonce cache instead of passively observing it.",
-      "changes": "D6 reads exact finalized System.Account before and after an exclusive omitted-nonce submission, while replacement activation still waits for old closure and ambiguity still requires reconciliation.",
-      "not_yet": "The authorized full-run budget is exhausted, so D6 lacks a runtime demonstration and G2 remains NOT_READY. No public network, unchecked call, retry, explicit nonce, production key, real science, archive policy or LIVE authority is added.",
+      "changes": "D6 reads exact finalized System.Account around an exclusive omitted-nonce submission. Run 34518806217 verified both registrations, old-transport closure before replacement activation, checked-SDK SwapHotkey, recovery and replacement effects.",
+      "not_yet": "G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. Fast/public capability, settlement, production keys, real science, archive policy, security qualification and LIVE authority remain unavailable.",
       "map_ref": "WAVE-C/NET-5R"
     },
     "C-01": {

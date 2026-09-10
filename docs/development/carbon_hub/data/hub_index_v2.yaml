@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T16:04:12Z"
+  captured_at_utc: "2026-09-10T20:00:42Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "0c9d4ebf9701f186ffffb9b494b3b78b0467255e"
+  authority_snapshot_commit: "fbf25f7802da1e975349e3f54ea65a852816ff01"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,27 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. PR #133's NET-5R standard-profile/D4 specification checkpoint is reconciled as merged. Explicit full/standard D4 run 34489505489 passed both shielded registrations, shared-winner, finalized SwapHotkey, takeover and recycled-UID effects. D5 run 34497456242 failed at its first configuration call because its public next-index evidence read advanced the signing transport cache. D6 uses exact finalized System.Account evidence without that observer effect and is focused-tested, but the authorized full-run budget is exhausted. NET-5R remains selected, G2 remains NOT_READY on the missing D6 runtime demonstration, and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-EA0"
-    title: "Evidence capture contract"
-    status: "done"
-    summary: "C-EA0 merged in bounded documentation-contract scope with immutable attempt accounting, five independent status axes and fail-closed durability acknowledgement semantics. It creates no archive runtime, approved operating policy or durability acknowledgement."
-    delivery:
-      reference: "PR #131"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/131"
-      merge_commit: "a3ca8cd111689329832131eac1460d579c7828b3"
-  selected_ticket:
     id: "NET-5R"
     title: "Shielded registration compatibility repair"
-    status: "in_progress"
-    summary: "PR #133 preserves NET-5R's eight-block repair and exact standard profile. D4 run 34489505489 passed the complete behavior; D5 run 34497456242 failed because its evidence read advanced the signing cache. D6 removes that observer effect in focused tests, but no authorized full run remains and G2 is NOT_READY."
+    status: "done"
+    summary: "D6 canonical run 34518806217 passed the complete auditable full/standard predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. NET-5R is done and G2 is LOCALNET_READY only for that exact disposable v445 standard profile."
+    delivery:
+      reference: "PR #134 implementation plus run 34518806217"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/134"
+      merge_commit: "d4cfda17df79facf65e4d2828254c30febb67275"
+  selected_ticket: null
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "1.0"
-  controlling_board_fingerprint: "3a35f6ddb2c986124b01fde90778d72f51a267806e79cb93223a2c63123f3607"
-  stage: "PR #133's NET-5R standard-profile/D4 specification checkpoint is reconciled as merged. Explicit full/standard D4 run 34489505489 passed both shielded registrations, shared-winner, finalized SwapHotkey, takeover and recycled-UID effects. D5 run 34497456242 failed at its first configuration call because its public next-index evidence read advanced the signing transport cache. D6 uses exact finalized System.Account evidence without that observer effect and is focused-tested, but the authorized full-run budget is exhausted. NET-5R remains selected, G2 remains NOT_READY on the missing D6 runtime demonstration, and no later ticket is selected. C-EA1 stays scoped to its unresolved operating inputs. No archive acknowledgement, public-network action, scientific qualification, testnet eligibility or LIVE authority is created."
+  controlling_board_fingerprint: "ce4cd18222aeb41659f42c5449d246dc86e7c55eeb8b532abfa29f2e56b11a6a"
+  stage: "NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -473,6 +469,7 @@ current:
     - "NET-4B"
     - "NET-5"
     - "NET-6"
+    - "NET-5R"
     - "C-01"
     - "C-AUTH1"
     - "C-EA0"
@@ -486,6 +483,7 @@ current:
     - "NET-4A"
     - "NET-4B"
     - "NET-6"
+    - "NET-5R"
     - "C-01"
     - "C-AUTH1"
     - "C-EA0"
@@ -510,7 +508,7 @@ current:
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
-    - "G2 stays NOT_READY after D5 full/standard run 34497456242 failed because its next-index evidence read advanced the signing transport cache. D4 run 34489505489 passed the complete behavior, and focused D6 removes the observer effect, but the authorized run budget is exhausted and D6 has no runtime demonstration."
+    - "G2 is LOCALNET_READY only for D6 run 34518806217's exact standard-profile disposable v445 localnet. Fast-profile failures, the false global capability flag, public networks, settlement, security/scientific qualification, production and LIVE remain outside the claim."
     - "C-02 remains unselected and fail-closed until the authorized JAX repository URL, immutable revision, reproducible dependency/build identity and actual training/inference interface are supplied; Carbon owns the adapter and does not require upstream function renaming."
     - "C-EA0 is a merged specified/tested documentation contract only. Every real durability, required-artifact, retention, rights, custody/key, deployment, capacity, recovery and security value remains HUMAN_INPUT; C-EA1 is unstarted and no archive acknowledgement exists."
   maturity_states:
@@ -522,8 +520,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EA0 is merged in bounded specified/tested documentation scope. NET-5R has an exact standard profile, passing one-shot diagnostic and D4 full behavioral evidence. D5's evidence observer advanced the signing cache and failed before registration; D6 is focused-tested but lacks an authorized runtime run. G2, archive runtime/durability, protected or real scientific evidence, reference qualification, testnet eligibility, security/network qualification, production and LIVE remain unearned."
-  decision_series_status: "NET-5R-D1/D2 preserve the merged eight-block repair and prior fast evidence; D3 binds the standard profile; D4 passed the complete behavior in run 34489505489; D5's sole changed run retained an observer-effect failure; D6 replaces stateful next-index observation with exact finalized System.Account evidence but has no remaining full-run authority. G2 is NOT_READY. C-EA1's reserved decisions remain scoped there; OWNER-DX-03 governs delivery and B-E4 remains deferred/non-blocking and UNMEASURED."
+  maturity_summary: "NET-5R is done and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 evidence in D6 run 34518806217. Archive durability, protected or real scientific evidence, reference qualification, testnet eligibility, broader network/security qualification, production and LIVE remain unearned."
+  decision_series_status: "NET-5R-D1/D2 preserve the repair and fast history; D3 binds standard; D4 passed behavior; D5 retained an observer-effect failure; D6 removed the stateful next-index read; D7 accepts run 34518806217 and closes G2 only for the exact standard profile. C-EA1 inputs remain human-reserved; OWNER-DX-03 governs delivery and B-E4 stays deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -1718,7 +1716,7 @@ tickets:
     id: "NET-5R"
     wave: "C"
     title: "Shielded registration compatibility repair"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/net_5r.md"
     repo_path: ".agent/tickets/NET-5R_shielded_registration_compatibility.md"
     depends_on:
@@ -3941,6 +3939,24 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null
+  -
+    map_ref: "WAVE-C/NET-5R"
+    event_type: "evidence"
+    event_id: "NET-5R-D7"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "D6 canonical Linux amd64 run 34518806217 executed exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2 with mode=full and profile=standard. It passed focused contracts and the complete auditable runtime predicate: authenticated registrations, finalized account nonce associations, exclusive verified transport handovers, complete shared-winner publication/epoch, copy/no-credit, replay/recovery, checked-SDK SwapHotkey, takeover, recycled-UID non-inheritance and replacement all-burn row/epoch. NET-5R is done and G2 is LOCALNET_READY only for that exact standard-profile disposable v445 localnet. Fast/public/global capability, settlement, science, security, production and LIVE remain unearned."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/actions/runs/34518806217"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/NET-5"
+      - "WAVE-C/NET-6"
+      - "WAVE-C/C-EA1"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: "NET-5R-D6"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
