@@ -3,10 +3,13 @@
 **Wave:** C0/G2 evidence follow-up
 **Status:** `in_progress`
 
-The smallest supported Carbon repair is a bounded delivery candidate, but the
-canonical full scenario did not pass and G2 remains `NOT_READY`.
+PR #132 merged the eight-block shield-era repair as
+`675427ec8852579aa9d336bbec94e28be7b62810`. The exact standard-runtime
+comparison has since passed both shielded registrations and the shared-winner
+stage, but the canonical full scenario stopped at a source-backed plain-nonce
+transition defect before the recycled-UID effect. G2 remains `NOT_READY`.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
@@ -88,12 +91,53 @@ supported upstream repair for that v445 path, or an explicitly authorized new
 compatible SDK/runtime pin. Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068.
 
+## NET-5R-D3 — Register the exact standard-runtime compatibility profile
+
+Pinned upstream `Dockerfile-localnet` builds and copies both release binaries
+and WASM artifacts. Pinned `scripts/localnet.sh` selects
+`/target/non-fast-runtime/release/node-subtensor` with `False`; its Cargo
+features are `pow-faucet metadata-hash`, while the fast build additionally
+enables `fast-runtime`. Run 34473145103 verified that both installed artifacts
+are executable and distinct before any network or key was created, then bound
+the standard binary/WASM hashes and genesis. The node CLI does not expose
+`--version` and returns exit 2; isolated RPC subsequently verified runtime v445
+and 12-second blocks. This is a compatibility comparison, not a timing or
+keystore-cause claim. The original fast profile and its evidence remain intact.
+
+Run 34473508494 performed exactly one authenticated shielded `BurnedRegister`
+with retry budget zero. Its carrier and inner finalized in block 17, exact key
+query and exclusive expiry were recorded, and registration was read back at
+block 19. G2 remained `NOT_READY` pending the full scenario.
+
+## NET-5R-D4 — Refresh the public SDK transport after a successful shield pair
+
+Canonical full run 34474220953 passed both shielded registrations, shared-winner
+publication, readback and an observed shared-winner epoch. It then submitted the
+plain `SwapHotkey` through `Client.execute(..., retries=0)` and received
+`Stale/expired` with no inclusion, so the recycled-UID effect was not observed.
+
+Exact Bittensor 11.1.0 source provides a testable nonce-transition hypothesis.
+`submit_shielded` signs the inner at `nonce+1`, and then submits the carrier with
+explicit `nonce`. `SubstrateConnection.create_signed_extrinsic` pins each
+explicit nonce into its per-transport cache, so the later carrier pin replaces
+the higher inner pin. After both extrinsics finalize, a later plain execute on
+that transport can increment the retained carrier nonce to the already-consumed
+inner nonce. This explains the observed Stale result without attributing it to
+runtime speed or proposer keystore behavior.
+
+The smallest supported Carbon candidate verifies the finalized public account
+next nonce is exactly `inner_nonce+1`, then retires and recreates the public SDK
+`Client`/`RpcSubstrate` under the same endpoint, genesis, runtime and policy
+checks. It never accesses the private cache, injects a nonce, retries, submits a
+raw/unchecked call or changes network. A local upstream issue draft is retained;
+no maintainer was contacted. The changed full scenario has not been rerun.
+
 ## Bounded delivery disposition
 
-The source-backed mortality repair and its focused contracts pass, and both
-changed canonical hypotheses were executed once. The full scenario did not pass,
-so its Definition-of-Done checkbox remains intentionally open and neither
-shared-winner nor recycled-UID evidence is claimed. The smallest supported Carbon
-repair is ready to ship, but NET-5R remains `in_progress` on the exact upstream
-interface blocker above. G2 remains `NOT_READY`. No later ticket is selected,
-and C-EA1's unresolved operating decisions remain scoped to C-EA1.
+The source-backed mortality repair, exact standard profile, one-shot diagnostic
+and focused contracts pass. The full standard run observed both registrations
+and the shared-winner effect, but not the recycled-UID effect, so the full-
+scenario Definition-of-Done checkbox remains intentionally open. NET-5R stays
+`in_progress` on the changed public-transport-refresh candidate above; G2 stays
+`NOT_READY`. No later ticket is selected, and C-EA1's unresolved operating
+decisions remain scoped to C-EA1.

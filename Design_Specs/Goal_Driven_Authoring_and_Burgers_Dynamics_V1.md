@@ -118,12 +118,18 @@ an independent development witness. Neither is qualified. Spectral 32/64/128,
 heat, memorizer and the two small kernel builds remain development diagnostics,
 not representative miners or accepted baselines.
 
-The actual authorized JAX source repository, revision and API remain missing.
-C-02 may later bind only a thin trusted interface with these operations:
+The actual authorized JAX source repository, immutable revision and real
+training/inference API remain missing. The required interface input includes
+its entry points and signatures, accepted array shapes/dtypes, state and frozen
+artifact representation, dependency/build identity and typed failure behavior.
+C-02 must implement Carbon's thin trusted adapter around whatever interface that
+pinned source actually exposes; it must not require the SciML lead or upstream
+repository to adopt Carbon-authored function names. The adapter must provide the
+following semantic capabilities inside Carbon:
 
-1. `fit_train_arrays` using TRAIN labels only;
-2. `freeze_artifact` with exact reconstruction identity; and
-3. `infer_requested_points` over the four-field candidate query.
+1. fit from TRAIN-labelled arrays only;
+2. freeze an artifact with exact reconstruction identity; and
+3. infer requested points for the four-field candidate query.
 
 No neural-operator capability, scientific qualification, testnet eligibility,
 archive acknowledgement, production status, public-network action, payment or

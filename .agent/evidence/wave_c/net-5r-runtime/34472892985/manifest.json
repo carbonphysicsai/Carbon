@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.net5r.standard-profile-inspection-failure.v1",
+  "run": 34472892985,
+  "head": "765f5a9804e7a6ca90d8b75eed96b766476cc867",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "inspect",
+  "profile": "standard",
+  "stage": "PRE_KEY_IMAGE_INSPECTION",
+  "signing_performed": false,
+  "network_created": false,
+  "outcome": "DIAGNOSTIC_INSTRUMENTATION_FAILED",
+  "failure": {
+    "type": "subprocess.CalledProcessError",
+    "exit_code": 2,
+    "operation": "invoke each installed node-subtensor artifact with --version under set -e",
+    "cause": "The pinned node-subtensor CLI does not expose --version; the first nonzero return stopped the opaque inspection probe. This is not a runtime compatibility result."
+  },
+  "changed_follow_up": {
+    "head": "b22a72de5f3566bd7d4a5fc9456fb58d6625f141",
+    "repair": "Capture each version-command return code without hiding artifact presence, executable identity or hashes, then verify runtime spec version through the exact isolated chain RPC.",
+    "run": 34473145103
+  },
+  "g2": "NOT_READY",
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34472892985"
+}

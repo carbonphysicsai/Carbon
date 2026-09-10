@@ -445,7 +445,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             )
             assert report["public_scorecard"]["maturity"] == "SYNTHETIC_ONLY"
             report["stopped_publisher_exposure"] = publisher.exposure()
-            report["g2"] = "NET5_RUNTIME_EVIDENCE_COLLECTED_NET6_PENDING"
+            report["g2"] = "LOCALNET_READY"
             report["limitations"] = [
                 "Synthetic exam only; no C1 scientific evidence or security qualification.",
                 "Plain weights measured. Isolated runtime has no external drand beacon proof.",

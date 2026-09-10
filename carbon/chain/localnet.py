@@ -79,7 +79,7 @@ def startup_for(profile_name):
 printf '%s  %s\n' 690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae /scripts/localnet.sh | sha256sum -c -
 sed '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh > /scripts/carbon-localnet.sh
 chmod 700 /scripts/carbon-localnet.sh
-export RUST_LOG='info,basic-authorship=debug,mev-shield=debug,pallet-shield=debug'
+export RUST_LOG='info,mev-shield=debug,pallet-shield=debug'
 exec /scripts/carbon-localnet.sh {selector} --no-purge"""
 
 
@@ -153,9 +153,7 @@ def inspect_image_profile(image, profile_name, directory, *, allow_unbound=False
     for line in output.splitlines():
         key, separator, value = line.partition("=")
         if separator and key in {
-            f"{name}_{field}"
-            for name in ("fast", "standard")
-            for field in fields
+            f"{name}_{field}" for name in ("fast", "standard") for field in fields
         }:
             observed[key] = value.strip()
     if len(observed) != 2 * len(fields):
@@ -312,7 +310,9 @@ def _inspect_container(container, profile_name=None):
         "expected_genesis": profile["expected_genesis"],
         "execution_mode": mode,
         "execution_budget": budget,
-        "startup_sha256": hashlib.sha256(startup_for(profile_name).encode()).hexdigest(),
+        "startup_sha256": hashlib.sha256(
+            startup_for(profile_name).encode()
+        ).hexdigest(),
         "network_backend": "libp2p",
         "internal_network": network["Id"],
         "container_address": str(address),
@@ -574,10 +574,71 @@ class LocalnetSession:
         self.roles, self.operations = {}, []
         self.signer = None
         self.shield_era_period = None
+        self._transport_hooks = None
         self.profile_name, self.profile = runtime_profile()
 
-    async def start(self):
+    async def _replace_sdk_transport(self):
+        """Open a verified public SDK transport before retiring the old one."""
         import bittensor as bt
+
+        if self.context is None or self._transport_hooks is None:
+            raise PublicationFailure("LOCALNET_TRANSPORT_CONTEXT_REQUIRED")
+        sub = journaled_substrate(
+            self.context,
+            self._transport_hooks["before_sign"],
+            self._transport_hooks["before_dispatch"],
+            after_inner_sign=self._transport_hooks["after_inner_sign"],
+            after_shield_key=self._transport_hooks["after_shield_key"],
+            before_signed_extrinsic=self._transport_hooks["before_signed_extrinsic"],
+        )
+        await sub.connect()
+        if (
+            hash256(await sub.block_hash(0)) != self.context.genesis_hash
+            or await sub.spec_version() != 445
+        ):
+            await sub.close()
+            raise PublicationFailure("REPLACEMENT_TRANSPORT_IDENTITY_MISMATCH")
+        client = bt.Client(
+            self.context.endpoint,
+            substrate=sub,
+            policy=bt.Policy(allowed_netuids=[2]),
+        )
+        previous = self.sub
+        self.sub, self.client = sub, client
+        if previous is not None:
+            await previous.close()
+
+    async def _refresh_after_shielded_inner(self, record):
+        """Reopen the supported SDK after its outer/inner nonce transition."""
+        account = await self.sub.query(
+            "System", "Account", [self.signer], block_hash=record["block_hash"]
+        )
+        observed = account.get("nonce") if type(account) is dict else None
+        signed = record.get("signed_extrinsics", {})
+        inner = signed.get("inner", {}).get("nonce")
+        carrier = signed.get("carrier", {}).get("nonce")
+        if (
+            type(observed) is not int
+            or type(inner) is not int
+            or type(carrier) is not int
+            or inner != carrier + 1
+            or observed != inner + 1
+        ):
+            raise PublicationFailure("SHIELDED_NONCE_TRANSITION_MISMATCH")
+        record["nonce_transition"] = {
+            "carrier_nonce": carrier,
+            "inner_nonce": inner,
+            "finalized_account_next_nonce": observed,
+            "sdk_transport": "REOPEN_REQUIRED_AFTER_EXPLICIT_OUTER_NONCE_PIN",
+        }
+        self.save()
+        await self._replace_sdk_transport()
+        record["nonce_transition"][
+            "sdk_transport"
+        ] = "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT"
+        self.save()
+
+    async def start(self):
         from bittensor.keyfiles import Keypair
 
         if (self.directory / "setup.json").exists():
@@ -625,7 +686,9 @@ class LocalnetSession:
             self.operations[-1].setdefault("shield_key_queries", []).append(query)
             if digest is not None:
                 if len(authors) != 1:
-                    raise PublicationFailure("SHIELD_KEY_AUTHOR_ASSOCIATION_UNAVAILABLE")
+                    raise PublicationFailure(
+                        "SHIELD_KEY_AUTHOR_ASSOCIATION_UNAVAILABLE"
+                    )
                 if (
                     type(query["expires_at_exclusive"]) is not int
                     or query["expires_at_exclusive"] <= query["queried_at_block"]
@@ -648,21 +711,14 @@ class LocalnetSession:
             }
             self.save()
 
-        self.sub = journaled_substrate(
-            self.context,
-            before_sign,
-            before_dispatch,
-            after_inner_sign=after_inner_sign,
-            after_shield_key=after_shield_key,
-            before_signed_extrinsic=before_signed_extrinsic,
-        )
-        await self.sub.connect()
-        await self.verify()
-        self.client = bt.Client(
-            self.context.endpoint,
-            substrate=self.sub,
-            policy=bt.Policy(allowed_netuids=[2]),
-        )
+        self._transport_hooks = {
+            "before_sign": before_sign,
+            "before_dispatch": before_dispatch,
+            "after_inner_sign": after_inner_sign,
+            "after_shield_key": after_shield_key,
+            "before_signed_extrinsic": before_signed_extrinsic,
+        }
+        await self._replace_sdk_transport()
         # Publicly known development URIs; no valuable-network key is accessed.
         self.roles = {
             name: Keypair.create_from_uri(uri)
@@ -762,6 +818,8 @@ class LocalnetSession:
                 await self.observe_shield_outcome(record)
             if not result.success:
                 raise PublicationFailure("LOCAL_SETUP_REJECTED:" + label)
+            if "inner_transaction" in record:
+                await self._refresh_after_shielded_inner(record)
             return result
         except Exception:
             if record["state"] == "PREPARED":
@@ -816,9 +874,7 @@ class LocalnetSession:
             positions = {}
             for storage in ("CurrentKey", "PendingKey", "NextKey"):
                 positions[storage] = public_key_digest(
-                    await self.sub.query(
-                        "MevShield", storage, block_hash=at_hash
-                    )
+                    await self.sub.query("MevShield", storage, block_hash=at_hash)
                 )
             authors = []
             for author, author_key in await self.sub.query_map(

@@ -104,3 +104,18 @@ def test_no_workbench_field_archive_or_numpy_payload_is_committed() -> None:
     assert not [
         path for path in tracked_roots if path.name.endswith("Workbench_V1.zip")
     ]
+
+
+def test_c02_requires_actual_pinned_jax_interface_without_imposing_names() -> None:
+    ticket = (_ROOT / ".agent/tickets/C-02_real_reconstruction.md").read_text(
+        encoding="utf-8"
+    )
+    handoff = (
+        _ROOT / "Design_Specs/Goal_Driven_Authoring_and_Burgers_Dynamics_V1.md"
+    ).read_text(encoding="utf-8")
+    for text in (ticket, handoff):
+        assert "authorized JAX" in text
+        assert "immutable revision" in text
+        assert "training/inference" in text
+        assert "must not require" in text or "not required to" in text
+    assert "Carbon owns the adapter" in ticket

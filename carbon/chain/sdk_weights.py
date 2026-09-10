@@ -148,9 +148,7 @@ def journaled_substrate(
                     "expires_at_exclusive": expiry,
                     "associated_authors": matches,
                 }
-                await after_shield_key(
-                    digest, 0 if key is None else len(key), context
-                )
+                await after_shield_key(digest, 0 if key is None else len(key), context)
             return key
 
         async def sign_extrinsic(self, call, keypair, **kwargs):

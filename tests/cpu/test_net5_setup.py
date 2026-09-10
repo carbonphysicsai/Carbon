@@ -2,9 +2,11 @@
 
 import asyncio
 import copy
+import gzip
 import hashlib
 import json
 import os
+import re
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +18,7 @@ from carbon.chain.localnet import (
     IMAGE,
     ROOT_SETTINGS,
     STARTUP,
+    inspect_image_profile,
     inspect_isolation,
     root_setting,
     runtime_profile,
@@ -60,8 +63,8 @@ def docker_state():
     return item, network
 
 
-def test_runtime_diagnostic_log_distinguishes_shield_decryption_failures():
-    assert "basic-authorship=debug" in STARTUP
+def test_runtime_diagnostic_log_excludes_decrypted_inner_payloads():
+    assert "basic-authorship=debug" not in STARTUP
     assert "mev-shield=debug" in STARTUP
     assert "pallet-shield=debug" in STARTUP
 
@@ -76,6 +79,57 @@ def test_standard_profile_is_separate_exact_non_fast_release():
     assert "fast-runtime" not in profile["cargo_features"]
     assert "exec /scripts/carbon-localnet.sh False --no-purge" in startup_for(name)
     assert startup_for(name) != STARTUP
+
+
+def test_pinned_image_inspection_proves_distinct_installed_profiles(
+    monkeypatch, tmp_path
+):
+    manifest = json.loads(
+        (Path(__file__).parents[2] / "scripts/dev/localnet-runtime.json").read_text()
+    )
+    output = []
+    for name in ("fast", "standard"):
+        profile = manifest["profiles"][name]
+        output.extend(
+            (
+                f"{name}_binary_present=true",
+                f"{name}_binary_executable=true",
+                f"{name}_wasm_present=true",
+                f"{name}_binary_sha256={profile['binary_sha256']}",
+                f"{name}_wasm_sha256={profile['wasm_sha256']}",
+                f"{name}_version_rc=2",
+                f"{name}_version=error: version flag unsupported",
+            )
+        )
+
+    def run(command, **kwargs):
+        assert command[0] == "docker" and kwargs["check"]
+        if command[1:3] == ["image", "inspect"]:
+            assert kwargs["timeout"] == 45
+            value = [
+                {
+                    "Config": {
+                        "Entrypoint": ["/scripts/localnet.sh"],
+                        "Cmd": ["True"],
+                    }
+                }
+            ]
+            return SimpleNamespace(stdout=json.dumps(value))
+        assert kwargs["timeout"] == 90
+        assert (
+            "--network" in command and command[command.index("--network") + 1] == "none"
+        )
+        assert IMAGE + "@" + DIGEST in command
+        return SimpleNamespace(stdout="\n".join(output))
+
+    monkeypatch.setattr("carbon.chain.localnet.subprocess.run", run)
+    proof = inspect_image_profile(IMAGE + "@" + DIGEST, "standard", tmp_path)
+    assert proof["profiles_distinct"]
+    assert (
+        proof["profiles"]["standard"]["binary_sha256"]
+        != proof["profiles"]["fast"]["binary_sha256"]
+    )
+    assert json.loads((tmp_path / "image-profile.json").read_text()) == proof
 
 
 @pytest.mark.parametrize(
@@ -419,6 +473,92 @@ def test_shield_diagnostics_bind_key_nonce_and_era_before_signing():
     assert observed[1:] == [("guard", signer.ss58_address), ("inner", 11, 8)]
 
 
+def test_successful_shielded_nonce_transition_reopens_supported_sdk_transport(
+    monkeypatch, tmp_path
+):
+    from carbon.chain.localnet import LocalnetSession
+
+    class Substrate:
+        async def query(self, module, item, params, block_hash=None):
+            assert (module, item, params, block_hash) == (
+                "System",
+                "Account",
+                ["disposable-signer"],
+                "0x" + "b" * 64,
+            )
+            return {"nonce": 2, "data": "not-retained"}
+
+    refreshed = []
+    session = LocalnetSession("carbon-localnet-test", tmp_path)
+    session.sub = Substrate()
+    session.signer = "disposable-signer"
+    record = {
+        "block_hash": "0x" + "b" * 64,
+        "signed_extrinsics": {
+            "carrier": {"nonce": 0, "era_blocks": 8},
+            "inner": {"nonce": 1, "era_blocks": 8},
+        },
+    }
+    session.operations = [record]
+    monkeypatch.setattr(session, "save", lambda: None)
+
+    async def replace():
+        refreshed.append(True)
+
+    monkeypatch.setattr(session, "_replace_sdk_transport", replace)
+    asyncio.run(session._refresh_after_shielded_inner(record))
+    assert refreshed == [True]
+    assert record["nonce_transition"] == {
+        "carrier_nonce": 0,
+        "inner_nonce": 1,
+        "finalized_account_next_nonce": 2,
+        "sdk_transport": "REOPENED_THROUGH_SUPPORTED_PUBLIC_CLIENT",
+    }
+    assert "data" not in record["nonce_transition"]
+
+
+@pytest.mark.parametrize("observed", [0, 1, 3, True, None])
+def test_shielded_nonce_transition_fails_closed_on_chain_disagreement(
+    monkeypatch, tmp_path, observed
+):
+    from carbon.chain.localnet import LocalnetSession
+
+    class Substrate:
+        async def query(self, *args, **kwargs):
+            return {"nonce": observed}
+
+    session = LocalnetSession("carbon-localnet-test", tmp_path)
+    session.sub = Substrate()
+    session.signer = "disposable-signer"
+    record = {
+        "block_hash": "0x" + "b" * 64,
+        "signed_extrinsics": {
+            "carrier": {"nonce": 0, "era_blocks": 8},
+            "inner": {"nonce": 1, "era_blocks": 8},
+        },
+    }
+    session.operations = [record]
+    monkeypatch.setattr(session, "save", lambda: None)
+    with pytest.raises(PublicationFailure, match="SHIELDED_NONCE_TRANSITION_MISMATCH"):
+        asyncio.run(session._refresh_after_shielded_inner(record))
+
+
+def test_pinned_sdk_source_exposes_the_shielded_nonce_cache_transition():
+    from test_net1_chain_adapter import installed_sdk
+
+    installed_sdk()
+    import inspect
+
+    from bittensor._transport.interface import SubstrateConnection
+    from bittensor.executor import Executor
+
+    shielded = inspect.getsource(Executor.submit_shielded)
+    transport = inspect.getsource(SubstrateConnection.create_signed_extrinsic)
+    assert "nonce + 1" in shielded
+    assert "nonce=nonce" in shielded
+    assert "self._nonces.pin(keypair.ss58_address, nonce)" in transport
+
+
 @pytest.mark.parametrize("present", [True, False])
 def test_installed_sdk_transaction_reconciliation_uses_public_lookup(present):
     from test_net1_chain_adapter import BLOCK, GENESIS, context, installed_sdk
@@ -520,6 +660,27 @@ def test_archived_runtime_evidence_bytes_match_recorded_hashes():
             else:
                 data = (manifest_path.parent / name).read_bytes()
             assert hashlib.sha256(data).hexdigest() == expected
+
+
+def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
+    root = Path(__file__).parents[2] / ".agent/evidence/wave_c/net-5r-runtime"
+    failed = json.loads((root / "34472892985" / "manifest.json").read_text())
+    assert failed["stage"] == "PRE_KEY_IMAGE_INSPECTION"
+    assert failed["signing_performed"] is False
+    assert failed["network_created"] is False
+    assert failed["outcome"] == "DIAGNOSTIC_INSTRUMENTATION_FAILED"
+    for run in ("34473145103", "34473508494", "34474220953"):
+        manifest_path = root / run / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        assert manifest["profile"] == "standard" and manifest["g2"].startswith(
+            "NOT_READY"
+        )
+        for name, expected in manifest["hashes_sha256"].items():
+            data = (manifest_path.parent / name).read_bytes()
+            assert hashlib.sha256(data).hexdigest() == expected
+    retained_log = gzip.decompress((root / "34474220953" / "node.log.gz").read_bytes())
+    assert b"Unshielded inner transaction: [REDACTED_DECRYPTED_BYTES]" in retained_log
+    assert not re.search(rb"Unshielded inner transaction: [0-9a-f]{16}", retained_log)
 
 
 @pytest.mark.skipif(
