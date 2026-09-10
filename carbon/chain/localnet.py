@@ -110,23 +110,21 @@ def inspect_image_profile(image, profile_name, directory, *, allow_unbound=False
     ):
         raise PublicationFailure("PINNED_IMAGE_CONFIGURATION_MISMATCH")
 
-    paths = []
-    for name in ("fast", "standard"):
-        profile = manifest["profiles"][name]
-        paths.extend((profile["binary_path"], profile["wasm_path"]))
-    script = "set -euo pipefail\n"
-    script += "\n".join(f"test -f {path}" for path in paths) + "\n"
-    script += "\n".join(
-        f"test -x {manifest['profiles'][name]['binary_path']}"
-        for name in ("fast", "standard")
-    )
-    script += "\n"
+    script = "set -uo pipefail\n"
     for name in ("fast", "standard"):
         profile = manifest["profiles"][name]
         script += (
-            f"printf '{name}_binary_sha256='; sha256sum {profile['binary_path']} | cut -d' ' -f1\n"
-            f"printf '{name}_wasm_sha256='; sha256sum {profile['wasm_path']} | cut -d' ' -f1\n"
-            f"printf '{name}_version='; {profile['binary_path']} --version\n"
+            f"if test -f {profile['binary_path']}; then echo '{name}_binary_present=true'; "
+            f"else echo '{name}_binary_present=false'; fi\n"
+            f"if test -x {profile['binary_path']}; then echo '{name}_binary_executable=true'; "
+            f"else echo '{name}_binary_executable=false'; fi\n"
+            f"if test -f {profile['wasm_path']}; then echo '{name}_wasm_present=true'; "
+            f"else echo '{name}_wasm_present=false'; fi\n"
+            f"printf '{name}_binary_sha256='; sha256sum {profile['binary_path']} 2>/dev/null | cut -d' ' -f1\n"
+            f"printf '{name}_wasm_sha256='; sha256sum {profile['wasm_path']} 2>/dev/null | cut -d' ' -f1\n"
+            f"version=$({profile['binary_path']} --version 2>&1); rc=$?; "
+            f"printf '{name}_version_rc=%s\\n' \"$rc\"; "
+            f"printf '{name}_version=%s\\n' \"${{version%%$'\\n'*}}\"\n"
         )
     output = docker(
         "run",
@@ -143,16 +141,39 @@ def inspect_image_profile(image, profile_name, directory, *, allow_unbound=False
         timeout=90,
     ).stdout
     observed = {}
+    fields = (
+        "binary_present",
+        "binary_executable",
+        "wasm_present",
+        "binary_sha256",
+        "wasm_sha256",
+        "version_rc",
+        "version",
+    )
     for line in output.splitlines():
         key, separator, value = line.partition("=")
         if separator and key in {
             f"{name}_{field}"
             for name in ("fast", "standard")
-            for field in ("binary_sha256", "wasm_sha256", "version")
+            for field in fields
         }:
             observed[key] = value.strip()
-    if len(observed) != 6:
+    if len(observed) != 2 * len(fields):
         raise PublicationFailure("INSTALLED_PROFILE_IDENTITY_UNAVAILABLE")
+    for name in ("fast", "standard"):
+        if any(
+            observed[f"{name}_{field}"] != "true"
+            for field in ("binary_present", "binary_executable", "wasm_present")
+        ):
+            proof = {
+                "schema": "carbon.localnet.image-profile-failure.v1",
+                "image": image,
+                "selected_profile": profile_name,
+                "observed": observed,
+                "outcome": "DOCUMENTED_PROFILE_ARTIFACT_MISSING",
+            }
+            write_evidence(Path(directory) / "image-profile.json", proof)
+            raise PublicationFailure("DOCUMENTED_PROFILE_ARTIFACT_MISSING")
     if (
         observed["fast_binary_sha256"] == observed["standard_binary_sha256"]
         or observed["fast_wasm_sha256"] == observed["standard_wasm_sha256"]
@@ -192,6 +213,7 @@ def inspect_image_profile(image, profile_name, directory, *, allow_unbound=False
                 "binary_sha256": observed[f"{name}_binary_sha256"],
                 "wasm_sha256": observed[f"{name}_wasm_sha256"],
                 "version": observed[f"{name}_version"],
+                "version_command_exit": int(observed[f"{name}_version_rc"]),
             }
             for name in ("fast", "standard")
         },
