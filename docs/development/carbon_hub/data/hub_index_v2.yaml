@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T05:08:18Z"
+  captured_at_utc: "2026-09-10T05:31:37Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "dedee290ad9fbc0f2f243fbcf68e3c0305ee0d29"
+  authority_snapshot_commit: "9609ce1294fb2d8c4f8e6892da1797e27d3bacd2"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -3687,7 +3687,7 @@ events:
     owner_lane: "carbon_owner"
     status: "active"
     summary: "The owner selects C-01 first and permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-01 adds a bounded durable execution candidate; C-AUTH1 is next and unstarted. No public-network operation, archive acknowledgement, scientific qualification, testnet eligibility or LIVE authority follows."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/dedee290ad9fbc0f2f243fbcf68e3c0305ee0d29/.agent/plans/C1_C2_BURGERS_PROGRAM.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/9609ce1294fb2d8c4f8e6892da1797e27d3bacd2/.agent/plans/C1_C2_BURGERS_PROGRAM.md"
     affects:
       - "WAVE-C"
       - "WAVE-C/C-AUTH1"

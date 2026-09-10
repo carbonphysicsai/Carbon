@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `dedee290ad9fbc0f2f243fbcf68e3c0305ee0d29` on `main`, captured 2026-09-10T05:08:18Z.
+**Authority snapshot:** `9609ce1294fb2d8c4f8e6892da1797e27d3bacd2` on `main`, captured 2026-09-10T05:31:37Z.
 **Current:** Wave C, ticket C-01. C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
 **Last completed:** NET-6 (`done`).
 **Next selected:** C-AUTH1.
