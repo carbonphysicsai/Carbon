@@ -76,7 +76,9 @@ def guarded_weights(netuid, plan, check_integers, checked_call):
     )
 
 
-def journaled_substrate(context, before_sign, before_dispatch):
+def journaled_substrate(
+    context, before_sign, before_dispatch, *, after_inner_sign=None
+):
     """SDK transport subclass: record hash before wire submission, without key logs."""
     require_sdk()
     if (
@@ -88,6 +90,14 @@ def journaled_substrate(context, before_sign, before_dispatch):
     import bittensor as bt
 
     class JournaledRpcSubstrate(bt.RpcSubstrate):
+        async def sign_extrinsic(self, call, keypair, **kwargs):
+            # MEV inner signing is a public SDK path separate from submit().
+            await before_sign(call, keypair.ss58_address)
+            signed, identity = await super().sign_extrinsic(call, keypair, **kwargs)
+            if after_inner_sign is not None:
+                await after_inner_sign(hash256(identity))
+            return signed, identity
+
         async def submit(self, call, keypair, **kwargs):
             await before_sign(call, keypair.ss58_address)
             return await super().submit(call, keypair, **kwargs)
@@ -326,7 +336,7 @@ class BittensorPublicationBackend:
         result, failed = None, False
         try:
             block_hash = await self._block(block)
-            found = await self.substrate.resolve_extrinsic(hash256(tx_hash), block_hash)
+            found = await self.substrate.find_extrinsic(hash256(tx_hash), block_hash)
             if found is not None:
                 if found.block_hash != block_hash or type(found.success) is not bool:
                     raise PublicationFailure("CONFLICTING_TRANSACTION_BLOCK")

@@ -52,6 +52,11 @@ scientific changes and resolved dependency changes retain full regression.
 This supersedes the blanket runtime-PR CPU sentence below for that bounded
 profile; it does not turn failures into passes or weaken test semantics.
 
+NET-5-D2 applies the same bounded principle to the exact finite synthetic A8
+identity extension: checked before/after hashes, all A7/A8/scoring and NET-5
+regressions, unchanged invariant/quality/package/Hub/image/Merge assertions.
+Any other shared scientific change retains full regression.
+
 NET-1's first broad run on `253403f` passed 4,865 CPU tests (including the
 installed SDK) and all 169 invariants; two bootstrap tests failed because
 their environment inherited the chain group. Their repair explicitly tests

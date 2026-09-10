@@ -13035,3 +13035,10 @@ optional treasury issuers remain unavailable under their owning future contracts
 See `.agent/tickets/NET-4B_verified_publication.md`: pinned runtime owner burn
 semantics, final integer guard before encryption/signing, SDK policy preserved,
 transaction identity journaled before wire dispatch and bounded reconciliation.
+
+## NET-5-D1 — Isolated pinned runtime and authentic fixture integration
+
+See `.agent/tickets/NET-5_disposable_localnet.md`: immutable amd64 image,
+internal Docker network, observed genesis before disposable signing, closed
+fixture identity extension, complete burn path and honest epoch/recovery evidence.
+Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569.

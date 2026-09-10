@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.disposable.isolation.v1",
+  "container": "0073dff200f9e570b12fbea9b949879b8d2f7b0529ab79de28fa50cf5c42759f",
+  "image": "ghcr.io/raofoundation/subtensor-localnet@sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
+  "source_commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
+  "startup_sha256": "535da338e24904ec9e6c439ce178e63ef1d39186ca43122ded4d26382d2fc289",
+  "network_backend": "libp2p",
+  "internal_network": "5fc82827f756c2f9dd2cd8e767c0becf725553b1ef1190eef5aafbb4f366af6e",
+  "container_address": "172.18.0.2",
+  "scope": "DISPOSABLE_LOCALNET_ONLY",
+  "endpoints": [
+    "ws://127.0.0.1:36837",
+    "ws://127.0.0.1:35667"
+  ],
+  "transport": "PROCESS_LOOPBACK_RELAY",
+  "genesis": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+  "spec_version": 445,
+  "finalized_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007"
+}

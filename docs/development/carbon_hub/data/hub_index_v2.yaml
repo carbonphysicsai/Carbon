@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T00:25:12Z"
+  captured_at_utc: "2026-09-10T02:29:16Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "4cd13953dc1d634d4755161731b728c105a2c409"
+  authority_snapshot_commit: "f8de3f01975cbcddb7b9537574dd5050ac4e55d1"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,31 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave C/C0 has NET-5 selected as its one active ticket after NET-4B merged in PR #125. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "NET-4A"
-    title: "Nominal publication intents"
-    status: "done"
-    summary: "NET-4A merged with canonical nominal-intent, provenance, validity and supersession tests (PR #124)."
-    delivery:
-      reference: "PR #124"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/124"
-      merge_commit: "ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f"
-  selected_ticket:
     id: "NET-4B"
     title: "Verified complete-vector publication and recovery"
+    status: "done"
+    summary: "NET-4B merged with canonical final-vector, SDK signing, durable dispatch and recovery tests (PR #125)."
+    delivery:
+      reference: "PR #125"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/125"
+      merge_commit: "0e6b5e001302b349135785756c633530853684c2"
+  selected_ticket:
+    id: "NET-5"
+    title: "Reproducible disposable localnet integration"
     status: "in_progress"
-    summary: "NET-4B implementation and native diagnostics are prepared; installed-SDK canonical acceptance and merge remain pending."
+    summary: "NET-5 observed three-challenge all-burn finality/rows/epoch burn and restart/outage recovery. Shielded miner registration is unresolved; shared-winner runtime integration and G2 remain unearned. Canonical engineering acceptance is pending."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "0.6"
-  controlling_board_fingerprint: "1de9032f5347cc02c760505143d1b739b49e7f587f882e340bd1aec3995d190c"
-  stage: "Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected."
+  controlling_register_version: "0.7"
+  controlling_board_fingerprint: "a8a825eacb588ce5dbe09e1ffee023c39422e6ec07bb6b17b172b213f85ff6c3"
+  stage: "Wave C/C0 has NET-5 selected as its one active ticket after NET-4B merged in PR #125. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -470,13 +470,15 @@ current:
     - "NET-3"
     - "C-REWARD"
     - "NET-4A"
+    - "NET-4B"
   recent_dependencies:
-    - "NET-4A"
+    - "NET-4B"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
     - "NET-3"
     - "C-REWARD"
+    - "NET-4A"
   downstream_handoffs:
     []
   parallel_context:
@@ -498,7 +500,7 @@ current:
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
-    - "NET-4B is a candidate pending installed-SDK canonical acceptance and merge. Runtime burn and epoch outcomes require NET-5 execution. Unknown dispatch blocks resend; public-network and treasury authority remain unavailable."
+    - "NET-5 is selected alone and pending runtime evidence and acceptance. Missing or failed execution does not become localnet success; G2, science/security and public deployment remain unearned."
   maturity_states:
     specified: "earned"
     implemented: "unearned"
@@ -508,7 +510,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-4B implementation and native diagnostics are prepared; installed-SDK canonical acceptance and merge remain pending. Earlier C0 deliveries retain bounded tested maturity; G2 and science/security qualifications remain unearned."
+  maturity_summary: "NET-5 observed three-challenge all-burn finality/rows/epoch burn and restart/outage recovery. Shielded miner registration is unresolved; shared-winner runtime integration and G2 remain unearned. Canonical engineering acceptance is pending."
   decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -581,6 +583,7 @@ waves:
       - "C-REWARD"
       - "NET-4A"
       - "NET-4B"
+      - "NET-5"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -1648,11 +1651,26 @@ tickets:
     id: "NET-4B"
     wave: "C"
     title: "Verified complete-vector publication and recovery"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/net_4b.md"
     repo_path: ".agent/tickets/NET-4B_verified_publication.md"
     depends_on:
       - "NET-4A"
+    depends_on_context:
+      []
+    unlocks:
+      - "NET-5"
+    unlocks_context:
+      []
+  -
+    id: "NET-5"
+    wave: "C"
+    title: "Reproducible disposable localnet integration"
+    status: "in_progress"
+    explainer: "explainers/tickets/net_5.md"
+    repo_path: ".agent/tickets/NET-5_disposable_localnet.md"
+    depends_on:
+      - "NET-4B"
     depends_on_context:
       []
     unlocks:
@@ -3486,6 +3504,60 @@ events:
       - "WAVE-C/NET-3"
       - "WAVE-C/C-REWARD"
       - "WAVE-C/NET-4A"
+      - "SYSTEM/CI"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/NET-5"
+    event_type: "adjustment"
+    event_id: "NET-5-D1"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/NET-1"
+      - "WAVE-C/NET-2"
+      - "WAVE-C/NET-3"
+      - "WAVE-C/C-REWARD"
+      - "WAVE-C/NET-4A"
+      - "WAVE-C/NET-4B"
+      - "SYSTEM/CI"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/NET-5"
+    event_type: "adjustment"
+    event_id: "NET-5-D2"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611638865"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/NET-1"
+      - "WAVE-C/NET-2"
+      - "WAVE-C/NET-3"
+      - "WAVE-C/C-REWARD"
+      - "WAVE-C/NET-4A"
+      - "WAVE-C/NET-4B"
       - "SYSTEM/CI"
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/AGENT-EXECUTION"

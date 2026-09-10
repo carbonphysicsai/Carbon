@@ -1,7 +1,7 @@
 # NET-4B — Verified complete-vector publication and recovery
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** NET-4A
 **Primary Hub map_ref:** `WAVE-C/NET-4B`
 **Evidence:** `.agent/evidence/wave_c/net-4b.md`
@@ -32,30 +32,30 @@ path is the only supported sink; arbitrary recipients or zero vectors are reject
 
 ## Definition of Done
 
-- [ ] Runtime pin/genesis, Burn mode, owner sink identity, mechanism count and
+- [x] Runtime pin/genesis, Burn mode, owner sink identity, mechanism count and
       min/max/version/rate/permit constraints are explicit and checked. Owners'
       miner incentives burn; owner cut and validator dividends remain distinct.
-- [ ] Complete challenge targets aggregate shared holders before UID conversion.
+- [x] Complete challenge targets aggregate shared holders before UID conversion.
       Missing/recycled or owner-associated payable identities fail publication;
       the next fresh projection burns unusable winners. No loser floor, arbitrary
       sink, earned-subset normalization or cross-challenge redistribution.
-- [ ] Quantization tolerance is explicit and tested for dust, singleton winner plus
+- [x] Quantization tolerance is explicit and tested for dust, singleton winner plus
       burn, all-burn, zero recipients, max clipping, min counts and shared winners.
       Unsupported configurations fail with concrete capability reasons.
-- [ ] Installed SDK build/execute final integers are checked before encryption or
+- [x] Installed SDK build/execute final integers are checked before encryption or
       signing, including execution rebuilding and changed UID/runtime state. A
       narrow version-specific shim is isolated and contract-tested; no global patch,
       broad SDK fork, policy bypass or arbitrary unchecked extrinsic.
-- [ ] Durable intent/dispatch/transaction identity precedes effects. Exact replay
+- [x] Durable intent/dispatch/transaction identity precedes effects. Exact replay
       is idempotent. Interrupted/ambiguous outcomes block blind resend; bounded
       finalized-block backfill reconciles observed transactions and rows.
-- [ ] Plain and SDK timelock paths retain distinct reveal state. Inclusion,
+- [x] Plain and SDK timelock paths retain distinct reveal state. Inclusion,
       finality, reveal, stored row and settlement are never conflated. Actual
       localnet mode/epoch claims remain NET-5 evidence requirements.
-- [ ] Heartbeat publishes fresh decay and explicit all-burn updates, handles
+- [x] Heartbeat publishes fresh decay and explicit all-burn updates, handles
       outages/reconnect/restart, and exposes stale stored-weight risk. Local expiry
       or process shutdown never reports zero ongoing payout without chain evidence.
-- [ ] Focused tests, installed-SDK contracts, invariants and applicable automated
+- [x] Focused tests, installed-SDK contracts, invariants and applicable automated
       acceptance pass. No real science, security qualification, public operation,
       treasury deployment, G2 or LIVE claim.
 
@@ -78,3 +78,10 @@ it is not silently reset. SDK/runtime upgrades must rerun these contracts.
 Hub impact: map_structural; WAVE-C/NET-4B primary, NET-4A, chain/reward and CI affected.
 Dedicated security qualification remains future human-owned; local tests are not
 that acceptance. Notification is asynchronous under standing authorization.
+
+## Accepted delivery
+
+PR #125 passed run 34421219713 (1,848 focused CPU, 180 invariants, package,
+quality, Hub and Merge gate), normally merged as 0e6b5e001302b349135785756c633530853684c2.
+Completion: https://github.com/carbonphysicsai/Carbon/pull/125#issuecomment-5610763822.
+Bounded implementation/test maturity; actual localnet evidence belongs to NET-5.

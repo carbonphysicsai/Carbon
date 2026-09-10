@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-4B`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ Pinned runtime burn checks, explicit quantization tolerance, final SDK integer/c
 ## Placement and handoff
 
 - **Depends on:** NET-4A
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-5
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No actual localnet burn/epoch proof, public transaction, treasury deployment, sc
 
 ## Current stage
 
-NET-4B implementation and native diagnostics are prepared; installed-SDK canonical acceptance and merge remain pending.
+NET-4B merged with canonical final-vector, SDK signing, durable dispatch and recovery tests (PR #125).
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ Disposable-localnet publication software only; actual runtime integration and G2
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/tickets/NET-4B_verified_publication.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/evidence/wave_c/net-4b.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/docs/development/WEIGHT_PUBLICATION.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/tickets/NET-4B_verified_publication.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/evidence/wave_c/net-4b.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/docs/development/WEIGHT_PUBLICATION.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/WAVE_C.md)
 
 > A finalized commit is not reveal, and a stored row is not settlement. Shutdown can leave prior weights effective.

@@ -1,0 +1,268 @@
+{
+  "schema": "carbon.net5.runtime.evidence.v1",
+  "maturity": "SYNTHETIC_ONLY",
+  "g2": "NOT_READY",
+  "treasury": null,
+  "stages": [
+    "isolated-genesis-verified-before-keys",
+    "disposable-subnet-and-publisher-configured",
+    "genesis-mismatch-rejected",
+    "three-pinned-fixture-baselines-and-public-coefficients-registered",
+    "actual-all-burn-inclusion-finality-row-and-epochs",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery"
+  ],
+  "epochs": [
+    {
+      "label": "no-winner-all-burn",
+      "block": 237,
+      "hash": "0xf3f75fe9f2e9b76dd8eac9f7291afd6e15f0d2a539496823d7a8ef9ed5b4e7cf",
+      "epoch": 12,
+      "capabilities": {
+        "snapshot_id": "sha256:d18f68fd2ad7611431b985da621997967d2e2c065687f67c3f145ae0e27d4f98",
+        "spec_version": 445,
+        "mechanism_count": 1,
+        "maximum_mechanisms": 2,
+        "burn_mode": "Burn",
+        "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+        "owner_hotkeys": [
+          "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+        ],
+        "min_weights": 1,
+        "max_weight": 65535,
+        "version_key": 0,
+        "rate_limit": 0,
+        "last_update": 194,
+        "commit_reveal": false,
+        "validator_permit": true,
+        "sufficient_stake": true,
+        "pending_commits": 0
+      },
+      "observations": {
+        "MinerBurned": {
+          "bits": 4294967296
+        },
+        "SubnetAlphaIn": 874126258949,
+        "SubnetAlphaOut": 284873741051,
+        "SubnetAlphaInEmission": 0,
+        "SubnetAlphaOutEmission": 1000000000,
+        "Incentive": [
+          65535
+        ],
+        "Dividends": [
+          65535
+        ],
+        "Emission": [
+          16400091520
+        ],
+        "PendingServerEmission": 820004576,
+        "PendingValidatorEmission": 820004576,
+        "PendingOwnerCut": 359990844
+      },
+      "miner_burned_q32": 4294967296
+    }
+  ],
+  "dispatches": [
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 26,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:3238b111c5043141c45a57e5b33ebdbe06ada218ef7f79bd3a15475e2c8320b3",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "974f7d35b323d45fc55523bd4fdef2abbabe67491c77a72d0540fa4130a75ca0",
+          "identity": "three-challenges-no-winner"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "0a4c901444078d2fb2e4944c2158248482aeca5bb2c3e830ae370cdd4eac422c",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "974f7d35b323d45fc55523bd4fdef2abbabe67491c77a72d0540fa4130a75ca0",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:3238b111c5043141c45a57e5b33ebdbe06ada218ef7f79bd3a15475e2c8320b3",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x42e6a6f827068c88acc44d5af6313873c6c3cbc0a82181d0629761e4eed96bff",
+          "context": {
+            "endpoint": "ws://127.0.0.1:34711",
+            "genesis_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 185,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 26,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789003989250
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 194,
+        "included_block": 194,
+        "included_hash": "0x8a06ce8e65d52158ff8f5bdb1501e87b842b2bdb93b22fce66b4858ebc99a5f9",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 194,
+        "scan_block": 195,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0x7e83399770c359a3baea40a4ff832eeca519a75094fdd8776a16cb60b3689a37"
+      }
+    },
+    {
+      "document": {
+        "capabilities": {
+          "burn_mode": "Burn",
+          "commit_reveal": false,
+          "last_update": 194,
+          "max_weight": 65535,
+          "maximum_mechanisms": 2,
+          "mechanism_count": 1,
+          "min_weights": 1,
+          "owner_coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "owner_hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "owner_hotkeys": [
+            "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe"
+          ],
+          "pending_commits": 0,
+          "rate_limit": 0,
+          "snapshot_id": "sha256:72a79dbb832e6e1654c4ca0be514fb354796c558d72a79a9ed5ec1bbff06eae6",
+          "spec_version": 445,
+          "sufficient_stake": true,
+          "validator_permit": true,
+          "version_key": 0
+        },
+        "intent": {
+          "digest": "1c7913ec2ccd49f0a9e69aa0fd8ca955bbdcfc73084c0bd7f19f88fa60d0a085",
+          "identity": "all-burn-publication-recovery"
+        },
+        "plan": {
+          "burn_uid": 0,
+          "capabilities_digest": "3a6da72222118bc362316d8e2fa47a6a45f783bcb164394f9239d815f86db5ec",
+          "commit_reveal": false,
+          "integers": [
+            [
+              0,
+              65535
+            ]
+          ],
+          "intent_digest": "1c7913ec2ccd49f0a9e69aa0fd8ca955bbdcfc73084c0bd7f19f88fa60d0a085",
+          "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+          "publisher_uid": 0,
+          "q12": [
+            [
+              0,
+              1000000000000
+            ]
+          ],
+          "snapshot_id": "sha256:72a79dbb832e6e1654c4ca0be514fb354796c558d72a79a9ed5ec1bbff06eae6",
+          "tolerance_q12": 15259022,
+          "version_key": 0
+        },
+        "snapshot": {
+          "block_hash": "0x0fccb6ba825cbdd4834a4ed5b5efe4fe2bb95728a3422036cb77c4e729750262",
+          "context": {
+            "endpoint": "ws://127.0.0.1:34711",
+            "genesis_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+            "netuid": 2,
+            "network": "localnet",
+            "provider": "disposable-primary"
+          },
+          "finalized_block": 242,
+          "participants": [
+            {
+              "coldkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+              "hotkey": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+              "registered_at": 26,
+              "uid": 0
+            }
+          ],
+          "timestamp_ms": 1789004007001
+        }
+      },
+      "state": "ROW_VERIFIED",
+      "tracking": {
+        "call_hash": "3195a478eef8690e2456dc24c9d6bbb4a65d6a90943c3a92d807ea664e1a19a9",
+        "finalized_block": 250,
+        "included_block": 250,
+        "included_hash": "0x565310d9a9b0ea95076aba27122cad7ccc4696ff70c0965250cfb0d1411be6c5",
+        "integers": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "reason": null,
+        "reveal_block": null,
+        "reveal_round": null,
+        "revealed": false,
+        "row_block": 250,
+        "scan_block": 251,
+        "settlement": "UNOBSERVED",
+        "stored_row": [
+          [
+            0,
+            65535
+          ]
+        ],
+        "tx_hash": "0xa6f71311f88597cf5cfd3a4213d3be643d02a3348ffc268f38f89ad57a170ce9"
+      }
+    }
+  ],
+  "failure_type": "PublicationFailure",
+  "failure_code": "LOCAL_SETUP_REJECTED:register-miner"
+}

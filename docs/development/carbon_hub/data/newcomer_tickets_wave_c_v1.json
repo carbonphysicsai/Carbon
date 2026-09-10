@@ -50,6 +50,14 @@
       "changes": "Pinned runtime burn checks, explicit quantization tolerance, final SDK integer/call guards, durable transaction identity and heartbeat/recovery.",
       "not_yet": "No actual localnet burn/epoch proof, public transaction, treasury deployment, scientific/security qualification or G2/LIVE authority.",
       "map_ref": "WAVE-C/NET-4B"
+    },
+    "NET-5": {
+      "title": "Reproducible disposable localnet integration",
+      "what": "Reproduce the complete fixture-to-chain path and collect actual runtime identity, rows, epochs and recovery evidence.",
+      "why": "Unit contracts and source pins cannot prove chain effects, burn behavior or local operation.",
+      "changes": "An isolated pinned-image runner, guarded local setup, three fixed synthetic exam identities and actual SDK/chain integration tests.",
+      "not_yet": "No C1 scientific evidence, public network, treasury, security qualification or automatic G2 readiness.",
+      "map_ref": "WAVE-C/NET-5"
     }
   }
 }

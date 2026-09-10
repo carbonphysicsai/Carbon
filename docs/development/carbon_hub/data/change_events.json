@@ -1880,6 +1880,64 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5",
+      "event_type": "adjustment",
+      "event_id": "NET-5-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-5",
+      "event_type": "adjustment",
+      "event_id": "NET-5-D2",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611638865",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

@@ -5,8 +5,25 @@
   "commit": "d3f40e44bda9019c606aeb0c907bb52ba7fe386c",
   "build_definition": "Dockerfile-localnet",
   "platform": "linux/amd64",
-  "image_digest": null,
-  "observed_genesis": null,
+  "image_digest": "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86",
+  "observed_genesis": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
   "runtime_capabilities_verified": false,
-  "scope": "DISPOSABLE_LOCALNET_ONLY"
+  "scope": "DISPOSABLE_LOCALNET_ONLY",
+  "image": "ghcr.io/raofoundation/subtensor-localnet",
+  "development": {
+    "topology": "three authorities in one isolated disposable container",
+    "fast_blocks_seconds": "0.25",
+    "netuid": 2,
+    "mechanism": 0,
+    "tempo_blocks": 20,
+    "min_allowed_weights": 1,
+    "max_weights_limit_required": 65535,
+    "commit_reveal_weights": false,
+    "treasury": null,
+    "network_backend": "libp2p",
+    "upstream_startup_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae",
+    "admin_freeze_window_blocks": 0,
+    "shield_era_blocks": 64
+  },
+  "observed_evidence": ".agent/evidence/wave_c/net-5-runtime/34425292251/manifest.json"
 }
