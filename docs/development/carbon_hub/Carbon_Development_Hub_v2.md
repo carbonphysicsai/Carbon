@@ -2,10 +2,10 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9609ce1294fb2d8c4f8e6892da1797e27d3bacd2` on `main`, captured 2026-09-10T05:31:37Z.
-**Current:** Wave C, ticket C-01. C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
-**Last completed:** NET-6 (`done`).
-**Next selected:** C-AUTH1.
+**Authority snapshot:** `f46e76743913e3af36ed30275afc400d70aaf42e` on `main`, captured 2026-09-10T07:09:27Z.
+**Current:** Wave C, ticket C-AUTH1. C-01 is merged in bounded offline engineering scope. C-AUTH1 is selected and implemented as a public-development authoring/Burgers candidate; applicable canonical acceptance and normal merge remain pending. C-EA0 is next and unstarted. G2 remains NOT_READY. No public-network operation, scientific qualification, accepted baseline, archive acknowledgement, testnet eligibility or LIVE authority is created.
+**Last completed:** C-01 (`done`).
+**Next selected:** C-EA0.
 
 ## Wave spine
 
@@ -80,8 +80,9 @@
 | [NET-4B](explainers/tickets/net_4b.md) | Check final winner/burn integers before signing and reconcile chain effects before retry. | done |
 | [NET-5](explainers/tickets/net_5.md) | Run authentic synthetic submissions through reward targets and the pinned isolated chain. | done |
 | [NET-6](explainers/tickets/net_6.md) | Operate and recover the isolated publisher without losing reward age or pending dispatch. | done |
-| [C-01](explainers/tickets/c_01.md) | Persist exact scientific attempts before dispatch and reconcile ambiguity without duplicate work or resampling. | in_progress |
-| [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | todo |
+| [C-01](explainers/tickets/c_01.md) | Persist exact scientific attempts before dispatch and reconcile ambiguity without duplicate work or resampling. | done |
+| [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | in_progress |
+| [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | todo |
 
 ## Change routes
 
@@ -179,6 +180,7 @@
 - `NET-6-D1` — `WAVE-C/NET-6` — NET-5 merged with actual all-burn/recovery evidence and an unresolved required shielded-registration failure. NET-6 adds guarded operator lifecycle, external throwaway keys, private backup/restore and a separately labeled operator rehearsal; G2 remains NOT_READY and C1/C2 archive dependencies are preserved. Actual operator run 34431662096 passed: same-container restart preserves finalized state/row; external key and restored consumers publish; shutdown retains exposure; all logical backup/restore tables match. Full winner integration remains unobserved.
 - `NET-6-CLOSEOUT` — `WAVE-C/NET-6` — NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY. No active implementation ticket; concrete C-01/C-W1 and archive handoff remain unselected. The route regression now handles an explicitly null active/next selection by checking the completed ticket, preserving all route assertions. Its known tooling path uses focused acceptance; unrelated unknown paths retain full fallback.
 - `OWNER-C1-C2-BURGERS-01` — `WAVE-C/C-01` — The owner selects C-01 first and permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-01 adds a bounded durable execution candidate; C-AUTH1 is next and unstarted. No public-network operation, archive acknowledgement, scientific qualification, testnet eligibility or LIVE authority follows.
+- `C-AUTH1-D1` — `WAVE-C/C-AUTH1` — C-01 passed canonical acceptance and merged in PR #129. C-AUTH1 adds a closed content-addressed goal compiler and exact public-development Burgers law with one Dynamics competition, three inactive specialist reports, separate TRAIN/EVAL/STRESS mock derivation, development-only references and fail-closed JAX/archive handoffs. C-EA0 is next; G2 and every scientific, protected-evaluation, archive, network and LIVE boundary remain unchanged.
 
 ## Authority boundary
 

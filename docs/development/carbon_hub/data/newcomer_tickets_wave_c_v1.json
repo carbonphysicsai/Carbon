@@ -79,9 +79,17 @@
       "title": "Turn structured scientific goals into a verified Burgers package",
       "what": "Import the supplied typed authoring contracts and exact Burgers Dynamics V1 development package into Carbon's existing owners.",
       "why": "Authors need deterministic, reviewable package construction without copying a second scheduler or bypassing scientific governance.",
-      "changes": "This is the next unstarted C1 ticket after C-01 delivery.",
+      "changes": "C1 gains a closed content-addressed goal compiler, exact 12-cell public-development generator, separated TRAIN/EVAL/STRESS plan and explicit reference/JAX/archive handoffs.",
       "not_yet": "The public workbench cases are not a protected exam, accepted baseline, qualified reference, durable archive acknowledgement or testnet evidence.",
       "map_ref": "WAVE-C/C-AUTH1"
+    },
+    "C-EA0": {
+      "title": "Define when evaluation evidence is actually captured and durable",
+      "what": "Specify attempt coverage, required artifacts, custody zones, retention classes, completeness, named uses and durability acknowledgement using existing result owners.",
+      "why": "A stored result reference is not enough to prove that required evidence survived, is usable for its named purpose or may be finalized.",
+      "changes": "After C-AUTH1 delivery, this becomes the next unstarted contract ticket before archive implementation or finalization relies on capture semantics.",
+      "not_yet": "This does not implement an archive, invent retention or legal policy, acknowledge durability, set science, qualify evidence, deploy infrastructure or authorize a network.",
+      "map_ref": "WAVE-C/C-EA0"
     }
   }
 }
