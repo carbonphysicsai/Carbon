@@ -113,12 +113,44 @@ def journaled_substrate(
 
     class JournaledRpcSubstrate(bt.RpcSubstrate):
         async def mev_next_key(self):
-            key = await super().mev_next_key()
+            # Preserve the pinned SDK's public storage path while binding the
+            # rotating key, author association and exclusive expiry to one head.
+            block = await self.block_number()
+            block_hash = await self.block_hash(block)
+            value = await self.query("MevShield", "NextKey", block_hash=block_hash)
+            if not value:
+                key = None
+            elif isinstance(value, str):
+                key = bytes.fromhex(value.removeprefix("0x"))
+            else:
+                key = bytes(value)
             if after_shield_key is not None:
                 digest = (
                     None if key is None else "sha256:" + hashlib.sha256(key).hexdigest()
                 )
-                await after_shield_key(digest, 0 if key is None else len(key))
+                expiry = await self.query(
+                    "MevShield", "NextKeyExpiresAt", block_hash=block_hash
+                )
+                matches = []
+                if key is not None:
+                    for author, author_key in await self.query_map(
+                        "MevShield", "AuthorKeys", block_hash=block_hash
+                    ):
+                        if isinstance(author_key, str):
+                            author_key = bytes.fromhex(author_key.removeprefix("0x"))
+                        else:
+                            author_key = bytes(author_key)
+                        if author_key == key:
+                            matches.append(author)
+                context = {
+                    "block": block,
+                    "block_hash": hash256(block_hash),
+                    "expires_at_exclusive": expiry,
+                    "associated_authors": matches,
+                }
+                await after_shield_key(
+                    digest, 0 if key is None else len(key), context
+                )
             return key
 
         async def sign_extrinsic(self, call, keypair, **kwargs):

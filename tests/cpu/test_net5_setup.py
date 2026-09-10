@@ -18,6 +18,8 @@ from carbon.chain.localnet import (
     STARTUP,
     inspect_isolation,
     root_setting,
+    runtime_profile,
+    startup_for,
 )
 from carbon.chain.publication import PublicationFailure
 from carbon.traineval import FixtureStubProfile
@@ -31,10 +33,19 @@ def docker_state():
             "Image": IMAGE + "@" + DIGEST,
             "Entrypoint": ["/bin/bash"],
             "Cmd": ["-c", STARTUP],
-            "Labels": {"carbon.scope": "disposable-localnet"},
+            "Labels": {
+                "carbon.scope": "disposable-localnet",
+                "carbon.runtime-profile": "fast",
+                "carbon.execution-mode": "full",
+            },
         },
         "State": {"Running": True},
-        "HostConfig": {"Privileged": False},
+        "HostConfig": {
+            "Privileged": False,
+            "Memory": 5 * 1024**3,
+            "NanoCpus": 3 * 10**9,
+            "PidsLimit": 1024,
+        },
         "Mounts": [],
         "NetworkSettings": {
             "Networks": {"internal": {"IPAddress": "172.18.0.2"}},
@@ -53,6 +64,18 @@ def test_runtime_diagnostic_log_distinguishes_shield_decryption_failures():
     assert "basic-authorship=debug" in STARTUP
     assert "mev-shield=debug" in STARTUP
     assert "pallet-shield=debug" in STARTUP
+
+
+def test_standard_profile_is_separate_exact_non_fast_release():
+    name, profile = runtime_profile("standard")
+    assert name == "standard"
+    assert profile["selector"] == "False"
+    assert profile["binary_path"] == "/target/non-fast-runtime/release/node-subtensor"
+    assert profile["build_profile"] == "release"
+    assert profile["cargo_features"] == ["pow-faucet", "metadata-hash"]
+    assert "fast-runtime" not in profile["cargo_features"]
+    assert "exec /scripts/carbon-localnet.sh False --no-purge" in startup_for(name)
+    assert startup_for(name) != STARTUP
 
 
 @pytest.mark.parametrize(
@@ -333,22 +356,13 @@ def test_shield_diagnostics_bind_key_nonce_and_era_before_signing():
     async def journal(tx_hash):
         pass
 
-    async def key(digest, length):
-        observed.append(("key", digest, length))
+    async def key(digest, length, context):
+        observed.append(("key", digest, length, context))
 
     async def signing(kind, kwargs):
         observed.append((kind, kwargs["nonce"], kwargs["period"]))
 
     class Raw:
-        async def query(self, module, item, params, block_hash):
-            assert (module, item, params, block_hash) == (
-                "MevShield",
-                "NextKey",
-                [],
-                None,
-            )
-            return bytes(range(256)) * 4 + bytes(range(160))
-
         async def create_signed_extrinsic(self, call, keypair, **kwargs):
             return SignedExtrinsic(b"synthetic", "0x" + "a" * 64)
 
@@ -360,12 +374,43 @@ def test_shield_diagnostics_bind_key_nonce_and_era_before_signing():
         before_signed_extrinsic=signing,
     )
     sub._substrate = Raw()
+    key_bytes = bytes(range(256)) * 4 + bytes(range(160))
+
+    async def block_number():
+        return 41
+
+    async def block_hash(block):
+        assert block == 41
+        return "0x" + "b" * 64
+
+    async def query(module, item, params=None, block_hash=None):
+        assert module == "MevShield" and block_hash == "0x" + "b" * 64
+        return key_bytes if item == "NextKey" else 44
+
+    async def query_map(module, item, params=None, block_hash=None):
+        assert (module, item, block_hash) == (
+            "MevShield",
+            "AuthorKeys",
+            "0x" + "b" * 64,
+        )
+        return [(bytes.fromhex("12" * 32), key_bytes)]
+
+    sub.block_number = block_number
+    sub.block_hash = block_hash
+    sub.query = query
+    sub.query_map = query_map
     key_bytes = asyncio.run(sub.mev_next_key())
     assert len(key_bytes) == 1184
     assert observed[0] == (
         "key",
         "sha256:" + hashlib.sha256(key_bytes).hexdigest(),
         1184,
+        {
+            "block": 41,
+            "block_hash": "0x" + "b" * 64,
+            "expires_at_exclusive": 44,
+            "associated_authors": [bytes.fromhex("12" * 32)],
+        },
     )
     signer = Keypair.create_from_uri("//Bob")
     asyncio.run(
