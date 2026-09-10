@@ -99,9 +99,13 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("PR #132&#x27;s eight-block repair is reconciled as merged", self.output)
+        self.assertIn(
+            "PR #132&#x27;s eight-block repair is reconciled as merged", self.output
+        )
         self.assertIn("G2 remains NOT_READY", self.output)
-        self.assertIn("C-EA1 stays scoped to its unresolved operating inputs", self.output)
+        self.assertIn(
+            "C-EA1 stays scoped to its unresolved operating inputs", self.output
+        )
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
