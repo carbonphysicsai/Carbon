@@ -244,3 +244,48 @@ def test_unknown_burn_measurement_never_becomes_success(value):
 
     with pytest.raises(PublicationFailure, match="UNSUPPORTED_MINER_BURNED_ENCODING"):
         miner_burned_q32(value)
+
+
+def test_installed_sdk_inner_signing_checks_identity_before_key_use():
+    from test_net1_chain_adapter import installed_sdk, context
+
+    installed_sdk()
+    from bittensor._transport.contract import CallBytes, SignedExtrinsic
+    from bittensor.keyfiles import Keypair
+    from carbon.chain.sdk_weights import journaled_substrate
+
+    order = []
+    blocked = True
+
+    async def guard(call, signer):
+        order.append("guard")
+        if blocked:
+            raise PublicationFailure("ENDPOINT_GENESIS_MISMATCH")
+
+    async def journal(tx_hash):
+        pytest.fail("An inner signature is not an outer dispatch")
+
+    class Raw:
+        async def create_signed_extrinsic(self, call, keypair, **kwargs):
+            assert order[-1] == "guard" and kwargs == {
+                "nonce": 1,
+                "era": {"period": 64},
+            }
+            order.append("sign")
+            return SignedExtrinsic(b"synthetic", "0x" + "a" * 64)
+
+    sub = journaled_substrate(context(), guard, journal)
+    sub._substrate = (
+        Raw()
+    )  # Installed SDK contract with a deterministic transport double.
+    key = Keypair.create_from_uri("//Alice")
+    call = CallBytes(b"fixture", 445)
+    with pytest.raises(PublicationFailure, match="ENDPOINT_GENESIS_MISMATCH"):
+        asyncio.run(sub.sign_extrinsic(call, key, nonce=1, period=64))
+    assert order == ["guard"]
+    blocked = False
+    assert asyncio.run(sub.sign_extrinsic(call, key, nonce=1, period=64)) == (
+        b"synthetic",
+        "0x" + "a" * 64,
+    )
+    assert order == ["guard", "guard", "sign"]

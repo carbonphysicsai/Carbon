@@ -92,7 +92,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             baselines = []
             for exam in exams:
                 for variant in range(20):
-                    ref = await exam.commit(variant, signer("miner"))
+                    ref = await exam.commit(variant, signer("publisher"))
                     accepted = exam.evaluate(ref)
                     if accepted is not None:
                         baselines.append((ref, accepted))
@@ -213,6 +213,8 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             await epoch("no-winner-all-burn")
             record("actual-all-burn-inclusion-finality-row-and-epochs")
 
+            await session.register_miners()
+            record("shielded-miner-registration-finalized")
             winners = []
             for exam, (_, baseline) in zip(exams[:2], baselines[:2]):
                 for variant in range(20, 60):

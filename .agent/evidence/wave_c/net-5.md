@@ -64,3 +64,13 @@ freeze window even for root. Register development window 0 through the existing
 root-only SDK call before local subnet setup; retain typed chain error name/code
 in subsequent setup receipts. This is an explicit disposable development timing
 value, not a production policy change or an unchecked extrinsic bypass.
+
+Run 34424676154 finalized Burn configuration, activation and validator stake.
+Required shielded miner registration returned failure after an included carrier;
+its typed SDK code was unknown. Preserve carrier/inner identities and classify
+the SDK's specific expired-inner observation without publishing raw messages.
+Use the public submit_shielded API with a DEVELOPMENT 64-block mortal era,
+preserving its policy/encryption and adding the pre-sign guard to the public
+inner-sign path. Baselines use the registered publisher identity with zero
+opening credit so the all-burn observation is independent of miner registration.
+No failed/ambiguous setup operation is blindly retried on the same chain.

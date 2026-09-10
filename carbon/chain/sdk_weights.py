@@ -88,6 +88,11 @@ def journaled_substrate(context, before_sign, before_dispatch):
     import bittensor as bt
 
     class JournaledRpcSubstrate(bt.RpcSubstrate):
+        async def sign_extrinsic(self, call, keypair, **kwargs):
+            # MEV inner signing is a public SDK path separate from submit().
+            await before_sign(call, keypair.ss58_address)
+            return await super().sign_extrinsic(call, keypair, **kwargs)
+
         async def submit(self, call, keypair, **kwargs):
             await before_sign(call, keypair.ss58_address)
             return await super().submit(call, keypair, **kwargs)

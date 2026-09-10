@@ -140,13 +140,17 @@ async def run(container, directory):
                     target.write(data)
                     await target.drain()
 
-            async with asyncio.TaskGroup() as group:
-                a = group.create_task(copy(reader, remote))
-                b = group.create_task(copy(remote_reader, writer))
-                await asyncio.wait((a, b), return_when=asyncio.FIRST_COMPLETED)
-                a.cancel()
-                b.cancel()
-        except (OSError, TimeoutError, ExceptionGroup):
+            pipes = [
+                asyncio.create_task(copy(reader, remote)),
+                asyncio.create_task(copy(remote_reader, writer)),
+            ]
+            try:
+                await asyncio.wait(pipes, return_when=asyncio.FIRST_COMPLETED)
+            finally:
+                for pipe in pipes:
+                    pipe.cancel()
+                await asyncio.gather(*pipes, return_exceptions=True)
+        except (OSError, TimeoutError):
             pass  # RPC observes a closed connection; no payloads enter diagnostics.
         finally:
             writer.close()
@@ -195,7 +199,8 @@ async def probe(container, directory):
         # Startup waits are bounded and read-only. No key exists in this function.
         for attempt in range(60):
             try:
-                async with asyncio.timeout(5):
+
+                async def observe_once():
                     await sub.connect()
                     genesis = hash256(await sub.block_hash(0))
                     version = await sub.spec_version()
@@ -206,6 +211,9 @@ async def probe(container, directory):
                     ) as headers:
                         header = await anext(headers)
                     finalized = await sub.block_hash(header.number)
+                    return genesis, version, finalized
+
+                genesis, version, finalized = await asyncio.wait_for(observe_once(), 5)
                 break
             except (bt.RpcConnectionError, OSError, TimeoutError):
                 inspect_isolation(container)  # Stop promptly if an authority exits.
@@ -362,16 +370,32 @@ class LocalnetSession:
         self.save()
         print("Localnet setup: " + label, flush=True)
         try:
-            result = await asyncio.wait_for(
-                self.client.execute(
+            if intent.mev_shield_required:
+                operation = self.client.submit_shielded(
+                    intent,
+                    self.roles[role],
+                    period=64,
+                    wait_for_inclusion=True,
+                    wait_for_finalization=True,
+                )
+            else:
+                operation = self.client.execute(
                     intent,
                     self.roles[role],
                     retries=0,
                     wait_for_inclusion=True,
                     wait_for_finalization=True,
-                ),
-                90,
-            )
+                )
+            result = await asyncio.wait_for(operation, 90)
+            if result.data.get("shielded"):
+                record["shielded"] = True
+                record["inner_transaction"] = hash256(
+                    result.data["inner_extrinsic_hash"]
+                )
+            if result.error is not None and result.error.message.startswith(
+                "the MEV shield accepted the encrypted submission, but the decrypted "
+            ):
+                record["capability_failure"] = "SHIELDED_INNER_NOT_OBSERVED_BEFORE_ERA"
             record.update(
                 state="FINALIZED" if result.success else "REJECTED",
                 block_hash=result.block_hash,
@@ -425,6 +449,10 @@ class LocalnetSession:
                 amount_tao="1",
             ),
         )
+
+    async def register_miners(self):
+        import bittensor as bt
+
         for role in ("miner", "challenger"):
             await self.execute(
                 "register-" + role,
