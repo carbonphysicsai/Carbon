@@ -30,7 +30,8 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.0
 **Selected ticket:** C-01 — `in_progress`
-**Next selected ticket:** C-AUTH1 after C-01 acceptance and merge
+**Next selected ticket:** C-AUTH1
+Selection follows C-01 acceptance and normal merge.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

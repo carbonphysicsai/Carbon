@@ -25,7 +25,8 @@ Wave C/C0 and this file as its controlling register.
 **Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
 **Selected ticket:** C-01 — `in_progress`
-**Next selected ticket:** C-AUTH1 after C-01 acceptance and merge
+**Next selected ticket:** C-AUTH1
+Selection follows C-01 acceptance and normal merge.
 **Primary Hub map_ref:** `WAVE-C/C-01`
 
 ## 1. Scope and sequence

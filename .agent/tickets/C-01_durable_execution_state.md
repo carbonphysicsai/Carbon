@@ -1,9 +1,11 @@
 # C-01 — Durable execution state and queue
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`; selected under `OWNER-C1-C2-BURGERS-01`
-**Depends on:** A7, B-GATE. Offline C1 engineering may proceed while G2 remains
-NOT_READY; G2 still gates every network-readiness claim and dependent chain run.
+**Status:** `in_progress`
+**Depends on:** A7, B-GATE
+**Selection:** `OWNER-C1-C2-BURGERS-01`; offline C1 engineering may proceed while
+G2 remains NOT_READY. G2 still gates every network-readiness claim and dependent
+chain run.
 **Authority:** launch v1.0.3 C-01 as amended by v1.0.4–v1.0.6;
 Build Out/overlay, existing A7/card/transcript owners and C-EA0–C-EA3.
 
