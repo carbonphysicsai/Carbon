@@ -8,11 +8,11 @@ PR #132 merged the eight-block shield-era repair as
 and D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard-runtime
 comparison has since passed the complete behavioral scenario at the exact
-post-PR-133 main checkpoint. A final successor run is required only for the
-clarified auditable transport-handover and passive SDK-nonce evidence. G2 remains
-`NOT_READY` until that run passes.
+post-PR-133 main checkpoint. The sole D5 successor run then exposed a stateful
+nonce-observer defect before registration. D6 is focused-tested, but the run
+budget is exhausted; G2 remains `NOT_READY` on its missing runtime demonstration.
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`, `NET-5R-D5`, `NET-5R-D6`
 **Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
@@ -168,17 +168,41 @@ handover and subsequent dispatch. The replacement may connect and pass endpoint,
 genesis, runtime and standard-profile checks before the previous transport is
 closed, but it cannot become active and no later signing or dispatch can occur
 until the previous close has completed. An ambiguous outstanding submission
-fails with reconciliation required and cannot trigger a reset. Exactly one
-changed full standard run remains authorized. No public endpoint, unchecked
+fails with reconciliation required and cannot trigger a reset. At this decision
+point exactly one changed full standard run remained authorized. No public endpoint, unchecked
 extrinsic, explicit nonce, retry or production key is introduced.
 Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
 
+## D5 full-run failure and NET-5R-D6
+
+The sole changed full/standard run 34497456242 executed exact head
+`9b7b70f745062a100ff2d6c85d9f647ddad4e588`. It timed out at the first
+`start_delay` configuration submission after 144 seconds. Public-safe setup
+retains disposable Alice identity, transport generation one, observed next index
+zero, an omitted Carbon nonce argument, transaction
+`0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f`,
+ambiguous state and closure at session end. No shielded registration or
+`SwapHotkey` was attempted.
+
+Pinned source proves that D5's `account_next_index` observation itself advanced
+the signing transport's nonce cache because `use_cache=True` is the default. The
+following SDK signing operation advanced it again and selected future nonce one.
+D6 removes the observer effect: read finalized `System.Account` at an exact
+block, leave nonce omitted, preserve exclusivity, and identify the selected
+nonce only from a successful finalized increment. Focused tests pass and reject
+any signing-transport next-index observation. No additional full run remains
+authorized, so G2 stays `NOT_READY` on the missing D6 runtime demonstration.
+Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
+
 ## Bounded delivery disposition
 
 The source-backed mortality repair, exact standard profile, one-shot diagnostic,
-D4 full behavioral run and focused D5 contracts pass. The full-scenario
-Definition-of-Done checkbox remains intentionally open only until the single D5
-run demonstrates the clarified evidence. NET-5R stays `in_progress`; G2 stays
-`NOT_READY`. No later ticket is selected. JAX, C-02 and C-EA1 are outside this
-delivery, and C-EA1's unresolved operating decisions remain scoped to C-EA1.
+D4 full behavioral evidence and focused D6 contracts pass. D5's sole changed
+full run failed because its nonce observation advanced the signing cache; that
+failure is retained, and the execution budget is exhausted. The full-scenario
+Definition-of-Done checkbox remains open because D6 has no canonical runtime
+demonstration. NET-5R stays `in_progress`; G2 stays `NOT_READY`. No later ticket
+is selected. JAX, C-02 and C-EA1 are outside this delivery, and C-EA1's
+unresolved operating decisions remain scoped to C-EA1.

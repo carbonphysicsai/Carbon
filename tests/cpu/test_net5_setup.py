@@ -710,23 +710,22 @@ def test_ordinary_nonce_is_observed_without_being_supplied(monkeypatch, tmp_path
 
     class Substrate:
         async def block_hash(self, block):
-            assert block == 0
-            return context().genesis_hash
+            if block == 0:
+                return context().genesis_hash
+            assert block == 10
+            return "0x" + "a" * 64
 
         async def spec_version(self):
             return 445
 
         async def account_next_index(self, address):
-            assert address == signer
-            return 2
+            pytest.fail("The signing transport's stateful nonce cache must not be read")
 
         async def query(self, module, item, params, block_hash=None):
-            assert (module, item, params, block_hash) == (
-                "System",
-                "Account",
-                [signer],
-                "0x" + "b" * 64,
-            )
+            assert (module, item, params) == ("System", "Account", [signer])
+            if block_hash == "0x" + "a" * 64:
+                return {"nonce": 2}
+            assert block_hash == "0x" + "b" * 64
             return {"nonce": 3}
 
     class Client:
@@ -763,12 +762,17 @@ def test_ordinary_nonce_is_observed_without_being_supplied(monkeypatch, tmp_path
     assert session.operations[-1]["sdk_nonce_observation"] == {
         "account_identity": signer,
         "transport_generation": 2,
-        "public_next_index_before_signing": 2,
-        "sdk_selected_nonce": 2,
-        "selection_source": "PINNED_SDK_11_1_0_PUBLIC_NEXT_INDEX",
+        "finalized_block_before_signing": 10,
+        "finalized_block_hash_before_signing": "0x" + "a" * 64,
+        "finalized_account_nonce_before_signing": 2,
+        "selection_source": "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK",
         "nonce_supplied_by_carbon": False,
         "finalized_block_hash": block_hash,
         "finalized_account_next_nonce": 3,
+        "sdk_selected_nonce": 2,
+        "sdk_selected_nonce_evidence": (
+            "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT"
+        ),
         "outcome": "FINALIZED_INCREMENT_CONFIRMED",
     }
 
@@ -787,6 +791,22 @@ def test_pinned_sdk_source_exposes_the_shielded_nonce_cache_transition():
     assert "nonce + 1" in shielded
     assert "nonce=nonce" in shielded
     assert "self._nonces.pin(keypair.ss58_address, nonce)" in transport
+
+
+def test_pinned_sdk_public_next_index_is_stateful_on_the_signing_transport():
+    from test_net1_chain_adapter import installed_sdk
+
+    installed_sdk()
+    import inspect
+
+    from bittensor._substrate import RpcSubstrate
+    from bittensor._transport.interface import SubstrateConnection
+
+    public = inspect.getsource(RpcSubstrate.account_next_index)
+    transport = inspect.getsource(SubstrateConnection.get_account_next_index)
+    assert "raw.get_account_next_index(address)" in public
+    assert "use_cache: bool = True" in transport
+    assert "self._nonces.next_for(address, use_cache=use_cache)" in transport
 
 
 @pytest.mark.parametrize("present", [True, False])
@@ -904,6 +924,7 @@ def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
         "34473508494",
         "34474220953",
         "34489505489",
+        "34497456242",
     ):
         manifest_path = root / run / "manifest.json"
         manifest = json.loads(manifest_path.read_text())
@@ -913,6 +934,12 @@ def test_archived_net5r_standard_evidence_bytes_match_recorded_hashes():
         for name, expected in manifest["hashes_sha256"].items():
             data = (manifest_path.parent / name).read_bytes()
             assert hashlib.sha256(data).hexdigest() == expected
+    d5 = json.loads((root / "34497456242" / "manifest.json").read_text())
+    assert d5["failure"]["operation_state"] == "AMBIGUOUS_OR_UNAVAILABLE"
+    assert d5["failure"]["carbon_supplied_nonce"] is False
+    assert d5["shield_registration_performed"] is False
+    assert d5["swap_hotkey_performed"] is False
+    assert d5["additional_full_run_authorized"] is False
     retained_log = gzip.decompress((root / "34474220953" / "node.log.gz").read_bytes())
     assert b"Unshielded inner transaction: [REDACTED_DECRYPTED_BYTES]" in retained_log
     assert not re.search(rb"Unshielded inner transaction: [0-9a-f]{16}", retained_log)

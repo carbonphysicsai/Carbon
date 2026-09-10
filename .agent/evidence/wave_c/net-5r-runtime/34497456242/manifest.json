@@ -1,0 +1,61 @@
+{
+  "schema": "carbon.net5r.d5-standard-full-failure-evidence.v1",
+  "run": 34497456242,
+  "head": "9b7b70f745062a100ff2d6c85d9f647ddad4e588",
+  "platform": "Ubuntu 24.04 linux/amd64 Docker",
+  "mode": "full",
+  "profile": "standard",
+  "attempts": 1,
+  "retries": 0,
+  "budget_wall_seconds": 5400,
+  "operation_wall_seconds": 144,
+  "outcome": "FAILED_AMBIGUOUS_FIRST_CONFIGURATION_SUBMISSION",
+  "stage": "start_delay",
+  "failure": {
+    "type": "TimeoutError",
+    "account": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "transaction": "0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f",
+    "start_finalized_block": 0,
+    "observed_public_next_index": 0,
+    "carbon_supplied_nonce": false,
+    "operation_state": "AMBIGUOUS_OR_UNAVAILABLE",
+    "diagnosis": "Carbon called signing-transport account_next_index before Client.execute. In pinned Bittensor 11.1.0 this public method delegates to get_account_next_index with use_cache=True, advancing that transport's nonce cache from the observed 0; the later omitted-nonce signing path advanced it again and selected future nonce 1. The transaction was not included before the 144-second ceiling.",
+    "excluded_by_evidence": [
+      "standard-versus-fast timing",
+      "shield key rotation or author association",
+      "ciphertext handling or unshielding",
+      "drand availability",
+      "public network"
+    ]
+  },
+  "transport": {
+    "generation": 1,
+    "identity_verified": true,
+    "previous_transport": null,
+    "closed_at_session_end": true,
+    "runtime_spec_version": 445,
+    "block_time_seconds": 12.0,
+    "genesis": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e"
+  },
+  "shield_registration_performed": false,
+  "swap_hotkey_performed": false,
+  "next_supported_candidate": "Read finalized System.Account on the signing transport without touching its nonce cache; keep nonce omitted; after success derive the selected nonce only from the exclusive sequence and verified finalized account increment.",
+  "additional_full_run_authorized": false,
+  "g2": "NOT_READY_EXECUTION_BUDGET_EXHAUSTED_AFTER_D5_FAILURE",
+  "node_log_redaction": "The retained log contains no decrypted inner-extrinsic bytes, secret key, seed phrase or private payload.",
+  "public_network_actions": 0,
+  "url": "https://github.com/carbonphysicsai/Carbon/actions/runs/34497456242",
+  "hashes_sha256": {
+    "container-id.txt": "b0dcb1799d2e21044ae56f7279312541f1a6e48c0b614ffe94a5550bfd996051",
+    "docker-host-config.json": "7edeeb61f65d1cfec58282244e00116664432ccf4dc1d8955e51e6e1b007ca88",
+    "docker-network.json": "931a3a7a7294b8e93692925172c39202ed7bd454be64c980c136f7ed4a68a24a",
+    "docker-requested-ports.json": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+    "docker-resource-usage.json": "f5b2516f25af516eef2852db0d7691e60a2d88923d9830c9171db2862ca4c910",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "image-profile.json": "d9283e93b8a1ddaa036ae6859ef44a0f258dc212fa4102876a02b61614e7030a",
+    "integration.json": "578fe1bcccaf2c27ac6fe1959caf61ca4938bdf74bda373cdc1ed26b20b2efaa",
+    "isolation.json": "2cbf85146528c29aa8725ae66eb125b557c5b70b2acdcdf582af357b51086913",
+    "node.log.gz": "b08574631619c572a7fc83d19e072371f30f46b44dd81fc623c18d0f609b51a9",
+    "setup.json": "e7b7bc05f2e78b7bcc493d37e4ba1f211a8fb3a8df172d967093f6897355252c"
+  }
+}

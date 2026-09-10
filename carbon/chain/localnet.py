@@ -858,10 +858,12 @@ class LocalnetSession:
         self.signer = self.roles[role].ss58_address
         async with aclosing(self.client.blocks(finalized=True)) as headers:
             start = (await anext(headers)).number
+        start_hash = hash256(await self.sub.block_hash(start))
         record = {
             "label": label,
             "state": "PREPARED",
             "start_finalized_block": start,
+            "start_finalized_block_hash": start_hash,
             "account_identity": self.signer,
             "transport_generation": self._transport_generation,
         }
@@ -885,15 +887,21 @@ class LocalnetSession:
                     wait_for_finalization=True,
                 )
             else:
-                selected_nonce = await self.sub.account_next_index(self.signer)
-                if type(selected_nonce) is not int or selected_nonce < 0:
+                account = await self.sub.query(
+                    "System", "Account", [self.signer], block_hash=start_hash
+                )
+                observed_nonce = account.get("nonce") if type(account) is dict else None
+                if type(observed_nonce) is not int or observed_nonce < 0:
                     raise PublicationFailure("SDK_NONCE_READBACK_INVALID")
                 record["sdk_nonce_observation"] = {
                     "account_identity": self.signer,
                     "transport_generation": self._transport_generation,
-                    "public_next_index_before_signing": selected_nonce,
-                    "sdk_selected_nonce": selected_nonce,
-                    "selection_source": "PINNED_SDK_11_1_0_PUBLIC_NEXT_INDEX",
+                    "finalized_block_before_signing": start,
+                    "finalized_block_hash_before_signing": start_hash,
+                    "finalized_account_nonce_before_signing": observed_nonce,
+                    "selection_source": (
+                        "PINNED_SDK_11_1_0_OMITTED_NONCE_PLUS_FINALIZED_READBACK"
+                    ),
                     "nonce_supplied_by_carbon": False,
                 }
                 self.save()
@@ -936,7 +944,10 @@ class LocalnetSession:
                     account.get("nonce") if type(account) is dict else None
                 )
                 expected_nonce = (
-                    record["sdk_nonce_observation"]["sdk_selected_nonce"] + 1
+                    record["sdk_nonce_observation"][
+                        "finalized_account_nonce_before_signing"
+                    ]
+                    + 1
                 )
                 if (
                     type(finalized_nonce) is not int
@@ -944,6 +955,10 @@ class LocalnetSession:
                 ):
                     raise PublicationFailure("SDK_NONCE_FINALIZED_READBACK_MISMATCH")
                 record["sdk_nonce_observation"].update(
+                    sdk_selected_nonce=finalized_nonce - 1,
+                    sdk_selected_nonce_evidence=(
+                        "EXCLUSIVE_SEQUENCE_AND_FINALIZED_ACCOUNT_INCREMENT"
+                    ),
                     finalized_block_hash=finalized_hash,
                     finalized_account_next_nonce=finalized_nonce,
                     outcome="FINALIZED_INCREMENT_CONFIRMED",

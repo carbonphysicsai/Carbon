@@ -1,8 +1,9 @@
 # NET-5R shielded registration compatibility evidence
 
-**Status:** NET-5R `in_progress`; PR #132's eight-block repair is merged, exact
-standard-runtime discovery/diagnostic/full attempts are retained, and a second
-source-backed Carbon compatibility candidate is focused-tested. G2 `NOT_READY`.
+**Status:** NET-5R `in_progress`; PR #132's eight-block repair and PR #133's
+standard-profile/D4 checkpoint are merged. D4 passed the full behavioral
+predicate; the retained D5 run exposed a signing-cache observer effect, and D6
+is focused-tested without remaining runtime authority. G2 `NOT_READY`.
 
 **Starting main:** `675427ec8852579aa9d336bbec94e28be7b62810`
 (PR #132). PR #131's merged specification checkpoint remains
@@ -12,7 +13,8 @@ source-backed Carbon compatibility candidate is focused-tested. G2 `NOT_READY`.
 
 **Primary Hub map_ref:** `WAVE-C/NET-5R`.
 
-**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`.
+**Decisions:** `NET-5R-D1`, `NET-5R-D2`, `NET-5R-D3`, `NET-5R-D4`,
+`NET-5R-D5`, `NET-5R-D6`.
 
 **Lead notification:**
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5618878650.
@@ -240,3 +242,38 @@ cannot trigger reset. Focused installed-SDK and invariant tests pass; one change
 full standard run remains before closeout.
 Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
+
+## D5 changed full run 34497456242 and D6 diagnosis
+
+The sole changed full/standard successor ran at exact head
+`9b7b70f745062a100ff2d6c85d9f647ddad4e588`. Canonical Ubuntu 24.04 amd64
+setup and the pinned SDK contracts passed. The run then stopped at the first
+`start_delay` configuration submission after its 144-second operation ceiling.
+Setup retained disposable Alice account
+`5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`, transport generation one,
+public next index zero, omitted Carbon nonce argument and transaction
+`0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f`.
+The transaction was not observed before timeout, state is
+`AMBIGUOUS_OR_UNAVAILABLE`, and the transport closed at session end. No shield
+registration or `SwapHotkey` occurred.
+
+Exact Bittensor 11.1.0 source makes the cause deterministic:
+`RpcSubstrate.account_next_index` delegates to the transport's
+`get_account_next_index(address)`, whose `use_cache=True` default advances its
+nonce cache. D5's evidence read returned zero and advanced that signing cache;
+the following omitted-nonce SDK execution advanced it again and selected future
+nonce one. Concurrent drand HTTP warnings cannot cause this pre-shield nonce
+path. No standard/fast timing, key rotation, ciphertext, unshielding or keystore
+claim follows.
+
+D6 instead reads finalized `System.Account` at the exact pre-sign block, never
+calls stateful next-index on the signing transport, keeps nonce omitted and
+retains the SDK-selected nonce only after an exclusive successful submission's
+finalized account increment proves it. Focused installed-SDK and invariant tests
+pass. Exact public-safe artifacts and hashes are in
+`.agent/evidence/wave_c/net-5r-runtime/34497456242/manifest.json`; no secret key
+or private payload is retained. The authorized run budget is exhausted, so G2
+remains `NOT_READY` on the missing D6 runtime demonstration and no further run
+was dispatched. Workflow:
+https://github.com/carbonphysicsai/Carbon/actions/runs/34497456242. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.

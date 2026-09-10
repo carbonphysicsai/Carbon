@@ -18,9 +18,10 @@
 > PR #133 merged the standard-profile and D4 specification checkpoint as
 > 2a71a392380cb4df0e0597a92674882de7801c70.
 > NET-5R remains active after D4 standard-runtime run 34489505489 passed the
-> complete behavioral predicate at exact post-PR-133 main. The clarified D5
-> transport-handover and passive nonce evidence remains pending, so G2 remains
-> NOT_READY.
+> complete behavioral predicate at exact post-PR-133 main. D5 run 34497456242
+> failed because its public nonce observation advanced the signing cache; D6
+> removes that observer effect but has no remaining authorized full run. G2
+> remains NOT_READY.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -58,10 +59,13 @@ fail closed on the reserved human inputs. NET-5R's first repair merged in PR
 passed a one-shot registration diagnostic.
 D4 run 34489505489, explicitly dispatched as full/standard at exact revision
 `faf99d20356a42ca53e9c1c9a5884d3de4620459`, passed the complete shared-winner,
-takeover and recycled-UID behavioral predicate. The D5 successor retains the
-newly clarified exclusive transport-handover and passive SDK-nonce evidence and
-is focused-tested; NET-5R remains selected, G2 remains NOT_READY pending its one
-changed run, and no later ticket is selected.
+takeover and recycled-UID behavioral predicate. D5 run 34497456242 then failed
+at its first configuration call because its next-index evidence read advanced
+the signing transport's cache. D6 replaces that stateful observation with exact
+finalized `System.Account` before/after evidence and is focused-tested. The
+authorized full-run budget is exhausted; NET-5R remains selected, G2 remains
+NOT_READY on the missing D6 runtime demonstration, and no later ticket is
+selected.
 
 ## 2. NET-0 development disposition
 

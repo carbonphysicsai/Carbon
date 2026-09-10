@@ -1,0 +1,59 @@
+{
+  "schema": "carbon.disposable.setup.v2",
+  "context": {
+    "network": "localnet",
+    "endpoint": "ws://127.0.0.1:38477",
+    "provider": "disposable-primary",
+    "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+    "netuid": 2
+  },
+  "runtime_profile": "standard",
+  "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+  "roles": {
+    "owner": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+    "miner": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "challenger": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+  },
+  "operations": [
+    {
+      "label": "start_delay",
+      "state": "AMBIGUOUS_OR_UNAVAILABLE",
+      "start_finalized_block": 0,
+      "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+      "transport_generation": 1,
+      "sdk_nonce_observation": {
+        "account_identity": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "transport_generation": 1,
+        "public_next_index_before_signing": 0,
+        "sdk_selected_nonce": 0,
+        "selection_source": "PINNED_SDK_11_1_0_PUBLIC_NEXT_INDEX",
+        "nonce_supplied_by_carbon": false,
+        "nonce_argument": "OMITTED_OR_NONE"
+      },
+      "operation_wall_seconds": 144,
+      "transaction": "0x7037e152ffc318bf20e55bf94b9525dea49adeeab6e8ed6256642a76512b735f"
+    }
+  ],
+  "transport_events": [
+    {
+      "previous_generation": null,
+      "replacement_generation": 1,
+      "account_submission_sequence": "EXCLUSIVE",
+      "state": "REPLACEMENT_ACTIVE_AFTER_PREVIOUS_CLOSE",
+      "replacement_identity": {
+        "endpoint": "ws://127.0.0.1:38477",
+        "genesis_hash": "0x8244412784e980f8001b2d87a528a4e24487e33e3ce96d137f0fdf491752966e",
+        "spec_version": 445,
+        "runtime_profile": "standard",
+        "runtime_binary": "/target/non-fast-runtime/release/node-subtensor",
+        "block_time_seconds": 12.0
+      },
+      "replacement_verified_before_previous_close": false,
+      "previous_transport_closed": true,
+      "closed_at_session_end": true
+    }
+  ],
+  "treasury": null
+}

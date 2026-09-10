@@ -18,8 +18,9 @@
 > merged its standard-profile/D4 specification checkpoint as
 > 2a71a392380cb4df0e0597a92674882de7801c70. NET-5R
 > remains selected after D4 standard-runtime run 34489505489 passed the complete
-> behavioral predicate at the exact post-PR-133 main revision. Clarified D5
-> transport-handover and passive nonce evidence remains pending; G2 and C2
+> behavioral predicate at the exact post-PR-133 main revision. D5 run
+> 34497456242 exposed and retained a signing-cache observer effect; focused D6
+> removes it, but the authorized full-run budget is exhausted. G2 and C2
 > eligibility remain unavailable.
 > Treasury remains optional; no public-network operation is authorized.
 
@@ -80,7 +81,7 @@ and no provider dispatch occurred.
 handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
-**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. PR #132 merged NET-5R's unsupported 64-to-8 shield-era repair; PR #133 merged the standard-profile/D4 specification checkpoint. Explicit full/standard D4 run 34489505489 at exact post-PR-133 main then passed both registrations, shared-winner, finalized `SwapHotkey`, takeover and recycled-UID effects. NET-5R remains selected on the focused-tested D5 evidence successor; G2 remains NOT_READY pending its one changed full run. No later ticket is selected.
+**Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. PR #132 merged NET-5R's unsupported 64-to-8 shield-era repair; PR #133 merged the standard-profile/D4 specification checkpoint. Explicit full/standard D4 run 34489505489 at exact post-PR-133 main passed both registrations, shared-winner, finalized `SwapHotkey`, takeover and recycled-UID effects. D5 run 34497456242 failed at its first configuration call because its public next-index evidence read advanced the signing transport cache; focused D6 uses finalized System.Account evidence without that observer effect. The full-run budget is exhausted, NET-5R remains selected and G2 remains NOT_READY on the missing D6 runtime demonstration. No later ticket is selected.
 **Current C1 status:** C-01 and C-AUTH1 are merged in bounded engineering scope.
 C-EA0 passed canonical acceptance and merged in PR #131 as
 `a3ca8cd111689329832131eac1460d579c7828b3`. C-EA1 remains unstarted and

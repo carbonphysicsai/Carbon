@@ -13131,6 +13131,29 @@ changed full standard run is permitted; G2 remains `NOT_READY` until it passes.
 Notification:
 https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748.
 
+## NET-5R-D6 — Observe ordinary nonce without advancing the signing cache
+
+D5 full/standard run 34497456242 failed at its first `start_delay` submission:
+Carbon read public `RpcSubstrate.account_next_index` as evidence on the signing
+transport, then the SDK's omitted-nonce signing path read it again. Exact
+Bittensor 11.1.0 source shows the public method delegates to
+`get_account_next_index` with `use_cache=True`; the first observation advanced
+the cache from zero, so the SDK selected future nonce one. The transaction hash
+was journaled but not included before the 144-second ceiling and remains
+`AMBIGUOUS_OR_UNAVAILABLE`. This is a Carbon observer-effect defect, not a
+standard/fast timing, drand, shield-key, ciphertext, unshielding or keystore
+result.
+
+The supported correction reads finalized `System.Account` at an exact pre-sign
+block without touching the signing transport's nonce cache, keeps the nonce
+argument omitted and the account sequence exclusive, then records the selected
+nonce only when the successful finalized account increment proves it. Focused
+contracts prohibit the stateful signing-transport read. The authorized D4 plus
+one changed full-run budget is exhausted, so no further runtime run is permitted
+in this delivery. D4 behavior remains valid evidence, but G2 stays `NOT_READY`
+because D6 lacks a canonical runtime demonstration. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,
