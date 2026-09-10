@@ -1887,7 +1887,7 @@
       "event_id": "NET-5-D1",
       "owner_lane": "network_protocol_engineering",
       "status": "implemented",
-      "summary": "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim.",
+      "summary": "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569",
       "affects": [
         "WAVE-C",

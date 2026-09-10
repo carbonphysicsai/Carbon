@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T01:05:05Z"
+  captured_at_utc: "2026-09-10T01:40:23Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "83895b45cd46ff394eb6a73507fd644191a273d2"
+  authority_snapshot_commit: "7bcf1b7fe1b7c545ac41ca42ad7e19c3b6f01b60"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -457,7 +457,7 @@ current:
     id: "NET-5"
     title: "Reproducible disposable localnet integration"
     status: "in_progress"
-    summary: "NET-5 implementation is prepared; runtime development validation, full shared-fixture regression and delivery acceptance remain pending."
+    summary: "NET-5 observed three-challenge all-burn finality/rows/epoch burn and restart/outage recovery. Shielded miner registration is unresolved; shared-winner runtime integration and G2 remain unearned. Canonical engineering acceptance is pending."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "0.7"
@@ -510,7 +510,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-5 implementation is prepared; runtime development validation, full shared-fixture regression and delivery acceptance remain pending. Earlier C0 deliveries retain bounded tested maturity; G2 and science/security qualifications remain unearned."
+  maturity_summary: "NET-5 observed three-challenge all-burn finality/rows/epoch burn and restart/outage recovery. Shielded miner registration is unresolved; shared-winner runtime integration and G2 remain unearned. Canonical engineering acceptance is pending."
   decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -3521,7 +3521,7 @@ events:
     event_id: "NET-5-D1"
     owner_lane: "network_protocol_engineering"
     status: "implemented"
-    summary: "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim."
+    summary: "NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610781569"
     affects:
       - "WAVE-C"

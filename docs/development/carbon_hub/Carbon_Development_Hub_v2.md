@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `83895b45cd46ff394eb6a73507fd644191a273d2` on `main`, captured 2026-09-10T01:05:05Z.
+**Authority snapshot:** `7bcf1b7fe1b7c545ac41ca42ad7e19c3b6f01b60` on `main`, captured 2026-09-10T01:40:23Z.
 **Current:** Wave C, ticket NET-5. Wave C/C0 has NET-5 selected as its one active ticket after NET-4B merged in PR #125. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
 **Last completed:** NET-4B (`done`).
 **Next selected:** none selected.
@@ -171,7 +171,7 @@
 - `C-REWARD-D1` — `WAVE-C/C-REWARD` — NET-3 merged with canonical fixture integration. C-REWARD adds registered accepted-record improvement credit, immutable decay age, complete burn accounting, weekly diagnostics and A6 aliased disclosure. Canonical acceptance remains pending; runtime burn and G2 remain unproven. Treasury is optional and outside the direct critical path.
 - `NET-4A-D1` — `WAVE-C/NET-4A` — C-REWARD merged with canonical reward evidence. NET-4A adds journal-issued localnet intent provenance, short validity, supersession and quarantine checks. Public-testnet and optional treasury families remain separately unavailable; no signing or G2 claim.
 - `NET-4B-D1` — `WAVE-C/NET-4B` — NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven.
-- `NET-5-D1` — `WAVE-C/NET-5` — NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim.
+- `NET-5-D1` — `WAVE-C/NET-5` — NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.
 
 ## Authority boundary
 
