@@ -13029,3 +13029,9 @@ arithmetic, alternatives, migration and maturity limits are in
 See `.agent/tickets/NET-4A_weight_intents.md`: exact reward provenance, immutable
 validity, supersession and non-paying no-winner semantics. Public-testnet and
 optional treasury issuers remain unavailable under their owning future contracts.
+
+## NET-4B-D1 — Complete vectors checked inside SDK execution
+
+See `.agent/tickets/NET-4B_verified_publication.md`: pinned runtime owner burn
+semantics, final integer guard before encryption/signing, SDK policy preserved,
+transaction identity journaled before wire dispatch and bounded reconciliation.

@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ffc15f60548a1e1c8dea12921532178d4e957dec` on `main`, captured 2026-09-09T23:31:34Z.
-**Current:** Wave C, ticket NET-4A. Wave C/C0 has NET-4A selected as its one active ticket after C-REWARD merged in PR #123. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
-**Last completed:** C-REWARD (`done`).
+**Authority snapshot:** `4cd13953dc1d634d4755161731b728c105a2c409` on `main`, captured 2026-09-10T00:25:12Z.
+**Current:** Wave C, ticket NET-4B. Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
+**Last completed:** NET-4A (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -76,7 +76,8 @@
 | [NET-2](explainers/tickets/net_2.md) | Authenticate canonical requests and retain original receipts across restart. | done |
 | [NET-3](explainers/tickets/net_3.md) | Bind available artifacts to authenticated identity and existing fixture acceptance. | done |
 | [C-REWARD](explainers/tickets/c_reward.md) | Turn accepted improvements into decaying winner targets and preserve all unearned allocation for burn. | done |
-| [NET-4A](explainers/tickets/net_4a.md) | Bind local publication to exact accepted reward provenance and short validity. | in_progress |
+| [NET-4A](explainers/tickets/net_4a.md) | Bind local publication to exact accepted reward provenance and short validity. | done |
+| [NET-4B](explainers/tickets/net_4b.md) | Check final winner/burn integers before signing and reconcile chain effects before retry. | in_progress |
 
 ## Change routes
 
@@ -168,6 +169,7 @@
 - `NET-3-D1` — `WAVE-C/NET-3` — NET-2 merged with canonical transport evidence. NET-3 composes authenticated artifact commitments and existing A7/A8/A6 fixture acceptance, with durable exact scores and explicit indeterminate interrupted work. Canonical acceptance remains pending; no real science or localnet claim.
 - `C-REWARD-D1` — `WAVE-C/C-REWARD` — NET-3 merged with canonical fixture integration. C-REWARD adds registered accepted-record improvement credit, immutable decay age, complete burn accounting, weekly diagnostics and A6 aliased disclosure. Canonical acceptance remains pending; runtime burn and G2 remain unproven. Treasury is optional and outside the direct critical path.
 - `NET-4A-D1` — `WAVE-C/NET-4A` — C-REWARD merged with canonical reward evidence. NET-4A adds journal-issued localnet intent provenance, short validity, supersession and quarantine checks. Public-testnet and optional treasury families remain separately unavailable; no signing or G2 claim.
+- `NET-4B-D1` — `WAVE-C/NET-4B` — NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven.
 
 ## Authority boundary
 

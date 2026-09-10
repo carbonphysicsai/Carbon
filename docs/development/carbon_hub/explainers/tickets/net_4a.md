@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-4A`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ Context-bound validity, supersession, changed-state/quarantine checks and explic
 ## Placement and handoff
 
 - **Depends on:** C-REWARD
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-4B
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No SDK signing, runtime burn proof, public transaction, treasury deployment, sci
 
 ## Current stage
 
-NET-4A implementation and native diagnostics are prepared; canonical acceptance and merge remain pending.
+NET-4A merged with canonical nominal-intent, provenance, validity and supersession tests (PR #124).
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ Local fixture intent software only; reserved public-family issuers remain unavai
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/tickets/NET-4A_weight_intents.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/evidence/wave_c/net-4a.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/docs/development/WEIGHT_INTENTS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/tickets/NET-4A_weight_intents.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/evidence/wave_c/net-4a.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/docs/development/WEIGHT_INTENTS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4cd13953dc1d634d4755161731b728c105a2c409/.agent/WAVE_C.md)
 
 > Intent expiry does not erase stored chain weights; NET-4B owns execution and recovery.

@@ -1,7 +1,7 @@
 # NET-4A — Nominal publication intents
 
 **Wave:** C0 network foundation
-**Status:** `in_progress`
+**Status:** `done`
 **Depends on:** C-REWARD
 **Primary Hub map_ref:** `WAVE-C/NET-4A`
 **Evidence:** `.agent/evidence/wave_c/net-4a.md`
@@ -26,20 +26,20 @@ until their owning C1/C2/treasury contracts supply authority. NET-4B owns signin
 
 ## Definition of Done
 
-- [ ] Nominal localnet, testnet-winner and optional treasury-routing intent families
+- [x] Nominal localnet, testnet-winner and optional treasury-routing intent families
       are distinct; fixture references cannot construct public or LIVE authority.
-- [ ] Local issuer obtains a complete stored C-REWARD projection, binding exact
+- [x] Local issuer obtains a complete stored C-REWARD projection, binding exact
       network/genesis/provider/netuid, snapshot/block/time, challenge states,
       reward policy, route, stage, provenance and validity.
-- [ ] Intent identity and body digest persist in the existing journal. Exact replay
+- [x] Intent identity and body digest persist in the existing journal. Exact replay
       is idempotent; conflicting replay, tampering, stale state and supersession fail.
-- [ ] Validity is at most 60 finalized-chain seconds (DEVELOPMENT), cut short by
+- [x] Validity is at most 60 finalized-chain seconds (DEVELOPMENT), cut short by
       the next registered allocation/funding boundary. Expiry does not clear chain
       weights. No-winner intent retains the complete non-paying burn target.
-- [ ] Issuance requires localnet ledger provenance; raw projection dictionaries and
+- [x] Issuance requires localnet ledger provenance; raw projection dictionaries and
       authority Booleans are rejected. Missing treasury is supported. Reserved
       public families fail with precise owning-dependency reasons.
-- [ ] Tests and all applicable canonical acceptance pass, preserving scientific,
+- [x] Tests and all applicable canonical acceptance pass, preserving scientific,
       disclosure, signing and LIVE boundaries. No runtime burn or G2 claim.
 
 ## NET-4A-D1
@@ -55,3 +55,11 @@ production SLOs. No fixture-to-testnet conversion function exists.
 
 Hub impact: map_structural; WAVE-C/NET-4A primary, C-REWARD, CI and maturity
 affected. Lead notification is asynchronous. No new human engineering gate.
+
+## Accepted delivery
+
+PR #124 passed run 34417436723 (1,806 focused CPU, 177 invariants, package,
+quality, Hub and Merge gate), normally merged as
+ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f. Completion:
+https://github.com/carbonphysicsai/Carbon/pull/124#issuecomment-5610278415.
+Bounded local fixture implementation/test maturity only. NET-4B is next.

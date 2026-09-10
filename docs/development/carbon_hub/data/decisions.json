@@ -2038,6 +2038,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610127520",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/ffc15f60548a1e1c8dea12921532178d4e957dec/docs/development/WEIGHT_INTENTS.md"
+    },
+    {
+      "title": "Complete-vector checks inside SDK execution",
+      "question": "How can publication preserve reward targets when the SDK rebuilds plans and outcomes are ambiguous?",
+      "recommendation": "Use a narrow version-pinned SetWeights/RpcSubstrate extension, preserving SDK policy while checking final integers and journaling the signed transaction hash before wire dispatch.",
+      "why": "Preview-only checks, arbitrary sinks, clipping redistribution and blind resend would break the reward or recovery contracts.",
+      "if_kept": "NET-5 runs the full fixture-to-chain path against the independently pinned disposable runtime and measures burn/epoch outcomes.",
+      "if_changed": "Version the compiler/SDK boundary, preserve unresolved dispatch facts and rerun installed-SDK plus runtime compatibility evidence.",
+      "decision_id": "NET-4B-D1",
+      "map_ref": "WAVE-C/NET-4B",
+      "wave": "C",
+      "ticket": "NET-4B",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610295276",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1928c9a0804d8df7166646acf82019c514f96bf6/docs/development/WEIGHT_PUBLICATION.md"
     }
   ]
 }
