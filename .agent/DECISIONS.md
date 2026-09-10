@@ -13062,6 +13062,7 @@ journal public-key digest/length plus inner/carrier nonce and era. Preserve the
 SDK intent, policy, encryption, signing guards, hash-before-wire journal,
 finalized reconciliation and disposable/public-network boundary. Only the
 changed configuration may be exercised on a fresh canonical localnet.
+Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
 
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 

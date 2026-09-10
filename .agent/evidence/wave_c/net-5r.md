@@ -12,6 +12,9 @@ implemented; canonical full disposable-localnet execution pending.
 
 **Decision:** `NET-5R-D1`.
 
+**Lead notification:**
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
+
 ## Retained failure and testable hypothesis
 
 Run 34425822745 signed the `BurnedRegister` inner and `MevShield` carrier with
