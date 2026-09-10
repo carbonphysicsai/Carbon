@@ -2237,6 +2237,29 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621253748",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/d079c7b9686205e80ac74b511031f90ec5fceaba/.agent/evidence/wave_c/net-5r.md"
+    },
+    {
+      "title": "Observe ordinary nonce without advancing the signing cache",
+      "question": "How should Carbon retain the SDK-selected nonce after D5 proved that public account_next_index mutates the signing transport's cache?",
+      "recommendation": "Never call stateful next-index on the signing transport. Under the existing exclusive account sequence, read System.Account at an exact finalized pre-sign block, continue to omit nonce, and record the selected nonce only when the successful finalized account increment proves it.",
+      "why": "Run 34497456242 observed next index zero, then timed out with an ambiguous first configuration transaction. Pinned Bittensor 11.1.0 source shows account_next_index delegates to a use_cache=True nonce path, so D5's attempted observation advanced the signing cache before Client.execute advanced it again.",
+      "if_kept": "The observer effect is removed and focused tests fail on any signing-transport next-index read. D4 remains behavioral evidence, but G2 stays NOT_READY because the authorized run budget is exhausted and D6 has no canonical runtime demonstration.",
+      "if_changed": "Any successor must be source-backed, preserve the ambiguous D5 transaction and D4 evidence, keep nonce omitted and checked SDK extrinsics, and obtain new owner execution authority before another full run.",
+      "decision_id": "NET-5R-D6",
+      "map_ref": "WAVE-C/NET-5R",
+      "wave": "C",
+      "ticket": "NET-5R",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/evidence/wave_c/net-5r.md"
     }
   ]
 }

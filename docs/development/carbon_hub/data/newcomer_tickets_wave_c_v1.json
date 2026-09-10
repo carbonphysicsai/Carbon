@@ -70,9 +70,9 @@
     "NET-5R": {
       "title": "Make shielded-registration transport handover auditable",
       "what": "Preserve the exact eight-block standard-runtime repair while serializing nonce verification, transport replacement and later submission for one disposable account.",
-      "why": "D4 passed the complete chain behavior, but its setup artifact did not retain transport-generation, old-closure or passive SDK-selected nonce evidence required by the clarified acceptance.",
-      "changes": "A replacement can connect and verify first, but the old transport must close before activation or later signing; ambiguity requires reconciliation, and the public pool-aware SDK nonce is recorded without being supplied.",
-      "not_yet": "G2 remains NOT_READY until one changed full/standard run repeats the complete behavior with the clarified evidence. No public network, unchecked call, retry, explicit nonce, production key, real science, archive policy or LIVE authority is added.",
+      "why": "D4 passed the complete chain behavior, but D5 proved that reading public next-index on the signing transport changes its nonce cache instead of passively observing it.",
+      "changes": "D6 reads exact finalized System.Account before and after an exclusive omitted-nonce submission, while replacement activation still waits for old closure and ambiguity still requires reconciliation.",
+      "not_yet": "The authorized full-run budget is exhausted, so D6 lacks a runtime demonstration and G2 remains NOT_READY. No public network, unchecked call, retry, explicit nonce, production key, real science, archive policy or LIVE authority is added.",
       "map_ref": "WAVE-C/NET-5R"
     },
     "C-01": {
