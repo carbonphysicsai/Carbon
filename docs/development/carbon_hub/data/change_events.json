@@ -1984,7 +1984,10 @@
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
         "SYSTEM/AGENT-EXECUTION",
-        "SYSTEM/GOVERNANCE"
+        "SYSTEM/GOVERNANCE",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
       ],
       "supersedes": null
     }

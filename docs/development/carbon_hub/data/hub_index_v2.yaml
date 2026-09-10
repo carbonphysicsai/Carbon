@@ -3629,6 +3629,9 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/GOVERNANCE"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
