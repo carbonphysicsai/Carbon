@@ -331,7 +331,7 @@ class BittensorPublicationBackend:
         result, failed = None, False
         try:
             block_hash = await self._block(block)
-            found = await self.substrate.resolve_extrinsic(hash256(tx_hash), block_hash)
+            found = await self.substrate.find_extrinsic(hash256(tx_hash), block_hash)
             if found is not None:
                 if found.block_hash != block_hash or type(found.success) is not bool:
                     raise PublicationFailure("CONFLICTING_TRANSACTION_BLOCK")

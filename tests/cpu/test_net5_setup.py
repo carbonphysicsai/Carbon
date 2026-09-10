@@ -247,11 +247,12 @@ def test_unknown_burn_measurement_never_becomes_success(value):
 
 
 def test_installed_sdk_inner_signing_checks_identity_before_key_use():
-    from test_net1_chain_adapter import installed_sdk, context
+    from test_net1_chain_adapter import context, installed_sdk
 
     installed_sdk()
     from bittensor._transport.contract import CallBytes, SignedExtrinsic
     from bittensor.keyfiles import Keypair
+
     from carbon.chain.sdk_weights import journaled_substrate
 
     order = []
@@ -289,3 +290,42 @@ def test_installed_sdk_inner_signing_checks_identity_before_key_use():
         "0x" + "a" * 64,
     )
     assert order == ["guard", "guard", "sign"]
+
+
+@pytest.mark.parametrize("present", [True, False])
+def test_installed_sdk_transaction_reconciliation_uses_public_lookup(present):
+    from test_net1_chain_adapter import BLOCK, GENESIS, context, installed_sdk
+
+    bt = installed_sdk()
+    from bittensor._transport.contract import InclusionReport
+    from bittensor._transport.errors import ExtrinsicNotFound
+
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+
+    class Sub(bt.RpcSubstrate):
+        async def block_hash(self, block):
+            return GENESIS if block == 0 else BLOCK
+
+    class Raw:
+        async def resolve_extrinsic(self, tx_hash, block_hash):
+            assert tx_hash == "0x" + "c" * 64 and block_hash == BLOCK
+            if not present:
+                raise ExtrinsicNotFound("synthetic missing transaction")
+            return InclusionReport(
+                tx_hash,
+                finalized=True,
+                block_hash=BLOCK,
+                block_number=100,
+                extrinsic_idx=1,
+                is_success=True,
+            )
+
+    sub = Sub(context().endpoint)
+    sub._substrate = Raw()
+    backend = BittensorPublicationBackend(context(), "synthetic-publisher", None)
+    backend.substrate, backend.client = sub, object()
+    observation = asyncio.run(backend.transaction("0x" + "c" * 64, 100))
+    if present:
+        assert observation.success and observation.block == 100
+    else:
+        assert observation is None

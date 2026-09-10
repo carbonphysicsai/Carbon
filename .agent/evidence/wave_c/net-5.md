@@ -74,3 +74,10 @@ preserving its policy/encryption and adding the pre-sign guard to the public
 inner-sign path. Baselines use the registered publisher identity with zero
 opening credit so the all-burn observation is independent of miner registration.
 No failed/ambiguous setup operation is blindly retried on the same chain.
+
+Run 34425042109 accepted and registered all three fixed synthetic baselines,
+rejected a mismatched genesis and dispatched the all-burn transaction. Runtime
+reconciliation exposed a NET-4B integration defect: resolve_extrinsic belongs to
+the SDK's raw transport, while RpcSubstrate publicly exposes find_extrinsic.
+Use that public method and add installed-SDK found/missing transaction contract
+tests. Preserve the failed run; dispatch alone is not finalized row/burn proof.
