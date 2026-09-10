@@ -32,3 +32,9 @@ copy still reconstructed the default profile. Preserve defensive copying while
 selecting the already validated finite fixture identity. No threshold, score,
 qualification or acceptance flag changed. Native A3-dependent tests remain
 unavailable on Windows; secure descriptor-relative access is not weakened.
+
+Development run 34423046410 passed all 17 setup contracts and pulled the exact
+runtime image digest. Container startup was followed immediately by rejected
+loopback binding inspection, before any chain connection or signing. Retain
+Docker network diagnostics and bound startup polling; an unchanged missing
+binding will remain a failure rather than a public-network fallback.

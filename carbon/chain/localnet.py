@@ -80,7 +80,15 @@ def inspect_isolation(container):
 
 async def probe(container, directory):
     require_sdk()
-    isolation = inspect_isolation(container)
+    directory = Path(directory)
+    for attempt in range(10):
+        try:
+            isolation = inspect_isolation(container)
+            break
+        except PublicationFailure as error:
+            if str(error) != "LOOPBACK_RPC_REQUIRED" or attempt == 9:
+                raise
+            await asyncio.sleep(1)
     import bittensor as bt
 
     sub = bt.RpcSubstrate(
@@ -93,16 +101,17 @@ async def probe(container, directory):
         # Startup waits are bounded and read-only. No key exists in this function.
         for attempt in range(60):
             try:
-                await asyncio.wait_for(sub.connect(), 3)
-                genesis = hash256(await sub.block_hash(0))
-                version = await sub.spec_version()
-                async with aclosing(
-                    bt.Client(isolation["endpoints"][0], substrate=sub).blocks(
-                        finalized=True
-                    )
-                ) as headers:
-                    header = await anext(headers)
-                finalized = await sub.block_hash(header.number)
+                async with asyncio.timeout(5):
+                    await sub.connect()
+                    genesis = hash256(await sub.block_hash(0))
+                    version = await sub.spec_version()
+                    async with aclosing(
+                        bt.Client(isolation["endpoints"][0], substrate=sub).blocks(
+                            finalized=True
+                        )
+                    ) as headers:
+                        header = await anext(headers)
+                    finalized = await sub.block_hash(header.number)
                 break
             except (bt.RpcConnectionError, OSError, TimeoutError):
                 if attempt == 59:
