@@ -61,6 +61,7 @@ B03_MODULES = (
     "carbon.generators.accounting",
     "carbon.generators.authorities",
     "carbon.generators.burgers",
+    "carbon.generators.burgers_dynamics",
     "carbon.generators.canonical",
     "carbon.generators.conformance",
     "carbon.generators.disclosure",
@@ -68,6 +69,11 @@ B03_MODULES = (
     "carbon.generators.model",
     "carbon.generators.refs",
     "carbon.generators.service",
+)
+
+C_AUTH1_MODULES = (
+    "carbon.authoring.cli",
+    "carbon.authoring.goals",
 )
 
 B04_MODULES = (
@@ -125,6 +131,7 @@ INSTALLED_MODULES = (
     *B02B_MODULES,
     *B02C_MODULES,
     *B03_MODULES,
+    *C_AUTH1_MODULES,
     *B04_MODULES,
     *B07A_MODULES,
     *B07B_MODULES,

@@ -1,7 +1,8 @@
 # C-01 — Durable execution state and queue
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
+**Status:** `done` in bounded merged engineering scope; PR #129 normally merged
+as `4c9e8040df3c81ecb167534424df770eb4d77d61`
 **Depends on:** A7, B-GATE
 **Selection:** `OWNER-C1-C2-BURGERS-01`; offline C1 engineering may proceed while
 G2 remains NOT_READY. G2 still gates every network-readiness claim and dependent

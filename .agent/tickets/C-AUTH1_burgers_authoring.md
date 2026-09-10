@@ -1,7 +1,9 @@
 # C-AUTH1 — Goal-driven authoring and Burgers Dynamics V1 import
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; next after C-01 acceptance and merge
+**Status:** `in_progress`
+Implementation candidate and focused diagnostics pass; applicable canonical
+acceptance and normal merge pending.
 **Depends on:** C-01 delivery; verified owner-supplied workbench
 **Primary Hub map_ref:** `WAVE-C/C-AUTH1`
 
@@ -15,18 +17,18 @@ the workbench scheduler or duplicate Carbon lifecycle owners.
 
 ## Definition of Done
 
-- [ ] A bounded command accepts structured goals plus options and emits validated,
+- [x] A bounded command accepts structured goals plus options and emits validated,
       canonical, content-addressed package artifacts with semantic compatibility
       checks; exact package replay is idempotent and conflicts fail closed.
-- [ ] Burgers Dynamics V1 registers the exact 12-cell law, TRAIN/EVAL/STRESS role
+- [x] Burgers Dynamics V1 registers the exact 12-cell law, TRAIN/EVAL/STRESS role
       separation, declared measurements/gates, exact rational score weights and
       development reference candidates from the verified supplied package.
-- [ ] Public seeds/cases/controls and workbench evidence remain DEVELOPMENT_ONLY
+- [x] Public seeds/cases/controls and workbench evidence remain DEVELOPMENT_ONLY
       and cannot enter protected evaluation, accepted-baseline, eligibility or
       qualification paths.
-- [ ] Legacy Challenge/generator/measurement/ScorePack bytes and behavior remain
+- [x] Legacy Challenge/generator/measurement/ScorePack bytes and behavior remain
       unchanged; no arbitrary callable or unrestricted code path is added.
-- [ ] Focused semantic/version/determinism/role-isolation tests pass and the
+- [x] Focused semantic/version/determinism/role-isolation tests pass and the
       approximately 193 MB archive or duplicated field datasets are not committed.
 
 ## Handoff and missing inputs

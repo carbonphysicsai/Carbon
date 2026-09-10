@@ -9,9 +9,10 @@
 > NET-4B merged in PR #125 as 0e6b5e001302b349135785756c633530853684c2.
 > NET-5 merged in PR #126 as 95fa1e42dbf8d5fdcfde80d440eb38229b2764db.
 > NET-6 merged in PR #127 as 6dd1bab569f6a8c5f597fd2cd5ed931b4d44eade.
+> C-01 merged in PR #129 as 4c9e8040df3c81ecb167534424df770eb4d77d61.
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
 > OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering
-> without changing G2. C-01 is selected; C2 eligibility remains unavailable.
+> without changing G2. C-AUTH1 is selected; C2 eligibility remains unavailable.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
@@ -29,9 +30,9 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.0
-**Selected ticket:** C-01 — `in_progress`
-**Next selected ticket:** C-AUTH1
-Selection follows C-01 acceptance and normal merge.
+**Selected ticket:** C-AUTH1 — `in_progress`
+**Next selected ticket:** C-EA0
+Selection follows C-AUTH1 acceptance and normal merge.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -70,7 +71,8 @@ handoff and all B-E4 history but removes every research-specific utility,
 diversity, shadow, calibration, and ratification requirement from delivery.
 No provider execution is requested. B-GATE subsequently passed and is closed.
 **Current C0 status:** NET-1 through NET-6 and C-REWARD are merged in bounded engineering scope. Actual all-burn and operator recovery work with treasury absent. Required shielded miner registration and shared-winner/recycled-UID runtime proof remain unresolved; G2 is NOT_READY.
-**Current C1 status:** C-01 is selected for offline durable execution engineering
+**Current C1 status:** C-01 is merged in bounded engineering scope and C-AUTH1 is
+selected for offline goal-authoring and public Burgers development integration
 under `OWNER-C1-C2-BURGERS-01`. This prospective sequencing change does not pass
 G2, authorize the public network, or earn real-science/archive qualification.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05

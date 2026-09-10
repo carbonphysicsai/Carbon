@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 52 captured tickets across Wave A, Wave B, and Wave C
+- 53 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 84 map-level change events
+- 85 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-01**. Last completed: **NET-6** (`done`). Next selected: **C-AUTH1** (`todo` / `unstarted`). C-01 is selected and implemented as a bounded offline durable execution candidate; applicable acceptance and normal merge remain pending. OWNER-C1-C2-BURGERS-01 permits dependency-ready offline C1/C2 engineering while G2 remains NOT_READY. C-AUTH1 is next and unstarted. No public-network operation, scientific qualification, archive acknowledgement, testnet eligibility or LIVE authority is created. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking.
+Wave **C**; current ticket: **C-AUTH1**. Last completed: **C-01** (`done`). Next selected: **C-EA0** (`todo` / `unstarted`). C-01 is merged in bounded offline engineering scope. C-AUTH1 is selected and implemented as a public-development authoring/Burgers candidate; applicable canonical acceptance and normal merge remain pending. C-EA0 is next and unstarted. G2 remains NOT_READY. No public-network operation, scientific qualification, accepted baseline, archive acknowledgement, testnet eligibility or LIVE authority is created.
 
 ## Maintain
 
