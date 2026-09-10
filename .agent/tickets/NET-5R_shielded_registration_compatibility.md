@@ -1,8 +1,10 @@
 # NET-5R — Shielded registration compatibility repair
 
 **Wave:** C0/G2 evidence follow-up
-**Status:** `future_reserved`; unselected and blocked on a new testable hypothesis
+**Status:** `in_progress`; selected under the existing C0 authorization
 **Depends on:** NET-5, pinned SDK 11.1.0, v445 disposable localnet runtime
+**Decision:** `NET-5R-D1`
+**Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## Goal
 
@@ -29,3 +31,21 @@ The previous all-burn and operator evidence remains valid. Do not rerun the
 unchanged failing command, infer a cause from `Stale/expired`, relabel unit tests
 as runtime evidence, or perform a public-network transaction. Treasury remains
 optional and irrelevant to this repair.
+
+## NET-5R-D1 — Source-confirmed mortality hypothesis
+
+The retained operation signed both inner and carrier with a 64-block mortal era.
+The exact SDK 11.1.0 wheel instead defines `MEV_SHIELD_ERA_PERIOD = 8`. At the
+independently pinned v445 source commit, `runtime/src/check_mortality.rs` defines
+`MAX_SHIELD_ERA_PERIOD = 8` and rejects `submit_encrypted` periods above that
+ceiling immediately as `InvalidTransaction::Stale`. The retained `Stale/expired`
+receipt and absence of both hashes in finalized blocks are therefore predicted
+by the unsupported Carbon override, without assuming a key-rotation failure.
+
+Use the SDK's exact eight-block setting and fail closed if that installed value
+drifts. Journal a digest and length of the public ephemeral key plus exact inner
+and carrier nonce/era values before signing/submission. Keep the existing SDK
+intent, encryption, policy, identity guards, exact hashes and finalized lookup.
+This changes no runtime, key, nonce algorithm, retry policy or public endpoint.
+Only a fresh disposable chain with this changed configuration may test the
+hypothesis.

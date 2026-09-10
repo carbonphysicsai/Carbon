@@ -23,7 +23,8 @@
     "network_backend": "libp2p",
     "upstream_startup_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae",
     "admin_freeze_window_blocks": 0,
-    "shield_era_blocks": 64,
+    "shield_era_blocks": 8,
+    "shield_mortality_source": "runtime/src/check_mortality.rs at the pinned source commit; MAX_SHIELD_ERA_PERIOD=8",
     "preserve_container_chain_on_restart": true,
     "startup_revision": "NET-6 no-purge; original NET-5 evidence retains its original startup digest"
   },

@@ -1,7 +1,7 @@
 # C-EA1 — Durable evidence archive
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; unselected and unstarted
+**Status:** `todo`; unselected, unstarted and input-blocked after C-EA0 delivery
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0.
 
 **Prerequisites/owners:** C-EA0; current persistence, Operations, security/KMS, privacy/data, and execution owners. Human inputs: approved PostgreSQL/object-store deployment, key custody, backup/restore, retention, capacity, and fault profile.

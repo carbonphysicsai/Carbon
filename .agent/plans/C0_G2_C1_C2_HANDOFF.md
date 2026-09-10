@@ -1,6 +1,6 @@
 # C0 evidence-backed G2 disposition and C1/C2 handoff
 
-**Disposition:** G2 NOT_READY. This is an engineering evidence assessment, not
+**Disposition:** G2 NOT_READY pending NET-5R runtime execution. This is an engineering evidence assessment, not
 human launch approval. NET-1 through NET-6 and C-REWARD are merged in bounded scope. PR #127
 passed canonical acceptance and the distinct operator rehearsal. These cannot fill the
 missing shared-winner runtime evidence. No public deployment occurred.
@@ -26,10 +26,12 @@ emissions burned. Treasury is absent and remains optional.
 
 ## Exact remaining operation
 
-Resolve required shielded BurnedRegister compatibility between the pinned SDK
-11.1.0 and v445 fast localnet without bypassing SDK policy or issuing unchecked
-extrinsics. Preserve inner and carrier hashes, era/nonce, inclusion and finalized
-readback. Timing/key rotation is only a hypothesis; no cause is established.
+NET-5R source inspection established the testable cause: Carbon overrode the
+pinned SDK's eight-block shield era with 64, while v445 rejects a
+`submit_encrypted` period above eight as `InvalidTransaction::Stale`. Test the
+smallest repair on a new disposable chain without bypassing SDK policy or issuing
+unchecked extrinsics. Preserve inner and carrier hashes, exact era/nonce,
+ephemeral-key digest, inclusion and finalized readback.
 Then execute the existing full scenario:
 
 ```sh
@@ -37,11 +39,9 @@ CARBON_UV_GROUPS=chain ./scripts/dev/bootstrap.sh
 CARBON_LOCALNET_MODE=full ./scripts/dev/localnet.sh .carbon-artifacts/localnet
 ```
 
-Its prerequisite is a functioning canonical Linux amd64 Docker host and a tested
-compatibility resolution, not treasury funding, production credentials, paid
-inference or five new human approvals. The current Windows host lacks a working
-Docker daemon; GitHub Linux has already supplied actual runtime evidence. Do not
-retry the unchanged failing registration or relabel operator-only success as G2.
+Its execution platform is canonical Linux amd64 Docker, not treasury funding,
+production credentials, paid inference or new human approvals. Do not retry the
+unchanged failing registration or relabel operator-only success as G2.
 
 ## Concrete next C1 and C2 contracts
 

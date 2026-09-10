@@ -2,7 +2,7 @@
 
 **Decision:** `OWNER-C1-C2-BURGERS-01`
 **Recorded:** 2026-09-10
-**Status:** active prospective sequencing authority
+**Status:** active prospective sequencing authority; C-EA0 merged, NET-5R selected
 **Primary Hub map_ref:** `WAVE-C/C-01`
 
 ## Owner source and verified import
@@ -39,10 +39,11 @@ its required evidence.
    actual eligibility still requires the real signed C1 result, C-EA2 verified
    archive acknowledgement, exact bindings and the applicable G2 disposition.
 
-NET-5R is the separate narrow G2 compatibility investigation. It must preserve
-SDK policy, signed inner/carrier identity, era/nonce, inclusion and finalized
-readback. The previous `Stale/expired` observation establishes no root cause;
-an unchanged rerun is prohibited.
+NET-5R is the selected narrow G2 compatibility investigation. Exact pinned SDK
+and runtime source inspection confirms that Carbon's prior 64-block shield era
+exceeded v445's eight-block maximum and predicts immediate `Stale` rejection.
+The repair must preserve SDK policy, signed inner/carrier identity, era/nonce,
+inclusion and finalized readback; an unchanged rerun remains prohibited.
 
 ## Scientific and execution ceiling
 

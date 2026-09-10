@@ -1,8 +1,7 @@
 # C-EA0 evidence capture contract evidence
 
-**Status:** selected contract candidate; exact documentation contract and
-contract-case diagnostics pass; applicable automated acceptance and normal merge
-pending.
+**Status:** bounded documentation-contract delivery accepted and merged in PR
+#131 as `a3ca8cd111689329832131eac1460d579c7828b3`.
 
 **Starting main:** `5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4`
 (PR #130).
@@ -38,9 +37,10 @@ cases, unknown selection/exposure, shared-case and ancestry dependence, positive
 acknowledgement predicates, the complete reserved-input register and the
 non-universal losslessness boundary.
 
-Focused native Python 3.11.11 result: 5 passed. This is tested documentation,
-not archive runtime or durability evidence. Applicable CI acceptance remains
-pending for the final candidate.
+Focused native Python 3.11.11 result: 5 passed. Accepted head
+`62fbaad81081d87e70c8f438642b6529b6f93aff` passed
+canonical run 34455987632 before normal merge. This is tested documentation, not
+archive runtime or durability evidence.
 
 ## Human-reserved inputs and handoff
 
