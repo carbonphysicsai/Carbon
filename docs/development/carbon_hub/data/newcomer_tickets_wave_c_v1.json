@@ -66,6 +66,22 @@
       "changes": "Guarded operator CLI, retained private configuration, restart-safe node startup, bounded health, OS lease and no-overwrite restore.",
       "not_yet": "No public operation, treasury, real scientific archive, production custody or G2 readiness claim.",
       "map_ref": "WAVE-C/NET-6"
+    },
+    "C-01": {
+      "title": "Keep scientific attempts durable without duplicate execution",
+      "what": "Persist the exact A7 attempt, scientific and environment bindings before dispatch, then retain partial work and opaque result associations across restart.",
+      "why": "A crash must not silently rerun a Strategy, resample protected evaluation or erase completed work.",
+      "changes": "C1 gains atomic queue claims, explicit restart reconciliation, exact retry continuity and requester-safe status.",
+      "not_yet": "No reconstruction, score, signed receipt, archive acknowledgement, publication, chain activity, scientific qualification or LIVE authority.",
+      "map_ref": "WAVE-C/C-01"
+    },
+    "C-AUTH1": {
+      "title": "Turn structured scientific goals into a verified Burgers package",
+      "what": "Import the supplied typed authoring contracts and exact Burgers Dynamics V1 development package into Carbon's existing owners.",
+      "why": "Authors need deterministic, reviewable package construction without copying a second scheduler or bypassing scientific governance.",
+      "changes": "This is the next unstarted C1 ticket after C-01 delivery.",
+      "not_yet": "The public workbench cases are not a protected exam, accepted baseline, qualified reference, durable archive acknowledgement or testnet evidence.",
+      "map_ref": "WAVE-C/C-AUTH1"
     }
   }
 }
