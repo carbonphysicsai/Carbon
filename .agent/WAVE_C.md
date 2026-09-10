@@ -12,8 +12,10 @@
 > C-01 merged in PR #129 as 4c9e8040df3c81ecb167534424df770eb4d77d61.
 > C0 engineering delivery is closed in bounded scope; G2 remains NOT_READY.
 > OWNER-C1-C2-BURGERS-01 authorizes dependency-ready offline C1/C2
-> engineering without changing G2. C-AUTH1 merged in PR #130 and C-EA0 is the
-> active contract ticket.
+> engineering without changing G2. C-AUTH1 merged in PR #130 and C-EA0 merged
+> in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R remains the
+> active compatibility ticket; its bounded repair is ready while G2 remains
+> NOT_READY on the retained upstream blocker.
 > Treasury remains optional; no public-network operation is authorized.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
@@ -26,12 +28,10 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 1.0
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EA0 — `in_progress`
-**Next selected ticket:** C-EA1 — `todo`; unstarted and blocked from real
-implementation until its reserved human inputs are approved.
-Selection follows C-EA0 acceptance and normal merge plus satisfaction of the
-C-EA1 input gate.
-**Primary Hub map_ref:** `WAVE-C/C-EA0`
+**Selected ticket:** NET-5R — `in_progress`
+**Next selected ticket:** none. C-EA1 remains `todo`, unstarted and input-blocked
+until its reserved human operating inputs are approved.
+**Primary Hub map_ref:** `WAVE-C/NET-5R`
 
 ## 1. Scope and sequence
 
@@ -45,11 +45,13 @@ UNMEASURED; B-01G remains unfinished/non-blocking.
 `OWNER-C1-C2-BURGERS-01` prospectively amends sequencing only: dependency-ready
 offline C1/C2 engineering may proceed while G2 is NOT_READY. G2 continues to gate
 the readiness claim and every chain-dependent execution. The active offline order
-continues through C-AUTH1 and C-EA0 before consumers rely on archive semantics.
+has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
 C-EA1 is the next contract consumer but its real archive implementation remains
-fail closed on the reserved human inputs. NET-5R is a separate unselected
-compatibility repair; the unchanged
-failing registration command must not be rerun without a new hypothesis.
+fail closed on the reserved human inputs. NET-5R completed the smallest
+source-confirmed mortality repair and two changed canonical runs. The second run
+isolated intermittent authenticated unshield failure in the pinned v445
+fast-localnet proposer/keystore path; NET-5R remains selected and no later ticket
+is selected.
 
 ## 2. NET-0 development disposition
 
@@ -72,9 +74,10 @@ production custody, quorum, science or economics blocks only that operation.
 | NET-4B | Verified complete-vector publication and recovery | done | `.agent/evidence/wave_c/net-4b.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4A | MQ-054, MQ-056 | L | C0 |
 | NET-5 | Reproducible disposable localnet integration | done | `.agent/evidence/wave_c/net-5.md` | Codex + network/protocol engineering | Network/protocol + security | NET-4B | MQ-054, MQ-056 | L | C0 |
 | NET-6 | Disposable operator lifecycle and recovery | done | `.agent/evidence/wave_c/net-6.md` | Codex + network/protocol engineering | Operations + security | NET-5 | MQ-054, MQ-056 | L | C0 |
+| NET-5R | Shielded registration compatibility repair | in_progress | `.agent/evidence/wave_c/net-5r.md` | Codex + network/protocol engineering | Network/protocol + security | NET-5, SDK 11.1.0, runtime v445 | MQ-054, MQ-056 | M | C0/G2 |
 | C-01 | Durable execution state and queue | done | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
-| C-EA0 | Evidence capture contract | in_progress | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
+| C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | todo | none | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + approved reserved inputs | MQ-048, MQ-051 | L | C1 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
@@ -92,10 +95,15 @@ C-01 passed canonical RUNTIME_FULL acceptance and normally merged in PR #129 as
 4c9e8040df3c81ecb167534424df770eb4d77d61. C-AUTH1 passed canonical
 RUNTIME_FULL, Hub and merge-gate acceptance in run 34449303309 and normally
 merged in PR #130 as 5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4.
-NET-5R is materialized but unselected. C-AUTH1 remains bounded offline
-engineering only; its public workbench evidence is not scientifically qualified.
-C-EA0 is selected for a specified/tested documentation contract only. C-EA1 is
-unstarted and input-blocked.
+C-EA0 accepted head 62fbaad81081d87e70c8f438642b6529b6f93aff passed canonical run 34455987632 and normally
+merged in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3. NET-5R's
+bounded repair is the PR #132 delivery candidate: focused contracts pass and
+canonical run 34465977413 isolates authenticated unshield failure after a
+finalized carrier. NET-5R remains in progress, G2 remains NOT_READY and no later
+ticket is selected. C-AUTH1
+and C-EA0 remain bounded offline engineering only; the public
+workbench evidence is not scientifically qualified and C-EA0 creates no archive
+runtime. C-EA1 is unstarted and input-blocked.
 
 ## 4. Acceptance and maturity
 
@@ -104,9 +112,10 @@ and OWNER-C0-VALIDATION-01. Focused network/MCP tests plus all invariants,
 quality/package/Hub checks and Merge gate; unknown/shared science retains full
 fallback. No public deployment, scientific/security qualification, LIVE,
 frontier, settlement or G2 readiness follows from these unit contracts.
-The final G2 disposition and concrete C1/C2/archive handoff are in
-`.agent/plans/C0_G2_C1_C2_HANDOFF.md`. C-EA0 is selected under the prospective
-sequencing amendment; C-W1 still follows real C1, C-EA2 and its G2 dependency and
-is not selected.
-The remaining C0 operation is tested shielded-registration compatibility followed
-by the existing full localnet scenario. B-E4 and unfinished B-01G remain non-blocking.
+The current G2 disposition and concrete C1/C2/archive handoff are in
+`.agent/plans/C0_G2_C1_C2_HANDOFF.md`. NET-5R owns only the compatibility repair;
+C-W1 still follows real C1, C-EA2 and its G2 dependency and is not selected.
+The remaining G2 operation requires a supported upstream v445 fast-localnet
+proposer/keystore repair or an explicitly authorized compatible SDK/runtime pin,
+then the existing full localnet scenario. B-E4 and unfinished B-01G remain
+non-blocking.

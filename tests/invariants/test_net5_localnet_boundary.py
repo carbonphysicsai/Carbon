@@ -33,6 +33,8 @@ def test_runtime_driver_owns_only_isolated_disposable_resources():
     assert "allow_raw_calls=True" not in source
     assert "set_storage" not in source and "mev_shield_required = False" not in source
     assert "await self.verify()" in source
+    assert "period=64" not in source
+    assert "period=self.shield_era_period" in source
 
 
 def test_additional_exam_profiles_remain_fixed_synthetic_owner_inputs():

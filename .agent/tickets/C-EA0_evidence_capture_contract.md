@@ -1,9 +1,9 @@
 # C-EA0 — Evidence capture contract
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
-Exact v1 documentation contract and contract-case tests are complete;
-applicable automated acceptance and normal merge are pending.
+**Status:** `done` in bounded merged documentation-contract scope
+Exact v1 documentation contract and contract-case tests passed canonical
+acceptance and merged in PR #131 as a3ca8cd111689329832131eac1460d579c7828b3.
 **Decision:** `C-EA0-D1`
 **Primary Hub map_ref:** `WAVE-C/C-EA0`
 **Goal:** Ratify exact capture, attempt, custody, retention-class, completeness, durability-acknowledgement, and named-use semantics before archive code.

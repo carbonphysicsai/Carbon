@@ -2122,6 +2122,52 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611809988",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/bb72dfd7da069e2dd2976055aabcf03da9f6f37b/docs/development/NETWORK_OPERATIONS.md"
+    },
+    {
+      "title": "Pinned eight-block shield mortality compatibility",
+      "question": "How can NET-5R repair the retained Stale shielded registrations without bypassing SDK policy or retrying an unchanged hypothesis?",
+      "recommendation": "Use the exact Bittensor 11.1.0 eight-block shield era, fail closed on SDK/runtime drift, and record only public-safe pre-signing key-digest, nonce and era diagnostics.",
+      "why": "Pinned SDK and runtime source both cap shield mortality at eight blocks, while Carbon explicitly requested 64; the mismatch directly predicts the retained pool-level Stale rejection.",
+      "if_kept": "One changed canonical full-localnet run can test registration, shared-winner publication and recycled-UID isolation while preserving the public-network boundary.",
+      "if_changed": "Prospectively supersede NET-5R-D1 and update the SDK wrapper, localnet session, runtime manifest and boundary tests before another changed canonical run.",
+      "decision_id": "NET-5R-D1",
+      "map_ref": "WAVE-C/NET-5R",
+      "wave": "C",
+      "ticket": "NET-5R",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/132"
+    },
+    {
+      "title": "Retain the pinned authenticated unshield blocker",
+      "question": "What remains after the eight-block mortality repair allows a shielded registration to complete but the next finalized carrier fails authenticated unshielding?",
+      "recommendation": "Keep the smallest Carbon repair, retain NET-5R and G2 as unresolved, and require a supported upstream v445 fast-localnet proposer/keystore repair or an explicitly authorized compatible SDK/runtime pin before one changed rerun.",
+      "why": "Canonical run 34465977413 observed miner carrier and inner finalization, then challenger carrier finalization with matching runtime/proposer Failed to unshield diagnostics and no inner; retries or unchecked fallbacks would hide an intermittent key-consistency defect.",
+      "if_kept": "The exact partial runtime evidence remains durable, no blind retry occurs, C-EA1 stays independent, and the public-network boundary is unchanged.",
+      "if_changed": "Any new upstream source or pin must be explicitly identified, compatibility-tested and run once through the unchanged full disposable scenario before G2 can change.",
+      "decision_id": "NET-5R-D2",
+      "map_ref": "WAVE-C/NET-5R",
+      "wave": "C",
+      "ticket": "NET-5R",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-6",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/132"
     }
   ]
 }

@@ -12,7 +12,11 @@ from pathlib import Path
 
 from .models import ChainContext, hash256
 from .publication import PublicationFailure
-from .sdk_weights import journaled_substrate, require_sdk
+from .sdk_weights import (
+    journaled_substrate,
+    require_sdk,
+    require_shield_era_period,
+)
 
 IMAGE = "ghcr.io/raofoundation/subtensor-localnet"
 DIGEST = "sha256:bb762bf7a88502e0e21f76a1e6615ad4c00316f6b0e988dba2e59035c015aa86"
@@ -23,6 +27,7 @@ STARTUP = r"""set -euo pipefail
 printf '%s  %s\n' 690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae /scripts/localnet.sh | sha256sum -c -
 sed '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh > /scripts/carbon-localnet.sh
 chmod 700 /scripts/carbon-localnet.sh
+export RUST_LOG='info,basic-authorship=debug,mev-shield=debug,pallet-shield=debug'
 exec /scripts/carbon-localnet.sh True --no-purge"""
 
 
@@ -306,6 +311,7 @@ class LocalnetSession:
         self.context = self.client = self.sub = None
         self.roles, self.operations = {}, []
         self.signer = None
+        self.shield_era_period = None
 
     async def start(self):
         import bittensor as bt
@@ -317,6 +323,9 @@ class LocalnetSession:
         actual = inspect_isolation(self.container)
         if any(observed[key] != actual[key] for key in actual):
             raise PublicationFailure("ISOLATION_CHANGED")
+        # Fail before constructing disposable keys if the exact pinned SDK no longer
+        # agrees with v445's submit_encrypted mortality ceiling.
+        self.shield_era_period = require_shield_era_period()
         self.context = ChainContext(
             "localnet",
             actual["endpoints"][0],
@@ -338,11 +347,34 @@ class LocalnetSession:
             self.operations[-1]["inner_transaction"] = tx_hash
             self.save()
 
+        async def after_shield_key(digest, length):
+            self.operations[-1]["shield_key"] = {
+                "digest": digest,
+                "length": length,
+            }
+            self.save()
+
+        async def before_signed_extrinsic(kind, kwargs):
+            if "shield_era_blocks" not in self.operations[-1]:
+                return
+            nonce, period = kwargs.get("nonce"), kwargs.get("period")
+            if type(nonce) is not int or nonce < 0:
+                raise PublicationFailure("INVALID_SHIELD_NONCE")
+            if period != self.shield_era_period:
+                raise PublicationFailure("SHIELD_ERA_CONTEXT_CHANGED")
+            self.operations[-1].setdefault("signed_extrinsics", {})[kind] = {
+                "nonce": nonce,
+                "era_blocks": period,
+            }
+            self.save()
+
         self.sub = journaled_substrate(
             self.context,
             before_sign,
             before_dispatch,
             after_inner_sign=after_inner_sign,
+            after_shield_key=after_shield_key,
+            before_signed_extrinsic=before_signed_extrinsic,
         )
         await self.sub.connect()
         await self.verify()
@@ -391,6 +423,8 @@ class LocalnetSession:
         async with aclosing(self.client.blocks(finalized=True)) as headers:
             start = (await anext(headers)).number
         record = {"label": label, "state": "PREPARED", "start_finalized_block": start}
+        if intent.mev_shield_required:
+            record["shield_era_blocks"] = self.shield_era_period
         self.operations.append(record)
         self.save()
         print("Localnet setup: " + label, flush=True)
@@ -399,7 +433,7 @@ class LocalnetSession:
                 operation = self.client.submit_shielded(
                     intent,
                     self.roles[role],
-                    period=64,
+                    period=self.shield_era_period,
                     wait_for_inclusion=True,
                     wait_for_finalization=True,
                 )

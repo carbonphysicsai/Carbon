@@ -49,6 +49,12 @@ def docker_state():
     return item, network
 
 
+def test_runtime_diagnostic_log_distinguishes_shield_decryption_failures():
+    assert "basic-authorship=debug" in STARTUP
+    assert "mev-shield=debug" in STARTUP
+    assert "pallet-shield=debug" in STARTUP
+
+
 @pytest.mark.parametrize(
     "defect",
     [None, "public-port", "bridge", "other-container", "image", "mount", "privileged"],
@@ -290,6 +296,82 @@ def test_installed_sdk_inner_signing_checks_identity_before_key_use():
         "0x" + "a" * 64,
     )
     assert order == ["guard", "guard", "sign"]
+
+
+def test_pinned_sdk_and_runtime_manifest_agree_on_shield_mortality():
+    from test_net1_chain_adapter import installed_sdk
+
+    installed_sdk()
+    from bittensor.settings import MEV_SHIELD_ERA_PERIOD
+
+    from carbon.chain.sdk_weights import require_shield_era_period
+
+    manifest = json.loads(
+        (Path(__file__).parents[2] / "scripts/dev/localnet-runtime.json").read_text()
+    )
+    assert MEV_SHIELD_ERA_PERIOD == require_shield_era_period() == 8
+    assert manifest["development"]["shield_era_blocks"] == 8
+    assert (
+        "MAX_SHIELD_ERA_PERIOD=8" in manifest["development"]["shield_mortality_source"]
+    )
+
+
+def test_shield_diagnostics_bind_key_nonce_and_era_before_signing():
+    from test_net1_chain_adapter import context, installed_sdk
+
+    installed_sdk()
+    from bittensor._transport.contract import CallBytes, SignedExtrinsic
+    from bittensor.keyfiles import Keypair
+
+    from carbon.chain.sdk_weights import journaled_substrate
+
+    observed = []
+
+    async def guard(call, signer):
+        observed.append(("guard", signer))
+
+    async def journal(tx_hash):
+        pass
+
+    async def key(digest, length):
+        observed.append(("key", digest, length))
+
+    async def signing(kind, kwargs):
+        observed.append((kind, kwargs["nonce"], kwargs["period"]))
+
+    class Raw:
+        async def query(self, module, item, params, block_hash):
+            assert (module, item, params, block_hash) == (
+                "MevShield",
+                "NextKey",
+                [],
+                None,
+            )
+            return bytes(range(256)) * 4 + bytes(range(160))
+
+        async def create_signed_extrinsic(self, call, keypair, **kwargs):
+            return SignedExtrinsic(b"synthetic", "0x" + "a" * 64)
+
+    sub = journaled_substrate(
+        context(),
+        guard,
+        journal,
+        after_shield_key=key,
+        before_signed_extrinsic=signing,
+    )
+    sub._substrate = Raw()
+    key_bytes = asyncio.run(sub.mev_next_key())
+    assert len(key_bytes) == 1184
+    assert observed[0] == (
+        "key",
+        "sha256:" + hashlib.sha256(key_bytes).hexdigest(),
+        1184,
+    )
+    signer = Keypair.create_from_uri("//Bob")
+    asyncio.run(
+        sub.sign_extrinsic(CallBytes(b"fixture", 445), signer, nonce=11, period=8)
+    )
+    assert observed[1:] == [("guard", signer.ss58_address), ("inner", 11, 8)]
 
 
 @pytest.mark.parametrize("present", [True, False])

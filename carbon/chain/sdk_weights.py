@@ -1,6 +1,7 @@
 """Narrow 11.1.0 publication extension; SDK policy and execute remain in control."""
 
 import asyncio
+import hashlib
 from contextlib import aclosing
 from importlib.metadata import version
 
@@ -9,10 +10,25 @@ from .models import ChainContext, hash256, uint
 from .publication import PublicationFailure, RuntimeCapabilities
 from .sdk import SDK_VERSION
 
+PINNED_SHIELD_ERA_PERIOD = 8
+
 
 def require_sdk():
     if version("bittensor") != SDK_VERSION:
         raise PublicationFailure("UNSUPPORTED_SDK_VERSION")
+
+
+def require_shield_era_period():
+    """Return the exact SDK/runtime-compatible MEV-shield mortality period."""
+    require_sdk()
+    from bittensor.settings import MEV_SHIELD_ERA_PERIOD
+
+    if (
+        type(MEV_SHIELD_ERA_PERIOD) is not int
+        or MEV_SHIELD_ERA_PERIOD != PINNED_SHIELD_ERA_PERIOD
+    ):
+        raise PublicationFailure("UNSUPPORTED_SHIELD_ERA_PERIOD")
+    return MEV_SHIELD_ERA_PERIOD
 
 
 def guarded_weights(netuid, plan, check_integers, checked_call):
@@ -77,7 +93,13 @@ def guarded_weights(netuid, plan, check_integers, checked_call):
 
 
 def journaled_substrate(
-    context, before_sign, before_dispatch, *, after_inner_sign=None
+    context,
+    before_sign,
+    before_dispatch,
+    *,
+    after_inner_sign=None,
+    after_shield_key=None,
+    before_signed_extrinsic=None,
 ):
     """SDK transport subclass: record hash before wire submission, without key logs."""
     require_sdk()
@@ -90,9 +112,20 @@ def journaled_substrate(
     import bittensor as bt
 
     class JournaledRpcSubstrate(bt.RpcSubstrate):
+        async def mev_next_key(self):
+            key = await super().mev_next_key()
+            if after_shield_key is not None:
+                digest = (
+                    None if key is None else "sha256:" + hashlib.sha256(key).hexdigest()
+                )
+                await after_shield_key(digest, 0 if key is None else len(key))
+            return key
+
         async def sign_extrinsic(self, call, keypair, **kwargs):
             # MEV inner signing is a public SDK path separate from submit().
             await before_sign(call, keypair.ss58_address)
+            if before_signed_extrinsic is not None:
+                await before_signed_extrinsic("inner", kwargs)
             signed, identity = await super().sign_extrinsic(call, keypair, **kwargs)
             if after_inner_sign is not None:
                 await after_inner_sign(hash256(identity))
@@ -100,6 +133,8 @@ def journaled_substrate(
 
         async def submit(self, call, keypair, **kwargs):
             await before_sign(call, keypair.ss58_address)
+            if before_signed_extrinsic is not None:
+                await before_signed_extrinsic("carrier", kwargs)
             return await super().submit(call, keypair, **kwargs)
 
         async def _submit_and_report(self, extrinsic, **kwargs):

@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 54 captured tickets across Wave A, Wave B, and Wave C
+- 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 86 map-level change events
+- 89 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-EA0**. Last completed: **C-AUTH1** (`done`). Next selected: **C-EA1** (`todo` / `unstarted`). C-01 and C-AUTH1 are merged in bounded offline engineering scope. C-EA0 is selected with an exact specified/tested documentation-contract candidate; applicable automated acceptance and normal merge remain pending. C-EA1 is next, unstarted and input-blocked. G2 remains NOT_READY. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
+Wave **C**; current ticket: **NET-5R**. Last completed: **C-EA0** (`done`). Next selected: **none selected**. C-EA0 merged in PR #131. NET-5R remains selected with its smallest supported Carbon repair ready: canonical run 34465977413 proved one complete shielded registration, then isolated authenticated unshield failure in the pinned v445 fast-localnet proposer/keystore path. The full scenario did not pass, G2 remains NOT_READY and no later ticket is selected. C-EA1 stays unstarted and input-blocked on its reserved operating inputs. No archive runtime or acknowledgement, public-network operation, scientific qualification, testnet eligibility or LIVE authority is created.
 
 ## Maintain
 

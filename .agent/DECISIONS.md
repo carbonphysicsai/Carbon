@@ -13049,6 +13049,34 @@ See `.agent/tickets/NET-6_network_operations.md`: OS-owned exclusive journal lea
 consistent backup/restore, external key input after isolation/identity checks,
 truthful stale exposure and precise G2/C1/C2 handoff.
 
+## NET-5R-D1 — Match shielded registration mortality to the pinned runtime ceiling
+
+The exact Bittensor 11.1.0 wheel defines `MEV_SHIELD_ERA_PERIOD = 8`. At the
+pinned v445 runtime commit `d3f40e44bda9019c606aeb0c907bb52ba7fe386c`,
+`runtime/src/check_mortality.rs` defines `MAX_SHIELD_ERA_PERIOD = 8` and rejects
+longer `submit_encrypted` mortality as `InvalidTransaction::Stale`. Carbon's
+retained failing runs used an explicit period of 64; neither the inner nor the
+carrier hash appeared in the bounded finalized scan. Replace only that
+unsupported override with the exact pinned SDK value, fail closed on drift, and
+journal public-key digest/length plus inner/carrier nonce and era. Preserve the
+SDK intent, policy, encryption, signing guards, hash-before-wire journal,
+finalized reconciliation and disposable/public-network boundary. Only the
+changed configuration may be exercised on a fresh canonical localnet.
+Notification: https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5616806419.
+
+## NET-5R-D2 — Retain the authenticated unshield blocker without a bypass
+
+Canonical Linux run 34465977413 proves that the repaired eight-block carrier and
+inner path can succeed for the miner, then fails the challenger after its carrier
+is finalized: the pinned proposer and runtime both report `Failed to unshield
+transaction`, and the exact inner is absent. Retain G2 `NOT_READY`; do not add a
+retry, unchecked extrinsic, legacy registration, runtime bypass or public-network
+operation. The exact remaining interface dependency is a supported upstream v445
+fast-localnet proposer/keystore repair that keeps the authenticated decapsulation
+key consistent, or an explicitly authorized compatible SDK/runtime pin. C-EA1's
+operating inputs remain scoped to C-EA1. Notification:
+https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5617251068.
+
 ## 2026-09-10 — OWNER-C1-C2-BURGERS-01: continue offline C1/C2 while G2 is unresolved
 
 The owner prospectively authorizes dependency-ready offline C1/C2 engineering,

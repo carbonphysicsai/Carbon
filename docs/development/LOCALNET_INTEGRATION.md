@@ -41,11 +41,32 @@ settings, not production SLOs or accepted public economics. Runtime max weight
 65535 and other capabilities must be observed; incompatible constraints fail.
 
 Registration uses the real SDK BurnedRegister including its required ML-KEM
-shielding, with an explicit 64-block development mortal era. Exact inner and
-carrier hashes are journaled and reconciled independently. Missing local validator keys or decryption are not bypassed through
+shielding. NET-5R removes Carbon's unsupported 64-block override and requires
+the pinned SDK's eight-block era, which equals v445's maximum for
+`submit_encrypted`. Drift fails before disposable key construction. A digest and
+length of the public ephemeral key, exact inner/carrier nonce and era, and exact
+inner/carrier hashes are journaled and reconciled independently. Missing local validator keys or decryption are not bypassed through
 legacy register/raw calls. Weight timelock encryption has installed-SDK contract
 tests; actual isolated runtime operation uses plain weights. A future timelock
 configuration needs actual beacon, reveal and stale-exposure evidence.
+
+Run 34464255826 proved the eight-block carrier is accepted and finalized rather
+than rejected `Stale`, but its inner hash was not observed before expiry. Pinned
+source shows ML-KEM shield decryption uses the selected author's in-memory key,
+not drand. The harness enables the pinned proposer/shield debug targets so a
+changed diagnostic run can distinguish key availability, unshielding and inner
+push validity without changing the registration operation or isolation.
+
+Refined run 34465977413 observed the miner carrier and decrypted inner both
+finalize at block 255, then observed the challenger carrier finalize at block
+263 while pinned `mev-shield` and `basic-authorship` debug targets both reported
+`Failed to unshield transaction`; its exact inner remained absent. This
+distinguishes the remaining blocker from mortality, nonce, drand, carrier policy
+and post-decrypt inner push rejection. The exact blocker is intermittent
+authenticated unshielding in the pinned v445 fast-localnet proposer/keystore
+path. A supported upstream fix or an explicitly authorized compatible pin is
+required before another changed run; no blind retry or unchecked fallback is
+supported.
 
 ## Fixture ownership and evidence
 
@@ -96,12 +117,16 @@ no-winner vector, finality/readback and full miner-incentive burn in an observed
 epoch. The overall run failed at shielded miner registration; it does not prove
 shared-winner, recovery or G2 readiness. The manifest distinguishes those states.
 
-The latest run 34425822745 also observed all-burn restart, exact replay, actual
+Run 34425822745 also observed all-burn restart, exact replay, actual
 provider outage and publication recovery. Shielded miner registration remains
 unresolved: the SDK reports Stale/expired and no exact inner/carrier receipt was
 found through the then-finalized block. No winner or replacement is manufactured.
 The workflow is manual (`workflow_dispatch`); normal CI still runs all setup and
 offline fixture contracts. Do not repeatedly rerun the unchanged registration
-configuration. The remaining operator command is the two-line bootstrap/localnet
-command above, after a reviewed SDK/runtime shielding compatibility repair.
-G2 cannot become LOCALNET_READY until the shared-winner/identity scenarios pass.
+configuration. Exact SDK/runtime source inspection identifies the 64-block
+override as incompatible: v445 returns `Stale` above its eight-block shield
+mortality ceiling. The eight-block repair was executed twice with changed
+hypotheses on canonical Linux; the refined run failed at the second shielded
+registration as recorded above. G2 cannot become LOCALNET_READY until a
+supported upstream or pin change permits the shared-winner/identity scenarios to
+pass.

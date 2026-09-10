@@ -32,7 +32,7 @@ No database, object store, key system, deployment, retention policy, security qu
 
 ## Current stage
 
-C-EA1 is the next prospective contract consumer but remains unstarted and input-blocked until C-EA0 merges and the required durability, artifact, retention, custody/key, deployment, capacity and security inputs are approved.
+Unstarted and input-blocked after C-EA0 delivery. Selection still requires approved durability, required-artifact, retention, custody/key, deployment, capacity and security inputs.
 
 ## Maturity ceiling
 
@@ -40,8 +40,8 @@ Future archive implementation only; no archive, durability, security, production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/e45be8ae28e20c471983b7f96165eb45dcc03b9e/.agent/WAVE_C.md)
 
 > C-EA1 cannot use test-vector policy references or infrastructure convenience as approval for real custody or durability.

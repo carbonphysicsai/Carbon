@@ -1,0 +1,30 @@
+{
+  "run": "https://github.com/carbonphysicsai/Carbon/actions/runs/34465977413",
+  "head": "b2ff8e607dfd0bf2b116944bd89a130c2b8eb944",
+  "workflow_result": "failure",
+  "scope": "DISPOSABLE_SYNTHETIC_ONLY",
+  "observed": [
+    "isolated-genesis-verified-before-keys",
+    "disposable-subnet-and-publisher-configured",
+    "genesis-mismatch-rejected",
+    "three-pinned-fixture-baselines-and-public-coefficients-registered",
+    "actual-all-burn-inclusion-finality-row-and-epochs",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery",
+    "eight-block shield carrier and miner inner finalized",
+    "challenger carrier finalized and authenticated unshield failed"
+  ],
+  "not_observed": [
+    "successful shielded challenger registration",
+    "shared-winner runtime path",
+    "copied-artifact / recycled-UID runtime path"
+  ],
+  "hashes_sha256": {
+    "isolation.json": "7623f83d357923cab031ec476bb28464414da911e1de7bc393775d4163b74907",
+    "setup.json": "f139500e5a2ae497999d149e63c27bf0d081a576d99f9aae031fdf3d54771045",
+    "integration.json": "9e29041145920096f353466b0af451cd79705ff6bf082d2f1459016d3a336974",
+    "docker-network.json": "8a3630b4e5c71dd308684ed8467782fef02c5fb87a5dd27bad9ebca8818fedd9",
+    "docker-version.json": "0b1b4f366d98cff013692f609c9d9929b24825cb0487a8d617e5543828256363",
+    "node.log(uncompressed)": "e6b88bd2912a7d746b110a4fa9133e991aa983d1693019158075f6809038db0c"
+  }
+}
