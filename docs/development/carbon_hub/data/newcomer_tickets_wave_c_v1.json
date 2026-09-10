@@ -42,6 +42,14 @@
       "changes": "Context-bound validity, supersession, changed-state/quarantine checks and explicit no-winner burn intents.",
       "not_yet": "No SDK signing, runtime burn proof, public transaction, treasury deployment, science/security qualification or LIVE authority.",
       "map_ref": "WAVE-C/NET-4A"
+    },
+    "NET-4B": {
+      "title": "Verified complete-vector publication and recovery",
+      "what": "Compile complete reward targets against fresh identity/runtime capabilities and journal guarded SDK dispatch, finality, reveal and readback.",
+      "why": "A valid preview can be rebuilt at execute time; ambiguous dispatch and stale stored weights cannot be treated as cleared payouts.",
+      "changes": "Pinned runtime burn checks, explicit quantization tolerance, final SDK integer/call guards, durable transaction identity and heartbeat/recovery.",
+      "not_yet": "No actual localnet burn/epoch proof, public transaction, treasury deployment, scientific/security qualification or G2/LIVE authority.",
+      "map_ref": "WAVE-C/NET-4B"
     }
   }
 }

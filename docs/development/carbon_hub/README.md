@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 47 captured tickets across Wave A, Wave B, and Wave C
+- 48 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 78 map-level change events
+- 79 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **NET-4A**. Last completed: **C-REWARD** (`done`). Next selected: **none selected**. Wave C/C0 has NET-4A selected as its one active ticket after C-REWARD merged in PR #123. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
+Wave **C**; current ticket: **NET-4B**. Last completed: **NET-4A** (`done`). Next selected: **none selected**. Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
 
 ## Maintain
 

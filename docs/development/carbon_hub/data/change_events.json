@@ -1852,6 +1852,34 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-4B",
+      "event_type": "adjustment",
+      "event_id": "NET-4B-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610295276",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/NET-4A",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

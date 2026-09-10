@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-09T23:31:34Z"
+  captured_at_utc: "2026-09-10T00:08:25Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "ffc15f60548a1e1c8dea12921532178d4e957dec"
+  authority_snapshot_commit: "1928c9a0804d8df7166646acf82019c514f96bf6"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,43 +438,45 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. Wave C/C0 has NET-4A selected as its one active ticket after C-REWARD merged in PR #123. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-REWARD"
-    title: "Bounded-linear development reward core"
-    status: "done"
-    summary: "C-REWARD merged with canonical accepted-record rewards, burn accounting and A6 scorecard tests (PR #123)."
-    delivery:
-      reference: "PR #123"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/123"
-      merge_commit: "505f08cde173eab197aa397a09536bb6bf576065"
-  selected_ticket:
     id: "NET-4A"
     title: "Nominal publication intents"
+    status: "done"
+    summary: "NET-4A merged with canonical nominal-intent, provenance, validity and supersession tests (PR #124)."
+    delivery:
+      reference: "PR #124"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/124"
+      merge_commit: "ba88aa8bb6360fc101ec4bc3afc5c0f4408ccd5f"
+  selected_ticket:
+    id: "NET-4B"
+    title: "Verified complete-vector publication and recovery"
     status: "in_progress"
-    summary: "NET-4A implementation and native diagnostics are prepared; canonical acceptance and merge remain pending."
+    summary: "NET-4B implementation and native diagnostics are prepared; installed-SDK canonical acceptance and merge remain pending."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "0.5"
-  controlling_board_fingerprint: "cc79642567f364d70270aaaef9b9514534e4ee0ffe5d1cb27a2b99f67688ba84"
-  stage: "Wave C/C0 has NET-4A selected as its one active ticket after C-REWARD merged in PR #123. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected."
+  controlling_register_version: "0.6"
+  controlling_board_fingerprint: "1de9032f5347cc02c760505143d1b739b49e7f587f882e340bd1aec3995d190c"
+  stage: "Wave C/C0 has NET-4B selected as its one active ticket after NET-4A merged in PR #124. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
     - "NET-2"
     - "NET-3"
     - "C-REWARD"
+    - "NET-4A"
   recent_dependencies:
-    - "C-REWARD"
+    - "NET-4A"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
     - "NET-3"
+    - "C-REWARD"
   downstream_handoffs:
     []
   parallel_context:
@@ -496,7 +498,7 @@ current:
     - "The installed Codex CLI cannot prove the B-01H projection-only filesystem boundary, so the HoH pilot is fail-closed unavailable and supplies no VERIFIED B-05 requirement."
     - "B-04's deterministic fixture runtime remains structurally non-LIVE and confers no reference or scientific qualification."
     - "No scientific, security, network, commercial, production, LIVE, launch, frontier, settlement, weight, or emission authority is earned."
-    - "NET-4A remains a candidate pending canonical acceptance and merge. Public-testnet and treasury issuers are unavailable; fixture intents cannot construct their authority. No runtime burn or G2 claim."
+    - "NET-4B is a candidate pending installed-SDK canonical acceptance and merge. Runtime burn and epoch outcomes require NET-5 execution. Unknown dispatch blocks resend; public-network and treasury authority remain unavailable."
   maturity_states:
     specified: "earned"
     implemented: "unearned"
@@ -506,7 +508,7 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-4A implementation and native diagnostics are prepared; canonical acceptance and merge remain pending. Earlier C0 deliveries retain bounded tested maturity; G2 and science/security qualifications remain unearned."
+  maturity_summary: "NET-4B implementation and native diagnostics are prepared; installed-SDK canonical acceptance and merge remain pending. Earlier C0 deliveries retain bounded tested maturity; G2 and science/security qualifications remain unearned."
   decision_series_status: "OWNER-C0-REWARD-01 prospectively authorizes sequential C0 delivery and persistent direct winner plus burn, with treasury optional. OWNER-DX-03 governs delivery; B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
@@ -578,6 +580,7 @@ waves:
       - "NET-3"
       - "C-REWARD"
       - "NET-4A"
+      - "NET-4B"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -1630,11 +1633,26 @@ tickets:
     id: "NET-4A"
     wave: "C"
     title: "Nominal publication intents"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/net_4a.md"
     repo_path: ".agent/tickets/NET-4A_weight_intents.md"
     depends_on:
       - "C-REWARD"
+    depends_on_context:
+      []
+    unlocks:
+      - "NET-4B"
+    unlocks_context:
+      []
+  -
+    id: "NET-4B"
+    wave: "C"
+    title: "Verified complete-vector publication and recovery"
+    status: "in_progress"
+    explainer: "explainers/tickets/net_4b.md"
+    repo_path: ".agent/tickets/NET-4B_verified_publication.md"
+    depends_on:
+      - "NET-4A"
     depends_on_context:
       []
     unlocks:
@@ -3442,6 +3460,32 @@ events:
       - "WAVE-C/NET-2"
       - "WAVE-C/NET-3"
       - "WAVE-C/C-REWARD"
+      - "SYSTEM/CI"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/NET-4B"
+    event_type: "adjustment"
+    event_id: "NET-4B-D1"
+    owner_lane: "network_protocol_engineering"
+    status: "implemented"
+    summary: "NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5610295276"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/NET-1"
+      - "WAVE-C/NET-2"
+      - "WAVE-C/NET-3"
+      - "WAVE-C/C-REWARD"
+      - "WAVE-C/NET-4A"
       - "SYSTEM/CI"
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/AGENT-EXECUTION"
