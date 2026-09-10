@@ -29,9 +29,8 @@ docker pull --platform linux/amd64 "$image"
 docker network create --internal --label carbon.scope=disposable-localnet "$network" >/dev/null
 docker run --detach --name "$name" --platform linux/amd64 --network "$network" \
   --label carbon.scope=disposable-localnet --memory 5g --cpus 3 \
-  -p 127.0.0.1::9944 -p 127.0.0.1::9945 "$image" True >"$evidence/container-id.txt"
+  "$image" True >"$evidence/container-id.txt"
 export CARBON_LOCALNET_CONTAINER="$name" CARBON_LOCALNET_EVIDENCE="$evidence"
-# The probe validates Docker isolation itself before constructing any key.
-.venv/bin/python -m carbon.chain.localnet probe
-# CPU fixture integration is a separate, explicit runtime invocation.
-CARBON_REQUIRE_LOCALNET=1 .venv/bin/python -m pytest tests/cpu/test_net5_integration.py -q -s
+# Process-owned loopback relays reach only the inspected internal container RPC.
+# Probe validates isolation and genesis before constructing any key.
+.venv/bin/python -m carbon.chain.localnet run

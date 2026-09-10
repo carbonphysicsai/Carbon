@@ -17,7 +17,7 @@ intent issuer and guarded publisher. Add reproducible Docker orchestration,
 strictly local runtime setup and an integration harness using real SDK/chain
 operations with throwaway development accounts. Source pin v445 / d3f40e4 is
 independent of Bittensor 11.1.0. Pin the amd64 image by digest. Establish the
-container's internal network, loopback RPC mappings and observed genesis before
+container's internal network, process-owned loopback RPC relays and observed genesis before
 key construction/signing; recheck genesis/runtime at privileged boundaries.
 
 1. Add bounded local setup and runtime evidence capture. Public SDK intents or

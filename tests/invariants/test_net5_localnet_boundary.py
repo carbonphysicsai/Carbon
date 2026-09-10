@@ -22,7 +22,7 @@ def test_localnet_import_has_no_sdk_key_or_network_construction():
 def test_runtime_driver_owns_only_isolated_disposable_resources():
     root = Path(__file__).parents[2]
     text = (root / "scripts/dev/localnet.sh").read_text()
-    assert "--internal" in text and "-p 127.0.0.1::9944" in text
+    assert "--internal" in text and "--publish" not in text and "  -p " not in text
     assert "--privileged" not in text and "docker system prune" not in text
     source = (root / "carbon/chain/localnet.py").read_text()
     assert "policy=bt.Policy(allowed_netuids=[2])" in source

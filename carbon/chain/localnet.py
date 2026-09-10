@@ -1,6 +1,7 @@
 """Explicit disposable Docker localnet setup; never a public-network operator."""
 
 import asyncio
+import ipaddress
 import json
 import os
 import subprocess
@@ -27,7 +28,7 @@ def write_evidence(path, value):
     temp.replace(path)
 
 
-def inspect_isolation(container):
+def _inspect_container(container):
     """Derive endpoints from a running pinned container, not caller-provided URLs."""
     if not container or not container.startswith("carbon-localnet-"):
         raise PublicationFailure("DISPOSABLE_CONTAINER_REQUIRED")
@@ -52,7 +53,41 @@ def inspect_isolation(container):
     network = docker("network", "inspect", next(iter(nets)))[0]
     if not network["Internal"] or set(network["Containers"]) != {item["Id"]}:
         raise PublicationFailure("NETWORK_ISOLATION_MISMATCH")
-    ports = item["NetworkSettings"]["Ports"]
+    address = ipaddress.ip_address(next(iter(nets.values()))["IPAddress"])
+    if not address.is_private or address.is_loopback or address.is_unspecified:
+        raise PublicationFailure("INTERNAL_CONTAINER_ADDRESS_REQUIRED")
+    return {
+        "schema": "carbon.disposable.isolation.v1",
+        "container": item["Id"],
+        "image": IMAGE + "@" + DIGEST,
+        "source_commit": SOURCE,
+        "internal_network": network["Id"],
+        "container_address": str(address),
+        "ports": item["NetworkSettings"]["Ports"],
+        "scope": "DISPOSABLE_LOCALNET_ONLY",
+    }
+
+
+# Process-owned capability, constructed explicitly by run(), never from a file/URL.
+_ACTIVE_RELAY = None
+
+
+def inspect_isolation(container):
+    proof = _inspect_container(container)
+    ports = proof.pop("ports")
+    if _ACTIVE_RELAY is not None:
+        original, servers = _ACTIVE_RELAY
+        if any(ports.values()) or proof != original:
+            raise PublicationFailure("RELAY_CONTAINER_CHANGED")
+        endpoints = []
+        for server in servers:
+            if not server.is_serving() or len(server.sockets) != 1:
+                raise PublicationFailure("RELAY_NOT_LISTENING")
+            address, port = server.sockets[0].getsockname()
+            if address != "127.0.0.1":
+                raise PublicationFailure("LOOPBACK_RPC_REQUIRED")
+            endpoints.append(f"ws://127.0.0.1:{port}")
+        return dict(proof, endpoints=endpoints, transport="PROCESS_LOOPBACK_RELAY")
     endpoints = []
     for port in ("9944/tcp", "9945/tcp"):
         bindings = ports.get(port)
@@ -67,28 +102,76 @@ def inspect_isolation(container):
         port not in ("9944/tcp", "9945/tcp") and value for port, value in ports.items()
     ):
         raise PublicationFailure("UNEXPECTED_PUBLISHED_PORT")
-    return {
-        "schema": "carbon.disposable.isolation.v1",
-        "container": item["Id"],
-        "image": IMAGE + "@" + DIGEST,
-        "source_commit": SOURCE,
-        "internal_network": network["Id"],
-        "endpoints": endpoints,
-        "scope": "DISPOSABLE_LOCALNET_ONLY",
-    }
+    return dict(proof, endpoints=endpoints, transport="DOCKER_LOOPBACK_BINDING")
+
+
+async def run(container, directory):
+    """Own loopback relays and the actual pytest lane for one disposable lifetime."""
+    global _ACTIVE_RELAY
+    if _ACTIVE_RELAY is not None:
+        raise PublicationFailure("RELAY_ALREADY_RUNNING")
+    proof = _inspect_container(container)
+    if any(proof.pop("ports").values()):
+        raise PublicationFailure("RELAY_REQUIRES_UNPUBLISHED_INTERNAL_NETWORK")
+    connections = set()
+
+    async def bridge(reader, writer, port):
+        task = asyncio.current_task()
+        connections.add(task)
+        remote = None
+        try:
+            remote_reader, remote = await asyncio.wait_for(
+                asyncio.open_connection(proof["container_address"], port), 3
+            )
+
+            async def copy(source, target):
+                while data := await source.read(65536):
+                    target.write(data)
+                    await target.drain()
+
+            async with asyncio.TaskGroup() as group:
+                a = group.create_task(copy(reader, remote))
+                b = group.create_task(copy(remote_reader, writer))
+                await asyncio.wait((a, b), return_when=asyncio.FIRST_COMPLETED)
+                a.cancel()
+                b.cancel()
+        except (OSError, TimeoutError, ExceptionGroup):
+            pass  # RPC observes a closed connection; no payloads enter diagnostics.
+        finally:
+            writer.close()
+            if remote is not None:
+                remote.close()
+            connections.discard(task)
+
+    servers = []
+    try:
+        for port in (9944, 9945):
+            servers.append(
+                await asyncio.start_server(
+                    lambda r, w, p=port: bridge(r, w, p), "127.0.0.1", 0
+                )
+            )
+        _ACTIVE_RELAY = (proof, servers)
+        await probe(container, directory)
+        import pytest
+
+        os.environ["CARBON_REQUIRE_LOCALNET"] = "1"
+        return await asyncio.to_thread(
+            pytest.main, ["tests/cpu/test_net5_integration.py", "-q", "-s"]
+        )
+    finally:
+        _ACTIVE_RELAY = None
+        for server in servers:
+            server.close()
+            await server.wait_closed()
+        for task in tuple(connections):
+            task.cancel()
+        await asyncio.gather(*connections, return_exceptions=True)
 
 
 async def probe(container, directory):
     require_sdk()
-    directory = Path(directory)
-    for attempt in range(10):
-        try:
-            isolation = inspect_isolation(container)
-            break
-        except PublicationFailure as error:
-            if str(error) != "LOOPBACK_RPC_REQUIRED" or attempt == 9:
-                raise
-            await asyncio.sleep(1)
+    isolation = inspect_isolation(container)
     import bittensor as bt
 
     sub = bt.RpcSubstrate(
@@ -333,13 +416,15 @@ class LocalnetSession:
 if __name__ == "__main__":
     import sys
 
-    if sys.argv[1:] != ["probe"]:
-        raise SystemExit(
-            "Only explicit probe is supported; setup is owned by the C0 fixture harness."
-        )
-    asyncio.run(
-        probe(
-            os.environ["CARBON_LOCALNET_CONTAINER"],
-            os.environ["CARBON_LOCALNET_EVIDENCE"],
+    from carbon.chain.localnet import run as owned_run
+
+    if sys.argv[1:] != ["run"]:
+        raise SystemExit("Only the explicit disposable integration run is supported.")
+    raise SystemExit(
+        asyncio.run(
+            owned_run(
+                os.environ["CARBON_LOCALNET_CONTAINER"],
+                os.environ["CARBON_LOCALNET_EVIDENCE"],
+            )
         )
     )

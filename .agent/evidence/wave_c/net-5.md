@@ -38,3 +38,10 @@ runtime image digest. Container startup was followed immediately by rejected
 loopback binding inspection, before any chain connection or signing. Retain
 Docker network diagnostics and bound startup polling; an unchanged missing
 binding will remain a failure rather than a public-network fallback.
+
+Run 34423594657 resolves the binding failure: Docker 28.0.4 retained an internal
+network with no gateway and empty actual Ports despite requested loopback
+publication. This is not a startup timing race. Preserve that isolation; the
+harness now owns two loopback TCP relays to the verified container address and
+fixed RPC ports, with no caller endpoint file or external container route.
+Container identity/network must still match the in-process relay capability.

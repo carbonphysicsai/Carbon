@@ -34,7 +34,7 @@ def docker_state():
         "HostConfig": {"Privileged": False},
         "Mounts": [],
         "NetworkSettings": {
-            "Networks": {"internal": {}},
+            "Networks": {"internal": {"IPAddress": "172.18.0.2"}},
             "Ports": {
                 "9944/tcp": [{"HostIp": "127.0.0.1", "HostPort": "40001"}],
                 "9945/tcp": [{"HostIp": "127.0.0.1", "HostPort": "40002"}],
@@ -193,3 +193,34 @@ def test_all_registered_exam_variants_use_existing_a7_a8_acceptance(tmp_path):
             ), "Fixed synthetic fixture must produce at least one admitted score"
 
     asyncio.run(exercise())
+
+
+def test_process_relay_cannot_be_supplied_as_an_unverified_endpoint(monkeypatch):
+    import carbon.chain.localnet as module
+
+    item, network = docker_state()
+    item["NetworkSettings"]["Ports"] = {}
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda cmd, **kw: SimpleNamespace(
+            stdout=json.dumps([network if cmd[1] == "network" else item])
+        ),
+    )
+    with pytest.raises(PublicationFailure, match="LOOPBACK_RPC_REQUIRED"):
+        inspect_isolation("carbon-localnet-test")
+    proof = module._inspect_container("carbon-localnet-test")
+    proof.pop("ports")
+    server = SimpleNamespace(
+        is_serving=lambda: True,
+        sockets=[SimpleNamespace(getsockname=lambda: ("127.0.0.1", 40001))],
+    )
+    monkeypatch.setattr(module, "_ACTIVE_RELAY", (proof, [server, server]))
+    assert (
+        inspect_isolation("carbon-localnet-test")["transport"]
+        == "PROCESS_LOOPBACK_RELAY"
+    )
+    item["Id"] = "replaced-container"
+    network["Containers"] = {item["Id"]: {}}
+    with pytest.raises(PublicationFailure, match="RELAY_CONTAINER_CHANGED"):
+        inspect_isolation("carbon-localnet-test")
