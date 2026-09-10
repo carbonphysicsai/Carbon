@@ -99,9 +99,7 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn(
-            "C-EA0 merged in PR #131", self.output
-        )
+        self.assertIn("C-EA0 merged in PR #131", self.output)
         self.assertIn("G2 remains NOT_READY", self.output)
         self.assertIn("C-EA1 stays unstarted and input-blocked", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
