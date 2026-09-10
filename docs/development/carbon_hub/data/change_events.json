@@ -1938,6 +1938,36 @@
         "WAVE-B/B-GATE"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/NET-6",
+      "event_type": "adjustment",
+      "event_id": "NET-6-D1",
+      "owner_lane": "network_protocol_engineering",
+      "status": "implemented",
+      "summary": "NET-5 merged with actual all-burn/recovery evidence and an unresolved required shielded-registration failure. NET-6 adds guarded operator lifecycle, external throwaway keys, private backup/restore and a separately labeled operator rehearsal; G2 remains NOT_READY and C1/C2 archive dependencies are preserved. Actual operator run 34431662096 passed: same-container restart preserves finalized state/row; external key and restored consumers publish; shutdown retains exposure; all logical backup/restore tables match. Full winner integration remains unobserved.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611809988",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE"
+      ],
+      "supersedes": null
     }
   ]
 }

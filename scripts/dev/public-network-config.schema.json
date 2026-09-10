@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:carbon:public-network:disabled:v1",
+  "title": "Unactivated public-network handoff; no operation authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "enabled",
+    "network",
+    "endpoint",
+    "genesis",
+    "netuid",
+    "publisher",
+    "custody_policy",
+    "scientific_qualification",
+    "security_acceptance",
+    "economic_policy",
+    "treasury"
+  ],
+  "properties": {
+    "schema": {
+      "const": "carbon.public-network.disabled.v1"
+    },
+    "enabled": {
+      "const": false
+    },
+    "network": {
+      "enum": [
+        "testnet",
+        "mainnet"
+      ]
+    },
+    "endpoint": {
+      "type": "null"
+    },
+    "genesis": {
+      "type": "null"
+    },
+    "netuid": {
+      "type": "null"
+    },
+    "publisher": {
+      "type": "null"
+    },
+    "custody_policy": {
+      "type": "null"
+    },
+    "scientific_qualification": {
+      "type": "null"
+    },
+    "security_acceptance": {
+      "type": "null"
+    },
+    "economic_policy": {
+      "type": "null"
+    },
+    "treasury": {
+      "type": "null"
+    }
+  }
+}

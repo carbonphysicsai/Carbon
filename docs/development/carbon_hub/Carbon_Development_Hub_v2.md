@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `f8de3f01975cbcddb7b9537574dd5050ac4e55d1` on `main`, captured 2026-09-10T02:29:16Z.
-**Current:** Wave C, ticket NET-5. Wave C/C0 has NET-5 selected as its one active ticket after NET-4B merged in PR #125. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
-**Last completed:** NET-4B (`done`).
+**Authority snapshot:** `9079c14a9398355408de0543ee558bbbf705884a` on `main`, captured 2026-09-10T03:08:41Z.
+**Current:** Wave C, ticket NET-6. Wave C/C0 has NET-6 selected as its one active ticket after NET-5 merged in PR #126. Sequential C0 plus C-REWARD delivery remains authorized. Direct winner plus burn supports treasury absent. G2 needs actual localnet evidence; C1/C2 retain science and archive dependencies. B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING and effectiveness UNMEASURED; B-01G remains unfinished/non-blocking. No later ticket is selected.
+**Last completed:** NET-5 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -78,7 +78,8 @@
 | [C-REWARD](explainers/tickets/c_reward.md) | Turn accepted improvements into decaying winner targets and preserve all unearned allocation for burn. | done |
 | [NET-4A](explainers/tickets/net_4a.md) | Bind local publication to exact accepted reward provenance and short validity. | done |
 | [NET-4B](explainers/tickets/net_4b.md) | Check final winner/burn integers before signing and reconcile chain effects before retry. | done |
-| [NET-5](explainers/tickets/net_5.md) | Run authentic synthetic submissions through reward targets and the pinned isolated chain. | in_progress |
+| [NET-5](explainers/tickets/net_5.md) | Run authentic synthetic submissions through reward targets and the pinned isolated chain. | done |
+| [NET-6](explainers/tickets/net_6.md) | Operate and recover the isolated publisher without losing reward age or pending dispatch. | in_progress |
 
 ## Change routes
 
@@ -173,6 +174,7 @@
 - `NET-4B-D1` — `WAVE-C/NET-4B` — NET-4A merged with canonical intent evidence. NET-4B adds complete winner/burn compilation, runtime identity/constraint checks, final SDK integer and call guards, transaction-before-wire journaling, bounded reconciliation and heartbeat. Actual localnet burn and G2 remain unproven.
 - `NET-5-D1` — `WAVE-C/NET-5` — NET-4B merged with canonical publisher evidence. NET-5 selects isolated pinned-image execution and finite synthetic A8 exam identities, preserving existing thresholds, exact acceptance and NET-3 duplicate-version protection. Runtime burn, epochs and recovery must be observed before a G2 claim. Actual pinned runtime proves all-burn rows/epochs and recovery; required shielded miner registration reports Stale/expired, leaving shared-winner runtime evidence and G2 not ready. Exact reports are retained, and repeated unchanged attempts stop.
 - `NET-5-D2` — `WAVE-C/NET-5` — Correct cross-challenge test batch IDs. The exact finite A8 fixture migration uses complete network/A7/A8/scoring/NET-5 regressions; different science/dependency bytes retain full fallback. Canceled broad run is not a pass; runtime shield registration and G2 remain unresolved.
+- `NET-6-D1` — `WAVE-C/NET-6` — NET-5 merged with actual all-burn/recovery evidence and an unresolved required shielded-registration failure. NET-6 adds guarded operator lifecycle, external throwaway keys, private backup/restore and a separately labeled operator rehearsal; G2 remains NOT_READY and C1/C2 archive dependencies are preserved. Actual operator run 34431662096 passed: same-container restart preserves finalized state/row; external key and restored consumers publish; shutdown retains exposure; all logical backup/restore tables match. Full winner integration remains unobserved.
 
 ## Authority boundary
 

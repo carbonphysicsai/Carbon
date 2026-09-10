@@ -6,7 +6,7 @@ import ipaddress
 import json
 import os
 import subprocess
-from contextlib import aclosing
+from contextlib import aclosing, asynccontextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -21,8 +21,9 @@ SOURCE = "d3f40e44bda9019c606aeb0c907bb52ba7fe386c"
 # Pinned upstream public CLI compatibility option; runtime binary is unchanged.
 STARTUP = r"""set -euo pipefail
 printf '%s  %s\n' 690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae /scripts/localnet.sh | sha256sum -c -
-sed -i '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh
-exec /scripts/localnet.sh True"""
+sed '/^    --validator$/a\    --network-backend libp2p' /scripts/localnet.sh > /scripts/carbon-localnet.sh
+chmod 700 /scripts/carbon-localnet.sh
+exec /scripts/carbon-localnet.sh True --no-purge"""
 
 
 def write_evidence(path, value):
@@ -116,11 +117,18 @@ def inspect_isolation(container):
     return dict(proof, endpoints=endpoints, transport="DOCKER_LOOPBACK_BINDING")
 
 
-async def run(container, directory):
-    """Own loopback relays and the actual pytest lane for one disposable lifetime."""
+@asynccontextmanager
+async def isolated_relays(container, *, ports=(0, 0)):
+    """Own fixed internal RPC relays; explicit ports preserve restart context."""
     global _ACTIVE_RELAY
     if _ACTIVE_RELAY is not None:
         raise PublicationFailure("RELAY_ALREADY_RUNNING")
+    if (
+        type(ports) is not tuple
+        or len(ports) != 2
+        or any(type(p) is not int or not 0 <= p <= 65535 for p in ports)
+    ):
+        raise PublicationFailure("INVALID_LOCAL_RELAY_PORTS")
     proof = _inspect_container(container)
     if any(proof.pop("ports").values()):
         raise PublicationFailure("RELAY_REQUIRES_UNPUBLISHED_INTERNAL_NETWORK")
@@ -160,20 +168,14 @@ async def run(container, directory):
 
     servers = []
     try:
-        for port in (9944, 9945):
+        for port, local_port in zip((9944, 9945), ports):
             servers.append(
                 await asyncio.start_server(
-                    lambda r, w, p=port: bridge(r, w, p), "127.0.0.1", 0
+                    lambda r, w, p=port: bridge(r, w, p), "127.0.0.1", local_port
                 )
             )
         _ACTIVE_RELAY = (proof, servers)
-        await probe(container, directory)
-        import pytest
-
-        os.environ["CARBON_REQUIRE_LOCALNET"] = "1"
-        return await asyncio.to_thread(
-            pytest.main, ["tests/cpu/test_net5_integration.py", "-q", "-s"]
-        )
+        yield inspect_isolation(container)
     finally:
         _ACTIVE_RELAY = None
         for server in servers:
@@ -182,6 +184,18 @@ async def run(container, directory):
         for task in tuple(connections):
             task.cancel()
         await asyncio.gather(*connections, return_exceptions=True)
+
+
+async def run(container, directory):
+    """Own the relays and actual pytest lane for one disposable lifetime."""
+    async with isolated_relays(container):
+        await probe(container, directory)
+        import pytest
+
+        os.environ["CARBON_REQUIRE_LOCALNET"] = "1"
+        return await asyncio.to_thread(
+            pytest.main, ["tests/cpu/test_net5_integration.py", "-q", "-s"]
+        )
 
 
 async def probe(container, directory):

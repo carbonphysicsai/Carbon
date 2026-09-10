@@ -58,6 +58,14 @@
       "changes": "An isolated pinned-image runner, guarded local setup, three fixed synthetic exam identities and actual SDK/chain integration tests.",
       "not_yet": "No C1 scientific evidence, public network, treasury, security qualification or automatic G2 readiness.",
       "map_ref": "WAVE-C/NET-5"
+    },
+    "NET-6": {
+      "title": "Disposable operator lifecycle and recovery",
+      "what": "Explicit configuration, external keys, exclusive process ownership, health and consistent private backup/restore.",
+      "why": "A tested publication function needs honest lifecycle and recovery controls before local operation can be reproduced.",
+      "changes": "Guarded operator CLI, retained private configuration, restart-safe node startup, bounded health, OS lease and no-overwrite restore.",
+      "not_yet": "No public operation, treasury, real scientific archive, production custody or G2 readiness claim.",
+      "map_ref": "WAVE-C/NET-6"
     }
   }
 }

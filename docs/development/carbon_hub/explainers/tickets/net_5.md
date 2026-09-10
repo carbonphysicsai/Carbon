@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/NET-5`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C0
 
@@ -21,7 +21,7 @@ An isolated pinned-image runner, guarded local setup, three fixed synthetic exam
 ## Placement and handoff
 
 - **Depends on:** NET-4B
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** NET-6
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -32,7 +32,7 @@ No C1 scientific evidence, public network, treasury, security qualification or a
 
 ## Current stage
 
-NET-5 observed three-challenge all-burn finality/rows/epoch burn and restart/outage recovery. Shielded miner registration is unresolved; shared-winner runtime integration and G2 remain unearned. Canonical engineering acceptance is pending.
+NET-5 merged in PR #126 with canonical tests and actual all-burn finality, rows, epochs and restart/outage recovery. Shielded miner registration and shared-winner runtime evidence remain unresolved; G2 is NOT_READY.
 
 ## Maturity ceiling
 
@@ -40,9 +40,9 @@ Disposable C0 fixture integration only; G2 depends on actual runtime evidence an
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/tickets/NET-5_disposable_localnet.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/evidence/wave_c/net-5.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/docs/development/LOCALNET_INTEGRATION.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f8de3f01975cbcddb7b9537574dd5050ac4e55d1/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/tickets/NET-5_disposable_localnet.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/evidence/wave_c/net-5.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/docs/development/LOCALNET_INTEGRATION.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9079c14a9398355408de0543ee558bbbf705884a/.agent/WAVE_C.md)
 
 > Targets, stored weights, Yuma outcomes and settled receipts remain separate evidence states.

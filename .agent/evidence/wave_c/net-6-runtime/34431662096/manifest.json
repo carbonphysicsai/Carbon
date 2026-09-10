@@ -1,0 +1,31 @@
+{
+  "run": "https://github.com/carbonphysicsai/Carbon/actions/runs/34431662096",
+  "head": "bb72dfd7da069e2dd2976055aabcf03da9f6f37b",
+  "workflow_result": "success",
+  "scope": "NET6_ALL_BURN_OPERATIONS_SYNTHETIC_ONLY",
+  "g2": "NOT_READY",
+  "observed": [
+    "isolated-genesis-verified-before-keys",
+    "disposable-subnet-and-publisher-configured",
+    "genesis-mismatch-rejected",
+    "three-pinned-fixture-baselines-and-public-coefficients-registered",
+    "actual-all-burn-inclusion-finality-row-and-epochs",
+    "restart-and-exact-dispatch-replay-no-resend",
+    "actual-provider-outage-and-publication-recovery",
+    "actual-node-restart-retains-finalized-chain-and-weight-row",
+    "actual-all-burn-operator-heartbeat-shutdown-and-backup-restore"
+  ],
+  "not_observed": [
+    "shielded miner registration",
+    "shared winner chain effects",
+    "recycled UID chain effects"
+  ],
+  "hashes_sha256": {
+    "isolation.json": "6862d684ff2afd16958ca5413286d25a40677d44fda2c2f2a0f35eb03fbe00a6",
+    "setup.json": "5004e26fd5e01cc17fb73853a3624c93fd301031a58d9eeabd5d00467034459f",
+    "integration.json": "80dfd3d9abca515bba9306fceaca618492bcc5b84d0667a2f3d15c8721e9c390",
+    "docker-network.json": "a309804bd413f427409c03745ccd45a152b365b302f64e025f334d8a0d7eadcf",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "node.log(uncompressed)": "9a73943afe479f674107e41bca58883c6f4c1136d6df6d834a6b8df7b7195d3b"
+  }
+}

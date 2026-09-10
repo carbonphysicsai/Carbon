@@ -2,6 +2,12 @@ name: Disposable localnet evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Full NET-5 integration or separately labeled NET-6 all-burn operations'
+        type: choice
+        options: [full, operator]
+        default: full
 
 permissions:
   contents: read
@@ -33,10 +39,11 @@ jobs:
         env:
           CARBON_UV_GROUPS: chain
           CARBON_REQUIRE_CHAIN_SDK: "1"
-        run: .venv/bin/python -m pytest tests/cpu/test_net5_setup.py -q
+        run: .venv/bin/python -m pytest tests/cpu/test_net5_setup.py tests/cpu/test_net6_operations.py -q
       - name: Execute disposable runtime and collect actual evidence
         env:
           CARBON_UV_GROUPS: chain
+          CARBON_LOCALNET_MODE: ${{ inputs.mode }}
         run: ./scripts/dev/localnet.sh .carbon-artifacts/localnet
       - name: Preserve runtime diagnostics, including failures
         if: always()
