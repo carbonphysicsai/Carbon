@@ -1,14 +1,6 @@
 name: Disposable localnet evidence
 
 on:
-  push:
-    branches: [agent/net-5-localnet, agent/net-6-operations]
-    paths:
-      - 'carbon/**'
-      - 'scripts/dev/**'
-      - 'tests/cpu/*net5*'
-      - 'tests/fixtures/score_packs/a5_fixture_net5*'
-      - '.github/workflows/localnet.yml' 
   workflow_dispatch:
 
 permissions:

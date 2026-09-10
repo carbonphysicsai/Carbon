@@ -1,0 +1,24 @@
+{
+  "run": "https://github.com/carbonphysicsai/Carbon/actions/runs/34425292251",
+  "head": "5f2475ac9765d71ac69f813d0411980a01976a33",
+  "workflow_result": "failure",
+  "scope": "DISPOSABLE_SYNTHETIC_ONLY",
+  "observed": [
+    "all-burn row finalized at block 191",
+    "MinerBurned Q32=4294967296 at finalized block 234 / epoch 12",
+    "verified Burn mode / owner sink / one mechanism of maximum two"
+  ],
+  "not_observed": [
+    "shared-winner runtime path",
+    "recovery in this run",
+    "UID replacement in this run"
+  ],
+  "hashes_sha256": {
+    "isolation.json": "5319cd6ac4f945f736b6f92f1b834844c1c4bb8c699c718fe36227c95d5be26f",
+    "setup.json": "f6f4657f1b66d8cbc23f6039d60a62c0ddbd660c98d1ae795b2be217195aea92",
+    "integration.json": "a6fe586425e29df2aecfd46728981d06f04e88c0c0243f6bb8cc6dd1d3014f2f",
+    "docker-network.json": "a3d7671f33f65bf87cea0cb896a3791d66c61f0e63e32fc3e9f1534d6c18cc29",
+    "docker-version.json": "4c9a6b1e5612b72e4fc9f2cc84c58585c7335cd1244e11fbc3dbc458d82bdd6a",
+    "node.log(uncompressed)": "4ae769af48c9d57f4df0180ddeb33d6b5b4aa390dc2c3894a5105ae4bfbe9c76"
+  }
+}

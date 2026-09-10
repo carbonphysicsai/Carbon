@@ -376,3 +376,155 @@ def test_setup_reconciliation_requires_exact_finalized_inner_receipt(
     assert result is (reported if inner_success is None else expected)
     assert (record["state"] == "FINALIZED_RECONCILED") is (inner_success is True)
     assert record["reconciled_at_finalized_block"] == 10
+
+
+def test_archived_runtime_evidence_bytes_match_recorded_hashes():
+    import gzip
+
+    root = Path(__file__).parents[2] / ".agent/evidence/wave_c/net-5-runtime"
+    for manifest_path in root.glob("*/manifest.json"):
+        manifest = json.loads(manifest_path.read_text())
+        assert len(manifest["head"]) == 40
+        for name, expected in manifest["hashes_sha256"].items():
+            if name == "node.log(uncompressed)":
+                data = gzip.decompress(
+                    (manifest_path.parent / "node.log.gz").read_bytes()
+                )
+            else:
+                data = (manifest_path.parent / name).read_bytes()
+            assert hashlib.sha256(data).hexdigest() == expected
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="canonical A3 descriptor-relative registry required"
+)
+def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
+    from net5_fixture_support import Exam
+    from test_net2_transport import CONTEXT, Adapter, FakeVerifier, headers, snapshot
+    from test_net4b_publication import capabilities
+
+    from carbon.candidates.store import CandidateJournal
+    from carbon.chain import Participant
+    from carbon.chain.publication import compile_targets, validate_integers
+    from carbon.rewards.core import Q12, DevelopmentTerms
+    from carbon.rewards.intents import LocalnetIntentIssuer
+    from carbon.rewards.ledger import FixtureRewardLedger
+    from carbon.transport.store import ReceiptJournal
+
+    async def exercise():
+        receipts = ReceiptJournal(tmp_path / "receipts.sqlite", CONTEXT)
+        adapter = Adapter(
+            snapshot()
+        )  # Deterministic chain/auth doubles, explicitly not localnet.
+        exams = [
+            Exam(
+                tmp_path / (suffix or "a"),
+                receipts,
+                adapter,
+                "validator",
+                FakeVerifier(),
+                suffix,
+            )
+            for suffix in (None, "b", "c")
+        ]
+        ledger = FixtureRewardLedger(receipts, adapter, tuple(e.journal for e in exams))
+        signer = lambda body, now, hotkey: headers(body, now, hotkey)
+        baselines = []
+        for exam in exams:
+            for variant in range(20):
+                ref = await exam.commit(variant, signer, hotkey="validator")
+                accepted = exam.evaluate(
+                    ref
+                )  # Existing A7/A8/A5 acceptance; never injected flags.
+                if accepted:
+                    break
+            else:
+                pytest.fail(
+                    "No admitted baseline within registered synthetic attempt budget"
+                )
+            baselines.append(accepted.score_hex)
+            opens = adapter.state.timestamp_ms
+            await ledger.register(
+                DevelopmentTerms(
+                    exam.journal.context.identity,
+                    ref.identity,
+                    accepted.score_hex,
+                    "1",
+                    opens,
+                    opens + 3600000,
+                    opens + 3600000,
+                    ((opens, Q12 // 3),),
+                ),
+                exam.pack,
+                exam.profile.challenge_key.challenge_id,
+            )
+        assert (
+            ledger.resolve_projection(await ledger.project())["targets"]["burn"] == Q12
+        )
+        winners = []
+        for exam, baseline in zip(exams[:2], baselines[:2]):
+            for variant in range(20, 60):
+                ref = await exam.commit(variant, signer, hotkey="miner")
+                batch = await ledger.open_batch(
+                    exam.journal.context.identity, f"batch-{variant}"
+                )
+                accepted = exam.evaluate(ref)
+                state = await ledger.close_batch(batch)
+                if accepted and float.fromhex(state.record_hex) > float.fromhex(
+                    baseline
+                ):
+                    winners.append((ref, variant))
+                    break
+            else:
+                pytest.fail(
+                    "No accepted improvement; never relax scientific thresholds"
+                )
+        target = ledger.resolve_projection(await ledger.project())
+        assert len(target["targets"]["challenges"]) == 3
+        assert len(target["targets"]["winners"]) == 1
+        assert 0 < target["targets"]["burn"] < Q12
+        issuer = LocalnetIntentIssuer(ledger)
+        intent = await issuer.issue("offline-three-exam-integration")
+        caps = capabilities(adapter.state)
+        plan = compile_targets(
+            issuer.resolve(intent, adapter.state), adapter.state, caps, "validator"
+        )
+        assert sum(v for _, v in plan.q12) == Q12 and len(plan.q12) == 2
+        validate_integers(
+            plan, [u for u, _ in plan.integers], [v for _, v in plan.integers], caps
+        )
+        assert (
+            await exams[0].commit(winners[0][1], signer, hotkey="validator")
+            == winners[0][0]
+        )
+        assert (
+            ledger.resolve_projection(await ledger.project())["states"]
+            == target["states"]
+        )
+        restarted = FixtureRewardLedger(
+            receipts,
+            adapter,
+            tuple(
+                CandidateJournal(receipts, e.journal.context, e.journal.limits)
+                for e in exams
+            ),
+        )
+        assert (
+            restarted.resolve_projection(await restarted.project())["targets"]
+            == target["targets"]
+        )
+        adapter.state = replace(
+            adapter.state,
+            finalized_block=11,
+            block_hash="0x" + "3" * 64,
+            participants=(
+                adapter.state.participants[0],
+                Participant(1, "replacement", "other-cold", 11),
+            ),
+        )
+        assert (
+            restarted.resolve_projection(await restarted.project())["targets"]["burn"]
+            == Q12
+        )
+
+    asyncio.run(exercise())

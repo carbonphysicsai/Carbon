@@ -41,7 +41,8 @@ settings, not production SLOs or accepted public economics. Runtime max weight
 65535 and other capabilities must be observed; incompatible constraints fail.
 
 Registration uses the real SDK BurnedRegister including its required ML-KEM
-shielding. Missing local validator keys or decryption are not bypassed through
+shielding, with an explicit 64-block development mortal era. Exact inner and
+carrier hashes are journaled and reconciled independently. Missing local validator keys or decryption are not bypassed through
 legacy register/raw calls. Weight timelock encryption has installed-SDK contract
 tests; actual isolated runtime operation uses plain weights. A future timelock
 configuration needs actual beacon, reveal and stale-exposure evidence.
@@ -88,3 +89,19 @@ all-burn. Stopping a publisher leaves stored weights potentially effective.
 No treasury is created or needed. Economic adversarial tests retain withholding,
 drip-feeding, copying, coordinated timing and plateau limitations; these are
 development observations, not strategy-proofness or participation evidence.
+
+Immutable partial runtime observations are retained under
+`.agent/evidence/wave_c/net-5-runtime/`. Run 34425292251 proves the three-challenge
+no-winner vector, finality/readback and full miner-incentive burn in an observed
+epoch. The overall run failed at shielded miner registration; it does not prove
+shared-winner, recovery or G2 readiness. The manifest distinguishes those states.
+
+The latest run 34425822745 also observed all-burn restart, exact replay, actual
+provider outage and publication recovery. Shielded miner registration remains
+unresolved: the SDK reports Stale/expired and no exact inner/carrier receipt was
+found through the then-finalized block. No winner or replacement is manufactured.
+The workflow is manual (`workflow_dispatch`); normal CI still runs all setup and
+offline fixture contracts. Do not repeatedly rerun the unchanged registration
+configuration. The remaining operator command is the two-line bootstrap/localnet
+command above, after a reviewed SDK/runtime shielding compatibility repair.
+G2 cannot become LOCALNET_READY until the shared-winner/identity scenarios pass.

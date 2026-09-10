@@ -70,3 +70,13 @@ identity is a finite, pinned fixture-only extension of that owner, not a second
 evaluator or generic execution mode. No thresholds or coefficients change.
 Scientific qualification, production SLOs/security, public activation and G2 are
 not inferred from synthetic tests. B-E4 and B-01G remain non-blocking.
+
+## Bounded delivery predicate
+
+OWNER-C0-REWARD-01 explicitly permits independent engineering delivery when an
+actual runtime capability blocks one operation. This ticket can close in that
+bounded scope after canonical tests/acceptance and expected-head merge while
+retaining unresolved runtime assertions. That closure does not mark the full
+shared-winner localnet path or G2 complete. Actual observations and the precise
+shielded-registration failure are archived in `.agent/evidence/wave_c/net-5-runtime/`.
+NET-6 must preserve this distinction and the remaining executable command.

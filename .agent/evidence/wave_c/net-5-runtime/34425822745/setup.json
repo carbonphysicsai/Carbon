@@ -1,0 +1,163 @@
+{
+  "schema": "carbon.disposable.setup.v1",
+  "context": {
+    "network": "localnet",
+    "endpoint": "ws://127.0.0.1:34711",
+    "provider": "disposable-primary",
+    "genesis_hash": "0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007",
+    "netuid": 2
+  },
+  "roles": {
+    "owner": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    "publisher": "5Dt9sidKJJxfvznECukm6ptHMWP7AykqkooeZijhDfBQFDqe",
+    "miner": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+    "challenger": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+    "replacement": "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy"
+  },
+  "operations": [
+    {
+      "label": "start_delay",
+      "state": "FINALIZED",
+      "start_finalized_block": 0,
+      "transaction": "0x90e83bd24a3ae8bc4665e9b9ac735dc1b2c3cdf33aa999069c2c736032b1d647",
+      "block_hash": "0x451445e0b2e89b175ac455591a0e88410f730c87539c437811449355adc5a553",
+      "extrinsic_id": "2-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "owner_rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 2,
+      "transaction": "0x52f43733e38aa5d9f0146ccfa367ac687fc8b95ed7c580961d92ab7d57860708",
+      "block_hash": "0x00e71f112ac5c9d55417f836d1de99b5aa9f7563d827bfcaee60d8811467c9fa",
+      "extrinsic_id": "8-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "admin_window",
+      "state": "FINALIZED",
+      "start_finalized_block": 12,
+      "transaction": "0xce4357bc7ceba77c2b9807192f52b93cf4b6a84cf69f602cb022fddf209ee71e",
+      "block_hash": "0x83511494733450b35fa1865b253104c6e2fd110839dc827b7a9f02eee7842059",
+      "extrinsic_id": "17-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "create-subnet",
+      "state": "FINALIZED",
+      "start_finalized_block": 21,
+      "transaction": "0x80a2a0bc785bc512e3e983a249110b25da9c17aa56ff6b020d76590acc29fd0f",
+      "block_hash": "0xbf057f0670a373586bf65e4b3fa2e4e231bfad0a7d65a42113de753fd8ee3e1b",
+      "extrinsic_id": "26-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "plain",
+      "state": "FINALIZED",
+      "start_finalized_block": 29,
+      "transaction": "0x320aecf54606754d97699e84c41d1a408792bbc6b240a66fb84d0c5f1e39cfd1",
+      "block_hash": "0x1ead4e98788dcedc1ea2c0df5f6225b3c8987d689dd9d5911903586fdebfe3b9",
+      "extrinsic_id": "34-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "burn",
+      "state": "FINALIZED",
+      "start_finalized_block": 34,
+      "transaction": "0x1bbbbdea60f671705dc1bcc7f8d3a483fd5799583e21141746db831ec569cd87",
+      "block_hash": "0x6cc7537e894de71d4212e275d3e4ba2bc387b35eb3a111872ba89b7c9266af81",
+      "extrinsic_id": "39-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "minimum",
+      "state": "FINALIZED",
+      "start_finalized_block": 42,
+      "transaction": "0x5c0353549f460e84657c2919a066ee22f88b7d7ce15d41952580531938d1891b",
+      "block_hash": "0x03b11f7809ab00ab513badf28614e5942c61ae4cd003f588daf0f2ee30b02d1a",
+      "extrinsic_id": "47-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "rate",
+      "state": "FINALIZED",
+      "start_finalized_block": 47,
+      "transaction": "0x70fd4209bd8301ac7296d0220a0b586473904a4eef9eb193816cbed6ad1594bc",
+      "block_hash": "0xd216f381e114a5e56fa7834fd5ce7748f0d3bf981a49552087b4dc0e1e3188a5",
+      "extrinsic_id": "52-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "tempo",
+      "state": "FINALIZED",
+      "start_finalized_block": 55,
+      "transaction": "0x60580dee8442bbc4782d2fae83f69812ffc265de693cd0e13c9ec8d65762c8d5",
+      "block_hash": "0x4ed180cf18bf24cb631ec3e7aab2ec551d8183abb0d33e4c646c0475ad55e1b0",
+      "extrinsic_id": "60-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "registration",
+      "state": "FINALIZED",
+      "start_finalized_block": 60,
+      "transaction": "0x0877657f220912226a8741c67b57bd0f1fdc7f5c17ca71400b2150ca311b1d67",
+      "block_hash": "0x647d9b2d0df526ba322832d9fafbbf95093e16eaa1ae8c9a5cca038d7f94fa74",
+      "extrinsic_id": "65-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "emissions",
+      "state": "FINALIZED",
+      "start_finalized_block": 68,
+      "transaction": "0x27d02e599f405cd18fc12c303a69c3503933c5fac5915ebfd9b77062ede9a5a0",
+      "block_hash": "0x7b335c9ca44a2287b081bf27751cc69d4157c34f4617779aaf70a6a4ad5b70ad",
+      "extrinsic_id": "73-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "activate",
+      "state": "FINALIZED",
+      "start_finalized_block": 73,
+      "transaction": "0xc8b0318649778802d9b29c793e8372f7d411cbff15a886a3fbee0e33d3eb6c56",
+      "block_hash": "0x5ce217eb5eea4fc9236ae68769b554d1ddc881520df1433927ea0deb254d9a03",
+      "extrinsic_id": "78-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "validator-stake",
+      "state": "FINALIZED",
+      "start_finalized_block": 81,
+      "transaction": "0x12a748e940a5c791cf3cb58ffb007e53b1ed5bb22c16ce49d9bba5b7d5d98431",
+      "block_hash": "0x35c4722c9ad8a94e9212318107ca94d1744e34e41f9982884b2d5e9c0d508bf7",
+      "extrinsic_id": "86-0002",
+      "error_name": null,
+      "error_code": null
+    },
+    {
+      "label": "register-miner",
+      "state": "REJECTED",
+      "start_finalized_block": 250,
+      "inner_transaction": "0xc8a7effbf498374941364256c421e8f092614b35d62997c1631f504b7974fb6f",
+      "transaction": "0xbbb441b9d20a3c6110f6508011e1dd7a9ced2d8454264a8f096de277ad5f0df6",
+      "block_hash": null,
+      "extrinsic_id": null,
+      "error_name": "Stale",
+      "error_code": "expired",
+      "reconciled_at_finalized_block": 250,
+      "observed_transactions": {}
+    }
+  ],
+  "treasury": null
+}

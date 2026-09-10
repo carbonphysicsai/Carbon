@@ -92,3 +92,21 @@ Journal the exact inner hash before encryption and reconcile inner/carrier
 hashes over a bounded finalized range. Exercise all-burn restart/replay/outage
 recovery before that dependent miner operation so its failure cannot hide
 independent operational evidence.
+
+Run 34425822745 additionally proved all-burn journal restart, exact dispatch replay
+without resend, actual container pause/outage, reconnect and corrective publication.
+Required shielded registration still returned Stale/expired. The exact inner and
+carrier hashes were journaled before encryption/wire and neither appeared in the
+bounded finalized scan through block 250. There is no successful registration
+receipt. Stop repeated attempts with this unchanged SDK/runtime configuration;
+never bypass required shielding with legacy calls or storage injection.
+
+Current disposition: all-burn local integration and recovery OBSERVED; shared
+winner/copy/recycled UID runtime path UNOBSERVED due to registration compatibility.
+The complete remaining harness stays executable and fails when its requirements
+are unmet. Canonical offline three-exam integration reuses actual A7/A8/A5
+acceptance and tests shared-winner complete vectors, copy/restart/UID isolation
+with clearly labeled chain/auth doubles. This is not substituted runtime proof.
+G2 remains NOT_READY. NET-6 completes independent operator artifacts and the exact
+blocked-operation handoff. The runtime workflow is now explicitly dispatched,
+preventing unchanged registration failures from rerunning on documentation pushes.
