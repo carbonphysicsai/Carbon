@@ -36,7 +36,7 @@ valueless here. Owner, publisher, miner and challenger roles are separately
 recorded by public address; seed/private-key bytes are not evidence fields. The
 SDK's policy and generated calls remain in control. Root setup is a finite list
 of pinned local development settings, not a generic raw-call interface. Min
-weight count 1, rate 0, mechanism 0, Burn and plain weights are DEVELOPMENT
+weight count 1, rate 0, admin freeze window 0, mechanism 0, Burn and plain weights are DEVELOPMENT
 settings, not production SLOs or accepted public economics. Runtime max weight
 65535 and other capabilities must be observed; incompatible constraints fail.
 

@@ -229,6 +229,7 @@ async def probe(container, directory):
 
 ROOT_SETTINGS = {
     "start_delay": ("sudo_set_start_call_delay", (0,)),
+    "admin_window": ("sudo_set_admin_freeze_window", (0,)),
     "owner_rate": ("sudo_set_owner_hparam_rate_limit", (0,)),
     "plain": ("sudo_set_commit_reveal_weights_enabled", (2, False)),
     "burn": ("sudo_set_recycle_or_burn", (2, "Burn")),
@@ -375,6 +376,8 @@ class LocalnetSession:
                 state="FINALIZED" if result.success else "REJECTED",
                 block_hash=result.block_hash,
                 extrinsic_id=result.extrinsic_id,
+                error_name=None if result.error is None else result.error.name,
+                error_code=None if result.error is None else result.error.code.value,
             )
             self.save()
             if not result.success:
@@ -390,7 +393,7 @@ class LocalnetSession:
     async def configure(self):
         import bittensor as bt
 
-        for action in ("start_delay", "owner_rate"):
+        for action in ("start_delay", "owner_rate", "admin_window"):
             await self.execute(action, root_setting(action, self.verify))
         await self.execute(
             "create-subnet",

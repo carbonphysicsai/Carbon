@@ -55,3 +55,12 @@ that public backend option to the three authorities. The immutable image and
 runtime binary remain unchanged; Docker inspection binds the exact startup
 command. If this configuration also fails, preserve the concrete failure rather
 than repeatedly retrying unchanged nodes.
+
+Run 34424399809 verified genesis
+0x25ce33ee6a48d7a8fa1b485359a4e8f120b92321846e962bdf1e0dae9922e007
+and runtime 445, then finalized root timing settings, subnet creation and plain
+weights. Burn configuration was rejected. The pinned setter enforces the admin
+freeze window even for root. Register development window 0 through the existing
+root-only SDK call before local subnet setup; retain typed chain error name/code
+in subsequent setup receipts. This is an explicit disposable development timing
+value, not a production policy change or an unchecked extrinsic bypass.

@@ -21,6 +21,7 @@
     "commit_reveal_weights": false,
     "treasury": null,
     "network_backend": "libp2p",
-    "upstream_startup_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae"
+    "upstream_startup_sha256": "690d4a122f0ace126feccc10a76b9c1db17fbc57cc09f1cb195cea03c5c78fae",
+    "admin_freeze_window_blocks": 0
   }
 }
