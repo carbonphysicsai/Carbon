@@ -87,9 +87,17 @@
       "title": "Define when evaluation evidence is actually captured and durable",
       "what": "Specify attempt coverage, required artifacts, custody zones, retention classes, completeness, named uses and durability acknowledgement using existing result owners.",
       "why": "A stored result reference is not enough to prove that required evidence survived, is usable for its named purpose or may be finalized.",
-      "changes": "After C-AUTH1 delivery, this becomes the next unstarted contract ticket before archive implementation or finalization relies on capture semantics.",
+      "changes": "C1 gains an exact versioned documentation contract and machine-checkable cases for immutable attempt accounting, five independent status axes, explicit missingness/dependence/unknowns and positive acknowledgement conditions.",
       "not_yet": "This does not implement an archive, invent retention or legal policy, acknowledge durability, set science, qualify evidence, deploy infrastructure or authorize a network.",
       "map_ref": "WAVE-C/C-EA0"
+    },
+    "C-EA1": {
+      "title": "Implement durable evidence only after its policies are approved",
+      "what": "Implement a versioned archive catalogue, immutable artifacts, verified manifests, stage journal, transactional outbox and positive availability acknowledgement.",
+      "why": "A real result cannot finalize safely until required evidence is preserved and verified under an approved durability and custody model.",
+      "changes": "Nothing yet; the implementation ticket remains unstarted and input-blocked.",
+      "not_yet": "No database, object store, key system, deployment, retention policy, security qualification, archive acknowledgement or finalization integration exists.",
+      "map_ref": "WAVE-C/C-EA1"
     }
   }
 }

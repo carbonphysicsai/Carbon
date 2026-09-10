@@ -2042,6 +2042,34 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-EA0",
+      "event_type": "adjustment",
+      "event_id": "C-EA0-D1",
+      "owner_lane": "evidence_architecture",
+      "status": "implemented",
+      "summary": "C-AUTH1 passed exact-head canonical, Hub and merge-gate acceptance and merged in PR #130. C-EA0 specifies and contract-tests immutable attempt accounting, five independent status axes, explicit missingness/dependence/unknowns, closed named uses and positive durability-acknowledgement conditions. C-EA1 is next but unstarted and input-blocked; no archive runtime, durability, human policy, qualification, G2, network or LIVE authority exists.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/70c98d3489c2a30eb38712b4283e3ddf603c5777/Design_Specs/Evidence_Archive_and_Custody.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA1",
+        "WAVE-A/A7",
+        "WAVE-B/B-05",
+        "WAVE-B/B-E1",
+        "WAVE-B/B-E2",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/PROTOCOL-AUTHORITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }
