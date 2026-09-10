@@ -220,7 +220,7 @@ async def verified_key(config, backend, verify):
         secret = stream.read(4097)
     if not 1 <= len(secret) <= 4096:
         raise OperatorFailure("KEY_FILE_SIZE_REJECTED")
-    from bittensor_wallet import Keypair
+    from bittensor.keyfiles import Keypair
 
     failed = False
     try:

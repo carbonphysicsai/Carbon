@@ -21,3 +21,9 @@ lifecycle, private state retention, operator tests/runbook and canonical Hub.
 Focused network/operator tests plus invariant/quality/package/Hub and required
 image/Merge checks. No shared scientific implementation or thresholds change.
 Exact final head/run/merge belong in the external completion comment.
+
+Run 34431568841 failed before runtime execution: 67 setup/operator tests passed,
+then the external-key contract exposed an obsolete wallet module import. The
+11.1 installed SDK owns Keypair at bittensor.keyfiles; the operator now uses that
+same installed interface as NET-5. This is a repaired API defect, not a skipped
+requirement or localnet success. Native Windows diagnostics are not canonical.

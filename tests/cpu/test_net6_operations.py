@@ -381,10 +381,10 @@ def test_restored_consumers_preserve_accepted_state_and_reject_missing_context(
 def test_installed_sdk_external_key_is_read_only_after_verified_context(tmp_path):
     import importlib.util
 
-    if importlib.util.find_spec("bittensor_wallet") is None:
+    if importlib.util.find_spec("bittensor") is None:
         assert os.environ.get("CARBON_REQUIRE_CHAIN_SDK") != "1"
         pytest.skip("installed SDK lane required separately")
-    from bittensor_wallet import Keypair
+    from bittensor.keyfiles import Keypair
 
     path, value = config_fixture(tmp_path)
     pair = Keypair.create_from_uri("//Alice_hk")
