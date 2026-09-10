@@ -13079,3 +13079,53 @@ unresolved owner inputs. Generation is admitted only from exact A4 `MockContext`
 values with separate TRAIN/EVAL/STRESS role keys. Public development evidence
 cannot become protected evaluation, accepted baseline, qualification, payment,
 archive acknowledgement, network or LIVE evidence through this decision.
+
+## C-EA0-D1 — Acknowledge only exact verified evidence under approved profiles
+
+**Ticket:** C-EA0
+
+**Problem.** The owner-approved archive design named the required concepts but
+left them as a future conceptual shape. C-EA1 cannot safely implement admission,
+manifests, custody or acknowledgement while execution state, scientific result,
+completeness, qualification origin and named-use eligibility can be collapsed or
+while an upload, row, pointer, signature or hash can be mistaken for durability.
+
+**Working decision.** Ratify
+`Design_Specs/evidence_capture_contract_v1.json` and
+`Design_Specs/Evidence_Archive_and_Custody.md` version 1 as the exact C-EA0
+documentation contract. One admitted execution attempt owns one immutable
+`ArchiveEntry`; retries and re-executions receive new linked entries. Five closed
+status axes remain independent. Required-artifact completeness is conditional on
+the versioned capture profile, and only verified required artifacts can support a
+`VERIFIED_DURABLE` acknowledgement. That acknowledgement also requires exact
+approved durability/capture/custody policy references, immutable source binding,
+manifest identity, catalogue commit and current object availability. Every other
+acknowledgement state blocks required source-owned finalization without creating a
+candidate physics failure.
+
+**Alternatives rejected.** A boolean `stored` flag cannot prove current
+availability or the declared fault model. A monolithic result/archive status
+would collapse infrastructure, science, completeness, qualification and use.
+Treating a retry as an overwrite would destroy attempt evidence. Choosing cloud,
+database, region, replication, key, duration, required-artifact or legal-policy
+defaults would exceed engineering authority.
+
+**Interfaces and downstream impact.** C-EA1 must implement a separately
+versioned runtime representation of this contract; the JSON is a design contract
+and test vector, not a wire schema. C-EA2 may consume only C-EA1's verified
+acknowledgement and leaves finalization ownership unchanged. C-EA3 owns recovery
+qualification. Later Landscape, release and commercial consumers require their
+own named-use assessments and cannot upgrade capture or scientific status.
+
+**Reversibility.** A future decision may prospectively supersede the versioned
+vocabulary and mappings. Existing entries, manifestations of missingness,
+acknowledgements, result references and policy identities remain interpreted
+under their original version; migration never silently rewrites them.
+
+**Human-reserved input.** Durability/correlated-failure coverage, required
+artifacts, retention/deletion/legal hold, rights and named use, custody/access/
+encryption/keys, provider/region/replication topology, capacity/backpressure,
+recovery objectives/restore acceptance and security qualification all remain
+`HUMAN_INPUT`. Their absence prevents real admission, acknowledgement,
+deployment, use or qualification as applicable, while the exact documentation
+contract and fixture-only contract tests may proceed.

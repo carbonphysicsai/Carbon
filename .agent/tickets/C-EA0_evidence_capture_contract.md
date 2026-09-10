@@ -1,7 +1,11 @@
 # C-EA0 — Evidence capture contract
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; unselected and unstarted
+**Status:** `in_progress`
+Exact v1 documentation contract and contract-case tests are complete;
+applicable automated acceptance and normal merge are pending.
+**Decision:** `C-EA0-D1`
+**Primary Hub map_ref:** `WAVE-C/C-EA0`
 **Goal:** Ratify exact capture, attempt, custody, retention-class, completeness, durability-acknowledgement, and named-use semantics before archive code.
 
 **Prerequisites/owners:** B-GATE and the then-current C1 execution design; submission lifecycle, Challenge, generator, reference, measurement/Score Pack, evaluation receipt, Operations, data/security, legal/IP, and scientific owners. Human inputs: durability fault profile, retention/legal/IP policy, required-artifact decisions, deployment/custody constraints.
@@ -12,6 +16,16 @@
 
 **Acceptance tests:** Contract cases cover every attempt disposition; five independent status axes; unknown exposure/selection; shared-case/ancestry dependence; missing/withdrawn/key-unavailable artifacts; and a declared non-universal losslessness boundary. Review finds no invented retention, science, rights, security, or infrastructure decision.
 
-**Definition of Done:** [ ] Domain owners approve an implementable contract and reserved decisions are explicit/fail closed. [ ] Crosswalk and future board dependencies are updated. No implementation checkbox is satisfied by this document.
+**Definition of Done:** [x] The owner-approved evidence design and delegated
+engineering authority are expressed as an exact implementable documentation
+contract; every durability, required-artifact, retention, legal/IP, custody,
+deployment, recovery and security decision remains explicit `HUMAN_INPUT` and
+fails closed. [x] Machine-checkable cases cover the acceptance matrix and the
+crosswalk/future board dependencies are updated. No archive implementation,
+durability acknowledgement, or qualification checkbox is satisfied by this
+document.
 
-**Handoff:** C-EA1 implements only after selection; C-EA2 consumes its acknowledgement contract.
+**Handoff:** C-EA1 remains unstarted and cannot implement a real archive until
+the reserved durability, required-artifact, retention, custody/key, deployment,
+capacity and security inputs are approved. C-EA2 consumes only a verified C-EA1
+acknowledgement contract.

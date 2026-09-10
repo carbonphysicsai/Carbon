@@ -471,7 +471,7 @@ the bounded implementation.
 | bounded `TrainingStrategy` search | Yes | A2 schema; real search runtime incomplete | No | P0 foundation |
 | miner MCP research loop | Yes — bounded Wave-A control plane; broader loop remains design | Yes — exact seven-tool bounded in-process control/disclosure skeleton | No | Bounded control plane implemented and tested; transport, authentication, production providers, mock/light execution, adaptive loop, and end-to-end integration remain unimplemented and unqualified |
 | Landscape evidence memory | Yes | no canonical production system | No | Wave E |
-| official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 + C-EA0..3 reserved | No | No | Future C1; durability/retention/security/deployment decisions unearned |
+| official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 plus exact C-EA0 v1 capture contract/cases | No; C-EA0 is tested documentation only | No | C-EA1 unstarted/input-blocked; durability, required artifacts, retention, rights, custody/security, deployment and recovery decisions unearned |
 | Research Concierge | Yes — C-DC1..4 reserved with engineering acceptance | No | No | Independently enableable authenticated product; empirical effectiveness `UNMEASURED`; may be disabled while core network ships |
 | EvidenceBrief pipeline | Yes — E-EB1/E-EA6/E-EA7 reserved | No | No | Future offline approval/release/correction path |
 | D12 Research Demand Graph | Yes — C capture + E-D12 aggregation reserved | No | No | Demand planning only; never scientific evidence |

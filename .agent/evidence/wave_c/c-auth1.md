@@ -1,7 +1,9 @@
 # C-AUTH1 goal-driven authoring and Burgers Dynamics V1 evidence
 
-**Status:** selected implementation candidate; focused diagnostics pass;
-canonical acceptance and normal merge pending.
+**Status:** done in bounded merged engineering scope. Exact candidate
+`5797cae76f44bcbe746df1e8ac832f2c8bf57012` passed canonical RUNTIME_FULL,
+Hub and merge-gate acceptance in run `34449303309`; PR #130 normally merged as
+`5d3c6cbca14bf3422960d9a7fe3ce7a1bcfa2ed4`.
 
 **Starting main:** `4c9e8040df3c81ecb167534424df770eb4d77d61` (PR #129).
 
@@ -43,7 +45,8 @@ activation, archive operation, network operation or JAX implementation is added.
 Python 3.11.11 focused CPU and invariant tests: 31 passed. The affected
 authoring/generator/seeding/measurement/package plus complete invariant selection:
 665 passed. Pinned Black 26.5.1 and Ruff 0.16.3 pass for every changed Python
-file. Canonical Linux acceptance remains pending for the final candidate.
+file. Canonical Linux RUNTIME_FULL acceptance, Hub validation and Merge gate
+passed for the exact final candidate in run `34449303309`.
 
 ## Limits and handoff
 

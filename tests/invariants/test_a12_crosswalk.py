@@ -178,6 +178,11 @@ EXPECTED_INFRASTRUCTURE_TESTS = (
     "tests/invariants/test_a12_owner_roadmap_02.py::test_deferred_research_is_explicitly_non_blocking",
     "tests/invariants/test_a12_owner_roadmap_02.py::test_b_gate_has_no_be4_dependency_or_utility_pass_gate",
     "tests/invariants/test_a12_owner_roadmap_02.py::test_concierge_release_contract_is_not_research_qualification",
+    "tests/invariants/test_a12_c_ea0_evidence_capture_contract.py::test_c_ea0_contract_has_five_independent_closed_status_axes",
+    "tests/invariants/test_a12_c_ea0_evidence_capture_contract.py::test_c_ea0_cases_cover_every_attempt_disposition_and_fail_closed",
+    "tests/invariants/test_a12_c_ea0_evidence_capture_contract.py::test_c_ea0_unknown_and_dependence_semantics_are_explicit",
+    "tests/invariants/test_a12_c_ea0_evidence_capture_contract.py::test_c_ea0_acknowledgement_requires_verified_current_availability",
+    "tests/invariants/test_a12_c_ea0_evidence_capture_contract.py::test_c_ea0_reserves_human_decisions_and_disclaims_universal_losslessness",
 )
 ROW_KEYS = {
     "id",
