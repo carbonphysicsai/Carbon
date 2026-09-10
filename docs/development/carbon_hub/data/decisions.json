@@ -2101,6 +2101,27 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611638865",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/83895b45cd46ff394eb6a73507fd644191a273d2/docs/development/LOCALNET_INTEGRATION.md"
+    },
+    {
+      "title": "Explicit disposable process and journal ownership",
+      "question": "How can the publisher restart and recover without resetting identity or pending rights?",
+      "recommendation": "Bind exact isolated container and registered contexts, verify before external key access, hold an OS journal lease, and restore consistent backups to new destinations only.",
+      "why": "PID guesses, raw WAL copies, automatic pending retries or journal resets lose identity and liability truth.",
+      "if_kept": "Operator evidence stays separate from incomplete shared-winner runtime proof; concrete C1/C2/archive handoff remains unselected.",
+      "if_changed": "Retain immutable dispatch and runtime evidence; replacement must preserve context, credit age, replay and stale-weight exposure.",
+      "decision_id": "NET-6-D1",
+      "map_ref": "WAVE-C/NET-6",
+      "wave": "C",
+      "ticket": "NET-6",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "SYSTEM/CI"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5611809988",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/bb72dfd7da069e2dd2976055aabcf03da9f6f37b/docs/development/NETWORK_OPERATIONS.md"
     }
   ]
 }
