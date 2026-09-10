@@ -70,7 +70,11 @@ def _living_state_expectations(
         data = json.loads(data_path.read_text(encoding="utf-8"))
         current = data["current"]
         wave = str(current["wave"])
-        position = current.get("selected_ticket") or current["next_selected_ticket"]
+        position = (
+            current.get("selected_ticket")
+            or current.get("next_selected_ticket")
+            or current["last_completed_ticket"]
+        )
         ticket = str(position["id"])
     except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
         raise SmokeFailure(
