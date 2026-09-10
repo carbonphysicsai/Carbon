@@ -58,8 +58,8 @@ submission/admission, A8 execution, A5 scoring and A6 publication still create
 each accepted fixture. Real challenge, C1 and LIVE authority remain unavailable.
 
 The harness makes a bounded deterministic fixture search: at most 20 baseline
-attempts per challenge, then 40 improvement attempts for each of two challenges.
-Failed mandatory gates stay failed; no threshold is changed. The third challenge
+attempts per challenge, then 40 improvement attempts for each of challenges A and C.
+Failed mandatory gates stay failed; no threshold is changed. The middle challenge
 has no reward winner. Each accepted baseline starts with zero credit. Allocation
 is explicitly synthetic, one third per challenge with Q12 remainder burned.
 Authenticated messages use actual SDK signatures and a single server-observed

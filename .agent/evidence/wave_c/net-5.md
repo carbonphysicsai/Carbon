@@ -139,3 +139,12 @@ chain double; retain the rate assertion. Update inventory to exactly the three
 registered synthetic packs and assert each remains fixture_origin, with no extra
 file/YAML twin admitted. The narrow migration predicate also pins this exact
 inventory-test change. No scoring or authentication requirement is weakened.
+
+Run 34429084538 passed 183 invariants and 1,883 focused tests; the remaining
+three-exam test correctly failed because challenge B had no improving accepted
+candidate in the fixed sample. Analytical diagnosis of the synthetic A4/A8
+vectors (not accepted-result evidence) found B's opening sample score about
+0.938199, above all subsequent sampled B candidates, while A and C have gains.
+Use A/C for the shared winner and B for the no-winner case. Baselines, all gates,
+coefficients, exact comparator and 20/40 attempt budgets are unchanged. Canonical
+A7/A8/A5 acceptance still must establish those improvements independently.

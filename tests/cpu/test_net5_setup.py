@@ -474,7 +474,7 @@ def test_three_real_fixture_exams_feed_shared_winner_complete_vector(tmp_path):
             ledger.resolve_projection(await ledger.project())["targets"]["burn"] == Q12
         )
         winners = []
-        for exam, baseline in zip(exams[:2], baselines[:2]):
+        for exam, baseline in zip(exams[::2], baselines[::2]):
             for variant in range(20, 60):
                 ref = await paced_commit(exam, variant, "miner")
                 batch = await ledger.open_batch(

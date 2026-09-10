@@ -260,7 +260,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             await session.register_miners()
             record("shielded-miner-registration-finalized")
             winners = []
-            for exam, (_, baseline) in zip(exams[:2], baselines[:2]):
+            for exam, (_, baseline) in zip(exams[::2], baselines[::2]):
                 for variant in range(20, 60):
                     ref = await exam.commit(variant, signer("miner"))
                     batch = await ledger.open_batch(
