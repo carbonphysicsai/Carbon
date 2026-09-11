@@ -2454,6 +2454,13 @@
         "structural_when": "ticket_record_fields_change"
       },
       {
+        "id": "c1-dependency-graph",
+        "match_type": "exact",
+        "path": ".agent/plans/C1_DEPENDENCY_GRAPH.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-C"
+      },
+      {
         "id": "ticket-plan",
         "match_type": "ticket_record",
         "path": ".agent/plans/",
@@ -2501,6 +2508,13 @@
         "path": ".agent/evidence/wave_b/b-e4-development-offline-integration-v3.json",
         "impact_class": "mapped_detail",
         "map_ref": "WAVE-B/B-E4"
+      },
+      {
+        "id": "c1-contract-materialization-evidence",
+        "match_type": "exact",
+        "path": ".agent/evidence/wave_c/c1-contract-materialization.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "WAVE-C"
       },
       {
         "id": "ticket-evidence",
