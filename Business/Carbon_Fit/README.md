@@ -1,8 +1,11 @@
 # Carbon Fit review package
 
-**Version:** 0.3 | **Date:** 11 September 2026  
-**Status:** working research and product-design proposal; repository hardening only.  
-**Tracking:** [GOV-FIT-01, issue #138](https://github.com/carbonphysicsai/Carbon/issues/138).  
+**Version:** 0.3 | **Date:** 11 September 2026
+
+**Status:** working research and product-design proposal; repository hardening only.
+
+**Tracking:** [GOV-FIT-01, issue #138](https://github.com/carbonphysicsai/Carbon/issues/138).
+
 **Primary map owner:** `WAVE-G`; related existing domains: C/D, E/F, J/L and M/N. This package does not select a runtime ticket, change wave dependencies or authorize deployment.
 
 ## Decision in one page

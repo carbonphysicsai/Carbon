@@ -1,7 +1,9 @@
 # Client Carbon Fit explorer
 
-**Status:** implementation-ready product/science requirements, pending Engineering selection and live-collection approvals.  
-**Handoff:** [FIT-WEB-01, issue #139](https://github.com/carbonphysicsai/Carbon/issues/139).  
+**Status:** implementation-ready product/science requirements, pending Engineering selection and live-collection approvals.
+
+**Handoff:** [FIT-WEB-01, issue #139](https://github.com/carbonphysicsai/Carbon/issues/139).
+
 **Authority:** [Commercial Operating Model](../Commercial_Operating_Model.md) governs rights, access and engagement. The [fit method](DECISION_METHOD.md) supplies planning calculations, not scientific certification.
 
 ## 1. User experience
