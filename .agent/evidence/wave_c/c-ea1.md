@@ -3,8 +3,10 @@
 **Ticket:** C-EA1
 **Decision:** `OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`
 **Delivery:** PR #136
-**Disposition:** bounded completion is conditional on applicable acceptance and
-normal merge of the exact candidate
+**Disposition:** done in the exact bounded synthetic development profile after
+accepted head `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed canonical run
+`34558389185` and PR #136 normally merged as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`
 **Maturity ceiling:** `SPECIFIED / IMPLEMENTED / TESTED` only for
 `carbon.synthetic-evidence-archive.dev.v1`
 
@@ -117,6 +119,14 @@ The applicable classifier is `RUNTIME_FULL` because the candidate adds a runtime
 package, dependencies, CI group and migrations. OWNER-DX-03 requires one ready-
 candidate automated acceptance; its immutable run/head identity belongs to the
 PR and completion record rather than a CI-only repository commit.
+
+Final ready candidate `a779af066f4bf9bc36b6d6ab23914fa19191e1de`
+passed canonical RUNTIME_FULL run `34558389185`, including the actual disposable
+PostgreSQL/object-service archive integration, all required regression,
+invariant, package/import, quality, clean-image, Hub and Merge gate jobs. PR
+#136 normally merged that accepted head as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`. This closes only the recorded
+synthetic profile and does not upgrade any exclusion below.
 
 ## Exclusions and handoff
 

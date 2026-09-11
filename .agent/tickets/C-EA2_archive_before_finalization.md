@@ -4,7 +4,11 @@
 **Status:** `future_reserved`; unselected and unstarted
 **Goal:** Integrate C-EA1 with canonical orchestration so a required real official result cannot finalize before its evidence acknowledgement.
 
-**Prerequisites/owners:** C-EA1 plus the selected C1 orchestration/reconstruction/execution tickets; A7/current lifecycle and evaluation-result owners remain authoritative.
+**Prerequisites/owners:** C-EA1 plus a human-approved real archive profile and
+the implemented C-02 -> C-03 -> C-04 -> C-05 -> C-06 -> C-07 real
+orchestration/reconstruction/execution path; A7/current lifecycle and
+evaluation-result owners remain authoritative. C-EA1's synthetic
+acknowledgement is structurally ineligible.
 
 **Scope and reuse:** Add durable admission before dispatch, stage journal events, source-result linkage, archive acknowledgement gating, transactional outbox consumption, and safe resume. Preserve retries, cancellation, authorized early-stop, infra/reference/generator/measurement/science distinctions and existing publication/finalization ownership.
 

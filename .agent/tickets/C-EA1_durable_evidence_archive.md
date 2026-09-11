@@ -2,7 +2,7 @@
 
 **Wave:** C1 real scientific execution foundations
 **Status:** `done`
-**Completion boundary:** exact synthetic development profile only, taking effect after this candidate passes applicable acceptance and normally merges
+**Completion boundary:** exact synthetic development profile only; accepted head `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed run `34558389185` and normally merged as `0e0714c8260ca482a0ba2b743b2eaefd50508da1`
 **Depends on:** C-EA0; OWNER-C-EA1-SYNTHETIC-01 approved development profile
 **Owner:** Codex + evidence architecture
 **Accountable reviewer:** Operations + data/security + scientific integration
@@ -70,8 +70,9 @@ signature is insufficient by itself.
   canonical Linux acceptance.
 - Package/import/code-authority checks: 103 passed.
 - Ruff and Black: clean.
-- Canonical RUNTIME_FULL acceptance must exercise actual PostgreSQL and object
-  service containers at the exact PR head before merge.
+- Canonical RUNTIME_FULL run `34558389185` exercised actual PostgreSQL and
+  object-service processes at accepted head
+  `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and passed.
 
 The tests cover the C-EA0 cases and axes, pre-dispatch admission, linked
 attempts, duplicate/conflict behavior, every persistence-stage crash boundary,
@@ -90,8 +91,10 @@ invalid/oversized/cross-tenant inputs, schema drift and key/payload non-retentio
   finalization, C-W1, network weights, settlement or qualification.
 - [x] Operational runbook covers lifecycle, migrations, restart,
   reconciliation, backup/restore, quotas and isolated namespace cleanup.
-- [ ] Applicable canonical acceptance passes and PR #136 normally merges; only
-  then does `done` and bounded `SPECIFIED / IMPLEMENTED / TESTED` take effect.
+- [x] Applicable canonical acceptance passed in run `34558389185`, and PR #136
+  normally merged as `0e0714c8260ca482a0ba2b743b2eaefd50508da1`;
+  bounded `SPECIFIED / IMPLEMENTED / TESTED` is effective only for the approved
+  synthetic profile.
 
 ## Handoff
 

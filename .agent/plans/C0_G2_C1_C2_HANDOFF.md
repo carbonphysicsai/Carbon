@@ -56,10 +56,12 @@ network, wallet-payment or settlement fact.
 
 C-01, C-AUTH1 and C-EA0 are done and were not restarted. The owner approved the
 previously recommended C-EA1 development values in
-`OWNER-C-EA1-SYNTHETIC-01`. PR #136 implements those values as the exact closed
-`carbon.synthetic-evidence-archive.dev.v1` profile. Its bounded
-`SPECIFIED / IMPLEMENTED / TESTED` closeout takes effect only after applicable
-acceptance and normal merge.
+`OWNER-C-EA1-SYNTHETIC-01`. PR #136 implemented those values as the exact closed
+`carbon.synthetic-evidence-archive.dev.v1` profile. Accepted head
+`a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed canonical run
+`34558389185` and normally merged as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`; bounded
+`SPECIFIED / IMPLEMENTED / TESTED` is effective only for that profile.
 
 The approval does not resolve any real or production archive input. Production
 required-artifact policy, customer/protected evidence rights, retention,
@@ -88,6 +90,12 @@ acknowledgement and its other explicit prerequisites exist. G2 completion alone
 does not grant eligibility. C-W2, C-W3 and C-W4 retain their expiry/sink,
 agreement/publication/recovery and Alpha Report responsibilities. Current owner
 authorization does not activate a public network or infer missing testnet policy.
+
+`OWNER-C1-CONTRACTS-01` now materializes the reserved C-03, C-08 and C-09
+contracts and the exact dependency graph in
+`.agent/plans/C1_DEPENDENCY_GRAPH.md`. This is a planning/governance checkpoint:
+it selects and implements no runtime ticket. No C1 implementation ticket is
+currently dependency-ready.
 
 B-E4 remains OPTIONAL / DEFERRED / NON-BLOCKING; empirical prior effectiveness
 UNMEASURED. B-01G remains actually unfinished and non-blocking. Neither returns

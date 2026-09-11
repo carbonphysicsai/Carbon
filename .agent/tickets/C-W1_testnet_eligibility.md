@@ -2,7 +2,9 @@
 
 **Wave:** C2 direct-winner-plus-burn testnet integration
 **Status:** `future_reserved`; unselected and unstarted
-**Depends on:** G2 disposition; real C1 signed evaluation path and C-EA2 acknowledgement
+**Depends on:** G2 exact standard-localnet disposition; C-09 official projection;
+real C1 signed evaluation path; eligible real C-EA2 acknowledgement; remaining
+public-network identity, policy and activation prerequisites
 **Authority:** launch v1.0.4 §§4.3–5 as amended by v1.0.6 and
 OWNER-C0-REWARD-01; Build Out/overlay/protocol extension; evaluation evidence owner.
 
