@@ -205,7 +205,7 @@ def test_image_keeps_direct_identity_marker_and_runtime_root_owned() -> None:
 
 
 @pytest.mark.parametrize("interpreter_present", (True, False))
-@pytest.mark.parametrize("groups", ("", "chain"))
+@pytest.mark.parametrize("groups", ("", "chain", "chain archive"))
 def test_bootstrap_installs_only_when_exact_interpreter_is_absent(
     tmp_path: Path, interpreter_present: bool, groups: str
 ) -> None:
@@ -294,7 +294,7 @@ esac
         1 if interpreter_present else 2
     )
     assert calls.count("python install 3.11.16") == (0 if interpreter_present else 1)
-    expected_groups = " --group chain" if groups else ""
+    expected_groups = "".join(f" --group {group}" for group in groups.split())
     assert calls[-1] == (
         f"sync --python {interpreter} --locked --group dev{expected_groups}"
     )

@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/C-EA1`
 
-**Status:** TODO
+**Status:** DONE
 
 **Target phase:** C1
 
@@ -12,11 +12,11 @@
 
 Implement a separately versioned runtime archive contract with admission, stage journaling, immutable object writes, manifest verification, catalogue transaction, outbox and positive availability acknowledgement.
 
-A real result cannot finalize safely until its required evidence is preserved and verified under an approved fault and custody model.
+The synthetic profile proves that acknowledgement follows exact required-artifact, policy, catalogue, key and current-object verification rather than an upload, pointer, row or digest.
 
 ## What it adds
 
-Nothing yet. C-EA1 is unstarted and input-blocked even after C-EA0 merges.
+A separately versioned closed runtime with pre-dispatch admission, PostgreSQL catalogue/migration and outbox, encrypted restart-safe journal, immutable loopback object storage, manifest/current-availability verification, idempotent effects, quotas and reconciliation.
 
 ## Placement and handoff
 
@@ -28,20 +28,22 @@ Nothing yet. C-EA1 is unstarted and input-blocked even after C-EA0 merges.
 
 ## Explicit non-goals
 
-No database, object store, key system, deployment, retention policy, security qualification, archive acknowledgement or finalization integration exists.
+It rejects real/customer/protected/official evidence and does not supply production retention, custody/KMS, replication, correlated-loss durability, availability, RTO/RPO, security qualification, real finalization or network eligibility.
 
 ## Current stage
 
-Unstarted and input-blocked after C-EA0 delivery. Selection still requires approved durability, required-artifact, retention, custody/key, deployment, capacity and security inputs.
+PR #136 conditionally completes C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after applicable acceptance and normal merge. The synthetic acknowledgement is ineligible for real finalization, network use or qualification.
 
 ## Maturity ceiling
 
-Future archive implementation only; no archive, durability, security, production, scientific qualification or LIVE maturity is earned.
+Specified, implemented and tested only for non-secret synthetic fixtures on one disposable host/tenant. No real archive durability, security, production, scientific qualification, network or LIVE maturity is earned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/e590bdecebdf4dc4efb801528029a34ccbf1fa4c/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/e590bdecebdf4dc4efb801528029a34ccbf1fa4c/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/e590bdecebdf4dc4efb801528029a34ccbf1fa4c/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
 
-> C-EA1 cannot use test-vector policy references or infrastructure convenience as approval for real custody or durability.
+> Only synthetic INTERNAL_AUDIT is eligible. The profile-scoped acknowledgement cannot satisfy real C1 finalization, C-W1, weights, settlement or qualification.

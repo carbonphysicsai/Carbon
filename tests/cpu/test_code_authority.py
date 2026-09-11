@@ -988,6 +988,7 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
     assert "--platform=linux/amd64" in devcontainer["runArgs"]
 
     doctor = DOCTOR_PATH.read_text(encoding="utf-8")
+    assert "science-jax|science-torch|chain|archive" in doctor
     assert '[[ "$(id -un)" == "ubuntu" ]]' in doctor
     assert '[[ "$(id -u)" == "1000" ]]' in doctor
     assert '[[ "$(id -g)" == "1000" ]]' in doctor
@@ -1026,6 +1027,7 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
     assert positions == tuple(sorted(positions))
     assert 'docker start "${container_id}" >/dev/null || true' not in verifier
     assert '"${container_exec[@]}" ./scripts/dev/ci.sh || true' not in verifier
+    assert verifier.count('"CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}"') == 3
 
 
 def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> None:
@@ -1085,6 +1087,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert "name: quality-inventory" in jobs["canonical"]
     assert "path: .carbon-artifacts/quality.json" in jobs["canonical"]
+    assert 'CARBON_UV_GROUPS: "chain archive"' in jobs["dev-image"]
     assert jobs["dev-image"].index("docker/build-push-action") < jobs[
         "dev-image"
     ].index("./scripts/dev/verify_image.sh")

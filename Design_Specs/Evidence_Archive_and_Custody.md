@@ -1,10 +1,12 @@
 # Evidence Archive, Custody, and Availability Contract
 
-**Version:** 1.0 evidence-capture contract
-**Status:** `SPECIFIED`; C-EA0 contract cases are tested, but no runtime,
-storage, retention, security, qualification, acknowledgement, or deployment is
-implemented
-**Decisions:** `OWNER-EVIDENCE-RESEARCH-01`, `C-EA0-D1`
+**Version:** 1.1 evidence-capture contract and synthetic runtime profile
+**Status:** C-EA0 `SPECIFIED / TESTED`; C-EA1 `SPECIFIED / IMPLEMENTED /
+TESTED` only for `carbon.synthetic-evidence-archive.dev.v1` after PR #136
+acceptance and merge. No real/production archive, retention, security,
+qualification or deployment is approved.
+**Decisions:** `OWNER-EVIDENCE-RESEARCH-01`, `C-EA0-D1`,
+`OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`
 **Tickets:** `C-EA0` through `C-EA3`, then `E-EA4`, `E-EA5`, and `E-EA7`
 
 This companion owns archive and custody semantics for the canonical
@@ -16,6 +18,39 @@ The normative, machine-checkable contract vocabulary and cases are
 That file is a design contract and test vector, not a runtime wire schema. C-EA1
 must deliberately implement and version its runtime representation rather than
 deserializing this document as operational authority.
+
+## C-EA1 synthetic development profile
+
+`carbon.evidence-archive.v1` deliberately implements the C-EA0 vocabulary for
+one closed synthetic profile. It accepts only non-secret C-EA1 fixtures bound to
+the C-01 fixture scope, one synthetic tenant and exact versioned synthetic
+policy references. `INTERNAL_AUDIT` is the only eligible named use. Every real,
+customer, protected and official source is rejected; every other named use is
+ineligible or remains blocked-unknown.
+
+The approved topology is one-host disposable PostgreSQL metadata plus a
+loopback-only disposable immutable object service. A restart-safe local stage
+journal stores only authenticated ciphertext; ephemeral caller-supplied keys are
+never stored or logged. AES-256-GCM encrypts artifact bytes before object
+persistence. System-derived tenant-scoped object identities prevent paths and a
+global cross-tenant deduplication oracle. PostgreSQL holds metadata, immutable
+catalogue rows, append-only events, reservations, acknowledgements and an outbox,
+never payload bytes.
+
+Development limits are eight active entries, 64 objects, 2 MiB per object and
+3 MiB spool bytes. Admission reserves capacity and exact-boundary, concurrent
+and release behavior fails closed without thinning evidence. The fault profile
+covers process and individual service restarts, each persistence-stage crash,
+duplicate/reordered delivery, catalogue/object disagreement, conflicting or
+corrupt writes, orphan objects, unavailable keys and exhaustion/backpressure.
+It excludes simultaneous host/volume, site/region/provider and correlated loss
+or disaster recovery, and establishes no availability, RTO or RPO claim.
+
+A synthetic `VERIFIED_DURABLE` acknowledgement requires every positive C-EA0
+predicate, retrieve/decrypt/byte/manifest verification, catalogue commit,
+current object availability and exact synthetic policy refs. It is explicitly
+ineligible for real C1 finalization, C-W1, weights, settlement and qualification.
+C-EA2 still owns real archive-before-finalization behavior and is unchanged.
 
 ## 0. C-EA0 decision and authority ceiling
 
@@ -199,6 +234,10 @@ value, the affected real path is unavailable.
 Fixture-only contract tests may populate visibly synthetic policy references.
 They cannot acknowledge real evidence or satisfy any reserved decision.
 
+`OWNER-C-EA1-SYNTHETIC-01` approves the exact development values in §C-EA1
+above without changing this real/production register. Synthetic
+`VERIFIED_DURABLE` is profile-scoped evidence, not satisfaction of any row here.
+
 ## 9. Contract-case acceptance
 
 The v1 case matrix covers all six execution dispositions and separately covers:
@@ -221,4 +260,10 @@ not a contradiction.
 
 ## 10. Acceptance ceiling
 
-C-EA0 acceptance ratifies only this exact v1 vocabulary, invariants, reserved-input register, and contract cases. It earns `SPECIFIED` and tested-contract status only. Archive implementation and archive acceptance require C-EA1 through C-EA3 attempt reconciliation, manifest verification, restore/fault drills, idempotent effects, availability checks, and proof that required evidence failure blocks finalization without becoming candidate scientific failure. Human owners still approve the durability profile, required artifacts, retention/legal/IP policy, custody/security acceptance, production deployment, recovery objectives, and any LIVE use.
+C-EA0 acceptance ratifies this exact v1 vocabulary, invariants, reserved-input
+register, and contract cases. C-EA1 may earn `SPECIFIED / IMPLEMENTED / TESTED`
+only for the exact synthetic development profile after PR #136 acceptance and
+merge. Real archive acceptance still requires later eligible profiles, C-EA2
+finalization integration and C-EA3 recovery/availability qualification. Human
+owners still approve real durability, required artifacts, retention/legal/IP,
+custody/security, production deployment, recovery objectives and any LIVE use.

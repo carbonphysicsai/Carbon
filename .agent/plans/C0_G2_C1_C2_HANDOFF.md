@@ -54,27 +54,20 @@ network, wallet-payment or settlement fact.
 
 ## Concrete next C1 and C2 contracts
 
-No successor implementation ticket is selected. C-01, C-AUTH1 and C-EA0 are
-already done; they must not be restarted. C-EA1 is the next contract consumer
-but is not dependency-ready until its reserved operating inputs are approved.
-The following development defaults would enable a narrow synthetic local/CI
-design without pretending to settle production policy:
+C-01, C-AUTH1 and C-EA0 are done and were not restarted. The owner approved the
+previously recommended C-EA1 development values in
+`OWNER-C-EA1-SYNTHETIC-01`. PR #136 implements those values as the exact closed
+`carbon.synthetic-evidence-archive.dev.v1` profile. Its bounded
+`SPECIFIED / IMPLEMENTED / TESTED` closeout takes effect only after applicable
+acceptance and normal merge.
 
-| Reserved C-EA1 input | Current authority | Recommended development-only value | Owner decision still required |
-|---|---|---|---|
-| Durability/fault profile | `HUMAN_INPUT_REQUIRED` | One-host synthetic process/service crash, exact replay, catalogue/object disagreement, corrupt/conflicting write and backpressure cases | Real correlated host/site/provider-loss coverage |
-| Required artifacts | `HUMAN_INPUT_REQUIRED` | Closed synthetic fixture set with exact source refs, manifest, outputs, logs, checkpoints and explicit missingness | Real per-class capture requirements |
-| Retention/deletion/legal hold | `HUMAN_INPUT_REQUIRED` | Ephemeral test-owned lifecycle; no legal hold | Production durations, deletion and hold policy |
-| Named uses | `HUMAN_INPUT_REQUIRED` | Synthetic `INTERNAL_AUDIT` only; other uses ineligible | Rights for real evidence uses |
-| Custody/access/encryption/keys | `HUMAN_INPUT_REQUIRED` | Owner-only local temp namespace, nonsecret fixtures and ephemeral test keys | Principals, protected zones, KMS and encryption policy |
-| Provider/regions/replication | `HUMAN_INPUT_REQUIRED` | Single-host ephemeral PostgreSQL plus local/S3-compatible test object store, no replicas | Production topology and providers |
-| Capacity/backpressure | `HUMAN_INPUT_REQUIRED` | Small configurable test quotas; fail/backpressure admission, never thin completed evidence | Production capacity numbers and policy |
-| Recovery objectives | `HUMAN_INPUT_REQUIRED` | Exact byte/manifest restore under process/service restart; no RTO/RPO claim | Production RTO/RPO and host-loss objectives |
-| Security qualification | `HUMAN_INPUT_REQUIRED` | Deterministic auth, abuse, path and unavailable-key tests only | Security acceptance and qualification authority |
-
-Those values exclude host/site/provider-correlated durability, real retention,
-legal hold, production custody, production encryption/key management, RTO/RPO,
-availability and security qualification. They are proposals, not approvals.
+The approval does not resolve any real or production archive input. Production
+required-artifact policy, customer/protected evidence rights, retention,
+deletion/legal hold, custody/KMS, principals/zones, provider/region/replication,
+capacity, host/site/provider-correlated durability, availability, recovery
+objectives, RTO/RPO and security qualification remain human-reserved. The
+synthetic acknowledgement is structurally ineligible for real C1 finalization,
+C-W1, network weights, settlement or qualification.
 
 C-02 is also not dependency-ready. It still needs an authorized JAX repository,
 an immutable revision and reproducible build identity, plus that revision's
@@ -82,12 +75,12 @@ actual training and inference entry points: signatures, shapes/dtypes, state,
 artifact/checkpoint format and failure behavior. Carbon adapts the real interface;
 it does not require the upstream project to adopt Carbon function names.
 
-C-EA0 depends on B-GATE plus the current C1 execution design and its original
-capture/attempt/custody/retention/acknowledgement owner decisions. C-EA1 still owns
-PostgreSQL metadata and encrypted/versioned objects under an approved fault and
-custody model. C-EA2 still gates real finalization on verified archive durability;
-C-EA3 still owns recovery/availability qualification. NET-6 SQLite backup neither
-replaces these tickets nor satisfies their DoDs.
+C-EA2 was not selected and is not dependency-ready after C-EA1. It still needs a
+selected real C1 orchestration/reconstruction/execution path plus a real capture,
+custody and durability profile capable of producing an eligible acknowledgement.
+C-EA2, not C-EA1, owns the rule that blocks real finalization. C-EA3 still owns
+recovery/availability qualification. NET-6 SQLite backup and C-EA1's synthetic
+acknowledgement neither replace these tickets nor satisfy their real DoDs.
 
 The first C2 ticket remains `.agent/tickets/C-W1_testnet_eligibility.md`; it is
 not dependency-ready until a real C1 receipt, required C-EA2 archive

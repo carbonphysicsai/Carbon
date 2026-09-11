@@ -33,12 +33,14 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.0
+**Version:** 1.1
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** NET-5R — `done`
-**Next selected ticket:** none. C-EA1 remains `todo`, unstarted and input-blocked
-until its reserved human operating inputs are approved.
-**Primary Hub map_ref:** `WAVE-C/NET-5R`
+**Selected ticket:** C-EA1 — `done`
+**Next selected ticket:** none. C-EA2 is not selected and is not dependency-ready.
+**Primary Hub map_ref:** `WAVE-C/C-EA1`
+
+This shipping snapshot's `done` state takes effect only after PR #136 passes
+applicable acceptance and normally merges.
 
 ## 1. Scope and sequence
 
@@ -53,8 +55,9 @@ UNMEASURED; B-01G remains unfinished/non-blocking.
 offline C1/C2 engineering may proceed independently of G2. G2's narrow standard-
 profile result does not authorize public or chain-dependent C2 execution. The active offline order
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
-C-EA1 is the next contract consumer but its real archive implementation remains
-fail closed on the reserved human inputs. NET-5R's first repair merged in PR
+C-EA1 is selected only under `OWNER-C-EA1-SYNTHETIC-01`'s closed synthetic
+development profile. Real admission and every production archive input remain
+fail closed. NET-5R's first repair merged in PR
 #132, and PR #133 merged its standard-profile/D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard profile then
 passed a one-shot registration diagnostic.
@@ -65,7 +68,7 @@ evidence. Canonical full/standard run 34518806217 passed at exact candidate
 `97a2405776a3f520076e03a89ea8b7b4086d9ad2`, including auditable exclusive
 handover. NET-5R is done and G2 is `LOCALNET_READY` only for that exact standard-
 profile disposable v445 localnet. Fast-profile and public-network capability
-remain unearned; no later ticket is selected.
+remain unearned. PR #136 implements C-EA1 without selecting C-EA2.
 
 ## 2. NET-0 development disposition
 
@@ -92,7 +95,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-01 | Durable execution state and queue | done | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
-| C-EA1 | Durable evidence archive | todo | none | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + approved reserved inputs | MQ-048, MQ-051 | L | C1 |
+| C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -116,11 +119,11 @@ Standard runs 34473145103/34473508494 bound the profile and passed one
 registration; full run 34474220953 passed both registrations and shared-winner
 evidence but failed before recycled-UID evidence on a plain SDK nonce transition.
 NET-5R D6 run 34518806217 passed the complete auditable full/standard predicate;
-G2 is LOCALNET_READY for the exact standard profile only, and no later ticket is
-selected. C-AUTH1
-and C-EA0 remain bounded offline engineering only; the public
-workbench evidence is not scientifically qualified and C-EA0 creates no archive
-runtime. C-EA1 is unstarted and input-blocked.
+G2 is LOCALNET_READY for the exact standard profile only. C-AUTH1 and C-EA0
+remain bounded offline engineering only; the public workbench evidence is not
+scientifically qualified. PR #136 supplies a C-EA1 runtime only for the exact
+synthetic development profile and cannot acknowledge real evidence or satisfy
+C-EA2. C-EA2 is not selected and remains dependency-blocked.
 
 ## 4. Acceptance and maturity
 
