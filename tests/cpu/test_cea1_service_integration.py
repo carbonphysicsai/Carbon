@@ -71,6 +71,22 @@ def _await_catalogue(operation, failure_message: str) -> None:
     raise AssertionError(failure_message) from last_failure
 
 
+def _postgres_dsn(container: str) -> str:
+    """Resolve the current ephemeral host port after every container start."""
+
+    port = (
+        subprocess.run(
+            ["docker", "port", container, "5432/tcp"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        .stdout.strip()
+        .rsplit(":", 1)[1]
+    )
+    return f"postgresql://postgres:carbon-synthetic-only@127.0.0.1:{port}/carbon_cea1"
+
+
 def _sha(character: str) -> str:
     return "sha256:" + character * 64
 
@@ -192,25 +208,13 @@ def postgres_service(tmp_path_factory):
         text=True,
     )
     try:
-        port = (
-            subprocess.run(
-                ["docker", "port", name, "5432/tcp"],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            .stdout.strip()
-            .rsplit(":", 1)[1]
-        )
-        dsn = (
-            f"postgresql://postgres:carbon-synthetic-only@127.0.0.1:{port}/carbon_cea1"
-        )
+        dsn = _postgres_dsn(name)
         catalogue = PostgresCatalogue(dsn, CapacityLimits(max_active_entries=32))
         _await_catalogue(
             catalogue.migrate,
             "disposable PostgreSQL service did not become ready",
         )
-        yield name, dsn
+        yield name
     finally:
         subprocess.run(
             ["docker", "rm", "--force", name], capture_output=True, check=False
@@ -219,7 +223,8 @@ def postgres_service(tmp_path_factory):
 
 @pytest.fixture
 def services(tmp_path, postgres_service):
-    name, dsn = postgres_service
+    name = postgres_service
+    dsn = _postgres_dsn(name)
     objects = ObjectProcess(tmp_path / "objects")
     objects.start()
     limits = CapacityLimits(max_active_entries=32)
@@ -269,6 +274,7 @@ def test_actual_postgres_and_object_services_preserve_exact_state_across_restart
     before = catalogue.outbox()
 
     subprocess.run(["docker", "restart", container], check=True, capture_output=True)
+    catalogue = PostgresCatalogue(_postgres_dsn(container), catalogue.limits)
     _await_catalogue(
         catalogue.verify_schema,
         "PostgreSQL did not recover after restart",
@@ -311,9 +317,15 @@ def test_each_service_interruption_fails_closed_then_exact_replay_recovers(servi
         catalogue.verify_schema()
     assert captured.value.code is ArchiveCode.STORE
     subprocess.run(["docker", "start", container], check=True, capture_output=True)
+    catalogue = PostgresCatalogue(_postgres_dsn(container), catalogue.limits)
     _await_catalogue(
         catalogue.verify_schema,
         "PostgreSQL did not recover after service interruption",
+    )
+    archive = EvidenceArchive(
+        catalogue,
+        archive.journal,
+        HttpImmutableObjectStore(objects.endpoint, "carbon-synthetic-ci"),
     )
 
     objects.stop()
@@ -387,7 +399,8 @@ def test_service_configuration_contains_no_secret_or_payload_material():
 def test_postgres_capacity_reservation_is_atomic_and_object_tenant_is_closed(
     tmp_path, postgres_service
 ):
-    _, dsn = postgres_service
+    container = postgres_service
+    dsn = _postgres_dsn(container)
     limits = CapacityLimits(
         max_active_entries=1,
         max_objects=7,

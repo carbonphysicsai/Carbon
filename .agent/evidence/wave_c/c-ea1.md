@@ -84,14 +84,23 @@ loopback object-service process before merge.
 Pre-acceptance run `34550288416` at `03f2a6880d0b56cf394c1a3cc58b49b1d7d84b04`
 passed delivery preflight, all 204 invariants and 5,195 CPU cases. Its service
 path completed initial migration, encrypted archival and positive durable
-acknowledgement, then failed after PostgreSQL restart because the test harness
-allowed only ten seconds for service readiness. The clean-image lane separately
-passed 5,149 CPU cases but omitted the `archive` dependency group, so 16 archive
-tests failed closed at the unavailable cryptography boundary. The successor
-candidate propagates the pinned `chain archive` groups through clean-image
-bootstrap/doctor/acceptance and waits for verified catalogue readiness within
-the existing CI job ceiling. That harness bound is not an availability, RTO or
-RPO objective.
+acknowledgement, then failed after PostgreSQL restart. The clean-image lane
+separately passed 5,149 CPU cases but omitted the `archive` dependency group, so
+16 archive tests failed closed at the unavailable cryptography boundary.
+
+Successor run `34552861857` at
+`7bbd44a1b5ee478fa3c7ba6dd8fd131344cea2f8` proved the dependency repair: its
+clean-image and Hub lanes passed, as did canonical delivery hygiene, quality,
+all 204 invariants and 5,195 non-service CPU cases. The service path again
+completed initial migration, encrypted archival and positive durable
+acknowledgement, but remained unable to connect for the full 60-second bound
+after restart. This disproved the earlier startup-delay diagnosis. The persistent
+failure and subsequent fixture failures identify reuse of the pre-restart DSN
+for a Docker-assigned ephemeral host port. The next candidate therefore
+re-resolves the current published port after every container start/restart and
+reconstructs only the narrow catalogue/archive adapters. It does not change
+archive runtime behavior or state. The readiness harness bound is not an
+availability, RTO or RPO objective.
 
 ```text
 pytest package/import/code-authority
