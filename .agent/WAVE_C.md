@@ -33,14 +33,17 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.1
+**Version:** 1.2
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
 **Selected ticket:** C-EA1 — `done`
-**Next selected ticket:** none. C-EA2 is not selected and is not dependency-ready.
-**Primary Hub map_ref:** `WAVE-C/C-EA1`
+**Active ticket:** none
+**Next selected ticket:** none. No C1 implementation ticket is dependency-ready.
+**Last completed ticket:** C-EA1, for the exact synthetic development profile
+**Primary Hub map_ref:** `WAVE-C`
 
-This shipping snapshot's `done` state takes effect only after PR #136 passes
-applicable acceptance and normally merges.
+C-EA1 passed canonical acceptance in run `34558389185` at accepted head
+`a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`.
 
 ## 1. Scope and sequence
 
@@ -55,9 +58,11 @@ UNMEASURED; B-01G remains unfinished/non-blocking.
 offline C1/C2 engineering may proceed independently of G2. G2's narrow standard-
 profile result does not authorize public or chain-dependent C2 execution. The active offline order
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
-C-EA1 is selected only under `OWNER-C-EA1-SYNTHETIC-01`'s closed synthetic
+C-EA1 is complete only under `OWNER-C-EA1-SYNTHETIC-01`'s closed synthetic
 development profile. Real admission and every production archive input remain
-fail closed. NET-5R's first repair merged in PR
+fail closed. `OWNER-C1-CONTRACTS-01` materializes C-03, C-08, C-09 and the exact
+C1 dependency graph without activating or implementing another ticket.
+NET-5R's first repair merged in PR
 #132, and PR #133 merged its standard-profile/D4 specification checkpoint as
 `2a71a392380cb4df0e0597a92674882de7801c70`. The exact standard profile then
 passed a one-shot registration diagnostic.
@@ -68,7 +73,7 @@ evidence. Canonical full/standard run 34518806217 passed at exact candidate
 `97a2405776a3f520076e03a89ea8b7b4086d9ad2`, including auditable exclusive
 handover. NET-5R is done and G2 is `LOCALNET_READY` only for that exact standard-
 profile disposable v445 localnet. Fast-profile and public-network capability
-remain unearned. PR #136 implements C-EA1 without selecting C-EA2.
+remain unearned. PR #136 implemented C-EA1 without selecting C-EA2.
 
 ## 2. NET-0 development disposition
 
@@ -96,6 +101,16 @@ production custody, quorum, science or economics blocks only that operation.
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
+| C-02 | Real declarative reconstruction | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
+| C-03 | Isolated reconstruction worker | todo | `.agent/tickets/C-03_isolated_reconstruction_worker.md` | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-02 | MQ-015, MQ-048 | L | C1 |
+| C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
+| C-05 | Real measurement and Score Pack | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific measurement engineering | Physics/SciML + statistics | C-02, C-04, B-05 | MQ-045, MQ-048 | L | C1 |
+| C-06 | Signed evaluation receipt | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
+| C-07 | Real validator orchestration | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
+| C-08 | Authenticated miner MCP end to end | todo | `.agent/tickets/C-08_authenticated_miner_mcp_e2e.md` | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
+| C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
+| C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
+| C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -121,9 +136,13 @@ evidence but failed before recycled-UID evidence on a plain SDK nonce transition
 NET-5R D6 run 34518806217 passed the complete auditable full/standard predicate;
 G2 is LOCALNET_READY for the exact standard profile only. C-AUTH1 and C-EA0
 remain bounded offline engineering only; the public workbench evidence is not
-scientifically qualified. PR #136 supplies a C-EA1 runtime only for the exact
-synthetic development profile and cannot acknowledge real evidence or satisfy
-C-EA2. C-EA2 is not selected and remains dependency-blocked.
+scientifically qualified. C-EA1 accepted head
+`a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed canonical run
+`34558389185` and normally merged in PR #136 as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`. Its runtime is limited to the
+exact synthetic development profile and cannot acknowledge real evidence or
+satisfy C-EA2. C-03, C-08 and C-09 are contract-only; C-EA2 and every other
+runtime ticket remain unselected and dependency-blocked.
 
 ## 4. Acceptance and maturity
 

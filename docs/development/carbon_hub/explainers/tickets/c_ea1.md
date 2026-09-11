@@ -21,7 +21,7 @@ A separately versioned closed runtime with pre-dispatch admission, PostgreSQL ca
 ## Placement and handoff
 
 - **Depends on:** C-EA0
-- **Feeds:** No downstream ticket captured.
+- **Feeds:** C-EA2
 - **Driver:** Codex + evidence architecture
 - **Review route:** Operations + data/security + scientific integration
 - **Master questions:** MQ-048, MQ-051
@@ -32,7 +32,7 @@ It rejects real/customer/protected/official evidence and does not supply product
 
 ## Current stage
 
-PR #136 conditionally completes C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after applicable acceptance and normal merge. The synthetic acknowledgement is ineligible for real finalization, network use or qualification.
+PR #136 completed C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de passed canonical run 34558389185 and normally merged as 0e0714c8260ca482a0ba2b743b2eaefd50508da1. The synthetic acknowledgement is ineligible for real finalization, network use or qualification.
 
 ## Maturity ceiling
 
@@ -40,10 +40,10 @@ Specified, implemented and tested only for non-secret synthetic fixtures on one 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
 
 > Only synthetic INTERNAL_AUDIT is eligible. The profile-scoped acknowledgement cannot satisfy real C1 finalization, C-W1, weights, settlement or qualification.

@@ -26,8 +26,10 @@ the prospective `OWNER-ROADMAP-02` dependency correction.
 > **Current development state.** `.agent/WAVE.md` records Wave B closed in
 > bounded engineering scope after PR #118 accepted head `c510095b...` passed
 > run `34365282759` and normally merged as `ac050fd5...`, tree `46b3844...`.
-> Wave C/C0 is closed in bounded scope. PR #136 selects and conditionally closes
-> C-EA1 only for its approved synthetic development profile; C-EA2 is not
+> Wave C/C0 is closed in bounded scope. PR #136 closes C-EA1 only for its
+> approved synthetic development profile after accepted head
+> `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed run `34558389185` and
+> normally merged as `0e0714c8260ca482a0ba2b743b2eaefd50508da1`; C-EA2 is not
 > selected and is not dependency-ready. PR #94 completed B-05 and B-07C in their bounded
 > engineering and synthetic mock-only scopes. PR #95 completed B-07D1/D2/D3 as
 > separate bounded immutable-store, TEST_ONLY publisher/ledger, and authorized
@@ -446,7 +448,7 @@ the bounded implementation.
 | Capability | Specified | Implemented | Network-qualified | Current status |
 |---|---:|---:|---:|---|
 | ordinary Challenge score/rank | Yes | bounded A5/A6 path | No | current implementation foundation |
-| C0/C1 Wave C handoff | NET-1 through NET-6, C-REWARD and NET-5R done in bounded scope; C-01/C-AUTH1/C-EA0 delivered offline; PR #136 conditionally completes C-EA1's synthetic development profile | D6 run 34518806217 passed the complete auditable standard-profile predicate, so G2 is LOCALNET_READY only for that exact disposable v445 profile; fast/public capability, scientific qualification and eligibility authority remain unearned; C-EA2 remains dependency-blocked and C-02 lacks its authorized JAX revision/interface |
+| C0/C1 Wave C handoff | NET-1 through NET-6, C-REWARD and NET-5R done in bounded scope; C-01/C-AUTH1/C-EA0 delivered offline; PR #136 completed C-EA1's synthetic development profile; C-03/C-08/C-09 are materialized contracts only | D6 run 34518806217 passed the complete auditable standard-profile predicate, so G2 is LOCALNET_READY only for that exact disposable v445 profile; fast/public capability, scientific qualification and eligibility authority remain unearned; no C1 implementation ticket is dependency-ready, C-EA2 remains blocked and C-02 lacks its authorized JAX revision/interface |
 | `StructuralLocalnetWeightIntent` | roadmap specified | No | No | future C0/G2 structural localnet type |
 | `TestnetWeightEligibilityEvent` / `TestnetWinnerWeightIntent` | roadmap specified | No | No | future C2/G3; `NON_LIVE`, `NON_SETTLING`, `NOT_FRONTIER_QUALIFIED`, `NOT_MAINNET_ELIGIBLE` |
 | explicit testnet no-winner sink | structural policy specified; identity/custody open | No | No | exact chain identity/custody requires security/economic owner input |
@@ -470,7 +472,7 @@ the bounded implementation.
 | bounded `TrainingStrategy` search | Yes | A2 schema; real search runtime incomplete | No | P0 foundation |
 | miner MCP research loop | Yes — bounded Wave-A control plane; broader loop remains design | Yes — exact seven-tool bounded in-process control/disclosure skeleton | No | Bounded control plane implemented and tested; transport, authentication, production providers, mock/light execution, adaptive loop, and end-to-end integration remain unimplemented and unqualified |
 | Landscape evidence memory | Yes | no canonical production system | No | Wave E |
-| official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 plus exact C-EA0 v1 capture contract/cases | C-EA1 implements/tests only `carbon.synthetic-evidence-archive.dev.v1` after PR #136 acceptance and merge | No | Synthetic fixtures, one-host disposable PostgreSQL/object service, ephemeral test keys and INTERNAL_AUDIT only; real/production durability, required artifacts, retention, rights, custody/KMS, topology, recovery and security remain unearned; synthetic acknowledgement cannot satisfy C-EA2 |
+| official evidence archive | Yes — OWNER-EVIDENCE-RESEARCH-01 plus exact C-EA0 v1 capture contract/cases | C-EA1 implements/tests only `carbon.synthetic-evidence-archive.dev.v1`; PR #136 accepted/merged | No | Synthetic fixtures, one-host disposable PostgreSQL/object service, ephemeral test keys and INTERNAL_AUDIT only; real/production durability, required artifacts, retention, rights, custody/KMS, topology, recovery and security remain unearned; synthetic acknowledgement cannot satisfy C-EA2 |
 | Research Concierge | Yes — C-DC1..4 reserved with engineering acceptance | No | No | Independently enableable authenticated product; empirical effectiveness `UNMEASURED`; may be disabled while core network ships |
 | EvidenceBrief pipeline | Yes — E-EB1/E-EA6/E-EA7 reserved | No | No | Future offline approval/release/correction path |
 | D12 Research Demand Graph | Yes — C capture + E-D12 aggregation reserved | No | No | Demand planning only; never scientific evidence |

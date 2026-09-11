@@ -6,8 +6,11 @@
 
 **Required external interface input:** the authorized JAX implementation
 repository URL, one immutable revision, its reproducible dependency/build
-identity, and the actual training/inference entry points, signatures, array
-shapes/dtypes, state/artifact format and error semantics exposed at that revision.
+identity, and the actual training/inference entry points and signatures exposed
+at that revision. The interface description must bind parameter/state
+structures, input/output shapes and dtypes, batching/layout rules, PRNG/RNG
+ownership and handling, checkpoint/artifact format, JIT/sharding expectations
+and failure/error semantics.
 Until those source/interface facts are supplied, C-02 remains fail-closed and
 unselected.
 

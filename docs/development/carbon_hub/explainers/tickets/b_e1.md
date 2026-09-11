@@ -21,7 +21,7 @@ A deterministic TEST_ONLY harness with separate R0/R1/R2 results, exact crossed 
 ## Placement and handoff
 
 - **Depends on:** B-02A, B-02B, B-02C, B-04, B-05
-- **Feeds:** B-E4, B-GATE
+- **Feeds:** B-E4, B-GATE, C-02
 - **Driver:** Codex + SciML
 - **Review route:** Statistics + SciML
 - **Master questions:** MQ-007, MQ-008

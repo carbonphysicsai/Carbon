@@ -106,6 +106,86 @@
       "changes": "C1 gains a separately versioned synthetic-only archive runtime, actual disposable-service integration, restart reconciliation, quotas, orphan quarantine and an operator runbook.",
       "not_yet": "Real/customer/protected/official evidence, production retention, custody/KMS, replication, correlated-loss durability, availability/RTO/RPO, security qualification, real finalization and network eligibility remain unavailable.",
       "map_ref": "WAVE-C/C-EA1"
+    },
+    "C-02": {
+      "title": "Bind Carbon to the actual authorized JAX implementation",
+      "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
+      "why": "Research prototypes and forward-pass parity cannot substitute for the exact real reconstruction source.",
+      "changes": "The ticket records the complete external source, build and interface package that must arrive.",
+      "not_yet": "No authorized JAX source/interface has arrived, so implementation and every qualification remain unavailable.",
+      "map_ref": "WAVE-C/C-02"
+    },
+    "C-03": {
+      "title": "Isolate hostile reconstruction work",
+      "what": "Define a network-denied, scratch-only, resource-bounded worker around C-02's future authorized JAX adapter.",
+      "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
+      "changes": "The future ticket now has an exact isolation, cancellation, cleanup and typed-infrastructure-failure contract.",
+      "not_yet": "No worker is implemented or dependency-ready; C-02, MQ-015 inputs and security acceptance remain missing.",
+      "map_ref": "WAVE-C/C-03"
+    },
+    "C-04": {
+      "title": "Run protected references without confusing fixtures with truth",
+      "what": "Compose the future isolated worker with registered primary and witness reference policies.",
+      "why": "A fixture reference or successful generator is not a qualified scientific reference.",
+      "changes": "The existing ticket preserves protected assets, reference roles and typed reference failure.",
+      "not_yet": "C-03 and qualified reference inputs are absent; no real reference runtime or qualification exists.",
+      "map_ref": "WAVE-C/C-04"
+    },
+    "C-05": {
+      "title": "Measure and score the real Challenge under approved science",
+      "what": "Apply qualified measurements and admissibility to real reconstruction and reference outputs.",
+      "why": "Fixture coefficients and missing uncertainty floors cannot decide a real Challenge.",
+      "changes": "The existing ticket preserves challenge-bound scoring and mandatory admissibility.",
+      "not_yet": "C-02/C-04 and human scientific inputs are absent; no real score or qualification exists.",
+      "map_ref": "WAVE-C/C-05"
+    },
+    "C-06": {
+      "title": "Sign exact evaluation provenance",
+      "what": "Bind source, execution, reference, measurement and policy identities into a real evaluation receipt.",
+      "why": "A score or database row cannot prove who evaluated what under which contract.",
+      "changes": "The existing ticket preserves immutable receipt identity and signer boundaries.",
+      "not_yet": "The real evidence chain, signer authorization and custody policy are absent.",
+      "map_ref": "WAVE-C/C-06"
+    },
+    "C-07": {
+      "title": "Orchestrate the real validator path without adding a second judge",
+      "what": "Compose admission, reconstruction, reference, measurement and receipt owners with exact identities.",
+      "why": "Typed failures and source ownership must survive the full real path.",
+      "changes": "The existing ticket defines real orchestration and recovery boundaries.",
+      "not_yet": "C-02 through C-06 are not ready, so no real orchestration or qualification exists.",
+      "map_ref": "WAVE-C/C-07"
+    },
+    "C-08": {
+      "title": "Connect authenticated Miner MCP to real validation",
+      "what": "Define exact caller, network, Challenge, session, request and result binding across NET-2, A9 and the future C-07 real path.",
+      "why": "Authentication and fixture practice cannot become official scientific authority or reveal the exam.",
+      "changes": "The future ticket now has an exact identity, budget, cancellation/retry and disclosure contract.",
+      "not_yet": "No real MCP composition is implemented or dependency-ready; no fee, quota, public endpoint or qualification is approved.",
+      "map_ref": "WAVE-C/C-08"
+    },
+    "C-EA2": {
+      "title": "Archive real evidence before finalization",
+      "what": "Require an eligible real archive acknowledgement before a required real result can finalize.",
+      "why": "Synthetic acknowledgements and stored pointers cannot prove real official evidence is durable.",
+      "changes": "The existing ticket preserves a fail-closed archive-before-finalization seam.",
+      "not_yet": "No real C1 path or approved real archive profile exists; retention, custody, topology and recovery values remain human-owned.",
+      "map_ref": "WAVE-C/C-EA2"
+    },
+    "C-09": {
+      "title": "Project real qualified results without making publication the judge",
+      "what": "Define a Challenge-local official projection requiring a signed real receipt and eligible real archive acknowledgement before C-W1 handoff.",
+      "why": "Fixture boards, synthetic archive acknowledgements and chain state must never create scientific merit.",
+      "changes": "The future ticket now has exact provenance, disclosure, replay, withdrawal and C-W1 ownership boundaries.",
+      "not_yet": "No provider is implemented or dependency-ready, and no public testnet transaction, eligibility or qualification is authorized.",
+      "map_ref": "WAVE-C/C-09"
+    },
+    "C-W1": {
+      "title": "Admit only exact real evidence to testnet eligibility",
+      "what": "Verify C-09, eligible real C-EA2 evidence and the exact network context before a non-live eligibility event.",
+      "why": "Localnet success and publication cannot authorize a public transaction or create scientific merit.",
+      "changes": "The existing ticket preserves exact provenance and public-network activation boundaries.",
+      "not_yet": "It is unselected; no public-network identity, sink, custody, security/economic activation or transaction is approved.",
+      "map_ref": "WAVE-C/C-W1"
     }
   }
 }

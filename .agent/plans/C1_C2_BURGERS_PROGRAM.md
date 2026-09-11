@@ -3,9 +3,9 @@
 **Decision:** `OWNER-C1-C2-BURGERS-01`
 **Recorded:** 2026-09-10
 **Status:** active prospective sequencing authority; NET-5R/G2 closed for the
-exact standard-profile disposable v445 localnet and PR #136 conditionally closes
-C-EA1's synthetic development profile
-**Primary Hub map_ref:** `WAVE-C/C-01`
+exact standard-profile disposable v445 localnet and PR #136 closed C-EA1's
+synthetic development profile; no next implementation ticket is selected
+**Primary Hub map_ref:** `WAVE-C`
 
 ## Owner source and verified import
 
@@ -44,14 +44,21 @@ its required evidence.
 NET-5R is done in bounded scope and G2 is `LOCALNET_READY` only for D6's exact
 standard-profile disposable v445 localnet. Fast/public capability remains
 unearned. `OWNER-C-EA1-SYNTHETIC-01` subsequently selected and approved only a
-closed C-EA1 development profile. PR #136 implements it with synthetic fixtures,
+closed C-EA1 development profile. PR #136 implemented it with synthetic fixtures,
 one-host disposable services, ephemeral keys and INTERNAL_AUDIT-only use;
-bounded completion takes effect after applicable acceptance and merge. The
+accepted head `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed canonical run
+`34558389185` and normally merged as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`. The
 synthetic acknowledgement is ineligible for real finalization or network use.
 Separately, C-02 remains unselected and fail-closed until an authorized JAX
 repository, immutable revision, reproducible build identity and its actual
 training/inference interface are supplied. Carbon will implement the adapter;
 the SciML lead is not required to adopt Carbon-authored function names.
+
+`OWNER-C1-CONTRACTS-01` materializes C-03, C-08 and C-09 from their retained
+launch identities and records their exact prerequisites in
+`.agent/plans/C1_DEPENDENCY_GRAPH.md`. This contract checkpoint selects and
+implements no runtime ticket; none is currently dependency-ready.
 
 ## Scientific and execution ceiling
 

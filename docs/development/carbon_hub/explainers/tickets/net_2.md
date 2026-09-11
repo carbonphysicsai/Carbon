@@ -21,7 +21,7 @@ Canonical v1 ingress, SDK signatures, durable nonce/request receipts, identity a
 ## Placement and handoff
 
 - **Depends on:** NET-1
-- **Feeds:** NET-3
+- **Feeds:** NET-3, C-08
 - **Driver:** Codex + network/protocol engineering
 - **Review route:** Network/protocol + security
 - **Master questions:** MQ-054, MQ-056
@@ -40,9 +40,9 @@ Local development implementation only; no scientific, security, network or produ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/tickets/NET-2_authenticated_transport.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/evidence/wave_c/net-2.md)
-- [Transport contract](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/docs/development/AUTHENTICATED_TRANSPORT.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/tickets/NET-2_authenticated_transport.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/evidence/wave_c/net-2.md)
+- [Transport contract](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/docs/development/AUTHENTICATED_TRANSPORT.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/WAVE_C.md)
 
 > Transport authenticates who supplied bytes; existing owners still decide admission, scoring and disclosure.

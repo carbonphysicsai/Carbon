@@ -13342,3 +13342,49 @@ distributed transaction is unnecessary for this bounded profile; durable
 journaling, idempotency, immutable writes and reconciliation establish the
 approved sequence. Production cloud/KMS/replication/retention selections would
 exceed the owner decision.
+
+## 2026-09-11 — OWNER-C1-CONTRACTS-01: materialize the blocked C1 dependency chain
+
+The owner authorizes one bounded post-C-EA1 planning, governance and
+specification checkpoint. It materializes the retained C-03 isolated
+reconstruction-worker, C-08 authenticated miner-MCP end-to-end and C-09
+official-publication-provider identities as current contracts, and records the
+exact C1 dependency graph. It selects and implements no runtime ticket. C-EA2,
+C-W1, public testnet and JAX integration remain unselected and unstarted.
+
+**Authority resolution.** Launch path v1.0.3 supplies the retained ticket names,
+purposes and coarse dependencies. Launch path v1.0.4 owns the current C1/C2
+responsibility and sequencing boundaries; v1.0.5 changes only the B-E4/research
+dependency; v1.0.6 changes only the payment route. Current code remains the
+implementation truth. Therefore the new contracts preserve current A7/A9/A10,
+NET-2, C-01 and C-EA1 seams instead of reviving stale implementation or
+qualification claims.
+
+**Recorded graph.** C-02 remains the first blocked implementation dependency and
+requires an authorized JAX repository URL, immutable revision and reproducible
+build identity plus the actual training/inference interface. C-03 depends on C-02
+and the MQ-015 hostile-worker security inputs. C-04 follows C-03; C-05 follows
+C-02 and C-04 plus reserved scientific inputs; C-06 follows C-05; C-07 follows
+C-06; C-08 follows NET-2, C-07 and the current A9 boundary. C-EA2 requires the
+implemented real C1 path, C-EA1 and a human-approved real archive profile. C-09
+then requires the current A10 boundary, C-06, C-07, C-EA2 and real qualified
+provenance. C-W1 additionally requires the exact retained G2 scope and its
+public-network prerequisites. No implementation ticket is dependency-ready.
+
+**Contract boundaries.** C-03 specifies hostile reconstruction isolation,
+network denial, scratch-only filesystem, CPU/GPU/RAM/VRAM/wall/PID/output
+limits, deterministic cleanup and typed infrastructure failure without claiming
+security qualification. C-08 specifies exact authenticated identity/context,
+budget, cancellation/retry and disclosure behavior without inventing fees,
+science or chain authority. C-09 specifies an official challenge-local
+projection over real signed and archive-acknowledged provenance; A10 fixture
+boards and synthetic archive acknowledgements cannot enter it. C-W1 retains
+testnet eligibility ownership, and C-W2/C-W3 retain chain submission.
+
+**Reserved authority.** No JAX source or interface, production resource limits,
+scientific threshold/population/comparison, real archive profile, custody/KMS,
+retention, public-network identity, fee, settlement, security acceptance,
+qualification, deployment or LIVE value is approved or inferred. NET-5R remains
+closed and G2 remains `LOCALNET_READY` only for D6's exact standard-profile
+disposable v445 localnet. C-EA1 remains complete only for its synthetic
+development profile.
