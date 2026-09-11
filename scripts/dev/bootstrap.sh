@@ -96,10 +96,10 @@ fi
 sync_args=(--locked --group dev)
 for group in ${CARBON_UV_GROUPS:-}; do
   case "${group}" in
-    science-jax|science-torch|chain) sync_args+=(--group "${group}") ;;
+    science-jax|science-torch|chain|archive) sync_args+=(--group "${group}") ;;
     *)
       echo "Unsupported CARBON_UV_GROUPS entry: ${group}." >&2
-      echo "Allowed optional groups: science-jax science-torch chain." >&2
+      echo "Allowed optional groups: science-jax science-torch chain archive." >&2
       exit 2
       ;;
   esac
