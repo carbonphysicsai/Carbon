@@ -124,6 +124,7 @@ jobs:
     timeout-minutes: 45
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
+      CARBON_UV_GROUPS: "chain archive"
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

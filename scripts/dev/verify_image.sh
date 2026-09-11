@@ -118,12 +118,17 @@ echo "  uv:           0.12.7"
 echo "  marker:       ${runtime_marker}"
 echo "  candidate:    ${candidate_sha}"
 
-"${container_exec[@]}" ./scripts/dev/bootstrap.sh
-"${container_exec[@]}" ./scripts/dev/doctor.sh
+"${container_exec[@]}" env \
+  "CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}" \
+  ./scripts/dev/bootstrap.sh
+"${container_exec[@]}" env \
+  "CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}" \
+  ./scripts/dev/doctor.sh
 docker exec \
   --workdir /workspaces/Carbon \
   --env "QUALITY_BASE_SHA=${quality_base}" \
   --env CARBON_ARTIFACT_DIR=/tmp/carbon-artifacts \
+  --env "CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}" \
   "${container_id}" \
   ./scripts/dev/ci.sh
 

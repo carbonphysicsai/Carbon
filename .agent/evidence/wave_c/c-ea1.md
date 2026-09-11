@@ -81,6 +81,18 @@ was unavailable. The canonical Linux job sets `CARBON_REQUIRE_DOCKER_TESTS=1`
 and must run those tests against the pinned PostgreSQL image plus a separate
 loopback object-service process before merge.
 
+Pre-acceptance run `34550288416` at `03f2a6880d0b56cf394c1a3cc58b49b1d7d84b04`
+passed delivery preflight, all 204 invariants and 5,195 CPU cases. Its service
+path completed initial migration, encrypted archival and positive durable
+acknowledgement, then failed after PostgreSQL restart because the test harness
+allowed only ten seconds for service readiness. The clean-image lane separately
+passed 5,149 CPU cases but omitted the `archive` dependency group, so 16 archive
+tests failed closed at the unavailable cryptography boundary. The successor
+candidate propagates the pinned `chain archive` groups through clean-image
+bootstrap/doctor/acceptance and waits for verified catalogue readiness within
+the existing CI job ceiling. That harness bound is not an availability, RTO or
+RPO objective.
+
 ```text
 pytest package/import/code-authority
 103 passed

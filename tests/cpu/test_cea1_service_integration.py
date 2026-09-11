@@ -53,6 +53,23 @@ pytestmark = pytest.mark.skipif(
     reason="canonical disposable-service evidence runs only in Docker-capable CI",
 )
 
+SERVICE_READY_ATTEMPTS = 300
+SERVICE_READY_DELAY_SECONDS = 0.2
+
+
+def _await_catalogue(operation, failure_message: str) -> None:
+    """Wait for service readiness without expressing a recovery-time objective."""
+
+    last_failure = None
+    for _ in range(SERVICE_READY_ATTEMPTS):
+        try:
+            operation()
+            return
+        except ArchiveFailure as failure:
+            last_failure = failure
+            time.sleep(SERVICE_READY_DELAY_SECONDS)
+    raise AssertionError(failure_message) from last_failure
+
 
 def _sha(character: str) -> str:
     return "sha256:" + character * 64
@@ -189,14 +206,10 @@ def postgres_service(tmp_path_factory):
             f"postgresql://postgres:carbon-synthetic-only@127.0.0.1:{port}/carbon_cea1"
         )
         catalogue = PostgresCatalogue(dsn, CapacityLimits(max_active_entries=32))
-        for _ in range(150):
-            try:
-                catalogue.migrate()
-                break
-            except ArchiveFailure:
-                time.sleep(0.1)
-        else:
-            raise AssertionError("disposable PostgreSQL service did not become ready")
+        _await_catalogue(
+            catalogue.migrate,
+            "disposable PostgreSQL service did not become ready",
+        )
         yield name, dsn
     finally:
         subprocess.run(
@@ -211,7 +224,10 @@ def services(tmp_path, postgres_service):
     objects.start()
     limits = CapacityLimits(max_active_entries=32)
     catalogue = PostgresCatalogue(dsn, limits)
-    catalogue.migrate()
+    _await_catalogue(
+        catalogue.migrate,
+        "disposable PostgreSQL service did not recover for the test fixture",
+    )
     archive = EvidenceArchive(
         catalogue,
         StageJournal(tmp_path / "spool.sqlite3", limits),
@@ -253,14 +269,10 @@ def test_actual_postgres_and_object_services_preserve_exact_state_across_restart
     before = catalogue.outbox()
 
     subprocess.run(["docker", "restart", container], check=True, capture_output=True)
-    for _ in range(100):
-        try:
-            catalogue.verify_schema()
-            break
-        except ArchiveFailure:
-            time.sleep(0.1)
-    else:
-        raise AssertionError("PostgreSQL did not recover after restart")
+    _await_catalogue(
+        catalogue.verify_schema,
+        "PostgreSQL did not recover after restart",
+    )
     objects.stop()
     objects.start()
     recovered = EvidenceArchive(
@@ -299,12 +311,10 @@ def test_each_service_interruption_fails_closed_then_exact_replay_recovers(servi
         catalogue.verify_schema()
     assert captured.value.code is ArchiveCode.STORE
     subprocess.run(["docker", "start", container], check=True, capture_output=True)
-    for _ in range(100):
-        try:
-            catalogue.verify_schema()
-            break
-        except ArchiveFailure:
-            time.sleep(0.1)
+    _await_catalogue(
+        catalogue.verify_schema,
+        "PostgreSQL did not recover after service interruption",
+    )
 
     objects.stop()
     with pytest.raises(ArchiveFailure) as captured:
@@ -385,7 +395,10 @@ def test_postgres_capacity_reservation_is_atomic_and_object_tenant_is_closed(
         max_spool_bytes=65536,
     )
     catalogue = PostgresCatalogue(dsn, limits)
-    catalogue.migrate()
+    _await_catalogue(
+        catalogue.migrate,
+        "PostgreSQL did not recover for capacity verification",
+    )
     objects = ObjectProcess(tmp_path / "capacity-objects")
     objects.start()
     try:
