@@ -32,19 +32,20 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C0/G2 compatibility follow-up with bounded offline C1 preserved
+**Current phase:** bounded offline C1 evidence archive after C0/G2 closeout
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.0
-**Selected ticket:** NET-5R — `done`
+**Controlling register:** `.agent/WAVE_C.md` version 1.1
+**Selected ticket:** C-EA1 — `done`
 **Next selected ticket:** none
-C-EA1 remains `todo`, unstarted, and input-blocked on its reserved operating
-decisions. Those inputs did not block the independently authorized NET-5R work
-and remain scoped to C-EA1.
+This shipping snapshot's `done` state takes effect only after PR #136 passes
+applicable acceptance and normally merges. `OWNER-C-EA1-SYNTHETIC-01` resolved only C-EA1's closed synthetic development
+profile. C-EA2 is not selected and remains blocked on a selected real C1
+execution/orchestration path and eligible real archive acknowledgement.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -85,10 +86,11 @@ No provider execution is requested. B-GATE subsequently passed and is closed.
 **Current C0 status:** NET-1 through NET-6, C-REWARD and NET-5R are done in bounded engineering scope. D6 full/standard run 34518806217 passed both registrations, complete shared-winner publication/epoch, recovery, finalized checked-SDK `SwapHotkey`, verified exclusive transport handover, takeover, recycled-UID non-inheritance and the final replacement all-burn epoch. G2 is LOCALNET_READY for the exact standard-profile disposable v445 localnet only; the global capability flag remains false and fast/public profiles remain unearned. No later ticket is selected.
 **Current C1 status:** C-01 and C-AUTH1 are merged in bounded engineering scope.
 C-EA0 passed canonical acceptance and merged in PR #131 as
-`a3ca8cd111689329832131eac1460d579c7828b3`. C-EA1 remains unstarted and
-input-blocked. This prospective sequencing change does not pass G2,
-authorize the public network, implement an archive, acknowledge durability, or
-earn real-science/archive qualification.
+`a3ca8cd111689329832131eac1460d579c7828b3`. PR #136 selects and implements
+C-EA1 for the exact closed synthetic development profile; bounded completion and
+`SPECIFIED / IMPLEMENTED / TESTED` take effect only after its applicable
+acceptance and normal merge. The synthetic acknowledgement is ineligible for
+real finalization, C-W1, network or qualification. C-EA2 is not selected.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

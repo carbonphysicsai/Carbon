@@ -148,10 +148,11 @@ When Wave C is activated, its controlling board may select the already materiali
 
 `OWNER-C1-C2-BURGERS-01` subsequently selected C-EA0 after C-AUTH1's accepted
 merge. `C-EA0-D1` ratifies only the versioned documentation contract and
-contract cases. C-EA1 is the next prospective consumer but remains unstarted
-and input-blocked until the durability, required-artifact, retention, legal/IP,
-custody/key, deployment, capacity and security owners provide its required
-values. C-EA2 and C-EA3 remain downstream and unselected.
+contract cases. `OWNER-C-EA1-SYNTHETIC-01` then selected C-EA1 only for a closed
+synthetic development profile; PR #136 conditionally implements/tests that
+profile without resolving any real/production archive inputs. C-EA2 and C-EA3
+remain downstream and unselected, and the synthetic acknowledgement cannot
+satisfy real finalization.
 
 When Wave E is activated, its board may select E-EA4..7, E-EB1, E-D12, and E-RI1.
 

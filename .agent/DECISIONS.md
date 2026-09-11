@@ -13271,3 +13271,74 @@ recovery objectives/restore acceptance and security qualification all remain
 `HUMAN_INPUT`. Their absence prevents real admission, acknowledgement,
 deployment, use or qualification as applicable, while the exact documentation
 contract and fixture-only contract tests may proceed.
+
+## 2026-09-11 — OWNER-C-EA1-SYNTHETIC-01: select C-EA1 under a closed development profile
+
+The owner selects C-EA1 as the sole active ticket after the merged NET-5R/G2
+checkpoint and approves one development-only archive profile for non-secret,
+closed synthetic C-EA1 fixtures. The only eligible named use is
+`INTERNAL_AUDIT` under exact versioned synthetic policy references. Single-host
+disposable PostgreSQL and local or S3-compatible object storage, ephemeral
+external test keys, authenticated encryption before object persistence, small
+explicit capacity limits, admission backpressure and exact restart recovery are
+authorized for local/canonical CI. Test teardown may remove only the complete
+isolated test namespace after the test lifecycle.
+
+The approved fault model covers worker/process restart, individual PostgreSQL
+and object-service interruption, crashes around every persistence stage,
+duplicate/reordered delivery, catalogue/object disagreement, corrupt or
+conflicting writes, orphan objects, unavailable keys, bounded spool exhaustion
+and admission backpressure. It excludes simultaneous host/volume loss,
+site/region/provider loss, correlated failures and disaster recovery. It sets no
+availability, RTO or RPO objective. Real, customer, protected and official
+evidence is rejected. Production artifact requirements, retention/deletion/legal
+hold, rights, custody/KMS, topology, replication, durability, availability and
+security qualification remain human-reserved and unavailable.
+
+This decision authorizes selection, implementation, testing and normal delivery
+in one PR. It does not select C-EA2 or authorize production infrastructure,
+customer data, public-network operation, settlement, treasury, paid inference,
+scientific/security qualification, production credentials or LIVE use.
+
+## C-EA1-D1 — Use a narrow transactional catalogue and encrypted immutable object boundary
+
+**Working decision.** Implement runtime schema `carbon.evidence-archive.v1` and
+capture profile `carbon.synthetic-evidence-archive.dev.v1`. KEEP C-01's
+source-owned identities and acknowledgement reference, and WRAP them through a
+separate archive service. Stable archive admission precedes dispatch. A
+synchronous SQLite stage journal persists encrypted envelopes across worker
+restart; PostgreSQL owns reservations, immutable catalogue rows, append-only
+events, acknowledgements, a transactional outbox and idempotent consumer effects;
+a loopback-only immutable object adapter persists ciphertext outside PostgreSQL.
+Current retrieval, decryption, byte/digest/manifest verification and exact policy
+checks precede a profile-scoped acknowledgement. No distributed transaction is
+assumed.
+
+**Reversible engineering values.** Pin `cryptography==50.0.1` (Apache-2.0 OR
+BSD-3-Clause), `psycopg[binary]==3.3.5` (LGPL-3.0-only), and the official
+`postgres:17.11-bookworm` multi-architecture index digest
+`sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0`.
+Use AES-256-GCM with random 96-bit nonces, authenticated operation identities
+and ephemeral caller-supplied key material. Store only key identity and required
+algorithm/nonce/authentication metadata. Development limits are eight active
+entries, 64 objects, 2 MiB per object and 3 MiB journal/spool bytes. The only
+tenant is `carbon-synthetic-ci`. These choices are replaceable behind the narrow
+catalogue/object/key interfaces and have no production meaning.
+
+**Failure and authority boundary.** Exact duplicates converge; conflicting
+bytes or metadata, invalid identifiers, traversal, cross-tenant access,
+oversized input, missing/corrupt objects, unavailable/wrong keys, schema drift
+and capacity exhaustion fail closed. Missingness, withdrawal, later
+availability and policy changes append history rather than overwrite it. A
+synthetic `VERIFIED_DURABLE` acknowledgement contains explicit
+`synthetic_only`, real-finalization-ineligible and network-ineligible facts and
+cannot satisfy C-EA2, C-W1, weights, settlement or qualification.
+
+**Alternatives rejected.** Payload bytes in PostgreSQL would collapse catalogue
+and custody boundaries. A successful upload, pointer, digest, signature or row
+does not prove current availability. Participant paths and global content
+deduplication would introduce traversal or cross-tenant existence oracles. A
+distributed transaction is unnecessary for this bounded profile; durable
+journaling, idempotency, immutable writes and reconciliation establish the
+approved sequence. Production cloud/KMS/replication/retention selections would
+exceed the owner decision.

@@ -25,7 +25,8 @@ crosswalk/future board dependencies are updated. No archive implementation,
 durability acknowledgement, or qualification checkbox is satisfied by this
 document.
 
-**Handoff:** C-EA1 remains unstarted and cannot implement a real archive until
-the reserved durability, required-artifact, retention, custody/key, deployment,
-capacity and security inputs are approved. C-EA2 consumes only a verified C-EA1
-acknowledgement contract.
+**Handoff:** `OWNER-C-EA1-SYNTHETIC-01` resolved only a closed synthetic
+development profile, implemented by PR #136. It did not approve a real archive;
+the reserved production durability, required-artifact, retention, custody/KMS,
+deployment, capacity and security inputs remain unresolved. C-EA2 may consume
+only an eligible real C-EA1 acknowledgement, not the synthetic profile's object.
