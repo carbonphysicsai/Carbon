@@ -2267,6 +2267,26 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C",
+      "event_type": "decision",
+      "event_id": "OWNER-C1-CONTRACTS-01",
+      "owner_lane": "repository_owner",
+      "status": "implemented",
+      "summary": "The owner authorized a bounded post-C-EA1 planning checkpoint. C-03, C-08 and C-09 now have current authoritative contracts and the C1 dependency graph is explicit. No runtime ticket was selected or implemented: C-02 remains blocked on the complete authorized JAX source/interface, C-EA2 remains blocked on a real C1 path and eligible real archive profile, and C-W1/public operation remain unselected and unauthorized.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/plans/C1_DEPENDENCY_GRAPH.md",
+      "affects": [
+        "WAVE-C/C-03",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-EA1",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }

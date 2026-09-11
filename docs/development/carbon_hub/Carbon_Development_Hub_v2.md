@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `8757ef71e90a93ebdd28a1501352430774676e18` on `main`, captured 2026-09-11T01:08:30Z.
-**Current:** Wave C, ticket none active. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
+**Authority snapshot:** `37ee7695661cec566119938c158d3640b9b51e17` on `main`, captured 2026-09-11T09:45:00Z.
+**Current:** Wave C, ticket none active. C-EA1 is the last completed ticket, only for the exact closed synthetic development profile. No ticket is currently active or next-selected. C-03, C-08 and C-09 now have authoritative contracts but are unselected, unstarted and not dependency-ready. C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
 **Last completed:** C-EA1 (`done`).
 **Next selected:** none selected.
 
@@ -85,6 +85,16 @@
 | [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | done |
 | [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | done |
 | [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | done |
+| [C-02](explainers/tickets/c_02.md) | Adapt Carbon to an authorized immutable JAX reconstruction implementation without widening the Strategy language. | todo |
+| [C-03](explainers/tickets/c_03.md) | Run an exact authorized reconstruction inside a hostile-input, network-denied, resource-bounded worker. | todo |
+| [C-04](explainers/tickets/c_04.md) | Run qualified protected references behind the current reference/truth boundary. | todo |
+| [C-05](explainers/tickets/c_05.md) | Apply qualified measurements and admissibility to real reconstruction/reference outputs. | todo |
+| [C-06](explainers/tickets/c_06.md) | Bind a real result and its exact scientific provenance into a signed receipt. | todo |
+| [C-07](explainers/tickets/c_07.md) | Compose the real admitted attempt through reconstruction, reference, measurement and receipt owners. | todo |
+| [C-08](explainers/tickets/c_08.md) | Compose authenticated Miner MCP requests with the real validator orchestration path without leaking the official exam. | todo |
+| [C-EA2](explainers/tickets/c_ea2.md) | Require an eligible real archive acknowledgement before a required real result can finalize. | todo |
+| [C-09](explainers/tickets/c_09.md) | Project a real qualified Challenge-local result toward testnet eligibility without making publication the scientific judge. | todo |
+| [C-W1](explainers/tickets/c_w1.md) | Admit an exact real C1 proof chain into a non-live, non-settling testnet eligibility event. | todo |
 
 ## Change routes
 
@@ -193,6 +203,7 @@
 - `NET-5R-D6` — `WAVE-C/NET-5R` — D5 full/standard run 34497456242 failed at its first configuration submission because Carbon's evidence read called public account_next_index on the signing transport. Pinned Bittensor 11.1.0 source shows that method defaults to use_cache=True, so observation advanced the cache and the subsequent omitted-nonce SDK path selected future nonce one. The transaction remained ambiguous after 144 seconds; no registration or SwapHotkey ran. D6 uses exact finalized System.Account before/after evidence without touching the signing cache and is focused-tested, but the authorized D4-plus-one run budget is exhausted. G2 remains NOT_READY; no retry, nonce injection, unchecked extrinsic or public-network action is permitted. The accompanying global authority-snapshot refresh updates provenance projections for Wave B, B-E4, B-GATE and governance without reopening them or changing their status.
 - `NET-5R-D7` — `WAVE-C/NET-5R` — D6 canonical Linux amd64 run 34518806217 executed exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2 with mode=full and profile=standard. It passed focused contracts and the complete auditable runtime predicate: authenticated registrations, finalized account nonce associations, exclusive verified transport handovers, complete shared-winner publication/epoch, copy/no-credit, replay/recovery, checked-SDK SwapHotkey, takeover, recycled-UID non-inheritance and replacement all-burn row/epoch. NET-5R is done and G2 is LOCALNET_READY only for that exact standard-profile disposable v445 localnet. Fast/public/global capability, settlement, science, security, production and LIVE remain unearned.
 - `OWNER-C-EA1-SYNTHETIC-01` — `WAVE-C/C-EA1` — The owner selects C-EA1 and approves only carbon.synthetic-evidence-archive.dev.v1: non-secret synthetic fixtures, INTERNAL_AUDIT-only use, one disposable host and tenant, PostgreSQL plus loopback immutable objects, ephemeral test keys, explicit small quotas and restart/fault testing. PR #136 implements the closed profile; its bounded closeout is conditional on applicable acceptance and normal merge. Synthetic acknowledgement cannot satisfy real finalization, C-W1, weights, settlement or qualification, and all real/production archive and security inputs remain human-reserved. C-EA2 is not selected. The authority-snapshot refresh preserves Wave B, B-E4, B-GATE, agent-execution, governance and protocol-authority status without reopening them.
+- `OWNER-C1-CONTRACTS-01` — `WAVE-C` — The owner authorized a bounded post-C-EA1 planning checkpoint. C-03, C-08 and C-09 now have current authoritative contracts and the C1 dependency graph is explicit. No runtime ticket was selected or implemented: C-02 remains blocked on the complete authorized JAX source/interface, C-EA2 remains blocked on a real C1 path and eligible real archive profile, and C-W1/public operation remain unselected and unauthorized.
 
 ## Authority boundary
 

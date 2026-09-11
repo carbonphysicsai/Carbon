@@ -100,7 +100,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         )
         self.assertIn("D6 canonical full/standard run 34518806217", self.output)
         self.assertIn("G2 is LOCALNET_READY only", self.output)
-        self.assertIn("C-EA2 is not selected and is not dependency-ready", self.output)
+        self.assertIn("C-EA2 remains unselected and blocked", self.output)
         self.assertIn("cannot fill an evidence gap", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -158,7 +158,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         for phrase in (
             "Target-state orientation only",
             "D6 canonical full/standard run 34518806217",
-            "C-EA1 is conditionally done",
+            "C-EA1 is the last completed ticket",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

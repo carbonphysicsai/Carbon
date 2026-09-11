@@ -24,7 +24,10 @@ def test_materialized_tickets_are_contract_only_and_unselected() -> None:
     ):
         ticket = _read(path)
         assert ticket.startswith(f"# {ticket_id} ")
-        assert "`future_reserved`; contract materialized, unselected and unstarted" in ticket
+        assert (
+            "`future_reserved`; contract materialized, unselected and unstarted"
+            in ticket
+        )
         assert "Contract materialization only" in ticket
 
 
@@ -65,9 +68,7 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
 
 
 def test_hub_projects_no_selection_and_only_future_contract_status() -> None:
-    data = json.loads(
-        _read("docs/development/carbon_hub/data/hub_data_v2.json")
-    )
+    data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
     assert current["last_completed_ticket"]["id"] == "C-EA1"
     assert current["selected_ticket"] is None

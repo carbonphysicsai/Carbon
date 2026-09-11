@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-11T01:08:30Z"
+  captured_at_utc: "2026-09-11T09:45:00Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "8757ef71e90a93ebdd28a1501352430774676e18"
+  authority_snapshot_commit: "37ee7695661cec566119938c158d3640b9b51e17"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EA1 is the last completed ticket, only for the exact closed synthetic development profile. No ticket is currently active or next-selected. C-03, C-08 and C-09 now have authoritative contracts but are unselected, unstarted and not dependency-ready. C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -447,18 +447,18 @@ current:
     id: "C-EA1"
     title: "Durable evidence archive"
     status: "done"
-    summary: "PR #136 conditionally completes C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after applicable acceptance and normal merge. The synthetic acknowledgement is ineligible for real finalization, network use or qualification."
+    summary: "PR #136 completed C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de passed canonical run 34558389185 and normally merged as 0e0714c8260ca482a0ba2b743b2eaefd50508da1. The synthetic acknowledgement is ineligible for real finalization, network use or qualification."
     delivery:
-      reference: "PR #136 conditional shipping record at authority commit 8757ef71e90a93ebdd28a1501352430774676e18"
+      reference: "PR #136 accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de, run 34558389185"
       status: "merged"
       url: "https://github.com/carbonphysicsai/Carbon/pull/136"
-      merge_commit: "8757ef71e90a93ebdd28a1501352430774676e18"
+      merge_commit: "0e0714c8260ca482a0ba2b743b2eaefd50508da1"
   selected_ticket: null
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "1.1"
-  controlling_board_fingerprint: "3ec9f1eaab5854989be74a8f7e7ed64a4ea09b02b51a70dba2f1266d31178fdb"
-  stage: "C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created."
+  controlling_register_version: "1.2"
+  controlling_board_fingerprint: "284207faa01756a2e974aeae6811f42e216f7ec01818977e3fea6b64afa7cf99"
+  stage: "C-EA1 is the last completed ticket, only for the exact closed synthetic development profile. No ticket is currently active or next-selected. C-03, C-08 and C-09 now have authoritative contracts but are unselected, unstarted and not dependency-ready. C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -490,7 +490,7 @@ current:
     - "C-AUTH1"
     - "C-EA1"
   downstream_handoffs:
-    []
+    - "C-EA2"
   parallel_context:
     []
   fail_closed:
@@ -513,6 +513,7 @@ current:
     - "G2 is LOCALNET_READY only for D6 run 34518806217's exact standard-profile disposable v445 localnet. Fast-profile failures, the false global capability flag, public networks, settlement, security/scientific qualification, production and LIVE remain outside the claim."
     - "C-02 remains unselected and fail-closed until the authorized JAX repository URL, immutable revision, reproducible dependency/build identity and actual training/inference interface are supplied; Carbon owns the adapter and does not require upstream function renaming."
     - "C-EA1 is implemented/tested only for carbon.synthetic-evidence-archive.dev.v1 with non-secret fixtures, one disposable host/tenant, ephemeral test keys and INTERNAL_AUDIT use. Its acknowledgement is structurally ineligible for real C1 finalization, C-W1, weights, settlement or qualification. Every real/production artifact, rights, retention, custody/KMS, topology, durability, availability, recovery and security value remains HUMAN_INPUT."
+    - "C-03, C-08 and C-09 are contract-only, unselected, unstarted and not dependency-ready. Contract materialization supplies no JAX implementation, worker security acceptance, real validator path, qualified provenance, eligible real archive acknowledgement, public-network authority or production qualification."
   maturity_states:
     specified: "earned"
     implemented: "earned"
@@ -522,8 +523,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EA1 earns specified, implemented and tested only for the exact synthetic development profile after PR #136 acceptance and merge. Real archive durability, protected or scientific evidence, reference qualification, testnet eligibility, broader network/security qualification, production and LIVE remain unearned. G2 remains localnet-ready only for D6's exact standard profile."
-  decision_series_status: "OWNER-C-EA1-SYNTHETIC-01 approves only the closed development profile; C-EA1-D1 records its narrow PostgreSQL/encrypted-object architecture, pins, quotas and exclusions. C-EA2 is not selected. OWNER-DX-03 governs delivery and B-E4 stays deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-EA1 earns specified, implemented and tested only for the exact synthetic development profile after PR #136 acceptance and merge. C-03, C-08 and C-09 are specified as future contracts only and earn no implementation or test maturity. Real archive durability, protected or scientific evidence, reference qualification, testnet eligibility, broader network/security qualification, production and LIVE remain unearned. G2 remains localnet-ready only for D6's exact standard profile."
+  decision_series_status: "OWNER-C1-CONTRACTS-01 materializes C-03, C-08, C-09 and the exact dependency graph without selecting a runtime ticket. OWNER-C-EA1-SYNTHETIC-01 remains limited to the closed development profile; C-EA2 is not selected. OWNER-DX-03 governs delivery and B-E4 stays deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -602,6 +603,16 @@ waves:
       - "C-AUTH1"
       - "C-EA0"
       - "C-EA1"
+      - "C-02"
+      - "C-03"
+      - "C-04"
+      - "C-05"
+      - "C-06"
+      - "C-07"
+      - "C-08"
+      - "C-EA2"
+      - "C-09"
+      - "C-W1"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -908,6 +919,7 @@ tickets:
       - "B-07D3"
       - "B-07F"
       - "B-07G"
+      - "C-08"
     unlocks_context:
       []
   -
@@ -927,6 +939,7 @@ tickets:
     unlocks:
       - "A11"
       - "A12"
+      - "C-09"
     unlocks_context:
       []
   -
@@ -1108,6 +1121,7 @@ tickets:
       - "B-07G"
       - "B-E1"
       - "B-GATE"
+      - "C-02"
     unlocks_context:
       []
   -
@@ -1149,6 +1163,7 @@ tickets:
       - "B-07C"
       - "B-07F"
       - "B-GATE"
+      - "C-02"
     unlocks_context:
       []
   -
@@ -1173,6 +1188,7 @@ tickets:
       - "B-E1"
       - "B-E2"
       - "B-GATE"
+      - "C-04"
     unlocks_context:
       []
   -
@@ -1195,6 +1211,7 @@ tickets:
       - "B-07F"
       - "B-E1"
       - "B-GATE"
+      - "C-05"
     unlocks_context:
       []
   -
@@ -1494,6 +1511,7 @@ tickets:
     unlocks:
       - "B-E4"
       - "B-GATE"
+      - "C-02"
     unlocks_context:
       []
   -
@@ -1509,6 +1527,7 @@ tickets:
       []
     unlocks:
       - "B-GATE"
+      - "C-04"
     unlocks_context:
       []
   -
@@ -1621,6 +1640,7 @@ tickets:
       []
     unlocks:
       - "NET-3"
+      - "C-08"
     unlocks_context:
       []
   -
@@ -1744,6 +1764,9 @@ tickets:
     unlocks:
       - "C-AUTH1"
       - "C-EA0"
+      - "C-02"
+      - "C-06"
+      - "C-07"
     unlocks_context:
       []
   -
@@ -1787,6 +1810,189 @@ tickets:
     repo_path: ".agent/tickets/C-EA1_durable_evidence_archive.md"
     depends_on:
       - "C-EA0"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-EA2"
+    unlocks_context:
+      []
+  -
+    id: "C-02"
+    wave: "C"
+    title: "Real declarative reconstruction"
+    status: "todo"
+    explainer: "explainers/tickets/c_02.md"
+    repo_path: ".agent/tickets/C-02_real_reconstruction.md"
+    depends_on:
+      - "B-02B"
+      - "B-03"
+      - "B-E1"
+      - "C-01"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-03"
+      - "C-05"
+      - "C-06"
+      - "C-07"
+    unlocks_context:
+      []
+  -
+    id: "C-03"
+    wave: "C"
+    title: "Isolated reconstruction worker"
+    status: "todo"
+    explainer: "explainers/tickets/c_03.md"
+    repo_path: ".agent/tickets/C-03_isolated_reconstruction_worker.md"
+    depends_on:
+      - "C-02"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-04"
+      - "C-07"
+    unlocks_context:
+      []
+  -
+    id: "C-04"
+    wave: "C"
+    title: "Protected reference runtime"
+    status: "todo"
+    explainer: "explainers/tickets/c_04.md"
+    repo_path: ".agent/tickets/C-04_protected_reference_runtime.md"
+    depends_on:
+      - "C-03"
+      - "B-04"
+      - "B-E2"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-05"
+      - "C-06"
+      - "C-07"
+    unlocks_context:
+      []
+  -
+    id: "C-05"
+    wave: "C"
+    title: "Real measurement and Score Pack"
+    status: "todo"
+    explainer: "explainers/tickets/c_05.md"
+    repo_path: ".agent/tickets/C-05_production_measurement.md"
+    depends_on:
+      - "C-02"
+      - "C-04"
+      - "B-05"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-06"
+      - "C-07"
+    unlocks_context:
+      []
+  -
+    id: "C-06"
+    wave: "C"
+    title: "Signed evaluation receipt"
+    status: "todo"
+    explainer: "explainers/tickets/c_06.md"
+    repo_path: ".agent/tickets/C-06_signed_evidence_ledger.md"
+    depends_on:
+      - "C-01"
+      - "C-02"
+      - "C-04"
+      - "C-05"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-07"
+      - "C-09"
+    unlocks_context:
+      []
+  -
+    id: "C-07"
+    wave: "C"
+    title: "Real validator orchestration"
+    status: "todo"
+    explainer: "explainers/tickets/c_07.md"
+    repo_path: ".agent/tickets/C-07_official_evaluation_orchestration.md"
+    depends_on:
+      - "C-01"
+      - "C-02"
+      - "C-03"
+      - "C-04"
+      - "C-05"
+      - "C-06"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-08"
+      - "C-EA2"
+      - "C-09"
+    unlocks_context:
+      []
+  -
+    id: "C-08"
+    wave: "C"
+    title: "Authenticated Miner MCP end to end"
+    status: "todo"
+    explainer: "explainers/tickets/c_08.md"
+    repo_path: ".agent/tickets/C-08_authenticated_miner_mcp_e2e.md"
+    depends_on:
+      - "NET-2"
+      - "C-07"
+      - "A9"
+    depends_on_context:
+      []
+    unlocks:
+      []
+    unlocks_context:
+      []
+  -
+    id: "C-EA2"
+    wave: "C"
+    title: "Archive before finalization"
+    status: "todo"
+    explainer: "explainers/tickets/c_ea2.md"
+    repo_path: ".agent/tickets/C-EA2_archive_before_finalization.md"
+    depends_on:
+      - "C-EA1"
+      - "C-07"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-09"
+      - "C-W1"
+    unlocks_context:
+      []
+  -
+    id: "C-09"
+    wave: "C"
+    title: "Official testnet publication and leaderboard provider"
+    status: "todo"
+    explainer: "explainers/tickets/c_09.md"
+    repo_path: ".agent/tickets/C-09_official_testnet_publication_provider.md"
+    depends_on:
+      - "A10"
+      - "C-06"
+      - "C-07"
+      - "C-EA2"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-W1"
+    unlocks_context:
+      []
+  -
+    id: "C-W1"
+    wave: "C"
+    title: "Exact real testnet eligibility provenance"
+    status: "todo"
+    explainer: "explainers/tickets/c_w1.md"
+    repo_path: ".agent/tickets/C-W1_testnet_eligibility.md"
+    depends_on:
+      - "C-09"
+      - "C-EA2"
     depends_on_context:
       []
     unlocks:
@@ -3982,6 +4188,24 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/GOVERNANCE"
       - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C"
+    event_type: "decision"
+    event_id: "OWNER-C1-CONTRACTS-01"
+    owner_lane: "repository_owner"
+    status: "implemented"
+    summary: "The owner authorized a bounded post-C-EA1 planning checkpoint. C-03, C-08 and C-09 now have current authoritative contracts and the C1 dependency graph is explicit. No runtime ticket was selected or implemented: C-02 remains blocked on the complete authorized JAX source/interface, C-EA2 remains blocked on a real C1 path and eligible real archive profile, and C-W1/public operation remain unselected and unauthorized."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/37ee7695661cec566119938c158d3640b9b51e17/.agent/plans/C1_DEPENDENCY_GRAPH.md"
+    affects:
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-08"
+      - "WAVE-C/C-09"
+      - "WAVE-C/C-EA1"
+      - "SYSTEM/MATURITY"
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"

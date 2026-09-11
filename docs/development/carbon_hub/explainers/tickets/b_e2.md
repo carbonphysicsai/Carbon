@@ -21,7 +21,7 @@ An exact primary/witness registered-service seam over B-04, one-use invocation, 
 ## Placement and handoff
 
 - **Depends on:** B-04
-- **Feeds:** B-GATE
+- **Feeds:** B-GATE, C-04
 - **Driver:** Codex + SciML
 - **Review route:** SciML
 - **Master questions:** MQ-004

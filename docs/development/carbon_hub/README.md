@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 55 captured tickets across Wave A, Wave B, and Wave C
+- 65 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 95 map-level change events
+- 96 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **none active**. Last completed: **C-EA1** (`done`). Next selected: **none selected**. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **none active**. Last completed: **C-EA1** (`done`). Next selected: **none selected**. C-EA1 is the last completed ticket, only for the exact closed synthetic development profile. No ticket is currently active or next-selected. C-03, C-08 and C-09 now have authoritative contracts but are unselected, unstarted and not dependency-ready. C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 
