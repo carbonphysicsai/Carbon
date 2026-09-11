@@ -988,6 +988,7 @@ def test_devcontainer_runtime_user_and_verifier_are_fail_closed() -> None:
     assert "--platform=linux/amd64" in devcontainer["runArgs"]
 
     doctor = DOCTOR_PATH.read_text(encoding="utf-8")
+    assert "science-jax|science-torch|chain|archive" in doctor
     assert '[[ "$(id -un)" == "ubuntu" ]]' in doctor
     assert '[[ "$(id -u)" == "1000" ]]' in doctor
     assert '[[ "$(id -g)" == "1000" ]]' in doctor

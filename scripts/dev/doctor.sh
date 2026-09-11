@@ -113,7 +113,7 @@ uv lock --check >/dev/null
 sync_args=(--locked --check --group dev)
 for group in ${CARBON_UV_GROUPS:-}; do
   case "${group}" in
-    science-jax|science-torch|chain) sync_args+=(--group "${group}") ;;
+    science-jax|science-torch|chain|archive) sync_args+=(--group "${group}") ;;
     *) fail "unsupported CARBON_UV_GROUPS entry: ${group}." ;;
   esac
 done
