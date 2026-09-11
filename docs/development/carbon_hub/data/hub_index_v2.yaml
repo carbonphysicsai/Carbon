@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-10T20:05:25Z"
+  captured_at_utc: "2026-09-11T01:08:30Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "e590bdecebdf4dc4efb801528029a34ccbf1fa4c"
+  authority_snapshot_commit: "8757ef71e90a93ebdd28a1501352430774676e18"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,27 +438,27 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "NET-5R"
-    title: "Shielded registration compatibility repair"
+    id: "C-EA1"
+    title: "Durable evidence archive"
     status: "done"
-    summary: "D6 canonical run 34518806217 passed the complete auditable full/standard predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. NET-5R is done and G2 is LOCALNET_READY only for that exact disposable v445 standard profile."
+    summary: "PR #136 conditionally completes C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after applicable acceptance and normal merge. The synthetic acknowledgement is ineligible for real finalization, network use or qualification."
     delivery:
-      reference: "PR #134 implementation plus run 34518806217"
+      reference: "PR #136 conditional shipping record at authority commit 8757ef71e90a93ebdd28a1501352430774676e18"
       status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/134"
-      merge_commit: "d4cfda17df79facf65e4d2828254c30febb67275"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/136"
+      merge_commit: "8757ef71e90a93ebdd28a1501352430774676e18"
   selected_ticket: null
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "1.0"
-  controlling_board_fingerprint: "ce4cd18222aeb41659f42c5449d246dc86e7c55eeb8b532abfa29f2e56b11a6a"
-  stage: "NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created."
+  controlling_register_version: "1.1"
+  controlling_board_fingerprint: "3ec9f1eaab5854989be74a8f7e7ed64a4ea09b02b51a70dba2f1266d31178fdb"
+  stage: "C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -473,8 +473,9 @@ current:
     - "C-01"
     - "C-AUTH1"
     - "C-EA0"
+    - "C-EA1"
   recent_dependencies:
-    - "NET-5"
+    - "C-EA0"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
@@ -482,11 +483,12 @@ current:
     - "C-REWARD"
     - "NET-4A"
     - "NET-4B"
+    - "NET-5"
     - "NET-6"
     - "NET-5R"
     - "C-01"
     - "C-AUTH1"
-    - "C-EA0"
+    - "C-EA1"
   downstream_handoffs:
     []
   parallel_context:
@@ -510,7 +512,7 @@ current:
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
     - "G2 is LOCALNET_READY only for D6 run 34518806217's exact standard-profile disposable v445 localnet. Fast-profile failures, the false global capability flag, public networks, settlement, security/scientific qualification, production and LIVE remain outside the claim."
     - "C-02 remains unselected and fail-closed until the authorized JAX repository URL, immutable revision, reproducible dependency/build identity and actual training/inference interface are supplied; Carbon owns the adapter and does not require upstream function renaming."
-    - "C-EA0 is a merged specified/tested documentation contract only. Every real durability, required-artifact, retention, rights, custody/key, deployment, capacity, recovery and security value remains HUMAN_INPUT; C-EA1 is unstarted and no archive acknowledgement exists."
+    - "C-EA1 is implemented/tested only for carbon.synthetic-evidence-archive.dev.v1 with non-secret fixtures, one disposable host/tenant, ephemeral test keys and INTERNAL_AUDIT use. Its acknowledgement is structurally ineligible for real C1 finalization, C-W1, weights, settlement or qualification. Every real/production artifact, rights, retention, custody/KMS, topology, durability, availability, recovery and security value remains HUMAN_INPUT."
   maturity_states:
     specified: "earned"
     implemented: "earned"
@@ -520,8 +522,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "NET-5R is done and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 evidence in D6 run 34518806217. Archive durability, protected or real scientific evidence, reference qualification, testnet eligibility, broader network/security qualification, production and LIVE remain unearned."
-  decision_series_status: "NET-5R-D1/D2 preserve the repair and fast history; D3 binds standard; D4 passed behavior; D5 retained an observer-effect failure; D6 removed the stateful next-index read; D7 accepts run 34518806217 and closes G2 only for the exact standard profile. C-EA1 inputs remain human-reserved; OWNER-DX-03 governs delivery and B-E4 stays deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-EA1 earns specified, implemented and tested only for the exact synthetic development profile after PR #136 acceptance and merge. Real archive durability, protected or scientific evidence, reference qualification, testnet eligibility, broader network/security qualification, production and LIVE remain unearned. G2 remains localnet-ready only for D6's exact standard profile."
+  decision_series_status: "OWNER-C-EA1-SYNTHETIC-01 approves only the closed development profile; C-EA1-D1 records its narrow PostgreSQL/encrypted-object architecture, pins, quotas and exclusions. C-EA2 is not selected. OWNER-DX-03 governs delivery and B-E4 stays deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -1780,7 +1782,7 @@ tickets:
     id: "C-EA1"
     wave: "C"
     title: "Durable evidence archive"
-    status: "todo"
+    status: "done"
     explainer: "explainers/tickets/c_ea1.md"
     repo_path: ".agent/tickets/C-EA1_durable_evidence_archive.md"
     depends_on:
@@ -3960,6 +3962,24 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: "NET-5R-D6"
+  -
+    map_ref: "WAVE-C/C-EA1"
+    event_type: "decision"
+    event_id: "OWNER-C-EA1-SYNTHETIC-01"
+    owner_lane: "repository_owner"
+    status: "implemented"
+    summary: "The owner selects C-EA1 and approves only carbon.synthetic-evidence-archive.dev.v1: non-secret synthetic fixtures, INTERNAL_AUDIT-only use, one disposable host and tenant, PostgreSQL plus loopback immutable objects, ephemeral test keys, explicit small quotas and restart/fault testing. PR #136 implements the closed profile; its bounded closeout is conditional on applicable acceptance and normal merge. Synthetic acknowledgement cannot satisfy real finalization, C-W1, weights, settlement or qualification, and all real/production archive and security inputs remain human-reserved. C-EA2 is not selected."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/8757ef71e90a93ebdd28a1501352430774676e18/.agent/evidence/wave_c/c-ea1.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-01"
+      - "WAVE-C/C-EA0"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/CI"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

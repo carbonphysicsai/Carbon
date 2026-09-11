@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 55 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 94 map-level change events
+- 95 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **none active**. Last completed: **NET-5R** (`done`). Next selected: **none selected**. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **none active**. Last completed: **C-EA1** (`done`). Next selected: **none selected**. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 

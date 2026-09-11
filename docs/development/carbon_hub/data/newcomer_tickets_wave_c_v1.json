@@ -100,11 +100,11 @@
       "map_ref": "WAVE-C/C-EA0"
     },
     "C-EA1": {
-      "title": "Implement durable evidence only after its policies are approved",
-      "what": "Implement a versioned archive catalogue, immutable artifacts, verified manifests, stage journal, transactional outbox and positive availability acknowledgement.",
-      "why": "A real result cannot finalize safely until required evidence is preserved and verified under an approved durability and custody model.",
-      "changes": "Nothing yet; the implementation ticket remains unstarted and input-blocked.",
-      "not_yet": "No database, object store, key system, deployment, retention policy, security qualification, archive acknowledgement or finalization integration exists.",
+      "title": "Prove durable evidence mechanics in a closed synthetic profile",
+      "what": "Archive non-secret synthetic attempts through durable admission, an encrypted stage journal, immutable objects, PostgreSQL catalogue/outbox, manifest verification and current-availability acknowledgement.",
+      "why": "Acknowledgement must require every exact artifact, policy, catalogue, key and current-object predicate rather than trusting an upload, pointer, row or digest.",
+      "changes": "C1 gains a separately versioned synthetic-only archive runtime, actual disposable-service integration, restart reconciliation, quotas, orphan quarantine and an operator runbook.",
+      "not_yet": "Real/customer/protected/official evidence, production retention, custody/KMS, replication, correlated-loss durability, availability/RTO/RPO, security qualification, real finalization and network eligibility remain unavailable.",
       "map_ref": "WAVE-C/C-EA1"
     }
   }

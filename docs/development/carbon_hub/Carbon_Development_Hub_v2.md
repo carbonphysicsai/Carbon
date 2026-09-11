@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `e590bdecebdf4dc4efb801528029a34ccbf1fa4c` on `main`, captured 2026-09-10T20:05:25Z.
-**Current:** Wave C, ticket none active. NET-5R is the last completed ticket: D6 canonical full/standard run 34518806217 passed the complete auditable predicate at exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2. No implementation ticket is currently active. G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet; fast history remains failed and the global capability flag remains false. C-EA1 remains unstarted and input-blocked, C-02 lacks its authorized JAX revision/interface, and C-W1 still requires real C1 evidence plus C-EA2 acknowledgement. No public-network action, archive acknowledgement, scientific/security qualification, production or LIVE authority is created.
-**Last completed:** NET-5R (`done`).
+**Authority snapshot:** `8757ef71e90a93ebdd28a1501352430774676e18` on `main`, captured 2026-09-11T01:08:30Z.
+**Current:** Wave C, ticket none active. C-EA1 is conditionally done for the exact closed synthetic development profile after PR #136 applicable acceptance and normal merge. No ticket is currently active. It provides durable admission, encrypted immutable objects, PostgreSQL catalogue/outbox, restart recovery and verified synthetic acknowledgement. C-EA2 is not selected and is not dependency-ready; C-02 still lacks its authorized JAX source/interface. G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
+**Last completed:** C-EA1 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -84,7 +84,7 @@
 | [C-01](explainers/tickets/c_01.md) | Persist exact scientific attempts before dispatch and reconcile ambiguity without duplicate work or resampling. | done |
 | [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | done |
 | [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | done |
-| [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | todo |
+| [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | done |
 
 ## Change routes
 
@@ -192,6 +192,7 @@
 - `NET-5R-D5` — `WAVE-C/NET-5R` — Explicit D4 full/standard run 34489505489 at exact post-PR-133 main passed both shielded registrations, shared-winner, finalized SwapHotkey, takeover and recycled-UID behavior. Its v1 setup evidence lacks the clarified transport-generation/closure and passive SDK-selected nonce fields, so G2 remains NOT_READY. D5 keeps the account sequence exclusive across finalized nonce verification and handover, verifies a replacement before closing the old transport, requires old closure before activation or later signing/dispatch, blocks reset on ambiguity, and records the public pool-aware SDK nonce without supplying it. One changed full/standard run remains; no retry, unchecked extrinsic or public-network action is permitted.
 - `NET-5R-D6` — `WAVE-C/NET-5R` — D5 full/standard run 34497456242 failed at its first configuration submission because Carbon's evidence read called public account_next_index on the signing transport. Pinned Bittensor 11.1.0 source shows that method defaults to use_cache=True, so observation advanced the cache and the subsequent omitted-nonce SDK path selected future nonce one. The transaction remained ambiguous after 144 seconds; no registration or SwapHotkey ran. D6 uses exact finalized System.Account before/after evidence without touching the signing cache and is focused-tested, but the authorized D4-plus-one run budget is exhausted. G2 remains NOT_READY; no retry, nonce injection, unchecked extrinsic or public-network action is permitted. The accompanying global authority-snapshot refresh updates provenance projections for Wave B, B-E4, B-GATE and governance without reopening them or changing their status.
 - `NET-5R-D7` — `WAVE-C/NET-5R` — D6 canonical Linux amd64 run 34518806217 executed exact candidate 97a2405776a3f520076e03a89ea8b7b4086d9ad2 with mode=full and profile=standard. It passed focused contracts and the complete auditable runtime predicate: authenticated registrations, finalized account nonce associations, exclusive verified transport handovers, complete shared-winner publication/epoch, copy/no-credit, replay/recovery, checked-SDK SwapHotkey, takeover, recycled-UID non-inheritance and replacement all-burn row/epoch. NET-5R is done and G2 is LOCALNET_READY only for that exact standard-profile disposable v445 localnet. Fast/public/global capability, settlement, science, security, production and LIVE remain unearned.
+- `OWNER-C-EA1-SYNTHETIC-01` — `WAVE-C/C-EA1` — The owner selects C-EA1 and approves only carbon.synthetic-evidence-archive.dev.v1: non-secret synthetic fixtures, INTERNAL_AUDIT-only use, one disposable host and tenant, PostgreSQL plus loopback immutable objects, ephemeral test keys, explicit small quotas and restart/fault testing. PR #136 implements the closed profile; its bounded closeout is conditional on applicable acceptance and normal merge. Synthetic acknowledgement cannot satisfy real finalization, C-W1, weights, settlement or qualification, and all real/production archive and security inputs remain human-reserved. C-EA2 is not selected.
 
 ## Authority boundary
 

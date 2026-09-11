@@ -1,10 +1,10 @@
 # C-EA1 durable evidence archive evidence
 
-**Ticket:** C-EA1  
-**Decision:** `OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`  
-**Delivery:** PR #136  
+**Ticket:** C-EA1
+**Decision:** `OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`
+**Delivery:** PR #136
 **Disposition:** bounded completion is conditional on applicable acceptance and
-normal merge of the exact candidate  
+normal merge of the exact candidate
 **Maturity ceiling:** `SPECIFIED / IMPLEMENTED / TESTED` only for
 `carbon.synthetic-evidence-archive.dev.v1`
 
