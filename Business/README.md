@@ -21,6 +21,10 @@
 
 > **Open-question authority:** `Business/Design_Questions.md` remains useful domain context, but canonical OPEN/ratification status now lives in `docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` so scientific, protocol, business, legal, treasury, network, and publication decisions cannot drift into separate authoritative queues.
 
+### Working feasibility and intake design
+
+[Carbon Fit review package](./Carbon_Fit/README.md) records the six-check feasibility method, client-tool requirements, per-Challenge runtime-profile decisions and protected-reference-reuse review. It is a working proposal under GOV-FIT-01, not a change to business/scientific authority, an active runtime selection, a public collection service or qualification evidence.
+
 ---
 
 ## Company thesis
