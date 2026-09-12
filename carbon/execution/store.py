@@ -523,6 +523,89 @@ class DurableExecutionQueue:
                 QueueClaim(ref, claim_id, worker_id), _load_binding(row[2])
             )
 
+    def claim(
+        self,
+        ref: ExecutionAttemptRef,
+        worker_id: str,
+        *,
+        claim_id: str | None = None,
+    ) -> ClaimedExecution:
+        """Atomically claim one already-admitted exact attempt.
+
+        This does not admit, reorder, or select work.  It prevents a composition
+        that already owns an exact binding from claiming an unrelated older
+        queue entry merely to discover the mismatch after dispatch intent.
+        """
+        ref = self._owned_ref(ref)
+        try:
+            worker_id = validate_execution_token(worker_id)
+            if claim_id is None:
+                minted = self._id_factory()
+                if type(minted) is not uuid.UUID:
+                    raise ValueError
+                claim_id = str(minted)
+            claim_id = validate_execution_token(claim_id)
+        except Exception:  # noqa: BLE001
+            raise ExecutionFailure(ExecutionCode.INVALID) from None
+        with self._transaction() as db:
+            replay = db.execute(
+                "SELECT submission_id,attempt_number,worker_id,binding,binding_digest "
+                "FROM execution_attempt_v1 WHERE claim_id=?",
+                (claim_id,),
+            ).fetchone()
+            if replay:
+                if (
+                    replay[0] != ref.submission_id.value
+                    or replay[1] != ref.attempt_number
+                    or replay[2] != worker_id
+                    or _digest(replay[3]) != replay[4]
+                ):
+                    raise ExecutionFailure(ExecutionCode.CONFLICT)
+                return ClaimedExecution(
+                    QueueClaim(ref, claim_id, worker_id), _load_binding(replay[3])
+                )
+            row = db.execute(
+                "SELECT binding,binding_digest,state FROM execution_attempt_v1 "
+                "WHERE submission_id=? AND attempt_number=?",
+                (ref.submission_id.value, ref.attempt_number),
+            ).fetchone()
+            if row is None:
+                raise ExecutionFailure(ExecutionCode.NOT_FOUND)
+            if _digest(row[0]) != row[1]:
+                raise ExecutionFailure(ExecutionCode.STORE)
+            try:
+                state = ExecutionState(row[2])
+            except ValueError:
+                raise ExecutionFailure(ExecutionCode.STORE) from None
+            if state is not ExecutionState.QUEUED:
+                raise ExecutionFailure(ExecutionCode.STATE)
+            if (
+                db.execute(
+                    "UPDATE execution_attempt_v1 SET state=?,claim_id=?,worker_id=? "
+                    "WHERE submission_id=? AND attempt_number=? AND state=?",
+                    (
+                        ExecutionState.DISPATCHING.value,
+                        claim_id,
+                        worker_id,
+                        ref.submission_id.value,
+                        ref.attempt_number,
+                        ExecutionState.QUEUED.value,
+                    ),
+                ).rowcount
+                != 1
+            ):
+                raise ExecutionFailure(ExecutionCode.CONFLICT)
+            self._event(
+                db,
+                ref.submission_id.value,
+                ref.attempt_number,
+                "CLAIMED_DISPATCH_INTENT",
+                {"claim_id": claim_id, "worker_id": worker_id},
+            )
+            return ClaimedExecution(
+                QueueClaim(ref, claim_id, worker_id), _load_binding(row[0])
+            )
+
     def _claimed_row(self, db, claim: QueueClaim):
         row = self._row(db, claim.ref)
         if row[4] != claim.claim_id or row[5] != claim.worker_id:

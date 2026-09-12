@@ -115,6 +115,14 @@
       "not_yet": "Sharing, public answers, real/provider entropy, protected cases, eligible real archive acknowledgement, rewards, scientific/security qualification, public networks, production and LIVE use remain unavailable.",
       "map_ref": "WAVE-C/C-EP1"
     },
+    "C-EP2": {
+      "title": "Measure Variant A before deciding whether sharing deserves an experiment",
+      "what": "Observe the merged singleton fixture lifecycle and compare it with a zero-fill-wait, already-admitted sharing counterfactual that cannot touch the runtime ledger.",
+      "why": "A sharing investment needs measured reference cost and compatible demand, not a favorable simulation built from the current scalar stub.",
+      "changes": "Carbon gains a private repeatable study harness, public-safe aggregate traces, failure/retry/restart accounting, an exact queued-attempt claim repair and an assumption-conditioned replay whose unknown costs remain unknown.",
+      "not_yet": "No reference sharing, batch wait, early summary, public answer, real backend/reference, reward, finalization, scientific/security qualification, production or LIVE path is added. The current decision is collect missing inputs first.",
+      "map_ref": "WAVE-C/C-EP2"
+    },
     "C-02": {
       "title": "Bind Carbon to the actual authorized JAX implementation",
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",

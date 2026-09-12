@@ -1,0 +1,18 @@
+{
+  "configuration_digest": "fe4c8f9bb283084dce7c1d40c819f4187afd699abf17e10f522956ec23d9d130",
+  "environment": {
+    "clock": "perf_counter_ns/process_time_ns",
+    "concurrency": 1,
+    "gpu_used": false,
+    "logical_cpu_count": 8,
+    "machine": "arm64",
+    "memory_bytes": 8589934592,
+    "processor": "arm",
+    "python": "3.11.16",
+    "release": "24.6.0",
+    "system": "Darwin",
+    "validator_count": 1
+  },
+  "schema_version": "carbon.c-ep2.environment-manifest.v1",
+  "source_revision": "bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76"
+}

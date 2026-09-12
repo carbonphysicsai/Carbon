@@ -1,7 +1,10 @@
 # C-EP1 — DEVELOPMENT evaluation-pack lifecycle
 
 **Wave:** C1 development evaluation foundations
-**Status:** `in_progress`
+**Status:** `done` in bounded merged DEVELOPMENT engineering scope
+**Completed delivery:** PR #143 accepted head
+`e0fbb6208cf0bf95910d51e7a3c996b09387a14e`, RUNTIME_FULL run
+`34708322417`, merged as `d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`
 **Selection authority:** repository-owner Codex task linked from issue #142
 **Depends on:** NET-3, C-01, A4 fixture entropy, A5, A6, A7, A8
 **Primary Hub map_ref:** `WAVE-C/C-EP1`
@@ -72,16 +75,16 @@ required interpreter/version, never a workstation-specific absolute path.
 
 ## Definition of Done
 
-- [ ] One unchanged parent context supports distinct, durable per-job child packs.
-- [ ] Copies, retries, restarts, races, and repeated reads cannot allocate another pack.
-- [ ] The materialization manifest binds exact candidate, pack, attempt, A4 slot,
+- [x] One unchanged parent context supports distinct, durable per-job child packs.
+- [x] Copies, retries, restarts, races, and repeated reads cannot allocate another pack.
+- [x] The materialization manifest binds exact candidate, pack, attempt, A4 slot,
       generator, score, environment, and policy identities and detects mutation.
-- [ ] C-01-confirmed closure gates one idempotent A6 fixture summary; no earlier
+- [x] C-01-confirmed closure gates one idempotent A6 fixture summary; no earlier
       public card or legacy accepted fixture projection exists on this path.
-- [ ] Legacy NET-3/C-01/A7/A8/reward behavior and golden identities pass.
-- [ ] Required fault, migration, negative-control, and no-authority tests pass.
-- [ ] A reproducible local baseline and all 30 gauntlet attack dispositions are recorded.
-- [ ] Applicable canonical acceptance and Merge gate pass at the expected PR head.
+- [x] Legacy NET-3/C-01/A7/A8/reward behavior and golden identities pass.
+- [x] Required fault, migration, negative-control, and no-authority tests pass.
+- [x] A reproducible local baseline and all 30 gauntlet attack dispositions are recorded.
+- [x] Applicable canonical acceptance and Merge gate pass at the expected PR head.
 
 ## Handoff ceiling
 

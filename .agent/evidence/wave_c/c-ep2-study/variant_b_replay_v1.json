@@ -1,0 +1,2742 @@
+{
+  "calibration": {
+    "reason": "C-EP1 A8 is a scalar stub with no observed physical phases and model units are normalized assumptions",
+    "status": "UNCALIBRATED_FOR_REFERENCE_AND_CANDIDATE_WORK"
+  },
+  "evidence_layer": "COUNTERFACTUAL_MODEL",
+  "reference_sharing_implemented": false,
+  "scenarios": [
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 0,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 69,
+          "eligible_completions": 3,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 23,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "s1"
+              ]
+            },
+            {
+              "closed_at": 123,
+              "closed_at_without_unknown_overhead": 123,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 100,
+              "group_size": 1,
+              "members": [
+                "s2"
+              ]
+            },
+            {
+              "closed_at": 223,
+              "closed_at_without_unknown_overhead": 223,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 200,
+              "group_size": 1,
+              "members": [
+                "s3"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "s1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 23,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "s2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 122,
+              "candidate_started_at": 110,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 110,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 123,
+              "summary_at_without_unknown_overhead": 123,
+              "waiting_for_other_pack_members": 0
+            },
+            "s3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 222,
+              "candidate_started_at": 210,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 210,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 223,
+              "summary_at_without_unknown_overhead": 223,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 3,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 3,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 69,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 69,
+          "eligible_completions": 3,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "s1"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 123,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 100,
+              "group_size": 1,
+              "members": [
+                "s2"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 223,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 200,
+              "group_size": 1,
+              "members": [
+                "s3"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "s1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "s2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 122,
+              "candidate_started_at": 110,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 110,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 123,
+              "waiting_for_other_pack_members": 0
+            },
+            "s3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 222,
+              "candidate_started_at": 210,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 210,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 223,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 3,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 3,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "s1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 100,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "s2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 200,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "s3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 3,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 0,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": -15,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": -45,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -90,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "sparse-compatible"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 20,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 92,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 23,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "o1"
+              ]
+            },
+            {
+              "closed_at": 46,
+              "closed_at_without_unknown_overhead": 46,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 23,
+              "group_size": 1,
+              "members": [
+                "o2"
+              ]
+            },
+            {
+              "closed_at": 69,
+              "closed_at_without_unknown_overhead": 69,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 46,
+              "group_size": 1,
+              "members": [
+                "o3"
+              ]
+            },
+            {
+              "closed_at": 92,
+              "closed_at_without_unknown_overhead": 92,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 69,
+              "group_size": 1,
+              "members": [
+                "o4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "o1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 23,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "o2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 45,
+              "candidate_started_at": 33,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 23,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 33,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 46,
+              "submission_to_summary_lower_bound": 46,
+              "summary_at": 46,
+              "summary_at_without_unknown_overhead": 46,
+              "waiting_for_other_pack_members": 0
+            },
+            "o3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 68,
+              "candidate_started_at": 56,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 28,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 56,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 51,
+              "submission_to_summary_lower_bound": 51,
+              "summary_at": 69,
+              "summary_at_without_unknown_overhead": 69,
+              "waiting_for_other_pack_members": 0
+            },
+            "o4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 91,
+              "candidate_started_at": 79,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 51,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 79,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 74,
+              "submission_to_summary_lower_bound": 74,
+              "summary_at": 92,
+              "summary_at_without_unknown_overhead": 92,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 4,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 92,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 72,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 36,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 2,
+              "members": [
+                "o1",
+                "o2"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 72,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 36,
+              "group_size": 2,
+              "members": [
+                "o3",
+                "o4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "o1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 14,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 36,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 36,
+              "waiting_for_other_pack_members": 12
+            },
+            "o2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 34,
+              "candidate_started_at": 22,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 2,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 36,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 36,
+              "waiting_for_other_pack_members": 0
+            },
+            "o3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 58,
+              "candidate_started_at": 46,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 18,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 46,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 14,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 54,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 72,
+              "waiting_for_other_pack_members": 12
+            },
+            "o4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 70,
+              "candidate_started_at": 58,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 18,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 46,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 2,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 54,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 72,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 2,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "o1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "o2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 18,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "o3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 18,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "o4",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 4,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 20,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 10,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": -10,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -40,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "ordinary-compatible"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 40,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 138,
+          "eligible_completions": 6,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 23,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "b1"
+              ]
+            },
+            {
+              "closed_at": 46,
+              "closed_at_without_unknown_overhead": 46,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 23,
+              "group_size": 1,
+              "members": [
+                "b2"
+              ]
+            },
+            {
+              "closed_at": 69,
+              "closed_at_without_unknown_overhead": 69,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 46,
+              "group_size": 1,
+              "members": [
+                "b3"
+              ]
+            },
+            {
+              "closed_at": 92,
+              "closed_at_without_unknown_overhead": 92,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 69,
+              "group_size": 1,
+              "members": [
+                "b4"
+              ]
+            },
+            {
+              "closed_at": 115,
+              "closed_at_without_unknown_overhead": 115,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 92,
+              "group_size": 1,
+              "members": [
+                "b5"
+              ]
+            },
+            {
+              "closed_at": 138,
+              "closed_at_without_unknown_overhead": 138,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 115,
+              "group_size": 1,
+              "members": [
+                "b6"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "b1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 23,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "b2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 45,
+              "candidate_started_at": 33,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 23,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 33,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 46,
+              "submission_to_summary_lower_bound": 46,
+              "summary_at": 46,
+              "summary_at_without_unknown_overhead": 46,
+              "waiting_for_other_pack_members": 0
+            },
+            "b3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 68,
+              "candidate_started_at": 56,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 46,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 56,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 69,
+              "submission_to_summary_lower_bound": 69,
+              "summary_at": 69,
+              "summary_at_without_unknown_overhead": 69,
+              "waiting_for_other_pack_members": 0
+            },
+            "b4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 91,
+              "candidate_started_at": 79,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 69,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 79,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 92,
+              "submission_to_summary_lower_bound": 92,
+              "summary_at": 92,
+              "summary_at_without_unknown_overhead": 92,
+              "waiting_for_other_pack_members": 0
+            },
+            "b5": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 114,
+              "candidate_started_at": 102,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 92,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 102,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 115,
+              "submission_to_summary_lower_bound": 115,
+              "summary_at": 115,
+              "summary_at_without_unknown_overhead": 115,
+              "waiting_for_other_pack_members": 0
+            },
+            "b6": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 137,
+              "candidate_started_at": 125,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 115,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 125,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 138,
+              "submission_to_summary_lower_bound": 138,
+              "summary_at": 138,
+              "summary_at_without_unknown_overhead": 138,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 6,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 6,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 138,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 98,
+          "eligible_completions": 6,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 49,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 3,
+              "members": [
+                "b1",
+                "b2",
+                "b3"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 98,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 49,
+              "group_size": 3,
+              "members": [
+                "b4",
+                "b5",
+                "b6"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "b1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 27,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 24
+            },
+            "b2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 34,
+              "candidate_started_at": 22,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 15,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 12
+            },
+            "b3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 46,
+              "candidate_started_at": 34,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 3,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 0
+            },
+            "b4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 71,
+              "candidate_started_at": 59,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 49,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 59,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 27,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 98,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 98,
+              "waiting_for_other_pack_members": 24
+            },
+            "b5": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 83,
+              "candidate_started_at": 71,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 49,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 59,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 15,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 98,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 98,
+              "waiting_for_other_pack_members": 12
+            },
+            "b6": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 95,
+              "candidate_started_at": 83,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 49,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 59,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 3,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 98,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 98,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 6,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 2,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b4",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b5",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "b6",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 6,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 40,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 30,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": 10,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -20,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "bursty-saturated"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 20,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 90,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 13,
+              "closed_at_without_unknown_overhead": 13,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "m1"
+              ]
+            },
+            {
+              "closed_at": 54,
+              "closed_at_without_unknown_overhead": 54,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 13,
+              "group_size": 1,
+              "members": [
+                "m2"
+              ]
+            },
+            {
+              "closed_at": 70,
+              "closed_at_without_unknown_overhead": 70,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 54,
+              "group_size": 1,
+              "members": [
+                "m3"
+              ]
+            },
+            {
+              "closed_at": 90,
+              "closed_at_without_unknown_overhead": 90,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 70,
+              "group_size": 1,
+              "members": [
+                "m4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "m1": {
+              "candidate_execution_work": 2,
+              "candidate_finished_at": 12,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 13,
+              "submission_to_summary_lower_bound": 13,
+              "summary_at": 13,
+              "summary_at_without_unknown_overhead": 13,
+              "waiting_for_other_pack_members": 0
+            },
+            "m2": {
+              "candidate_execution_work": 30,
+              "candidate_finished_at": 53,
+              "candidate_started_at": 23,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 13,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 23,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 54,
+              "submission_to_summary_lower_bound": 54,
+              "summary_at": 54,
+              "summary_at_without_unknown_overhead": 54,
+              "waiting_for_other_pack_members": 0
+            },
+            "m3": {
+              "candidate_execution_work": 5,
+              "candidate_finished_at": 69,
+              "candidate_started_at": 64,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 54,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 64,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 70,
+              "submission_to_summary_lower_bound": 70,
+              "summary_at": 70,
+              "summary_at_without_unknown_overhead": 70,
+              "waiting_for_other_pack_members": 0
+            },
+            "m4": {
+              "candidate_execution_work": 9,
+              "candidate_finished_at": 89,
+              "candidate_started_at": 80,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 66,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 80,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 86,
+              "submission_to_summary_lower_bound": 86,
+              "summary_at": 90,
+              "summary_at_without_unknown_overhead": 90,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 4,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 90,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 70,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 50,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 3,
+              "members": [
+                "m1",
+                "m2",
+                "m3"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 70,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 50,
+              "group_size": 1,
+              "members": [
+                "m4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "m1": {
+              "candidate_execution_work": 2,
+              "candidate_finished_at": 12,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 38,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 50,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 50,
+              "waiting_for_other_pack_members": 35
+            },
+            "m2": {
+              "candidate_execution_work": 30,
+              "candidate_finished_at": 42,
+              "candidate_started_at": 12,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 8,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 50,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 50,
+              "waiting_for_other_pack_members": 5
+            },
+            "m3": {
+              "candidate_execution_work": 5,
+              "candidate_finished_at": 47,
+              "candidate_started_at": 42,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 3,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 50,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 50,
+              "waiting_for_other_pack_members": 0
+            },
+            "m4": {
+              "candidate_execution_work": 9,
+              "candidate_finished_at": 69,
+              "candidate_started_at": 60,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 46,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 60,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 66,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 70,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 2,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 2
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "m1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 30
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "m2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 5
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "m3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 4,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 9
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "m4",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 4,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 20,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 10,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": -10,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -40,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "mixed-duration"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 20,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 92,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 23,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "i1"
+              ]
+            },
+            {
+              "closed_at": 46,
+              "closed_at_without_unknown_overhead": 46,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 23,
+              "group_size": 1,
+              "members": [
+                "i2"
+              ]
+            },
+            {
+              "closed_at": 69,
+              "closed_at_without_unknown_overhead": 69,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 46,
+              "group_size": 1,
+              "members": [
+                "i3"
+              ]
+            },
+            {
+              "closed_at": 92,
+              "closed_at_without_unknown_overhead": 92,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 69,
+              "group_size": 1,
+              "members": [
+                "i4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "i1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 23,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "i2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 45,
+              "candidate_started_at": 33,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 23,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 33,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 46,
+              "submission_to_summary_lower_bound": 46,
+              "summary_at": 46,
+              "summary_at_without_unknown_overhead": 46,
+              "waiting_for_other_pack_members": 0
+            },
+            "i3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 68,
+              "candidate_started_at": 56,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 46,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 56,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 69,
+              "submission_to_summary_lower_bound": 69,
+              "summary_at": 69,
+              "summary_at_without_unknown_overhead": 69,
+              "waiting_for_other_pack_members": 0
+            },
+            "i4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 91,
+              "candidate_started_at": 79,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 69,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 79,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 92,
+              "submission_to_summary_lower_bound": 92,
+              "summary_at": 92,
+              "summary_at_without_unknown_overhead": 92,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 4,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 92,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 72,
+          "eligible_completions": 4,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 36,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 2,
+              "members": [
+                "i1",
+                "i3"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 72,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 36,
+              "group_size": 2,
+              "members": [
+                "i2",
+                "i4"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "i1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 14,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 36,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 36,
+              "waiting_for_other_pack_members": 12
+            },
+            "i2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 58,
+              "candidate_started_at": 46,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 36,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 46,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 14,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 72,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 72,
+              "waiting_for_other_pack_members": 12
+            },
+            "i3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 34,
+              "candidate_started_at": 22,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 2,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 36,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 36,
+              "waiting_for_other_pack_members": 0
+            },
+            "i4": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 70,
+              "candidate_started_at": 58,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 36,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 46,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 2,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 72,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 72,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 4,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 2,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "i1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-b",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-b",
+          "job_id": "i2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "i3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-b",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-b",
+          "job_id": "i4",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 4,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 20,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 10,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": -10,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -40,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "multiple-incompatible-challenges"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 20,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 69,
+          "eligible_completions": 3,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 23,
+              "closed_at_without_unknown_overhead": 23,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "d1"
+              ]
+            },
+            {
+              "closed_at": 46,
+              "closed_at_without_unknown_overhead": 46,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 23,
+              "group_size": 1,
+              "members": [
+                "d2"
+              ]
+            },
+            {
+              "closed_at": 69,
+              "closed_at_without_unknown_overhead": 69,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 46,
+              "group_size": 1,
+              "members": [
+                "d3"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "d1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 23,
+              "submission_to_summary_lower_bound": 23,
+              "summary_at": 23,
+              "summary_at_without_unknown_overhead": 23,
+              "waiting_for_other_pack_members": 0
+            },
+            "d2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 45,
+              "candidate_started_at": 33,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 23,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 33,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 46,
+              "submission_to_summary_lower_bound": 46,
+              "summary_at": 46,
+              "summary_at_without_unknown_overhead": 46,
+              "waiting_for_other_pack_members": 0
+            },
+            "d3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 68,
+              "candidate_started_at": 56,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 46,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 56,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 69,
+              "submission_to_summary_lower_bound": 69,
+              "summary_at": 69,
+              "summary_at_without_unknown_overhead": 69,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 3,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 3,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 69,
+          "unfinished_or_nonpositive": 0
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 49,
+          "eligible_completions": 3,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 49,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 3,
+              "members": [
+                "d1",
+                "d2",
+                "d3"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "d1": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 22,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 27,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 24
+            },
+            "d2": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 34,
+              "candidate_started_at": 22,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 15,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 12
+            },
+            "d3": {
+              "candidate_execution_work": 12,
+              "candidate_finished_at": 46,
+              "candidate_started_at": 34,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 3,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 49,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 49,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 3,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 1,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 0
+        }
+      },
+      "deduplicated_requests": 27,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "d1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "d2",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 12
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "d3",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 30,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 20,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 15,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": 5,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -10,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "duplicate-flood"
+    },
+    {
+      "comparison_with_unknown_b_overhead": {
+        "break_even_total_b_overhead_units": 30,
+        "evidence_layer": "COUNTERFACTUAL_MODEL",
+        "reference_sharing_implemented": false,
+        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "scientific_score_comparison_supported": false,
+        "supported_savings_units": null,
+        "unconditional_savings_supported": false,
+        "variant_a": {
+          "base_work_units_without_unknown_overhead": 113,
+          "eligible_completions": 3,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 1,
+          "group_overhead_missing_reason": null,
+          "group_overhead_units": 0,
+          "groups": [
+            {
+              "closed_at": 13,
+              "closed_at_without_unknown_overhead": 13,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 1,
+              "members": [
+                "f1"
+              ]
+            },
+            {
+              "closed_at": 64,
+              "closed_at_without_unknown_overhead": 64,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 13,
+              "group_size": 1,
+              "members": [
+                "f2"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": null,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 64,
+              "group_size": 1,
+              "members": [
+                "f3"
+              ]
+            },
+            {
+              "closed_at": 98,
+              "closed_at_without_unknown_overhead": 98,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 83,
+              "group_size": 1,
+              "members": [
+                "f4"
+              ]
+            },
+            {
+              "closed_at": 113,
+              "closed_at_without_unknown_overhead": 113,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 98,
+              "group_size": 1,
+              "members": [
+                "f5"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "f1": {
+              "candidate_execution_work": 2,
+              "candidate_finished_at": 12,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 13,
+              "submission_to_summary_lower_bound": 13,
+              "summary_at": 13,
+              "summary_at_without_unknown_overhead": 13,
+              "waiting_for_other_pack_members": 0
+            },
+            "f2": {
+              "candidate_execution_work": 40,
+              "candidate_finished_at": 63,
+              "candidate_started_at": 23,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 13,
+              "outcome": "FAILED_TERMINAL",
+              "reference_ready_at": 23,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": null,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": null,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": null,
+              "waiting_for_other_pack_members": 0
+            },
+            "f3": {
+              "candidate_execution_work": 8,
+              "candidate_finished_at": 82,
+              "candidate_started_at": 74,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 64,
+              "outcome": "UNRESOLVED",
+              "reference_ready_at": 74,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": null,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": null,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": null,
+              "waiting_for_other_pack_members": 0
+            },
+            "f4": {
+              "candidate_execution_work": 4,
+              "candidate_finished_at": 97,
+              "candidate_started_at": 93,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 83,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 93,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 98,
+              "submission_to_summary_lower_bound": 98,
+              "summary_at": 98,
+              "summary_at_without_unknown_overhead": 98,
+              "waiting_for_other_pack_members": 0
+            },
+            "f5": {
+              "candidate_execution_work": 4,
+              "candidate_finished_at": 112,
+              "candidate_started_at": 108,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 98,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 108,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": 1,
+              "shared_pack_closure_delay_lower_bound": 1,
+              "submission_to_summary": 113,
+              "submission_to_summary_lower_bound": 113,
+              "summary_at": 113,
+              "summary_at_without_unknown_overhead": 113,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 5,
+          "one_validator": true,
+          "policy": "A_SINGLETON",
+          "reference_attempts": 5,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": false,
+          "total_work_units": 113,
+          "unfinished_or_nonpositive": 2
+        },
+        "variant_b": {
+          "base_work_units_without_unknown_overhead": 83,
+          "eligible_completions": 2,
+          "evidence_layer": "COUNTERFACTUAL_MODEL",
+          "group_bound": 3,
+          "group_overhead_missing_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+          "group_overhead_units": null,
+          "groups": [
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": null,
+              "compatibility_key": "compat-a",
+              "dispatch_at": 0,
+              "group_size": 3,
+              "members": [
+                "f1",
+                "f2",
+                "f3"
+              ]
+            },
+            {
+              "closed_at": null,
+              "closed_at_without_unknown_overhead": 83,
+              "compatibility_key": "compat-b",
+              "dispatch_at": 63,
+              "group_size": 2,
+              "members": [
+                "f4",
+                "f5"
+              ]
+            }
+          ],
+          "groups_use_future_information": false,
+          "intentional_fill_wait": 0,
+          "jobs": {
+            "f1": {
+              "candidate_execution_work": 2,
+              "candidate_finished_at": 12,
+              "candidate_started_at": 10,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": null,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": null,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": null,
+              "waiting_for_other_pack_members": 48
+            },
+            "f2": {
+              "candidate_execution_work": 40,
+              "candidate_finished_at": 52,
+              "candidate_started_at": 12,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "FAILED_TERMINAL",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": null,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": null,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": null,
+              "waiting_for_other_pack_members": 8
+            },
+            "f3": {
+              "candidate_execution_work": 8,
+              "candidate_finished_at": 60,
+              "candidate_started_at": 52,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 0,
+              "outcome": "UNRESOLVED",
+              "reference_ready_at": 10,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": null,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": null,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": null,
+              "waiting_for_other_pack_members": 0
+            },
+            "f4": {
+              "candidate_execution_work": 4,
+              "candidate_finished_at": 77,
+              "candidate_started_at": 73,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 63,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 73,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 6,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 83,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 83,
+              "waiting_for_other_pack_members": 4
+            },
+            "f5": {
+              "candidate_execution_work": 4,
+              "candidate_finished_at": 81,
+              "candidate_started_at": 77,
+              "intentional_fill_wait": 0,
+              "ordinary_queue_wait": 63,
+              "outcome": "COMPLETED",
+              "reference_ready_at": 73,
+              "required_evidence_closure_work": 1,
+              "shared_pack_closure_delay": null,
+              "shared_pack_closure_delay_lower_bound": 2,
+              "submission_to_summary": null,
+              "submission_to_summary_lower_bound": 83,
+              "summary_at": null,
+              "summary_at_without_unknown_overhead": 83,
+              "waiting_for_other_pack_members": 0
+            }
+          },
+          "offered_distinct_jobs": 5,
+          "one_validator": true,
+          "policy": "B_HYPOTHETICAL",
+          "reference_attempts": 2,
+          "schema_version": "carbon.c-ep2.replay-result.v1",
+          "total_work_is_lower_bound": true,
+          "total_work_units": null,
+          "unfinished_or_nonpositive": 3
+        }
+      },
+      "deduplicated_requests": 0,
+      "jobs": [
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 2
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "f1",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 40
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "f2",
+          "outcome": "FAILED_TERMINAL",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 8
+          },
+          "challenge": "challenge-a",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-a",
+          "job_id": "f3",
+          "outcome": "UNRESOLVED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 4
+          },
+          "challenge": "challenge-b",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-b",
+          "job_id": "f4",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        },
+        {
+          "admitted_at": 0,
+          "candidate_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 4
+          },
+          "challenge": "challenge-b",
+          "closure_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 1
+          },
+          "compatibility_key": "compat-b",
+          "job_id": "f5",
+          "outcome": "COMPLETED",
+          "reference_work": {
+            "evidence_layer": "COUNTERFACTUAL_MODEL",
+            "missing_reason": null,
+            "unit": "normalized_work_units",
+            "value": 10
+          }
+        }
+      ],
+      "offered_requests": 5,
+      "overhead_sensitivity": [
+        {
+          "group_overhead_units": 0,
+          "supported_savings_units": 30,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 5,
+          "supported_savings_units": 20,
+          "unconditional_savings_supported": true
+        },
+        {
+          "group_overhead_units": 15,
+          "supported_savings_units": 0,
+          "unconditional_savings_supported": false
+        },
+        {
+          "group_overhead_units": 30,
+          "supported_savings_units": -30,
+          "unconditional_savings_supported": false
+        }
+      ],
+      "scenario_id": "slow-failed-unresolved"
+    }
+  ],
+  "schema_version": "carbon.c-ep2.replay-bundle.v1",
+  "scientific_score_reuse": false
+}

@@ -1,0 +1,242 @@
+{
+  "claims": {
+    "candidate_inference_measured": false,
+    "cfd_measured": false,
+    "neural_training_measured": false,
+    "physical_reference_measured": false,
+    "scientific_qualification": false,
+    "security_qualification": false,
+    "throughput_forecast": false
+  },
+  "configuration_digest": "fe4c8f9bb283084dce7c1d40c819f4187afd699abf17e10f522956ec23d9d130",
+  "environment": {
+    "clock": "perf_counter_ns/process_time_ns",
+    "concurrency": 1,
+    "gpu_used": false,
+    "logical_cpu_count": 8,
+    "machine": "arm64",
+    "memory_bytes": 8589934592,
+    "processor": "arm",
+    "python": "3.11.16",
+    "release": "24.6.0",
+    "system": "Darwin",
+    "validator_count": 1
+  },
+  "evidence_layer": "OBSERVED_DEVELOPMENT_EXECUTION",
+  "ledger_internal_precommit_timings": {
+    "ATTEMPT_BOUND": {
+      "count": 53,
+      "maximum": 15764542,
+      "median": 327500,
+      "minimum": 282125
+    },
+    "FIXTURE_EXECUTION": {
+      "count": 49,
+      "maximum": 451583,
+      "median": 239958,
+      "minimum": 14792
+    },
+    "INCOMPLETE_CLOSED": {
+      "count": 4,
+      "maximum": 489792,
+      "median": 447499,
+      "minimum": 438541
+    },
+    "PACK_ASSIGNED": {
+      "count": 49,
+      "maximum": 643125,
+      "median": 524792,
+      "minimum": 464417
+    },
+    "PACK_CLOSED": {
+      "count": 41,
+      "maximum": 805958,
+      "median": 479375,
+      "minimum": 413750
+    },
+    "RECONCILIATION_REQUIRED": {
+      "count": 4,
+      "maximum": 325875,
+      "median": 301938,
+      "minimum": 251791
+    },
+    "RESULT_RECORDED": {
+      "count": 41,
+      "maximum": 511250,
+      "median": 346250,
+      "minimum": 304166
+    },
+    "SUMMARY_DELIVERED": {
+      "count": 41,
+      "maximum": 1733375,
+      "median": 327250,
+      "minimum": 284125
+    }
+  },
+  "ledger_timing_limitation": "C-EP1 event elapsed values stop before final event INSERT/commit and are not separately chargeable",
+  "numerical_probe": {
+    "evidence_layer": "OBSERVED_PUBLIC_NUMERICAL_PROBE",
+    "reason": "no eligible pinned public numerical fixture selected",
+    "status": "NOT_RUN"
+  },
+  "observer_parity": {
+    "interpretation": "diagnostic paired difference; host noise prevents causal speed claims",
+    "paired_enabled_minus_disabled_wall_ns": {
+      "count": 8,
+      "maximum": 605625,
+      "median": -300188,
+      "minimum": -1380875
+    },
+    "pairs": 8,
+    "semantic_mismatches": 0
+  },
+  "queued_work_probe": {
+    "unrelated_attempt_state": "QUEUED"
+  },
+  "schema_version": "carbon.c-ep2.variant-a-observations.v1",
+  "source_revision": "bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76",
+  "trace_summary": {
+    "chargeable_root_process_ns": 436938000,
+    "chargeable_root_wall_ns": 507590758,
+    "evidence_layer": "OBSERVED_DEVELOPMENT_EXECUTION",
+    "missing_count": 2,
+    "nested_or_precommit_records_charged": 0,
+    "operations": {
+      "admit_distinct_job": {
+        "count": 24,
+        "maximum": 994000,
+        "median": 703937,
+        "minimum": 626958
+      },
+      "ambiguous_restart": {
+        "count": 4,
+        "maximum": 22099459,
+        "median": 5358438,
+        "minimum": 5170000
+      },
+      "cold_variant_a_job": {
+        "count": 12,
+        "maximum": 7841958,
+        "median": 7216521,
+        "minimum": 6796583
+      },
+      "crash_after_closure_before_summary": {
+        "count": 4,
+        "maximum": 7387709,
+        "median": 7305645,
+        "minimum": 7011292
+      },
+      "crash_after_result_before_closure": {
+        "count": 4,
+        "maximum": 6952042,
+        "median": 6499062,
+        "minimum": 5900208
+      },
+      "duplicate_candidate_commit": {
+        "count": 12,
+        "maximum": 491125,
+        "median": 410896,
+        "minimum": 391917
+      },
+      "exact_claim_with_unrelated_work_queued": {
+        "count": 1,
+        "maximum": 7406875,
+        "median": 7406875,
+        "minimum": 7406875
+      },
+      "idempotent_completed_job_replay": {
+        "count": 12,
+        "maximum": 571041,
+        "median": 476416,
+        "minimum": 452709
+      },
+      "mandatory_fixture_result": {
+        "count": 4,
+        "maximum": 9157625,
+        "median": 8126562,
+        "minimum": 6821750
+      },
+      "physical_reconstruction_reference_inference": {
+        "count": 0,
+        "maximum": null,
+        "median": null,
+        "minimum": null
+      },
+      "post_closure_summary_replay": {
+        "count": 4,
+        "maximum": 855209,
+        "median": 783562,
+        "minimum": 748084
+      },
+      "post_result_closure_replay": {
+        "count": 4,
+        "maximum": 2154792,
+        "median": 2061208,
+        "minimum": 2013291
+      },
+      "public_numerical_reference_probe": {
+        "count": 0,
+        "maximum": null,
+        "median": null,
+        "minimum": null
+      },
+      "read_only_summary_replay": {
+        "count": 12,
+        "maximum": 294375,
+        "median": 233604,
+        "minimum": 221167
+      },
+      "retryable_infrastructure_successor": {
+        "count": 4,
+        "maximum": 11719000,
+        "median": 10990250,
+        "minimum": 10354625
+      },
+      "startup_and_store_open": {
+        "count": 12,
+        "maximum": 12728250,
+        "median": 6556313,
+        "minimum": 5548042
+      },
+      "terminal_infrastructure_failure": {
+        "count": 4,
+        "maximum": 7125375,
+        "median": 6804937,
+        "minimum": 6009000
+      },
+      "warm_distinct_variant_a_job": {
+        "count": 12,
+        "maximum": 9255084,
+        "median": 7313583,
+        "minimum": 6425125
+      }
+    },
+    "record_count": 131,
+    "schema_version": "carbon.c-ep2.observation-summary.v1"
+  },
+  "work_reconciliation": {
+    "accelerator_time_ns": null,
+    "actual_candidate_inference": null,
+    "actual_physical_reference_cases": null,
+    "actual_reference_attempts": null,
+    "admitted_distinct_jobs": 49,
+    "completed_fixture_outcomes": 41,
+    "deduplicated_requests": 12,
+    "execution_attempts": 53,
+    "fresh_packs": 49,
+    "incomplete_terminal_jobs": 4,
+    "infrastructure_retries": 4,
+    "mandatory_fixture_results": 4,
+    "missing_physical_reason": "A8 executes synthetic scalar derivation only",
+    "pack_assignments": 49,
+    "pending_jobs": 4,
+    "post_closure_replays": 4,
+    "post_result_replays": 4,
+    "reconciliation_equation_holds": true,
+    "reconciliation_required": 4,
+    "reconstruction_obligations": 53,
+    "result_records": 41,
+    "scored_fixture_results": 24,
+    "summary_records": 41
+  }
+}

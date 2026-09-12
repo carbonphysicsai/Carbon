@@ -1,0 +1,47 @@
+{
+  "current_implemented_variant": "A_FRESH_PACK_PER_ADMITTED_JOB",
+  "hypothetical_variant": "B_ZERO_FILL_WAIT_ALREADY_ADMITTED_ONLY",
+  "missing_evidence": [
+    "authorized C-02 reconstruction observations",
+    "eligible C-04 reference-cost and witness observations",
+    "C-07 integrated resource occupancy",
+    "representative admitted compatible workload",
+    "B membership/control/recovery overhead",
+    "common-comparison and TRAIN/EVAL randomness policy"
+  ],
+  "modeled": {
+    "components": [
+      "already-admitted compatibility grouping",
+      "normalized reference/candidate/control work",
+      "last-member closure delay",
+      "break-even B overhead"
+    ],
+    "evidence_class": "COUNTERFACTUAL_MODEL"
+  },
+  "observed": {
+    "components": [
+      "fixture receipt/admission and deduplication",
+      "SQLite owner startup/open",
+      "C-EP1 aggregate singleton lifecycle",
+      "C-01 retry/restart/result state",
+      "pack closure and summary replay"
+    ],
+    "evidence_class": "OBSERVED_DEVELOPMENT_EXECUTION"
+  },
+  "qualification_created": false,
+  "recommendation": "COLLECT MISSING INPUTS FIRST",
+  "schema_version": "carbon.c-ep2.profiler-study-summary.v1",
+  "scientific_and_protection_blockers": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "shareable_reference_fraction": null,
+  "shareable_reference_fraction_reason": "no authorized reconstruction/reference backend or observed physical reference phase",
+  "smallest_next_investment": "run this observation protocol on an authorized C-02/C-04/C-07 path and declared hardware, plus a bounded representative admitted-workload trace, without implementing sharing",
+  "source_revision": "bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76",
+  "upfront_qualification_burden": "UNKNOWN_AND_SEPARATE_FROM_RECURRING_WORK",
+  "variant_b_implementation_authorized": false
+}

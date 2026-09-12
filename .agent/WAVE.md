@@ -32,16 +32,16 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-EP1 bounded DEVELOPMENT evaluation-pack implementation
+**Current phase:** C-EP2 bounded DEVELOPMENT measurement study
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.2
-**Selected ticket:** C-EP1 — `in_progress`
-**Active ticket:** C-EP1
+**Controlling register:** `.agent/WAVE_C.md` version 1.3
+**Selected ticket:** C-EP2 — `in_progress`
+**Active ticket:** C-EP2
 **Next selected ticket:** none
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
@@ -51,11 +51,15 @@ resolved only C-EA1's closed synthetic development profile.
 dependency graph as contracts only. It activates no runtime ticket. C-EA2 is not
 selected and remains blocked on a selected real C1 execution/orchestration path
 and eligible real archive acknowledgement.
-The repository owner's issue-#142-linked Codex assignment selects C-EP1 alone
-for a DEVELOPMENT-only Variant-A child evaluation-pack lifecycle. It grants no
-CPES production authority, pack sharing, answer publication, real entropy,
-scientific/security qualification, reward change, C-EA2 implementation, or
-Variant B/C work.
+The repository owner's issue-#142-linked Codex assignment selected C-EP1 alone
+for a DEVELOPMENT-only Variant-A child evaluation-pack lifecycle. PR #143
+accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e` passed RUNTIME_FULL run
+`34708322417` and normally merged as
+`d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`. The follow-on owner assignment
+selects C-EP2 alone to measure that implementation and analyze hypothetical
+Variant B offline. It grants no pack sharing, intentional wait, public answers,
+real entropy/reference, scientific/security qualification, reward change,
+C-EA2 implementation, production, network, or Variant B/C runtime authority.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

@@ -2285,7 +2285,36 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5647398057",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/C-EP1_development_evaluation_packs.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/tickets/C-EP1_development_evaluation_packs.md"
+    },
+    {
+      "title": "Measure the singleton path before building reference sharing",
+      "question": "Does the merged C-EP1 path provide enough evidence that already-admitted compatible jobs should share evaluation-reference work in a later DEVELOPMENT experiment?",
+      "recommendation": "COLLECT MISSING INPUTS FIRST: observe an authorized C-02/C-04/C-07 reconstruction/reference path and a bounded representative admitted workload before selecting any Variant-B implementation.",
+      "why": "The frozen C-EP2 study measures the scalar fixture lifecycle but no physical reference or candidate-inference phase. Shareable reference fraction, compatibility demand, common-comparison semantics and B membership/control/recovery overhead remain unknown; normalized replay savings are therefore uncalibrated assumptions.",
+      "if_kept": "Variant A remains the only executable policy. Carbon reuses the observation method on an authorized real backend and declared hardware, then returns with measured reference cost, workload compatibility, closure delay and B overhead evidence.",
+      "if_changed": "Any B-specific experiment still requires separate authority and durable admission-race, immutable-membership, reference-completeness, per-member failure, last-member closure, restart/stale-write and TRAIN/EVAL randomness-separation tests. This decision supplies no implementation authority.",
+      "decision_id": "C-EP2-D1",
+      "map_ref": "WAVE-C/C-EP2",
+      "wave": "C",
+      "ticket": "C-EP2",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5648064815",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md"
     }
   ]
 }

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-12T17:27:22Z"
+  captured_at_utc: "2026-09-12T20:51:13Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "dc58042044e7d82c77d65ca59dc1b5c882d4cb94"
+  authority_snapshot_commit: "2a567c2c26d01d0aab278a6f38230820db7a2482"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,31 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-EP1 alone is selected for a bounded DEVELOPMENT-only Variant-A evaluation-pack implementation, and no later ticket is selected. Local focused and owner-boundary diagnostics pass; canonical acceptance and normal merge remain pending. C-EA1 is the last completed ticket only for its exact closed synthetic profile. C-03, C-08 and C-09 remain unselected, unstarted and not dependency-ready; C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile, and C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy, real/customer evidence, public network, reward change, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EP1 is the last completed ticket after PR #143's accepted RUNTIME_FULL run and normal merge. C-EP2 alone is selected for bounded DEVELOPMENT measurement of that Variant-A fixture path and a detached, uncalibrated Variant-B replay; no later ticket is selected. The study recommends COLLECT MISSING INPUTS FIRST because physical reference cost, compatibility demand and B overhead remain unknown. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference, public network, reward change, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-EA1"
-    title: "Durable evidence archive"
-    status: "done"
-    summary: "PR #136 completed C-EA1 for the exact carbon.synthetic-evidence-archive.dev.v1 profile after accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de passed canonical run 34558389185 and normally merged as 0e0714c8260ca482a0ba2b743b2eaefd50508da1. The synthetic acknowledgement is ineligible for real finalization, network use or qualification."
-    delivery:
-      reference: "PR #136 accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de, run 34558389185"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/136"
-      merge_commit: "0e0714c8260ca482a0ba2b743b2eaefd50508da1"
-  selected_ticket:
     id: "C-EP1"
     title: "DEVELOPMENT evaluation-pack lifecycle"
+    status: "done"
+    summary: "PR #143 completed the exact DEVELOPMENT-only Variant-A per-job child-pack lifecycle after accepted head e0fbb6208cf0bf95910d51e7a3c996b09387a14e passed RUNTIME_FULL run 34708322417 and normally merged as d783c2c7209c7eea2d46dd395c4eaaf8094a9e71. It creates no sharing, real archive/finality, reward, scientific/security, production or LIVE authority."
+    delivery:
+      reference: "PR #143 accepted head e0fbb6208cf0bf95910d51e7a3c996b09387a14e, run 34708322417"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/143"
+      merge_commit: "d783c2c7209c7eea2d46dd395c4eaaf8094a9e71"
+  selected_ticket:
+    id: "C-EP2"
+    title: "Variant-A measurement and offline Variant-B decision"
     status: "in_progress"
-    summary: "C-EP1 is selected and implemented as a DEVELOPMENT-only Variant-A per-job child pack candidate; canonical acceptance and normal merge remain pending. It creates no production, scientific, security, reward or real-archive authority."
+    summary: "C-EP2 is selected and locally complete as a bounded DEVELOPMENT observation harness and detached, uncalibrated A/B replay; automated acceptance and normal merge remain pending. Replay v2 corrects invalid universal-bound wording by reporting explicit, assumption-conditioned dynamic-grouping scenarios. The evidence still recommends collecting missing real reference/backend/workload inputs before any B implementation."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "1.2"
-  controlling_board_fingerprint: "a49824ee276438971310db79d6fd65677c5f3499f50682119da853d09d929e4e"
-  stage: "C-EP1 alone is selected for a bounded DEVELOPMENT-only Variant-A evaluation-pack implementation, and no later ticket is selected. Local focused and owner-boundary diagnostics pass; canonical acceptance and normal merge remain pending. C-EA1 is the last completed ticket only for its exact closed synthetic profile. C-03, C-08 and C-09 remain unselected, unstarted and not dependency-ready; C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile, and C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy, real/customer evidence, public network, reward change, scientific/security qualification, production or LIVE authority is created."
+  controlling_register_version: "1.3"
+  controlling_board_fingerprint: "be9eb99293b825fa6f2a9e0876ce6c71b1fdbe4abd9d5b89eef9ecc25dd68a40"
+  stage: "C-EP1 is the last completed ticket after PR #143's accepted RUNTIME_FULL run and normal merge. C-EP2 alone is selected for bounded DEVELOPMENT measurement of that Variant-A fixture path and a detached, uncalibrated Variant-B replay; no later ticket is selected. The study recommends COLLECT MISSING INPUTS FIRST because physical reference cost, compatibility demand and B overhead remain unknown. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference, public network, reward change, scientific/security qualification, production or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -475,26 +475,23 @@ current:
     - "NET-6"
     - "NET-5R"
     - "C-01"
+    - "C-EP1"
     - "C-AUTH1"
     - "C-EA0"
     - "C-EA1"
   recent_dependencies:
-    - "NET-3"
-    - "C-01"
-    - "A4"
-    - "A5"
-    - "A6"
-    - "A7"
-    - "A8"
+    - "C-EP1"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
+    - "NET-3"
     - "C-REWARD"
     - "NET-4A"
     - "NET-4B"
     - "NET-5"
     - "NET-6"
     - "NET-5R"
+    - "C-01"
     - "C-AUTH1"
     - "C-EA0"
     - "C-EA1"
@@ -524,6 +521,7 @@ current:
     - "C-EA1 is implemented/tested only for carbon.synthetic-evidence-archive.dev.v1 with non-secret fixtures, one disposable host/tenant, ephemeral test keys and INTERNAL_AUDIT use. Its acknowledgement is structurally ineligible for real C1 finalization, C-W1, weights, settlement or qualification. Every real/production artifact, rights, retention, custody/KMS, topology, durability, availability, recovery and security value remains HUMAN_INPUT."
     - "C-03, C-08 and C-09 are contract-only, unselected, unstarted and not dependency-ready. Contract materialization supplies no JAX implementation, worker security acceptance, real validator path, qualified provenance, eligible real archive acknowledgement, public-network authority or production qualification."
     - "C-EP1 is a private DEVELOPMENT fixture interposition only. Different child pack identities demonstrate durable job separation and deterministic fixture binding, not independent physical draws, freshness, honest execution, production entropy, scientific qualification, real archive eligibility, reward entitlement, public answers, Variant B/C sharing or LIVE readiness."
+    - "C-EP2 observes that fixture path and models hypothetical sharing offline only. Its recommendation is COLLECT MISSING INPUTS FIRST because physical reference cost, compatibility demand and B control/recovery overhead remain unknown. It implements no shared pack, wait, early result, public answer, production path or qualification."
   maturity_states:
     specified: "earned"
     implemented: "earned"
@@ -533,8 +531,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EP1 is selected and locally implemented/tested only as a bounded DEVELOPMENT fixture candidate pending canonical acceptance and normal merge. C-EA1 remains the last completed ticket and earns specified, implemented and tested only for its exact synthetic development profile. C-03, C-08 and C-09 are future contracts only. Real archive durability, physical freshness, protected or scientific evidence, reference qualification, independent execution integrity, testnet eligibility, broader network/security qualification, production and LIVE remain unearned. G2 remains localnet-ready only for D6's exact standard profile."
-  decision_series_status: "C-EP1-D1 selects a reversible DEVELOPMENT-only Variant-A interposition linked from owner issue #142; it does not activate CPES sharing, real entropy, answer publication, rewards or a real C1 successor. OWNER-C1-CONTRACTS-01 keeps C-03, C-08 and C-09 contract-only, OWNER-C-EA1-SYNTHETIC-01 remains limited to the closed development profile, C-EA2 is not selected, OWNER-DX-03 governs delivery, and B-E4 stays deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-EP1 is done only as a bounded merged DEVELOPMENT fixture lifecycle. C-EP2 is locally implemented/tested as measurement and detached counterfactual tooling pending automated acceptance and merge. Its observations and simulations are unqualified supporting evidence. Real reconstruction/reference work, archive durability, physical freshness, protected or scientific evidence, independent execution integrity, testnet eligibility, security, production and LIVE remain unearned."
+  decision_series_status: "C-EP2-D1 selects measurement of merged Variant A and a detached zero-fill-wait replay only; the evidence recommends collecting missing inputs before any B implementation. C-EP1-D1 remains the only executable pack policy. OWNER-C1-CONTRACTS-01 keeps real-vertical tickets blocked, C-EA2 is not selected, OWNER-DX-03 governs delivery, and B-E4 remains deferred/non-blocking and UNMEASURED."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -611,6 +609,7 @@ waves:
       - "NET-5R"
       - "C-01"
       - "C-EP1"
+      - "C-EP2"
       - "C-AUTH1"
       - "C-EA0"
       - "C-EA1"
@@ -1791,7 +1790,7 @@ tickets:
     id: "C-EP1"
     wave: "C"
     title: "DEVELOPMENT evaluation-pack lifecycle"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/c_ep1.md"
     repo_path: ".agent/tickets/C-EP1_development_evaluation_packs.md"
     depends_on:
@@ -1802,6 +1801,21 @@ tickets:
       - "A6"
       - "A7"
       - "A8"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-EP2"
+    unlocks_context:
+      []
+  -
+    id: "C-EP2"
+    wave: "C"
+    title: "Variant-A measurement and offline Variant-B decision"
+    status: "in_progress"
+    explainer: "explainers/tickets/c_ep2.md"
+    repo_path: ".agent/tickets/C-EP2_variant_a_measurement_and_b_decision.md"
+    depends_on:
+      - "C-EP1"
     depends_on_context:
       []
     unlocks:
@@ -4295,6 +4309,47 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/C-EP2"
+    event_type: "decision"
+    event_id: "C-EP2-D1"
+    owner_lane: "repository_owner"
+    status: "implemented"
+    summary: "C-EP2 measures merged C-EP1 Variant A and models hypothetical zero-fill-wait sharing offline only. The frozen study observes no physical reference phase and retains unknown compatibility demand and B control/recovery overhead, so its recommendation is COLLECT MISSING INPUTS FIRST. No Variant-B runtime, shared membership, wait, early result, answer publication, production entropy, reward route, real finalization or qualification is added."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md"
+    affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "WAVE-C"
+      - "WAVE-C/C-EP1"
+      - "WAVE-C/C-01"
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-04"
+      - "WAVE-C/C-07"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/C-EP2"
+    event_type: "adjustment"
+    event_id: "C-EP2-D4"
+    owner_lane: "engineering"
+    status: "implemented"
+    summary: "C-EP2 replay v2 corrects the frozen v1 report's invalid universal lower-bound interpretation. Unknown B overhead now leaves actual work, eligibility and release times unknown; zero overhead is an explicit counterfactual, every numeric overhead scenario recomputes endogenous membership, and synthetic numeric savings never become empirical support. The conservative COLLECT MISSING INPUTS FIRST recommendation and all Variant-B/runtime exclusions remain unchanged."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-EP2"
+      - "WAVE-C/C-EP1"
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-04"
+      - "WAVE-C/C-07"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

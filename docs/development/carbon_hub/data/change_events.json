@@ -2336,6 +2336,51 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-EP2",
+      "event_type": "decision",
+      "event_id": "C-EP2-D1",
+      "owner_lane": "repository_owner",
+      "status": "implemented",
+      "summary": "C-EP2 measures merged C-EP1 Variant A and models hypothetical zero-fill-wait sharing offline only. The frozen study observes no physical reference phase and retains unknown compatibility demand and B control/recovery overhead, so its recommendation is COLLECT MISSING INPUTS FIRST. No Variant-B runtime, shared membership, wait, early result, answer publication, production entropy, reward route, real finalization or qualification is added.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-EP2",
+      "event_type": "adjustment",
+      "event_id": "C-EP2-D4",
+      "owner_lane": "engineering",
+      "status": "implemented",
+      "summary": "C-EP2 replay v2 corrects the frozen v1 report's invalid universal lower-bound interpretation. Unknown B overhead now leaves actual work, eligibility and release times unknown; zero overhead is an explicit counterfactual, every numeric overhead scenario recomputes endogenous membership, and synthetic numeric savings never become empirical support. The conservative COLLECT MISSING INPUTS FIRST recommendation and all Variant-B/runtime exclusions remain unchanged.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }

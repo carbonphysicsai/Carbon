@@ -1,0 +1,116 @@
+{
+  "schema_version": "carbon.c-ep2.measurement-study-config.v1",
+  "source_baseline": {
+    "c_ep1_accepted_head": "e0fbb6208cf0bf95910d51e7a3c996b09387a14e",
+    "merge_commit": "d783c2c7209c7eea2d46dd395c4eaaf8094a9e71",
+    "runtime_full_run": 34708322417
+  },
+  "scope": "DEVELOPMENT_VARIANT_A_MEASUREMENT_AND_DETACHED_REPLAY",
+  "seed": 20260913,
+  "validator_count": 1,
+  "concurrency": 1,
+  "repetitions": {
+    "ordinary_blocks": 12,
+    "observer_parity_pairs": 8,
+    "fault_blocks_each": 4
+  },
+  "replay": {
+    "group_bound": 3,
+    "unknown_group_overhead_reason": "no Variant-B implementation or measured membership/control/recovery cost",
+    "overhead_sensitivity_units": [0, 5, 15, 30],
+    "unit": "normalized_work_units",
+    "scenarios": [
+      {
+        "id": "sparse-compatible",
+        "offered_requests": 3,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["s1", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["s2", "challenge-a", 100, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["s3", "challenge-a", 200, "compat-a", 12, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "ordinary-compatible",
+        "offered_requests": 4,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["o1", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["o2", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["o3", "challenge-a", 18, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["o4", "challenge-a", 18, "compat-a", 12, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "bursty-saturated",
+        "offered_requests": 6,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["b1", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["b2", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["b3", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["b4", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["b5", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["b6", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "mixed-duration",
+        "offered_requests": 4,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["m1", "challenge-a", 0, "compat-a", 2, 10, 1, "COMPLETED"],
+          ["m2", "challenge-a", 0, "compat-a", 30, 10, 1, "COMPLETED"],
+          ["m3", "challenge-a", 0, "compat-a", 5, 10, 1, "COMPLETED"],
+          ["m4", "challenge-a", 4, "compat-a", 9, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "multiple-incompatible-challenges",
+        "offered_requests": 4,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["i1", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["i2", "challenge-b", 0, "compat-b", 12, 10, 1, "COMPLETED"],
+          ["i3", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["i4", "challenge-b", 0, "compat-b", 12, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "duplicate-flood",
+        "offered_requests": 30,
+        "deduplicated_requests": 27,
+        "jobs": [
+          ["d1", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["d2", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"],
+          ["d3", "challenge-a", 0, "compat-a", 12, 10, 1, "COMPLETED"]
+        ]
+      },
+      {
+        "id": "slow-failed-unresolved",
+        "offered_requests": 5,
+        "deduplicated_requests": 0,
+        "jobs": [
+          ["f1", "challenge-a", 0, "compat-a", 2, 10, 1, "COMPLETED"],
+          ["f2", "challenge-a", 0, "compat-a", 40, 10, 1, "FAILED_TERMINAL"],
+          ["f3", "challenge-a", 0, "compat-a", 8, 10, 1, "UNRESOLVED"],
+          ["f4", "challenge-b", 0, "compat-b", 4, 10, 1, "COMPLETED"],
+          ["f5", "challenge-b", 0, "compat-b", 4, 10, 1, "COMPLETED"]
+        ]
+      }
+    ]
+  },
+  "stop_conditions": [
+    "semantic parity failure",
+    "identity or result mutation",
+    "unexpected reward or accepted-record effect",
+    "invalid or incomplete required trace",
+    "unresolved baseline defect",
+    "unexpected sharing or production surface"
+  ],
+  "final_recommendations": [
+    "KEEP VARIANT A",
+    "REQUEST A B-SPECIFIC DEVELOPMENT EXPERIMENT",
+    "COLLECT MISSING INPUTS FIRST"
+  ]
+}
