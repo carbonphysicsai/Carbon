@@ -1,7 +1,7 @@
 # C-EP2 — Variant-A measurement and offline Variant-B decision
 
 **Wave:** C1 development evaluation foundations
-**Status:** `in_progress`
+**Status:** `in_progress` — study complete; automated acceptance pending
 **Selection authority:** repository-owner C-EP2 assignment following merged PR #143
 **Depends on:** C-EP1
 **Primary Hub map_ref:** `WAVE-C/C-EP2`
@@ -62,21 +62,21 @@ savings claim.
 
 ## Definition of Done
 
-- [ ] C-EP1 completion and C-EP2 selection records are reconciled.
-- [ ] Frozen protocol/config and observation map distinguish observed
+- [x] C-EP1 completion and C-EP2 selection records are reconciled.
+- [x] Frozen protocol/config and observation map distinguish observed
       execution, optional public numerical probe, and counterfactual model.
-- [ ] Executable harness records repeated cold/warm, duplicate/replay,
+- [x] Executable harness records repeated cold/warm, duplicate/replay,
       mandatory-failure, infrastructure-failure/retry, restart, closure and
       summary-replay observations against disposable persistent stores.
-- [ ] Observation parity, privacy, validation, overhead and sink-failure tests pass.
-- [ ] The queued-work exact-claim defect has a failing reproduction and narrow
+- [x] Observation parity, privacy, validation, overhead and sink-failure tests pass.
+- [x] The queued-work exact-claim defect has a failing reproduction and narrow
       C-01-owned repair with regression evidence.
-- [ ] Detached replay/accounting tests cover singleton equivalence, no future
+- [x] Detached replay/accounting tests cover singleton equivalence, no future
       information, compatibility, underfill, finite resources, closure delay,
       unknown overhead and no double charging.
-- [ ] Raw fixture-safe traces, aggregate accounting, profiler summary and owner
+- [x] Raw fixture-safe traces, aggregate accounting, profiler summary and owner
       report state all missing physical/reference/workload evidence.
-- [ ] No Variant B/C runtime, sharing, wait, early summary, public answer,
+- [x] No Variant B/C runtime, sharing, wait, early summary, public answer,
       production, reward or real-finalization route exists.
 - [ ] Applicable automated acceptance and Merge gate pass at the expected head.
 
