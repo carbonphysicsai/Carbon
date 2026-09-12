@@ -76,8 +76,11 @@ that historical count.
 
 The exact runtime command and host manifest are retained in
 `docs/development/C_EP2_STUDY_RUNBOOK.md` and the machine-readable study folder.
-Black 26.5.1 and Ruff 0.16.3 pass the changed Python paths. Canonical PR
-acceptance remains pending and is not inferred from the local run.
+Black 26.5.1 and Ruff 0.16.3 passed the changed Python paths. Corrected head
+`89f06eda74b15dd336e57a512f228c6b37cca77d` subsequently passed canonical
+RUNTIME_FULL run `34718392697` and normally merged in PR #144 as
+`96099aeac9e5022bda9d94730b1d7d955cb6c1d5`; this delivery record does not
+turn those engineering checks into scientific or security qualification.
 
 ## Output inventory
 

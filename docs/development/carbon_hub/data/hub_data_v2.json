@@ -50,7 +50,7 @@
     "controlling_register": ".agent/WAVE_C.md",
     "controlling_register_version": "1.4",
     "controlling_board_fingerprint": "e91db6e37740cacce7d3635529e55dc471f64269b8e6c38fdbcd07c70d6c9213",
-    "stage": "C-EP2 is complete after corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144 as 96099aeac9e5022bda9d94730b1d7d955cb6c1d5. C-EP3 alone is selected for bounded public-reference input acquisition and one detached component probe; no later ticket is selected, and no real C1 or Variant-B implementation ticket is selected. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence. No sharing, answers, real entropy/reference qualification, public network, reward change, scientific/security qualification, production or LIVE authority is created.",
+    "stage": "C-EP2 is complete after corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144 as 96099aeac9e5022bda9d94730b1d7d955cb6c1d5. C-EP3 alone is selected for bounded public-reference input acquisition and one detached component probe; no later ticket is selected, and no real C1 or Variant-B implementation ticket is selected. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence only for its exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference qualification, public network, reward change, scientific/security qualification, production or LIVE authority is created.",
     "most_recent_closed_wave": "B",
     "completed_wave_tickets": [
       "NET-1",
@@ -558,9 +558,10 @@
       "id": "c-ep3-ticket-evidence",
       "path": ".agent/evidence/wave_c/c-ep3.md",
       "required_markers": [
-        "**Status:** selected; acquisition and detached public probe in progress",
+        "# C-EP3 public-reference input acquisition and component evidence",
+        "**Baseline:** `96099aeac9e5022bda9d94730b1d7d955cb6c1d5`",
         "**Primary Hub map_ref:** `WAVE-C/C-EP3`",
-        "No Variant-B runtime or real C1 implementation ticket is selected."
+        "`COLLECT MISSING INPUTS"
       ]
     },
     {

@@ -1,0 +1,72 @@
+{
+  "schema_version": "carbon.c-ep3-public-reference-probe.summary.v1",
+  "evidence_class": "OBSERVED_PUBLIC_NUMERICAL_PROBE",
+  "qualified": false,
+  "integrated_exam": false,
+  "run_id": "e6662aafef1b0a3c170f67cb6b134e8b2d32a87cc618f2c5662ce10f72bf5887",
+  "protocol_sha256": "7f76cb99c8df8d1fa43b788817b107d20cb008e37e217f1ba21653e84a666b2a",
+  "source_archive_sha256": "40f1fd47d62dd2269f8e141e6bb398d03a403aa6eb3ac08750b49dd68018bcdc",
+  "source_release_digest": "sha256:7805f87c3b4745454ec9c8fa852a20de6731d8f85e1356eb5d91a708cdafa7ac",
+  "case_digest": "sha256:ff69bc0b6f3ef4d556f0abde790b9aed89279f4dc7909eac32c4e156a0ee6f9d",
+  "case_scope": "One public harmonic REFERENCE_AUDIT case in source-defined cell 0 for periodic unforced positive-viscosity one-dimensional Burgers.",
+  "environment": {
+    "host": "Apple M3 MacBook Pro, 8 CPU cores, 8 GB RAM",
+    "operating_system": "macOS 15.6 arm64",
+    "python": "3.11.11",
+    "numpy": "2.4.3",
+    "scipy": "1.17.1",
+    "pydantic": "2.13.4",
+    "threads": 1,
+    "gpu_used": false,
+    "dependency_note": "Within the source-declared supported ranges but not the exact saved source-evidence lock. Public network dependency installation was not authorized."
+  },
+  "counts": {
+    "distinct_public_cases": 1,
+    "primary_reference_calls": 3,
+    "primary_cold_calls": 1,
+    "primary_warm_repeat_calls": 2,
+    "refinement_calls": 1,
+    "independent_witness_calls": 2,
+    "physical_reference_attempts": 6,
+    "integrated_candidate_jobs": 0,
+    "provider_calls": 0,
+    "official_evaluations": 0
+  },
+  "wall_elapsed_ms": {
+    "archive_verification": 267.351125,
+    "source_extraction": 2.440417,
+    "source_import_initialization": 757.089208,
+    "case_materialization": 0.82375,
+    "primary_cold": 297.089166,
+    "primary_warm_repeats": [288.438125, 289.820875],
+    "primary_warm_mean": 289.1295,
+    "refinement": 1906.978041,
+    "witness_1024": 33.182875,
+    "witness_2048": 64.702125,
+    "diagnostics": 51.977542,
+    "serialization": 175.813125,
+    "retrieval": 17.472542,
+    "six_numerical_calls_total": 2880.211207
+  },
+  "diagnostic_result": {
+    "outputs_finite": true,
+    "primary_shape": [193, 512],
+    "refinement_shape": [769, 1024],
+    "primary_steps_per_call": 2752,
+    "refinement_steps": 11008,
+    "primary_repeats_byte_equal": true,
+    "serialized_round_trip_equal": true,
+    "source_proposed_physics_status": "all five recorded diagnostics within source-proposed limits",
+    "source_limits_qualified": false,
+    "generator_replay_status": "SOURCE_SUPPORTED_ENVIRONMENT_REPLAY_MISMATCH_RETAINED",
+    "current_environment_generated_case_digest": "sha256:9db39226980bde62e42a7741eaedb5e03dd186f1bf4620a6eecad27fbc81d0ff"
+  },
+  "private_array_sha256": "82f4554f4654e67641aa4f9f5a78ddfdec0c7e1b1135ed73e43077c998c20c28",
+  "retained_failed_first_attempt_sha256": "3822b0f230931ab6d88e1b4349b242f71947f364b45fdcc31392a8de064937c2",
+  "unknowns": {
+    "authorized_jax_reconstruction_work": "authorized immutable JAX source/interface absent",
+    "compatible_miner_demand": "no eligible real submission trace exists",
+    "variant_b_overhead": "Variant B is not implemented",
+    "scientifically_adequate_reference_cost": "source method and proposed limits are not qualified"
+  }
+}

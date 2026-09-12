@@ -1,0 +1,104 @@
+{
+  "schema_version": "carbon.c-ep3-public-reference-probe.protocol.v1",
+  "decision": "Replace one missing physical-reference-cost input with a source-, case-, configuration-, and host-scoped observation; do not decide reference qualification or Variant B.",
+  "source": {
+    "archive_name": "Carbon_Challenge_Authoring_Workbench_V1.zip",
+    "archive_sha256": "40f1fd47d62dd2269f8e141e6bb398d03a403aa6eb3ac08750b49dd68018bcdc",
+    "release_digest": "sha256:7805f87c3b4745454ec9c8fa852a20de6731d8f85e1356eb5d91a708cdafa7ac",
+    "permission_scope": "PUBLIC_DEVELOPMENT_ONLY",
+    "assets_rights": "SYNTHETIC_INTERNAL",
+    "scientifically_qualified": false,
+    "runtime_integrated": false
+  },
+  "case": {
+    "source": "Verified evidence/reference_audit.json records[0].case from the pinned archive; the current-environment generator replay is checked and any last-bit/digest mismatch is retained rather than substituted.",
+    "selector": {
+      "cell": 0,
+      "ordinal": 0,
+      "role": "REFERENCE_AUDIT",
+      "build": 0
+    },
+    "expected_case_digest": "sha256:ff69bc0b6f3ef4d556f0abde790b9aed89279f4dc7909eac32c4e156a0ee6f9d",
+    "scope": "First source-defined reference-audit case: periodic unforced positive-viscosity one-dimensional Burgers, harmonic family, lowest source-defined Reynolds-number cell. It is not representative of every regime."
+  },
+  "configuration": {
+    "phase_intervals": 64,
+    "query_grid": 512,
+    "reference_grid": 1024,
+    "reference_cfl": 0.12,
+    "reference_time_fraction": 0.005,
+    "warm_primary_repetitions": 2,
+    "refinement_grid": 2048,
+    "refinement_cfl": 0.06,
+    "refinement_time_fraction": 0.0025,
+    "refinement_phase_intervals": 256,
+    "witness_nodes": [1024, 2048],
+    "witness_time_indices": [0, 1, 64, 128, 192],
+    "witness_space_points": 32,
+    "thread_limit": 1,
+    "provider_calls": 0,
+    "official_evaluations": 0
+  },
+  "dependencies": {
+    "source_supported": {
+      "python": ">=3.11",
+      "numpy": ">=2.0,<3",
+      "scipy": ">=1.14,<2",
+      "pydantic": ">=2.10,<3"
+    },
+    "saved_source_evidence_lock_not_reproduced": {
+      "numpy": "2.3.5",
+      "scipy": "1.17.0",
+      "pydantic": "2.13.5"
+    },
+    "selected_existing_local_probe_environment": {
+      "python": "3.11.11",
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "pydantic": "2.13.4"
+    },
+    "deviation": "Network installation was not authorized. The probe uses an already-present environment within the source-declared supported ranges; it does not reproduce the source archive's saved exact evidence environment."
+  },
+  "measurement": {
+    "clocks": ["time.perf_counter_ns", "time.process_time_ns"],
+    "operations": [
+      "archive_verification",
+      "source_extraction",
+      "source_import_initialization",
+      "case_materialization",
+      "primary_cold",
+      "primary_warm_1",
+      "primary_warm_2",
+      "refinement",
+      "witness_1024",
+      "witness_2048",
+      "diagnostics",
+      "serialization",
+      "retrieval"
+    ],
+    "evidence_class": "OBSERVED_PUBLIC_NUMERICAL_PROBE",
+    "cold_definition": "First ETDRK4 call after importing the verified source in a fresh process.",
+    "warm_definition": "Subsequent identical ETDRK4 calls in that same process; each repeats the full calculation and is not a fresh scientific case.",
+    "serialization_definition": "Write and reload the produced cold primary and refinement arrays as a compressed local NPZ artifact.",
+    "stop_condition": "One selected case, one cold primary, two warm repeated primary calls, one refinement, two witness-node calls, diagnostics, serialization, and retrieval; stop on any failed required operation and retain the failure."
+  },
+  "checks": {
+    "required_archive_members_match_manifest": true,
+    "case_digest_matches": true,
+    "archived_case_digest_matches_content": true,
+    "current_environment_generator_replay_status_recorded": true,
+    "outputs_finite": true,
+    "repeated_primary_outputs_byte_equal": true,
+    "serialized_outputs_round_trip_equal": true,
+    "source_defined_refinement_and_witness_diagnostics_recorded": true,
+    "source_proposed_physics_status_recorded": true
+  },
+  "claim_limitations": [
+    "The source methods and proposed limits are not scientifically qualified.",
+    "A one-case public CPU component probe is not an integrated C-EP1 exam or a protected-reference benchmark.",
+    "The observation does not measure JAX reconstruction, candidate inference, compatible miner demand, Variant-B overhead, custody, hostile-host integrity, production entropy, or exams per day.",
+    "The cold/warm repetitions measure repeated execution of one public case and do not create independent physical evidence.",
+    "The selected source-supported local dependency environment does not reproduce the archived generator's last-bit case digest; the numerical calls therefore use the archive's verified immutable case record and retain the replay mismatch.",
+    "Any shareable fraction remains conditional on identical reference identity, sampling, evidence, custody, and comparison requirements."
+  ]
+}

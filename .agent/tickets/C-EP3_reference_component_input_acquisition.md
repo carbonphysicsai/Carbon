@@ -43,19 +43,19 @@ unknown rather than zero.
 
 ## Definition of Done
 
-- [ ] C-EP2 merge/acceptance and C-EP3 selection records are reconciled.
-- [ ] One acquisition table identifies exact sources, permission state,
+- [x] C-EP2 merge/acceptance and C-EP3 selection records are reconciled.
+- [x] One acquisition table identifies exact sources, permission state,
       inspected interfaces, measurable components, missing inputs and owners.
-- [ ] A frozen protocol and standard-library harness verify the supplied archive,
+- [x] A frozen protocol and standard-library harness verify the supplied archive,
       manifest, source/configuration pins and closed public-development scope.
-- [ ] One eligible source-defined numerical case is run with cold/warm,
+- [x] One eligible source-defined numerical case is run with cold/warm,
       refinement, witness, diagnostics and actual serialization/retrieval evidence,
       or an exact source-specific blocker is retained.
-- [ ] Focused tests cover provenance/configuration failure, record validation,
+- [x] Focused tests cover provenance/configuration failure, record validation,
       failed-call accounting, count/dedup semantics, unknowns and privacy.
-- [ ] The actual JAX-source blocker and existing C-02/C-04 ownership remain exact.
-- [ ] One owner/SciML request and profiler-safe component summary are delivered.
-- [ ] No sharing, candidate-evaluation, protected-reference, reward, production,
+- [x] The actual JAX-source blocker and existing C-02/C-04 ownership remain exact.
+- [x] One owner/SciML request and profiler-safe component summary are delivered.
+- [x] No sharing, candidate-evaluation, protected-reference, reward, production,
       network, real-finalization or qualification capability is added.
 - [ ] Applicable automated acceptance and Merge gate pass at the expected head.
 
