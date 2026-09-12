@@ -32,7 +32,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** post-C-EA1 C1 dependency-contract planning after C0/G2 closeout
+**Current phase:** C-EP1 bounded DEVELOPMENT evaluation-pack implementation
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -40,8 +40,8 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.2
-**Selected ticket:** C-EA1 — `done`
-**Active ticket:** none
+**Selected ticket:** C-EP1 — `in_progress`
+**Active ticket:** C-EP1
 **Next selected ticket:** none
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
@@ -51,6 +51,11 @@ resolved only C-EA1's closed synthetic development profile.
 dependency graph as contracts only. It activates no runtime ticket. C-EA2 is not
 selected and remains blocked on a selected real C1 execution/orchestration path
 and eligible real archive acknowledgement.
+The repository owner's issue-#142-linked Codex assignment selects C-EP1 alone
+for a DEVELOPMENT-only Variant-A child evaluation-pack lifecycle. It grants no
+CPES production authority, pack sharing, answer publication, real entropy,
+scientific/security qualification, reward change, C-EA2 implementation, or
+Variant B/C work.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

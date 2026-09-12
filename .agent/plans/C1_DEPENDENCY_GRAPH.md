@@ -3,7 +3,8 @@
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** none
+**Implementation selection:** C-EP1 only, as a bounded DEVELOPMENT interposition;
+no real-vertical implementation ticket is selected
 
 ## Authority resolution
 
@@ -33,6 +34,7 @@ C-02 + C-04 ─> C-05 ─> C-06 ─> C-07 ─> C-08
                     C-07 + real archive profile + C-EA1 ─> C-EA2
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
+NET-3 + C-01 + A4-A8 ─> C-EP1(selected, DEVELOPMENT fixture only; no real successor)
 ```
 
 ## Node audit
@@ -43,6 +45,7 @@ G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C
 | C-AUTH1 | done, bounded public development | ticket exists; sufficient | C-01 satisfied | real scientific/reference/archive decisions remain outside scope | none for closed scope | complete | already implemented/tested only in closed scope |
 | C-EA0 | done contract | ticket exists; sufficient | C-01, C-AUTH1, B-GATE satisfied | all real archive policy families remain reserved | none | complete | not an implementation ticket |
 | C-EA1 | done only for `carbon.synthetic-evidence-archive.dev.v1` | ticket exists; sufficient for that profile | C-EA0 and synthetic owner decision satisfied | every real/production archive policy remains reserved | none for synthetic scope | complete | already implemented/tested only for synthetic scope |
+| C-EP1 | selected, bounded DEVELOPMENT fixture implementation | ticket exists; sufficient for owner-selected scope | NET-3, C-01 and A4-A8 bounded fixtures satisfied | all production entropy, custody, archive, science, security and comparison policy remains reserved | none for closed fixture scope | selected by issue-#142-linked owner assignment | **yes, DEVELOPMENT scope only** |
 | C-02 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-02B, B-03, B-E1, C-01 satisfied as bounded foundations | real resource/backend qualification remains reserved | authorized JAX source, immutable revision/build and actual interface | no missing contract work identified | **no** |
 | C-03 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | C-02; MQ-015 security/threat model | exact real limits, enforcement profile and security acceptance | C-02 authorized JAX/runtime identity | materialized by this checkpoint | **no** |
 | C-04 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-04, B-E2 satisfied only as bounded fixtures; C-03 missing | qualified primary/witness, applicability, uncertainty and access policy | real protected reference implementations/assets | no missing contract work identified | **no** |
@@ -66,8 +69,9 @@ interface and does not require upstream function renaming.
 
 ## Selection disposition
 
-No implementation ticket is dependency-ready. C-EA1 remains the last completed
-C1 ticket; selected and next-selected tickets remain null. C-EA2 and C-W1 remain
-unselected. This graph authorizes no implementation, public-network operation,
-scientific value, archive operating threshold, production qualification or LIVE
-state.
+No real-vertical implementation ticket is dependency-ready. C-EP1 is selected
+only as the owner-authorized DEVELOPMENT fixture interposition; C-EA1 remains
+the last completed C1 ticket and next-selected remains null. C-EA2 and C-W1
+remain unselected. This graph authorizes no real implementation, public-network
+operation, scientific value, archive operating threshold, production
+qualification or LIVE state.

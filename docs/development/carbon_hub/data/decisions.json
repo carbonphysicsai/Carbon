@@ -2260,6 +2260,32 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5621535023",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0c9d4ebf9701f186ffffb9b494b3b78b0467255e/.agent/evidence/wave_c/net-5r.md"
+    },
+    {
+      "title": "Bind one private child pack to each DEVELOPMENT evaluation job",
+      "question": "What smallest migration can measure fresh per-job fixture packs without changing Strategy identity, enabling CPES sharing, exposing answers, or creating production authority?",
+      "recommendation": "Use Variant A only: one source-owned private child EvaluationPackIdentity per separately admitted NET-3 candidate job, retain that association across copies and retries, bind nominal A4 fixture material through C-01 attempts, record results privately, close durably, and dispatch the existing permitted A6 fixture card idempotently only after closure.",
+      "why": "The verified gauntlet evidence recommends this bounded baseline while leaving production entropy, independent execution integrity, real archive/finality and public-answer rights unresolved. Existing NET-3 and fixture completion seams require a transactional implementation rather than a policy-only simulation.",
+      "if_kept": "The candidate provides a reproducible DEVELOPMENT baseline for a separately selected Variant-B measurement task while preserving global Strategy, Challenge, scientific grading, archive and reward ownership and keeping every real or public route fail closed.",
+      "if_changed": "Any successor must preserve same-job/copy/retry identity, private evidence, closure-before-summary, C-01 reconciliation and the production/reward/archive barriers; pack sharing, new entropy policy, answer disclosure or real operation requires separate authority and acceptance.",
+      "decision_id": "C-EP1-D1",
+      "map_ref": "WAVE-C/C-EP1",
+      "wave": "C",
+      "ticket": "C-EP1",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-01",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5647398057",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/C-EP1_development_evaluation_packs.md"
     }
   ]
 }
