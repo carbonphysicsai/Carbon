@@ -123,6 +123,14 @@
       "not_yet": "No reference sharing, batch wait, early summary, public answer, real backend/reference, reward, finalization, scientific/security qualification, production or LIVE path is added. The current decision is collect missing inputs first.",
       "map_ref": "WAVE-C/C-EP2"
     },
+    "C-EP3": {
+      "title": "Acquire the first physical component input before adding sharing",
+      "what": "Verify the public Burgers source package, resolve C-02/C-04 source facts, and time one frozen source-defined numerical component outside candidate evaluation.",
+      "why": "The singleton measurement cannot justify sharing until actual reference work and the missing reconstruction, workload, comparison and B-overhead inputs are distinguished.",
+      "changes": "Carbon gains a closed provenance/probe harness, focused integrity and accounting tests, a scoped component observation, an acquisition table and one exact owner/SciML request.",
+      "not_yet": "No real reconstruction/reference integration, sharing, protected case, scientific qualification, reward, public network, production or LIVE path is added; compatible demand and B overhead remain unknown.",
+      "map_ref": "WAVE-C/C-EP3"
+    },
     "C-02": {
       "title": "Bind Carbon to the actual authorized JAX implementation",
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
