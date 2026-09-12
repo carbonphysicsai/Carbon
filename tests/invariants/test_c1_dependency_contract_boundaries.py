@@ -1,4 +1,4 @@
-"""Fail-closed checks for the post-C-EA1 C1 dependency contracts."""
+"""Fail-closed checks for the post-C-EP1 C1 dependency contracts."""
 
 from __future__ import annotations
 
@@ -31,17 +31,18 @@ def test_materialized_tickets_are_contract_only_and_unselected() -> None:
         assert "Contract materialization only" in ticket
 
 
-def test_only_bounded_development_pack_ticket_is_selected() -> None:
+def test_only_bounded_development_measurement_ticket_is_selected() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-EP1 — `in_progress`" in record
-        assert "**Active ticket:** C-EP1" in record
+        assert "**Selected ticket:** C-EP2 — `in_progress`" in record
+        assert "**Active ticket:** C-EP2" in record
         assert "**Next selected ticket:** none" in record
     assert "No real-vertical implementation ticket is dependency-ready" in graph
-    assert "no real-vertical implementation ticket is selected" in graph
-    assert "C-EP1(selected, DEVELOPMENT fixture only; no real successor)" in graph
+    assert "no real-vertical or Variant-B\nimplementation ticket is selected" in graph
+    assert "C-EP1(done, DEVELOPMENT fixture only)" in graph
+    assert "C-EP2(selected measurement/replay only; no sharing runtime)" in graph
     assert graph.count("| **no** |") >= 10
 
 
@@ -69,16 +70,17 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_development_pack_selection_and_future_contract_status() -> (
+def test_hub_projects_only_development_measurement_selection_and_future_contract_status() -> (
     None
 ):
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-EA1"
-    assert current["selected_ticket"]["id"] == "C-EP1"
+    assert current["last_completed_ticket"]["id"] == "C-EP1"
+    assert current["selected_ticket"]["id"] == "C-EP2"
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
-    assert tickets["C-EP1"]["status"] == "in_progress"
+    assert tickets["C-EP1"]["status"] == "done"
+    assert tickets["C-EP2"]["status"] == "in_progress"
     for ticket_id in ("C-03", "C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"
