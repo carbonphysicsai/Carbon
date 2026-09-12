@@ -167,13 +167,14 @@ class DevelopmentEvaluationPackService:
                     )
                 )
                 self.executions.admit(binding)
-                claimed = self.executions.claim_next(
+                claimed = self.executions.claim(
+                    binding.ref,
                     "development-pack-worker",
                     claim_id=(
                         f"pack.{assignment.pack.identity}.{handle.attempt_number}"
                     ),
                 )
-                if claimed is None or claimed.binding != binding:
+                if claimed.binding != binding:
                     raise PackFailure(PackCode.INDETERMINATE)
                 self.executions.mark_running(claimed.claim)
                 self.executions.record_partial(
