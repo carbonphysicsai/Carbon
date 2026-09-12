@@ -2309,6 +2309,33 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-EP1",
+      "event_type": "decision",
+      "event_id": "C-EP1-D1",
+      "owner_lane": "repository_owner",
+      "status": "implemented",
+      "summary": "The repository owner's issue-#142-linked assignment selects C-EP1 alone as a DEVELOPMENT-only Variant-A interposition. One separately admitted candidate job receives one private child pack; copies, retries and restarts retain that association, and the existing permitted fixture card is gated on durable closure. The decision supplies no sharing, public answers, real entropy, real archive/finality, reward change, scientific/security qualification, production or LIVE authority; C-EA2 and every real-vertical ticket remain blocked or unselected.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/.agent/tickets/C-EP1_development_evaluation_packs.md",
+      "affects": [
+        "WAVE-A/A4",
+        "WAVE-A/A5",
+        "WAVE-A/A6",
+        "WAVE-A/A7",
+        "WAVE-A/A8",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/NET-3",
+        "WAVE-C/C-01",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }

@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 65 captured tickets across Wave A, Wave B, and Wave C
+- 66 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 96 map-level change events
+- 97 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **none active**. Last completed: **C-EA1** (`done`). Next selected: **none selected**. C-EA1 is the last completed ticket, only for the exact closed synthetic development profile. No ticket is currently active or next-selected. C-03, C-08 and C-09 now have authoritative contracts but are unselected, unstarted and not dependency-ready. C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile; C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 remains LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No real/customer evidence, public network, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **C-EP1**. Last completed: **C-EA1** (`done`). Next selected: **none selected**. C-EP1 alone is selected for a bounded DEVELOPMENT-only Variant-A evaluation-pack implementation, and no later ticket is selected. Local focused and owner-boundary diagnostics pass; canonical acceptance and normal merge remain pending. C-EA1 is the last completed ticket only for its exact closed synthetic profile. C-03, C-08 and C-09 remain unselected, unstarted and not dependency-ready; C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile, and C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy, real/customer evidence, public network, reward change, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 

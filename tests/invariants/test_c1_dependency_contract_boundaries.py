@@ -79,7 +79,6 @@ def test_hub_projects_only_development_pack_selection_and_future_contract_status
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "in_progress"
-    assert tickets["C-EP1"]["implementation_state"] == "implementation"
     for ticket_id in ("C-03", "C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"

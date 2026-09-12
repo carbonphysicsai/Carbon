@@ -107,6 +107,14 @@
       "not_yet": "Real/customer/protected/official evidence, production retention, custody/KMS, replication, correlated-loss durability, availability/RTO/RPO, security qualification, real finalization and network eligibility remain unavailable.",
       "map_ref": "WAVE-C/C-EA1"
     },
+    "C-EP1": {
+      "title": "Give each DEVELOPMENT evaluation job one durable private pack",
+      "what": "Bind a separately admitted fixture evaluation job to one private child pack under the unchanged Challenge context, then release the permitted card only after durable closure.",
+      "why": "Retries, copies, lost responses and worker restarts must resume the same scientific opportunity instead of buying a new case draw or leaking early performance.",
+      "changes": "Carbon gains an additive transactional pack ledger, immutable attempt and result associations, C-01-backed recovery, closure-gated fixture summaries, focused fault tests and a local measurement baseline.",
+      "not_yet": "Sharing, public answers, real/provider entropy, protected cases, eligible real archive acknowledgement, rewards, scientific/security qualification, public networks, production and LIVE use remain unavailable.",
+      "map_ref": "WAVE-C/C-EP1"
+    },
     "C-02": {
       "title": "Bind Carbon to the actual authorized JAX implementation",
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
