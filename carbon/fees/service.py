@@ -532,6 +532,113 @@ class SubmissionService:
             record.state = SubmissionState.RUNNING
             return result
 
+    def _bind_development_pack(
+        self,
+        submission_id: SubmissionId,
+        requester_identity: RequesterIdentity,
+        evaluation_binding: EvaluationBinding,
+    ) -> SubmissionStatusView:
+        """Replace only the fixture evaluation slot before dispatch.
+
+        This is an internal composition seam for the nominal DEVELOPMENT pack
+        service.  It is intentionally not a miner-facing admission method and
+        cannot change generator, scoring, environment, fee, or retry policy.
+        """
+        requested_id = _submission_id(submission_id)
+        requester = _requester(requester_identity)
+        if type(evaluation_binding) is not EvaluationBinding:
+            raise SubmissionRequestError()
+        try:
+            owned_binding = EvaluationBinding(evaluation_binding._copy_bytes())
+        except Exception:  # noqa: BLE001 - stable boundary failure.
+            raise SubmissionRequestError() from None
+        with self._store.guard:
+            record = self._authorized_record_locked(requested_id, requester)
+            if (
+                record.state is not SubmissionState.QUEUED
+                or record.admission_kind is not AdmissionKind.FIXTURE
+                or record.seed_pin is None
+                or record.attempt_number != 1
+                or record.current_handle is not None
+            ):
+                raise SubmissionStateError()
+            pin = record.seed_pin
+            record.seed_pin = SeedPin(
+                challenge_key=_copy_challenge(pin.challenge_key),
+                generator_version=pin.generator_version,
+                generator_digest=pin.generator_digest,
+                scoring_version=pin.scoring_version,
+                scoring_digest=pin.scoring_digest,
+                evaluation_binding=owned_binding,
+            )
+            return _status(record)
+
+    def _record_private_development_result(
+        self,
+        execution_handle: ExecutionAttemptHandle,
+        internal_result: InternalResult,
+    ) -> SubmissionStatusView:
+        """Record an A6 result without publishing it.
+
+        The DEVELOPMENT pack owner closes its durable work boundary before it
+        exposes the corresponding A6 projection.  Legacy complete-and-publish
+        behavior remains unchanged.
+        """
+        supplied_handle = _handle(execution_handle)
+        with self._store.guard:
+            record = self._record_for_handle_locked(supplied_handle)
+            self._require_current_handle_locked(record, supplied_handle)
+            integration_error = SubmissionIntegrationError()
+            owned_result = _owned_internal_result(internal_result)
+            if (
+                owned_result is None
+                or record.admission_kind is not AdmissionKind.FIXTURE
+                or record.seed_pin is None
+                or not _result_matches_seed_pin(owned_result, record.seed_pin)
+                or owned_result.status is ScoreStatus.PACK_NOT_READY
+                or owned_result.status
+                not in (ScoreStatus.SCORED, ScoreStatus.MANDATORY_GATE_FAILED)
+            ):
+                self._integration_failure_locked(record, supplied_handle)
+                raise integration_error
+            scored_event = AttemptEvent(
+                supplied_handle.attempt_number, AttemptEventKind.SCORED
+            )
+            try:
+                disposition = self._store.card_store.write_internal(
+                    CardRecordKey(record.submission_id.value),
+                    RequesterAuthorizationKey(record.requester_identity.value),
+                    owned_result,
+                )
+            except Exception:  # noqa: BLE001 - trusted A6 seam fails closed.
+                raise integration_error from None
+            if disposition not in (
+                CardWriteDisposition.INSERTED,
+                CardWriteDisposition.ALREADY_PRESENT,
+            ):
+                raise SubmissionStoreError()
+            record.attempt_events = [*record.attempt_events, scored_event]
+            record.current_handle = None
+            record.state = SubmissionState.SCORED
+            return _status(record)
+
+    def _read_private_development_card(
+        self,
+        submission_id: SubmissionId,
+        requester_identity: RequesterIdentity,
+    ) -> EvaluationCard:
+        """Trusted adapter read; callers must not return it before pack closure."""
+        requested_id = _submission_id(submission_id)
+        requester = _requester(requester_identity)
+        with self._store.guard:
+            record = self._authorized_record_locked(requested_id, requester)
+            if record.state is not SubmissionState.SCORED:
+                raise SubmissionStateError()
+            return self._store.card_store.read_budgeted(
+                CardRecordKey(record.submission_id.value),
+                RequesterAuthorizationKey(record.requester_identity.value),
+            )
+
     def start_production_attempt(
         self,
         submission_id: SubmissionId,

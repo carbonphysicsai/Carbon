@@ -1,0 +1,43 @@
+{
+  "schema_version": "c-ep1-attack-dispositions/1",
+  "source_zip_sha256": "088d3e1182cbd8974c14ba6614a470cdcf3d5f3e6335c1db085699789ec5ffcb",
+  "source_report_match": "BYTE_IDENTICAL_TO_ARCHIVE_REPORT",
+  "scope": "DEVELOPMENT_VARIANT_A_ONLY",
+  "notes": [
+    "The source gauntlet is model/interface evidence, not a reproduced security qualification.",
+    "EXERCISED_ON_C_EP1 means only the named DEVELOPMENT boundary was tested.",
+    "The five source BLOCKED dispositions remain blocked and are not upgraded by C-EP1."
+  ],
+  "attacks": [
+    {"id":"AT-01","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"production policy/event ordering is outside the fixture slice"},
+    {"id":"AT-02","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"no multi-party policy publication surface exists"},
+    {"id":"AT-03","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"no production event selection or abort schedule exists"},
+    {"id":"AT-04","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"NET-3 immutable artifact and materialization digest conflicts reject"},
+    {"id":"AT-05","source":"REJECTED_IN_MODEL","c_ep1":"REJECTED_ONLY_IN_MODEL","reason":"C-EP1 pins configuration but does not claim hostile callback isolation"},
+    {"id":"AT-06","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"one candidate association persists and C-01 retry preserves the binding"},
+    {"id":"AT-07","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"fixture provider has no selectable production beacon event"},
+    {"id":"AT-08","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"private-contribution protocol is absent"},
+    {"id":"AT-09","source":"BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION","c_ep1":"BLOCKED","reason":"no qualified production provider or confidentiality proof"},
+    {"id":"AT-10","source":"REJECTED_IN_MODEL","c_ep1":"DEFERRED_FEATURE_UNREACHABLE","reason":"answer/root publication has no interface"},
+    {"id":"AT-11","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"fixture execution is not a qualified hostile-candidate sandbox"},
+    {"id":"AT-12","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"no real MMS protected-reference path is implemented"},
+    {"id":"AT-13","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"no hostile-worker egress qualification is claimed"},
+    {"id":"AT-14","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"cross-device isolation is outside the local fixture topology"},
+    {"id":"AT-15","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"no practice-to-official cache exists"},
+    {"id":"AT-16","source":"BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION","c_ep1":"BLOCKED","reason":"privileged host operator remains outside the secrecy boundary"},
+    {"id":"AT-17","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"membership is one candidate primary key and no late/share method exists"},
+    {"id":"AT-18","source":"REJECTED_IN_MODEL","c_ep1":"DEFERRED_FEATURE_UNREACHABLE","reason":"Variant A has no pending copack member and early summary is absent"},
+    {"id":"AT-19","source":"BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION","c_ep1":"BLOCKED","reason":"no authoritative actual-stack asset-lineage registry exists"},
+    {"id":"AT-20","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"premature close/read rejects and no time-lock or plaintext release exists"},
+    {"id":"AT-21","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"C-01 and pack result/materialization conflicts reject changed bytes"},
+    {"id":"AT-22","source":"BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION","c_ep1":"BLOCKED","reason":"signatures and hashes do not prove honest execution"},
+    {"id":"AT-23","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"fixture infrastructure failure closes incomplete without positive score"},
+    {"id":"AT-24","source":"REJECTED_IN_MODEL","c_ep1":"NOT_EXECUTED","reason":"existing candidate capacity is retained; selection precision is unqualified"},
+    {"id":"AT-25","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"nominal policy has no accepted/security flag and malformed state fails closed"},
+    {"id":"AT-26","source":"REJECTED_IN_MODEL","c_ep1":"DEFERRED_FEATURE_UNREACHABLE","reason":"Variant A implements no shared cache or cross-job quarantine"},
+    {"id":"AT-27","source":"REJECTED_IN_MODEL","c_ep1":"EXERCISED_ON_C_EP1","reason":"closure/result races and stale writes reject; exact replay is idempotent"},
+    {"id":"AT-28","source":"REJECTED_IN_MODEL","c_ep1":"DEFERRED_FEATURE_UNREACHABLE","reason":"no answer archive, rights gate, or sibling disclosure exists"},
+    {"id":"AT-29","source":"REJECTED_IN_MODEL","c_ep1":"DEFERRED_FEATURE_UNREACHABLE","reason":"no batching, waiting, throughput claim, or operating recommendation exists"},
+    {"id":"AT-30","source":"BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION","c_ep1":"BLOCKED","reason":"fixture identities do not qualify generator freshness or leakage criteria"}
+  ]
+}

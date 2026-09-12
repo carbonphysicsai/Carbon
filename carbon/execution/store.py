@@ -41,6 +41,7 @@ from .model import (
 )
 
 _SCHEMA = "c1-durable-execution/1"
+_WORKER_ATTACHMENT_TOKEN = object()
 
 
 def _canonical(value: object) -> str:
@@ -172,13 +173,16 @@ class DurableExecutionQueue:
         *,
         capacity: int = 10_000,
         id_factory: Callable[[], uuid.UUID] = uuid.uuid4,
+        _attachment_token: object | None = None,
     ) -> None:
         if (
             type(capacity) is not int
             or not 1 <= capacity <= 100_000
             or not callable(id_factory)
+            or _attachment_token not in (None, _WORKER_ATTACHMENT_TOKEN)
         ):
             raise ExecutionFailure(ExecutionCode.INVALID)
+        recover_interrupted = _attachment_token is None
         self.path = Path(path)
         self.capacity = capacity
         self._id_factory = id_factory
@@ -241,26 +245,27 @@ class DurableExecutionQueue:
             ):
                 if _digest(body) != body_digest:
                     raise ExecutionFailure(ExecutionCode.STORE)
-            interrupted = db.execute(
-                "SELECT submission_id,attempt_number,state FROM execution_attempt_v1 "
-                "WHERE state IN ('DISPATCHING','RUNNING')"
-            ).fetchall()
-            for submission_id, attempt_number, old_state in interrupted:
-                db.execute(
-                    "UPDATE execution_attempt_v1 SET state=? WHERE submission_id=? AND attempt_number=?",
-                    (
-                        ExecutionState.RECONCILIATION_REQUIRED.value,
+            if recover_interrupted:
+                interrupted = db.execute(
+                    "SELECT submission_id,attempt_number,state FROM execution_attempt_v1 "
+                    "WHERE state IN ('DISPATCHING','RUNNING')"
+                ).fetchall()
+                for submission_id, attempt_number, old_state in interrupted:
+                    db.execute(
+                        "UPDATE execution_attempt_v1 SET state=? WHERE submission_id=? AND attempt_number=?",
+                        (
+                            ExecutionState.RECONCILIATION_REQUIRED.value,
+                            submission_id,
+                            attempt_number,
+                        ),
+                    )
+                    self._event(
+                        db,
                         submission_id,
                         attempt_number,
-                    ),
-                )
-                self._event(
-                    db,
-                    submission_id,
-                    attempt_number,
-                    "RESTART_RECONCILIATION_REQUIRED",
-                    {"prior_state": old_state},
-                )
+                        "RESTART_RECONCILIATION_REQUIRED",
+                        {"prior_state": old_state},
+                    )
             db.execute("COMMIT")
         except ExecutionFailure:
             if db is not None and db.in_transaction:
@@ -273,6 +278,22 @@ class DurableExecutionQueue:
         finally:
             if db is not None:
                 db.close()
+
+    @classmethod
+    def attach(
+        cls,
+        path: Path,
+        *,
+        capacity: int = 10_000,
+        id_factory: Callable[[], uuid.UUID] = uuid.uuid4,
+    ) -> DurableExecutionQueue:
+        """Open a worker connection without declaring an owner restart."""
+        return cls(
+            path,
+            capacity=capacity,
+            id_factory=id_factory,
+            _attachment_token=_WORKER_ATTACHMENT_TOKEN,
+        )
 
     @contextmanager
     def _transaction(self):

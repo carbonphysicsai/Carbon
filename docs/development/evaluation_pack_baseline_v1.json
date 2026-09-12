@@ -1,0 +1,79 @@
+{
+  "claims": {
+    "independent_execution_integrity": false,
+    "production_entropy": false,
+    "scientific_exam": false,
+    "throughput_forecast": false
+  },
+  "end_to_end_fixture_ns": {
+    "cold_first": 7629458,
+    "warm_distinct_job": 7684792,
+    "warm_replay": 502167
+  },
+  "environment": {
+    "concurrency": 1,
+    "gpu_used": false,
+    "logical_cpu_count": 8,
+    "machine": "arm64",
+    "memory_bytes": 8589934592,
+    "python": "3.13.0",
+    "release": "24.6.0",
+    "system": "Darwin"
+  },
+  "ledger_event_timings": {
+    "ATTEMPT_BOUND": {
+      "count": 2,
+      "maximum_ns": 479542,
+      "minimum_ns": 341208,
+      "total_ns": 820750
+    },
+    "FIXTURE_EXECUTION": {
+      "count": 2,
+      "maximum_ns": 369834,
+      "minimum_ns": 291333,
+      "total_ns": 661167
+    },
+    "PACK_ASSIGNED": {
+      "count": 2,
+      "maximum_ns": 756459,
+      "minimum_ns": 527375,
+      "total_ns": 1283834
+    },
+    "PACK_CLOSED": {
+      "count": 2,
+      "maximum_ns": 506000,
+      "minimum_ns": 486541,
+      "total_ns": 992541
+    },
+    "RESULT_RECORDED": {
+      "count": 2,
+      "maximum_ns": 375083,
+      "minimum_ns": 371834,
+      "total_ns": 746917
+    },
+    "SUMMARY_DELIVERED": {
+      "count": 2,
+      "maximum_ns": 327417,
+      "minimum_ns": 319625,
+      "total_ns": 647042
+    }
+  },
+  "schema_version": "c-ep1-local-baseline/1",
+  "scope": "DEVELOPMENT_FIXTURE_ONLY",
+  "validator_count": 1,
+  "work": {
+    "distinct_jobs": 2,
+    "fixture_results": 2,
+    "fresh_packs": 2,
+    "incomplete_or_failed": 0,
+    "infrastructure_retries": 0,
+    "materialized_reference_cases": null,
+    "phase_count_limitation": "A8 does not expose qualified per-phase counts",
+    "reconstruction_obligations": 2,
+    "reconstruction_replicas": null,
+    "reference_attempts": null,
+    "replay_added_fresh_packs": 0,
+    "replay_equal": true,
+    "scored_results": 2
+  }
+}
