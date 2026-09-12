@@ -54,4 +54,3 @@ Run the repository's applicable canonical acceptance through
 `./scripts/dev/canonical.sh --full` or PR CI. Keep the private trace outside the
 commit. Check output digests before comparing runs; timing changes are expected,
 but source/config/environment identities and reconciliation must remain explicit.
-

@@ -190,4 +190,3 @@ Machine-readable outputs are in `.agent/evidence/wave_c/c-ep2-study/`. The
 committed trace is public-safe; the private trace is retained only in the local
 delivery bundle. This study is unqualified supporting evidence, not an external
 scientific result, qualified Carbon evidence or security certificate.
-

@@ -87,4 +87,3 @@ C-EP2 earns no scientific, reference, security, archive, network, reward,
 production, LIVE or Variant-B runtime authority. AT-09, AT-16, AT-19, AT-22 and
 AT-30 remain blocked. PR #140 remains design input only; issue #141 remains
 unrelated and open.
-
