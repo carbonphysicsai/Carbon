@@ -1,7 +1,8 @@
 # C-EP2 — Variant-A measurement and offline Variant-B decision
 
 **Wave:** C1 development evaluation foundations
-**Status:** `in_progress` — study complete; automated acceptance pending
+**Status:** `in_progress`
+**Delivery:** study complete; automated acceptance pending
 **Selection authority:** repository-owner C-EP2 assignment following merged PR #143
 **Depends on:** C-EP1
 **Primary Hub map_ref:** `WAVE-C/C-EP2`
