@@ -658,10 +658,13 @@ def _replay(config):
             sensitivities.append(
                 {
                     "group_overhead_units": overhead,
-                    "supported_savings_units": value["supported_savings_units"],
-                    "unconditional_savings_supported": value[
-                        "unconditional_savings_supported"
+                    "assumption_conditioned_savings_units": value[
+                        "assumption_conditioned_savings_units"
                     ],
+                    "modeled_savings_positive_under_declared_assumptions": value[
+                        "modeled_savings_positive_under_declared_assumptions"
+                    ],
+                    "empirical_savings_supported": value["empirical_savings_supported"],
                 }
             )
         output.append(
@@ -675,7 +678,7 @@ def _replay(config):
             }
         )
     return {
-        "schema_version": "carbon.c-ep2.replay-bundle.v1",
+        "schema_version": "carbon.c-ep2.replay-bundle.v2",
         "evidence_layer": EvidenceLayer.COUNTERFACTUAL_MODEL.value,
         "calibration": {
             "status": "UNCALIBRATED_FOR_REFERENCE_AND_CANDIDATE_WORK",
@@ -684,6 +687,10 @@ def _replay(config):
         "scenarios": output,
         "reference_sharing_implemented": False,
         "scientific_score_reuse": False,
+        "supersedes_reporting_semantics": (
+            "carbon.c-ep2.replay-bundle.v1 lower-bound labels only; "
+            "the frozen v1 observations remain historical evidence"
+        ),
     }
 
 
@@ -808,7 +815,7 @@ def run_study(
                 "already-admitted compatibility grouping",
                 "normalized reference/candidate/control work",
                 "last-member closure delay",
-                "break-even B overhead",
+                "assumption-conditioned B overhead scenarios",
             ],
         },
         "upfront_qualification_burden": "UNKNOWN_AND_SEPARATE_FROM_RECURRING_WORK",
@@ -857,7 +864,10 @@ def run_study(
         + "\n",
         "variant_a_observations_v1.json": json.dumps(observed, indent=2, sort_keys=True)
         + "\n",
-        "variant_b_replay_v1.json": json.dumps(replay, indent=2, sort_keys=True) + "\n",
+        "variant_b_replay_correction_v2.json": json.dumps(
+            replay, indent=2, sort_keys=True
+        )
+        + "\n",
         "profiler_summary_v1.json": json.dumps(profiler, indent=2, sort_keys=True)
         + "\n",
         "environment_manifest_v1.json": json.dumps(

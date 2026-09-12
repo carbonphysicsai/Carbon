@@ -233,6 +233,12 @@ def test_b_groups_only_ready_compatible_same_challenge_jobs() -> None:
     assert max(group["group_size"] for group in b["groups"]) == 2
 
 
+def test_b_rejects_grouped_jobs_with_contradictory_reference_work() -> None:
+    jobs = (_job("cheap", reference=10), _job("expensive", reference=11))
+    with pytest.raises(StudyFailure, match="inconsistent reference requirements"):
+        simulate_variant_b(jobs, group_bound=2, group_overhead=_quantity(0))
+
+
 def test_shared_closure_waits_for_slow_or_unresolved_member_without_global_barrier() -> (
     None
 ):
@@ -248,22 +254,77 @@ def test_shared_closure_waits_for_slow_or_unresolved_member_without_global_barri
     assert b["jobs"]["independent"]["summary_at"] is not None
 
 
-def test_unknown_b_overhead_prevents_unconditional_savings_claim() -> None:
+def test_unknown_b_overhead_reports_zero_overhead_scenario_not_a_bound() -> None:
     comparison = compare_variants(
         (_job("one"), _job("two")),
         group_bound=2,
         group_overhead=_quantity(None, "membership implementation absent"),
     )
     assert comparison["variant_b"]["total_work_units"] is None
-    assert comparison["variant_b"]["eligible_completions"] == 2
+    assert comparison["variant_b"]["eligible_completions"] is None
+    assert comparison["variant_b"]["eligible_completions_scenario"] == 2
     assert comparison["variant_b"]["jobs"]["one"]["summary_at"] is None
-    assert (
-        comparison["variant_b"]["jobs"]["one"]["summary_at_without_unknown_overhead"]
-        is not None
-    )
-    assert comparison["supported_savings_units"] is None
-    assert not comparison["unconditional_savings_supported"]
+    assert comparison["variant_b"]["jobs"]["one"]["summary_at_scenario"] is not None
+    assert comparison["variant_b"]["scenario_overhead_units_applied"] == 0
+    assert not comparison["variant_b"]["scenario_is_universal_bound"]
+    assert comparison["assumption_conditioned_savings_units"] is None
+    assert not comparison["modeled_savings_positive_under_declared_assumptions"]
+    assert not comparison["empirical_savings_supported"]
     assert not comparison["reference_sharing_implemented"]
+
+
+def test_endogenous_grouping_counterexample_recomputes_declared_overhead() -> None:
+    jobs = tuple(
+        ReplayJob(
+            name,
+            "same-challenge",
+            arrived,
+            "same-physical-contract",
+            ModelQuantity(1),
+            ModelQuantity(10),
+            ModelQuantity(1),
+        )
+        for name, arrived in (("a", 0), ("b", 13), ("c", 14), ("d", 15))
+    )
+    unknown = simulate_variant_b(
+        jobs,
+        group_bound=3,
+        group_overhead=ModelQuantity(None, missing_reason="unmeasured B overhead"),
+    )
+    known_four = simulate_variant_b(
+        jobs, group_bound=3, group_overhead=ModelQuantity(4)
+    )
+
+    assert [group["members"] for group in unknown["groups"]] == [
+        ["a"],
+        ["b"],
+        ["c", "d"],
+    ]
+    assert unknown["scenario_work_units"] == 38
+    assert unknown["jobs"]["c"]["summary_at_scenario"] == 39
+    assert unknown["total_work_units"] is None
+    assert [group["members"] for group in known_four["groups"]] == [
+        ["a"],
+        ["b", "c", "d"],
+    ]
+    assert known_four["total_work_units"] == 36
+    assert known_four["jobs"]["c"]["summary_at"] == 36
+    assert known_four["total_work_units"] < unknown["scenario_work_units"]
+    assert (
+        known_four["jobs"]["c"]["summary_at"]
+        < unknown["jobs"]["c"]["summary_at_scenario"]
+    )
+
+
+def test_numeric_synthetic_overhead_is_not_empirical_savings_support() -> None:
+    comparison = compare_variants(
+        (_job("one"), _job("two")),
+        group_bound=2,
+        group_overhead=_quantity(0),
+    )
+    assert comparison["assumption_conditioned_savings_units"] == 20
+    assert comparison["modeled_savings_positive_under_declared_assumptions"]
+    assert not comparison["empirical_savings_supported"]
 
 
 def test_exact_attempt_claim_does_not_select_unrelated_queued_work(tmp_path) -> None:

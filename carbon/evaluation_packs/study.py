@@ -454,6 +454,8 @@ def _simulate(
         _known(job.closure_work)
     pending = list(ordered)
     current = 0
+    overhead_known = group_overhead.value is not None
+    scenario_overhead = group_overhead.value if overhead_known else 0
     groups: list[dict[str, object]] = []
     completions: dict[str, dict[str, int | str | None]] = {}
     base_work = 0
@@ -473,6 +475,14 @@ def _simulate(
             )
         for job in group:
             pending.remove(job)
+        if sharing and len(group) > 1:
+            reference_requirements = {
+                (job.reference_work.value, job.reference_work.unit) for job in group
+            }
+            if len(reference_requirements) != 1:
+                raise StudyFailure(
+                    "shared group has inconsistent reference requirements"
+                )
         dispatch_at = current
         reference_cost = _known(first.reference_work)
         if not sharing:
@@ -493,79 +503,87 @@ def _simulate(
         closure_cost = sum(_known(job.closure_work) for job in group)
         current += closure_cost
         base_work += closure_cost
-        overhead_value = group_overhead.value
-        if overhead_value is not None:
-            current += overhead_value
+        current += scenario_overhead
         unresolved = any(job.outcome is ReplayOutcome.UNRESOLVED for job in group)
-        group_close_without_unknown_overhead = None if unresolved else current
-        group_close = (
-            group_close_without_unknown_overhead if overhead_value is not None else None
-        )
+        scenario_group_close = None if unresolved else current
+        group_close = scenario_group_close if overhead_known else None
         for job in group:
             summary_at = (
                 group_close
                 if group_close is not None and job.outcome is ReplayOutcome.COMPLETED
                 else None
             )
-            summary_at_lower_bound = (
-                group_close_without_unknown_overhead
-                if group_close_without_unknown_overhead is not None
+            scenario_summary_at = (
+                scenario_group_close
+                if scenario_group_close is not None
                 and job.outcome is ReplayOutcome.COMPLETED
                 else None
             )
             completions[job.job_id] = {
                 "outcome": job.outcome.value,
-                "ordinary_queue_wait": dispatch_at - job.admitted_at,
+                "ordinary_queue_wait": (
+                    dispatch_at - job.admitted_at if overhead_known else None
+                ),
+                "ordinary_queue_wait_scenario": dispatch_at - job.admitted_at,
                 "intentional_fill_wait": 0,
-                "reference_ready_at": reference_ready_at,
-                "candidate_started_at": member_start[job.job_id],
+                "reference_ready_at": reference_ready_at if overhead_known else None,
+                "reference_ready_at_scenario": reference_ready_at,
+                "candidate_started_at": (
+                    member_start[job.job_id] if overhead_known else None
+                ),
+                "candidate_started_at_scenario": member_start[job.job_id],
                 "candidate_execution_work": _known(job.candidate_work),
-                "candidate_finished_at": member_finish[job.job_id],
+                "candidate_finished_at": (
+                    member_finish[job.job_id] if overhead_known else None
+                ),
+                "candidate_finished_at_scenario": member_finish[job.job_id],
                 "required_evidence_closure_work": _known(job.closure_work),
                 "waiting_for_other_pack_members": (
                     last_member_finish - member_finish[job.job_id]
+                    if overhead_known
+                    else None
+                ),
+                "waiting_for_other_pack_members_scenario": (
+                    last_member_finish - member_finish[job.job_id]
                 ),
                 "summary_at": summary_at,
-                "summary_at_without_unknown_overhead": summary_at_lower_bound,
+                "summary_at_scenario": scenario_summary_at,
                 "submission_to_summary": (
                     None if summary_at is None else summary_at - job.admitted_at
                 ),
-                "submission_to_summary_lower_bound": (
+                "submission_to_summary_scenario": (
                     None
-                    if summary_at_lower_bound is None
-                    else summary_at_lower_bound - job.admitted_at
+                    if scenario_summary_at is None
+                    else scenario_summary_at - job.admitted_at
                 ),
                 "shared_pack_closure_delay": (
                     None
                     if summary_at is None
                     else summary_at - member_finish[job.job_id]
                 ),
-                "shared_pack_closure_delay_lower_bound": (
+                "shared_pack_closure_delay_scenario": (
                     None
-                    if summary_at_lower_bound is None
-                    else summary_at_lower_bound - member_finish[job.job_id]
+                    if scenario_summary_at is None
+                    else scenario_summary_at - member_finish[job.job_id]
                 ),
             }
         groups.append(
             {
-                "dispatch_at": dispatch_at,
+                "dispatch_at": dispatch_at if overhead_known else None,
+                "dispatch_at_scenario": dispatch_at,
                 "members": [job.job_id for job in group],
                 "group_size": len(group),
                 "compatibility_key": first.compatibility_key,
                 "closed_at": group_close,
-                "closed_at_without_unknown_overhead": (
-                    group_close_without_unknown_overhead
-                ),
+                "closed_at_scenario": scenario_group_close,
             }
         )
-    overhead_known = group_overhead.value is not None
-    total_work = base_work + (group_overhead.value or 0) * len(groups)
-    completed = sum(
-        value["summary_at_without_unknown_overhead"] is not None
-        for value in completions.values()
+    scenario_work = base_work + scenario_overhead * len(groups)
+    scenario_completed = sum(
+        value["summary_at_scenario"] is not None for value in completions.values()
     )
     return {
-        "schema_version": "carbon.c-ep2.replay-result.v1",
+        "schema_version": "carbon.c-ep2.replay-result.v2",
         "evidence_layer": EvidenceLayer.COUNTERFACTUAL_MODEL.value,
         "policy": "B_HYPOTHETICAL" if sharing else "A_SINGLETON",
         "intentional_fill_wait": 0,
@@ -573,14 +591,26 @@ def _simulate(
         "groups": groups,
         "jobs": completions,
         "offered_distinct_jobs": len(ordered),
-        "eligible_completions": completed,
-        "unfinished_or_nonpositive": len(ordered) - completed,
-        "reference_attempts": reference_attempts,
-        "base_work_units_without_unknown_overhead": base_work,
+        "eligible_completions": scenario_completed if overhead_known else None,
+        "eligible_completions_scenario": scenario_completed,
+        "unfinished_or_nonpositive": (
+            len(ordered) - scenario_completed if overhead_known else None
+        ),
+        "unfinished_or_nonpositive_scenario": len(ordered) - scenario_completed,
+        "reference_attempts": reference_attempts if overhead_known else None,
+        "reference_attempts_scenario": reference_attempts,
+        "base_work_units_in_scenario": base_work,
         "group_overhead_units": group_overhead.value,
         "group_overhead_missing_reason": group_overhead.missing_reason,
-        "total_work_units": total_work if overhead_known else None,
-        "total_work_is_lower_bound": not overhead_known,
+        "scenario_overhead_units_applied": scenario_overhead,
+        "scenario_kind": (
+            "DECLARED_OVERHEAD_DYNAMIC_GROUPING"
+            if overhead_known
+            else "ZERO_OVERHEAD_COUNTERFACTUAL_DYNAMIC_GROUPING"
+        ),
+        "scenario_work_units": scenario_work,
+        "total_work_units": scenario_work if overhead_known else None,
+        "scenario_is_universal_bound": False,
         "groups_use_future_information": False,
         "one_validator": True,
     }
@@ -621,22 +651,29 @@ def compare_variants(
         jobs, group_bound=group_bound, group_overhead=group_overhead
     )
     a_work = variant_a["total_work_units"]
-    b_base = variant_b["base_work_units_without_unknown_overhead"]
+    b_base = variant_b["base_work_units_in_scenario"]
     if type(a_work) is not int or type(b_base) is not int:
         raise StudyFailure("invalid replay accounting")
     break_even_total_overhead = a_work - b_base
     b_work = variant_b["total_work_units"]
-    supported_savings = a_work - b_work if type(b_work) is int else None
+    conditioned_savings = a_work - b_work if type(b_work) is int else None
     return {
-        "schema_version": "carbon.c-ep2.variant-comparison.v1",
+        "schema_version": "carbon.c-ep2.variant-comparison.v2",
         "evidence_layer": EvidenceLayer.COUNTERFACTUAL_MODEL.value,
         "variant_a": variant_a,
         "variant_b": variant_b,
-        "supported_savings_units": supported_savings,
-        "break_even_total_b_overhead_units": max(0, break_even_total_overhead),
-        "unconditional_savings_supported": (
-            type(supported_savings) is int and supported_savings > 0
+        "assumption_conditioned_savings_units": conditioned_savings,
+        "modeled_savings_positive_under_declared_assumptions": (
+            type(conditioned_savings) is int and conditioned_savings > 0
         ),
+        "fixed_membership_break_even_total_b_overhead_units": max(
+            0, break_even_total_overhead
+        ),
+        "fixed_membership_break_even_assumption": (
+            "membership fixed to this run's zero/declaration-overhead grouping; "
+            "not a bound for endogenous regrouping"
+        ),
+        "empirical_savings_supported": False,
         "scientific_score_comparison_supported": False,
         "reference_sharing_implemented": False,
     }
