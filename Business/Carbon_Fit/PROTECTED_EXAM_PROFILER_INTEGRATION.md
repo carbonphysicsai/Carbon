@@ -1,109 +1,80 @@
-# CPES-1: profiler and Engineering integration
+# CPES-1 v0.2: continuous-loop profiler and Engineering integration
 
-**Status:** proposed integration requirements for the Carbon Fit research branch. No production code or browser enforcement is included. Current workbench v0.1 remains an offline scenario calculator. The following fields and states are planning vocabulary, not new official result or authority types.
+**Status:** proposed integration requirements, not implementation or acceptance. Read [CPES-1 v0.2](PROTECTED_EXAM_STANDARD.md) with [its controls](PROTECTED_EXAM_CONTROLS.json). This revision supersedes v0.1's universal scheduled-round and blanket-feedback-barrier requirements in the research proposal. Current domain contracts remain controlling pending explicit reconciliation.
 
-Related: [minimum standard](PROTECTED_EXAM_STANDARD.md), [machine-readable controls and attack cases](PROTECTED_EXAM_CONTROLS.json).
+## 1. Smallest useful implementation
 
-## 1. A protection gate before an operating recommendation
+Preserve the existing miner interaction: submit an immutable strategy, obtain a receipt and execution expectation, retrieve the permitted result. No miner reveal transaction, universal freeze calendar or new prize per exam pack.
 
-Add **Case protection** as a mandatory subsection of the existing **Exam** check. Do not replace or average the existing six checks. Reference adequacy, physical requirements and case protection remain separate prerequisites.
+Add Case protection under the existing Exam review, not as a new averaged score. Keep UNASSESSED, PROTECTION_BLOCKED and READY_FOR_DOMAIN_REVIEW as planning states only. The existing registry/evidence authority, not an editable draft, establishes real eligibility.
 
-The intended decision order is:
+Show three comparable operating proposals using the same security floor:
 
-    scope the physical job
-    -> inspect scientific and protection support
-    -> identify designs eligible for further review
-    -> compare operating costs for those designs
-    -> request exact domain qualification before official operation
+| Proposal | Added batch-fill wait | Reference behavior |
+|---|---|---|
+| Fresh/no-sharing comparison baseline | None | Independent fresh pack per appropriate evaluation job; required paired comparison stays common. |
+| Default internal queue sharing | None | Reuse one fresh pack only among compatible jobs already committed before case selection. |
+| Optional bounded-wait sharing | Finite, evidence-supported, published bound | Accumulate permitted jobs, then lock membership before case selection; run a valid underfilled group at the bound. |
 
-The offline tool may show hypothetical cost comparisons while support is missing, but must label them **CONDITIONAL SCENARIO; NOT CLEARED FOR OFFICIAL USE**. It must not choose an insecure design as the recommended live operating profile because it has a higher exams/day result.
+The first is an analysis baseline, not an additional permanent service mode. Shared reference does not change candidate evidence depth. Persistent adaptive reservoirs remain outside this default.
 
-Suggested review outputs:
+## 2. What the profiler must calculate
 
-| Planning state | Meaning |
+Use one validator's declared resources and observed compatible proposal supply. Retain CPU/GPU classes, memory and concurrent-worker entitlements; do not convert unrelated device times without support.
+
+For each proposed wait policy, produce:
+- actual group sizes, not just configured maxima;
+- fresh reference cases, reference attempts and required witness/escalation work;
+- complete eligible candidate comparisons, distinct proposals and repeated reconstructions separately;
+- recurring total work, cost per eligible completion and abandoned/incomplete work;
+- queue time, intentional fill wait, reference readiness, execution time and total feedback latency separately;
+- public answer-key availability delay separately from the result-summary delay;
+- best-supported progress or time-to-target from independent campaign evidence, when available;
+- implementation and upfront qualification cost/risk in a separate record.
+
+The continuous no-wait queue is the relevant baseline. Do not claim its opportunistic savings again as a benefit of adding a wait. Larger admitted fields may require different evidence: use the qualified reference/evidence cost for each field, not an unchanged convenient pack.
+
+The toy break-even `((b-1)*R-H)/b` applies only to a full, homogeneous group with unchanged evidence obligations. A real cost model sums actual groups, all required candidate work and failure costs. Underfilled groups pay the actual reference bill. A configured maximum is not a predicted group size. The old `ceil(n/b)*R` calculator remains explicitly hypothetical until its demand/scheduling assumptions hold.
+
+Do not choose a production wait value from a cost slider. First exclude scientifically/security-ineligible proposals, then compare recurring cost and end-to-end latency against owner-supplied service requirements. Measure discovery impact under matched resource budgets; no invented monetary value for delay. If those data are absent, return a conditional Pareto comparison and the next measurement, not a universal optimum.
+
+## 3. Answer-publication review
+
+Add one declared mode per proposal: public archive after verified retirement, or confidential evidence with authorized audit. Publication rights are independent of reference price. No source rating or cheap reference automatically authorizes disclosure.
+
+Capture public-safe references for: intended archive contents; required-use closure; prediction/result binding; pack retirement; cross-pack/cross-Challenge lineage; rights and disclosure approval; release execution and incident handling. Do not store active seeds, answers, candidate secrets or private customer cases in the workbench.
+
+The backend must derive release eligibility from the authoritative ledger and verified permissions. A client Boolean, arbitrary evidence URL or user-entered signature cannot mint approval. The public archive projection must be separate from active A6/MCP protected results. Existing root-secrecy law remains until its owner approves an exact scoped amendment.
+
+Result summaries and plaintext answers have different conditions. Early summaries require proven non-influence on pending jobs under the approved execution and reward/disclosure path. Without it, hold the affected pack's summaries. Plaintext publication requires the stronger retired-answer condition in CPES-1. Never publish on a timer merely because a worker was expected to finish.
+
+## 4. Reuse existing owners
+
+| Owner/seam | Minimum change |
 |---|---|
-| UNASSESSED | Required case-protection inputs/evidence are missing. |
-| PROTECTION_BLOCKED | A control fails, a known exploit remains, or a required deployment assumption lacks support. |
-| READY_FOR_DOMAIN_REVIEW | The reviewer has a complete proposal and evidence package; no security or scientific qualification follows. |
+| Challenge registry and Dossier | Bind supported execution/publication profile, candidate field, freshness/overlap and exact qualification references. |
+| A4/Data Management/Trustless Verification | Qualify provider/event assignment and any retired-data derivation disclosure. Keep existing root types and role separation; no custom cryptographic composition from this ticket. |
+| NET-3/A7/assembly | Preserve immutable methods and copy/retry semantics. Reconcile fixed per-version evaluation context with future multiple pack identities before runtime changes. |
+| Execution queue | Bind eligible group membership before case knowability; default to no intentional fill wait; enforce any permitted wait/closure independently per Challenge. |
+| Reference and evidence services | Bind exact truth assets and predictions, reuse only within eligibility, preserve failures and retire assets against new protected use. |
+| A6/disclosure and audit | Control result projection and separate safe archive release; verify atomic release eligibility and preserve independent execution evidence. |
+| Scientific comparison and rewards | Retain common fresh comparison where required; no historic-score substitution, baseline reset or reward created merely by pack completion. |
+| Workbench/website | Surface conditional economics and protection blockers without granting authority or collecting protected material. |
 
-Only the existing authorized registry/evidence path can establish the eligibility of a real profile. A browser checkbox, imported JSON, user-entered qualification ID, or producer-signed receipt cannot mint approval. Exact identity, scope, signer authority, validity and revocation must be verified outside the editable client draft.
+One platform provider and one execution queue policy should serve compatible Challenges. Do not create a per-physics cryptosystem, a second reward engine or a global assessment barrier. Single-validator compute does not waive independent integrity/audit evidence or assume extra validators for free.
 
-## 2. Minimum review record
+## 5. Bounded development and acceptance
 
-Extend the existing ScopedJobProposal/ReferenceRolePlan/OpportunityReview design rather than add an alternate scientific engine. Store:
+First integrate planning fields and the cost comparison with synthetic/public fixtures. Map exact runtime transitions and unresolved owners. Do not deploy a vault, call a real entropy provider, enable public answer release or alter official scoring as a side effect.
 
-- proposed CPES profile and exact task/reference/environment identities;
-- P1-P8 control evidence references, responsible reviewers and unresolved issues;
-- commitment and randomness/provider procedure, event timing, and custody topology;
-- candidate-lock and execution-lock implementation; role-isolation and output-binding evidence;
-- cohort admission/cutoff/release policy, maximum admitted field, candidate/replica/attempt policy, and source of each value;
-- cache scope, reference-asset eligibility checks, retirement/replenishment and incident policy;
-- statistical comparison/promotion policy and source support for its candidate field;
-- attacker model, public/practice/intake/notification surfaces, privileged-host assumptions and audit independence;
-- attack campaign references, deployment identity, remaining risks and requalification triggers.
+Required faithful-stack tests include late/colluding admission, mutable dependency changes, shared-pack early feedback, cancellation/retry influence, prediction writes racing release, retired-pack alias/reentry, disclosure of an active parent key, near-duplicate future-case exposure, confidential-data release, underfilled batches, deadline stalling, selective abort and cross-Challenge interference.
 
-Do not store actual seeds, answer files, hidden case identifiers, leaked test payloads or confidential customer cases in the workbench, client brief or public repository. The draft captures public-safe descriptions and opaque authorized references.
+The registry retains all 26 original attack IDs, with v0.2 expected behavior, and adds four retirement/operating tests. They remain NOT_EXECUTED. Package/arithmetic tests are not substitutes for them.
 
-The control registry supplies null placeholders for unsupplied production values. Unknown group size, reveal policy or provider acceptance blocks the real profile. It need not prevent a harmless offline development calculation.
+Use equal-resource traffic/load and discovery experiments to compare no-wait and bounded-wait policies. Freeze scientific requirements before profiling. Confirm policy choices on held-out traffic/physics campaigns, including low supply, bursty supply and malicious churn. Select study size and acceptance through owners, not prototype defaults. Repeat after Wave C with matched hardware and timing, then with fresh unexposed scientific evidence.
 
-## 3. Cost and cadence changes
+## 6. Authority and handoff
 
-Keep one validator's supplied compute as the planning unit. Security review and independent audits may require other accountable actors; do not confuse that with assuming additional validators or free duplicate compute.
+Continue through #139/#142 and the selected Engineering board. This research revision does not select an active runtime ticket, change mainnet dependencies or authorize deployment. The existing v0.1 workbench source remains a conversation artifact, not executable repository assets. Its import schema needs an explicit migration; old missing protection fields remain unassessed.
 
-Keep three records separate:
-
-1. **Upfront qualification:** threat-model review, cryptographic/entropy review, isolation testing, leakage experiments and initial approval risk/cost.
-2. **Recurring work:** commitment/proof verification, closed-group scheduling, isolated execution, required audits, reference attempts/replenishment, logging/receipts, cache reads and incident/abort reserve.
-3. **Client workload:** latency, accuracy, cost and rights for deployed use.
-
-For the actual admitted rounds, account for total recurring work as:
-
-    sum(candidate reconstruction + allowed training-reference work
-        + inference/measurements + candidate-scoped security overhead)
-    + sum(fresh round reference work + round-scoped security/audit work)
-    + required separate promotion work + recorded failed/aborted work
-
-Convert only matched resource units. Model queues and round-fill delay separately from active compute. A post-cancellation partial cohort still incurs the reference work already performed. Do not assume every attempted candidate or reserved seat produces a completed independent proposal.
-
-The v0.1 calculator's `ceil(n/b)*R` is a batching scenario bound. For a real proposal, `b` must not exceed supported admission/reuse/selection limits, and actual closed rounds determine reference production. A large `b` reduces amortized reference work but does not qualify reuse or increase the number of independent cases. Account for low proposal supply, unavailable references, and stalled group closure.
-
-Reports should show **protected complete comparisons per validator-compute-day**, time to permitted feedback, and supported progress/time-to-target. Unprotected, incomplete, duplicate or unaudited attempts must not inflate the headline. Keep operational failures visible without converting them to scientific failures.
-
-## 4. Integration by existing owner
-
-| Existing owner | Required work; no implied implementation permission |
-|---|---|
-| Challenge/Validation Dossier owners | Bind CPES profile, qualification evidence, finite candidate field, physical-case support/collisions and censoring. |
-| A4 / Data Management / Trustless Verification | Resolve the production provider, event timing, private-material combination, canonical bindings and any future retired-material disclosure. Retain the current typed 32-byte root and role derivation. |
-| Candidate commitment / assembly / reconstruction owners | Pin producer inputs, reject mutable dependencies, isolate permitted training data and seal the built artifact before protected inference. |
-| Wave C execution/reference/evidence owners | Enforce case/answer isolation, exact TruthAsset reuse, global round membership, release barrier, typed failures and integrity/audit receipts through existing lifecycle types. |
-| Miner MCP / disclosure / Landscape owners | Prevent early or cross-service leakage; expose only registered projections; do not use predicted quality to vary scientific evidence. |
-| Frontier promotion owner | Use its qualified fresh common confirmation and repeated-decision policy; no promotion from cost scenarios or unrelated historical score comparisons. |
-| Workbench / website Engineering (#139) | Add the planning gate, conditional arithmetic labels, public-safe evidence references and import-forgery tests. Keep client data collection isolated from official evidence. |
-| Security and Operations | Approve named trust assumptions from evidence, set custody/key/retention procedures, qualify incident/abort behavior and measure recurring overhead. |
-
-This proposal does not select a Wave C ticket, move a roadmap dependency, reopen B-E4 or make its optional utility campaign a launch requirement. Actual incentive-bearing use still needs the existing scientific/security acceptance, now with this proposed concrete protection evidence. Engineering must route any incompatible lifecycle/provider behavior through a prospective contract amendment.
-
-## 5. Engineering acceptance and red-team handoff
-
-The companion registry contains 26 attack scenarios. Each specifies the attempted violation and expected result. Engineering must implement and execute them on the exact proposed stack. Static checks on the registry are not attack tests.
-
-Required study order:
-
-- Test immutable ordering and transition rules with synthetic cases, including group close, partial failure, duplicate/retry, late reentry, cancellation and exposure.
-- Test the approved cryptographic provider/commitment primitives and their composition, including failure/withholding and malformed/proof mismatches.
-- Exercise malicious candidate/loader/callback code against reconstruction, reference, inference, metadata, temporary state, network and public surfaces.
-- Attempt colluding-account reuse, oracle construction, pack membership and cumulative feedback inference. Use independent shadow cases and hold out attack variants for confirmation.
-- Test corrupt-operator/result-substitution paths against the actual audit or stronger verification design. A signed lie must not pass merely because the producer owns a valid key.
-- Rehearse compromise of keys, cache, root host, reference service and client intake; verify quarantine propagates to affected pending decisions while preserving history.
-- Measure full-path cost and feedback latency with the controls enabled. Repeat after Wave C on matched cases/hardware/clocks and separately on unexposed confirmation cases.
-
-Owner-supplied error/leakage risk criteria determine the statistical study size. Do not copy toy study counts, zero observed exploits, or benchmark throughput into a production qualification claim.
-
-## 6. Smallest remaining decisions
-
-The proposed policy defaults are explicit: frozen cohorts, one feedback exposure round per pack, shared exact references inside that group, no adaptive cross-group reuse, and no unqualified persistent reservoir. To activate an implementation, owners still need to approve the provider/commitment/custody design, evidence-supported admission/attempt/release limits, independent audit and statistical resolution, plus deployment and incident procedures. Those values are absent, not silently delegated to a miner or the profiler.
-
-## 7. Adoption status for this delivery
-
-Documentation, machine-readable requirements and Engineering handoff only. No deployed backend, local workbench UI or seeding/scoring implementation changed. The standard and integration requirements can merge as a proposal without representing any of the missing security decisions as approved.
+Source basis: CPES-1 v0.1 at `1fa7341768838469116cdb070d3691550f444db0`; latest owner instruction preferring continuous mining and safe retired-answer transparency. No production values, qualified security findings or live throughput measurements are supplied by this revision.
