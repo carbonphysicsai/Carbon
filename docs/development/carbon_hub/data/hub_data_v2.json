@@ -2575,6 +2575,13 @@
       "map_ref": "WAVE-C/C-EP2"
     },
     {
+      "id": "c-ep3-input-evidence",
+      "match_type": "prefix",
+      "path": ".agent/evidence/wave_c/c-ep3-inputs/",
+      "impact_class": "mapped_detail",
+      "map_ref": "WAVE-C/C-EP3"
+    },
+    {
       "id": "c-ep2-preregistration",
       "match_type": "exact",
       "path": ".agent/preregistrations/C-EP2_measurement_study_v1.json",

@@ -4381,6 +4381,9 @@ events:
     summary: "After C-EP2 corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144, the owner selected C-EP3 alone to acquire missing C-02/C-04 source facts and measure one eligible detached public numerical component. The task preserves COLLECT MISSING INPUTS FIRST and adds no Variant-B runtime, sharing, protected reference, candidate evaluation, reward, production, network, real-finalization or qualification authority."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/9f344f34462be7eaca0d8c0f0e4bbcad99d1e601/.agent/tickets/C-EP3_reference_component_input_acquisition.md"
     affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/C-EP1"
       - "WAVE-C/C-EP2"
