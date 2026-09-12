@@ -2547,15 +2547,29 @@
         "impact_class": "mapped_detail",
         "map_ref": "WAVE-B/B-E4"
       },
-      {
-        "id": "c1-contract-materialization-evidence",
-        "match_type": "exact",
-        "path": ".agent/evidence/wave_c/c1-contract-materialization.md",
-        "impact_class": "mapped_detail",
-        "map_ref": "WAVE-C"
-      },
-      {
-        "id": "ticket-evidence",
+    {
+      "id": "c1-contract-materialization-evidence",
+      "match_type": "exact",
+      "path": ".agent/evidence/wave_c/c1-contract-materialization.md",
+      "impact_class": "mapped_detail",
+      "map_ref": "WAVE-C"
+    },
+    {
+      "id": "c-ep2-study-evidence",
+      "match_type": "prefix",
+      "path": ".agent/evidence/wave_c/c-ep2-study/",
+      "impact_class": "mapped_detail",
+      "map_ref": "WAVE-C/C-EP2"
+    },
+    {
+      "id": "c-ep2-preregistration",
+      "match_type": "exact",
+      "path": ".agent/preregistrations/C-EP2_measurement_study_v1.json",
+      "impact_class": "mapped_detail",
+      "map_ref": "WAVE-C/C-EP2"
+    },
+    {
+      "id": "ticket-evidence",
         "match_type": "ticket_record",
         "path": ".agent/evidence/",
         "impact_class": "mapped_detail",

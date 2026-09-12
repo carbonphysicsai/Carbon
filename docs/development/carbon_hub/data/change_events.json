@@ -2317,7 +2317,7 @@
       "owner_lane": "repository_owner",
       "status": "implemented",
       "summary": "The repository owner's issue-#142-linked assignment selects C-EP1 alone as a DEVELOPMENT-only Variant-A interposition. One separately admitted candidate job receives one private child pack; copies, retries and restarts retain that association, and the existing permitted fixture card is gated on durable closure. The decision supplies no sharing, public answers, real entropy, real archive/finality, reward change, scientific/security qualification, production or LIVE authority; C-EA2 and every real-vertical ticket remain blocked or unselected.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/tickets/C-EP1_development_evaluation_packs.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/C-EP1_development_evaluation_packs.md",
       "affects": [
         "WAVE-A/A4",
         "WAVE-A/A5",
@@ -2346,6 +2346,9 @@
       "summary": "C-EP2 measures merged C-EP1 Variant A and models hypothetical zero-fill-wait sharing offline only. The frozen study observes no physical reference phase and retains unknown compatibility demand and B control/recovery overhead, so its recommendation is COLLECT MISSING INPUTS FIRST. No Variant-B runtime, shared membership, wait, early result, answer publication, production entropy, reward route, real finalization or qualification is added.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md",
       "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
         "WAVE-C",
         "WAVE-C/C-EP1",
         "WAVE-C/C-01",
