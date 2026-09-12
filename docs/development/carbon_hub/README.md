@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 67 captured tickets across Wave A, Wave B, and Wave C
+- 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 99 map-level change events
+- 100 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-EP2**. Last completed: **C-EP1** (`done`). Next selected: **none selected**. C-EP1 is the last completed ticket after PR #143's accepted RUNTIME_FULL run and normal merge. C-EP2 alone is selected for bounded DEVELOPMENT measurement of that Variant-A fixture path and a detached, uncalibrated Variant-B replay; no later ticket is selected. The study recommends COLLECT MISSING INPUTS FIRST because physical reference cost, compatibility demand and B overhead remain unknown. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference, public network, reward change, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **C-EP3**. Last completed: **C-EP2** (`done`). Next selected: **none selected**. C-EP2 is complete after corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144 as 96099aeac9e5022bda9d94730b1d7d955cb6c1d5. C-EP3 alone is selected for bounded public-reference input acquisition and one detached component probe; no later ticket is selected, and no real C1 or Variant-B implementation ticket is selected. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence only for its exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference qualification, public network, reward change, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 

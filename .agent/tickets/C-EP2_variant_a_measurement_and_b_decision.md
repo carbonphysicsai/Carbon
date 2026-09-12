@@ -1,8 +1,10 @@
 # C-EP2 — Variant-A measurement and offline Variant-B decision
 
 **Wave:** C1 development evaluation foundations
-**Status:** `in_progress`
-**Delivery:** study complete; automated acceptance pending
+**Status:** `done` in bounded merged DEVELOPMENT scope
+**Delivery:** corrected head `89f06eda74b15dd336e57a512f228c6b37cca77d`
+passed RUNTIME_FULL run `34718392697` and normally merged in PR #144 as
+`96099aeac9e5022bda9d94730b1d7d955cb6c1d5`
 **Selection authority:** repository-owner C-EP2 assignment following merged PR #143
 **Depends on:** C-EP1
 **Primary Hub map_ref:** `WAVE-C/C-EP2`
@@ -86,7 +88,7 @@ is not a bound on the dynamic policy.
       report state all missing physical/reference/workload evidence.
 - [x] No Variant B/C runtime, sharing, wait, early summary, public answer,
       production, reward or real-finalization route exists.
-- [ ] Applicable automated acceptance and Merge gate pass at the expected head.
+- [x] Applicable automated acceptance and Merge gate pass at the expected head.
 
 ## Required final recommendation
 

@@ -1,0 +1,42 @@
+{
+  "schema_version": "carbon.c-ep3-input-acquisition.v1",
+  "study_revision": "bed9331e1983b4218af7df99679293e0c83837f9",
+  "records": [
+    {
+      "missing_decision_input": "Actual reconstruction source",
+      "exact_source_or_source_still_required": "Still required: the intended authorized JAX reconstruction repository/archive, immutable revision, rights, reproducible build and complete training/inference interface. PR #40 head 5bde3d8f5983d7136682c7b8eb2f17d57a59e5fe is only a non-authoritative forward-pass parity candidate.",
+      "source_owner_permission_state": "Physics/SciML or recorded source owner must select and permit the intended source. No such decision was found.",
+      "what_was_inspected": "Current repository, C-02/C-03 dependency contracts, supplied workbench, available workspace artifacts, issue records and PR #40. The PR supplies FNO.__call__(x) fp32 forward parity only for (batch, channels, nx) to (batch, out_channels, nx).",
+      "what_can_be_measured_now": "No authorized C-02 construction, training, checkpoint reconstruction or inference component. The supplied workbench declares public TRAIN arrays but no JAX implementation.",
+      "what_remains_unavailable": "Actual train/infer symbols and signatures; state/checkpoint format; input/output units, layout, dtype and batching contract; RNG/data-loader ownership; JIT/warm-up/sharding/hardware needs; dependency lock; and failure semantics.",
+      "smallest_next_action_and_responsible_owner": "Owner/Physics-SciML supplies one immutable permission-cleared source/interface package using the consolidated request. Carbon then evaluates C-02 for selection; upstream renaming is not required."
+    },
+    {
+      "missing_decision_input": "Actual numerical reference calculation",
+      "exact_source_or_source_still_required": "Carbon_Challenge_Authoring_Workbench_V1.zip, SHA-256 40f1fd47d62dd2269f8e141e6bb398d03a403aa6eb3ac08750b49dd68018bcdc, release digest sha256:7805f87c3b4745454ec9c8fa852a20de6731d8f85e1356eb5d91a708cdafa7ac.",
+      "source_owner_permission_state": "Supplied and registered for public DEVELOPMENT research only; assets_rights SYNTHETIC_INTERNAL; scientifically_qualified false; not selected for protected or official reference use.",
+      "what_was_inspected": "All 85 archive entries were listed safely; 84 manifest files passed size and SHA-256 checks. ETDRK4 primary, Cole-Hopf witness, Burgers population/configuration, evidence, tests, methods, rights and limitations were inspected before execution.",
+      "what_can_be_measured_now": "One detached source-defined public Burgers reference-audit case using the archived immutable case, ETDRK4 primary/refinement, Cole-Hopf witness, source diagnostics and actual NPZ persistence/retrieval.",
+      "what_remains_unavailable": "Scientific adequacy, protected-case runtime, custody, official reference identity, production sampling/tolerances, independent execution integrity and integrated C-EP1 reference cost.",
+      "smallest_next_action_and_responsible_owner": "Use the C-EP3 component result only as authoring input. Scientific reference owner later decides whether this method merits C-04 research/qualification work after C-03 and required evidence exist."
+    },
+    {
+      "missing_decision_input": "Compatible workload and demand",
+      "exact_source_or_source_still_required": "An eligible real submission trace from an actually offered service, including observation period, availability, canonical deduplication, admissions, Challenge/context compatibility at dispatch, completions and adaptive feedback rounds.",
+      "source_owner_permission_state": "No eligible real/miner trace was found. Existing C-EP2 streams are manually authored DEVELOPMENT scenarios and fixture observations, not miner demand.",
+      "what_was_inspected": "C-EP2 protocol, scenarios, traces, report, repository evidence and supplied bundles relevant to evaluation packs.",
+      "what_can_be_measured_now": "Only C-EP1 fixture lifecycle behavior and synthetic replay scenarios already reported by C-EP2.",
+      "what_remains_unavailable": "Representative offered demand, distinct canonical methods, compatible jobs simultaneously available at dispatch, completion censoring and adaptive feedback rounds. Missing demand is unknown, not zero.",
+      "smallest_next_action_and_responsible_owner": "When a permitted service exists, the service/measurement owner freezes a bounded private collection period on C-EP2's existing observation boundary; do not launch a collector or public endpoint now."
+    },
+    {
+      "missing_decision_input": "Variant-B overhead and common-comparison meaning",
+      "exact_source_or_source_still_required": "A separately authorized B design plus scientific rules for common cases, candidate-field size, TRAIN/EVAL separation, reconstruction repetitions, uncertainty/evidence depth and promotion/comparison.",
+      "source_owner_permission_state": "Unavailable and intentionally unselected. These remain execution/scientific-owner decisions; C-EP3 has no sharing authority.",
+      "what_was_inspected": "Corrected C-EP2 dynamic replay, CPES proposal status, C-02/C-04/C-05/C-07 contracts, reward and disclosure boundaries.",
+      "what_can_be_measured_now": "A-side SQLite/orchestration work and the detached public reference component only. Neither is B membership/recovery overhead.",
+      "what_remains_unavailable": "Membership/seal transactions, compatibility validation, shared-reference lifecycle, per-member failure/cancellation, last-member closure, restart/reconciliation/stale-write controls, TRAIN/EVAL randomness decision and added evidence/disclosure work.",
+      "smallest_next_action_and_responsible_owner": "Keep B costs unknown. Obtain reconstruction and compatible-demand evidence plus scientific comparison rules before deciding whether to authorize a B-specific DEVELOPMENT experiment."
+    }
+  ]
+}

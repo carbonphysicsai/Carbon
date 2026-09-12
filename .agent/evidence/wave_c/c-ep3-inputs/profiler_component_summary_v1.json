@@ -1,0 +1,41 @@
+{
+  "schema_version": "carbon.challenge-profiler.component-study.v1",
+  "study": "C-EP3",
+  "current_implemented_policy": "VARIANT_A_DEVELOPMENT_SINGLETON",
+  "hypothetical_policy": "VARIANT_B_NOT_IMPLEMENTED",
+  "categories": {
+    "external_scientific_result": null,
+    "carbon_hypothesis": "Compatible jobs might avoid repeated reference calculation, subject to common-case scientific semantics and closure delay.",
+    "proposed_carbon_experiment": "No B experiment selected. First obtain the authorized C-02 source/interface and eligible compatible-demand evidence.",
+    "qualified_carbon_evidence": null
+  },
+  "supporting_observation": {
+    "evidence_class": "OBSERVED_PUBLIC_NUMERICAL_PROBE",
+    "scope": "One unqualified public Burgers component on one CPU host",
+    "primary_cold_ms": 297.089166,
+    "primary_warm_ms": [288.438125, 289.820875],
+    "refinement_ms": 1906.978041,
+    "witness_ms": [33.182875, 64.702125],
+    "candidate_reconstruction_ms": null,
+    "candidate_inference_ms": null,
+    "compatible_demand": null,
+    "variant_b_overhead": null,
+    "shared_pack_closure_delay": null
+  },
+  "theoretically_shareable_only_if": [
+    "reference identity, physical case and sampling identity are common",
+    "reference role, eligibility, evidence depth and uncertainty rules match",
+    "custody and disclosure permissions allow reuse",
+    "TRAIN and reconstruction obligations remain separately satisfied"
+  ],
+  "upfront_qualification_burden": "UNKNOWN_AND_SEPARATE_FROM_RECURRING_WORK",
+  "scientific_and_protection_blockers": [
+    "reference method and proposed limits are unqualified",
+    "authorized C-02 JAX source/interface absent",
+    "protected runtime/custody and independent execution integrity absent",
+    "common-comparison and evidence-depth rules absent",
+    "AT-09, AT-16, AT-19, AT-22 and AT-30 remain blocked"
+  ],
+  "decision": "COMPONENT_DATA_COLLECTED; SHARING_STILL_UNSUPPORTED",
+  "recommended_next_investment": "Owner/Physics-SciML supplies one authorized immutable JAX source/interface package for possible C-02 selection; then measure reconstruction/inference on declared hardware before revisiting sharing."
+}
