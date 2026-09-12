@@ -1,9 +1,9 @@
 # C-EP1 implementation evidence
 
-**Status:** implementation in progress  
-**Baseline:** `150ab9313c4cc7cd23e032aebd78bce829db7675`  
-**Branch:** `agent/c-ep1-development-evaluation-packs`  
-**Issue:** https://github.com/carbonphysicsai/Carbon/issues/142  
+**Status:** implementation in progress
+**Baseline:** `150ab9313c4cc7cd23e032aebd78bce829db7675`
+**Branch:** `agent/c-ep1-development-evaluation-packs`
+**Issue:** https://github.com/carbonphysicsai/Carbon/issues/142
 **PR / accepted head / merge:** pending
 
 ## Artifact provenance

@@ -1,11 +1,11 @@
 # C-EP1 — DEVELOPMENT evaluation-pack lifecycle
 
-**Wave:** C1 development evaluation foundations  
-**Status:** `in_progress`  
-**Selection authority:** repository-owner Codex task linked from issue #142  
-**Depends on:** NET-3, C-01, A4 fixture entropy, A5, A6, A7, A8  
-**Primary Hub map_ref:** `WAVE-C/C-EP1`  
-**Evidence:** `.agent/evidence/wave_c/c-ep1.md`  
+**Wave:** C1 development evaluation foundations
+**Status:** `in_progress`
+**Selection authority:** repository-owner Codex task linked from issue #142
+**Depends on:** NET-3, C-01, A4 fixture entropy, A5, A6, A7, A8
+**Primary Hub map_ref:** `WAVE-C/C-EP1`
+**Evidence:** `.agent/evidence/wave_c/c-ep1.md`
 **Gauntlet:** local evidence ZIP SHA-256
 `088d3e1182cbd8974c14ba6614a470cdcf3d5f3e6335c1db085699789ec5ffcb`
 
